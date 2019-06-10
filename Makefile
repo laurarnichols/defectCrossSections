@@ -6,7 +6,7 @@
 #                                                                      #
 ########################################################################
 
-QE-5.3.0_Path = /Users/gdbarmparis/postdoc/Pantelides/codes/espresso-5.3.0
+QE-5.3.0_Path = /mnt/c/Users/LJUDY/OneDrive/MyStuff/Research/Vanderbilt/q-e-qe-5.3/
 
 f90 = gfortran
 
