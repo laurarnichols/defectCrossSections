@@ -1,0 +1,8 @@
+&lsfInput
+  phononsInput = './phonons_SiVH3newDisp.dat'
+  continueLSFfromFile = 'lsfVsEwithUpTo12phonons'
+  maximumNumberOfPhonons = 13
+  temperature = 300 ! K
+  maxEnergy = 10 ! eV
+  nMC = 20000000
+/

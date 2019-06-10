@@ -1,0 +1,19 @@
+&TME_Input
+ !
+ exportDirSD    = '/Users/gdbarmparis/postdoc/development/toySystem/overlap/ExportPC'  ! path to the export dir
+ exportDirPC    = '/Users/gdbarmparis/postdoc/development/toySystem/overlap/ExportPC'  ! path to the export dir
+ !
+ elementsPath   = '/Users/gdbarmparis/postdoc/development/toySystem/overlap/TMEs'      ! path to store outputs
+ !
+ iBandIinit  = 17         ! initial state initial band
+ iBandIfinal = 25         ! initial state final band
+ iBandFinit  = 17         ! final state initial band
+ iBandFfinal = 25         ! final state final band
+ !
+ !ki = 1                   ! initial k-point, if ki and kf are not set all k-points will be calculated
+ !kf = 1                   ! final k-point
+ !
+ calculateVfis = .false.   ! Set to .true. only if there is an incoming electron that will be captured in the system.
+ !
+ eBin = 0.050 ! eV
+/

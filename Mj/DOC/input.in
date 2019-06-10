@@ -1,0 +1,15 @@
+&MjInput
+  !
+  QEInput = './SiVH3.in'
+  !
+  phononsInput = './phonons_SiVH3newDisp.dat'
+  equilibriumAtomicPositions = './equilibriumAtomicPositions66'
+  !
+  temperature = 300
+  maxDisplacement = 0.03 ! alat
+  !
+  modeI  = 1
+  modeF  = 1
+  !
+  qPoint = 1
+/

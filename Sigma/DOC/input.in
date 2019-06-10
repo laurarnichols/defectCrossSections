@@ -1,0 +1,6 @@
+&elphscat
+  VfisInput = './VfisVsE'
+  LSFinput  = './lsfVsEwithUpTo12phonons'
+  !
+  smearing = 0.002
+/
