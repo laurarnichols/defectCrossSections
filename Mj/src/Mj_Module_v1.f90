@@ -505,7 +505,6 @@ contains
       !
       fn = trim(QEInput)
       fn = fn(INDEX(QEInput, '/', BACK=.TRUE.):INDEX(QEInput, '.in')-1)
-      WRITE(*,*) fn
       !
       write(iostd, '(" Writing new QE input file for mode :", i10)') s2L(iMode)
       !
