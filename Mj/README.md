@@ -32,12 +32,12 @@ Mj
 `Mj_main.f90-->Mj_Module_v1.f90:readInputs()`
 * Check if output file already exists
 * Delete the output file if any exists
-* Open a new output file
+* Open a new output file (the name is given in the variable declarations: `output=[file name]`)
 * Call `initialize()`
 
 `Mj_main.f90-->Mj_Module_v1.f90:readInputs()-->initialize()`
 * Set default values for all variables to test if they were read from the files
-* Go back to `readInputs()`
+* Return to `readInputs()`
 
 `Mj_main.f90-->Mj_Module_v1.f90:readInputs()`
 * Read input from command line (or from file if you use command given in the [How to Run](#how-to-run) section)
@@ -46,4 +46,10 @@ _Note: The input must be in a specific form as the variables are grouped into a 
 * Call `checkAndUpdateInput()`
 
 `Mj_main.f90-->Mj_Module_v1.f90:readInputs()-->checkAndUpdateInput()`
-
+* Check each variable to see if it still has the default value
+* If it does:
+	* Output an error message to the output file
+	* Tell the program to abort
+* Else:
+	* Output the new variable value to the output file
+* Return to `readInputs()`
