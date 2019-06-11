@@ -15,11 +15,15 @@ The commands for Ubuntu are
 * `sudo apt install libopenmpi-dev`
 
 ### Set up Quantum Espresso
+* Download Quantum Espresso 5.3 from the [GitHub repo](https://github.com/QEF/q-e/releases?after=qe-6.2.0) (click on `tar.gz` under `qe-5.3`)
+* Change to whatever directory you saved the tar file in on the CLI
+* Decompress the tar file using `tar -xvzf q-e-qe-5.3.tar.gz`
+* Change into the `carrierCrossSections` directory
 * Open the `Makefile` and edit the path to Quantum Espresso to match your system 
 
 _Note: Make sure that your path does not have a `/` at the end or there will be an error_
 * Generate the `make.sys` file by typing `make initialize` 
-* Copy over the `make.sys` file generated in the `carrierCrossSections` directory to the `q-e-qe-5.3` folder
+* Copy over the `make.sys` file generated in the `carrierCrossSections` directory to the `q-e-qe-5.3` directory
 * Change into the `q-e-qe-5.3` directory and run `./configure`
 * Confirm that the last line of output is `configure: success`
 * Run `make pw pp` to build the PW and PP packages
