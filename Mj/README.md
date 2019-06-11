@@ -2,6 +2,7 @@
 ## Directory Structure and Files
 ```markdown
 Mj
+|	README.md
 |_______DOC
 |	|	SiVH3.in
 |	|	equilibriumAtomicPositions66
