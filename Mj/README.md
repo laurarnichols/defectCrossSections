@@ -2,7 +2,6 @@
 ## Directory Structure and Files
 ```markdown
 Mj
-|	a
 |_______DOC
 |	|	SiVH3.in
 |	|	equilibriumAtomicPositions66
@@ -41,4 +40,9 @@ Mj
 
 `Mj_main.f90-->Mj_Module_v1.f90:readInputs()`
 * Read input from command line (or from file if you use command given in the [How to Run](#how-to-run) section)
+
 _Note: The input must be in a specific form as the variables are grouped into a [namelist](https://docs.oracle.com/cd/E19957-01/805-4939/6j4m0vnc6/index.html)_
+* Call `checkAndUpdateInput()`
+
+`Mj_main.f90-->Mj_Module_v1.f90:readInputs()-->checkAndUpdateInput()`
+
