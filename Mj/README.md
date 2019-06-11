@@ -53,3 +53,31 @@ _Note: The input must be in a specific form as the variables are grouped into a 
 * Else:
 	* Output the new variable value to the output file
 * Return to `readInputs()`
+
+`Mj_main.f90-->Mj_Module_v1.f90:readInputs()`
+* Call `readPhonons()`
+
+`Mj_main.f90-->Mj_Module_v1.f90:readInputs()-->readPhonons()`
+* Set up some local variables
+* Open the file given as `phononsInput`
+* Read the number of q points and the number of atoms from the first line of the file
+* Output the read values to the output file
+* Calculate the number of modes as `nModes = 3*nAtoms - 3`
+* Read in a blank line from file
+* Allocate space for the `atomD` and `atomM` arrays
+* __What are atomD and atomM arrays representing?__
+* Initialize all values in `atomD` and `atomM` arrays to 0.0
+* Loop through the next `nAtoms` lines and read in the data from the `atomD` and `atomM` arrays
+* Read in a blank line from file
+* Allocate space for the `phonQ`, `phonF`, and `phonD` arrays 
+* __What are phonQ, phonF, and phonD arrays representing?__
+* Initialize all values in `phonQ`, `phonF`, and `phonD` arrays to 0.0
+* For each q point:
+	* Read in one column of the `phonQ` array
+	* For each mode:
+		* Read in a blank line from file
+		* Read in the frequency in THz
+		* Convert the frequency to Hartree units
+		* Read in a trash line
+		* For each atom:
+			* Read in the `phonD` array
