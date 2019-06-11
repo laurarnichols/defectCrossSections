@@ -504,7 +504,8 @@ contains
       endif
       !
       fn = trim(QEInput)
-      fn = fn(:INDEX(QEInput, '.in')-1)
+      fn = fn(INDEX(QEInput, '/', BACK=.TRUE.):INDEX(QEInput, '.in')-1)
+      WRITE(*,*) fn
       !
       write(iostd, '(" Writing new QE input file for mode :", i10)') s2L(iMode)
       !
@@ -520,7 +521,7 @@ contains
       !
       fn = trim(modeFolder)//"/"//trim(fn)
       !
-      open(2, file=trim(fn), status='unknown')
+      open(2, file=trim(fn), status="unknown")
       !
       open(1, file=trim(QEInput), status="old")
       !
