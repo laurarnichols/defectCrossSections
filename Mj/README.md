@@ -19,8 +19,10 @@ Mj
 ```
 
 ## How to Run
-* Change into the `Mj/src/` directory
-* Execute `cat ../DOC/input.in | ./Mj.x` to send the contents of the `input.in` file into the program as input
+* Change into the `DOC` directory
+* Execute `cat input.in | ../src/Mj.x` to send the contents of the `input.in` file into the program as input
+* The output messages will be held in the `status` file now in the `DOC` directory
+* The program will generate a new QE input file for given mode(s), each in their own directory
 
 ## Code Walkthrough
 
@@ -104,3 +106,5 @@ _Note: The input must be in a specific form as the variables are grouped into a 
 * Call `computeGeneralizedDisplacements()`
 
 `Mj_main.f90:MjME-->computeGeneralizedDisplacements()`
+_From here, the code gets more scientific. Because there are no comments and the variable names aren't clear,
+I can't tell what the code is doing exactly.`
