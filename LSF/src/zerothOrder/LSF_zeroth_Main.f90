@@ -1,22 +1,26 @@
 program lineShapeFunction
   !
+  ! Pull in modules
   use mpi
   use lsf
   !
   implicit none
   !
+  ! Define an integer for ????
   integer :: lll
   !
+  ! Initialize mpi and set up processes
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD, numprocs, ierr)
   !
+  ! If root process
   if ( myid == root ) then
     !
+    ! Start a timer
     call cpu_time(ti)
     !
-    ! Reading input, initializing and checking all variables of the calculation.
-    !
+    ! Read input, check all variables needed and initialize the calculation.
     call readInputs()
     !
     call computeGeneralizedDisplacements()
@@ -27,18 +31,22 @@ program lineShapeFunction
     !
   endif
   !
+  ! Broadcast calculation parameters to all processes
   call MPI_BCAST(nModes   ,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(maximumNumberOfPhonons,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(minimumNumberOfPhonons,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(nEnergies,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr) 
   call MPI_BCAST(deltaE,     1, MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !
+  ! For all processes that aren't the root
   if ( myid /= root ) then
+    ! Allocate space for arrays
     allocate( phonF(nModes), x(nModes), Sj(nModes), coth(nModes), wby2kT(nModes) )
     allocate( besOrderNofModeM(0:maximumNumberOfPhonons + 1, nModes) )
 !    allocate( Vfis(-nEnergies:nEnergies) )
   endif
   !
+  ! Broadcast arrays to all processes
   call MPI_BCAST( phonF, size(phonF), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST( x, size(x), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST( Sj, size(Sj), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
@@ -47,11 +55,13 @@ program lineShapeFunction
   call MPI_BCAST( besOrderNofModeM, size(besOrderNofModeM), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
 !  call MPI_BCAST( Vfis, size(Vfis), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !
+  ! Allocate space for arrays
   allocate( lsfVsEbyBands(-nEnergies:nEnergies) )
   allocate( iEbinsByBands(-nEnergies:nEnergies) )
   !
   allocate( pj(nModes) )
   !
+  ! If root process
   if ( myid == root ) then
     !
     !if ( maximumNumberOfPhonons > 0 ) then
