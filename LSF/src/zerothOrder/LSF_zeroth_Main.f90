@@ -64,8 +64,7 @@ program lineShapeFunction
   ! If root process
   if ( myid == root ) then
     !
-    !if ( maximumNumberOfPhonons > 0 ) then
-    if ( ( minimumNumberOfPhonons < 2 ) .and. ( maximumNumberOfPhonons > 0 ) ) then
+    if ( ( minimumNumberOfPhonons <= 1 ) .and. ( 1 <= maximumNumberOfPhonons ) ) then
       !
       ! One phonon
       !
@@ -99,7 +98,7 @@ program lineShapeFunction
       !
     endif
     !
-    if ( ( minimumNumberOfPhonons < 3 ) .and. ( maximumNumberOfPhonons > 1 ) ) then
+    if ( ( minimumNumberOfPhonons <= 2 ) .and. ( 2 <= maximumNumberOfPhonons ) ) then
       !
       ! Two phonons
       !
@@ -153,8 +152,9 @@ program lineShapeFunction
   iModeIs(:) =  0
   iModeFs(:) = -1
   !
-  !if ( maximumNumberOfPhonons > 2 ) then
-  if ( ( minimumNumberOfPhonons < 4 ) .and. ( maximumNumberOfPhonons > 2 ) ) then
+  if ( ( minimumNumberOfPhonons <= 3 ) .and. ( 3 <= maximumNumberOfPhonons ) ) then
+    !
+    ! Three phonons
     !
     lsfVsEbyBands(:) = 0.0_dp
     iEbinsByBands(:) = 0
@@ -216,8 +216,9 @@ program lineShapeFunction
     !
   endif
   !
-  !if ( maximumNumberOfPhonons > 3 ) then
-  if ( ( minimumNumberOfPhonons < 5 ) .and. ( maximumNumberOfPhonons > 3 ) ) then
+  if ( ( minimumNumberOfPhonons <= 4 ) .and. ( 4 <= maximumNumberOfPhonons ) ) then
+    !
+    ! Four phonons
     !
     lsfVsEbyBands(:) = 0.0_dp
     iEbinsByBands(:) = 0
@@ -300,7 +301,7 @@ program lineShapeFunction
     !
   endif
   !
-  if ( maximumNumberOfPhonons > 4 ) then
+  if ( maximumNumberOfPhonons >= 5 ) then
   !if ( ( minimumNumberOfPhonons < 6 ) .and. ( maximumNumberOfPhonons > 4 ) ) then
     !
     open(unit=un, file="/dev/urandom", access="stream", form="unformatted", action="read", status="old", iostat=istat)
@@ -496,10 +497,10 @@ program lineShapeFunction
     !
   endif
   !
- 101 format("   Total number of configurations of ", i4, " phonons by ", i4, " bands : ", E20.10E3)
- 102 format("   Total number of configurations of ", i4, " phonons by ", i4, " bands sampled : ", E20.10E3)
- 103 format("   Total number of configurations of ", i4, " phonons by ", i4, " bands calculated : ", E20.10E3)
- 104 format("   Each sampled configuration will be weighted by : ", E20.10E3)
+  101 format("   Total number of configurations of ", i4, " phonons by ", i4, " bands : ", E20.10E3)
+  102 format("   Total number of configurations of ", i4, " phonons by ", i4, " bands sampled : ", E20.10E3)
+  103 format("   Total number of configurations of ", i4, " phonons by ", i4, " bands calculated : ", E20.10E3)
+  104 format("   Each sampled configuration will be weighted by : ", E20.10E3)
   !
   call MPI_FINALIZE(ierr)
   !
