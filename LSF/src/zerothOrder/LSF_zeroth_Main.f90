@@ -7,7 +7,9 @@ program lineShapeFunction
   implicit none
   !
   ! Define an integer for ????
-  integer :: lll
+  integer :: lll, iPhonon
+  !
+  character(len=2) :: charI
   !
   ! Initialize mpi and set up processes
   call MPI_INIT(ierr)
@@ -61,245 +63,138 @@ program lineShapeFunction
   !
   allocate( pj(nModes) )
   !
-  ! If root process
-  if ( myid == root ) then
+  if ( minimumNumberOfPhonons > 2 ) then
     !
-    if ( ( minimumNumberOfPhonons <= 1 ) .and. ( 1 <= maximumNumberOfPhonons ) ) then
-      !
-      ! One phonon
-      !
-      lsfVsEbyBands(:) = 0.0_dp
-      iEbinsByBands(:) = 0
-      !
-      call lsfMbyOneBand(1)
-      !
-      ! calculate the DOS and update the total lsfVsE
-      !
-      call calculateDE(1, iEbinsByBands, de)
-      !
-      write(iostd,*) 'DE', 1,  de
-      flush(iostd)
-      !
-      lsfVsE(:) = lsfVsE(:) + lsfVsEbyBands(:)/de
-      !
-      open(1, file='lsfVsEwithUpTo1phonons', status='unknown')
-      !
-      write(1,'("#", i10, " energies", i5, " phonons")') nEnergies, 1
-      !
-      do iE = -nEnergies, nEnergies
-        E = real(iE, dp)*deltaE
-        !vg = 1.0_dp
-        !if (E > 0.0_dp) vg = sqrt(2.0_dp*E)
-        write(1,'(F16.8,2E18.6e3)') E*HartreeToEv, lsfVsE(iE), lsfVsEbyBands(iE)/de
-!twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg
-      enddo
-      !
-      close(1)
-      !
-    endif
-    !
-    if ( ( minimumNumberOfPhonons <= 2 ) .and. ( 2 <= maximumNumberOfPhonons ) ) then
-      !
-      ! Two phonons
-      !
-      lsfVsEbyBands(:) = 0.0_dp
-      iEbinsByBands(:) = 0
-      !
-      call cpu_time(t1)
-      !
-      call lsfMbyOneBand(2)
-      call lsfMbyTwoBands(2)
-      !
-      call cpu_time(t2)
-      !
-      write(iostd,'(" 2 modes, time needed :," , f10.2, " secs.")') t2-t1
-      flush(iostd)
-      !
-      ! calculate the DOS and update the total lsfVsE
-      !
-      call calculateDE(2, iEbinsByBands, de)
-      !
-      write(iostd,*) 'DE', 2,  de
-      flush(iostd)
-      !
-      lsfVsE(:) = lsfVsE(:) + lsfVsEbyBands(:)/de
-      !
-      open(2, file='lsfVsEwithUpTo2phonons', status='unknown')
-      !
-!      write(2,'("# ", i5, " phonons")') 2
-      write(2,'("#", i10, " energies", i5, " phonons")') nEnergies, 2
-      do iE = -nEnergies, nEnergies
-        E = real(iE, dp)*deltaE
-        !vg = 1.0_dp
-        !if (E > 0.0_dp) vg = sqrt(2.0_dp*E)
-        write(2,'(F16.8,2E18.6e3)') E*HartreeToEv, lsfVsE(iE), lsfVsEbyBands(iE)/de
-!twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg
-      enddo
-      !
-      close(2)
-      !
-    endif
-    !
-    !   call lsfDeterministicOneAndTwoBands()
-    !
-    !deallocate ( lsfVsEbyPhonons )
-    !
-  endif
-  !
-  allocate( iModeIs(0:numprocs-1) )
-  allocate( iModeFs(0:numprocs-1) )
-  !
-  iModeIs(:) =  0
-  iModeFs(:) = -1
-  !
-  if ( ( minimumNumberOfPhonons <= 3 ) .and. ( 3 <= maximumNumberOfPhonons ) ) then
-    !
-    ! Three phonons
-    !
-    lsfVsEbyBands(:) = 0.0_dp
-    iEbinsByBands(:) = 0
-    !
-    if ( myid == root ) then
-      !
-      call lsfMbyOneBand(3)
-      call lsfMbyTwoBands(3)
-      !
-      call parallelIsFsBy3()
-      !
-      !do lll = 0, numprocs -1 
-      !  write(iostd, *) '3', lll, iModeIs(lll), iModeFs(lll)
-      !enddo
-      !
-    endif
-    !
-    call MPI_BCAST(iModeIs, size(iModeIs), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(iModeFs, size(iModeFs), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-    !
-    call lsfMbyThreeBands(3)
+    allocate( iModeIs(0:numprocs-1) )
+    allocate( iModeFs(0:numprocs-1) )
     !
     allocate ( iEbinsByPhonons(-nEnergies:nEnergies), lsfVsEbyPhonons(-nEnergies:nEnergies) )
     !
-    iEbinsByPhonons = 0
-    lsfVsEbyPhonons = 0.0_dp
-    !
-    CALL MPI_REDUCE(iEbinsByBands, iEbinsByPhonons, size(iEbinsByBands), MPI_INTEGER, MPI_SUM, root, MPI_COMM_WORLD, ierr)
-    CALL MPI_REDUCE(lsfVsEbyBands, lsfVsEbyPhonons, size(lsfVsEbyPhonons), &
-                                                               MPI_DOUBLE_PRECISION, MPI_SUM, root, MPI_COMM_WORLD, ierr)
-    !
-    if ( myid == root ) then
-      !
-      call calculateDE(3, iEbinsByPhonons, de)
-      lsfVsE(:) = lsfVsE(:) + lsfVsEbyPhonons(:)/de
-      !
-      write(iostd,*) 'DE', 3,  de
-      flush(iostd)
-      !
-      open(1, file='lsfVsEwithUpTo3phonons', status='unknown')
-      !
-!      write(1,'("# ", i5, " phonons")') 3
-      write(1,'("#", i10, " energies", i5, " phonons")') nEnergies, 3
-      !
-      do iE = -nEnergies, nEnergies
-        !
-        E = real(iE, dp)*deltaE
-        !
-        !vg = 1.0_dp
-        !if (E > 0.0_dp) vg = sqrt(2.0_dp*E)
-        write(1,'(F16.8,2E18.6e3)') E*HartreeToEv, lsfVsE(iE), lsfVsEbyPhonons(iE)/de
-!twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg
-      enddo
-      close(1)
-      !
-    endif
-    !
-    deallocate ( iEbinsByPhonons, lsfVsEbyPhonons )
-    !
-  endif
+  end if
   !
-  if ( ( minimumNumberOfPhonons <= 4 ) .and. ( 4 <= maximumNumberOfPhonons ) ) then
-    !
-    ! Four phonons
-    !
-    lsfVsEbyBands(:) = 0.0_dp
-    iEbinsByBands(:) = 0
-    !
-    iModeIs(:) =  0
-    iModeFs(:) = -1
-    !
-    if ( myid == root ) then
-      !
-      call lsfMbyOneBand(4)
-      call lsfMbyTwoBands(4)
-      !
-      call parallelIsFsBy3()
-      !
-      !write(6,*) '3'
-      !do i = 0, nProcMax - 1
-      !  write(6,*) i, iModeIs(i), iModeFs(i)
-      !enddo
-      !
-    endif
-    !
-    call MPI_BCAST(iModeIs, size(iModeIs), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(iModeFs, size(iModeFs), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-    !
-    call lsfMbyThreeBands(4)
-    !
-    iModeIs(:) =  0
-    iModeFs(:) = -1
-    !
-    if ( myid == root ) call parallelIsFsBy4()
-    !
-    call MPI_BCAST(iModeIs, size(iModeIs), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(iModeFs, size(iModeFs), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-    !
-    !if ( myid == root ) then
-      !write(iostd, *) '4'
-      !do i = 0, nProcMax - 1
-      !  write(iostd, *) i, iModeIs(i), iModeFs(i)
-      !enddo
-    !endif
-    !
-    call lsfDeterministicFourPhononsByFourBands()
-    !
-    allocate ( iEbinsByPhonons(-nEnergies:nEnergies), lsfVsEbyPhonons(-nEnergies:nEnergies) )
-    !
-    iEbinsByPhonons = 0
-    lsfVsEbyPhonons = 0.0_dp
-    !
-    CALL MPI_REDUCE(iEbinsByBands, iEbinsByPhonons, size(iEbinsByBands), MPI_INTEGER, MPI_SUM, root, MPI_COMM_WORLD, ierr)
-    CALL MPI_REDUCE(lsfVsEbyBands, lsfVsEbyPhonons, size(lsfVsEbyPhonons), &
-                                                               MPI_DOUBLE_PRECISION, MPI_SUM, root, MPI_COMM_WORLD, ierr)
-    !
-    if ( myid == root ) then
-      !
-      call calculateDE(4, iEbinsByPhonons, de)
-      lsfVsE(:) = lsfVsE(:) + lsfVsEbyPhonons(:)/de
-      !
-      write(iostd,*) 'DE', 4,  de
-      flush(iostd)
-      !
-      open(1, file='lsfVsEwithUpTo4phonons', status='unknown')
-      !
-!      write(1,'("# ", i5, " phonons")') 4
-      write(1,'("#", i10, " energies", i5, " phonons")') nEnergies, 4
-      !
-      do iE = -nEnergies, nEnergies
+  do iPhonon = minimumNumberOfPhonons, MIN0(maximumNumberOfPhonons,4)
+    write(*,*) iPhonon
+    if ( ( ( iPhonon == 1 .or. iPhonon == 2 ) .and. myid == root ) .or. iPhonon > 2 ) then
+      if ( iPhonon > 2 ) then
+      write(*,*) "Here"
         !
-        E = real(iE, dp)*deltaE
+        iModeIs(:) =  0
+        iModeFs(:) = -1
         !
-        !vg = 1.0_dp
-        !if (E > 0.0_dp) vg = sqrt(2.0_dp*E)
-        write(1,'(F16.8,2E18.6e3)') E*HartreeToEv, lsfVsE(iE), lsfVsEbyPhonons(iE)/de
-!twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg
-      enddo
-      close(1)
+      write(*,*) "Here"
+      endif
       !
-    endif
+      lsfVsEbyBands(:) = 0.0_dp
+      iEbinsByBands(:) = 0
+      ! 
+      if ( myid == root ) then
+        call cpu_time(t1)
+      write(*,*) "Here"
+        !
+        call lsfMbyOneBand(iPhonon)
+        !
+      write(*,*) "Here"
+        if ( iPhonon > 1 ) then
+          !
+          call lsfMbyTwoBands(iPhonon)
+          !
+      write(*,*) "Here"
+        else if ( iPhonon > 2 ) then
+          call parallelIsFsBy3()
+          !
+          !do lll = 0, numprocs -1 
+          !  write(iostd, *) '3', lll, iModeIs(lll), iModeFs(lll)
+          !enddo
+          !
+        endif
+        !
+      endif
+      write(*,*) "Here"
+      !
+      if ( iPhonon > 2 ) then
+        !
+        call MPI_BCAST(iModeIs, size(iModeIs), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+        call MPI_BCAST(iModeFs, size(iModeFs), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+        !
+        call lsfMbyThreeBands(iPhonon)
+        !
+      endif
+      !
+      if ( iPhonon > 3 ) then
+        !
+        iModeIs(:) =  0
+        iModeFs(:) = -1
+        !
+        if ( myid == root ) call parallelIsFsBy4()
+        !
+        call MPI_BCAST(iModeIs, size(iModeIs), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+        call MPI_BCAST(iModeFs, size(iModeFs), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+        !
+        call lsfDeterministicFourPhononsByFourBands()
+        !
+      endif
+      !
+      if ( iPhonon > 2 ) then
+        !
+        iEbinsByPhonons = 0
+        lsfVsEbyPhonons = 0.0_dp
+        !
+        CALL MPI_REDUCE(iEbinsByBands, iEbinsByPhonons, size(iEbinsByBands), MPI_INTEGER, MPI_SUM, root, MPI_COMM_WORLD, ierr)
+        CALL MPI_REDUCE(lsfVsEbyBands, lsfVsEbyPhonons, size(lsfVsEbyPhonons), &
+                                                                    MPI_DOUBLE_PRECISION, MPI_SUM, root, MPI_COMM_WORLD, ierr)
+        !
+      endif
+      if ( myid == root ) then
+        !
+        call cpu_time(t2)
+        !
+        write(iostd,'(i2, " modes, time needed :," , f10.2, " secs.")') iPhonon, t2-t1
+        flush(iostd)
+        !
+        if ( iPhonon > 2 ) then
+          ! calculate the DOS and update the total lsfVsE
+          !
+          call calculateDE(iPhonon, iEbinsByPhonons, de)
+          lsfVsE(:) = lsfVsE(:) + lsfVsEbyPhonons(:)/de
+          !
+        else
+          !
+          ! calculate the DOS and update the total lsfVsE
+          !
+          call calculateDE(iPhonon, iEbinsByBands, de)
+          lsfVsE(:) = lsfVsE(:) + lsfVsEbyBands(:)/de
+          !
+        endif
+        !
+        write(iostd,*) 'DE', iPhonon,  de
+        flush(iostd)
+        !
+        charI = ''
+        write(charI, "(i2.2)") iPhonon
+        !
+        open(1, file='lsfVsEwithUpTo'//trim(charI)//'phonons', status='unknown')
+        !
+        write(1,'("#", i10, " energies", i5, " phonons")') nEnergies, iPhonon
+        !
+        do iE = -nEnergies, nEnergies
+          E = real(iE, dp)*deltaE
+          !vg = 1.0_dp
+          !if (E > 0.0_dp) vg = sqrt(2.0_dp*E)
+          if ( iPhonon < 3 ) then
+            write(1,'(F16.8,2E18.6e3)') E*HartreeToEv, lsfVsE(iE), lsfVsEbyBands(iE)/de
+          else
+            write(1,'(F16.8,2E18.6e3)') E*HartreeToEv, lsfVsE(iE), lsfVsEbyPhonons(iE)/de
+          endif
+          !twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg
+        enddo
+        !
+        close(1)
+        !
+      endif
+      !
+    endif 
     !
-    deallocate ( iEbinsByPhonons, lsfVsEbyPhonons )
-    !
-  endif
+  enddo
   !
   if ( maximumNumberOfPhonons >= 5 ) then
   !if ( ( minimumNumberOfPhonons < 6 ) .and. ( maximumNumberOfPhonons > 4 ) ) then
@@ -307,17 +202,23 @@ program lineShapeFunction
     open(unit=un, file="/dev/urandom", access="stream", form="unformatted", action="read", status="old", iostat=istat)
     !
     if ( myid == root ) then
+      !
       if (istat /= 0) then
+        !
         write(iostd, *) 'File "/dev/urandom" not found! A pseudo random generator will be used!'
+        !
       else
+        !
         write(iostd, *) 'File "/dev/urandom" will be used to generate real random numbers!'
+        !
       endif
+      !
       flush(iostd)
+      !
     endif
     !
     if (istat /= 0) close(un)
     !
-    allocate ( iEbinsByPhonons(-nEnergies:nEnergies), lsfVsEbyPhonons(-nEnergies:nEnergies) )
     allocate ( lsfbyPhononsPerProc(-nEnergies:nEnergies) )
     !
     if ( minimumNumberOfPhonons < 6 ) minimumNumberOfPhonons = 5
