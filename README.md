@@ -1,7 +1,7 @@
 # Calculate Carrier Cross Sections
 ## How to Clone
 Make sure you have `git` installed and type
-```markdown
+```git
 git clone https://github.com/laurarnichols/carrierCrossSections.git
 ```
 
