@@ -1,19 +1,22 @@
-``` 
+
 pull in MjModule
 
 start a timer
 
-call readInputs()
+[`call readInputs()`](readInputs.md)
 
-call computeGeneralizedDisplacements()
+[`call computeGeneralizedDisplacements()`](computeGeneralizedDisplacements.md)
 
-call computeVariables()
+[`call computeVariables()`](computeVariables.md)
 
-call displaceAtoms()
+[`call displaceAtoms()`](displaceAtoms.md)
 
-if ( readQEInput ) then
-  call exportQEInput()
-else
-  call writeNewAtomicPositions()
-endif
-```
+`if ( readQEInput?? ) then`
+
+[`  call exportQEInput()`](exportQEInput.md)
+
+`else`
+
+[`  call writeNewAtomicPositions()`](writeNewAtomicPositions.md)
+
+`endif`
