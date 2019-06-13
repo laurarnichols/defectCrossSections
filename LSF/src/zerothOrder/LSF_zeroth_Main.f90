@@ -63,7 +63,7 @@ program lineShapeFunction
   !
   allocate( pj(nModes) )
   !
-  if ( minimumNumberOfPhonons > 2 ) then
+  if ( 3 <= maximumNumberOfPhonons ) then
     !
     allocate( iModeIs(0:numprocs-1) )
     allocate( iModeFs(0:numprocs-1) )
@@ -73,15 +73,12 @@ program lineShapeFunction
   end if
   !
   do iPhonon = minimumNumberOfPhonons, MIN0(maximumNumberOfPhonons,4)
-    write(*,*) iPhonon
     if ( ( ( iPhonon == 1 .or. iPhonon == 2 ) .and. myid == root ) .or. iPhonon > 2 ) then
       if ( iPhonon > 2 ) then
-      write(*,*) "Here"
         !
         iModeIs(:) =  0
         iModeFs(:) = -1
         !
-      write(*,*) "Here"
       endif
       !
       lsfVsEbyBands(:) = 0.0_dp
@@ -89,16 +86,13 @@ program lineShapeFunction
       ! 
       if ( myid == root ) then
         call cpu_time(t1)
-      write(*,*) "Here"
         !
         call lsfMbyOneBand(iPhonon)
         !
-      write(*,*) "Here"
         if ( iPhonon > 1 ) then
           !
           call lsfMbyTwoBands(iPhonon)
           !
-      write(*,*) "Here"
         else if ( iPhonon > 2 ) then
           call parallelIsFsBy3()
           !
@@ -109,7 +103,6 @@ program lineShapeFunction
         endif
         !
       endif
-      write(*,*) "Here"
       !
       if ( iPhonon > 2 ) then
         !
@@ -219,7 +212,7 @@ program lineShapeFunction
     !
     if (istat /= 0) close(un)
     !
-    allocate ( lsfbyPhononsPerProc(-nEnergies:nEnergies) )
+    ! allocate ( lsfbyPhononsPerProc(-nEnergies:nEnergies) )
     !
     if ( minimumNumberOfPhonons < 6 ) minimumNumberOfPhonons = 5
     do m = minimumNumberOfPhonons, maximumNumberOfPhonons
@@ -382,8 +375,6 @@ program lineShapeFunction
       !
     enddo
     !
-    deallocate ( iEbinsByPhonons, lsfVsEbyPhonons )
-    !
     if (istat == 0) close(un)
     !
   endif
@@ -402,6 +393,16 @@ program lineShapeFunction
   102 format("   Total number of configurations of ", i4, " phonons by ", i4, " bands sampled : ", E20.10E3)
   103 format("   Total number of configurations of ", i4, " phonons by ", i4, " bands calculated : ", E20.10E3)
   104 format("   Each sampled configuration will be weighted by : ", E20.10E3)
+  !
+  deallocate( lsfVsEbyBands, iEbinsByBands, pj )
+  !
+  if ( 3 <= maximumNumberOfPhonons ) then
+    !
+    deallocate( iModeIs, iModeFs )
+    !
+    deallocate ( iEbinsByPhonons, lsfVsEbyPhonons )
+    !
+  end if
   !
   call MPI_FINALIZE(ierr)
   !
