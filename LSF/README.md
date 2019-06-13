@@ -19,7 +19,7 @@ LSF
 
 ## How to Run
 * Ensure that the executables are up to date by going to the main folder and running `make LSF`
-* Change into the `LSF/<order folder>/DOC` directory
+* Change into the `LSF/DOC` directory
 * Execute `cat input.in | ../src/<order folder>/LSF<0 or 1>.x` to send the contents of the `input.in` file into the program as input
 * The output messages will be held in the `status` file now in the `DOC` directory
 
