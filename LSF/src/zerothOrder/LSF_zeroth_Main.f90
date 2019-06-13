@@ -45,7 +45,7 @@ program lineShapeFunction
     ! Allocate space for arrays
     allocate( phonF(nModes), x(nModes), Sj(nModes), coth(nModes), wby2kT(nModes) )
     allocate( besOrderNofModeM(0:maximumNumberOfPhonons + 1, nModes) )
-!    allocate( Vfis(-nEnergies:nEnergies) )
+    !allocate( Vfis(-nEnergies:nEnergies) )
   endif
   !
   ! Broadcast arrays to all processes
@@ -55,7 +55,7 @@ program lineShapeFunction
   call MPI_BCAST( coth, size(coth), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST( wby2kT, size(wby2kT), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST( besOrderNofModeM, size(besOrderNofModeM), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-!  call MPI_BCAST( Vfis, size(Vfis), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
+  !call MPI_BCAST( Vfis, size(Vfis), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !
   ! Allocate space for arrays
   allocate( lsfVsEbyBands(-nEnergies:nEnergies) )
@@ -94,11 +94,8 @@ program lineShapeFunction
           call lsfMbyTwoBands(iPhonon)
           !
         else if ( iPhonon > 2 ) then
-          call parallelIsFsBy3()
           !
-          !do lll = 0, numprocs -1 
-          !  write(iostd, *) '3', lll, iModeIs(lll), iModeFs(lll)
-          !enddo
+          call parallelIsFsBy3()
           !
         endif
         !
@@ -171,14 +168,17 @@ program lineShapeFunction
         !
         do iE = -nEnergies, nEnergies
           E = real(iE, dp)*deltaE
-          !vg = 1.0_dp
-          !if (E > 0.0_dp) vg = sqrt(2.0_dp*E)
+          !
           if ( iPhonon < 3 ) then
+            !
             write(1,'(F16.8,2E18.6e3)') E*HartreeToEv, lsfVsE(iE), lsfVsEbyBands(iE)/de
+            !
           else
+            !
             write(1,'(F16.8,2E18.6e3)') E*HartreeToEv, lsfVsE(iE), lsfVsEbyPhonons(iE)/de
+            !
           endif
-          !twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg
+          !
         enddo
         !
         close(1)
@@ -190,7 +190,6 @@ program lineShapeFunction
   enddo
   !
   if ( maximumNumberOfPhonons >= 5 ) then
-  !if ( ( minimumNumberOfPhonons < 6 ) .and. ( maximumNumberOfPhonons > 4 ) ) then
     !
     open(unit=un, file="/dev/urandom", access="stream", form="unformatted", action="read", status="old", iostat=istat)
     !
@@ -256,13 +255,20 @@ program lineShapeFunction
         !
         iModeIs(0) = 1
         iModeFs(numprocs-1) = nMC
+        !
         do i = numprocs - 1, 1, -1
+          !
           iModeIs(i) = i*iMint + 1
+          !
           if ( iMmod > 0 ) then
+            !
             iModeIs(i) = iModeIs(i) + iMmod
             iMmod = iMmod - 1
+            !
           endif
+          !
           iModeFs(i-1) = iModeIs(i) - 1
+          !
         enddo
         !
       endif
@@ -280,9 +286,12 @@ program lineShapeFunction
         !
         times = 1.0_dp
         mi = l-1
+        !
         do ni = m - 1, m - l + 1, -1
+          !
           times = times*dble(ni)/dble(mi)
           mi = mi - 1
+          !
         enddo
         !
         allocate( pj0s(int(times + 1.e-3_dp), l) )
@@ -311,7 +320,9 @@ program lineShapeFunction
           weight = nModes
           !
           do iMode = 2, l
+            !
             weight = weight*(nModes - iMode + 1)/iMode
+            !
           enddo
           !
           write(iostd, 101) m, l, times*weight
@@ -345,30 +356,41 @@ program lineShapeFunction
         flush(iostd)
         !
         if ( m < 10 ) then
+          !
           write(fn,'("lsfVsEwithUpTo", i1, "phonons")') m
+          !
         elseif ( m < 100 ) then
+          !
           write(fn,'("lsfVsEwithUpTo", i2, "phonons")') m
+          !
         elseif ( m < 1000 ) then
+          !
           write(fn,'("lsfVsEwithUpTo", i3, "phonons")') m
+          !
         else
+          !
           write(fn,'("lsfVsEwithUpTo", i4, "phonons")') m
+          !
         endif
         !
         open(unit=5000, file=trim(fn), status='unknown')
         !
-!        write(5000,'("# ", i5, " phonons")') m
+        !write(5000,'("# ", i5, " phonons")') m
         write(5000,'("#", i10, " energies", i5, " phonons")') nEnergies, m
         !
         do iE = -nEnergies, nEnergies
+          !
           E = real(iE, dp)*deltaE
           !
           !vg = 1.0_dp
           !if (E > 0.0_dp) vg = sqrt(2.0_dp*E)
           write(5000,'(F16.8,2E18.6e3)') E*HartreeToEv, lsfVsE(iE), lsfVsEbyPhonons(iE)/de
-!twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg
+          !twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg
           !
           !write(5000, *) real(iE, dp)*deltaE*HartreeToEv, lsfVsE(iE), lsfVsEbyPhonons(iE)/de
+          !
         enddo
+        !
         close(5000)
         !
       endif
