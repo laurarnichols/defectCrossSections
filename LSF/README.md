@@ -28,14 +28,14 @@ LSF
 	* `phononsInput` (string) -- directs the program to the phonons input file
 	* `phononsInputFormat` (string) -- what format the phonons input file has (VASP or QE)
 	* `continueLSFfromFile` (string) -- directs the program to continue from a given output file if it exists
-	* `maximumNumberOfPhonons` -- the maximum number of phonons to use
-	* `temperature` -- the temperature of the system
-	* `maxEnergy` -- ??
-	* `nMC` -- ??
+	* `maximumNumberOfPhonons` (integer) -- the maximum number of phonons to use
+	* `temperature` (real) -- the temperature of the system
+	* `maxEnergy` (real) -- ??
+	* `nMC`(integer) -- ??
 	
 _Note: Do not alter the `&lsfInput` or `/` lines at the beginning and end of the file. They represent a namelist and fortran will not recognize the group of variables without this specific format_
 
-* `phononsInput` file (e.g. phonons_SiVH3newDisp.dat)
+* [`phononsInput`](https://github.com/laurarnichols/carrierCrossSections/blob/master/LSF/DOC/phononsInput.md) file (e.g. phonons_SiVH3newDisp.dat)
 	* `nOfqPoints` (integer) -- the number of q points
 	* `nAtoms` (integer) -- the number of atoms in the system
 	* `atomD` (real `3xnAtoms` array) -- ??
