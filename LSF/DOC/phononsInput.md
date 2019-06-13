@@ -13,9 +13,9 @@ and the last column belongs to the `atomM` vector.
 
 After that, the file begins looping. For each q point, there will first be a line like
 ```
-     q = (    <phonF column> ) 
+     q = (    <phonQ column> ) 
 ```
-where the vales in the parentheses go into a column in the `phonF` array. After a blank line, the file has another inner loop
+where the vales in the parentheses go into a column in the `phonQ` array. After a blank line, the file has another inner loop
 over the modes. For each mode, there will be
 
 ```
