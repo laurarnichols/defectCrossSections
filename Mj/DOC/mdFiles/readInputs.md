@@ -6,7 +6,7 @@ Open a new output file.
 
 [`call initialize()`](initialize.md)
 
-Read the input variables (`MjInput` namelist; see [Mj_module_v1.md](Mj_module_v1.md))
+Read the input variables (`MjInput` namelist; see [Mj_Module_v1.md](Mj_Module_v1.md))
 
 [`call checkAndUpdateInput()`](checkAndUpdateInput.md)
 
