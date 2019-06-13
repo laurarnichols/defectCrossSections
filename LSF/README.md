@@ -1,4 +1,4 @@
-# Mj Module
+# LSF
 ## Directory Structure and Files
 ```
 LSF
