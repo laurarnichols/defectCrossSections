@@ -1,6 +1,6 @@
 # Mj Module
 ## Directory Structure and Files
-```markdown
+```
 Mj
 |	README.md
 |_______DOC
@@ -36,7 +36,7 @@ _Note: Do not alter the `&lsfInput` or `/` lines at the beginning and end of the
 
 * `QEInput` file (e.g. SiVH3.in)
 
-* `phononsInput` file (e.g. phonons_SiVH3newDisp.dat)
+* [`phononsInput`](https://github.com/laurarnichols/carrierCrossSections/blob/master/Mj/DOC/phononsInput.md) file (e.g. phonons_SiVH3newDisp.dat)
 	* `nOfqPoints` (integer) -- the number of q points
 	* `nAtoms` (integer) -- the number of atoms in the system
 	* `atomD` (real `3xnAtoms` array) -- ??
