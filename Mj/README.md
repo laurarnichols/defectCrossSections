@@ -28,8 +28,8 @@ Mj
 	* `equilibriumAtomicPositions` (string) -- directs the program to a file that has the equilibrium position of each of the atoms
 	* `temperature` -- the temperature of the system
 	* `maxDisplacement` -- the maximum displacement value for atoms ??
-	* `modeI` -- ??
-	* `modeF` -- ??
+	* `modeI` -- initial mode (must be smaller than `modeF`)
+	* `modeF` -- final mode
 	* `qPoint` -- ??
 	
 _Note: Do not alter the `&lsfInput` or `/` lines at the beginning and end of the file. They represent a namelist and fortran will not recognize the group of variables without this specific format_
