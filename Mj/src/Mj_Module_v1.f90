@@ -126,7 +126,7 @@ contains
       write(iostd, '(" Variable temperature has not been set.")')
       abortExecution = .true.
     else
-      write(iostd, '(" Tempetature : ", f10.2, " Kelvin.")') temperature
+      write(iostd, '(" Temperature : ", f10.2, " Kelvin.")') temperature
       kT = temperature*8.6173324d-5*eVToHartree
     endif
     !
