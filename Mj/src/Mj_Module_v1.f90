@@ -177,7 +177,7 @@ contains
     !
     CHARACTER :: dummyC
     !
-    open(1, file=trim(PhononsInput), status="old")
+    open(1, file=trim(phononsInput), status="old")
     !
     read(1,*) nOfqPoints, nAtoms
     !
