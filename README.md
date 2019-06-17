@@ -58,7 +58,7 @@ I don't know how to run yet, so this section contains notes to try to figure tha
   * Input:
     * export directory
   * Output: 
-    * Matrix
+    * VfisVsE
 * LSF:
   * Input:
     * phonons_disp.dat --> where does this come from?
