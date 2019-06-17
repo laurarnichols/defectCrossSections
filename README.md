@@ -29,3 +29,15 @@ The commands for Ubuntu are
 _Note: Make sure that your path does not have a `/` at the end or there will be an error_
 * You should now be able to make the target you want (e.g. `make all_QE-5.3.0`)
 * For a list of some possible targets, read through the `Makefile` or type `make`
+
+## How to Run
+I don't know how to run yet, so this section contains notes to try to figure that out.
+
+* TME stands for transition matrix element
+* LSF stands for line shape function
+* Sigma is likely the cross section calculation
+* Mj is likely calculating equation 46 (for linear phonon TMEs)
+* If cross section (sigma) is goal (zeroth order):
+  * TME and LSF --> Sigma ?
+  * QE --> TME ?
+  
