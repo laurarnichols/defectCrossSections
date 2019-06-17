@@ -41,3 +41,32 @@ I don't know how to run yet, so this section contains notes to try to figure tha
   * TME and LSF --> Sigma ?
   * QE --> TME ?
   
+## Input and Output
+
+* QE:
+  * Input:
+    * `scf.in`
+  * Output: 
+    * `scf.out`
+    * output directory (e.g. `tmp`)
+* Export:
+  * Input:
+    * output directory
+  * Output:
+    * export directory
+* TME:
+  * Input:
+    * export directory
+  * Output: 
+    * Matrix
+* LSF:
+  * Input:
+    * phonons_disp.dat --> where does this come from?
+  * Output:
+    * lsfVsEwithUpTo<%i>phonons
+* Sigma
+  * Input:
+    * VfisVsE
+    * lsfVsEwithUpTo<%i>phonons
+   
+  
