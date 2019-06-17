@@ -1,0 +1,26 @@
+ &control
+    prefix='SiPerf',
+    ! this is a comment: you can comment out variables
+    ! set pseudo_dir and outdir to suitable directories
+    pseudo_dir = '../pseudo',
+    outdir='../tmp'
+ /
+ &system    
+    ibrav=  2, celldm(1) =10.2, nat=  2, ntyp= 1,
+    ecutwfc = 12.0, 
+ /
+ &electrons
+ /
+ATOMIC_SPECIES
+ Si  28.086  Si.pbe-n-kjpaw_psl.1.0.0.UPF
+ATOMIC_POSITIONS alat
+ Si 0.00 0.00 0.00 
+ Si 0.25 0.25 0.25 
+! this is a comment 
+K_POINTS tpiba
+# this is also a comment: next line, number of k-points
+ 2
+ 0.25 0.25 0.25  1.0
+ 0.25 0.25 0.75  3.0
+# K_POINTS automatic
+#   2 2 2 1 1 1
