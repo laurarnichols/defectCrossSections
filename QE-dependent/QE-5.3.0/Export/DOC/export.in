@@ -1,6 +1,6 @@
 &inputpp
   prefix = 'SiPerf',
-  outdir = '../perfectCrystal/tmp/',
+  outdir = './SiliconFiles/tmp/',
   !
   exportDir = './ExportPC'
   writeWFC = .true.
