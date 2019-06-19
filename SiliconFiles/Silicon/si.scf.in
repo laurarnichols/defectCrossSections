@@ -6,7 +6,10 @@
     outdir='../tmp'
  /
  &system    
-    ibrav=  2, celldm(1) =10.2, nat=  2, ntyp= 1,
+    ibrav=  2, 
+    celldm(1) =10.2, 
+    nat=  2, 
+    ntyp= 1,
     ecutwfc = 12.0, 
  /
  &electrons
