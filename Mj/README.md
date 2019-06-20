@@ -58,512 +58,512 @@ _Note: Do not alter the `&lsfInput` or `/` lines at the beginning and end of the
 		<th>Meaning</th>
 	</tr>
 	<tr>
-		<td><pre>abCM</pre></td>
-		<td><pre>real, parameter</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>abCM</code></td>
+		<td><code>real, parameter</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>abortExecution</pre></td>
-		<td><pre>logical</pre></td>
-		<td><pre>checkAndUpdateInput()</pre></td>
+		<td><code>abortExecution</code></td>
+		<td><code>logical</code></td>
+		<td><code>checkAndUpdateInput()</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
-		<td><pre>checkAndUpdateInput()</pre></td>
+		<td><code>checkAndUpdateInput()</code></td>
 	</tr>
 	<tr>
-		<td><pre>atomD</pre></td>
-		<td><pre>real, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>atomD</code></td>
+		<td><code>real, allocatable</code></td>
+		<td><code>MjModule</code></td>
+		<td><code>readPhonons()</code></td>
 		<td></td>
-		<td><pre>readPhonons()</pre></td>
-		<td></td>
-	</tr>
-	<tr>
-		<td><pre>atomM</pre></td>
-		<td><pre>real, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
-		<td><pre>readPhonons()</pre></td>
-		<td></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>atomPosition</pre></td>
-		<td><pre>real, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>atomM</code></td>
+		<td><code>real, allocatable</code></td>
+		<td><code>MjModule</code></td>
+		<td><code>readPhonons()</code></td>
 		<td></td>
-		<td></td>
-		<td></td>
+		<td><code>readPhonons()</code></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>besOrderNofModeM</pre></td>
-		<td><pre>real, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>atomPosition</code></td>
+		<td><code>real, allocatable</code></td>
+		<td><code>MjModule</code></td>
 		<td></td>
 		<td></td>
 		<td></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>coth</pre></td>
-		<td><pre>real, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>besOrderNofModeM</code></td>
+		<td><code>real, allocatable</code></td>
+		<td><code>MjModule</code></td>
 		<td></td>
 		<td></td>
 		<td></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>dp</pre></td>
-		<td><pre>integer, parameter</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>coth</code></td>
+		<td><code>real, allocatable</code></td>
+		<td><code>MjModule</code></td>
+		<td></td>
+		<td></td>
+		<td></td>
+		<td></td>
+	</tr>
+	<tr>
+		<td><code>dp</code></td>
+		<td><code>integer, parameter</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td>Used to set the real numbers to double precision</td>
 	</tr>
 	<tr>
-		<td><pre>dummyC</pre></td>
-		<td><pre>character</pre></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>dummyC</code></td>
+		<td><code>character</code></td>
+		<td><code>readPhonons()</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 		<td>Dummy variable for trash from input file</td>
 	</tr>
 	<tr>
-		<td><pre>dummyD</pre></td>
-		<td><pre>real</pre></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>dummyD</code></td>
+		<td><code>real</code></td>
+		<td><code>readPhonons()</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 		<td>Dummy variable for trash from input file</td>
 	</tr>
 	<tr>
-		<td><pre>elements</pre></td>
-		<td><pre>character</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>elements</code></td>
+		<td><code>character</code></td>
+		<td><code>MjModule</code></td>
 		<td></td>
 		<td></td>
 		<td></td>
 		<td>Array to hold element names</td>
 	</tr>
 	<tr>
-		<td><pre>equilibriumAtomicPositions</pre></td>
-		<td><pre>character</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>equilibriumAtomicPositions</code></td>
+		<td><code>character</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td>
-			<pre>initialize()</pre><br/>
-			<pre>checkAndUpdateInput()<pre>
+			<code>initialize()</code><br/>
+			<code>checkAndUpdateInput()<code>
 		</td>
 		<td>The name of the file that has the equilibrium atomic positions</td>
 	</tr>
 	<tr>
-		<td><pre>eVToHartree</pre></td>
-		<td><pre>real, parameter</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>eVToHartree</code></td>
+		<td><code>real, parameter</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td>Conversion factor from eV to Hartree</td>
 	</tr>
 	<tr>
-		<td><pre>file_exists</pre></td>
-		<td><pre>logical</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>file_exists</code></td>
+		<td><code>logical</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>readInputs()</pre></td>
+		<td><code>readInputs()</code></td>
 		<td>Indicate if a file exists</td>
 	</tr>
 	<tr>
-		<td><pre>freqInTHz</pre></td>
-		<td><pre>real</pre></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>freqInTHz</code></td>
+		<td><code>real</code></td>
+		<td><code>readPhonons()</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 		<td>The phonon frequency in THz</td>
 	</tr>
 	<tr>
-		<td><pre>genCoord</pre></td>
-		<td><pre>real, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>genCoord</code></td>
+		<td><code>real, allocatable</code></td>
+		<td><code>MjModule</code></td>
 		<td></td>
 		<td></td>
 		<td></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>HartreeToEv</pre></td>
-		<td><pre>real, parameter</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>HartreeToEv</code></td>
+		<td><code>real, parameter</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td>Conversion factor from Hartree to eV</td>
 	</tr>
 	<tr>
-		<td><pre>iAtom</pre></td>
-		<td><pre>integer</pre></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>iAtom</code></td>
+		<td><code>integer</code></td>
+		<td><code>readPhonons()</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 		<td>Integer used for loop</td>
 	</tr>
 	<tr>
-		<td><pre>iMode</pre></td>
-		<td><pre>integer</pre></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>iMode</code></td>
+		<td><code>integer</code></td>
+		<td><code>readPhonons()</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 		<td>Integer used for loop</td>
 	</tr>
 	<tr>
-		<td><pre>int32</pre></td>
-		<td><pre>integer, parameter</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>int32</code></td>
+		<td><code>integer, parameter</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td>To set the kind of integers</td>
 	</tr>
 	<tr>
-		<td><pre>int64</pre></td>
-		<td><pre>integer, parameter</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>int64</code></td>
+		<td><code>integer, parameter</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td>To set the kind of integers</td>
 	</tr>
 	<tr>
-		<td><pre>ios</pre></td>
-		<td><pre>integer</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>ios</code></td>
+		<td><code>integer</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>iostd</pre></td>
-		<td><pre>integer, parameter</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>iostd</code></td>
+		<td><code>integer, parameter</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td>
-			<pre>readInputs()</pre><br/>
-			<pre>checkAndUpdateInput()</pre><br/>
-			<pre>readPhonons()<pre>
+			<code>readInputs()</code><br/>
+			<code>checkAndUpdateInput()</code><br/>
+			<code>readPhonons()<code>
 		</td>
 		<td>The unit of the output file</td>
 	</tr>
 	<tr>
-		<td><pre>iQ</pre></td>
-		<td><pre>integer</pre></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>iQ</code></td>
+		<td><code>integer</code></td>
+		<td><code>readPhonons()</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 		<td>Integer used for loop</td>
 	</tr>
 	<tr>
-		<td><pre>kT</pre></td>
-		<td><pre>real</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>kT</code></td>
+		<td><code>real</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>checkAndUpdateInput()</pre></td>
+		<td><code>checkAndUpdateInput()</code></td>
 		<td>Boltzmann constant time T then converted to Hartree</td>
 	</tr>
 	<tr>
-		<td><pre>maxDisplacement</pre></td>
-		<td><pre>real</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>maxDisplacement</code></td>
+		<td><code>real</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td>
-			<pre>initialize()</pre><br/>
-			<pre>checkAndUpdateInput()<pre>
+			<code>initialize()</code><br/>
+			<code>checkAndUpdateInput()<code>
 		</td>
 		<td>Max atomic displacement in each direction</td>
 	</tr>
 	<tr>
-		<td><pre>MjInput</pre></td>
-		<td><pre>namelist</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>MjInput</code></td>
+		<td><code>namelist</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>readInputs()</pre></td>
+		<td><code>readInputs()</code></td>
 		<td>Grouping of several variables for input</td>
 	</tr>
 	<tr>
-		<td><pre>modeF</pre></td>
-		<td><pre>real</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>modeF</code></td>
+		<td><code>real</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td>
-			<pre>initialize()</pre><br/>
-			<pre>checkAndUpdateInput()<pre>
+			<code>initialize()</code><br/>
+			<code>checkAndUpdateInput()<code>
 		</td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>modeI</pre></td>
-		<td><pre>real</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>modeI</code></td>
+		<td><code>real</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td>
-			<pre>initialize()</pre><br/>
-			<pre>checkAndUpdateInput()<pre>
+			<code>initialize()</code><br/>
+			<code>checkAndUpdateInput()<code>
 		</td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>nAtoms</pre></td>
-		<td><pre>integer</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>nAtoms</code></td>
+		<td><code>integer</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 		<td>The number of atoms</td>
 	</tr>
 	<tr>
-		<td><pre>newAtomicPosition</pre></td>
-		<td><pre>real, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>newAtomicPosition</code></td>
+		<td><code>real, allocatable</code></td>
+		<td><code>MjModule</code></td>
 		<td></td>
 		<td></td>
 		<td></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>newAtomicPositions</pre></td>
-		<td><pre>character</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>newAtomicPositions</code></td>
+		<td><code>character</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>nModes</pre></td>
-		<td><pre>integer</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>nModes</code></td>
+		<td><code>integer</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 		<td>The number of modes</td>
 	</tr>
 	<tr>
-		<td><pre>nOfqPoints</pre></td>
-		<td><pre>integer</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>nOfqPoints</code></td>
+		<td><code>integer</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 		<td>The number of q points</td>
 	</tr>
 	<tr>
-		<td><pre>output</pre></td>
-		<td><pre>character, parameter</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>output</code></td>
+		<td><code>character, parameter</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>readInputs()</pre></td>
+		<td><code>readInputs()</code></td>
 		<td>The name of the output file</td>
 	</tr>
 	<tr>
-		<td><pre>phonD</pre></td>
-		<td><pre>real, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>phonD</code></td>
+		<td><code>real, allocatable</code></td>
+		<td><code>MjModule</code></td>
+		<td><code>readPhonons()</code></td>
 		<td></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 		<td>Phonon displacements</td>
 	</tr>
 	<tr>
-		<td><pre>phonF</pre></td>
-		<td><pre>real, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>phonF</code></td>
+		<td><code>real, allocatable</code></td>
+		<td><code>MjModule</code></td>
+		<td><code>readPhonons()</code></td>
 		<td></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 		<td>Phonon frequencies</td>
 	</tr>
 	<tr>
-		<td><pre>phononsInput</pre></td>
-		<td><pre>character</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>phononsInput</code></td>
+		<td><code>character</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td>
-			<pre>initialize()</pre><br/>
-			<pre>checkAndUpdateInput()</pre><br/>
-			<pre>readPhonons()<pre>
+			<code>initialize()</code><br/>
+			<code>checkAndUpdateInput()</code><br/>
+			<code>readPhonons()<code>
 		</td>
 		<td>The name of the phonons input file</td>
 	</tr>
 	<tr>
-		<td><pre>phonQ</pre></td>
-		<td><pre>real, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>phonQ</code></td>
+		<td><code>real, allocatable</code></td>
+		<td><code>MjModule</code></td>
+		<td><code>readPhonons()</code></td>
 		<td></td>
 		<td></td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 	</tr>
 	<tr>
-		<td><pre>pi</pre></td>
-		<td><pre>real, parameter</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>pi</code></td>
+		<td><code>real, parameter</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td>The value of pi</td>
 	</tr>
 	<tr>
-		<td><pre>QEInput</pre></td>
-		<td><pre>character</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>QEInput</code></td>
+		<td><code>character</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td>
-			<pre>initialize()</pre><br/>
-			<pre>checkAndUpdateInput()<pre>
+			<code>initialize()</code><br/>
+			<code>checkAndUpdateInput()<code>
 		</td>
 		<td>The name of the QE input file</td>
 	</tr>
 	<tr>
-		<td><pre>qPoint</pre></td>
-		<td><pre>real</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>qPoint</code></td>
+		<td><code>real</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>readQEInput</pre></td>
-		<td><pre>logical</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>readQEInput</code></td>
+		<td><code>logical</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>checkAndUpdateInput()</pre></td>
+		<td><code>checkAndUpdateInput()</code></td>
 		<td>Whether or not QEInput was read</td>
 	</tr>
 	<tr>
-		<td><pre>s2L</pre></td>
-		<td><pre>integer, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>s2L</code></td>
+		<td><code>integer, allocatable</code></td>
+		<td><code>MjModule</code></td>
 		<td></td>
 		<td></td>
 		<td></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>Sj</pre></td>
-		<td><pre>real, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>Sj</code></td>
+		<td><code>real, allocatable</code></td>
+		<td><code>MjModule</code></td>
 		<td></td>
 		<td></td>
 		<td></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>t1</pre></td>
-		<td><pre>real</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>t1</code></td>
+		<td><code>real</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td>Start time within subprocess</td>
 	</tr>
 	<tr>
-		<td><pre>t2</pre></td>
-		<td><pre>real</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>t2</code></td>
+		<td><code>real</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td>End time within subprocess</td>
 	</tr>
 	<tr>
-		<td><pre>temperature</pre></td>
-		<td><pre>real</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>temperature</code></td>
+		<td><code>real</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td>
-			<pre>initialize()</pre><br/>
-			<pre>checkAndUpdateInput()<pre>
+			<code>initialize()</code><br/>
+			<code>checkAndUpdateInput()<code>
 		</td>
 		<td>Temperature of the system</td>
 	</tr>
 	<tr>
-		<td><pre>tf</pre></td>
-		<td><pre>real</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>tf</code></td>
+		<td><code>real</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td>End time</td>
 	</tr>
 	<tr>
-		<td><pre>THzToHartree</pre></td>
-		<td><pre>real, parameter</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>THzToHartree</code></td>
+		<td><code>real, parameter</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><pre>readPhonons()</pre></td>
+		<td><code>readPhonons()</code></td>
 		<td>Conversion factor from THz to Hartree</td>
 	</tr>
 	<tr>
-		<td><pre>twopi</pre></td>
-		<td><pre>real, parameter</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>twopi</code></td>
+		<td><code>real, parameter</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td>2 times pi</td>
 	</tr>
 	<tr>
-		<td><pre>un</pre></td>
-		<td><pre>integer, parameter</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>un</code></td>
+		<td><code>integer, parameter</code></td>
+		<td><code>MjModule</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
 		<td></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>wby2kT</pre></td>
-		<td><pre>real, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>wby2kT</code></td>
+		<td><code>real, allocatable</code></td>
+		<td><code>MjModule</code></td>
 		<td></td>
 		<td></td>
 		<td></td>
 		<td></td>
 	</tr>
 	<tr>
-		<td><pre>x</pre></td>
-		<td><pre>real, allocatable</pre></td>
-		<td><pre>MjModule</pre></td>
+		<td><code>x</code></td>
+		<td><code>real, allocatable</code></td>
+		<td><code>MjModule</code></td>
 		<td></td>
 		<td></td>
 		<td></td>
