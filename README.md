@@ -31,7 +31,8 @@ _Note: Make sure that your path does not have a `/` at the end or there will be 
 * For a list of some possible targets, read through the `Makefile` or type `make`
 
 ## How to Run
-I don't know how to run yet, so this section contains notes to try to figure that out.
+I don't know how to run yet, so this section contains notes to try to figure that out. [Here](carrierCapture.pdf) is a flow chart describing 
+how the programs connect as far as I know.
 
 * TME stands for transition matrix element
 * LSF stands for line shape function
