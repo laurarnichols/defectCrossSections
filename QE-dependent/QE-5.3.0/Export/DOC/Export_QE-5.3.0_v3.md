@@ -9,22 +9,12 @@ This program is largely copied from the QE file `pw_export.f90` found in the `PP
 
 The QE version heavily uses the `iotk` module ([learn more](http://web.mit.edu/espresso_v6.1/i386_linux26/qe-6.1/iotk/doc/manpages)).
 
-There are a few changes to the QE version that tailor the program more to our specific needs. The changes are detailed below:
-<table>
-   <tr>
-      <th>Change</th>
-      <th>Explanation</th>
-   </tr>
-   <tr>
-      <td>Add <code>exportDir</code> variable</td>
-      <td></td>
-   </tr>
-   <tr>
-      <td>Add <code>ig</code> variable</td>
-      <td></td>
-   </tr>
-   <tr>
-      <td></td>
-      <td></td>
-   </tr>
-</table>
+There are some changes made to the QE version to fit our needs, but it is not completely clear what the purpose is. I would eventually like to walk through this program like all of the others, but it includes functions from QE that are incredibly dense. The main gist is that the program pulls the needed information from the QE output xml file and puts it in files in the `exportDir` folder.
+
+# Notes
+
+* Uses output directory instead of just output file
+* Uses manual output more than `iotk` module
+* Doesn't output some variables that base program does
+* _What does the program pull from the QE output files?_
+* Some functions are included directly from QE using library archive that is included in the `Makefile`
