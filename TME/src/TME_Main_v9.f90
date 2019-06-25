@@ -1,28 +1,39 @@
 program transitionMatrixElements
   !
+  ! Use pre-built mpi library and declarations module that 
+  ! is defined in TME_Module_v28.f90
   use mpi
   use declarations
   !
   implicit none
   !
+  ! Declare start and end times
   real(kind = dp) :: t1, t2
   !
+  ! Initialize MPI environment
   call MPI_INIT(ierr)
+  ! Determine the rank or ID of the calling process
   call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
+  ! Determine the size of the MPI pool (i.e., the number of processes)
   call MPI_COMM_SIZE(MPI_COMM_WORLD, numprocs, ierr)
   !
+  ! Allocate space for variables
   allocate ( nPWsI(0:numprocs-1), nPWsF(0:numprocs-1) )
   !
+  ! If this is the root process
   if ( myid == root ) then
     !
+    ! Start a timer
     call cpu_time(t0)
     !
     ! Reading input, initializing and checking all variables of the calculation.
-    !
     call readInput()
     !
+    ! ????????????????????????????????
     call readPWsSet()
     !
+    ! Allocate space for variables
+    allocate ( counts(0:numprocs-1), displmnt(0:numprocs-1) )
     allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKptsPC) )
     allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
@@ -30,16 +41,17 @@ program transitionMatrixElements
     allocate ( paw_fi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( eigvI (iBandIinit:iBandIfinal), eigvF (iBandFinit:iBandFfinal) )
     !
-    !
+    ! Initialize all values in Ufi matrix to complex double zero
     Ufi(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
-    allocate ( counts(0:numprocs-1), displmnt(0:numprocs-1) )
-    !
+    ! Distribute plane waves to processes ???
     call distributePWsToProcs(numOfGvecs, numprocs)
     !
+    ! Initialize the number of initial and final plane waves to zero for each process
     nPWsI(:) = 0
     nPWsF(:) = 0
     !
+    ! For each process, calculate the number of initial and final plane waves
     do i = 0, numprocs - 1
       nPWsI(i) = 1 + sum(counts(:i-1))
       nPWsF(i) = sum(counts(:i))
@@ -47,6 +59,7 @@ program transitionMatrixElements
     !  
   endif
   !
+  ! Broadcast variables from root process to all other processes
   call MPI_BCAST(iBandIinit,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(iBandFinit,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
@@ -64,23 +77,26 @@ program transitionMatrixElements
   call MPI_BCAST(nPWsI, numprocs, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   call MPI_BCAST(nPWsF, numprocs, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   !
+  call MPI_BCAST(numOfTypesPC, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+  call MPI_BCAST(JMAX, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+  !
+  ! Have other processes allocate space for gvecs so that root can send to them
   if ( myid /= root ) allocate ( gvecs(3, numOfGvecs) )
   call MPI_BCAST(gvecs, size(gvecs), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !
-  call MPI_BCAST(numOfTypesPC, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-  !
   if ( myid /= root ) allocate ( atomsPC(numOfTypesPC) )
   !
-  call MPI_BCAST(JMAX, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-  !
+  ! For each type of ???
   do i = 1, numOfTypesPC
     !
+    ! Broadcast the variables in the atomsPC structure array
     call MPI_BCAST(atomsPC(i)%numOfAtoms, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(atomsPC(i)%lMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(atomsPC(i)%lmMax,      1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(atomsPC(i)%nMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(atomsPC(i)%iRc,        1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     !
+    ! Allocate space for arrays in atomsPC structure
     if ( myid /= root ) then 
       allocate( atomsPC(i)%lps(atomsPC(i)%lMax) )
       allocate( atomsPC(i)%r  (atomsPC(i)%nMax) )
@@ -90,6 +106,7 @@ program transitionMatrixElements
       allocate( atomsPC(i)%bes_J_qr ( 0:JMAX, atomsPC(i)%iRc) )
     endif
     !
+    ! Broadcast arrays from root to all other processes
     call MPI_BCAST(atomsPC(i)%lps, size(atomsPC(i)%lps), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
     call MPI_BCAST(atomsPC(i)%r,   size(atomsPC(i)%r),   MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
     call MPI_BCAST(atomsPC(i)%rab, size(atomsPC(i)%rab), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
