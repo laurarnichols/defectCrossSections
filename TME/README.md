@@ -59,6 +59,15 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td></td>
 	</tr>
 	<tr>
+		<td><code>abortExecution</code></td>
+		<td><code>logical</code></td>
+		<td><code>checkInitialization</code></td>
+		<td>N/A</td>
+		<td>N/A</td>
+		<td><code>checkInitialization</code></td>
+		<td>If the program should abort because the inputs weren't all correct</td>
+	</tr>
+	<tr>
 		<td><code>at</code></td>
 		<td><code>real, array</code></td>
 		<td><code>declarations</code></td>
@@ -153,7 +162,10 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td>
+			<code>initialize</code><br/>
+			<code>checkInitialization</code>
+		</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -269,7 +281,10 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td>
+			<code>initialize</code><br/>
+			<code>checkInitialization</code>
+		</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -296,7 +311,10 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td>
+			<code>initialize</code><br/>
+			<code>checkInitialization</code>
+		</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -305,7 +323,7 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td><code>checkInitialization</code></td>
 		<td>Conversion factor from eV to Hartree</td>
 	</tr>
 	<tr>
@@ -314,8 +332,11 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
-		<td></td>
+		<td>
+			<code>initialize</code><br/>
+			<code>checkInitialization</code>
+		</td>
+		<td>The output directory from <code>Export</code></td>
 	</tr>
 	<tr>
 		<td><code>exportDirSD</code></td>
@@ -323,8 +344,11 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
-		<td></td>
+		<td>
+			<code>initialize</code><br/>
+			<code>checkInitialization</code>
+		</td>
+		<td>The output directory from <code>Export</code></td>
 	</tr>
 </table>
 
@@ -419,6 +443,21 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td>N/A</td>
 		<td><code></code></td>
 		<td></td>
+	</tr>
+	<tr>
+		<td><code>file_exists</code></td>
+		<td><code>logical</code></td>
+		<td>
+			<code>readInput</code><br/>
+			<code>checkInitialization</code>
+		</td>
+		<td>N/A</td>
+		<td>N/A</td>
+		<td>
+			<code>readInput</code><br/>
+			<code>checkInitialization</code>
+		</td>
+		<td>If file exists</td>
 	</tr>
 </table>
 
@@ -537,7 +576,10 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td>
+			<code>initialize</code><br/>
+			<code>checkInitialization</code>
+		</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -546,7 +588,10 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td>
+			<code>initialize</code><br/>
+			<code>checkInitialization</code>
+		</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -555,7 +600,10 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td>
+			<code>initialize</code><br/>
+			<code>checkInitialization</code>
+		</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -564,7 +612,10 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td>
+			<code>initialize</code><br/>
+			<code>checkInitialization</code>
+		</td>
 		<td></td>
 	</tr>
 	<tr>
@@ -699,8 +750,8 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
-		<td></td>
+		<td><code>readInput</code></td>
+		<td>Status returned from I/O commands</td>
 	</tr>
 	<tr>
 		<td><code>iostd</code></td>
@@ -708,7 +759,10 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td>
+			<code>readInput</code><br/>
+			<code>checkInitialization</code>
+		</td>
 		<td>Unit number for output file</td>
 	</tr>
 	<tr>
@@ -797,7 +851,7 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td><code>initialize</code></td>
 		<td></td>
 	</tr>
 	<tr>
@@ -806,7 +860,7 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td><code>initialize</code></td>
 		<td></td>
 	</tr>
 </table>
@@ -886,8 +940,8 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
-		<td></td>
+		<td><code>checkInitialization</code></td>
+		<td>The command for creating the elements path directory</td>
 	</tr>
 	<tr>
 		<td><code>myid</code></td>
@@ -1079,7 +1133,7 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td><code>initialize</code></td>
 		<td></td>
 	</tr>
 	<tr>
@@ -1259,8 +1313,8 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
-		<td></td>
+		<td><code>readInput</code></td>
+		<td>Number of plane waves??</td>
 	</tr>
 	<tr>
 		<td><code>numOfPWsPC</code></td>
@@ -1268,7 +1322,7 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td><code>readInput</code></td>
 		<td></td>
 	</tr>
 	<tr>
@@ -1277,7 +1331,7 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td><code>readInput</code></td>
 		<td></td>
 	</tr>
 	<tr>
@@ -1344,7 +1398,7 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td><code>readInput</code></td>
 		<td>Name of output file</td>
 	</tr>
 </table>
@@ -1630,7 +1684,10 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code>transitionMatrixElements</code></td>
+		<td>
+			<code>transitionMatrixElements</code><br/>
+			<code>readInput</code>
+		</td>
 		<td>Start time for program</td>
 	</tr>
 	<tr>
@@ -1684,7 +1741,7 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td><code>readInput</code></td>
 		<td>Used to gather variables for input</td>
 	</tr>
 	<tr>
@@ -1764,7 +1821,7 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 		<td><code>declarations</code></td>
 		<td>N/A</td>
 		<td>N/A</td>
-		<td><code></code></td>
+		<td><code>initialize</code></td>
 		<td></td>
 	</tr>
 </table>
