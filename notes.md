@@ -8,4 +8,3 @@
   * optimized structure: extracts the optimized structure, if it is not present it extracts nothing
   * all structures as animation 
 * *What is the purpose of the QE calculation?* --> **Explore the TME program**
-* *Maybe use a combination of QE and VASP? VASP for relax and phonon and QE for SCF?*
