@@ -1,0 +1,4749 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the cross section of a defect that can capture or scatter a carrier.">
+    
+    <meta name="author" content="" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>declarations &ndash; Carrier Cross Sections</title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">Carrier Cross Sections </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+            <li><a href="../lists/types.html">Derived Types</a></li>
+        
+        
+            <li><a href="../lists/programs.html">Programs</a></li>
+        
+            </ul>
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/programs.html">Programs</a></li>
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>declarations 
+    <small>Module</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title="27.4% of total for modules and submodules.">1244 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/TME_Module_v28.f90"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+     <li><a href='../sourcefile/tme_module_v28.f90.html'>TME_Module_v28.f90</a></li>
+    
+  
+     <li class="active">declarations</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-0">Variables</a></h3></div>
+  <div id="vars-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-dp">dp</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-iostd">iostd</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-root">root</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-output">output</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pi">pi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-sq4pi">sq4pi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-evtohartree">evToHartree</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-hartreetoev">HartreeToEv</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ii">ii</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-exportdirsd">exportDirSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-exportdirpc">exportDirPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-vfisoutput">VfisOutput</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-input">input</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-inputpc">inputPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-textdum">textDum</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-elementspath">elementsPath</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-mkdir">mkdir</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ibandiinit">iBandIinit</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ibandifinal">iBandIfinal</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ibandfinit">iBandFinit</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ibandffinal">iBandFfinal</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ik%7E13">ik</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ki">ki</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-kf">kf</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ig">ig</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ibi">ibi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ibf">ibf</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-jmax">JMAX</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-maxl">maxL</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-itypes">iTypes</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ipn">iPn</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numofgvecs">numOfGvecs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numofpwspc">numOfPWsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numofpwssd">numOfPWsSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nionssd">nIonsSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nionspc">nIonsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nkptspc">nKptsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nprojspc">nProjsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numoftypespc">numOfTypesPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numofpws">numOfPWs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numoftypes">numOfTypes</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nbands">nBands</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nkpts">nKpts</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nspins">nSpins</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nprojssd">nProjsSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numofusedgvecspp">numOfUsedGvecsPP</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ios">ios</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwni">npwNi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwnf">npwNf</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwmi">npwMi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwmf">npwMf</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-fftxmin">fftxMin</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-fftxmax">fftxMax</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-fftymin">fftyMin</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-fftymax">fftyMax</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-fftzmin">fftzMin</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-fftzmax">fftzMax</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-gx">gx</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-gy">gy</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-gz">gz</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ngvsi">nGvsI</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ngvsf">nGvsF</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ngi">nGi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ngf">nGf</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-myid">myid</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numprocs">numprocs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nsquareprocs">nSquareProcs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-np">np</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ni">nI</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nf">nF</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npp">nPP</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ind2">ind2</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ierr">ierr</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-i">i</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-j">j</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-n1">n1</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-n2">n2</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-n3">n3</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-n4">n4</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-n%7E15">n</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-id">id</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npw">npw</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-counts">counts</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-displmnt">displmnt</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwsi">nPWsI</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwsf">nPWsF</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-t0%7E2">t0</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-tf">tf</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-at">at</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-bg">bg</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-omega">omega</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-threej">threej</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-eigvi">eigvI</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-eigvf">eigvF</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-gvecs">gvecs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-posionsd">posIonSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-posionpc">posIonPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-wk">wk</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-xk">xk</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-de">DE</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-absvfi2">absVfi2</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-wfcpc">wfcPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-wfcsd">wfcSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ufi">Ufi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw_sdkkpc">paw_SDKKPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw_id">paw_id</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pawkpc">pawKPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pawsdk">pawSDK</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pawpsipc">pawPsiPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pawsdphi">pawSDPhi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-cprojpc">cProjPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-cprojsd">cProjSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw_fi">paw_fi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw_psipc">paw_PsiPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw_sdphi">paw_SDPhi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-betapc">betaPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-cprojbetapcpsisd">cProjBetaPCPsiSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-betasd">betaSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-cprojbetasdphipc">cProjBetaSDPhiPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-typnisd">TYPNISD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-typnipc">TYPNIPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-igvs">igvs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pwgvecs">pwGvecs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-iqs">iqs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-groundstate">groundState</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwssd">npwsSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pwgindpc">pwGindPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pwgindsd">pwGindSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pwgs">pwGs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nis">nIs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nfs">nFs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ngs">ngs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwspc">npwsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-wkpc">wkPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-xkpc">xkPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-atoms">atoms</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-atomspc">atomsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-vecs">vecs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-newvecs">newVecs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ebin">eBin</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw">paw</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pseudo1">pseudo1</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pseudo2">pseudo2</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw2">paw2</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-gamma_only%7E2">gamma_only</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-master">master</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-calculatevfis">calculateVfis</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-coulomb">coulomb</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-tmes_file_exists%7E2">tmes_file_exists</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#types-0">Derived Types</a></h3></div>
+  <div id="types-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/declarations.html#type-atom">atom</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#type-vec">vec</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-0">Subroutines</a></h3></div>
+  <div class="list-group">
+    <div id="subs-0" class="panel-collapse collapse">
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readinput">readInput</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-initialize">initialize</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-checkinitialization">checkInitialization</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readinputpc">readInputPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-distributepwstoprocs">distributePWsToProcs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-int2str">int2str</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-finalizecalculation">finalizeCalculation</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readpwsset">readPWsSet</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readwfcpc">readWfcPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-projectbetapcwfcsd">projectBetaPCwfcSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readwfcsd">readWfcSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readinputsd">readInputSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-calculatepwsoverlap">calculatePWsOverlap</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readprojectionspc">readProjectionsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readprojectionssd">readProjectionsSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-projectbetasdwfcpc">projectBetaSDwfcPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-pawcorrectionkpc">pawCorrectionKPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-pawcorrectionsdk">pawCorrectionSDK</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-pawcorrectionpsipc">pawCorrectionPsiPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-pawcorrectionsdphi">pawCorrectionSDPhi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-pawcorrection">pawCorrection</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readeigenvalues">readEigenvalues</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-calculatevfielements">calculateVfiElements</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-checkifcalculated">checkIfCalculated</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readufis">readUfis</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-writeresults">writeResults</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-bessel_j">bessel_j</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-ylm">ylm</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+</div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <p>Declare all global variables</p>
+      
+    
+  
+
+    
+    
+
+    <br>
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
+  <div id="vars-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-dp">dp</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-iostd">iostd</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-root">root</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-output">output</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pi">pi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-sq4pi">sq4pi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-evtohartree">evToHartree</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-hartreetoev">HartreeToEv</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ii">ii</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-exportdirsd">exportDirSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-exportdirpc">exportDirPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-vfisoutput">VfisOutput</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-input">input</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-inputpc">inputPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-textdum">textDum</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-elementspath">elementsPath</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-mkdir">mkdir</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ibandiinit">iBandIinit</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ibandifinal">iBandIfinal</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ibandfinit">iBandFinit</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ibandffinal">iBandFfinal</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ik%7E13">ik</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ki">ki</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-kf">kf</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ig">ig</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ibi">ibi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ibf">ibf</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-jmax">JMAX</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-maxl">maxL</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-itypes">iTypes</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ipn">iPn</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numofgvecs">numOfGvecs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numofpwspc">numOfPWsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numofpwssd">numOfPWsSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nionssd">nIonsSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nionspc">nIonsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nkptspc">nKptsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nprojspc">nProjsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numoftypespc">numOfTypesPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numofpws">numOfPWs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numoftypes">numOfTypes</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nbands">nBands</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nkpts">nKpts</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nspins">nSpins</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nprojssd">nProjsSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numofusedgvecspp">numOfUsedGvecsPP</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ios">ios</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwni">npwNi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwnf">npwNf</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwmi">npwMi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwmf">npwMf</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-fftxmin">fftxMin</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-fftxmax">fftxMax</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-fftymin">fftyMin</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-fftymax">fftyMax</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-fftzmin">fftzMin</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-fftzmax">fftzMax</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-gx">gx</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-gy">gy</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-gz">gz</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ngvsi">nGvsI</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ngvsf">nGvsF</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ngi">nGi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ngf">nGf</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-myid">myid</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-numprocs">numprocs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nsquareprocs">nSquareProcs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-np">np</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ni">nI</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nf">nF</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npp">nPP</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ind2">ind2</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ierr">ierr</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-i">i</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-j">j</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-n1">n1</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-n2">n2</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-n3">n3</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-n4">n4</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-n%7E15">n</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-id">id</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npw">npw</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-counts">counts</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-displmnt">displmnt</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwsi">nPWsI</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwsf">nPWsF</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-t0%7E2">t0</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-tf">tf</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-at">at</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-bg">bg</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-omega">omega</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-threej">threej</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-eigvi">eigvI</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-eigvf">eigvF</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-gvecs">gvecs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-posionsd">posIonSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-posionpc">posIonPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-wk">wk</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-xk">xk</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-de">DE</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-absvfi2">absVfi2</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-wfcpc">wfcPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-wfcsd">wfcSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ufi">Ufi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw_sdkkpc">paw_SDKKPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw_id">paw_id</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pawkpc">pawKPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pawsdk">pawSDK</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pawpsipc">pawPsiPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pawsdphi">pawSDPhi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-cprojpc">cProjPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-cprojsd">cProjSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw_fi">paw_fi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw_psipc">paw_PsiPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw_sdphi">paw_SDPhi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-betapc">betaPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-cprojbetapcpsisd">cProjBetaPCPsiSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-betasd">betaSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-cprojbetasdphipc">cProjBetaSDPhiPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-typnisd">TYPNISD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-typnipc">TYPNIPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-igvs">igvs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pwgvecs">pwGvecs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-iqs">iqs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-groundstate">groundState</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwssd">npwsSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pwgindpc">pwGindPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pwgindsd">pwGindSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pwgs">pwGs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nis">nIs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-nfs">nFs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ngs">ngs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-npwspc">npwsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-wkpc">wkPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-xkpc">xkPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-atoms">atoms</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-atomspc">atomsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-vecs">vecs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-newvecs">newVecs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-ebin">eBin</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw">paw</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pseudo1">pseudo1</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-pseudo2">pseudo2</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-paw2">paw2</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-gamma_only%7E2">gamma_only</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-master">master</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-calculatevfis">calculateVfis</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-coulomb">coulomb</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#variable-tmes_file_exists%7E2">tmes_file_exists</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#types-1">Derived Types</a></h3></div>
+  <div id="types-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/declarations.html#type-atom">atom</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#type-vec">vec</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-1">Subroutines</a></h3></div>
+  <div class="list-group">
+    <div id="subs-1" class="panel-collapse collapse">
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readinput">readInput</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-initialize">initialize</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-checkinitialization">checkInitialization</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readinputpc">readInputPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-distributepwstoprocs">distributePWsToProcs</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-int2str">int2str</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-finalizecalculation">finalizeCalculation</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readpwsset">readPWsSet</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readwfcpc">readWfcPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-projectbetapcwfcsd">projectBetaPCwfcSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readwfcsd">readWfcSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readinputsd">readInputSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-calculatepwsoverlap">calculatePWsOverlap</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readprojectionspc">readProjectionsPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readprojectionssd">readProjectionsSD</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-projectbetasdwfcpc">projectBetaSDwfcPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-pawcorrectionkpc">pawCorrectionKPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-pawcorrectionsdk">pawCorrectionSDK</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-pawcorrectionpsipc">pawCorrectionPsiPC</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-pawcorrectionsdphi">pawCorrectionSDPhi</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-pawcorrection">pawCorrection</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readeigenvalues">readEigenvalues</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-calculatevfielements">calculateVfiElements</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-checkifcalculated">checkIfCalculated</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-readufis">readUfis</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-writeresults">writeResults</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-bessel_j">bessel_j</a>
+      
+      <a class="list-group-item" href="../module/declarations.html#proc-ylm">ylm</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    
+
+    
+    <section>
+    <h2>Variables</h2>
+    
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Visibility</th>
+
+<th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-dp"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>dp</strong></td><td> =</td><td>selected_real_kind(15, 307)</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-iostd"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>iostd</strong></td><td> =</td><td>16</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-root"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>root</strong></td><td> =</td><td>0</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-output"></span>character(len=6),</td>
+  
+  <td>public,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>output</strong></td><td> =</td><td>'output'</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-pi"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>pi</strong></td><td> =</td><td>3.141592653589793_dp</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-sq4pi"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>sq4pi</strong></td><td> =</td><td>3.544907701811032_dp</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-evtohartree"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>evToHartree</strong></td><td> =</td><td>0.03674932538878_dp</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-hartreetoev"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>HartreeToEv</strong></td><td> =</td><td>27.21138386_dp</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ii"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>parameter</td><td>::</td>
+  <td><strong>ii</strong></td><td> =</td><td>cmplx(0.0_dp, 1.0_dp, kind=dp)</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-exportdirsd"></span>character(len=200),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>exportDirSD</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-exportdirpc"></span>character(len=200),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>exportDirPC</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-vfisoutput"></span>character(len=200),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>VfisOutput</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-input"></span>character(len=300),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>input</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-inputpc"></span>character(len=300),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>inputPC</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-textdum"></span>character(len=300),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>textDum</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-elementspath"></span>character(len=300),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>elementsPath</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-mkdir"></span>character(len=320),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>mkdir</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibandiinit"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>iBandIinit</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibandifinal"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>iBandIfinal</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibandfinit"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>iBandFinit</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibandffinal"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>iBandFfinal</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ik%7E13"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ik</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ki"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ki</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-kf"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>kf</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ig"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ig</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibi"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ibi</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibf"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ibf</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-jmax"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>JMAX</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-maxl"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>maxL</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-itypes"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>iTypes</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ipn"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>iPn</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-numofgvecs"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>numOfGvecs</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-numofpwspc"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>numOfPWsPC</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-numofpwssd"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>numOfPWsSD</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nionssd"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nIonsSD</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nionspc"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nIonsPC</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nkptspc"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nKptsPC</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nprojspc"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nProjsPC</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-numoftypespc"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>numOfTypesPC</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-numofpws"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>numOfPWs</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-numoftypes"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>numOfTypes</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nbands"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nBands</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nkpts"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nKpts</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nspins"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nSpins</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nprojssd"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nProjsSD</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-numofusedgvecspp"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>numOfUsedGvecsPP</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ios"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ios</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-npwni"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>npwNi</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-npwnf"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>npwNf</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-npwmi"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>npwMi</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-npwmf"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>npwMf</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-fftxmin"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>fftxMin</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-fftxmax"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>fftxMax</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-fftymin"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>fftyMin</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-fftymax"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>fftyMax</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-fftzmin"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>fftzMin</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-fftzmax"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>fftzMax</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-gx"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>gx</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-gy"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>gy</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-gz"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>gz</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ngvsi"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nGvsI</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ngvsf"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nGvsF</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ngi"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nGi</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ngf"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nGf</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-myid"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>myid</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-numprocs"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>numprocs</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nsquareprocs"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nSquareProcs</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-np"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>np</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ni"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nI</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nf"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nF</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-npp"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nPP</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ind2"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ind2</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ierr"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ierr</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-i"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>i</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-j"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>j</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-n1"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>n1</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-n2"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>n2</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-n3"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>n3</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-n4"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>n4</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-n%7E15"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>n</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-id"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>id</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-npw"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>npw</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-counts"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>counts</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-displmnt"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>displmnt</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-npwsi"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>nPWsI</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-npwsf"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>nPWsF</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-t0%7E2"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>t0</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-tf"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>tf</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-at"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>at</strong>(3,3)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-bg"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>bg</strong>(3,3)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-omega"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>omega</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-threej"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>threej</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-eigvi"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>eigvI</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-eigvf"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>eigvF</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-gvecs"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>gvecs</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-posionsd"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>posIonSD</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-posionpc"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>posIonPC</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-wk"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>wk</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-xk"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>xk</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-de"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>DE</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-absvfi2"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>absVfi2</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-wfcpc"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>wfcPC</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-wfcsd"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>wfcSD</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ufi"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>Ufi</strong>(:,:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-paw_sdkkpc"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>paw_SDKKPC</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-paw_id"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>paw_id</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-pawkpc"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>pawKPC</strong>(:,:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-pawsdk"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>pawSDK</strong>(:,:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-pawpsipc"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>pawPsiPC</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-pawsdphi"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>pawSDPhi</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-cprojpc"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>cProjPC</strong>(:,:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-cprojsd"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>cProjSD</strong>(:,:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-paw_fi"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>paw_fi</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-paw_psipc"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>paw_PsiPC</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-paw_sdphi"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>paw_SDPhi</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-betapc"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>betaPC</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-cprojbetapcpsisd"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>cProjBetaPCPsiSD</strong>(:,:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-betasd"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>betaSD</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-cprojbetasdphipc"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>cProjBetaSDPhiPC</strong>(:,:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-typnisd"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>TYPNISD</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-typnipc"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>TYPNIPC</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-igvs"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>igvs</strong>(:,:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-pwgvecs"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>pwGvecs</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-iqs"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>iqs</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-groundstate"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>groundState</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-npwssd"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>npwsSD</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-pwgindpc"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>pwGindPC</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-pwgindsd"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>pwGindSD</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-pwgs"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>pwGs</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nis"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>nIs</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nfs"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>nFs</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ngs"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>ngs</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-npwspc"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>npwsPC</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-wkpc"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>wkPC</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-xkpc"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>xkPC</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-atoms"></span>type(<a href='../type/atom.html'>atom</a>),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>atoms</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-atomspc"></span>type(<a href='../type/atom.html'>atom</a>),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>atomsPC</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-vecs"></span>type(<a href='../type/vec.html'>vec</a>),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>vecs</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-newvecs"></span>type(<a href='../type/vec.html'>vec</a>),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>newVecs</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ebin"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>eBin</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-paw"></span>complex(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>paw</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-pseudo1"></span>complex(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>pseudo1</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-pseudo2"></span>complex(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>pseudo2</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-paw2"></span>complex(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>paw2</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-gamma_only%7E2"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>gamma_only</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-master"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>master</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-calculatevfis"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>calculateVfis</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-coulomb"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>coulomb</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-tmes_file_exists%7E2"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>tmes_file_exists</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+    </section>
+    <br>
+    
+    
+    
+    
+    
+
+    
+    
+    
+    <section>
+     <h2>Derived Types</h2>
+   
+     
+<div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="type-atom"></span><h3>type, public :: <a href='../type/atom.html'>atom</a>
+    
+  </h3></div>
+  <div class="panel-body">
+    
+     
+     <h4>Components</h4>
+    
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Visibility</th>
+
+<th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-symbol"></span>character(len=2),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>symbol</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-numofatoms"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>numOfAtoms</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-lmax"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>lMax</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-lmmax"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>lmMax</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nmax"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nMax</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-irc"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>iRc</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-lps"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>lps</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-r"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>r</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-rab"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>rab</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-wae"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>wae</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-wps"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>wps</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>F</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f1"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>F1</strong>(:,:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f2"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>F2</strong>(:,:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-bes_j_qr"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>bes_J_qr</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+     
+     
+          
+     
+  </div>
+</div>
+
+     
+     
+<div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="type-vec"></span><h3>type, public :: <a href='../type/vec.html'>vec</a>
+    
+  </h3></div>
+  <div class="panel-body">
+    
+     
+     <h4>Components</h4>
+    
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Visibility</th>
+
+<th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ind"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ind</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ign"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>igN</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-igm"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>igM</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+     
+     
+          
+     
+  </div>
+</div>
+
+     
+    </section>
+  <br>
+    
+    
+    
+
+    
+    <section>
+    <h2>Subroutines</h2>
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-readinput"></span><h3>
+public subroutine <a href='../proc/readinput.html'>readInput</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>Check if file output exists, and delete it if it does
+ Open new output file
+ Set default values for input variables
+ Read input from command line (or input file if use <code>&lt; TME_Input.md</code>)
+ Check that all required variables were input and have values that make sense
+ ???????</p>
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-initialize"></span><h3>
+public subroutine <a href='../proc/initialize.html'>initialize</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>Set default values for all of the input variables
+ that can easily be tested to see if they were changed</p>
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-checkinitialization"></span><h3>
+public subroutine <a href='../proc/checkinitialization.html'>checkInitialization</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>Write out a header to the output file
+ Check if the SD export directory is blank
+ Output an error message and set abortExecution to true
+ If the SD export directory isn't blank
+ Check if the SD export directory exists
+ If the SD export directory doesn't exist
+ Output an error message and set abortExecution to true
+ Output the given SD export directory
+ Check if the PC export directory is blank
+ Output an error message and set abortExecution to true
+ If the PC export directory isn't blank
+ Check if the PC export directory exists
+ If the PC export directory doesn't exist
+ Output an error message and set abortExecution to true
+ Output the given PC export directory
+ If the elements path is blank
+ Output a warning message and set the default value
+ Check if the elements path folder exists already
+ If the elements path folder doesn't already exist
+ Create the directory by writing the mkdir command to a string
+ Execute the command
+ Output the elements path
+ If iBandIinit is still less than zero
+ Ouput an error messge and set abortExecution to true
+ Output the value of iBandIinit
+ If iBandIfinal is still less than zero
+ Ouput an error messge and set abortExecution to true
+ Output the value of iBandIfinal
+ If iBandFinit is still less than zero
+ Ouput an error messge and set abortExecution to true
+ Output the value of iBandFinit
+ If iBandFfinal is still less than zero
+ Ouput an error messge and set abortExecution to true
+ Output the value of iBandFfinal
+ If calculateVfis is true and iBandFinit and iBandFfinal are not equal to each other
+ Output an error message and set abortExecution to true
+ Output the value of calculateVfis
+ If the VfisOutput file name is blank
+ Output a warning message and set the default value
+ Output the value of VfisOutput
+ If the value of eBin is still less than zero
+ Output a warning message and set the default value
+ Output the value of eBin
+ Convert eBin from eV to Hartree
+ If abortExecution was ever set to true
+ Output an error message and stop the program
+ Make the output file available for other processes</p>
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-readinputpc"></span><h3>
+public subroutine <a href='../proc/readinputpc.html'>readInputPC</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>Define local variables</p><a href="../proc/readinputpc.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-distributepwstoprocs"></span><h3>
+public subroutine <a href='../proc/distributepwstoprocs.html'>distributePWsToProcs</a>(nOfPWs, nOfBlocks)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>nOfPWs</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>nOfBlocks</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-int2str"></span><h3>
+public subroutine <a href='../proc/int2str.html'>int2str</a>(integ, string)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>integ</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=300)</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>string</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-finalizecalculation"></span><h3>
+public subroutine <a href='../proc/finalizecalculation.html'>finalizeCalculation</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-readpwsset"></span><h3>
+public subroutine <a href='../proc/readpwsset.html'>readPWsSet</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-readwfcpc"></span><h3>
+public subroutine <a href='../proc/readwfcpc.html'>readWfcPC</a>(ik)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ik</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-projectbetapcwfcsd"></span><h3>
+public subroutine <a href='../proc/projectbetapcwfcsd.html'>projectBetaPCwfcSD</a>(ik)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ik</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-readwfcsd"></span><h3>
+public subroutine <a href='../proc/readwfcsd.html'>readWfcSD</a>(ik)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ik</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-readinputsd"></span><h3>
+public subroutine <a href='../proc/readinputsd.html'>readInputSD</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-calculatepwsoverlap"></span><h3>
+public subroutine <a href='../proc/calculatepwsoverlap.html'>calculatePWsOverlap</a>(ik)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ik</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-readprojectionspc"></span><h3>
+public subroutine <a href='../proc/readprojectionspc.html'>readProjectionsPC</a>(ik)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ik</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-readprojectionssd"></span><h3>
+public subroutine <a href='../proc/readprojectionssd.html'>readProjectionsSD</a>(ik)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ik</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-projectbetasdwfcpc"></span><h3>
+public subroutine <a href='../proc/projectbetasdwfcpc.html'>projectBetaSDwfcPC</a>(ik)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ik</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-pawcorrectionkpc"></span><h3>
+public subroutine <a href='../proc/pawcorrectionkpc.html'>pawCorrectionKPC</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-pawcorrectionsdk"></span><h3>
+public subroutine <a href='../proc/pawcorrectionsdk.html'>pawCorrectionSDK</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-pawcorrectionpsipc"></span><h3>
+public subroutine <a href='../proc/pawcorrectionpsipc.html'>pawCorrectionPsiPC</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-pawcorrectionsdphi"></span><h3>
+public subroutine <a href='../proc/pawcorrectionsdphi.html'>pawCorrectionSDPhi</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-pawcorrection"></span><h3>
+public subroutine <a href='../proc/pawcorrection.html'>pawCorrection</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-readeigenvalues"></span><h3>
+public subroutine <a href='../proc/readeigenvalues.html'>readEigenvalues</a>(ik)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ik</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-calculatevfielements"></span><h3>
+public subroutine <a href='../proc/calculatevfielements.html'>calculateVfiElements</a>()
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      <em>None</em>
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-checkifcalculated"></span><h3>
+public subroutine <a href='../proc/checkifcalculated.html'>checkIfCalculated</a>(ik, tmes_file_exists)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ik</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>logical,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>tmes_file_exists</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-readufis"></span><h3>
+public subroutine <a href='../proc/readufis.html'>readUfis</a>(ik)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ik</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-writeresults"></span><h3>
+public subroutine <a href='../proc/writeresults.html'>writeResults</a>(ik)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ik</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-bessel_j"></span><h3>
+public subroutine <a href='../proc/bessel_j.html'>bessel_j</a>(x, lmax, jl)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real(kind=dp),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>x</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>lmax</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real(kind=dp),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>jl</strong>(0:lmax)</td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-ylm"></span><h3>
+public subroutine <a href='../proc/ylm.html'>ylm</a>(V_in, LMAX, Y)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real(kind=dp),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>V_in</strong>(3)</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>LMAX</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>complex(kind=dp),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>Y</strong>(*)</td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    </section>    
+    <br>
+    
+    
+    
+    </div>
+  </div>
+
+  
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+                                          </p></div>
+        <div class="col-xs-6 col-md-4 col-md-push-4">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/cmacmackin/ford">FORD</a>
+            
+          </p>
+        </div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Carrier Cross Sections was developed by </p></div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>
