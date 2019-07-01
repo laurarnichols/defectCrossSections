@@ -29,7 +29,8 @@ module TMEModule
   !
   ! Declare character parameter 
   character(len = 6), parameter ::      output = 'output'
-    !! Name of the output file
+    !! Name of the output file;
+    !! used in [[TMEModule(module):readInput(subroutine)]]
   !
   ! 
   ! Declare scalar integers
