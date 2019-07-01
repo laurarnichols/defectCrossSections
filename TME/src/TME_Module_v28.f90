@@ -2,35 +2,121 @@ module TMEModule
   !
   !! Declare all global variables
   !! and house all subroutines
-  !
+  !!
   implicit none
   !
+  ! Declare integer parameters
   integer, parameter :: dp = selected_real_kind(15, 307)
+    !! Used to set real variables to double precision
   integer, parameter :: iostd = 16
+    !! Unit number for output file
   integer, parameter :: root  = 0
+    !! ID of the root process
   !
-  character(len = 6), parameter ::      output = 'output'
-  !
+  ! Declare real parameters
   real(kind = dp), parameter ::          pi = 3.141592653589793_dp
+    !! Pi
   real(kind = dp), parameter ::       sq4pi = 3.544907701811032_dp
+    !! \(\sqrt{4\pi}\)
   real(kind = dp), parameter :: evToHartree = 0.03674932538878_dp
+    !! Conversion factor from eV to Hartree
   real(kind = dp), parameter :: HartreeToEv = 27.21138386_dp
+    !! Conversion factor from Hartree to eV
   !
+  ! Declare complex parameter
   complex(kind = dp), parameter ::    ii = cmplx(0.0_dp, 1.0_dp, kind = dp)
+    !! Complex \(i\)
   !
-  character(len = 200) :: exportDirSD, exportDirPC, VfisOutput
-  character(len = 300) :: input, inputPC, textDum, elementsPath
+  ! Declare character parameter 
+  character(len = 6), parameter ::      output = 'output'
+    !! Name of the output file
+  !
+  ! 
+  ! Declare scalar integers
+  integer :: fftxMin
+  integer :: fftxMax
+  integer :: fftyMin
+  integer :: fftyMax
+  integer :: fftzMin
+  integer :: fftzMax
+  integer :: gx
+  integer :: gy
+  integer :: gz
+  integer :: i
+  integer :: iBandFfinal
+  integer :: iBandFinit
+  integer :: iBandIfinal
+  integer :: iBandIinit
+  integer :: ibf
+  integer :: ibi
+  integer :: id
+  integer :: ierr
+    !! Error code returned from MPI
+  integer :: ig
+  integer :: ik
+  integer :: ind2
+  integer :: ios
+    !! Status returned from I/O commands
+  integer :: iPn
+  integer :: iTypes
+  integer :: j
+  integer :: JMAX
+  integer :: kf
+  integer :: ki
+  integer :: maxL
+  integer :: myid
+    !! ID for each MPI process
+  integer :: n
+  integer :: n1
+  integer :: n2
+  integer :: n3
+  integer :: n4
+  integer :: nBands
+  integer :: nF
+  integer :: nGf
+  integer :: nGi
+  integer :: nGvsF
+  integer :: nGvsI
+  integer :: nI
+  integer :: nIonsPC
+  integer :: nIonsSD
+  integer :: nKpts
+  integer :: nKptsPC
+  integer :: np
+  integer :: nPP
+  integer :: nProjsPC
+  integer :: nProjsSD
+  integer :: npw
+  integer :: npwMf
+  integer :: npwMi
+  integer :: npwNf
+  integer :: npwNi
+  integer :: nSquareProcs
+  integer :: nSpins
+  integer :: numOfGvecs
+  integer :: numOfPWs
+  integer :: numOfPWsPC
+  integer :: numOfPWsSD
+  integer :: numOfTypes
+  integer :: numOfTypesPC
+  integer :: numOfUsedGvecsPP
+  integer :: numprocs
+    !! Number of processes in the MPI pool
+  !
+  ! Declare scalar characters
+  character(len = 200) :: exportDirSD
+    !! SD output directory from the [[pw_export_for_TME(program)]] program
+  character(len = 200) :: exportDirPC
+    !! PC output directory from the [[pw_export_for_TME(program)]] program
+  character(len = 200) :: VfisOutput
+    !! Output file for ??
+  character(len = 300) :: input
+  character(len = 300) :: inputPC
+  character(len = 300) :: textDum
+    !! Dummy variable to hold unneeded lines from input file
+  character(len = 300) :: elementsPath
   character(len = 320) :: mkdir
-  !
-  integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ik, ki, kf, ig, ibi, ibf
-  integer :: JMAX, maxL, iTypes, iPn
-  integer :: numOfGvecs, numOfPWsPC, numOfPWsSD, nIonsSD, nIonsPC, nKptsPC, nProjsPC, numOfTypesPC
-  integer :: numOfPWs, numOfTypes, nBands, nKpts, nSpins, nProjsSD
-  integer :: numOfUsedGvecsPP, ios, npwNi, npwNf, npwMi, npwMf
-  integer :: fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
-  integer :: gx, gy, gz, nGvsI, nGvsF, nGi, nGf
-  integer :: myid, numprocs, nSquareProcs, np, nI, nF, nPP, ind2, ierr
-  integer :: i, j, n1, n2, n3, n4, n, id, npw
+    !! Command for creating the elements path directory
   !
   integer, allocatable :: counts(:), displmnt(:), nPWsI(:), nPWsF(:)
   !
