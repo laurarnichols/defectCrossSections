@@ -207,12 +207,38 @@ public subroutine readInput()
 
 
     
-    <p>Check if file output exists, and delete it if it does
- Open new output file
- Set default values for input variables
- Read input from command line (or input file if use <code>&lt; TME_Input.md</code>)
- Check that all required variables were input and have values that make sense
- ???????</p>
+    <p>Delete any previous output, initialize input variables,
+ start a timer, and read in the input files</p>
+<ul>
+<li>
+<p>Start a timer</p>
+</li>
+<li>
+<p>Check if file output exists,
+ and delete it if it does</p>
+</li>
+<li>
+<p>Open new output file</p>
+</li>
+<li>
+<p>Set default values for input variables</p>
+</li>
+<li>
+<p>Read input from command line (or input file if use <code>&lt; TME_Input.md</code>)</p>
+</li>
+<li>
+<p>Check that all required variables were input and have values that make sense</p>
+</li>
+<li>
+<p>Read PC inputs</p>
+</li>
+<li>
+<p>Read SD inputs</p>
+</li>
+<li>
+<p>Calculate the number of plane waves as the maximum of the number of PC and SD plane waves</p>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>

@@ -1,5 +1,8 @@
 module declarations
   !
+  !! Declare all global variables
+  !! and house all subroutines
+  !
   implicit none
   !
   integer, parameter :: dp = selected_real_kind(15, 307)
@@ -104,35 +107,43 @@ contains
   !
   !
   subroutine readInput()
-    !
+    !! Delete any previous output, initialize input variables,
+    !! start a timer, and read in the input files
+    !!
     implicit none
     !
     logical :: file_exists
     !
     call cpu_time(t0)
-    !
-    ! Check if file output exists. If it does, delete it.
+        !! * Start a timer
     !
     inquire(file = output, exist = file_exists)
+        !! * Check if file output exists,
     if ( file_exists ) then
+        !! and delete it if it does
       open (unit = 11, file = output, status = "old")
       close(unit = 11, status = "delete")
     endif
     !
-    ! Open new output file.
-    !
     open (iostd, file = output, status='new')
+        !! * Open new output file
     !
     call initialize()
+        !! * Set default values for input variables
     !
     READ (5, TME_Input, iostat = ios)
+        !! * Read input from command line (or input file if use `< TME_Input.md`)
     !
     call checkInitialization()
+        !! * Check that all required variables were input and have values that make sense
     !
     call readInputPC()
+        !! * Read PC inputs
     call readInputSD()
+        !! * Read SD inputs
     !
     numOfPWs = max( numOfPWsPC, numOfPWsSD )
+        !! * Calculate the number of plane waves as the maximum of the number of PC and SD plane waves
     !
     return
     !
@@ -140,6 +151,9 @@ contains
   !
   !
   subroutine initialize()
+    ! 
+    !! Set default values for all of the input variables
+    !! that can easily be tested to see if they were changed
     !
     implicit none
     !
@@ -172,62 +186,91 @@ contains
     !
     logical :: file_exists, abortExecution
     !
+    !! Set the default value of abort execution so that the program
+    !! will only abort if there is an issue with the inputs
     abortExecution = .false.
     !
+    !! Write out a header to the output file
     write(iostd, '(" Inputs : ")')
     !
+    !! Check if the SD export directory is blank
     if ( trim(exportDirSD) == '' ) then
+      !! Output an error message and set abortExecution to true
       write(iostd, *)
       write(iostd, '(" Variable : ""exportDirSD"" is not defined!")')
       write(iostd, '(" usage : exportDirSD = ''./Export/''")')
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
+    !! If the SD export directory isn't blank
     else
+      !! Check if the SD export directory exists
       inquire(file= trim(exportDirSD), exist = file_exists)
       !
+      !! If the SD export directory doesn't exist
       if ( file_exists .eqv. .false. ) then
+        !! Output an error message and set abortExecution to true
         write(iostd, '(" exportDirSD :", a, " does not exist !")') trim(exportDirSD)
         write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
         abortExecution = .true.
       endif
     endif
     !
+    !! Output the given SD export directory
     write(iostd, '("exportDirSD = ''", a, "''")') trim(exportDirSD)
     !
+    !! Check if the PC export directory is blank
     if ( trim(exportDirPC) == '' ) then
+      !! Output an error message and set abortExecution to true
       write(iostd, *)
       write(iostd, '(" Variable : ""exportDirPC"" is not defined!")')
       write(iostd, '(" usage : exportDirPC = ''./Export/''")')
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
+    !! If the PC export directory isn't blank
     else
+      !! Check if the PC export directory exists
       inquire(file= trim(exportDirPC), exist = file_exists)
       !
+      !! If the PC export directory doesn't exist
       if ( file_exists .eqv. .false. ) then
+        !! Output an error message and set abortExecution to true
         write(iostd, '(" exportDir :", a, " does not exist !")') trim(exportDirPC)
         write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
         abortExecution = .true.
       endif
     endif
     !
+    !! Output the given PC export directory
     write(iostd, '("exportDirPC = ''", a, "''")') trim(exportDirPC)
     !
+    !! If the elements path is blank
     if ( trim(elementsPath) == '' ) then
+      !! Output a warning message and set the default value
       write(iostd, *)
       write(iostd, '(" Variable : ""elementsPath"" is not defined!")')
       write(iostd, '(" usage : elementsPath = ''./''")')
-      write(iostd, '(" The homepath will be used as elementsPath.")')
-      elementsPath = './TMEs'
+      write(iostd, '(" The current directory will be used as elementsPath.")')
+      elementsPath = './'
     endif
+    !
+    !! Check if the elements path folder exists already
     inquire(file= trim(elementsPath), exist = file_exists)
+    !
+    !! If the elements path folder doesn't already exist
     if ( .not.file_exists ) then
+      !! Create the directory by writing the mkdir command to a string
       write(mkDir, '("mkdir -p ", a)') trim(elementsPath) 
+      !
+      !! Execute the command
       call system(mkDir)
     endif
     !
+    !! Output the elements path
     write(iostd, '("elementsPath = ''", a, "''")') trim(elementsPath)
     !
+    !! If iBandIinit is still less than zero
     if ( iBandIinit < 0 ) then
+      !! Ouput an error messge and set abortExecution to true
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandIinit"" is not defined!")')
       write(iostd, '(" usage : iBandIinit = 10")')
@@ -235,9 +278,12 @@ contains
       abortExecution = .true.
     endif
     !
+    !! Output the value of iBandIinit
     write(iostd, '("iBandIinit = ", i4)') iBandIinit
     !
+    !! If iBandIfinal is still less than zero
     if ( iBandIfinal < 0 ) then
+      !! Ouput an error messge and set abortExecution to true
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandIfinal"" is not defined!")')
       write(iostd, '(" usage : iBandIfinal = 20")')
@@ -245,9 +291,12 @@ contains
       abortExecution = .true.
     endif
     !
+    !! Output the value of iBandIfinal
     write(iostd, '("iBandIfinal = ", i4)') iBandIfinal
     !
+    !! If iBandFinit is still less than zero
     if ( iBandFinit < 0 ) then
+      !! Ouput an error messge and set abortExecution to true
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandFinit"" is not defined!")')
       write(iostd, '(" usage : iBandFinit = 9")')
@@ -255,9 +304,12 @@ contains
       abortExecution = .true.
     endif
     !
+    !! Output the value of iBandFinit
     write(iostd, '("iBandFinit = ", i4)') iBandFinit
     !
+    !! If iBandFfinal is still less than zero
     if ( iBandFfinal < 0 ) then
+      !! Ouput an error messge and set abortExecution to true
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandFfinal"" is not defined!")')
       write(iostd, '(" usage : iBandFfinal = 9")')
@@ -265,9 +317,12 @@ contains
       abortExecution = .true.
     endif
     !
+    !! Output the value of iBandFfinal
     write(iostd, '("iBandFfinal = ", i4)') iBandFfinal
     !
+    !! If calculateVfis is true and iBandFinit and iBandFfinal are not equal to each other
     if ( ( calculateVfis ) .and. ( iBandFinit /= iBandFfinal ) ) then
+      !! Output an error message and set abortExecution to true
       write(iostd, *)
       write(iostd, '(" Vfis can be calculated only if the final state is one and only one!")')
       write(iostd, '(" ''iBandFInit'' = ", i10)') iBandFinit
@@ -276,16 +331,20 @@ contains
       abortExecution = .true.
     endif
     !
+    !! Output the value of calculateVfis
     write(iostd, '("calculateVfis = ", l )') calculateVfis
     !
+    !! If the VfisOutput file name is blank
     if ( trim(VfisOutput) == '' ) then
+      !! Output a warning message and set the default value
       write(iostd, *)
       write(iostd, '(" Variable : ""VfisOutput"" is not defined!")')
       write(iostd, '(" usage : VfisOutput = ''VfisVsE''")')
-      write(iostd, '(" The default value ''VfisOutput'' will be used.")')
+      write(iostd, '(" The default value ''VfisVsE'' will be used.")')
       VfisOutput = 'VfisVsE'
     endif
     !
+    !! Output the value of VfisOutput
     write(iostd, '("VfisOutput = ''", a, "''")') trim(VfisOutput)
     !
     !if ( ki < 0 ) then
@@ -317,22 +376,29 @@ contains
     !  abortExecution = .true.
     !endif
     !
+    !! If the value of eBin is still less than zero
     if ( eBin < 0.0_dp ) then
-      eBin = 0.01_dp ! eV
+      !! Output a warning message and set the default value
       write(iostd,'(" Variable : ""eBin"" is not defined!")')
       write(iostd,'(" usage : eBin = 0.01")')
       write(iostd,'(" A default value of 0.01 eV will be used !")')
+      eBin = 0.01_dp ! eV
     endif
     !
+    !! Output the value of eBin
     write(iostd, '("eBin = ", f8.4, " (eV)")') eBin
     !
+    !! Convert eBin from eV to Hartree
     eBin = eBin*evToHartree
     !
+    !! If abortExecution was ever set to true
     if ( abortExecution ) then
+      !! Output an error message and stop the program
       write(iostd, '(" Program stops!")')
       stop
     endif
     !
+    !! Make the output file available for other processes
     flush(iostd)
     !
     return
@@ -344,6 +410,7 @@ contains
     !
     implicit none
     !
+    !! Define local variables
     !integer, intent(in) :: id
     !
     integer :: i, j, l, ind, ik, iDum, iType, ni, irc
@@ -354,139 +421,208 @@ contains
     !
     logical :: file_exists
     !
+    !! Start a local timer
     call cpu_time(t1)
     !
+    !! Output header to output file
     write(iostd, *)
     write(iostd, '(" Reading perfect crystal inputs.")')
     write(iostd, *)
     !
+    !! Set the path for the input file from the PC export directory
     inputPC = trim(trim(exportDirPC)//'/input')
     !
+    !! Check if the input file from the PC export directory exists
     inquire(file =trim(inputPC), exist = file_exists)
     !
+    !! If the input file doesn't exist
     if ( file_exists .eqv. .false. ) then
+      !! Output an error message and end the program
       write(iostd, '(" File : ", a, " , does not exist!")') trim(inputPC)
       write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirPC)
       write(iostd, '(" Program stops!")')
       flush(iostd)
+      stop
     endif
     !
+    !! Open the input file
     open(50, file=trim(inputPC), status = 'old')
     !
+    !! Read in a comment
     read(50, '(a)') textDum
+    !! Ignore the next line
     read(50, * ) 
     !
+    !! Read in another comment
     read(50, '(a)') textDum
+    !! Read in the number of k points
     read(50, '(i10)') nKptsPC
     !if ( kf < 0 ) kf = nKptsPC
     !
+    !! Read in another comment
     read(50, '(a)') textDum
-    !
+    ! 
+    !! Allocate space for arrays
     allocate ( npwsPC(nKptsPC), wkPC(nKptsPC), xkPC(3,nKptsPC) )
     !
+    !! For each k point
     do ik = 1, nKptsPC
       !
+      !! Read in a line where you ignore the first two integers and store the rest
       read(50, '(3i10,4ES24.15E3)') iDum, iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
       !
     enddo
     !
+    !! Read in another comment
     read(50, '(a)') textDum
+    !! Read in the number of g vectors
     read(50, * ) ! numOfGvecs
     !
+    !! Read in another comment
     read(50, '(a)') textDum
+    ! Read in the total number of plane waves
     read(50, '(i10)') numOfPWsPC
     !
+    !! Read in another comment
     read(50, '(a)') textDum     
+    !! Read in the min/max values for the fft grid
     read(50, * ) ! fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
     !read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
     !
+    !! Read in another comment
     read(50, '(a)') textDum
+    !! Ignore the next 3 lines that hold the cell size in a.u.
     read(50,  * )
     read(50,  * )
     read(50,  * )
     !
+    !! Read in another comment
     read(50, '(a)') textDum
+    !! Ignore the next 3 lines that hold the reciprocal cell size in a.u.
     read(50, * )
     read(50, * )
     read(50, * )
     !
-    !
+    !! Read in another comment
     read(50, '(a)') textDum
+    !! Read in the number of atoms
     read(50, '(i10)') nIonsPC
     !
+    !! Read in another comment
     read(50, '(a)') textDum
+    !! Read in the number of different types of atoms
     read(50, '(i10)') numOfTypesPC
     !
+    !! Allocate space for arrays
     allocate( posIonPC(3,nIonsPC), TYPNIPC(nIonsPC) )
     !
+    !! Read in another comment
     read(50, '(a)') textDum
+    !! For each atom
     do ni = 1, nIonsPC
+      !! Read in the type index and position
       read(50,'(i10, 3ES24.15E3)') TYPNIPC(ni), (posIonPC(j,ni) , j = 1,3)
     enddo
     !
+    !! Read in another comment
     read(50, '(a)') textDum
+    !! Ignore the next line that has the number of bands
     read(50, * )
     !
+    !! Read in another comment
     read(50, '(a)') textDum
+    !! Ignore the next line that has the spin format
     read(50, * ) 
     !
+    !! Allocate space for array
     allocate ( atomsPC(numOfTypesPC) )
     !
+    !! Initialize the number of projectors to zero
     nProjsPC = 0
+    !! For each atom type
     do iType = 1, numOfTypesPC
       !
+      !! Read in a comment
       read(50, '(a)') textDum
+      !! Read in the element name (symbol) for this atom type
       read(50, *) atomsPC(iType)%symbol
       !
+      !! Read in a comment
       read(50, '(a)') textDum
+      !! Read in the number of atoms of this type
       read(50, '(i10)') atomsPC(iType)%numOfAtoms
       !
+      !! Read in a comment
       read(50, '(a)') textDum
+      !! Read in the number of projectors
       read(50, '(i10)') atomsPC(iType)%lMax              ! number of projectors
       !
+      !! Allocate space for the lps array based on the number of projectors input
       allocate ( atomsPC(iType)%lps( atomsPC(iType)%lMax ) )
       !
+      !! Read in a comment
       read(50, '(a)') textDum
+      !! For each projector
       do i = 1, atomsPC(iType)%lMax 
+        !! Read in the angular momentum and the index of the projector
         read(50, '(2i10)') l, ind
+        !! Store the value in the lps array in the atomsPC structure array
         atomsPC(iType)%lps(ind) = l
       enddo
       !
+      !! Read in a comment
       read(50, '(a)') textDum
+      !! Read in the number of channels
       read(50, '(i10)') atomsPC(iType)%lmMax
       !
+      !! Read in a comment
       read(50, '(a)') textDum
+      !! Read in the number of radial mesh points
       read(50, '(2i10)') atomsPC(iType)%nMax, atomsPC(iType)%iRc
       !
+      !! Allocate space for the r and rab arrays based on the size of the radial mesh
       allocate ( atomsPC(iType)%r(atomsPC(iType)%nMax), atomsPC(iType)%rab(atomsPC(iType)%nMax) )
       !
+      !! Read in a comment
       read(50, '(a)') textDum
+      !! For each point in the radial mesh
       do i = 1, atomsPC(iType)%nMax
+        !! Read in the radial grid and the integrable grid
         read(50, '(2ES24.15E3)') atomsPC(iType)%r(i), atomsPC(iType)%rab(i)
       enddo
       ! 
+      !! Allocate space for the ae and ps radial wavefunctions
       allocate ( atomsPC(iType)%wae(atomsPC(iType)%nMax, atomsPC(iType)%lMax) )
       allocate ( atomsPC(iType)%wps(atomsPC(iType)%nMax, atomsPC(iType)%lMax) )
       !
+      !! Read in a comment
       read(50, '(a)') textDum
+      !! For each projector
       do j = 1, atomsPC(iType)%lMax
+        !! For each radial mesh point
         do i = 1, atomsPC(iType)%nMax
+          !! Read in the ae and ps wavefunctions
           read(50, '(2ES24.15E3)') atomsPC(iType)%wae(i, j), atomsPC(iType)%wps(i, j) 
 !          write(iostd, '(2i5, ES24.15E3)') j, i, abs(atomsPC(iType)%wae(i, j)-atomsPC(iType)%wps(i, j))
         enddo
       enddo
       !  
+      !! Allocate spae for F, F1, and F2 arrays
       allocate ( atomsPC(iType)%F( atomsPC(iType)%iRc, atomsPC(iType)%lMax ) ) !, atomsPC(iType)%lMax) )
       allocate ( atomsPC(iType)%F1(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax ) )
       allocate ( atomsPC(iType)%F2(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax ) )
       !
+      !! Initialize all values to zero
       atomsPC(iType)%F = 0.0_dp
       atomsPC(iType)%F1 = 0.0_dp
       atomsPC(iType)%F2 = 0.0_dp
       !
+      !! For each projector
       do j = 1, atomsPC(iType)%lMax
         !
+        !! Store iRc for the given atom in a local variable
         irc = atomsPC(iType)%iRc
+        !! Calculate F, F1, and F2 ?????
         atomsPC(iType)%F(1:irc,j)=(atomsPC(iType)%wae(1:irc,j)-atomsPC(iType)%wps(1:irc,j))* &
               atomsPC(iType)%r(1:irc)*atomsPC(iType)%rab(1:irc)
         !
@@ -502,25 +638,34 @@ contains
         enddo
       enddo
       !
+      !! Sum the number of projections as the number of atoms per type times the number of channels per type
       nProjsPC = nProjsPC + atomsPC(iType)%numOfAtoms*atomsPC(iType)%lmMax
       !
 !      deallocate ( atomsPC(iType)%wae, atomsPC(iType)%wps )
       !
     enddo
     !
+    !! Close the input file
     close(50)
     !
+    !! Initialize JMAX to zero
     JMAX = 0
+    !! For each type of atom
     do iType = 1, numOfTypesPC
+      !! For each projector
       do i = 1, atomsPC(iType)%lMax
+        !! Find the maximum value of the angular momentum
         if ( atomsPC(iType)%lps(i) > JMAX ) JMAX = atomsPC(iType)%lps(i)
       enddo
     enddo
     !
+    !! Set maxL to the JMAX value and change JMAX to 2*JMAX + 1
     maxL = JMAX
     JMAX = 2*JMAX + 1
     !
+    !! For each type of atom
     do iType = 1, numOfTypesPC
+      !! Allocate space for bes_J_qr and initialize to zero
       allocate ( atomsPC(iType)%bes_J_qr( 0:JMAX, atomsPC(iType)%iRc ) )
       atomsPC(iType)%bes_J_qr(:,:) = 0.0_dp
       !

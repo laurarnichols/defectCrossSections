@@ -1,6 +1,7 @@
 module declarations
   !
   !! Declare all global variables
+  !! and house all subroutines
   !
   implicit none
   !
@@ -106,39 +107,43 @@ contains
   !
   !
   subroutine readInput()
-    !
+    !! Delete any previous output, initialize input variables,
+    !! start a timer, and read in the input files
+    !!
     implicit none
     !
     logical :: file_exists
     !
-    !! Start a timer
     call cpu_time(t0)
+        !! * Start a timer
     !
-    !! Check if file output exists, and delete it if it does
     inquire(file = output, exist = file_exists)
+        !! * Check if file output exists,
     if ( file_exists ) then
+        !! and delete it if it does
       open (unit = 11, file = output, status = "old")
       close(unit = 11, status = "delete")
     endif
     !
-    !! Open new output file
     open (iostd, file = output, status='new')
+        !! * Open new output file
     !
-    !! Set default values for input variables
     call initialize()
+        !! * Set default values for input variables
     !
-    !! Read input from command line (or input file if use `< TME_Input.md`)
     READ (5, TME_Input, iostat = ios)
+        !! * Read input from command line (or input file if use `< TME_Input.md`)
     !
-    !! Check that all required variables were input and have values that make sense
     call checkInitialization()
+        !! * Check that all required variables were input and have values that make sense
     !
-    !! ???????
     call readInputPC()
+        !! * Read PC inputs
     call readInputSD()
+        !! * Read SD inputs
     !
-    ! ???????
     numOfPWs = max( numOfPWsPC, numOfPWsSD )
+        !! * Calculate the number of plane waves as the maximum of the number of PC and SD plane waves
     !
     return
     !
