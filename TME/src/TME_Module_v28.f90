@@ -1,4 +1,4 @@
-module declarations
+module TMEModule
   !
   !! Declare all global variables
   !! and house all subroutines
@@ -2306,4 +2306,4 @@ contains
   END subroutine ylm
   !
   !
-end module declarations
+end module TMEModule

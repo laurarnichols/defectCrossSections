@@ -3,7 +3,7 @@ program transitionMatrixElements
   ! Use pre-built mpi library and declarations module that 
   ! is defined in TME_Module_v28.f90
   use mpi
-  use declarations
+  use TMEModule
   !
   implicit none
   !
