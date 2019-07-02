@@ -188,7 +188,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/int2str.html#src">int2str</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -285,7 +291,13 @@ public subroutine int2str(integ, string)
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/int2str.html#src">int2str</a>
+  </div>
+</div>
+
 
 
     </section>
@@ -308,6 +320,34 @@ public subroutine int2str(integ, string)
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">int2str</span><span class="p">(</span><span class="n">integ</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">implicit none</span>
+<span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">integ</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">string</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">integ</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;(i1)&#39;</span><span class="p">)</span> <span class="n">integ</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="n">integ</span> <span class="o">&lt;</span> <span class="mi">100</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;(i2)&#39;</span><span class="p">)</span> <span class="n">integ</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="n">integ</span> <span class="o">&lt;</span> <span class="mi">1000</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;(i3)&#39;</span><span class="p">)</span> <span class="n">integ</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="n">integ</span> <span class="o">&lt;</span> <span class="mi">10000</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;(i4)&#39;</span><span class="p">)</span> <span class="n">integ</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="n">string</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">int2str</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

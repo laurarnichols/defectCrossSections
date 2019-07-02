@@ -226,6 +226,14 @@
 
 
 
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../program/pw_export_for_tme.html#src">pw_export_for_TME</a>
+  </div>
+</div>
+
+
 
 </div>
 
@@ -341,6 +349,14 @@
 
 
 
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../program/pw_export_for_tme.html#src">pw_export_for_TME</a>
+  </div>
+</div>
 
 
 
@@ -594,6 +610,716 @@ subroutine <a href='../proc/write_export.html'>write_export</a>(pp_file, exportD
     </section>    
     
     
+    
+    <section>
+    <h2 id="src">Source Code</h2>
+    <div class="highlight"><pre><span></span><span class="k">PROGRAM </span><span class="n">pw_export_for_TME</span>
+  <span class="c">!-----------------------------------------------------------------------</span>
+  <span class="c">!</span>
+  <span class="c">! writes PWSCF data for postprocessing purposes in XML format using IOTK lib</span>
+  <span class="c">! Wave-functions are collected and written using IO_BASE module.</span>
+  <span class="c">!</span>
+  <span class="c">! input:  namelist &quot;&amp;inputpp&quot;, with variables</span>
+  <span class="c">!   prefix       prefix of input files saved by program pwscf</span>
+  <span class="c">!   outdir       temporary directory where files resides</span>
+  <span class="c">!   exportDir    output directory. A directory</span>
+  <span class="c">!                &quot;exportDir&quot; is created and</span>
+  <span class="c">!                output files are put there. All the data</span>
+  <span class="c">!                are accessible through the &quot;&quot;exportDir&quot;/input&quot; file.</span>
+  <span class="c">!</span>
+
+
+  <span class="k">USE </span><span class="n">wrappers</span><span class="p">,</span>      <span class="n">ONLY</span> <span class="p">:</span> <span class="n">f_mkdir_safe</span>
+  <span class="k">USE </span><span class="n">pwcom</span>
+
+  <span class="k">USE </span><span class="n">io_global</span><span class="p">,</span> <span class="n">ONLY</span> <span class="p">:</span> <span class="n">ionode</span><span class="p">,</span> <span class="n">ionode_id</span>
+  <span class="k">USE </span><span class="n">io_files</span><span class="p">,</span>  <span class="n">ONLY</span> <span class="p">:</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">tmp_dir</span><span class="p">,</span> <span class="n">outdir</span>
+  <span class="k">USE </span><span class="n">ions_base</span><span class="p">,</span> <span class="n">ONLY</span> <span class="p">:</span> <span class="n">ntype</span> <span class="o">=&gt;</span> <span class="n">nsp</span>
+  <span class="k">USE </span><span class="n">iotk_module</span>
+  <span class="k">USE </span><span class="n">mp_global</span><span class="p">,</span> <span class="n">ONLY</span> <span class="p">:</span> <span class="n">mp_startup</span>
+  <span class="k">USE </span><span class="n">mp_pools</span><span class="p">,</span>  <span class="n">ONLY</span> <span class="p">:</span> <span class="n">kunit</span>
+  <span class="k">USE </span><span class="n">mp_world</span><span class="p">,</span>  <span class="n">ONLY</span><span class="p">:</span> <span class="n">world_comm</span>
+  <span class="k">USE </span><span class="n">mp</span><span class="p">,</span>        <span class="n">ONLY</span><span class="p">:</span> <span class="n">mp_bcast</span>
+  <span class="k">USE </span><span class="n">environment</span><span class="p">,</span>   <span class="n">ONLY</span> <span class="p">:</span> <span class="n">environment_start</span>
+  <span class="c">!</span>
+  <span class="k">IMPLICIT NONE</span>
+  <span class="c">!</span>
+  <span class="kt">CHARACTER</span><span class="p">(</span><span class="nb">LEN</span><span class="o">=</span><span class="mi">256</span><span class="p">),</span> <span class="k">EXTERNAL</span> <span class="kd">::</span> <span class="n">trimcheck</span>
+  <span class="c">!</span>
+  <span class="kt">INTEGER</span> <span class="kd">::</span> <span class="n">ik</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">kunittmp</span><span class="p">,</span> <span class="n">ios</span>
+  <span class="c">!</span>
+  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">ryToHartree</span> <span class="o">=</span> <span class="mf">0.5_dp</span>
+  <span class="c">!</span>
+  <span class="kt">CHARACTER</span><span class="p">(</span><span class="nb">len</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span> <span class="kd">::</span> <span class="n">pp_file</span><span class="p">,</span> <span class="n">exportDir</span>
+  <span class="kt">LOGICAL</span> <span class="kd">::</span> <span class="n">writeWFC</span>
+  <span class="c">!</span>
+  <span class="k">NAMELIST</span> <span class="o">/</span><span class="n">inputpp</span><span class="o">/</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">outdir</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">writeWFC</span>
+  <span class="c">!</span>
+  <span class="c">! initialise environment</span>
+  <span class="c">!</span>
+<span class="cp">#ifdef __MPI</span>
+  <span class="k">CALL </span><span class="n">mp_startup</span> <span class="p">(</span> <span class="p">)</span>
+<span class="cp">#endif</span>
+  <span class="k">CALL </span><span class="n">environment_start</span> <span class="p">(</span> <span class="s1">&#39;PW_EXPORT&#39;</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="c">!   set default values for variables in namelist</span>
+  <span class="c">!</span>
+  <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+  <span class="k">CALL </span><span class="nb">get_environment_variable</span><span class="p">(</span> <span class="s1">&#39;ESPRESSO_TMPDIR&#39;</span><span class="p">,</span> <span class="n">outdir</span> <span class="p">)</span>
+  <span class="k">IF</span> <span class="p">(</span> <span class="nb">trim</span><span class="p">(</span> <span class="n">outdir</span> <span class="p">)</span> <span class="o">==</span> <span class="s1">&#39; &#39;</span> <span class="p">)</span> <span class="n">outdir</span> <span class="o">=</span> <span class="s1">&#39;./&#39;</span>
+  <span class="n">exportDir</span> <span class="o">=</span> <span class="s1">&#39;./Export&#39;</span>
+  <span class="c">!</span>
+  <span class="n">writeWFC</span>  <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>        <span class="c">! gdb : by default the wavefunctions are needed, </span>
+                            <span class="c">!       this gives the user the ability not to write the wavefunctions</span>
+  <span class="c">!</span>
+  <span class="c">!    Reading input file</span>
+  <span class="c">!</span>
+  <span class="k">IF</span> <span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">THEN</span>
+    <span class="c">!</span>
+    <span class="k">CALL </span><span class="n">input_from_file</span> <span class="p">(</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">READ</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">inputpp</span><span class="p">,</span> <span class="n">IOSTAT</span><span class="o">=</span><span class="n">ios</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">IF</span> <span class="p">(</span><span class="n">ios</span> <span class="o">/=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">CALL </span><span class="n">errore</span> <span class="p">(</span><span class="s1">&#39;pw_export&#39;</span><span class="p">,</span> <span class="s1">&#39;reading inputpp namelist&#39;</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ios</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">ios</span> <span class="o">=</span> <span class="n">f_mkdir_safe</span><span class="p">(</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">pp_file</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/input&quot;</span>
+    <span class="c">!</span>
+    <span class="c">!</span>
+  <span class="n">ENDIF</span>
+  <span class="c">!</span>
+  <span class="c">! ... Broadcasting variables</span>
+  <span class="c">!</span>
+  <span class="n">tmp_dir</span> <span class="o">=</span> <span class="n">trimcheck</span><span class="p">(</span> <span class="n">outdir</span> <span class="p">)</span>
+  <span class="k">CALL </span><span class="n">mp_bcast</span><span class="p">(</span> <span class="n">outdir</span><span class="p">,</span> <span class="n">ionode_id</span><span class="p">,</span> <span class="n">world_comm</span> <span class="p">)</span>
+  <span class="k">CALL </span><span class="n">mp_bcast</span><span class="p">(</span> <span class="n">tmp_dir</span><span class="p">,</span> <span class="n">ionode_id</span><span class="p">,</span> <span class="n">world_comm</span> <span class="p">)</span>
+  <span class="k">CALL </span><span class="n">mp_bcast</span><span class="p">(</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">ionode_id</span><span class="p">,</span> <span class="n">world_comm</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="c">!   Now allocate space for pwscf variables, read and check them.</span>
+  <span class="c">!</span>
+  <span class="k">CALL </span><span class="n">read_file</span>
+  <span class="k">CALL </span><span class="n">openfil_pp</span>
+  <span class="c">!</span>
+
+<span class="cp">#if defined __MPI</span>
+  <span class="n">kunittmp</span> <span class="o">=</span> <span class="n">kunit</span>
+<span class="cp">#else</span>
+  <span class="n">kunittmp</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="cp">#endif</span>
+
+  <span class="k">CALL </span><span class="n">write_export</span> <span class="p">(</span><span class="n">pp_file</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">kunittmp</span> <span class="p">)</span>
+
+  <span class="k">CALL </span><span class="n">stop_pp</span>
+ 
+  <span class="c">!</span>
+<span class="k">CONTAINS</span>
+
+<span class="c">!</span>
+<span class="c">!-----------------------------------------------------------------------</span>
+<span class="k">SUBROUTINE </span><span class="n">write_export</span> <span class="p">(</span><span class="n">pp_file</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">kunit</span> <span class="p">)</span>
+  <span class="c">!-----------------------------------------------------------------------</span>
+  <span class="c">!</span>
+  <span class="k">USE </span><span class="n">iotk_module</span>
+
+
+  <span class="k">USE </span><span class="n">kinds</span><span class="p">,</span>          <span class="n">ONLY</span> <span class="p">:</span> <span class="n">DP</span>
+  <span class="k">USE </span><span class="n">pwcom</span>
+  <span class="k">USE </span><span class="n">start_k</span><span class="p">,</span>        <span class="n">ONLY</span> <span class="p">:</span> <span class="n">nk1</span><span class="p">,</span> <span class="n">nk2</span><span class="p">,</span> <span class="n">nk3</span><span class="p">,</span> <span class="n">k1</span><span class="p">,</span> <span class="n">k2</span><span class="p">,</span> <span class="n">k3</span>
+  <span class="k">USE </span><span class="n">control_flags</span><span class="p">,</span>  <span class="n">ONLY</span> <span class="p">:</span> <span class="n">gamma_only</span>
+  <span class="k">USE </span><span class="n">global_version</span><span class="p">,</span> <span class="n">ONLY</span> <span class="p">:</span> <span class="n">version_number</span>
+  <span class="k">USE </span><span class="n">becmod</span><span class="p">,</span>         <span class="n">ONLY</span> <span class="p">:</span> <span class="n">bec_type</span><span class="p">,</span> <span class="n">becp</span><span class="p">,</span> <span class="n">calbec</span><span class="p">,</span> <span class="p">&amp;</span>
+                             <span class="n">allocate_bec_type</span><span class="p">,</span> <span class="n">deallocate_bec_type</span>
+
+  <span class="k">USE </span><span class="n">uspp</span><span class="p">,</span>          <span class="n">ONLY</span> <span class="p">:</span> <span class="n">nkb</span><span class="p">,</span> <span class="n">vkb</span>
+  <span class="k">USE </span><span class="n">wavefunctions_module</span><span class="p">,</span>  <span class="n">ONLY</span> <span class="p">:</span> <span class="n">evc</span>
+  <span class="k">USE </span><span class="n">io_files</span><span class="p">,</span>       <span class="n">ONLY</span> <span class="p">:</span> <span class="n">outdir</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">iunwfc</span><span class="p">,</span> <span class="n">nwordwfc</span>
+  <span class="k">USE </span><span class="n">io_files</span><span class="p">,</span>       <span class="n">ONLY</span> <span class="p">:</span> <span class="n">psfile</span>
+  <span class="k">USE </span><span class="n">io_base_export</span><span class="p">,</span> <span class="n">ONLY</span> <span class="p">:</span> <span class="n">write_restart_wfc</span>
+  <span class="k">USE </span><span class="n">io_global</span><span class="p">,</span>      <span class="n">ONLY</span> <span class="p">:</span> <span class="n">ionode</span><span class="p">,</span> <span class="n">stdout</span>
+  <span class="k">USE </span><span class="n">ions_base</span><span class="p">,</span>      <span class="n">ONLY</span> <span class="p">:</span> <span class="n">atm</span><span class="p">,</span> <span class="n">nat</span><span class="p">,</span> <span class="n">ityp</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">nsp</span>
+  <span class="k">USE </span><span class="n">mp_pools</span><span class="p">,</span>       <span class="n">ONLY</span> <span class="p">:</span> <span class="n">my_pool_id</span><span class="p">,</span> <span class="n">intra_pool_comm</span><span class="p">,</span> <span class="n">inter_pool_comm</span><span class="p">,</span> <span class="p">&amp;</span>
+                             <span class="n">nproc_pool</span>
+  <span class="k">USE </span><span class="n">mp</span><span class="p">,</span>             <span class="n">ONLY</span> <span class="p">:</span> <span class="n">mp_sum</span><span class="p">,</span> <span class="n">mp_max</span>
+  <span class="k">USE </span><span class="n">mp_world</span><span class="p">,</span>       <span class="n">ONLY</span> <span class="p">:</span> <span class="n">world_comm</span><span class="p">,</span> <span class="n">nproc</span><span class="p">,</span> <span class="n">mpime</span>
+  <span class="c">!</span>
+  <span class="k">USE </span><span class="n">upf_module</span><span class="p">,</span>     <span class="n">ONLY</span> <span class="p">:</span> <span class="n">read_upf</span>
+  <span class="c">!</span>
+  <span class="k">USE </span><span class="n">pseudo_types</span><span class="p">,</span> <span class="n">ONLY</span> <span class="p">:</span> <span class="n">pseudo_upf</span>
+  <span class="k">USE </span><span class="n">radial_grids</span><span class="p">,</span> <span class="n">ONLY</span> <span class="p">:</span> <span class="n">radial_grid_type</span>
+  <span class="c">!</span>
+  <span class="k">USE </span><span class="n">wvfct</span><span class="p">,</span>         <span class="n">ONLY</span> <span class="p">:</span> <span class="n">wg</span>
+  <span class="c">!</span>
+  <span class="k">USE </span><span class="n">paw_variables</span><span class="p">,</span>        <span class="n">ONLY</span> <span class="p">:</span> <span class="n">okpaw</span><span class="p">,</span> <span class="n">ddd_paw</span><span class="p">,</span> <span class="n">total_core_energy</span><span class="p">,</span> <span class="n">only_paw</span>
+  <span class="k">USE </span><span class="n">paw_onecenter</span><span class="p">,</span>        <span class="n">ONLY</span> <span class="p">:</span> <span class="n">PAW_potential</span>
+  <span class="k">USE </span><span class="n">paw_symmetry</span><span class="p">,</span>         <span class="n">ONLY</span> <span class="p">:</span> <span class="n">PAW_symmetrize_ddd</span>
+  <span class="k">USE </span><span class="n">uspp_param</span><span class="p">,</span>           <span class="n">ONLY</span> <span class="p">:</span> <span class="n">nh</span><span class="p">,</span> <span class="n">nhm</span> <span class="c">! used for PAW</span>
+  <span class="k">USE </span><span class="n">uspp</span><span class="p">,</span>                 <span class="n">ONLY</span> <span class="p">:</span> <span class="n">qq_so</span><span class="p">,</span> <span class="n">dvan_so</span><span class="p">,</span> <span class="n">qq</span><span class="p">,</span> <span class="n">dvan</span>
+  <span class="k">USE </span><span class="n">scf</span><span class="p">,</span>                  <span class="n">ONLY</span> <span class="p">:</span> <span class="n">rho</span>
+  <span class="c">!</span>
+  <span class="k">IMPLICIT NONE</span>
+  <span class="c">!</span>
+  <span class="kt">CHARACTER</span><span class="p">(</span><span class="mi">5</span><span class="p">),</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">fmt_name</span><span class="o">=</span><span class="s2">&quot;QEXPT&quot;</span>
+  <span class="kt">CHARACTER</span><span class="p">(</span><span class="mi">5</span><span class="p">),</span> <span class="k">PARAMETER</span> <span class="kd">::</span> <span class="n">fmt_version</span><span class="o">=</span><span class="s2">&quot;1.1.0&quot;</span>
+
+  <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">kunit</span>
+  <span class="kt">CHARACTER</span><span class="p">(</span><span class="mi">256</span><span class="p">),</span> <span class="k">INTENT</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">pp_file</span><span class="p">,</span> <span class="n">exportDir</span>
+
+  <span class="kt">INTEGER</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">ig</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ibnd</span><span class="p">,</span> <span class="n">na</span><span class="p">,</span> <span class="n">ngg</span><span class="p">,</span><span class="n">ig_</span><span class="p">,</span> <span class="n">ierr</span>
+  <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">ALLOCATABLE</span> <span class="kd">::</span> <span class="n">kisort</span><span class="p">(:)</span>
+  <span class="kt">real</span><span class="p">(</span><span class="n">DP</span><span class="p">)</span> <span class="kd">::</span> <span class="n">xyz</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">tmp</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+  <span class="kt">INTEGER</span> <span class="kd">::</span> <span class="n">npool</span><span class="p">,</span> <span class="n">nkbl</span><span class="p">,</span> <span class="n">nkl</span><span class="p">,</span> <span class="n">nkr</span><span class="p">,</span> <span class="n">npwx_g</span><span class="p">,</span> <span class="n">im</span><span class="p">,</span> <span class="n">ink</span><span class="p">,</span> <span class="n">inb</span><span class="p">,</span> <span class="n">ms</span>
+  <span class="kt">INTEGER</span> <span class="kd">::</span> <span class="n">ike</span><span class="p">,</span> <span class="n">iks</span><span class="p">,</span> <span class="n">npw_g</span><span class="p">,</span> <span class="n">ispin</span><span class="p">,</span> <span class="n">local_pw</span>
+  <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">ALLOCATABLE</span> <span class="kd">::</span> <span class="n">ngk_g</span><span class="p">(</span> <span class="p">:</span> <span class="p">)</span>
+  <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">ALLOCATABLE</span> <span class="kd">::</span> <span class="n">itmp_g</span><span class="p">(</span> <span class="p">:,</span> <span class="p">:</span> <span class="p">)</span>
+  <span class="kt">real</span><span class="p">(</span><span class="n">DP</span><span class="p">),</span><span class="k">ALLOCATABLE</span> <span class="kd">::</span> <span class="n">rtmp_g</span><span class="p">(</span> <span class="p">:,</span> <span class="p">:</span> <span class="p">)</span>
+  <span class="kt">real</span><span class="p">(</span><span class="n">DP</span><span class="p">),</span><span class="k">ALLOCATABLE</span> <span class="kd">::</span> <span class="n">rtmp_gg</span><span class="p">(</span> <span class="p">:</span> <span class="p">)</span>
+  <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">ALLOCATABLE</span> <span class="kd">::</span> <span class="n">itmp1</span><span class="p">(</span> <span class="p">:</span> <span class="p">)</span>
+  <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">ALLOCATABLE</span> <span class="kd">::</span> <span class="n">igwk</span><span class="p">(</span> <span class="p">:,</span> <span class="p">:</span> <span class="p">)</span>
+  <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">ALLOCATABLE</span> <span class="kd">::</span> <span class="n">l2g_new</span><span class="p">(</span> <span class="p">:</span> <span class="p">)</span>
+  <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">ALLOCATABLE</span> <span class="kd">::</span> <span class="n">igk_l2g</span><span class="p">(</span> <span class="p">:,</span> <span class="p">:</span> <span class="p">)</span>
+  <span class="c">!</span>
+
+
+  <span class="c">!</span>
+  <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">text</span>
+  <span class="c">!</span>
+
+  <span class="kt">real</span><span class="p">(</span><span class="n">DP</span><span class="p">)</span> <span class="kd">::</span> <span class="n">wfc_scal</span>
+  <span class="kt">LOGICAL</span> <span class="kd">::</span> <span class="n">twf0</span><span class="p">,</span> <span class="n">twfm</span><span class="p">,</span> <span class="n">file_exists</span>
+  <span class="kt">CHARACTER</span><span class="p">(</span><span class="n">iotk_attlenx</span><span class="p">)</span> <span class="kd">::</span> <span class="n">attr</span>
+  <span class="k">TYPE</span><span class="p">(</span><span class="n">pseudo_upf</span><span class="p">)</span> <span class="kd">::</span> <span class="n">upf</span>       <span class="c">! the pseudo data</span>
+  <span class="k">TYPE</span><span class="p">(</span><span class="n">radial_grid_type</span><span class="p">)</span> <span class="kd">::</span> <span class="n">grid</span>
+
+  <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">nnTyp</span><span class="p">(:),</span> <span class="n">groundState</span><span class="p">(:)</span>
+
+  <span class="k">IF</span><span class="p">(</span> <span class="n">nkstot</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="k">THEN</span>
+
+<span class="k">     IF</span><span class="p">(</span> <span class="p">(</span> <span class="n">kunit</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span> <span class="nb">mod</span><span class="p">(</span> <span class="n">nkstot</span><span class="p">,</span> <span class="n">kunit</span> <span class="p">)</span> <span class="o">/=</span> <span class="mi">0</span> <span class="p">)</span> <span class="p">)</span> <span class="p">&amp;</span>
+       <span class="k">CALL </span><span class="n">errore</span><span class="p">(</span> <span class="s1">&#39; write_export &#39;</span><span class="p">,</span><span class="s1">&#39; wrong kunit &#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="p">)</span>
+
+     <span class="k">IF</span><span class="p">(</span> <span class="p">(</span> <span class="n">nproc_pool</span> <span class="o">&gt;</span> <span class="n">nproc</span> <span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span> <span class="nb">mod</span><span class="p">(</span> <span class="n">nproc</span><span class="p">,</span> <span class="n">nproc_pool</span> <span class="p">)</span> <span class="o">/=</span> <span class="mi">0</span> <span class="p">)</span> <span class="p">)</span> <span class="p">&amp;</span>
+       <span class="k">CALL </span><span class="n">errore</span><span class="p">(</span> <span class="s1">&#39; write_export &#39;</span><span class="p">,</span><span class="s1">&#39; nproc_pool &#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="p">)</span>
+
+     <span class="c">!  find out the number of pools</span>
+     <span class="n">npool</span> <span class="o">=</span> <span class="n">nproc</span> <span class="o">/</span> <span class="n">nproc_pool</span>
+
+     <span class="c">!  find out number of k points blocks</span>
+     <span class="n">nkbl</span> <span class="o">=</span> <span class="n">nkstot</span> <span class="o">/</span> <span class="n">kunit</span>
+
+     <span class="c">!  k points per pool</span>
+     <span class="n">nkl</span> <span class="o">=</span> <span class="n">kunit</span> <span class="o">*</span> <span class="p">(</span> <span class="n">nkbl</span> <span class="o">/</span> <span class="n">npool</span> <span class="p">)</span>
+
+     <span class="c">!  find out the reminder</span>
+     <span class="n">nkr</span> <span class="o">=</span> <span class="p">(</span> <span class="n">nkstot</span> <span class="o">-</span> <span class="n">nkl</span> <span class="o">*</span> <span class="n">npool</span> <span class="p">)</span> <span class="o">/</span> <span class="n">kunit</span>
+
+     <span class="c">!  Assign the reminder to the first nkr pools</span>
+     <span class="k">IF</span><span class="p">(</span> <span class="n">my_pool_id</span> <span class="o">&lt;</span> <span class="n">nkr</span> <span class="p">)</span> <span class="n">nkl</span> <span class="o">=</span> <span class="n">nkl</span> <span class="o">+</span> <span class="n">kunit</span>
+
+     <span class="c">!  find out the index of the first k point in this pool</span>
+     <span class="n">iks</span> <span class="o">=</span> <span class="n">nkl</span> <span class="o">*</span> <span class="n">my_pool_id</span> <span class="o">+</span> <span class="mi">1</span>
+     <span class="k">IF</span><span class="p">(</span> <span class="n">my_pool_id</span> <span class="o">&gt;=</span> <span class="n">nkr</span> <span class="p">)</span> <span class="n">iks</span> <span class="o">=</span> <span class="n">iks</span> <span class="o">+</span> <span class="n">nkr</span> <span class="o">*</span> <span class="n">kunit</span>
+
+     <span class="c">!  find out the index of the last k point in this pool</span>
+     <span class="n">ike</span> <span class="o">=</span> <span class="n">iks</span> <span class="o">+</span> <span class="n">nkl</span> <span class="o">-</span> <span class="mi">1</span>
+
+  <span class="n">ENDIF</span>
+
+  <span class="c">! find out the global number of G vectors: ngm_g</span>
+  <span class="n">ngm_g</span> <span class="o">=</span> <span class="n">ngm</span>
+  <span class="k">CALL </span><span class="n">mp_sum</span><span class="p">(</span> <span class="n">ngm_g</span> <span class="p">,</span> <span class="n">intra_pool_comm</span> <span class="p">)</span>
+
+
+  <span class="c">!  Open file PP_FILE</span>
+
+  <span class="k">IF</span><span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">THEN</span>
+    <span class="c">!</span>
+    <span class="k">WRITE</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Opening file &quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">pp_file</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">pp_file</span><span class="p">))</span>
+    <span class="c">!</span>
+    <span class="k">WRITE</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Reconstructing the main grid&quot;</span>
+    <span class="c">!</span>
+  <span class="n">endif</span>
+
+  <span class="c">! collect all G vectors across processors within the pools</span>
+  <span class="c">! and compute their modules</span>
+  <span class="c">!</span>
+  <span class="k">ALLOCATE</span><span class="p">(</span> <span class="n">itmp_g</span><span class="p">(</span> <span class="mi">3</span><span class="p">,</span> <span class="n">ngm_g</span> <span class="p">)</span> <span class="p">)</span>
+  <span class="k">ALLOCATE</span><span class="p">(</span> <span class="n">rtmp_g</span><span class="p">(</span> <span class="mi">3</span><span class="p">,</span> <span class="n">ngm_g</span> <span class="p">)</span> <span class="p">)</span>
+  <span class="k">ALLOCATE</span><span class="p">(</span> <span class="n">rtmp_gg</span><span class="p">(</span> <span class="n">ngm_g</span> <span class="p">)</span> <span class="p">)</span>
+
+  <span class="n">itmp_g</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="k">DO  </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ngm</span>
+    <span class="n">itmp_g</span><span class="p">(</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ig_l2g</span><span class="p">(</span> <span class="n">ig</span> <span class="p">)</span> <span class="p">)</span> <span class="o">=</span> <span class="n">mill</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">ig</span> <span class="p">)</span>
+    <span class="n">itmp_g</span><span class="p">(</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ig_l2g</span><span class="p">(</span> <span class="n">ig</span> <span class="p">)</span> <span class="p">)</span> <span class="o">=</span> <span class="n">mill</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="n">ig</span> <span class="p">)</span>
+    <span class="n">itmp_g</span><span class="p">(</span> <span class="mi">3</span><span class="p">,</span> <span class="n">ig_l2g</span><span class="p">(</span> <span class="n">ig</span> <span class="p">)</span> <span class="p">)</span> <span class="o">=</span> <span class="n">mill</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">ig</span> <span class="p">)</span>
+  <span class="n">ENDDO</span>
+  <span class="c">!</span>
+  <span class="k">CALL </span><span class="n">mp_sum</span><span class="p">(</span> <span class="n">itmp_g</span> <span class="p">,</span> <span class="n">intra_pool_comm</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="c">! here we are in crystal units</span>
+  <span class="n">rtmp_g</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">ngm_g</span><span class="p">)</span> <span class="o">=</span> <span class="kt">REAL</span><span class="p">(</span> <span class="n">itmp_g</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">ngm_g</span><span class="p">)</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="c">! go to cartesian units (tpiba)</span>
+  <span class="k">CALL </span><span class="n">cryst_to_cart</span><span class="p">(</span> <span class="n">ngm_g</span><span class="p">,</span> <span class="n">rtmp_g</span><span class="p">,</span> <span class="n">bg</span> <span class="p">,</span> <span class="mi">1</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="c">! compute squared moduli</span>
+  <span class="k">DO  </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ngm_g</span>
+     <span class="n">rtmp_gg</span><span class="p">(</span><span class="n">ig</span><span class="p">)</span> <span class="o">=</span> <span class="n">rtmp_g</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">ig</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">rtmp_g</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="n">ig</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">rtmp_g</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">ig</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+  <span class="n">ENDDO</span>
+  <span class="k">DEALLOCATE</span><span class="p">(</span> <span class="n">rtmp_g</span> <span class="p">)</span>
+
+  <span class="c">! build the G+k array indexes</span>
+  <span class="k">ALLOCATE</span> <span class="p">(</span> <span class="n">igk_l2g</span> <span class="p">(</span> <span class="n">npwx</span><span class="p">,</span> <span class="n">nks</span> <span class="p">)</span> <span class="p">)</span>
+  <span class="k">ALLOCATE</span> <span class="p">(</span> <span class="n">kisort</span><span class="p">(</span> <span class="n">npwx</span> <span class="p">)</span> <span class="p">)</span>
+  <span class="k">DO </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nks</span>
+     <span class="n">kisort</span> <span class="o">=</span> <span class="mi">0</span>
+     <span class="n">npw</span> <span class="o">=</span> <span class="n">npwx</span>
+     <span class="k">CALL </span><span class="n">gk_sort</span> <span class="p">(</span><span class="n">xk</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ik</span><span class="o">+</span><span class="n">iks</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">ngm</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">ecutwfc</span> <span class="o">/</span> <span class="n">tpiba2</span><span class="p">,</span> <span class="n">npw</span><span class="p">,</span> <span class="n">kisort</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">g2kin</span><span class="p">)</span>
+     <span class="c">!</span>
+     <span class="c">! mapping between local and global G vector index, for this kpoint</span>
+     <span class="c">!</span>
+     <span class="k">DO </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npw</span>
+        <span class="c">!</span>
+        <span class="n">igk_l2g</span><span class="p">(</span><span class="n">ig</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">ig_l2g</span><span class="p">(</span> <span class="n">kisort</span><span class="p">(</span><span class="n">ig</span><span class="p">)</span> <span class="p">)</span>
+        <span class="c">!</span>
+     <span class="n">ENDDO</span>
+     <span class="c">!</span>
+     <span class="n">igk_l2g</span><span class="p">(</span> <span class="n">npw</span><span class="o">+</span><span class="mi">1</span> <span class="p">:</span> <span class="n">npwx</span><span class="p">,</span> <span class="n">ik</span> <span class="p">)</span> <span class="o">=</span> <span class="mi">0</span>
+     <span class="c">!</span>
+     <span class="n">ngk</span> <span class="p">(</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">npw</span>
+  <span class="n">ENDDO</span>
+  <span class="k">DEALLOCATE</span> <span class="p">(</span><span class="n">kisort</span><span class="p">)</span>
+
+  <span class="c">! compute the global number of G+k vectors for each k point</span>
+  <span class="k">ALLOCATE</span><span class="p">(</span> <span class="n">ngk_g</span><span class="p">(</span> <span class="n">nkstot</span> <span class="p">)</span> <span class="p">)</span>
+  <span class="n">ngk_g</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">ngk_g</span><span class="p">(</span> <span class="n">iks</span><span class="p">:</span><span class="n">ike</span> <span class="p">)</span> <span class="o">=</span> <span class="n">ngk</span><span class="p">(</span> <span class="mi">1</span><span class="p">:</span><span class="n">nks</span> <span class="p">)</span>
+  <span class="k">CALL </span><span class="n">mp_sum</span><span class="p">(</span> <span class="n">ngk_g</span><span class="p">,</span> <span class="n">world_comm</span> <span class="p">)</span>
+
+  <span class="c">! compute the Maximum G vector index among all G+k and processors</span>
+  <span class="n">npw_g</span> <span class="o">=</span> <span class="nb">maxval</span><span class="p">(</span> <span class="n">igk_l2g</span><span class="p">(:,:)</span> <span class="p">)</span>
+  <span class="k">CALL </span><span class="n">mp_max</span><span class="p">(</span> <span class="n">npw_g</span><span class="p">,</span> <span class="n">world_comm</span> <span class="p">)</span>
+
+  <span class="c">! compute the Maximum number of G vector among all k points</span>
+  <span class="n">npwx_g</span> <span class="o">=</span> <span class="nb">maxval</span><span class="p">(</span> <span class="n">ngk_g</span><span class="p">(</span> <span class="mi">1</span><span class="p">:</span><span class="n">nkstot</span> <span class="p">)</span> <span class="p">)</span>
+
+  <span class="k">IF</span><span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">THEN</span>
+    <span class="c">!</span>
+
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Cell volume (a.u.)^3. Format: &#39;&#39;(ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span> <span class="p">)</span> <span class="n">omega</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Number of K-points. Format: &#39;&#39;(i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nkstot</span> 
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# ik, groundState, ngk_g(ik), wk(ik), xk(1:3,ik). Format: &#39;&#39;(3i10,4ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">groundState</span><span class="p">(</span><span class="n">nkstot</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">groundState</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">DO </span><span class="n">ik</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">nkstot</span>
+      <span class="k">do </span><span class="n">ibnd</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nbnd</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">wg</span><span class="p">(</span><span class="n">ibnd</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">/</span><span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.5_dp</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">!if (et(ibnd,ik) &gt; ef) then</span>
+          <span class="n">groundState</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">ibnd</span> <span class="o">-</span> <span class="mi">1</span>
+          <span class="k">goto </span><span class="mi">10</span>
+        <span class="n">endif</span>
+      <span class="n">enddo</span>
+ <span class="mi">10</span>   <span class="k">continue</span>
+<span class="k">    </span><span class="n">enddo</span>
+    <span class="c">!</span>
+  <span class="n">endif</span>
+  <span class="c">!</span>
+  <span class="k">ALLOCATE</span><span class="p">(</span> <span class="n">igwk</span><span class="p">(</span> <span class="n">npwx_g</span><span class="p">,</span> <span class="n">nkstot</span> <span class="p">)</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">DO </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nkstot</span>
+    <span class="n">igwk</span><span class="p">(:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c">!</span>
+    <span class="k">ALLOCATE</span><span class="p">(</span> <span class="n">itmp1</span><span class="p">(</span> <span class="n">npw_g</span> <span class="p">),</span> <span class="nb">STAT</span><span class="o">=</span> <span class="n">ierr</span> <span class="p">)</span>
+    <span class="k">IF</span> <span class="p">(</span> <span class="n">ierr</span><span class="o">/=</span><span class="mi">0</span> <span class="p">)</span> <span class="k">CALL </span><span class="n">errore</span><span class="p">(</span><span class="s1">&#39;pw_export&#39;</span><span class="p">,</span><span class="s1">&#39;allocating itmp1&#39;</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ierr</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">itmp1</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c">!</span>
+    <span class="k">IF</span><span class="p">(</span> <span class="n">ik</span> <span class="o">&gt;=</span> <span class="n">iks</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">ik</span> <span class="o">&lt;=</span> <span class="n">ike</span> <span class="p">)</span> <span class="k">THEN</span>
+<span class="k">      DO  </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ngk</span><span class="p">(</span> <span class="n">ik</span><span class="o">-</span><span class="n">iks</span><span class="o">+</span><span class="mi">1</span> <span class="p">)</span>
+        <span class="n">itmp1</span><span class="p">(</span> <span class="n">igk_l2g</span><span class="p">(</span> <span class="n">ig</span><span class="p">,</span> <span class="n">ik</span><span class="o">-</span><span class="n">iks</span><span class="o">+</span><span class="mi">1</span> <span class="p">)</span> <span class="p">)</span> <span class="o">=</span> <span class="n">igk_l2g</span><span class="p">(</span> <span class="n">ig</span><span class="p">,</span> <span class="n">ik</span><span class="o">-</span><span class="n">iks</span><span class="o">+</span><span class="mi">1</span> <span class="p">)</span>
+      <span class="n">ENDDO</span>
+    <span class="n">ENDIF</span>
+    <span class="c">!</span>
+    <span class="k">CALL </span><span class="n">mp_sum</span><span class="p">(</span> <span class="n">itmp1</span><span class="p">,</span> <span class="n">world_comm</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">ngg</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">DO  </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npw_g</span>
+      <span class="k">IF</span><span class="p">(</span> <span class="n">itmp1</span><span class="p">(</span> <span class="n">ig</span> <span class="p">)</span> <span class="o">==</span> <span class="n">ig</span> <span class="p">)</span> <span class="k">THEN</span>
+<span class="k">        </span><span class="n">ngg</span> <span class="o">=</span> <span class="n">ngg</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">igwk</span><span class="p">(</span> <span class="n">ngg</span> <span class="p">,</span> <span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">ig</span>
+      <span class="n">ENDIF</span>
+    <span class="n">ENDDO</span>
+    <span class="k">IF</span><span class="p">(</span> <span class="n">ngg</span> <span class="o">/=</span> <span class="n">ngk_g</span><span class="p">(</span> <span class="n">ik</span> <span class="p">)</span> <span class="p">)</span> <span class="k">THEN</span>
+<span class="k">      if</span> <span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">WRITE</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39; ik, ngg, ngk_g = &#39;</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ngg</span><span class="p">,</span> <span class="n">ngk_g</span><span class="p">(</span> <span class="n">ik</span> <span class="p">)</span>
+    <span class="n">ENDIF</span>
+    <span class="c">!</span>
+    <span class="k">DEALLOCATE</span><span class="p">(</span> <span class="n">itmp1</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(3i10,4ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">groundState</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">ngk_g</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">xk</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
+    <span class="c">!</span>
+  <span class="n">ENDDO</span>
+  <span class="c">!</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="c">!  </span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Number of G-vectors. Format: &#39;&#39;(i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">ngm_g</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Number of PW-vectors. Format: &#39;&#39;(i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">npw_g</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Number of min - max values of fft grid in x, y and z axis. Format: &#39;&#39;(6i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(6i10)&#39;</span><span class="p">)</span> <span class="nb">minval</span><span class="p">(</span><span class="n">itmp_g</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">ngm_g</span><span class="p">)),</span> <span class="nb">maxval</span><span class="p">(</span><span class="n">itmp_g</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">ngm_g</span><span class="p">)),</span> <span class="p">&amp;</span>
+                        <span class="nb">minval</span><span class="p">(</span><span class="n">itmp_g</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">ngm_g</span><span class="p">)),</span> <span class="nb">maxval</span><span class="p">(</span><span class="n">itmp_g</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">ngm_g</span><span class="p">)),</span> <span class="p">&amp;</span>
+                        <span class="nb">minval</span><span class="p">(</span><span class="n">itmp_g</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">ngm_g</span><span class="p">)),</span> <span class="nb">maxval</span><span class="p">(</span><span class="n">itmp_g</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">ngm_g</span><span class="p">))</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Cell (a.u.). Format: &#39;&#39;(a5, 3ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# a1 &quot;,3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">at</span><span class="p">(:,</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">alat</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# a2 &quot;,3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">at</span><span class="p">(:,</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">alat</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# a3 &quot;,3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">at</span><span class="p">(:,</span><span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="n">alat</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Reciprocal cell (a.u.). Format: &#39;&#39;(a5, 3ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# b1 &quot;,3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">bg</span><span class="p">(:,</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">tpiba</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# b2 &quot;,3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">bg</span><span class="p">(:,</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="n">tpiba</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# b3 &quot;,3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">bg</span><span class="p">(:,</span><span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="n">tpiba</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Number of Atoms. Format: &#39;&#39;(i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nat</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Number of Types. Format: &#39;&#39;(i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nsp</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Atoms type, position(1:3) (a.u.). Format: &#39;&#39;(i10,3ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">DO </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nat</span>
+      <span class="n">xyz</span> <span class="o">=</span> <span class="n">tau</span><span class="p">(:,</span><span class="n">i</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span><span class="s1">&#39;(i10,3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">ityp</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">tau</span><span class="p">(:,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">alat</span>
+    <span class="n">ENDDO</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Number of Bands. Format: &#39;&#39;(i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nbnd</span>
+    <span class="c">!</span>
+    <span class="k">DO </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nkstot</span>
+      <span class="c">!</span>
+      <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/grid&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span>
+      <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Wave function G-vectors grid&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# G-vector index, G-vector(1:3) miller indices. Format: &#39;&#39;(4i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">ink</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ngk_g</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(4i10)&#39;</span><span class="p">)</span> <span class="n">igwk</span><span class="p">(</span><span class="n">ink</span><span class="p">,</span><span class="n">ik</span><span class="p">),</span> <span class="n">itmp_g</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">igwk</span><span class="p">(</span><span class="n">ink</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+      <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+      <span class="c">!</span>
+    <span class="n">ENDDO</span>
+    <span class="c">!</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/mgrid&quot;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Full G-vectors grid&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# G-vector index, G-vector(1:3) miller indices. Format: &#39;&#39;(4i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">ink</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ngm_g</span>
+      <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(4i10)&#39;</span><span class="p">)</span> <span class="n">ink</span><span class="p">,</span> <span class="n">itmp_g</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">ink</span><span class="p">)</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="c">!DEALLOCATE( itmp_g )</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Spin. Format: &#39;&#39;(i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nspin</span>
+    <span class="c">!</span>
+    <span class="k">allocate</span><span class="p">(</span> <span class="n">nnTyp</span><span class="p">(</span><span class="n">nsp</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">nnTyp</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nat</span>
+      <span class="n">nnTyp</span><span class="p">(</span><span class="n">ityp</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="o">=</span> <span class="n">nnTyp</span><span class="p">(</span><span class="n">ityp</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">DO </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nsp</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">read_upf</span><span class="p">(</span><span class="n">upf</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">ierr</span><span class="p">,</span> <span class="mi">71</span><span class="p">,</span> <span class="nb">trim</span><span class="p">(</span><span class="n">outdir</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;/&#39;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;.save/&#39;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">psfile</span><span class="p">(</span><span class="n">i</span><span class="p">)))</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span>  <span class="n">upf</span><span class="p">%</span><span class="n">typ</span> <span class="o">==</span> <span class="s1">&#39;PAW&#39;</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39; PAW type pseudopotential found !&#39;</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Element&quot;)&#39;</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">atm</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Number of Atoms of this type. Format: &#39;&#39;(i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nnTyp</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Number of projectors. Format: &#39;&#39;(i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">upf</span><span class="p">%</span><span class="n">nbeta</span>              <span class="c">! number of projectors</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Angular momentum, index of the projectors. Format: &#39;&#39;(2i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+        <span class="n">ms</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">do </span><span class="n">inb</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">upf</span><span class="p">%</span><span class="n">nbeta</span>
+          <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">upf</span><span class="p">%</span><span class="n">lll</span><span class="p">(</span><span class="n">inb</span><span class="p">),</span> <span class="n">inb</span>
+          <span class="n">ms</span> <span class="o">=</span> <span class="n">ms</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">upf</span><span class="p">%</span><span class="n">lll</span><span class="p">(</span><span class="n">inb</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">enddo</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Number of channels. Format: &#39;&#39;(i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">ms</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Number of radial mesh points. Format: &#39;&#39;(2i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">upf</span><span class="p">%</span><span class="n">mesh</span><span class="p">,</span> <span class="n">upf</span><span class="p">%</span><span class="n">kkbeta</span> <span class="c">! number of points in the radial mesh, number of point inside the aug sphere</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Radial grid, Integratable grid. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+        <span class="k">do </span><span class="n">im</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">upf</span><span class="p">%</span><span class="n">mesh</span>
+          <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">upf</span><span class="p">%</span><span class="n">r</span><span class="p">(</span><span class="n">im</span><span class="p">),</span> <span class="n">upf</span><span class="p">%</span><span class="n">rab</span><span class="p">(</span><span class="n">im</span><span class="p">)</span> <span class="c">! r(mesh) radial grid, rab(mesh) dr(x)/dx (x=linear grid)</span>
+        <span class="n">enddo</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# AE, PS radial wfc for each beta function. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">upf</span><span class="p">%</span><span class="n">has_wfc</span> <span class="p">)</span> <span class="k">then</span>   <span class="c">! if true, UPF contain AE and PS wfc for each beta</span>
+          <span class="k">do </span><span class="n">inb</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">upf</span><span class="p">%</span><span class="n">nbeta</span>
+            <span class="k">do </span><span class="n">im</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">upf</span><span class="p">%</span><span class="n">mesh</span>
+              <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">upf</span><span class="p">%</span><span class="n">aewfc</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">inb</span><span class="p">),</span> <span class="n">upf</span><span class="p">%</span><span class="n">pswfc</span><span class="p">(</span><span class="n">im</span><span class="p">,</span> <span class="n">inb</span><span class="p">)</span> 
+                                        <span class="c">! wfc(mesh,nbeta) AE wfc, wfc(mesh,nbeta) PS wfc</span>
+            <span class="n">enddo</span>
+          <span class="n">enddo</span>
+        <span class="k">else</span>
+<span class="k">          write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;UPF does not contain AE and PS wfcs!!&#39;</span>
+          <span class="k">stop</span>
+<span class="k">        </span><span class="n">endif</span>
+        <span class="c">!</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+  <span class="n">ENDIF</span>
+  <span class="c">!</span>
+  <span class="k">DEALLOCATE</span><span class="p">(</span> <span class="n">rtmp_gg</span> <span class="p">)</span>
+
+<span class="c">!  ! for each k point build and write the global G+k indexes array</span>
+<span class="c">!  ALLOCATE( igwk( npwx_g,nkstot ) )</span>
+<span class="c">!  !WRITE(0,*) &quot;Writing grids for wfc&quot;</span>
+<span class="c">!  !CALL iotk_write_attr (attr,&quot;npwx&quot;,npwx_g,first=.true.)</span>
+<span class="c">!  !IF(ionode) CALL iotk_write_begin(50,&quot;Wfc_grids&quot;,ATTR=attr)</span>
+<span class="c">!</span>
+<span class="c">!</span>
+<span class="c">!  DO ik = 1, nkstot</span>
+<span class="c">!    igwk(:,ik) = 0</span>
+<span class="c">!    !</span>
+<span class="c">!    ALLOCATE( itmp1( npw_g ), STAT= ierr )</span>
+<span class="c">!    IF ( ierr/=0 ) CALL errore(&#39;pw_export&#39;,&#39;allocating itmp1&#39;, abs(ierr) )</span>
+<span class="c">!    itmp1 = 0</span>
+<span class="c">!    !</span>
+<span class="c">!    IF( ik &gt;= iks .and. ik &lt;= ike ) THEN</span>
+<span class="c">!      DO  ig = 1, ngk( ik-iks+1 )</span>
+<span class="c">!        itmp1( igk_l2g( ig, ik-iks+1 ) ) = igk_l2g( ig, ik-iks+1 )</span>
+<span class="c">!      ENDDO</span>
+<span class="c">!    ENDIF</span>
+<span class="c">!    !</span>
+<span class="c">!    CALL mp_sum( itmp1 )</span>
+<span class="c">!    !</span>
+<span class="c">!    ngg = 0</span>
+<span class="c">!    DO  ig = 1, npw_g</span>
+<span class="c">!      IF( itmp1( ig ) == ig ) THEN</span>
+<span class="c">!        ngg = ngg + 1</span>
+<span class="c">!        igwk( ngg , ik) = ig</span>
+<span class="c">!      ENDIF</span>
+<span class="c">!    ENDDO</span>
+<span class="c">!    IF( ngg /= ngk_g( ik ) ) THEN</span>
+<span class="c">!      WRITE( stdout,*) &#39; ik, ngg, ngk_g = &#39;, ik, ngg, ngk_g( ik )</span>
+<span class="c">!    ENDIF</span>
+<span class="c">!    !</span>
+<span class="c">!    DEALLOCATE( itmp1 )</span>
+<span class="c">!    !</span>
+<span class="c">!  ENDDO</span>
+<span class="c">!</span>
+<span class="c">!  DEALLOCATE( itmp_g )</span>
+<span class="c">!</span>
+<span class="c">!</span>
+<span class="cp">#ifdef __MPI</span>
+  <span class="k">CALL </span><span class="n">poolrecover</span> <span class="p">(</span><span class="n">et</span><span class="p">,</span> <span class="n">nbnd</span><span class="p">,</span> <span class="n">nkstot</span><span class="p">,</span> <span class="n">nks</span><span class="p">)</span>
+<span class="cp">#endif</span>
+
+
+  <span class="k">WRITE</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Writing Eigenvalues&quot;</span>
+
+  <span class="k">IF</span><span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">THEN</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Fermi Energy (Hartree). Format: &#39;&#39;(ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">ef</span><span class="o">*</span><span class="n">ryToHartree</span>
+    <span class="nb">flush</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">DO </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nkstot</span>
+      <span class="c">!</span>
+      <span class="n">ispin</span> <span class="o">=</span> <span class="n">isk</span><span class="p">(</span> <span class="n">ik</span> <span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Spin : &quot;,i10, &quot; Format: &#39;&#39;(a9, i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">ispin</span>
+      <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Eigenvalues (Hartree), band occupation number. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">ibnd</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nbnd</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.D0</span> <span class="p">)</span> <span class="k">then </span>
+<span class="k">          write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">et</span><span class="p">(</span><span class="n">ibnd</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">*</span><span class="n">ryToHartree</span><span class="p">,</span> <span class="n">wg</span><span class="p">(</span><span class="n">ibnd</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
+        <span class="k">else</span>
+<span class="k">          write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">et</span><span class="p">(</span><span class="n">ibnd</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">*</span><span class="n">ryToHartree</span><span class="p">,</span> <span class="n">wg</span><span class="p">(</span><span class="n">ibnd</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">/</span><span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+        <span class="n">endif</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+      <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+      <span class="c">!</span>
+    <span class="n">ENDDO</span>
+    <span class="c">!</span>
+  <span class="n">endif</span>
+  <span class="c">!</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">ionode</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">writeWFC</span> <span class="p">)</span> <span class="k">WRITE</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Writing Wavefunctions&quot;</span>
+  <span class="c">!</span>
+  <span class="n">wfc_scal</span> <span class="o">=</span> <span class="mf">1.0d0</span>
+  <span class="n">twf0</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+  <span class="n">twfm</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+  <span class="c">!</span>
+  <span class="k">IF</span> <span class="p">(</span> <span class="n">nkb</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="k">THEN</span>
+    <span class="c">!</span>
+    <span class="k">CALL </span><span class="n">init_us_1</span>
+    <span class="k">CALL </span><span class="n">init_at_1</span>
+    <span class="c">!</span>
+    <span class="k">CALL </span><span class="n">allocate_bec_type</span> <span class="p">(</span><span class="n">nkb</span><span class="p">,</span><span class="n">nbnd</span><span class="p">,</span> <span class="n">becp</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">DO </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nkstot</span>
+      <span class="c">!</span>
+      <span class="n">local_pw</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">IF</span> <span class="p">(</span> <span class="p">(</span><span class="n">ik</span> <span class="o">&gt;=</span> <span class="n">iks</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">ik</span> <span class="o">&lt;=</span> <span class="n">ike</span><span class="p">)</span> <span class="p">)</span> <span class="k">THEN</span>
+<span class="k">        CALL </span><span class="n">gk_sort</span> <span class="p">(</span><span class="n">xk</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ik</span><span class="o">+</span><span class="n">iks</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">ngm</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">ecutwfc</span> <span class="o">/</span> <span class="n">tpiba2</span><span class="p">,</span> <span class="n">npw</span><span class="p">,</span> <span class="n">igk</span><span class="p">,</span> <span class="n">g2kin</span><span class="p">)</span>
+        <span class="k">CALL </span><span class="n">davcio</span> <span class="p">(</span><span class="n">evc</span><span class="p">,</span> <span class="n">nwordwfc</span><span class="p">,</span> <span class="n">iunwfc</span><span class="p">,</span> <span class="p">(</span><span class="n">ik</span><span class="o">-</span><span class="n">iks</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">CALL </span><span class="n">init_us_2</span><span class="p">(</span><span class="n">npw</span><span class="p">,</span> <span class="n">igk</span><span class="p">,</span> <span class="n">xk</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ik</span><span class="p">),</span> <span class="n">vkb</span><span class="p">)</span>
+        <span class="n">local_pw</span> <span class="o">=</span> <span class="n">ngk</span><span class="p">(</span><span class="n">ik</span><span class="o">-</span><span class="n">iks</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">IF</span> <span class="p">(</span> <span class="n">gamma_only</span> <span class="p">)</span> <span class="k">THEN</span>
+<span class="k">          CALL </span><span class="n">calbec</span> <span class="p">(</span> <span class="n">ngk_g</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">vkb</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">becp</span> <span class="p">)</span>
+          <span class="k">WRITE</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Gamma only PW_EXPORT not yet tested&#39;</span>
+        <span class="k">ELSE</span>
+<span class="k">          CALL </span><span class="n">calbec</span> <span class="p">(</span> <span class="n">npw</span><span class="p">,</span> <span class="n">vkb</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">becp</span> <span class="p">)</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">then</span>
+            <span class="c">!</span>
+            <span class="k">WRITE</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Writing projectors of kpt&quot;</span><span class="p">,</span> <span class="n">ik</span>
+            <span class="c">!</span>
+<span class="c">!            file_exists = .false.</span>
+<span class="c">!            inquire(file =trim(exportDir)//&quot;/projectors&quot;//iotk_index(ik), exist = file_exists)</span>
+<span class="c">!            if ( .not. file_exists ) then</span>
+<span class="c">!              open(73, file=trim(exportDir)//&quot;/projectors&quot;//iotk_index(ik))</span>
+<span class="c">!              write(73, &#39;(&quot;# Complex projectors |beta&gt;. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;)</span>
+<span class="c">!              write(73,&#39;(2i10)&#39;) nkb, ngk_g(ik)</span>
+<span class="c">!              do j = 1, nkb</span>
+<span class="c">!                do i = 1, ngk_g(ik)</span>
+<span class="c">!                  write(73,&#39;(2ES24.15E3)&#39;) vkb(i,j)</span>
+<span class="c">!                enddo</span>
+<span class="c">!              enddo</span>
+<span class="c">!              close(73)</span>
+<span class="c">!            endif</span>
+<span class="c">!            !</span>
+<span class="c">!            file_exists = .false.</span>
+<span class="c">!            inquire(file =trim(exportDir)//&quot;/evc&quot;//iotk_index(ik), exist = file_exists)</span>
+<span class="c">!            if ( .not. file_exists ) then</span>
+<span class="c">!              !</span>
+<span class="c">!              open(74, file=trim(exportDir)//&quot;/evc&quot;//iotk_index(ik))</span>
+<span class="c">!              write(74, &#39;(&quot;# Spin : &quot;,i10, &quot; Format: &#39;&#39;(a9, i10)&#39;&#39;&quot;)&#39;) ispin</span>
+<span class="c">!              write(74, &#39;(&quot;# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;)</span>
+<span class="c">!              write(74,&#39;(2i10)&#39;) nbnd, ngk_g(ik)</span>
+<span class="c">!              !</span>
+<span class="c">!              do j = 1, nbnd</span>
+<span class="c">!                do i = 1, ngk_g(ik)</span>
+<span class="c">!                  write(74,&#39;(2ES24.15E3)&#39;) evc(i,j) </span>
+<span class="c">!                enddo</span>
+<span class="c">!              enddo</span>
+<span class="c">!              !</span>
+<span class="c">!              close(74)</span>
+<span class="c">!              !</span>
+<span class="c">!            endif</span>
+<span class="c">!            !</span>
+            <span class="n">file_exists</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+            <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projections&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">              open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projections&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span>
+              <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Complex projections &lt;beta|psi&gt;. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+              <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>  <span class="n">becp</span><span class="p">%</span><span class="n">nbnd</span> <span class="c">! number of bands </span>
+                <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nkb</span>      <span class="c">! number of projections</span>
+                  <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span><span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">becp</span><span class="p">%</span><span class="n">k</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span>
+                <span class="n">enddo</span>
+              <span class="n">enddo</span>
+              <span class="c">!</span>
+              <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+              <span class="c">!</span>
+            <span class="n">endif</span>
+          <span class="n">endif</span>
+        <span class="n">ENDIF</span>
+      <span class="n">ENDIF</span>
+
+      <span class="k">ALLOCATE</span><span class="p">(</span><span class="n">l2g_new</span><span class="p">(</span><span class="n">local_pw</span><span class="p">))</span>
+
+      <span class="n">l2g_new</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">DO </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">local_pw</span>
+        <span class="n">ngg</span> <span class="o">=</span> <span class="n">igk_l2g</span><span class="p">(</span><span class="n">ig</span><span class="p">,</span><span class="n">ik</span><span class="o">-</span><span class="n">iks</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">DO </span><span class="n">ig_</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ngk_g</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+          <span class="k">IF</span><span class="p">(</span><span class="n">ngg</span> <span class="o">==</span> <span class="n">igwk</span><span class="p">(</span><span class="n">ig_</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span> <span class="k">THEN</span>
+<span class="k">            </span><span class="n">l2g_new</span><span class="p">(</span><span class="n">ig</span><span class="p">)</span> <span class="o">=</span> <span class="n">ig_</span>
+            <span class="k">exit</span>
+<span class="k">          </span><span class="n">ENDIF</span>
+        <span class="n">ENDDO</span>
+      <span class="n">ENDDO</span>
+      <span class="c">!</span>
+      <span class="n">ispin</span> <span class="o">=</span> <span class="n">isk</span><span class="p">(</span> <span class="n">ik</span> <span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">then</span>
+
+<span class="k">        </span><span class="n">file_exists</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+        <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/wfc&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">          open</span> <span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/wfc&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span>
+          <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Spin : &quot;,i10, &quot; Format: &#39;&#39;(a9, i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">ispin</span>
+          <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+          <span class="c">!</span>
+          <span class="k">open</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projectors&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span>
+          <span class="k">write</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Complex projectors |beta&gt;. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+          <span class="k">write</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span><span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">nkb</span><span class="p">,</span> <span class="n">ngk_g</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+<span class="c">!          WRITE(stdout,*) &quot;Writing Wavefunctions of kpt&quot;, ik</span>
+<span class="c">!          open(74, file=trim(exportDir)//&quot;/evc&quot;//iotk_index(ik))</span>
+<span class="c">!          write(74, &#39;(&quot;# Spin : &quot;,i10, &quot; Format: &#39;&#39;(a9, i10)&#39;&#39;&quot;)&#39;) ispin</span>
+<span class="c">!          write(74, &#39;(&quot;# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;)</span>
+        <span class="n">endif</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+      <span class="k">CALL </span><span class="n">mp_bcast</span><span class="p">(</span> <span class="n">file_exists</span><span class="p">,</span> <span class="n">ionode_id</span><span class="p">,</span> <span class="n">world_comm</span> <span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">        CALL </span><span class="n">write_restart_wfc</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">nkstot</span><span class="p">,</span> <span class="n">kunit</span><span class="p">,</span> <span class="n">ispin</span><span class="p">,</span> <span class="n">nspin</span><span class="p">,</span> <span class="p">&amp;</span>
+                               <span class="n">wfc_scal</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">twf0</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">twfm</span><span class="p">,</span> <span class="n">npw_g</span><span class="p">,</span> <span class="n">gamma_only</span><span class="p">,</span> <span class="n">nbnd</span><span class="p">,</span> <span class="p">&amp;</span>
+                               <span class="n">l2g_new</span><span class="p">(:),</span><span class="n">local_pw</span> <span class="p">)</span>
+        <span class="k">CALL </span><span class="n">write_restart_wfc</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">nkstot</span><span class="p">,</span> <span class="n">kunit</span><span class="p">,</span> <span class="n">ispin</span><span class="p">,</span> <span class="n">nspin</span><span class="p">,</span> <span class="p">&amp;</span>
+                               <span class="n">wfc_scal</span><span class="p">,</span> <span class="n">vkb</span><span class="p">,</span> <span class="n">twf0</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">twfm</span><span class="p">,</span> <span class="n">npw_g</span><span class="p">,</span> <span class="n">gamma_only</span><span class="p">,</span> <span class="n">nkb</span><span class="p">,</span> <span class="p">&amp;</span>
+                               <span class="n">l2g_new</span><span class="p">(:),</span> <span class="n">local_pw</span> <span class="p">)</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">file_exists</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">        close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+        <span class="k">close</span><span class="p">(</span><span class="mi">73</span><span class="p">)</span>
+<span class="c">!        close(74)</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+      <span class="k">DEALLOCATE</span><span class="p">(</span><span class="n">l2g_new</span><span class="p">)</span>
+    <span class="n">ENDDO</span>
+    <span class="c">!</span>
+    <span class="k">CALL </span><span class="n">deallocate_bec_type</span> <span class="p">(</span> <span class="n">becp</span> <span class="p">)</span>
+    <span class="c">!</span>
+  <span class="n">ENDIF</span>
+
+  <span class="k">DEALLOCATE</span><span class="p">(</span> <span class="n">igk_l2g</span> <span class="p">)</span>
+  <span class="k">DEALLOCATE</span><span class="p">(</span> <span class="n">igwk</span> <span class="p">)</span>
+  <span class="k">DEALLOCATE</span> <span class="p">(</span> <span class="n">ngk_g</span> <span class="p">)</span>
+
+<span class="k">END SUBROUTINE </span><span class="n">write_export</span>
+
+<span class="k">END PROGRAM </span><span class="n">pw_export_for_TME</span>
+</pre></div>
+
+    </section>
     
     
     </div>

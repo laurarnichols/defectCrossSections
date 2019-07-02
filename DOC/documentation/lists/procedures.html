@@ -149,53 +149,9 @@ All Procedures &ndash; Carrier Cross Sections
 			 
 			   <tr><td><a href='../proc/checkifcalculated.html'>checkIfCalculated</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td></td></tr>
 			 
-			   <tr><td><a href='../proc/checkinitialization.html'>checkInitialization</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Write out a header to the output file
- Check if the SD export directory is blank
- Output an error message and set abortExecution to true
- If the SD export directory isn't blank
- Check if the SD export directory exists
- If the SD export directory doesn't exist
- Output an error message and set abortExecution to true
- Output the given SD export directory
- Check if the PC export directory is blank
- Output an error message and set abortExecution to true
- If the PC export directory isn't blank
- Check if the PC export directory exists
- If the PC export directory doesn't exist
- Output an error message and set abortExecution to true
- Output the given PC export directory
- If the elements path is blank
- Output a warning message and set the default value
- Check if the elements path folder exists already
- If the elements path folder doesn't already exist
- Create the directory by writing the mkdir command to a string
- Execute the command
- Output the elements path
- If iBandIinit is still less than zero
- Ouput an error messge and set abortExecution to true
- Output the value of iBandIinit
- If iBandIfinal is still less than zero
- Ouput an error messge and set abortExecution to true
- Output the value of iBandIfinal
- If iBandFinit is still less than zero
- Ouput an error messge and set abortExecution to true
- Output the value of iBandFinit
- If iBandFfinal is still less than zero
- Ouput an error messge and set abortExecution to true
- Output the value of iBandFfinal
- If calculateVfis is true and iBandFinit and iBandFfinal are not equal to each other
- Output an error message and set abortExecution to true
- Output the value of calculateVfis
- If the VfisOutput file name is blank
- Output a warning message and set the default value
- Output the value of VfisOutput
- If the value of eBin is still less than zero
- Output a warning message and set the default value
- Output the value of eBin
- Convert eBin from eV to Hartree
- If abortExecution was ever set to true
- Output an error message and stop the program
- Make the output file available for other processes</p></td></tr>
+			   <tr><td><a href='../proc/checkinitialization.html'>checkInitialization</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Check to see if variables from .in file still
+ have the values set in <a href="../module/tmemodule.html#proc-initialize">initialize</a>
+ or if they have values that aren't allowed</p><a href="../proc/checkinitialization.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/checkinputandupdateparameters.html'>checkInputAndUpdateParameters</a></td><td><a href='../module/sigma_module.html'>sigma_module</a></td><td>Subroutine</td><td></td></tr>
 			 
@@ -250,7 +206,7 @@ All Procedures &ndash; Carrier Cross Sections
 			   <tr><td><a href='../proc/init_random_seed%7E2.html'>init_random_seed</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
 			   <tr><td><a href='../proc/initialize.html'>initialize</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Set default values for all of the input variables
- that can easily be tested to see if they were changed</p></td></tr>
+ that can easily be tested to see if they were changed</p><a href="../proc/initialize.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/initialize%7E2.html'>initialize</a></td><td><a href='../module/mjmodule.html'>MjModule</a></td><td>Subroutine</td><td></td></tr>
 			 
@@ -338,7 +294,8 @@ All Procedures &ndash; Carrier Cross Sections
 			   <tr><td><a href='../proc/readinput.html'>readInput</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Delete any previous output, initialize input variables,
  start a timer, and read in the input files</p><a href="../proc/readinput.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
-			   <tr><td><a href='../proc/readinputpc.html'>readInputPC</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Define local variables</p><a href="../proc/readinputpc.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
+			   <tr><td><a href='../proc/readinputpc.html'>readInputPC</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Read input files in the Export directory created by
+ <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p><a href="../proc/readinputpc.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/readinputs.html'>readInputs</a></td><td><a href='../module/mjmodule.html'>MjModule</a></td><td>Subroutine</td><td></td></tr>
 			 

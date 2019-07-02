@@ -186,7 +186,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../program/lineshapefunction%7E2.html#src">lineShapeFunction</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -247,7 +253,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../program/lineshapefunction%7E2.html#src">lineShapeFunction</a>
+  </div>
+</div>
+
 
 
      </section>
@@ -270,6 +282,508 @@
 
     
     
+    
+    <section>
+    <h2 id="src">Source Code</h2>
+    <div class="highlight"><pre><span></span><span class="k">program </span><span class="n">lineShapeFunction</span>
+  <span class="c">!</span>
+  <span class="k">use </span><span class="n">mpi</span>
+  <span class="k">use </span><span class="n">lsf</span>
+  <span class="c">!</span>
+  <span class="k">implicit none</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">MPI_INIT</span><span class="p">(</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_COMM_RANK</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">myid</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_COMM_SIZE</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">numprocs</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">ti</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="c">! Reading input, initializing and checking all variables of the calculation.</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">readInputs</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">readPhonons</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">computeGeneralizedDisplacements</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">computeVariables</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">readMjs</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">initializeLSF</span><span class="p">()</span>
+    <span class="c">!</span>
+  <span class="n">endif</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">nModes</span>   <span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">modes</span>   <span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">maximumNumberOfPhonons</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">minimumNumberOfPhonons</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">nEnergies</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span> 
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">deltaE</span><span class="p">,</span>     <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">/=</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">    allocate</span><span class="p">(</span> <span class="n">phonF</span><span class="p">(</span><span class="n">nModes</span><span class="p">),</span> <span class="n">x</span><span class="p">(</span><span class="n">nModes</span><span class="p">),</span> <span class="n">Sj</span><span class="p">(</span><span class="n">nModes</span><span class="p">),</span> <span class="n">coth</span><span class="p">(</span><span class="n">nModes</span><span class="p">),</span> <span class="n">wby2kT</span><span class="p">(</span><span class="n">nModes</span><span class="p">),</span> <span class="n">s2L</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span><span class="p">(</span> <span class="n">besOrderNofModeM</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">maximumNumberOfPhonons</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nModes</span><span class="p">)</span> <span class="p">)</span>
+<span class="c">!    allocate( Vfis(-nEnergies:nEnergies) )</span>
+  <span class="n">endif</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span> <span class="n">phonF</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">phonF</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span> <span class="n">x</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span> <span class="n">Sj</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">Sj</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span> <span class="n">coth</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">coth</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span> <span class="n">wby2kT</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">wby2kT</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span> <span class="n">besOrderNofModeM</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">besOrderNofModeM</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span> <span class="n">s2L</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">s2L</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+<span class="c">!  call MPI_BCAST( Vfis, size(Vfis), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)</span>
+  <span class="c">!</span>
+  <span class="k">allocate</span><span class="p">(</span> <span class="n">lsfVsEbyBands</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">)</span> <span class="p">)</span>
+  <span class="k">allocate</span><span class="p">(</span> <span class="n">iEbinsByBands</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">)</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">allocate</span><span class="p">(</span> <span class="n">pj</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="c">!</span>
+    <span class="c">!if ( maximumNumberOfPhonons &gt; 0 ) then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="p">(</span> <span class="n">minimumNumberOfPhonons</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span> <span class="n">maximumNumberOfPhonons</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span> <span class="n">modes</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="c">! One phonon</span>
+      <span class="c">!</span>
+      <span class="n">lsfVsEbyBands</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="n">iEbinsByBands</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">lsfMbyOneBand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="c">! calculate the DOS and update the total lsfVsE</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">calculateDE</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">iEbinsByBands</span><span class="p">,</span> <span class="n">de</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;DE&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>  <span class="n">de</span>
+      <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">+</span> <span class="n">lsfVsEbyBands</span><span class="p">(:)</span><span class="o">/</span><span class="n">de</span>
+      <span class="c">!</span>
+      <span class="k">open</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="s1">&#39;lsfVsEwithUpTo1phonons&#39;</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;(&quot;#&quot;, i10, &quot; energies&quot;, i5, &quot; phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">nEnergies</span><span class="p">,</span> <span class="mi">1</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="o">-</span><span class="n">nEnergies</span><span class="p">,</span> <span class="n">nEnergies</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="kt">real</span><span class="p">(</span><span class="n">iE</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="n">deltaE</span>
+        <span class="c">!vg = 1.0_dp</span>
+        <span class="c">!if (E &gt; 0.0_dp) vg = sqrt(2.0_dp*E)</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;(F16.8,2E18.6e3)&#39;</span><span class="p">)</span> <span class="n">E</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE</span><span class="p">),</span> <span class="n">lsfVsEbyBands</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">de</span>
+<span class="c">!twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+      <span class="k">close</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="p">(</span> <span class="n">minimumNumberOfPhonons</span> <span class="o">&lt;</span> <span class="mi">3</span> <span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span> <span class="n">maximumNumberOfPhonons</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span> <span class="n">modes</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="c">! Two phonons</span>
+      <span class="c">!</span>
+      <span class="n">lsfVsEbyBands</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="n">iEbinsByBands</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">lsfMbyOneBand</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+      <span class="k">call </span><span class="n">lsfMbyTwoBands</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="s1">&#39;(&quot; 2 modes, time needed :,&quot; , f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+      <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="c">! calculate the DOS and update the total lsfVsE</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">calculateDE</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">iEbinsByBands</span><span class="p">,</span> <span class="n">de</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;DE&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span>  <span class="n">de</span>
+      <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">+</span> <span class="n">lsfVsEbyBands</span><span class="p">(:)</span><span class="o">/</span><span class="n">de</span>
+      <span class="c">!</span>
+      <span class="k">open</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="s1">&#39;lsfVsEwithUpTo2phonons&#39;</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+      <span class="c">!</span>
+<span class="c">!      write(2,&#39;(&quot;# &quot;, i5, &quot; phonons&quot;)&#39;) 2</span>
+      <span class="k">write</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="s1">&#39;(&quot;#&quot;, i10, &quot; energies&quot;, i5, &quot; phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">nEnergies</span><span class="p">,</span> <span class="mi">2</span>
+      <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="o">-</span><span class="n">nEnergies</span><span class="p">,</span> <span class="n">nEnergies</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="kt">real</span><span class="p">(</span><span class="n">iE</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="n">deltaE</span>
+        <span class="c">!vg = 1.0_dp</span>
+        <span class="c">!if (E &gt; 0.0_dp) vg = sqrt(2.0_dp*E)</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="s1">&#39;(F16.8,2E18.6e3)&#39;</span><span class="p">)</span> <span class="n">E</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE</span><span class="p">),</span> <span class="n">lsfVsEbyBands</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">de</span>
+<span class="c">!twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+      <span class="k">close</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="c">!   call lsfDeterministicOneAndTwoBands()</span>
+    <span class="c">!</span>
+    <span class="c">!deallocate ( lsfVsEbyPhonons )</span>
+    <span class="c">!</span>
+  <span class="n">endif</span>
+  <span class="c">!</span>
+  <span class="k">allocate</span><span class="p">(</span> <span class="n">iModeIs</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numprocs</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
+  <span class="k">allocate</span><span class="p">(</span> <span class="n">iModeFs</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numprocs</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="n">iModeIs</span><span class="p">(:)</span> <span class="o">=</span>  <span class="mi">0</span>
+  <span class="n">iModeFs</span><span class="p">(:)</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+  <span class="c">!</span>
+  <span class="c">!if ( maximumNumberOfPhonons &gt; 2 ) then</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="p">(</span> <span class="n">minimumNumberOfPhonons</span> <span class="o">&lt;</span> <span class="mi">4</span> <span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span> <span class="n">maximumNumberOfPhonons</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span> <span class="n">modes</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="c">!</span>
+    <span class="n">lsfVsEbyBands</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+    <span class="n">iEbinsByBands</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">lsfMbyOneBand</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+      <span class="k">call </span><span class="n">lsfMbyTwoBands</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">parallelIsFsBy3</span><span class="p">()</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">lsfMbyThreeBands</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">iEbinsByPhonons</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">),</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">iEbinsByPhonons</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">lsfVsEbyPhonons</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+    <span class="c">!</span>
+    <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">iEbinsByBands</span><span class="p">,</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iEbinsByBands</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">lsfVsEbyBands</span><span class="p">,</span> <span class="n">lsfVsEbyPhonons</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">lsfVsEbyPhonons</span><span class="p">),</span> <span class="p">&amp;</span>
+                                                               <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">calculateDE</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">de</span><span class="p">)</span>
+      <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">+</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(:)</span><span class="o">/</span><span class="n">de</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;DE&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span>  <span class="n">de</span>
+      <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">open</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="s1">&#39;lsfVsEwithUpTo3phonons&#39;</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+      <span class="c">!</span>
+<span class="c">!      write(1,&#39;(&quot;# &quot;, i5, &quot; phonons&quot;)&#39;) 3</span>
+      <span class="k">write</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;(&quot;#&quot;, i10, &quot; energies&quot;, i5, &quot; phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">nEnergies</span><span class="p">,</span> <span class="mi">3</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="o">-</span><span class="n">nEnergies</span><span class="p">,</span> <span class="n">nEnergies</span>
+        <span class="c">!</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="kt">real</span><span class="p">(</span><span class="n">iE</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="n">deltaE</span>
+        <span class="c">!</span>
+        <span class="c">!vg = 1.0_dp</span>
+        <span class="c">!if (E &gt; 0.0_dp) vg = sqrt(2.0_dp*E)</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;(F16.8,2E18.6e3)&#39;</span><span class="p">)</span> <span class="n">E</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE</span><span class="p">),</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">de</span>
+<span class="c">!twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg</span>
+      <span class="n">enddo</span>
+      <span class="k">close</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">deallocate</span> <span class="p">(</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">lsfVsEbyPhonons</span> <span class="p">)</span>
+    <span class="c">!</span>
+  <span class="n">endif</span>
+  <span class="c">!</span>
+  <span class="c">!if ( maximumNumberOfPhonons &gt; 3 ) then</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="p">(</span> <span class="n">minimumNumberOfPhonons</span> <span class="o">&lt;</span> <span class="mi">5</span> <span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span> <span class="n">maximumNumberOfPhonons</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span> <span class="n">modes</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="c">!</span>
+    <span class="n">lsfVsEbyBands</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+    <span class="n">iEbinsByBands</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c">!</span>
+    <span class="n">iModeIs</span><span class="p">(:)</span> <span class="o">=</span>  <span class="mi">0</span>
+    <span class="n">iModeFs</span><span class="p">(:)</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">lsfMbyOneBand</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+      <span class="k">call </span><span class="n">lsfMbyTwoBands</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">parallelIsFsBy3</span><span class="p">()</span>
+      <span class="c">!</span>
+      <span class="c">!write(6,*) &#39;3&#39;</span>
+      <span class="c">!do i = 0, nProcMax - 1</span>
+      <span class="c">!  write(6,*) i, iModeIs(i), iModeFs(i)</span>
+      <span class="c">!enddo</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">lsfMbyThreeBands</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">iModeIs</span><span class="p">(:)</span> <span class="o">=</span>  <span class="mi">0</span>
+    <span class="n">iModeFs</span><span class="p">(:)</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">call </span><span class="n">parallelIsFsBy4</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="c">!if ( myid == root ) then</span>
+    <span class="c">!  write(6,*) &#39;4&#39;</span>
+    <span class="c">!  do i = 0, nProcMax - 1</span>
+    <span class="c">!    write(6,*) i, iModeIs(i), iModeFs(i)</span>
+    <span class="c">!  enddo</span>
+    <span class="c">!endif</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">lsfDeterministicFourPhononsByFourBands</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">iEbinsByPhonons</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">),</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">iEbinsByPhonons</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">lsfVsEbyPhonons</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+    <span class="c">!</span>
+    <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">iEbinsByBands</span><span class="p">,</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iEbinsByBands</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">lsfVsEbyBands</span><span class="p">,</span> <span class="n">lsfVsEbyPhonons</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">lsfVsEbyPhonons</span><span class="p">),</span> <span class="p">&amp;</span>
+                                                               <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">calculateDE</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">de</span><span class="p">)</span>
+      <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">+</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(:)</span><span class="o">/</span><span class="n">de</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;DE&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span>  <span class="n">de</span>
+      <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">open</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="s1">&#39;lsfVsEwithUpTo4phonons&#39;</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+      <span class="c">!</span>
+<span class="c">!      write(1,&#39;(&quot;# &quot;, i5, &quot; phonons&quot;)&#39;) 4</span>
+      <span class="k">write</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;(&quot;#&quot;, i10, &quot; energies&quot;, i5, &quot; phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">nEnergies</span><span class="p">,</span> <span class="mi">4</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="o">-</span><span class="n">nEnergies</span><span class="p">,</span> <span class="n">nEnergies</span>
+        <span class="c">!</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="kt">real</span><span class="p">(</span><span class="n">iE</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="n">deltaE</span>
+        <span class="c">!</span>
+        <span class="c">!vg = 1.0_dp</span>
+        <span class="c">!if (E &gt; 0.0_dp) vg = sqrt(2.0_dp*E)</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;(F16.8,2E18.6e3)&#39;</span><span class="p">)</span> <span class="n">E</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE</span><span class="p">),</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">de</span>
+<span class="c">!twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg</span>
+      <span class="n">enddo</span>
+      <span class="k">close</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">deallocate</span> <span class="p">(</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">lsfVsEbyPhonons</span> <span class="p">)</span>
+    <span class="c">!</span>
+  <span class="n">endif</span>
+  <span class="c">!</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="p">(</span> <span class="n">maximumNumberOfPhonons</span> <span class="o">&gt;</span> <span class="mi">4</span> <span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span> <span class="n">modes</span> <span class="o">&gt;</span> <span class="mi">4</span> <span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+  <span class="c">!if ( ( minimumNumberOfPhonons &lt; 6 ) .and. ( maximumNumberOfPhonons &gt; 4 ) ) then</span>
+    <span class="c">!</span>
+    <span class="k">open</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="n">un</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="s2">&quot;/dev/urandom&quot;</span><span class="p">,</span> <span class="nb">access</span><span class="o">=</span><span class="s2">&quot;stream&quot;</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="s2">&quot;unformatted&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s2">&quot;old&quot;</span><span class="p">,</span> <span class="n">iostat</span><span class="o">=</span><span class="n">istat</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      if</span> <span class="p">(</span><span class="n">istat</span> <span class="o">/=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<span class="k">        write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;File &quot;/dev/urandom&quot; not found! A pseudo random generator will be used!&#39;</span>
+      <span class="k">else</span>
+<span class="k">        write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="s1">&#39;File &quot;/dev/urandom&quot; will be used to generate real random numbers!&#39;</span>
+      <span class="n">endif</span>
+      <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">istat</span> <span class="o">/=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">close</span><span class="p">(</span><span class="n">un</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">iEbinsByPhonons</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">),</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">lsfbyPhononsPerProc</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">minimumNumberOfPhonons</span> <span class="o">&lt;</span> <span class="mi">6</span> <span class="p">)</span> <span class="n">minimumNumberOfPhonons</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="k">do </span><span class="n">m</span> <span class="o">=</span> <span class="n">minimumNumberOfPhonons</span><span class="p">,</span> <span class="n">maximumNumberOfPhonons</span>
+      <span class="c">!</span>
+      <span class="n">lsfVsEbyBands</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="n">iEbinsByBands</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="c">!</span>
+      <span class="n">iModeIs</span><span class="p">(:)</span> <span class="o">=</span>  <span class="mi">0</span>
+      <span class="n">iModeFs</span><span class="p">(:)</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="n">lsfMbyOneBand</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="k">call </span><span class="n">lsfMbyTwoBands</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="n">parallelIsFsBy3</span><span class="p">()</span>
+        <span class="c">!</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+      <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">lsfMbyThreeBands</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="c">!iEbinsByPhonons = 0</span>
+      <span class="n">lsfVsEbyPhonons</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="c">!</span>
+      <span class="c">!CALL MPI_REDUCE(iEbinsByBands, iEbinsByPhonons, size(iEbinsByBands), MPI_INTEGER, MPI_SUM, root, MPI_COMM_WORLD, ierr)</span>
+      <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">lsfVsEbyBands</span><span class="p">,</span> <span class="n">lsfVsEbyPhonons</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">lsfVsEbyPhonons</span><span class="p">),</span> <span class="p">&amp;</span>
+                                                                  <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">istat</span> <span class="o">/=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">CALL </span><span class="n">init_random_seed</span><span class="p">()</span> 
+      <span class="c">!</span>
+      <span class="n">iModeIs</span><span class="p">(:)</span> <span class="o">=</span>  <span class="mi">0</span>
+      <span class="n">iModeFs</span><span class="p">(:)</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">!</span>
+        <span class="n">iMint</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nMC</span><span class="o">/</span><span class="n">numprocs</span><span class="p">)</span>
+        <span class="n">iMmod</span> <span class="o">=</span> <span class="nb">mod</span><span class="p">(</span><span class="n">nMC</span><span class="p">,</span><span class="n">numprocs</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="n">iModeIs</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">iModeFs</span><span class="p">(</span><span class="n">numprocs</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">nMC</span>
+        <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="n">numprocs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+          <span class="n">iModeIs</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">i</span><span class="o">*</span><span class="n">iMint</span> <span class="o">+</span> <span class="mi">1</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="n">iMmod</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">            </span><span class="n">iModeIs</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">iModeIs</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="n">iMmod</span>
+            <span class="n">iMmod</span> <span class="o">=</span> <span class="n">iMmod</span> <span class="o">-</span> <span class="mi">1</span>
+          <span class="n">endif</span>
+          <span class="n">iModeFs</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">iModeIs</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">enddo</span>
+        <span class="c">!</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+      <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="c">!write(6,*) myid, iModeIs(myid), iModeFs(myid)</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">l</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">m</span>
+        <span class="c">!</span>
+        <span class="c">!write(iostd,*) &quot;---------------------------------&quot;</span>
+        <span class="c">!write(iostd,*) m, &quot; by &quot;, l</span>
+        <span class="c">!flush(iostd)</span>
+        <span class="c">!</span>
+        <span class="n">times</span> <span class="o">=</span> <span class="mf">1.0_dp</span>
+        <span class="n">mi</span> <span class="o">=</span> <span class="n">l</span><span class="o">-</span><span class="mi">1</span>
+        <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="n">m</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">m</span> <span class="o">-</span> <span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+          <span class="n">times</span> <span class="o">=</span> <span class="n">times</span><span class="o">*</span><span class="nb">dble</span><span class="p">(</span><span class="n">ni</span><span class="p">)</span><span class="o">/</span><span class="nb">dble</span><span class="p">(</span><span class="n">mi</span><span class="p">)</span>
+          <span class="n">mi</span> <span class="o">=</span> <span class="n">mi</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">enddo</span>
+        <span class="c">!</span>
+        <span class="k">allocate</span><span class="p">(</span> <span class="n">pj0s</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">times</span> <span class="o">+</span> <span class="mf">1.e-3_dp</span><span class="p">),</span> <span class="n">l</span><span class="p">)</span> <span class="p">)</span>
+        <span class="c">!</span>
+        <span class="n">pj0s</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c">!</span>
+        <span class="c">!write(6,*) &#39;distrubutePhononsInBands&#39;, m, l, times, int(times + 1.e-3_dp)</span>
+        <span class="k">call </span><span class="n">distrubutePhononsInBands</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> 
+        <span class="c">!</span>
+        <span class="k">allocate</span><span class="p">(</span> <span class="n">pms</span><span class="p">(</span> <span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="o">**</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span> <span class="p">)</span> <span class="p">)</span>
+        <span class="c">!</span>
+        <span class="n">pms</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="n">calculatePlusMinusStates</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="n">lsfVsEbyBands</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="n">lsfWithMphonons</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">times</span> <span class="o">+</span> <span class="mf">1.e-3_dp</span><span class="p">))</span>
+        <span class="c">!</span>
+        <span class="n">lsfbyPhononsPerProc</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+        <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">lsfVsEbyBands</span><span class="p">,</span> <span class="n">lsfbyPhononsPerProc</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">lsfbyPhononsPerProc</span><span class="p">),</span> <span class="p">&amp;</span>
+                                                            <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+          <span class="c">!</span>
+          <span class="n">weight</span> <span class="o">=</span> <span class="n">modes</span>
+          <span class="c">!</span>
+          <span class="k">do </span><span class="n">iMode</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">l</span>
+            <span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span><span class="o">*</span><span class="p">(</span><span class="n">modes</span> <span class="o">-</span> <span class="n">iMode</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="n">iMode</span>
+          <span class="n">enddo</span>
+          <span class="c">!</span>
+          <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span> <span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">times</span><span class="o">*</span><span class="n">weight</span>
+          <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="mi">102</span><span class="p">)</span> <span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="kt">real</span><span class="p">(</span><span class="n">nMC</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
+          <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="mi">103</span><span class="p">)</span> <span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">times</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">nMC</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
+          <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="mi">104</span><span class="p">)</span> <span class="n">weight</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">nMC</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
+          <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+          <span class="c">!</span>
+          <span class="n">lsfVsEbyPhonons</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(:)</span> <span class="o">+</span> <span class="n">lsfbyPhononsPerProc</span><span class="p">(:)</span><span class="o">*</span><span class="n">weight</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">nMC</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
+          <span class="c">!</span>
+          <span class="c">!do iE = -nEnergies, nEnergies</span>
+          <span class="c">!  write(1000 + 10*m + l, *) real(iE, dp)*deltaE*HartreeToEv, lsfVsEbyBands(iE)*(weight/real(nMC, dp))</span>
+          <span class="c">!enddo</span>
+          <span class="c">!close(1000 + 10*m + l)</span>
+          <span class="c">!</span>
+        <span class="n">endif</span>
+        <span class="c">!</span>
+        <span class="k">deallocate</span><span class="p">(</span> <span class="n">pj0s</span><span class="p">,</span> <span class="n">pms</span> <span class="p">)</span>
+        <span class="c">!</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+      <span class="n">iEbinsByPhonons</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">iEbinsByBands</span><span class="p">,</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iEbinsByBands</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">! </span>
+        <span class="k">call </span><span class="n">calculateDE</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">de</span><span class="p">)</span>
+        <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">+</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(:)</span><span class="o">/</span><span class="n">de</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;DE&#39;</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span>  <span class="n">de</span>
+        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">          write</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span><span class="s1">&#39;(&quot;lsfVsEwithUpTo&quot;, i1, &quot;phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">m</span>
+        <span class="n">elseif</span> <span class="p">(</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">100</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">          write</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span><span class="s1">&#39;(&quot;lsfVsEwithUpTo&quot;, i2, &quot;phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">m</span>
+        <span class="n">elseif</span> <span class="p">(</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">1000</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">          write</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span><span class="s1">&#39;(&quot;lsfVsEwithUpTo&quot;, i3, &quot;phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">m</span>
+        <span class="k">else</span>
+<span class="k">          write</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span><span class="s1">&#39;(&quot;lsfVsEwithUpTo&quot;, i4, &quot;phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">m</span>
+        <span class="n">endif</span>
+        <span class="c">!</span>
+        <span class="k">open</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">fn</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+        <span class="c">!</span>
+<span class="c">!        write(5000,&#39;(&quot;# &quot;, i5, &quot; phonons&quot;)&#39;) m</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">5000</span><span class="p">,</span><span class="s1">&#39;(&quot;#&quot;, i10, &quot; energies&quot;, i5, &quot; phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">nEnergies</span><span class="p">,</span> <span class="n">m</span>
+        <span class="c">!</span>
+        <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="o">-</span><span class="n">nEnergies</span><span class="p">,</span> <span class="n">nEnergies</span>
+          <span class="n">E</span> <span class="o">=</span> <span class="kt">real</span><span class="p">(</span><span class="n">iE</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="n">deltaE</span>
+          <span class="c">!</span>
+          <span class="c">!vg = 1.0_dp</span>
+          <span class="c">!if (E &gt; 0.0_dp) vg = sqrt(2.0_dp*E)</span>
+          <span class="k">write</span><span class="p">(</span><span class="mi">5000</span><span class="p">,</span><span class="s1">&#39;(F16.8,2E18.6e3)&#39;</span><span class="p">)</span> <span class="n">E</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE</span><span class="p">),</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">de</span>
+<span class="c">!twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg</span>
+          <span class="c">!</span>
+          <span class="c">!write(5000, *) real(iE, dp)*deltaE*HartreeToEv, lsfVsE(iE), lsfVsEbyPhonons(iE)/de</span>
+        <span class="n">enddo</span>
+        <span class="k">close</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span>
+        <span class="c">!</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">deallocate</span> <span class="p">(</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">lsfVsEbyPhonons</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">istat</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">close</span><span class="p">(</span><span class="n">un</span><span class="p">)</span>
+    <span class="c">!</span>
+  <span class="n">endif</span>
+  <span class="c">!</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">writeLSFandCrossSection</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">tf</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="s1">&#39;(&quot; Time needed: &quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">tf</span><span class="o">-</span><span class="n">ti</span>
+    <span class="c">!</span>
+  <span class="n">endif</span>
+  <span class="c">!</span>
+ <span class="mi">101</span> <span class="k">format</span><span class="p">(</span><span class="s2">&quot;   Total number of configurations of &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; phonons by &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; bands : &quot;</span><span class="p">,</span> <span class="n">E20</span><span class="p">.</span><span class="mi">1</span><span class="mf">0E3</span><span class="p">)</span>
+ <span class="mi">102</span> <span class="k">format</span><span class="p">(</span><span class="s2">&quot;   Total number of configurations of &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; phonons by &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; bands sampled : &quot;</span><span class="p">,</span> <span class="n">E20</span><span class="p">.</span><span class="mi">1</span><span class="mf">0E3</span><span class="p">)</span>
+ <span class="mi">103</span> <span class="k">format</span><span class="p">(</span><span class="s2">&quot;   Total number of configurations of &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; phonons by &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; bands calculated : &quot;</span><span class="p">,</span> <span class="n">E20</span><span class="p">.</span><span class="mi">1</span><span class="mf">0E3</span><span class="p">)</span>
+ <span class="mi">104</span> <span class="k">format</span><span class="p">(</span><span class="s2">&quot;   Each sampled configuration will be weighted by : &quot;</span><span class="p">,</span> <span class="n">E20</span><span class="p">.</span><span class="mi">1</span><span class="mf">0E3</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">MPI_FINALIZE</span><span class="p">(</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+<span class="k">end program </span><span class="n">lineShapeFunction</span>
+</pre></div>
+
+    </section>
     
     
     </div>

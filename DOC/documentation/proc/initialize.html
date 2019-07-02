@@ -188,7 +188,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/initialize.html#src">initialize</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -209,6 +215,10 @@ public subroutine initialize()
     
     <p>Set default values for all of the input variables
  that can easily be tested to see if they were changed</p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change this subroutine to have arguments to make clear 
+ that these variables are getting changed
+ </p></div>
+<p>
     
 
     <h3>Arguments</h3>
@@ -247,7 +257,13 @@ public subroutine initialize()
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/initialize.html#src">initialize</a>
+  </div>
+</div>
+
 
 
     </section>
@@ -270,6 +286,45 @@ public subroutine initialize()
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initialize</span><span class="p">()</span>
+    <span class="c">!! Set default values for all of the input variables</span>
+    <span class="c">!! that can easily be tested to see if they were changed</span>
+    <span class="c">!!</span>
+    <span class="c">!! @todo</span>
+    <span class="c">!! Change this subroutine to have arguments to make clear </span>
+    <span class="c">!! that these variables are getting changed</span>
+    <span class="c">!! @endtodo</span>
+    <span class="c">!!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="n">exportDirSD</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">exportDirPC</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">elementsPath</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">VfisOutput</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="c">!</span>
+    <span class="n">ki</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">kf</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">nKpts</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="c">!</span>
+    <span class="n">eBin</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0_dp</span>
+    <span class="c">!</span>
+    <span class="n">iBandIinit</span>  <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">iBandIfinal</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">iBandFinit</span>  <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">iBandFfinal</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="c">!</span>
+    <span class="n">calculateVfis</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">initialize</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

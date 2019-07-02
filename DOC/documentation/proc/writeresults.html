@@ -188,7 +188,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/writeresults.html#src">writeResults</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -270,7 +276,13 @@ public subroutine writeResults(ik)
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/writeresults.html#src">writeResults</a>
+  </div>
+</div>
+
 
 
     </section>
@@ -293,6 +305,72 @@ public subroutine writeResults(ik)
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">writeResults</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ik</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">totalNumberOfElements</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span>
+    <span class="c">!</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">text</span><span class="p">,</span> <span class="n">Uelements</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">readEigenvalues</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Writing Ufi(:,:).&quot;)&#39;</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i1,&quot;_kptF_&quot;,i1)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">100</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i2,&quot;_kptF_&quot;,i2)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">1000</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i3,&quot;_kptF_&quot;,i3)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">10000</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i4,&quot;_kptF_&quot;,i4)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">10000</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i5,&quot;_kptF_&quot;,i5)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">)</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">Uelements</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Cell volume (a.u.)^3. Format: &#39;&#39;(a51, ES24.15E3)&#39;&#39; &quot;, ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">omega</span>
+    <span class="c">!</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;# Total number of &lt;f|U|i&gt; elements, Initial States (bandI, bandF), Final States (bandI, bandF)&quot;</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span><span class="s1">&#39;(a, &quot; Format : &#39;&#39;(5i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">totalNumberOfElements</span> <span class="o">=</span> <span class="p">(</span><span class="n">iBandIfinal</span> <span class="o">-</span> <span class="n">iBandIinit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">iBandFfinal</span> <span class="o">-</span> <span class="n">iBandFinit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span><span class="s1">&#39;(5i10)&#39;</span><span class="p">)</span> <span class="n">totalNumberOfElements</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Final Band, Initial Band, Delta energy, Complex &lt;f|U|i&gt;, |&lt;f|U|i&gt;|^2 Format : &#39;&#39;(2i10,4ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+      <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="mi">1001</span><span class="p">)</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">eigvI</span><span class="p">(</span><span class="n">ibi</span><span class="p">)</span> <span class="o">-</span> <span class="n">eigvF</span><span class="p">(</span><span class="n">ibf</span><span class="p">),</span> <span class="n">Ufi</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span><span class="n">ibi</span><span class="p">,</span><span class="n">ik</span><span class="p">),</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Ufi</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span><span class="n">ibi</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span>
+        <span class="c">!    </span>
+      <span class="n">enddo</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">close</span><span class="p">(</span><span class="mi">17</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Writing Ufi(:,:) done in:                   &quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+    <span class="c">!</span>
+ <span class="mi">1001</span> <span class="k">format</span><span class="p">(</span><span class="mi">2</span><span class="n">i10</span><span class="p">,</span><span class="err">4</span><span class="n">ES24</span><span class="p">.</span><span class="mi">1</span><span class="mf">5E3</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">writeResults</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

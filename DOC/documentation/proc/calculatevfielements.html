@@ -188,7 +188,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/calculatevfielements.html#src">calculateVfiElements</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -244,7 +250,13 @@ public subroutine calculateVfiElements()
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/calculatevfielements.html#src">calculateVfiElements</a>
+  </div>
+</div>
+
 
 
     </section>
@@ -267,6 +279,132 @@ public subroutine calculateVfiElements()
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">calculateVfiElements</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ib</span><span class="p">,</span> <span class="n">nOfEnergies</span><span class="p">,</span> <span class="n">iE</span>
+    <span class="c">!</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">eMin</span><span class="p">,</span> <span class="n">eMax</span><span class="p">,</span> <span class="n">E</span><span class="p">,</span> <span class="n">av</span><span class="p">,</span> <span class="n">sd</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">EiMinusEf</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">DHifMin</span>
+    <span class="c">!</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">sumWk</span><span class="p">(:),</span> <span class="n">sAbsVfiOfE2</span><span class="p">(:),</span> <span class="n">absVfiOfE2</span><span class="p">(:)</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">nKsInEbin</span><span class="p">(:)</span>
+    <span class="c">!</span>
+    <span class="kt">character</span> <span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">text</span>
+    <span class="c">!</span>
+    <span class="k">allocate</span><span class="p">(</span> <span class="n">DE</span><span class="p">(</span><span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">nKptsPC</span><span class="p">),</span> <span class="n">absVfi2</span><span class="p">(</span><span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">nKptsPC</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">! </span>
+    <span class="n">DE</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+    <span class="n">absVfi2</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span> 
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nKptsPC</span>
+      <span class="c">!</span>
+      <span class="n">eigvI</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="n">eigvF</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">readEigenvalues</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+        <span class="c">!</span>
+        <span class="n">EiMinusEf</span> <span class="o">=</span> <span class="n">eigvI</span><span class="p">(</span><span class="n">ib</span><span class="p">)</span> <span class="o">-</span> <span class="n">eigvF</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">)</span>
+        <span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">EiMinusEf</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Ufi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Ufi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span><span class="o">**</span><span class="mi">4</span> <span class="p">)</span>
+        <span class="c">!</span>
+        <span class="n">DE</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="n">EiMinusEf</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mf">4.0_dp</span><span class="o">*</span><span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span>
+        <span class="c">!</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="n">eMin</span> <span class="o">=</span> <span class="nb">minval</span><span class="p">(</span> <span class="n">DE</span><span class="p">(:,:)</span> <span class="p">)</span>
+    <span class="n">eMax</span> <span class="o">=</span> <span class="nb">maxval</span><span class="p">(</span> <span class="n">DE</span><span class="p">(:,:)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">nOfEnergies</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">eMax</span><span class="o">-</span><span class="n">eMin</span><span class="p">)</span><span class="o">/</span><span class="n">eBin</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="c">!</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">absVfiOfE2</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">nOfEnergies</span><span class="p">),</span> <span class="n">nKsInEbin</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">nOfEnergies</span><span class="p">),</span> <span class="n">sumWk</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">nOfEnergies</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">absVfiOfE2</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+    <span class="n">nKsInEbin</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">sumWk</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nKptsPC</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+        <span class="c">!</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="nb">abs</span><span class="p">(</span> <span class="n">eMin</span> <span class="o">-</span> <span class="n">DE</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">1.0e-3_dp</span> <span class="p">)</span> <span class="n">DHifMin</span> <span class="o">=</span> <span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span>
+        <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">DE</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span><span class="o">-</span><span class="n">eMin</span><span class="p">)</span><span class="o">/</span><span class="n">eBin</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.0_dp</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">          </span><span class="n">absVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">=</span> <span class="n">absVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">+</span> <span class="n">wkPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span><span class="o">*</span><span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span>
+          <span class="n">sumWk</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">=</span> <span class="n">sumWk</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">+</span> <span class="n">wkPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+          <span class="n">nKsInEbin</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">=</span> <span class="n">nKsInEbin</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">else</span>
+<span class="k">          write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;lalala&#39;</span><span class="p">,</span> <span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span>
+        <span class="n">endif</span>
+        <span class="c">!</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">sAbsVfiOfE2</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">nOfEnergies</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">sAbsVfiOfE2</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+    <span class="c">!</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">VfisOutput</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;ofKpt&#39;</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="s1">&#39;(&quot;# |&lt;f|V|i&gt;|^2 versus energy for all the k-points.&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Energy (eV) shifted by half eBin, |&lt;f|V|i&gt;|^2 (Hartree)^2,&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="s1">&#39;(a, &quot; k-point index. Format : &#39;&#39;(2ES24.15E3,i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nKptsPC</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+        <span class="c">!</span>
+        <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">DE</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">-</span><span class="n">eMin</span><span class="p">)</span><span class="o">/</span><span class="n">eBin</span><span class="p">)</span>
+        <span class="n">av</span> <span class="o">=</span> <span class="n">absVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">sumWk</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3,i10)&#39;</span><span class="p">)</span> <span class="p">(</span><span class="n">eMin</span> <span class="o">+</span> <span class="p">(</span><span class="n">iE</span><span class="o">+</span><span class="mf">0.5_dp</span><span class="p">)</span><span class="o">*</span><span class="n">eBin</span><span class="p">)</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">ik</span>
+        <span class="k">write</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3,i10)&#39;</span><span class="p">)</span> <span class="n">DE</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">),</span> <span class="n">ik</span>
+        <span class="c">!write(11, &#39;(2ES24.15E3,i10)&#39;) (eMin + iE*eBin + eBin/2.0_dp), x, ik</span>
+        <span class="n">sAbsVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">=</span> <span class="n">sAbsVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">+</span> <span class="n">wkPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">av</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">sumWk</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>
+        <span class="c">!</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">close</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">VfisOutput</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Averaged |&lt;f|V|i&gt;|^2 over K-points versus energy.&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;(&quot;#                 Cell volume : &quot;, ES24.15E3, &quot; (a.u.)^3,   Format : &#39;&#39;(ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">omega</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;(&quot;#   Minimun transition energy : &quot;, ES24.15E3, &quot; (Hartree),  Format : &#39;&#39;(ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">eMin</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;(&quot;# |DHif|^2 at minimum Tr. En. : &quot;, ES24.15E3, &quot; (Hartree^2),Format : &#39;&#39;(ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">DHifMin</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;(&quot;#                  Energy bin : &quot;, ES24.15E3, &quot; (Hartree),  Format : &#39;&#39;(ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">eBin</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Energy (Hartree), averaged |&lt;f|V|i&gt;|^2 over K-points (Hartree)^2,&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;(a, &quot; standard deviation (Hartree)^2. Format : &#39;&#39;(3ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nOfEnergies</span>
+      <span class="n">E</span> <span class="o">=</span> <span class="n">iE</span><span class="o">*</span><span class="n">eBin</span>
+      <span class="n">av</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="n">sd</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">nKsInEbin</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<span class="k">        </span><span class="n">av</span> <span class="o">=</span> <span class="n">absVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">sumWk</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>
+        <span class="n">sd</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="n">sAbsVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">))</span>
+      <span class="n">endif</span>
+      <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span><span class="s1">&#39;(3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">eMin</span> <span class="o">+</span> <span class="n">E</span><span class="p">,</span> <span class="n">av</span><span class="p">,</span> <span class="n">sd</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">close</span><span class="p">(</span><span class="mi">63</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">calculateVfiElements</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

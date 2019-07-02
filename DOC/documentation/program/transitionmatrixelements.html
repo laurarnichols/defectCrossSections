@@ -200,6 +200,14 @@
 
 
 
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../program/transitionmatrixelements.html#src">transitionMatrixElements</a>
+  </div>
+</div>
+
+
 
 </div>
 
@@ -273,6 +281,14 @@
 
 
 
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../program/transitionmatrixelements.html#src">transitionMatrixElements</a>
+  </div>
+</div>
+
+
 
      </section>
      <br class="visible-xs visible-sm hidden-md">
@@ -340,6 +356,381 @@
 
     
     
+    
+    <section>
+    <h2 id="src">Source Code</h2>
+    <div class="highlight"><pre><span></span><span class="k">program </span><span class="n">transitionMatrixElements</span>
+  <span class="c">!</span>
+  <span class="c">! Use pre-built mpi library and declarations module that </span>
+  <span class="c">! is defined in TME_Module_v28.f90</span>
+  <span class="k">use </span><span class="n">mpi</span>
+  <span class="k">use </span><span class="n">TMEModule</span>
+  <span class="c">!</span>
+  <span class="k">implicit none</span>
+  <span class="c">!</span>
+  <span class="c">! Declare start and end times</span>
+  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span>
+  <span class="c">!</span>
+  <span class="c">! Initialize MPI environment</span>
+  <span class="k">call </span><span class="n">MPI_INIT</span><span class="p">(</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="c">! Determine the rank or ID of the calling process</span>
+  <span class="k">call </span><span class="n">MPI_COMM_RANK</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">myid</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+  <span class="c">! Determine the size of the MPI pool (i.e., the number of processes)</span>
+  <span class="k">call </span><span class="n">MPI_COMM_SIZE</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">numprocs</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="c">! Allocate space for variables</span>
+  <span class="k">allocate</span> <span class="p">(</span> <span class="n">nPWsI</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numprocs</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">nPWsF</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numprocs</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="c">! If this is the root process</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="c">!</span>
+    <span class="c">! Start a timer</span>
+    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t0</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="c">! Reading input, initializing and checking all variables of the calculation.</span>
+    <span class="k">call </span><span class="n">readInput</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="c">! ????????????????????????????????</span>
+    <span class="k">call </span><span class="n">readPWsSet</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="c">! Allocate space for variables</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">counts</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numprocs</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">displmnt</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numprocs</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">Ufi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">nKptsPC</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_SDKKPC</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_PsiPC</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_SDPhi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_fi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">eigvI</span> <span class="p">(</span><span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">),</span> <span class="n">eigvF</span> <span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="c">! Initialize all values in Ufi matrix to complex double zero</span>
+    <span class="n">Ufi</span><span class="p">(:,:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="c">! Distribute plane waves to processes ???</span>
+    <span class="k">call </span><span class="n">distributePWsToProcs</span><span class="p">(</span><span class="n">numOfGvecs</span><span class="p">,</span> <span class="n">numprocs</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="c">! Initialize the number of initial and final plane waves to zero for each process</span>
+    <span class="n">nPWsI</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">nPWsF</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c">!</span>
+    <span class="c">! For each process, calculate the number of initial and final plane waves</span>
+    <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">numprocs</span> <span class="o">-</span> <span class="mi">1</span>
+      <span class="n">nPWsI</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">counts</span><span class="p">(:</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+      <span class="n">nPWsF</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">counts</span><span class="p">(:</span><span class="n">i</span><span class="p">))</span>
+    <span class="n">enddo</span>
+    <span class="c">!  </span>
+  <span class="n">endif</span>
+  <span class="c">!</span>
+  <span class="c">! Broadcast variables from root process to all other processes</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iBandIinit</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">nKptsPC</span><span class="p">,</span>     <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">nProjsPC</span><span class="p">,</span>    <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">nProjsSD</span><span class="p">,</span>    <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">nBands</span><span class="p">,</span>      <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">nSpins</span><span class="p">,</span>      <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">numOfPWs</span><span class="p">,</span>    <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">numOfGvecs</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">nPWsI</span><span class="p">,</span> <span class="n">numprocs</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">nPWsF</span><span class="p">,</span> <span class="n">numprocs</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">numOfTypesPC</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">JMAX</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="c">! Have other processes allocate space for gvecs so that root can send to them</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">/=</span> <span class="n">root</span> <span class="p">)</span> <span class="k">allocate</span> <span class="p">(</span> <span class="n">gvecs</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">numOfGvecs</span><span class="p">)</span> <span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">gvecs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">gvecs</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">/=</span> <span class="n">root</span> <span class="p">)</span> <span class="k">allocate</span> <span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">numOfTypesPC</span><span class="p">)</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="c">! For each type of ???</span>
+  <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypesPC</span>
+    <span class="c">!</span>
+    <span class="c">! Broadcast the variables in the atomsPC structure array</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">numOfAtoms</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lMax</span><span class="p">,</span>       <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lmMax</span><span class="p">,</span>      <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span>       <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span>        <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="c">! Allocate space for arrays in atomsPC structure</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">/=</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then </span>
+<span class="k">      allocate</span><span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lMax</span><span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span><span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">r</span>  <span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">nMax</span><span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span><span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">nMax</span><span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span><span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">F</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span><span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">F1</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lMax</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span><span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">bes_J_qr</span> <span class="p">(</span> <span class="mi">0</span><span class="p">:</span><span class="n">JMAX</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">iRc</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="c">! Broadcast arrays from root to all other processes</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lps</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lps</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">r</span><span class="p">,</span>   <span class="n">size</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">r</span><span class="p">),</span>   <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">rab</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">rab</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">F</span><span class="p">,</span>   <span class="n">size</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">F</span><span class="p">),</span>   <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">F1</span><span class="p">,</span>  <span class="n">size</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">F1</span><span class="p">),</span>  <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="n">enddo</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">nIonsPC</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">/=</span> <span class="n">root</span> <span class="p">)</span> <span class="k">allocate</span><span class="p">(</span> <span class="n">posIonPC</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">nIonsPC</span><span class="p">),</span> <span class="n">TYPNIPC</span><span class="p">(</span><span class="n">nIonsPC</span><span class="p">)</span> <span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">TYPNIPC</span><span class="p">,</span>  <span class="n">size</span><span class="p">(</span><span class="n">TYPNIPC</span><span class="p">),</span>  <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">posIonPC</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">posIonPC</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">numOfTypes</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">/=</span> <span class="n">root</span> <span class="p">)</span> <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">numOfTypes</span><span class="p">)</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypes</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">numOfAtoms</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lMax</span><span class="p">,</span>       <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lmMax</span><span class="p">,</span>      <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span>       <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span>        <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">/=</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then </span>
+<span class="k">      allocate</span><span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lMax</span><span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span><span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">nMax</span><span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span><span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">nMax</span><span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span><span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">F</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span><span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">F1</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lMax</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span><span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(</span> <span class="mi">0</span><span class="p">:</span><span class="n">JMAX</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">iRc</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lps</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lps</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">r</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">r</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">rab</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">rab</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">F</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">F</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">F1</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">F1</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="n">enddo</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">nIonsSD</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">/=</span> <span class="n">root</span> <span class="p">)</span> <span class="k">allocate</span><span class="p">(</span> <span class="n">posIonSD</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">nIonsSD</span><span class="p">),</span> <span class="n">TYPNISD</span><span class="p">(</span><span class="n">nIonsSD</span><span class="p">)</span> <span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">TYPNISD</span><span class="p">,</span>  <span class="n">size</span><span class="p">(</span><span class="n">TYPNISD</span><span class="p">),</span>  <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">posIonSD</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">posIonSD</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_id</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nKptsPC</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="n">tmes_file_exists</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+      <span class="k">call </span><span class="n">checkIfCalculated</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span><span class="n">tmes_file_exists</span><span class="p">)</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">tmes_file_exists</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_LOGICAL</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span><span class="n">tmes_file_exists</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">cProjPC</span><span class="p">(</span><span class="n">nProjsPC</span><span class="p">,</span> <span class="n">nBands</span><span class="p">,</span> <span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">cProjSD</span><span class="p">(</span><span class="n">nProjsSD</span><span class="p">,</span> <span class="n">nBands</span><span class="p">,</span> <span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Starting Ufi(:,:) calculation for k-point&quot;, i4, &quot; of&quot;, i4)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">nKptsPC</span>
+        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;    Plane waves part begun.&quot;)&#39;</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\tilde{Psi}_f|\\tilde{Phi}_i&gt; begun.&quot;)&#39;</span><span class="p">)</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+        <span class="k">allocate</span><span class="p">(</span> <span class="n">wfcPC</span> <span class="p">(</span><span class="n">numOfPWs</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">),</span> <span class="n">wfcSD</span> <span class="p">(</span><span class="n">numOfPWs</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span> <span class="p">)</span> <span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="n">calculatePWsOverlap</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\tilde{Psi}_f|\\tilde{Phi}_i&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;    Plane waves part done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;    PAW part begun.&quot;)&#39;</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\tilde{Psi}_f|PAW_PC&gt; begun.&quot;)&#39;</span><span class="p">)</span>
+        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="n">readProjectionsPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">allocate</span> <span class="p">(</span> <span class="n">cProjBetaPCPsiSD</span><span class="p">(</span><span class="n">nProjsPC</span><span class="p">,</span> <span class="n">nBands</span><span class="p">,</span> <span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
+        <span class="k">call </span><span class="n">projectBetaPCwfcSD</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">deallocate</span> <span class="p">(</span> <span class="n">wfcSD</span> <span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="n">pawCorrectionPsiPC</span><span class="p">()</span>
+        <span class="c">!</span>
+        <span class="k">deallocate</span> <span class="p">(</span> <span class="n">cProjBetaPCPsiSD</span> <span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\tilde{Psi}_f|PAW_PC&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;PAW_SD|\\tilde{Phi}_i&gt; begun.&quot;)&#39;</span><span class="p">)</span>
+        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="n">readProjectionsSD</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">allocate</span> <span class="p">(</span> <span class="n">cProjBetaSDPhiPC</span><span class="p">(</span><span class="n">nProjsSD</span><span class="p">,</span> <span class="n">nBands</span><span class="p">,</span> <span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
+        <span class="k">call </span><span class="n">projectBetaSDwfcPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">deallocate</span> <span class="p">(</span> <span class="n">wfcPC</span> <span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="n">pawCorrectionSDPhi</span><span class="p">()</span>
+        <span class="k">deallocate</span> <span class="p">(</span> <span class="n">cProjBetaSDPhiPC</span> <span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;PAW_SD|\\tilde{Phi}_i&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\vec{k}|PAW_PC&gt; begun.&quot;)&#39;</span><span class="p">)</span>
+        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="c">!do ibi = iBandIinit, iBandIfinal</span>
+        <span class="c">!  !</span>
+        <span class="c">!  do ibf = ibi, ibi</span>
+        <span class="c">!    paw = paw_SDPhi(ibf,ibi) + paw_PsiPC(ibf,ibi)</span>
+        <span class="c">!    write(iostd,&#39;(&quot; paw &quot;, 2i4, 6ES14.5E3)&#39;) ibi, ibf, paw_SDPhi(ibf,ibi), paw_PsiPC(ibf,ibi), paw</span>
+        <span class="c">!  enddo</span>
+        <span class="c">!  !</span>
+        <span class="c">!  flush(iostd)</span>
+        <span class="c">!  !</span>
+        <span class="c">!enddo</span>
+        <span class="c">!</span>
+        <span class="c">!call pawCorrection()</span>
+        <span class="c">!do ibi = iBandIinit, iBandIfinal</span>
+        <span class="c">!  !</span>
+        <span class="c">!  do ibf = ibi, ibi</span>
+        <span class="c">!    paw = paw_SDPhi(ibf,ibi) + paw_PsiPC(ibf,ibi) + paw_fi(ibf,ibi)</span>
+        <span class="c">!    write(iostd,&#39;(&quot; paw &quot;, 2i4, 6f15.10)&#39;) ibi, ibf, Ufi(ibf,ibi,ik), paw, Ufi(ibf,ibi,ik) + paw</span>
+        <span class="c">!  enddo</span>
+        <span class="c">!  !</span>
+        <span class="c">!  flush(iostd)</span>
+        <span class="c">!  !</span>
+        <span class="c">!enddo</span>
+        <span class="c">!</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">cProjPC</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">cProjPC</span><span class="p">),</span> <span class="n">MPI_DOUBLE_COMPLEX</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+      <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">cProjSD</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">cProjSD</span><span class="p">),</span> <span class="n">MPI_DOUBLE_COMPLEX</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">pawKPC</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">):</span><span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">))</span> <span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">pawCorrectionKPC</span><span class="p">()</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">        call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\vec{k}|PAW_PC&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;PAW_SD|\\vec{k}&gt; begun.&quot;)&#39;</span><span class="p">)</span>
+        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="c">!</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">pawSDK</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">):</span><span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">pawCorrectionSDK</span><span class="p">()</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span><span class="p">)</span> <span class="k">then</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;PAW_SD|\\vec{k}&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      \\sum_k &lt;PAW_SD|\\vec{k}&gt;&lt;\\vec{k}|PAW_PC&gt; begun.&quot;)&#39;</span><span class="p">)</span>
+        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="c">!</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+      <span class="n">paw_id</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span> <span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+        <span class="c">!</span>
+        <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>   
+          <span class="n">paw_id</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span><span class="n">ibi</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">pawSDK</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span><span class="n">ibi</span><span class="p">,:)</span><span class="o">*</span><span class="n">pawKPC</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span><span class="n">ibi</span><span class="p">,:))</span>
+        <span class="n">enddo</span>
+        <span class="c">!</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="n">paw_SDKKPC</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span> <span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">paw_id</span><span class="p">,</span> <span class="n">paw_SDKKPC</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">paw_id</span><span class="p">),</span> <span class="n">MPI_DOUBLE_COMPLEX</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      \\sum_k &lt;PAW_SD|\\vec{k}&gt;&lt;\\vec{k}|PAW_PC&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">+</span> <span class="n">paw_SDPhi</span><span class="p">(:,:)</span> <span class="o">+</span> <span class="n">paw_PsiPC</span><span class="p">(:,:)</span> <span class="o">+</span> <span class="n">paw_SDKKPC</span><span class="p">(:,:)</span><span class="o">*</span><span class="mi">1</span><span class="mf">6.0_dp</span><span class="o">*</span><span class="n">pi</span><span class="o">*</span><span class="n">pi</span><span class="o">/</span><span class="n">omega</span>
+        <span class="c">!</span>
+        <span class="k">call </span><span class="n">writeResults</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="c">!write(iostd,*)&#39;--------------------------------------------------------------------------------------------&#39;</span>
+        <span class="c">!</span>
+        <span class="c">!do ibi = iBandIinit, iBandIfinal</span>
+        <span class="c">!  !</span>
+        <span class="c">!  do ibf = iBandFinit, iBandFfinal</span>
+        <span class="c">!    !paw = paw_SDPhi(ibf,ibi) + paw_PsiPC(ibf,ibi) + paw_SDKKPC(ibf,ibi)*16.0_dp*pi*pi/omega</span>
+        <span class="c">!    !write(iostd,&#39;(&quot; paw &quot;, 2i4, 6f15.10)&#39;) ibi, ibf, Ufi(ibf, ibi, ik), paw, Ufi(ibf, ibi, ik) + paw</span>
+        <span class="c">!    !Ufi(ibf, ibi, ik) = Ufi(ibf, ibi, ik) + paw</span>
+        <span class="c">!    write(iostd,&#39;(&quot; Ufi &quot;, 2i4, 2ES24.15E3)&#39;) ibi, ibf, Ufi(ibf, ibi, ik)</span>
+        <span class="c">!  enddo</span>
+        <span class="c">!  !</span>
+        <span class="c">!  flush(iostd)</span>
+        <span class="c">!  !</span>
+        <span class="c">!enddo</span>
+        <span class="c">!</span>
+        <span class="c">!write(iostd,*)&#39;--------------------------------------------------------------------------------------------&#39;</span>
+        <span class="c">!flush(iostd)</span>
+        <span class="c">!</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+      <span class="k">deallocate</span> <span class="p">(</span> <span class="n">cProjPC</span><span class="p">,</span> <span class="n">pawKPC</span> <span class="p">)</span>
+      <span class="k">deallocate</span> <span class="p">(</span> <span class="n">cProjSD</span><span class="p">,</span> <span class="n">pawSDK</span> <span class="p">)</span>
+      <span class="c">!</span>
+    <span class="k">else</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">call </span><span class="n">readUfis</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+      <span class="c">! </span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+  <span class="n">enddo</span>
+  <span class="c">!</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="nb">allocated</span> <span class="p">(</span> <span class="n">paw_id</span> <span class="p">)</span> <span class="p">)</span> <span class="k">deallocate</span> <span class="p">(</span> <span class="n">paw_id</span> <span class="p">)</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">    if</span> <span class="p">(</span> <span class="nb">allocated</span> <span class="p">(</span> <span class="n">paw_PsiPC</span> <span class="p">)</span> <span class="p">)</span> <span class="k">deallocate</span> <span class="p">(</span> <span class="n">paw_PsiPC</span> <span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">allocated</span> <span class="p">(</span> <span class="n">paw_SDPhi</span> <span class="p">)</span> <span class="p">)</span> <span class="k">deallocate</span> <span class="p">(</span> <span class="n">paw_SDPhi</span> <span class="p">)</span>
+  <span class="n">endif</span>
+  <span class="c">!</span>
+  <span class="c">! Calculating Vfi</span>
+  <span class="c">!</span>
+  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">calculateVfis</span> <span class="p">)</span> <span class="k">call </span><span class="n">calculateVfiElements</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="c">! Finalize Calculation</span>
+    <span class="c">! </span>
+    <span class="k">call </span><span class="n">finalizeCalculation</span><span class="p">()</span>
+    <span class="c">!</span>
+  <span class="n">endif</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">MPI_FINALIZE</span><span class="p">(</span><span class="n">ierr</span><span class="p">)</span>
+  <span class="c">!</span>
+<span class="k">end program </span><span class="n">transitionMatrixElements</span>
+</pre></div>
+
+    </section>
     
     
     </div>

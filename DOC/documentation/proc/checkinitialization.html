@@ -130,7 +130,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 2.4% of total for procedures.">112 statements</a>
+    title=" 2.4% of total for procedures.">113 statements</a>
      </li> 
      
      
@@ -188,7 +188,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/checkinitialization.html#src">checkInitialization</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -207,53 +213,125 @@ public subroutine checkInitialization()
 
 
     
-    <p>Write out a header to the output file
- Check if the SD export directory is blank
- Output an error message and set abortExecution to true
- If the SD export directory isn't blank
- Check if the SD export directory exists
- If the SD export directory doesn't exist
- Output an error message and set abortExecution to true
- Output the given SD export directory
- Check if the PC export directory is blank
- Output an error message and set abortExecution to true
- If the PC export directory isn't blank
- Check if the PC export directory exists
- If the PC export directory doesn't exist
- Output an error message and set abortExecution to true
- Output the given PC export directory
- If the elements path is blank
- Output a warning message and set the default value
- Check if the elements path folder exists already
- If the elements path folder doesn't already exist
- Create the directory by writing the mkdir command to a string
- Execute the command
- Output the elements path
- If iBandIinit is still less than zero
- Ouput an error messge and set abortExecution to true
- Output the value of iBandIinit
- If iBandIfinal is still less than zero
- Ouput an error messge and set abortExecution to true
- Output the value of iBandIfinal
- If iBandFinit is still less than zero
- Ouput an error messge and set abortExecution to true
- Output the value of iBandFinit
- If iBandFfinal is still less than zero
- Ouput an error messge and set abortExecution to true
- Output the value of iBandFfinal
- If calculateVfis is true and iBandFinit and iBandFfinal are not equal to each other
- Output an error message and set abortExecution to true
- Output the value of calculateVfis
- If the VfisOutput file name is blank
- Output a warning message and set the default value
- Output the value of VfisOutput
- If the value of eBin is still less than zero
- Output a warning message and set the default value
- Output the value of eBin
- Convert eBin from eV to Hartree
- If abortExecution was ever set to true
- Output an error message and stop the program
- Make the output file available for other processes</p>
+    <p>Check to see if variables from .in file still
+ have the values set in <a href="../module/tmemodule.html#proc-initialize">initialize</a>
+ or if they have values that aren't allowed</p>
+<p><h2>Walkthrough</h2></p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change this subroutine to have arguments to make clear 
+ that these variables are getting changed
+ </p></div>
+<p>
+<ul>
+<li>
+<p>Set the default value of abort execution so that the program
+ will only abort if there is an issue with the inputs</p>
+</li>
+<li>
+<p>Write out a header to the output file</p>
+</li>
+<li>
+<p>If the SD export directory variable is blank</p>
+<ul>
+<li>Output an error message and set <code>abortExecution</code> to true</li>
+</ul>
+</li>
+<li>
+<p>Otherwise</p>
+<ul>
+<li>Check if the SD export directory exists</li>
+<li>If the SD export directory doesn't exist</li>
+<li>Output an error message and set <code>abortExecution</code> to true</li>
+</ul>
+</li>
+<li>
+<p>Output the given SD export directory</p>
+</li>
+<li>
+<p>If the PC export directory variable is blank</p>
+<ul>
+<li>Output an error message and set <code>abortExecution</code> to true</li>
+</ul>
+</li>
+<li>
+<p>Otherwise</p>
+<ul>
+<li>Check if the PC export directory exists</li>
+<li>If the PC export directory doesn't exist</li>
+<li>Output an error message and set <code>abortExecution</code> to true</li>
+</ul>
+</li>
+<li>
+<p>Output the given PC export directory</p>
+</li>
+<li>
+<p>If the elements path is blank</p>
+<ul>
+<li>Output a warning message and set the default value to <code>./</code></li>
+</ul>
+</li>
+<li>
+<p>Check if the elements path folder exists already</p>
+</li>
+<li>
+<p>If the elements path folder doesn't already exist</p>
+<ul>
+<li>Create the directory by writing the <code>mkdir</code> command to a string</li>
+<li>Then execute the command</li>
+</ul>
+</li>
+<li>
+<p>Output the elements path</p>
+</li>
+<li>
+<p>If <code>iBandIinit</code>, <code>iBandIfinal</code>, <code>iBandFinit</code>, or <code>iBandFfinal</code> is still less than zero</p>
+<ul>
+<li>Output an error message and set <code>abortExecution</code> to true</li>
+</ul>
+</li>
+<li>
+<p>Then output each of their values</p>
+</li>
+<li>
+<p>If <code>calculateVfis</code> is true and <code>iBandFinit</code> and <code>iBandFfinal</code> are not equal</p>
+<ul>
+<li>Output an error message and set <code>abortExecution</code> to true</li>
+</ul>
+</li>
+<li>
+<p>Output the value of <code>calculateVfis</code></p>
+</li>
+<li>
+<p>If the <code>VfisOutput</code> file name is blank</p>
+<ul>
+<li>Output a warning message and set the default value to <code>VfisVsE</code></li>
+</ul>
+</li>
+<li>
+<p>Output the value of <code>VfisOutput</code>
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Check if there is any kind of check on <code>ki</code> and <code>kf</code>. Why was this commented out?
+ </p></div>
+<p>
+</li>
+<li>
+<p>If the value of <code>eBin</code> is still less than zero</p>
+<ul>
+<li>Output a warning message and set the default value to 0.01 eV</li>
+</ul>
+</li>
+<li>
+<p>Output the value of eBin</p>
+</li>
+<li>
+<p>Convert <code>eBin</code> from eV to Hartree</p>
+</li>
+<li>
+<p>If <code>abortExecution</code> was ever set to true</p>
+<ul>
+<li>Output an error message and stop the program</li>
+</ul>
+</li>
+<li>Make the output file available for other processes</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -292,7 +370,13 @@ public subroutine checkInitialization()
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/checkinitialization.html#src">checkInitialization</a>
+  </div>
+</div>
+
 
 
     </section>
@@ -315,6 +399,282 @@ public subroutine checkInitialization()
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">checkInitialization</span><span class="p">()</span>
+    <span class="c">!! Check to see if variables from .in file still</span>
+    <span class="c">!! have the values set in [[TMEModule(module):initialize(subroutine)]]</span>
+    <span class="c">!! or if they have values that aren&#39;t allowed</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
+    <span class="c">!! @todo</span>
+    <span class="c">!! Change this subroutine to have arguments to make clear </span>
+    <span class="c">!! that these variables are getting changed</span>
+    <span class="c">!! @endtodo</span>
+    <span class="c">!!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">file_exists</span>
+      <span class="c">!! Whether or not the exported directory from [[pw_export_for_TME(program)]]</span>
+      <span class="c">!! exists</span>
+      <span class="c">!!</span>
+      <span class="c">!! @todo</span>
+      <span class="c">!! Change `file_exists` to `fileExists`</span>
+      <span class="c">!! @endtodo</span>
+    <span class="kt">logical</span><span class="kd">::</span> <span class="n">abortExecution</span>
+    <span class="c">!</span>
+    <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+      <span class="c">!! * Set the default value of abort execution so that the program</span>
+      <span class="c">!! will only abort if there is an issue with the inputs</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Inputs : &quot;)&#39;</span><span class="p">)</span>
+      <span class="c">!! * Write out a header to the output file</span>
+    <span class="c">!</span>
+    <span class="c">!&gt; * If the SD export directory variable is blank</span>
+    <span class="c">!&gt;    * Output an error message and set `abortExecution` to true</span>
+    <span class="c">!&gt; * Otherwise</span>
+    <span class="c">!&gt;    * Check if the SD export directory exists</span>
+    <span class="c">!&gt;    * If the SD export directory doesn&#39;t exist</span>
+    <span class="c">!&gt;       * Output an error message and set `abortExecution` to true</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Variable : &quot;&quot;exportDirSD&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; usage : exportDirSD = &#39;&#39;./Export/&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
+      <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+      <span class="c">!</span>
+    <span class="k">else</span>
+      <span class="c">!</span>
+      <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">file_exists</span> <span class="p">.</span><span class="n">eqv</span><span class="p">.</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; exportDirSD :&quot;, a, &quot; does not exist !&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
+        <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+        <span class="c">!</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;exportDirSD = &#39;&#39;&quot;, a, &quot;&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">)</span>
+      <span class="c">!! * Output the given SD export directory</span>
+    <span class="c">!</span>
+    <span class="c">!&gt; * If the PC export directory variable is blank</span>
+    <span class="c">!&gt;    * Output an error message and set `abortExecution` to true</span>
+    <span class="c">!&gt; * Otherwise</span>
+    <span class="c">!&gt;    * Check if the PC export directory exists</span>
+    <span class="c">!&gt;    * If the PC export directory doesn&#39;t exist</span>
+    <span class="c">!&gt;       * Output an error message and set `abortExecution` to true</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDirPC</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Variable : &quot;&quot;exportDirPC&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; usage : exportDirPC = &#39;&#39;./Export/&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
+      <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+      <span class="c">!</span>
+    <span class="k">else</span>
+      <span class="c">!</span>
+      <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDirPC</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">file_exists</span> <span class="p">.</span><span class="n">eqv</span><span class="p">.</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">!</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; exportDir :&quot;, a, &quot; does not exist !&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDirPC</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
+        <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+        <span class="c">!</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;exportDirPC = &#39;&#39;&quot;, a, &quot;&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDirPC</span><span class="p">)</span>
+      <span class="c">!! * Output the given PC export directory</span>
+    <span class="c">!</span>
+    <span class="c">!&gt; * If the elements path is blank</span>
+    <span class="c">!&gt;    * Output a warning message and set the default value to `./`</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Variable : &quot;&quot;elementsPath&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; usage : elementsPath = &#39;&#39;./&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; The current directory will be used as elementsPath.&quot;)&#39;</span><span class="p">)</span>
+      <span class="n">elementsPath</span> <span class="o">=</span> <span class="s1">&#39;./&#39;</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
+      <span class="c">!! * Check if the elements path folder exists already</span>
+    <span class="c">!</span>
+    <span class="c">!&gt; * If the elements path folder doesn&#39;t already exist</span>
+    <span class="c">!&gt;    * Create the directory by writing the `mkdir` command to a string</span>
+    <span class="c">!&gt;    * Then execute the command</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span><span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">mkDir</span><span class="p">,</span> <span class="s1">&#39;(&quot;mkdir -p &quot;, a)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">)</span> 
+      <span class="c">!</span>
+      <span class="k">call </span><span class="nb">system</span><span class="p">(</span><span class="n">mkDir</span><span class="p">)</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;elementsPath = &#39;&#39;&quot;, a, &quot;&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">)</span>
+      <span class="c">!! * Output the elements path</span>
+    <span class="c">!</span>
+    <span class="c">!...............................................................................................</span>
+      <span class="c">!! * If `iBandIinit`, `iBandIfinal`, `iBandFinit`, or `iBandFfinal` is still less than zero</span>
+      <span class="c">!!    * Output an error message and set `abortExecution` to true</span>
+      <span class="c">!! * Then output each of their values</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">iBandIinit</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Variable : &quot;&quot;iBandIinit&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; usage : iBandIinit = 10&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
+      <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;iBandIinit = &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">iBandIinit</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">iBandIfinal</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Variable : &quot;&quot;iBandIfinal&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; usage : iBandIfinal = 20&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
+      <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;iBandIfinal = &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">iBandIfinal</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">iBandFinit</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Variable : &quot;&quot;iBandFinit&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; usage : iBandFinit = 9&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
+      <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;iBandFinit = &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">iBandFinit</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">iBandFfinal</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Variable : &quot;&quot;iBandFfinal&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; usage : iBandFfinal = 9&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
+      <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;iBandFfinal = &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">iBandFfinal</span>
+    <span class="c">!</span>
+    <span class="c">!...............................................................................................</span>
+    <span class="c">!</span>
+    <span class="c">!&gt; * If `calculateVfis` is true and `iBandFinit` and `iBandFfinal` are not equal</span>
+    <span class="c">!&gt;    * Output an error message and set `abortExecution` to true</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="p">(</span> <span class="n">calculateVfis</span> <span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span> <span class="n">iBandFinit</span> <span class="o">/=</span> <span class="n">iBandFfinal</span> <span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Vfis can be calculated only if the final state is one and only one!&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; &#39;&#39;iBandFInit&#39;&#39; = &quot;, i10)&#39;</span><span class="p">)</span> <span class="n">iBandFinit</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; &#39;&#39;iBandFfinal&#39;&#39; = &quot;, i10)&#39;</span><span class="p">)</span> <span class="n">iBandFfinal</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
+      <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;calculateVfis = &quot;, l )&#39;</span><span class="p">)</span> <span class="n">calculateVfis</span>
+      <span class="c">!! * Output the value of `calculateVfis`</span>
+    <span class="c">!</span>
+    <span class="c">!&gt; * If the `VfisOutput` file name is blank</span>
+    <span class="c">!&gt;    * Output a warning message and set the default value to `VfisVsE`</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">trim</span><span class="p">(</span><span class="n">VfisOutput</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Variable : &quot;&quot;VfisOutput&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; usage : VfisOutput = &#39;&#39;VfisVsE&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; The default value &#39;&#39;VfisVsE&#39;&#39; will be used.&quot;)&#39;</span><span class="p">)</span>
+      <span class="n">VfisOutput</span> <span class="o">=</span> <span class="s1">&#39;VfisVsE&#39;</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;VfisOutput = &#39;&#39;&quot;, a, &quot;&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">VfisOutput</span><span class="p">)</span>
+      <span class="c">!! * Output the value of `VfisOutput`</span>
+    <span class="c">!&gt; @todo</span>
+    <span class="c">!&gt; Check if there is any kind of check on `ki` and `kf`. Why was this commented out?</span>
+    <span class="c">!&gt; @endtodo</span>
+    <span class="c">!</span>
+    <span class="c">!if ( ki &lt; 0 ) then</span>
+    <span class="c">!  write(iostd, *)</span>
+    <span class="c">!  write(iostd, &#39;(&quot; Initial k-point index is not defined!&quot;)&#39;)</span>
+    <span class="c">!  write(iostd, &#39;(&quot; Variable : &quot;&quot;ki&quot;&quot; is not defined!&quot;)&#39;)</span>
+    <span class="c">!  write(iostd, &#39;(&quot; usage : ki = 1&quot;)&#39;)</span>
+    <span class="c">!  !write(iostd, &#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;)</span>
+    <span class="c">!  !abortExecution = .true.</span>
+    <span class="c">!  write(iostd, &#39;(&quot; ki = 1 will be used.&quot;)&#39;)</span>
+    <span class="c">!  ki = 1</span>
+    <span class="c">!endif</span>
+    <span class="c">!</span>
+    <span class="c">!if ( kf &lt; 0 ) then</span>
+    <span class="c">!  write(iostd, *)</span>
+    <span class="c">!  write(iostd, &#39;(&quot; Final k-point index is not defined!&quot;)&#39;)</span>
+    <span class="c">!  write(iostd, &#39;(&quot; Variable : &quot;&quot;kf&quot;&quot; is not defined!&quot;)&#39;)</span>
+    <span class="c">!  write(iostd, &#39;(&quot; usage : kf = 1&quot;)&#39;)</span>
+    <span class="c">!  !write(iostd, &#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;)</span>
+    <span class="c">!  write(iostd, &#39;(&quot; kf = total number of k-points will be used.&quot;)&#39;)</span>
+    <span class="c">!  !abortExecution = .true.</span>
+    <span class="c">!endif</span>
+    <span class="c">!</span>
+    <span class="c">!if ( ki /= kf ) then</span>
+    <span class="c">!  write(iostd, *)</span>
+    <span class="c">!  write(iostd, &#39;(&quot; Initial k-point index &#39;&#39;ki&#39;&#39;, should be equal to the Final k-point index &#39;&#39;kf&#39;&#39; !&quot;)&#39;)</span>
+    <span class="c">!  write(iostd, &#39;(&quot; Calculation of transition matrix elements with momentum transfer is not implemented!&quot;)&#39;)</span>
+    <span class="c">!  write(iostd, &#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;)</span>
+    <span class="c">!  abortExecution = .true.</span>
+    <span class="c">!endif</span>
+    <span class="c">!</span>
+    <span class="c">!&gt; * If the value of `eBin` is still less than zero</span>
+    <span class="c">!&gt;    * Output a warning message and set the default value to 0.01 eV</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">eBin</span> <span class="o">&lt;</span> <span class="mf">0.0_dp</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="s1">&#39;(&quot; Variable : &quot;&quot;eBin&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="s1">&#39;(&quot; usage : eBin = 0.01&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="s1">&#39;(&quot; A default value of 0.01 eV will be used !&quot;)&#39;</span><span class="p">)</span>
+      <span class="n">eBin</span> <span class="o">=</span> <span class="mf">0.01_dp</span> <span class="c">! eV</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;eBin = &quot;, f8.4, &quot; (eV)&quot;)&#39;</span><span class="p">)</span> <span class="n">eBin</span>
+      <span class="c">!! * Output the value of eBin</span>
+    <span class="c">!</span>
+    <span class="n">eBin</span> <span class="o">=</span> <span class="n">eBin</span><span class="o">*</span><span class="n">evToHartree</span>
+      <span class="c">!! * Convert `eBin` from eV to Hartree</span>
+    <span class="c">!</span>
+    <span class="c">!&gt; * If `abortExecution` was ever set to true</span>
+    <span class="c">!&gt;    * Output an error message and stop the program</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">abortExecution</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Program stops!&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">stop</span>
+<span class="k">    </span><span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+      <span class="c">!! * Make the output file available for other processes</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">checkInitialization</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

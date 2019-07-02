@@ -130,7 +130,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="29.3% of total for modules and submodules.">1363 statements</a>
+    title="29.3% of total for modules and submodules.">1364 statements</a>
      </li> 
      
      
@@ -3508,7 +3508,7 @@ public subroutine <a href='../proc/initialize.html'>initialize</a>()
 
 
 <p>Set default values for all of the input variables
- that can easily be tested to see if they were changed</p>
+ that can easily be tested to see if they were changed</p><a href="../proc/initialize.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -3538,53 +3538,9 @@ public subroutine <a href='../proc/checkinitialization.html'>checkInitialization
 
 
 
-<p>Write out a header to the output file
- Check if the SD export directory is blank
- Output an error message and set abortExecution to true
- If the SD export directory isn't blank
- Check if the SD export directory exists
- If the SD export directory doesn't exist
- Output an error message and set abortExecution to true
- Output the given SD export directory
- Check if the PC export directory is blank
- Output an error message and set abortExecution to true
- If the PC export directory isn't blank
- Check if the PC export directory exists
- If the PC export directory doesn't exist
- Output an error message and set abortExecution to true
- Output the given PC export directory
- If the elements path is blank
- Output a warning message and set the default value
- Check if the elements path folder exists already
- If the elements path folder doesn't already exist
- Create the directory by writing the mkdir command to a string
- Execute the command
- Output the elements path
- If iBandIinit is still less than zero
- Ouput an error messge and set abortExecution to true
- Output the value of iBandIinit
- If iBandIfinal is still less than zero
- Ouput an error messge and set abortExecution to true
- Output the value of iBandIfinal
- If iBandFinit is still less than zero
- Ouput an error messge and set abortExecution to true
- Output the value of iBandFinit
- If iBandFfinal is still less than zero
- Ouput an error messge and set abortExecution to true
- Output the value of iBandFfinal
- If calculateVfis is true and iBandFinit and iBandFfinal are not equal to each other
- Output an error message and set abortExecution to true
- Output the value of calculateVfis
- If the VfisOutput file name is blank
- Output a warning message and set the default value
- Output the value of VfisOutput
- If the value of eBin is still less than zero
- Output a warning message and set the default value
- Output the value of eBin
- Convert eBin from eV to Hartree
- If abortExecution was ever set to true
- Output an error message and stop the program
- Make the output file available for other processes</p>
+<p>Check to see if variables from .in file still
+ have the values set in <a href="../module/tmemodule.html#proc-initialize">initialize</a>
+ or if they have values that aren't allowed</p><a href="../proc/checkinitialization.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -3614,7 +3570,8 @@ public subroutine <a href='../proc/readinputpc.html'>readInputPC</a>()
 
 
 
-<p>Define local variables</p><a href="../proc/readinputpc.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+<p>Read input files in the Export directory created by
+ <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p><a href="../proc/readinputpc.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     

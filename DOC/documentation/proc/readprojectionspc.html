@@ -188,7 +188,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/readprojectionspc.html#src">readProjectionsPC</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -270,7 +276,13 @@ public subroutine readProjectionsPC(ik)
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/readprojectionspc.html#src">readProjectionsPC</a>
+  </div>
+</div>
+
 
 
     </section>
@@ -293,6 +305,43 @@ public subroutine readProjectionsPC(ik)
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readProjectionsPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ik</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span>
+    <span class="c">!</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">iks</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">iks</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">cProjPC</span><span class="p">(:,:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="c">! Reading projections</span>
+    <span class="c">!</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDirPC</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projections.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nBands</span>  <span class="c">! number of bands </span>
+      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nProjsPC</span> <span class="c">! number of projections</span>
+        <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span><span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">cProjPC</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">enddo</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">readProjectionsPC</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

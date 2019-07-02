@@ -188,7 +188,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/readinput.html#src">readInput</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -209,6 +215,10 @@ public subroutine readInput()
     
     <p>Delete any previous output, initialize input variables,
  start a timer, and read in the input files</p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change this subroutine to have arguments to make clear 
+ that these variables are getting changed
+ </p></div>
+<p>
 <ul>
 <li>
 <p>Start a timer</p>
@@ -277,7 +287,13 @@ public subroutine readInput()
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/readinput.html#src">readInput</a>
+  </div>
+</div>
+
 
 
     </section>
@@ -300,6 +316,64 @@ public subroutine readInput()
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readInput</span><span class="p">()</span>
+    <span class="c">!! Delete any previous output, initialize input variables,</span>
+    <span class="c">!! start a timer, and read in the input files</span>
+    <span class="c">!!</span>
+    <span class="c">!! @todo</span>
+    <span class="c">!! Change this subroutine to have arguments to make clear </span>
+    <span class="c">!! that these variables are getting changed</span>
+    <span class="c">!! @endtodo</span>
+    <span class="c">!!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">file_exists</span>
+      <span class="c">!! Whether or not the output file already exists</span>
+      <span class="c">!! @todo </span>
+      <span class="c">!! Change `file_exists` to `fileExists`</span>
+      <span class="c">!! @endtodo</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t0</span><span class="p">)</span>
+        <span class="c">!! * Start a timer</span>
+    <span class="c">!</span>
+    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
+        <span class="c">!! * Check if file output exists,</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">!! and delete it if it does</span>
+      <span class="k">open</span> <span class="p">(</span><span class="n">unit</span> <span class="o">=</span> <span class="mi">11</span><span class="p">,</span> <span class="k">file</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;old&quot;</span><span class="p">)</span>
+      <span class="k">close</span><span class="p">(</span><span class="n">unit</span> <span class="o">=</span> <span class="mi">11</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;delete&quot;</span><span class="p">)</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">open</span> <span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="k">file</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;new&#39;</span><span class="p">)</span>
+        <span class="c">!! * Open new output file</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">initialize</span><span class="p">()</span>
+        <span class="c">!! * Set default values for input variables</span>
+    <span class="c">!</span>
+    <span class="k">READ</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">TME_Input</span><span class="p">,</span> <span class="n">iostat</span> <span class="o">=</span> <span class="n">ios</span><span class="p">)</span>
+        <span class="c">!! * Read input from command line (or input file if use `&lt; TME_Input.md`)</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">checkInitialization</span><span class="p">()</span>
+        <span class="c">!! * Check that all required variables were input and have values that make sense</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">readInputPC</span><span class="p">()</span>
+        <span class="c">!! * Read PC inputs</span>
+    <span class="k">call </span><span class="n">readInputSD</span><span class="p">()</span>
+        <span class="c">!! * Read SD inputs</span>
+    <span class="c">!</span>
+    <span class="n">numOfPWs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span> <span class="n">numOfPWsPC</span><span class="p">,</span> <span class="n">numOfPWsSD</span> <span class="p">)</span>
+        <span class="c">!! * Calculate the number of plane waves as the maximum of the number of PC and SD plane waves</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">readInput</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

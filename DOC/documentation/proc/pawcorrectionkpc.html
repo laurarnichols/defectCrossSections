@@ -188,7 +188,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/pawcorrectionkpc.html#src">pawCorrectionKPC</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -244,7 +250,13 @@ public subroutine pawCorrectionKPC()
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/pawcorrectionkpc.html#src">pawCorrectionKPC</a>
+  </div>
+</div>
+
 
 
     </section>
@@ -267,6 +279,109 @@ public subroutine pawCorrectionKPC()
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">pawCorrectionKPC</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="c">!integer, intent(in) :: ik</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">ispin</span><span class="p">,</span> <span class="n">ig</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">LL</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">NI</span><span class="p">,</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">LM</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">L</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">iT</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">q</span><span class="p">,</span> <span class="n">qDotR</span><span class="p">,</span> <span class="n">FI</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span>
+    <span class="c">!</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">JL</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">JMAX</span><span class="p">),</span> <span class="n">v_in</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="kt">complex</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">Y</span><span class="p">(</span> <span class="p">(</span><span class="n">JMAX</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="p">)</span>
+    <span class="kt">complex</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">VifQ_aug</span><span class="p">,</span> <span class="n">ATOMIC_CENTER</span>
+    <span class="c">!</span>
+    <span class="n">ispin</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">pawKPC</span><span class="p">(:,:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">),</span> <span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="c">! 1, numOfGvecs</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then </span>
+<span class="k">        if</span> <span class="p">(</span> <span class="p">(</span><span class="n">ig</span> <span class="o">==</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1000</span><span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span><span class="nb">mod</span><span class="p">(</span><span class="n">ig</span><span class="p">,</span> <span class="mi">25000</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span><span class="n">ig</span> <span class="o">==</span> <span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">))</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">          call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+          <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;        Done &quot;, i10, &quot; of&quot;, i10, &quot; k-vecs. ETR : &quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
+                <span class="n">ig</span><span class="p">,</span> <span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">-</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">t2</span><span class="o">-</span><span class="n">t1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">-</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span><span class="n">ig</span> <span class="p">)</span><span class="o">/</span><span class="n">ig</span>
+          <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+          <span class="c">!call cpu_time(t1)</span>
+        <span class="n">endif</span>
+      <span class="n">endif</span>
+      <span class="c">!</span>
+      <span class="n">q</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">ig</span><span class="p">)</span><span class="o">*</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">ig</span><span class="p">)))</span>
+      <span class="c">!</span>
+      <span class="n">v_in</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">gvecs</span><span class="p">(:,</span><span class="n">ig</span><span class="p">)</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="nb">abs</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.0e-6_dp</span> <span class="p">)</span> <span class="n">v_in</span> <span class="o">=</span> <span class="n">v_in</span><span class="o">/</span><span class="n">q</span> <span class="c">! i have to determine v_in = q</span>
+      <span class="n">Y</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+      <span class="k">CALL </span><span class="n">ylm</span><span class="p">(</span><span class="n">v_in</span><span class="p">,</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span> <span class="c">! calculates all the needed spherical harmonics once</span>
+      <span class="c">!</span>
+      <span class="n">LMBASE</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">iT</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypesPC</span>
+        <span class="c">!</span>
+        <span class="k">DO </span><span class="n">I</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">iRc</span> <span class="c">! nMax - 1</span>
+          <span class="c">!</span>
+          <span class="n">JL</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+          <span class="k">CALL </span><span class="n">bessel_j</span><span class="p">(</span><span class="n">q</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">I</span><span class="p">),</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">JL</span><span class="p">)</span> <span class="c">! returns the spherical bessel at qr point</span>
+          <span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(:,</span><span class="n">I</span><span class="p">)</span> <span class="o">=</span> <span class="n">JL</span><span class="p">(:)</span>
+          <span class="c">!</span>
+        <span class="n">ENDDO</span>
+        <span class="c">!</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nIonsPC</span> <span class="c">! LOOP OVER THE IONS</span>
+        <span class="c">!</span>
+        <span class="n">qDotR</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">ig</span><span class="p">)</span><span class="o">*</span><span class="n">posIonPC</span><span class="p">(:,</span><span class="n">ni</span><span class="p">))</span>
+        <span class="c">!</span>
+        <span class="n">ATOMIC_CENTER</span> <span class="o">=</span> <span class="nb">exp</span><span class="p">(</span> <span class="o">-</span><span class="n">ii</span><span class="o">*</span><span class="nb">cmplx</span><span class="p">(</span><span class="n">qDotR</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="p">)</span>
+        <span class="c">!</span>
+        <span class="n">iT</span> <span class="o">=</span> <span class="n">TYPNIPC</span><span class="p">(</span><span class="n">ni</span><span class="p">)</span>
+        <span class="n">LM</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">DO </span><span class="n">LL</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lMax</span>
+          <span class="n">L</span> <span class="o">=</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">LPS</span><span class="p">(</span><span class="n">LL</span><span class="p">)</span>
+          <span class="k">DO </span><span class="n">M</span> <span class="o">=</span> <span class="o">-</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span>
+            <span class="n">LM</span> <span class="o">=</span> <span class="n">LM</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">!1st index for CPROJ</span>
+            <span class="c">!</span>
+            <span class="n">FI</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+            <span class="c">!</span>
+            <span class="n">FI</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(</span><span class="n">L</span><span class="p">,:)</span><span class="o">*</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">F</span><span class="p">(:,</span><span class="n">LL</span><span class="p">))</span> <span class="c">! radial part integration F contains rab</span>
+            <span class="c">!</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">L</span><span class="o">*</span><span class="p">(</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">M</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">! index for spherical harmonics</span>
+            <span class="n">VifQ_aug</span> <span class="o">=</span> <span class="n">ATOMIC_CENTER</span><span class="o">*</span><span class="n">Y</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="n">II</span><span class="p">)</span><span class="o">**</span><span class="n">L</span><span class="o">*</span><span class="n">FI</span>
+            <span class="c">!</span>
+            <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+              <span class="c">!</span>
+              <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+                <span class="c">!</span>
+                <span class="n">pawKPC</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ig</span><span class="p">)</span> <span class="o">=</span> <span class="n">pawKPC</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ig</span><span class="p">)</span> <span class="o">+</span> <span class="n">VifQ_aug</span><span class="o">*</span><span class="n">cProjPC</span><span class="p">(</span><span class="n">LM</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">)</span>
+                <span class="c">!</span>
+              <span class="n">enddo</span>
+              <span class="c">!</span>
+            <span class="n">enddo</span>
+            <span class="c">!</span>
+          <span class="n">ENDDO</span>
+        <span class="n">ENDDO</span>
+        <span class="n">LMBASE</span> <span class="o">=</span> <span class="n">LMBASE</span> <span class="o">+</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lmMax</span>
+      <span class="n">ENDDO</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="c">!pawKPC(:,:,:) = pawKPC(:,:,:)*4.0_dp*pi/sqrt(omega)</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">pawCorrectionKPC</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

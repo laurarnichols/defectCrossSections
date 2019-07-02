@@ -188,7 +188,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/ylm.html#src">ylm</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -300,7 +306,13 @@ public subroutine ylm(V_in, LMAX, Y)
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/ylm.html#src">ylm</a>
+  </div>
+</div>
+
 
 
     </section>
@@ -323,6 +335,287 @@ public subroutine ylm(V_in, LMAX, Y)
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">ylm</span><span class="p">(</span><span class="n">v_in</span><span class="p">,</span><span class="n">lmax</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+  <span class="c">!</span>
+  <span class="c">! lmax   : spherical harmonics are calculated for l = 0 to lmax</span>
+  <span class="c">! v      : vector, argument of the spherical harmonics (we calculate</span>
+  <span class="c">! Ylm(v/norm(v))</span>
+  <span class="c">! y      : array containing Ylm(v) for several l,m</span>
+  <span class="c">!</span>
+  <span class="c">! !DESCRIPTION:</span>
+  <span class="c">!   1.  PURPOSE</span>
+  <span class="c">!        The spherical harmonics (Condon and Shortley convention)</span>
+  <span class="c">!          Y(0,0),Y(1,-1),Y(1,0),Y(1,1),Y(2,-2) ... Y(LMAX,LMAX)</span>
+  <span class="c">!        for vector V (given in Cartesian coordinates)</span>
+  <span class="c">!        are calculated. In the Condon Shortley convention the</span>
+  <span class="c">!        spherical harmonics are defined as</span>
+  <span class="c">!        $$ Y(l,m) = (-1)^m \sqrt{\frac{1}{\pi}} P_{lm}(\cos{\theta})</span>
+  <span class="c">!        \rm</span>
+  <span class="c">!        e^{\rm i m \phi} $$</span>
+  <span class="c">!                        </span>
+  <span class="c">!        where  $P_{lm}(\cos{\theta})$ is the normalized Associated</span>
+  <span class="c">!        Legendre</span>
+  <span class="c">!                  </span>
+  <span class="c">!        function. Thus,</span>
+  <span class="c">!                                             </span>
+  <span class="c">!                     $$  Y(l,-m) = (-1)^m Y^*(l,m) $$</span>
+  <span class="c">!</span>
+  <span class="c">!   2.  USAGE</span>
+  <span class="c">!        DOUBLE PRECISION V(3), Y(5*5)</span>
+  <span class="c">!        V(1) = ...</span>
+  <span class="c">!        V(2) = ...</span>
+  <span class="c">!        V(3) = ...</span>
+  <span class="c">!        CALL YLM(V,4,Y)</span>
+  <span class="c">!</span>
+  <span class="c">!       ARGUMENT-DESCRIPTION</span>
+  <span class="c">!          V      - DOUBLE PRECISION vector, dimension 3        (input)</span>
+  <span class="c">!                   Must be given in Cartesian coordinates.</span>
+  <span class="c">!                   Conversion of V to polar coordinates gives the</span>
+  <span class="c">!                   angles Theta and Phi necessary for the calculation</span>
+  <span class="c">!                   of the spherical harmonics.</span>
+  <span class="c">!          LMAX   - INTEGER value                               (input)</span>
+  <span class="c">!                   upper bound of L for which spherical harmonics</span>
+  <span class="c">!                   will be calculated</span>
+  <span class="c">!                   constraint:</span>
+  <span class="c">!                      LMAX &gt;= 0</span>
+  <span class="c">!          Y      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)</span>
+  <span class="c">!                   contains the calculated spherical harmonics</span>
+  <span class="c">!                   Y(1)                   for L .EQ. 0 (M = 0)</span>
+  <span class="c">!                   Y(2), ..., Y(4)        for L .EQ. 1 (M = -1, 0, 1)</span>
+  <span class="c">!                   ...</span>
+  <span class="c">!                   Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))</span>
+  <span class="c">!                                          for L .EQ. LMAX</span>
+  <span class="c">!                                              (M = -L,...,L)</span>
+  <span class="c">!                   constraint:</span>
+  <span class="c">!                      Dimension of Y .GE. (LMAX+1)**2 (not checked)</span>
+  <span class="c">!        USED SUBROUTINES (DIRECTLY CALLED)</span>
+  <span class="c">!           none</span>
+  <span class="c">!</span>
+  <span class="c">!        INDIRECTLY CALLED SUBROUTINES</span>
+  <span class="c">!           none</span>
+  <span class="c">!</span>
+  <span class="c">!        UTILITY-SUBROUTINES (USE BEFOREHAND OR AFTERWARDS)</span>
+  <span class="c">!           none</span>
+  <span class="c">!</span>
+  <span class="c">!        INPUT/OUTPUT (READ/WRITE)</span>
+  <span class="c">!           none</span>
+  <span class="c">!</span>
+  <span class="c">!        MACHINENDEPENDENT PROGRAMPARTS</span>
+  <span class="c">!           Type COMPLEX*16 is used which does not conform to the</span>
+  <span class="c">!           FORTRAN 77 standard.</span>
+  <span class="c">!           Also the non-standard type conversion function DCMPLX()</span>
+  <span class="c">!           is used which combines two double precision values into</span>
+  <span class="c">!           one double complex value.</span>
+  <span class="c">!</span>
+  <span class="c">!   3.     METHOD</span>
+  <span class="c">!           The basic algorithm used to calculate the spherical</span>
+  <span class="c">!           harmonics for vector V is as follows:</span>
+  <span class="c">!</span>
+  <span class="c">!           Y(0,0)</span>
+  <span class="c">!           Y(1,0)</span>
+  <span class="c">!           Y(1,1)</span>
+  <span class="c">!           Y(1,-1) = -Y(1,1)</span>
+  <span class="c">!           DO L = 2, LMAX</span>
+  <span class="c">!              Y(L,L)   = f(Y(L-1,L-1)) ... Formula 1</span>
+  <span class="c">!              Y(L,L-1) = f(Y(L-1,L-1)) ... Formula 2</span>
+  <span class="c">!              DO M = L-2, 0, -1</span>
+  <span class="c">!                 Y(L,M) = f(Y(L-1,M),Y(L-2,M)) ... Formula 2</span>
+  <span class="c">!                 Y(L,-M)= (-1)**M*Y(L,M)</span>
+  <span class="c">!              ENDDO</span>
+  <span class="c">!           ENDDO</span>
+  <span class="c">!</span>
+  <span class="c">!           In the following the necessary recursion formulas and</span>
+  <span class="c">!           starting values are given:</span>
+  <span class="c">!</span>
+  <span class="c">!        Start:</span>
+  <span class="c">!%                        +------+</span>
+  <span class="c">!%                        |   1     </span>
+  <span class="c">!%           Y(0,0) =  -+ | -----  </span>
+  <span class="c">!%                       \| 4(Pi)  </span>
+  <span class="c">!%</span>
+  <span class="c">!%                                   +------+</span>
+  <span class="c">!%                                   |   3     </span>
+  <span class="c">!%           Y(1,0) =  cos(Theta) -+ | -----  </span>
+  <span class="c">!%                                  \| 4(Pi)  </span>
+  <span class="c">!%</span>
+  <span class="c">!%                                     +------+</span>
+  <span class="c">!%                                     |   3    i(Phi)</span>
+  <span class="c">!%           Y(1,1) =  - sin(Theta) -+ | ----- e</span>
+  <span class="c">!%                                    \| 8(Pi)  </span>
+  <span class="c">!%</span>
+  <span class="c">!%        Formula 1:</span>
+  <span class="c">!%</span>
+  <span class="c">!%           Y(l,l) =</span>
+  <span class="c">!%                           +--------+</span>
+  <span class="c">!%                           | (2l+1)   i(Phi)</span>
+  <span class="c">!%            -sin(Theta) -+ | ------  e       Y(l-1,l-1)</span>
+  <span class="c">!%                          \|   2l  </span>
+  <span class="c">!%</span>
+  <span class="c">!%        Formula 2:</span>
+  <span class="c">!%                                  +---------------+  </span>
+  <span class="c">!%                                  |  (2l-1)(2l+1)   </span>
+  <span class="c">!%           Y(l,m) = cos(Theta) -+ | -------------- Y(l-1,m)  -</span>
+  <span class="c">!%                                 \|   (l-m)(l+m)       </span>
+  <span class="c">!%</span>
+  <span class="c">!%                                    +--------------------+  </span>
+  <span class="c">!%                                    |(l-1+m)(l-1-m)(2l+1)</span>
+  <span class="c">!%                              -  -+ |-------------------- Y(l-2,m)</span>
+  <span class="c">!%                                   \|  (2l-3)(l-m)(l+m)                 </span>
+  <span class="c">!%</span>
+  <span class="c">!%        Formula 3: (not used in the algorithm because of the division</span>
+  <span class="c">!%                    by sin(Theta) which may be zero)</span>
+  <span class="c">!%</span>
+  <span class="c">!%                                    +--------------+  </span>
+  <span class="c">!%                      cos(Theta)    |  4(m+1)(m+1)   -i(Phi)</span>
+  <span class="c">!%           Y(l,m) = - ---------- -+ | ------------  e       Y(l,m+1) -</span>
+  <span class="c">!%                      sin(Theta)   \| (l+m+1)(l-m)       </span>
+  <span class="c">!%</span>
+  <span class="c">!%                                    +--------------+  </span>
+  <span class="c">!%                                    |(l-m-1)(l+m+2)  -2i(Phi)</span>
+  <span class="c">!%                              -  -+ |-------------- e        Y(l,m+2)</span>
+  <span class="c">!%                                   \| (l-m)(l+m+1)                         </span>
+  <span class="c">!%                                  </span>
+  <span class="c">!%</span>
+  <span class="c">! !REVISION HISTORY:</span>
+  <span class="c">!   26. April 1994                                   Version 1.2</span>
+  <span class="c">!   Taken 8 1 98 from SRC_lapw2 to SRC_telnes</span>
+  <span class="c">!   Updated November 2004 (Kevin Jorissen)</span>
+  <span class="c">!   cosmetics March 2005 (Kevin Jorissen)</span>
+  <span class="c">!</span>
+      <span class="k">implicit none</span>
+  <span class="c">!</span>
+  <span class="c">!   In/Output :</span>
+  <span class="c">!</span>
+      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">LMAX</span>
+      <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">V_in</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+      <span class="kt">complex</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">Y</span><span class="p">(</span><span class="o">*</span><span class="p">)</span>
+  <span class="c">!   Local variables :</span>
+      <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">pi</span> <span class="o">=</span> <span class="mf">3.1415926535897932384626433_dp</span>
+  <span class="c">!</span>
+      <span class="kt">INTEGER</span>         <span class="kd">::</span>  <span class="n">I2L</span><span class="p">,</span> <span class="n">I4L2</span><span class="p">,</span> <span class="nb">INDEX</span><span class="p">,</span> <span class="n">INDEX2</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">MSIGN</span>
+      <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span>  <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">AB</span><span class="p">,</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">ABMAX</span><span class="p">,</span> <span class="n">ABCMAX</span><span class="p">,</span> <span class="n">V</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+      <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span>  <span class="n">D4LL1C</span><span class="p">,</span> <span class="n">D2L13</span>
+      <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span>  <span class="n">COSTH</span><span class="p">,</span> <span class="n">SINTH</span><span class="p">,</span> <span class="n">COSPH</span><span class="p">,</span> <span class="n">SINPH</span>
+      <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span>  <span class="n">TEMP1</span><span class="p">,</span> <span class="n">TEMP2</span><span class="p">,</span> <span class="n">TEMP3</span>
+      <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span>  <span class="n">YLLR</span><span class="p">,</span> <span class="n">YLL1R</span><span class="p">,</span> <span class="n">YL1L1R</span><span class="p">,</span> <span class="n">YLMR</span>
+      <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span>  <span class="n">YLLI</span><span class="p">,</span> <span class="n">YLL1I</span><span class="p">,</span> <span class="n">YL1L1I</span><span class="p">,</span> <span class="n">YLMI</span>
+      <span class="c">!</span>
+      <span class="c">! Y(0,0)</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="nb">INDEX</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="mi">3</span>
+        <span class="n">V</span><span class="p">(</span><span class="nb">INDEX</span><span class="p">)</span> <span class="o">=</span> <span class="nb">dble</span><span class="p">(</span><span class="n">V_in</span><span class="p">(</span><span class="nb">INDEX</span><span class="p">))</span>
+      <span class="n">enddo</span>
+      <span class="n">YLLR</span> <span class="o">=</span> <span class="mf">1.0_dp</span><span class="o">/</span><span class="nb">sqrt</span><span class="p">(</span><span class="mf">4.0_dp</span><span class="o">*</span><span class="n">PI</span><span class="p">)</span>
+      <span class="n">YLLI</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="n">Y</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="nb">CMPLX</span><span class="p">(</span><span class="n">YLLR</span><span class="p">,</span> <span class="n">YLLI</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="c">! continue only if spherical harmonics for (L .GT. 0) are desired</span>
+      <span class="c">!</span>
+      <span class="k">IF</span> <span class="p">(</span><span class="n">LMAX</span> <span class="p">.</span><span class="n">LE</span><span class="p">.</span> <span class="mi">0</span><span class="p">)</span> <span class="k">GOTO </span><span class="mi">999</span>
+      <span class="c">!</span>
+      <span class="c">! calculate sin(Phi), cos(Phi), sin(Theta), cos(Theta)</span>
+      <span class="c">! Theta, Phi ... polar angles of vector V</span>
+      <span class="c">!</span>
+      <span class="n">ABMAX</span>  <span class="o">=</span> <span class="nb">MAX</span><span class="p">(</span><span class="nb">ABS</span><span class="p">(</span><span class="n">V</span><span class="p">(</span><span class="mi">1</span><span class="p">)),</span><span class="nb">ABS</span><span class="p">(</span><span class="n">V</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span>
+      <span class="k">IF</span> <span class="p">(</span><span class="n">ABMAX</span> <span class="p">.</span><span class="n">GT</span><span class="p">.</span> <span class="mf">0.0_dp</span><span class="p">)</span> <span class="k">THEN</span>
+<span class="k">        </span><span class="n">A</span> <span class="o">=</span> <span class="n">V</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="n">ABMAX</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">V</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="n">ABMAX</span>
+        <span class="n">AB</span> <span class="o">=</span> <span class="nb">SQRT</span><span class="p">(</span><span class="n">A</span><span class="o">*</span><span class="n">A</span><span class="o">+</span><span class="n">B</span><span class="o">*</span><span class="n">B</span><span class="p">)</span>
+        <span class="n">COSPH</span> <span class="o">=</span> <span class="n">A</span><span class="o">/</span><span class="n">AB</span>
+        <span class="n">SINPH</span> <span class="o">=</span> <span class="n">B</span><span class="o">/</span><span class="n">AB</span>
+      <span class="k">ELSE</span>
+<span class="k">        </span><span class="n">COSPH</span> <span class="o">=</span> <span class="mf">1.0_dp</span>
+        <span class="n">SINPH</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="n">ENDIF</span>
+      <span class="n">ABCMAX</span> <span class="o">=</span> <span class="nb">MAX</span><span class="p">(</span><span class="n">ABMAX</span><span class="p">,</span><span class="nb">ABS</span><span class="p">(</span><span class="n">V</span><span class="p">(</span><span class="mi">3</span><span class="p">)))</span>
+      <span class="k">IF</span> <span class="p">(</span><span class="n">ABCMAX</span> <span class="p">.</span><span class="n">GT</span><span class="p">.</span> <span class="nb">dble</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span> <span class="k">THEN</span>
+<span class="k">        </span><span class="n">A</span> <span class="o">=</span> <span class="n">V</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="n">ABCMAX</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">V</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="n">ABCMAX</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">V</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="n">ABCMAX</span>
+        <span class="n">AB</span> <span class="o">=</span> <span class="n">A</span><span class="o">*</span><span class="n">A</span> <span class="o">+</span> <span class="n">B</span><span class="o">*</span><span class="n">B</span>
+        <span class="n">ABC</span> <span class="o">=</span> <span class="nb">SQRT</span><span class="p">(</span><span class="n">AB</span> <span class="o">+</span> <span class="n">C</span><span class="o">*</span><span class="n">C</span><span class="p">)</span>
+        <span class="n">COSTH</span> <span class="o">=</span> <span class="n">C</span><span class="o">/</span><span class="n">ABC</span>
+        <span class="n">SINTH</span> <span class="o">=</span> <span class="nb">SQRT</span><span class="p">(</span><span class="n">AB</span><span class="p">)</span><span class="o">/</span><span class="n">ABC</span>
+      <span class="k">ELSE</span>
+<span class="k">        </span><span class="n">COSTH</span> <span class="o">=</span> <span class="mf">1.0_dp</span>
+        <span class="n">SINTH</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="n">ENDIF</span>
+      <span class="c">!</span>
+      <span class="c">! Y(1,0)</span>
+      <span class="c">!</span>
+      <span class="n">Y</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">=</span> <span class="nb">CMPLX</span><span class="p">(</span><span class="nb">sqrt</span><span class="p">(</span><span class="mf">3.0_dp</span><span class="p">)</span><span class="o">*</span><span class="n">YLLR</span><span class="o">*</span><span class="n">COSTH</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="c">! Y(1,1) ( = -DCONJG(Y(1,-1)))</span>
+      <span class="c">!</span>
+      <span class="n">TEMP1</span> <span class="o">=</span> <span class="o">-</span><span class="nb">SQRT</span><span class="p">(</span><span class="mf">1.5_dp</span><span class="p">)</span><span class="o">*</span><span class="n">YLLR</span><span class="o">*</span><span class="n">SINTH</span>
+      <span class="n">Y</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">=</span> <span class="nb">CMPLX</span><span class="p">(</span><span class="n">TEMP1</span><span class="o">*</span><span class="n">COSPH</span><span class="p">,</span><span class="n">TEMP1</span><span class="o">*</span><span class="n">SINPH</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+      <span class="n">Y</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">=</span> <span class="o">-</span><span class="nb">CONJG</span><span class="p">(</span><span class="n">Y</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+      <span class="c">!</span>
+      <span class="k">DO </span><span class="n">L</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">LMAX</span>
+        <span class="nb">INDEX</span>  <span class="o">=</span> <span class="n">L</span><span class="o">*</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">INDEX2</span> <span class="o">=</span> <span class="nb">INDEX</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">L</span>
+        <span class="n">MSIGN</span>  <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="nb">MOD</span><span class="p">(</span><span class="n">L</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="c">! YLL = Y(L,L) = f(Y(L-1,L-1)) ... Formula 1</span>
+        <span class="c">!</span>
+        <span class="n">YL1L1R</span> <span class="o">=</span> <span class="nb">DBLE</span><span class="p">(</span><span class="n">Y</span><span class="p">(</span><span class="nb">INDEX</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">YL1L1I</span> <span class="o">=</span> <span class="n">DIMAG</span><span class="p">(</span><span class="n">Y</span><span class="p">(</span><span class="nb">INDEX</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">TEMP1</span> <span class="o">=</span> <span class="o">-</span><span class="nb">SQRT</span><span class="p">(</span><span class="nb">DBLE</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">L</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="nb">DBLE</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">L</span><span class="p">))</span><span class="o">*</span><span class="n">SINTH</span>
+        <span class="n">YLLR</span> <span class="o">=</span> <span class="n">TEMP1</span><span class="o">*</span><span class="p">(</span><span class="n">COSPH</span><span class="o">*</span><span class="n">YL1L1R</span> <span class="o">-</span> <span class="n">SINPH</span><span class="o">*</span><span class="n">YL1L1I</span><span class="p">)</span>
+        <span class="n">YLLI</span> <span class="o">=</span> <span class="n">TEMP1</span><span class="o">*</span><span class="p">(</span><span class="n">COSPH</span><span class="o">*</span><span class="n">YL1L1I</span> <span class="o">+</span> <span class="n">SINPH</span><span class="o">*</span><span class="n">YL1L1R</span><span class="p">)</span>
+        <span class="n">Y</span><span class="p">(</span><span class="n">INDEX2</span><span class="p">)</span> <span class="o">=</span> <span class="nb">CMPLX</span><span class="p">(</span><span class="n">YLLR</span><span class="p">,</span><span class="n">YLLI</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+        <span class="n">Y</span><span class="p">(</span><span class="nb">INDEX</span><span class="p">)</span>  <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="n">MSIGN</span><span class="p">,</span><span class="mf">0.0_dp</span><span class="p">,</span><span class="nb">kind</span><span class="o">=</span><span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="nb">CONJG</span><span class="p">(</span><span class="n">Y</span><span class="p">(</span><span class="n">INDEX2</span><span class="p">))</span>
+        <span class="c">!Y(INDEX)  = dble(MSIGN)*CONJG(Y(INDEX2))</span>
+        <span class="n">INDEX2</span> <span class="o">=</span> <span class="n">INDEX2</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="nb">INDEX</span>  <span class="o">=</span> <span class="nb">INDEX</span>  <span class="o">+</span> <span class="mi">1</span>
+        <span class="c">!</span>
+        <span class="c">! YLL1 = Y(L,L-1) = f(Y(L-1,L-1)) ... Formula 2</span>
+        <span class="c">! (the coefficient for Y(L-2,L-1) in Formula 2 is zero)</span>
+        <span class="c">!</span>
+        <span class="n">TEMP2</span> <span class="o">=</span> <span class="nb">SQRT</span><span class="p">(</span><span class="nb">DBLE</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">L</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="n">COSTH</span>
+        <span class="n">YLL1R</span> <span class="o">=</span> <span class="n">TEMP2</span><span class="o">*</span><span class="n">YL1L1R</span>
+        <span class="n">YLL1I</span> <span class="o">=</span> <span class="n">TEMP2</span><span class="o">*</span><span class="n">YL1L1I</span>
+        <span class="n">Y</span><span class="p">(</span><span class="n">INDEX2</span><span class="p">)</span> <span class="o">=</span> <span class="nb">CMPLX</span><span class="p">(</span><span class="n">YLL1R</span><span class="p">,</span><span class="n">YLL1I</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+        <span class="n">Y</span><span class="p">(</span><span class="nb">INDEX</span><span class="p">)</span>  <span class="o">=</span> <span class="o">-</span><span class="nb">cmplx</span><span class="p">(</span><span class="n">MSIGN</span><span class="p">,</span><span class="mf">0.0_dp</span><span class="p">,</span><span class="nb">kind</span><span class="o">=</span><span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="nb">CONJG</span><span class="p">(</span><span class="n">Y</span><span class="p">(</span><span class="n">INDEX2</span><span class="p">))</span>
+  <span class="c">!      Y(INDEX)  = -dble(MSIGN)*CONJG(Y(INDEX2))</span>
+        <span class="n">INDEX2</span> <span class="o">=</span> <span class="n">INDEX2</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="nb">INDEX</span>  <span class="o">=</span> <span class="nb">INDEX</span>  <span class="o">+</span> <span class="mi">1</span>
+        <span class="c">!</span>
+        <span class="n">I4L2</span> <span class="o">=</span> <span class="n">INDEX2</span> <span class="o">-</span> <span class="mi">4</span><span class="o">*</span><span class="n">L</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="n">I2L</span>  <span class="o">=</span> <span class="n">INDEX2</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">L</span>
+        <span class="n">D4LL1C</span> <span class="o">=</span> <span class="n">COSTH</span><span class="o">*</span><span class="nb">SQRT</span><span class="p">(</span><span class="nb">DBLE</span><span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="n">L</span><span class="o">*</span><span class="n">L</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">D2L13</span>  <span class="o">=</span> <span class="o">-</span><span class="nb">SQRT</span><span class="p">(</span><span class="nb">DBLE</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">L</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="nb">DBLE</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">L</span><span class="o">-</span><span class="mi">3</span><span class="p">))</span>
+        <span class="c">!</span>
+        <span class="k">DO </span><span class="n">M</span> <span class="o">=</span> <span class="n">L</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+          <span class="c">!</span>
+          <span class="c">! YLM = Y(L,M) = f(Y(L-2,M),Y(L-1,M)) ... Formula 2</span>
+          <span class="c">!</span>
+          <span class="n">TEMP1</span> <span class="o">=</span> <span class="mf">1.0_dp</span><span class="o">/</span><span class="nb">SQRT</span><span class="p">(</span><span class="nb">DBLE</span><span class="p">((</span><span class="n">L</span><span class="o">+</span><span class="n">M</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">L</span><span class="o">-</span><span class="n">M</span><span class="p">)))</span>
+          <span class="n">TEMP2</span> <span class="o">=</span> <span class="n">D4LL1C</span><span class="o">*</span><span class="n">TEMP1</span>
+          <span class="n">TEMP3</span> <span class="o">=</span> <span class="n">D2L13</span><span class="o">*</span><span class="nb">SQRT</span><span class="p">(</span><span class="nb">DBLE</span><span class="p">((</span><span class="n">L</span><span class="o">+</span><span class="n">M</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">L</span><span class="o">-</span><span class="n">M</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span><span class="o">*</span><span class="n">TEMP1</span>
+          <span class="n">YLMR</span> <span class="o">=</span> <span class="n">TEMP2</span><span class="o">*</span><span class="nb">DBLE</span><span class="p">(</span><span class="n">Y</span><span class="p">(</span><span class="n">I2L</span><span class="p">))</span>  <span class="o">+</span> <span class="n">TEMP3</span><span class="o">*</span><span class="nb">DBLE</span><span class="p">(</span><span class="n">Y</span><span class="p">(</span><span class="n">I4L2</span><span class="p">))</span>
+          <span class="n">YLMI</span> <span class="o">=</span> <span class="n">TEMP2</span><span class="o">*</span><span class="n">DIMAG</span><span class="p">(</span><span class="n">Y</span><span class="p">(</span><span class="n">I2L</span><span class="p">))</span> <span class="o">+</span> <span class="n">TEMP3</span><span class="o">*</span><span class="n">DIMAG</span><span class="p">(</span><span class="n">Y</span><span class="p">(</span><span class="n">I4L2</span><span class="p">))</span>
+          <span class="n">Y</span><span class="p">(</span><span class="n">INDEX2</span><span class="p">)</span> <span class="o">=</span> <span class="nb">CMPLX</span><span class="p">(</span><span class="n">YLMR</span><span class="p">,</span><span class="n">YLMI</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+          <span class="n">Y</span><span class="p">(</span><span class="nb">INDEX</span><span class="p">)</span>  <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="n">MSIGN</span><span class="p">,</span><span class="mf">0.0_dp</span><span class="p">,</span><span class="nb">kind</span><span class="o">=</span><span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="nb">CONJG</span><span class="p">(</span><span class="n">Y</span><span class="p">(</span><span class="n">INDEX2</span><span class="p">))</span>
+    <span class="c">!      Y(INDEX)  = dble(MSIGN)*CONJG(Y(INDEX2))</span>
+          <span class="c">!</span>
+          <span class="n">MSIGN</span>  <span class="o">=</span> <span class="o">-</span><span class="n">MSIGN</span>
+          <span class="n">INDEX2</span> <span class="o">=</span> <span class="n">INDEX2</span> <span class="o">-</span> <span class="mi">1</span>
+          <span class="nb">INDEX</span>  <span class="o">=</span> <span class="nb">INDEX</span>  <span class="o">+</span> <span class="mi">1</span>
+          <span class="n">I4L2</span>   <span class="o">=</span> <span class="n">I4L2</span>   <span class="o">-</span> <span class="mi">1</span>
+          <span class="n">I2L</span>    <span class="o">=</span> <span class="n">I2L</span>    <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">ENDDO</span>
+      <span class="n">ENDDO</span>
+      <span class="c">!</span>
+  <span class="mi">999</span> <span class="k">RETURN</span>
+<span class="k">  END subroutine </span><span class="n">ylm</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

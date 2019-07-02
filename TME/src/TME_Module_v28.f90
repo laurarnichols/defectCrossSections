@@ -274,16 +274,26 @@ module TMEModule
                        !! Used to group the variables read in from the .in file
   !
   !
+!=====================================================================================================
 contains
   !
-  !
+  !---------------------------------------------------------------------------------------------------
   subroutine readInput()
     !! Delete any previous output, initialize input variables,
     !! start a timer, and read in the input files
     !!
+    !! @todo
+    !! Change this subroutine to have arguments to make clear 
+    !! that these variables are getting changed
+    !! @endtodo
+    !!
     implicit none
     !
     logical :: file_exists
+      !! Whether or not the output file already exists
+      !! @todo 
+      !! Change `file_exists` to `fileExists`
+      !! @endtodo
     !
     call cpu_time(t0)
         !! * Start a timer
@@ -321,11 +331,16 @@ contains
   end subroutine readInput
   !
   !
+  !---------------------------------------------------------------------------------------------------
   subroutine initialize()
-    ! 
     !! Set default values for all of the input variables
     !! that can easily be tested to see if they were changed
-    !
+    !!
+    !! @todo
+    !! Change this subroutine to have arguments to make clear 
+    !! that these variables are getting changed
+    !! @endtodo
+    !!
     implicit none
     !
     exportDirSD = ''
@@ -351,172 +366,216 @@ contains
   end subroutine initialize
   !
   !
+  !---------------------------------------------------------------------------------------------------
   subroutine checkInitialization()
-    !
+    !! Check to see if variables from .in file still
+    !! have the values set in [[TMEModule(module):initialize(subroutine)]]
+    !! or if they have values that aren't allowed
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+    !! @todo
+    !! Change this subroutine to have arguments to make clear 
+    !! that these variables are getting changed
+    !! @endtodo
+    !!
     implicit none
     !
-    logical :: file_exists, abortExecution
+    logical :: file_exists
+      !! Whether or not the exported directory from [[pw_export_for_TME(program)]]
+      !! exists
+      !!
+      !! @todo
+      !! Change `file_exists` to `fileExists`
+      !! @endtodo
+    logical:: abortExecution
     !
-    !! Set the default value of abort execution so that the program
-    !! will only abort if there is an issue with the inputs
     abortExecution = .false.
+      !! * Set the default value of abort execution so that the program
+      !! will only abort if there is an issue with the inputs
     !
-    !! Write out a header to the output file
     write(iostd, '(" Inputs : ")')
+      !! * Write out a header to the output file
     !
-    !! Check if the SD export directory is blank
+    !> * If the SD export directory variable is blank
+    !>    * Output an error message and set `abortExecution` to true
+    !> * Otherwise
+    !>    * Check if the SD export directory exists
+    !>    * If the SD export directory doesn't exist
+    !>       * Output an error message and set `abortExecution` to true
     if ( trim(exportDirSD) == '' ) then
-      !! Output an error message and set abortExecution to true
+      !
       write(iostd, *)
       write(iostd, '(" Variable : ""exportDirSD"" is not defined!")')
       write(iostd, '(" usage : exportDirSD = ''./Export/''")')
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
-    !! If the SD export directory isn't blank
+      !
     else
-      !! Check if the SD export directory exists
+      !
       inquire(file= trim(exportDirSD), exist = file_exists)
       !
-      !! If the SD export directory doesn't exist
       if ( file_exists .eqv. .false. ) then
-        !! Output an error message and set abortExecution to true
+        !
         write(iostd, '(" exportDirSD :", a, " does not exist !")') trim(exportDirSD)
         write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
         abortExecution = .true.
+        !
       endif
+      !
     endif
     !
-    !! Output the given SD export directory
     write(iostd, '("exportDirSD = ''", a, "''")') trim(exportDirSD)
+      !! * Output the given SD export directory
     !
-    !! Check if the PC export directory is blank
+    !> * If the PC export directory variable is blank
+    !>    * Output an error message and set `abortExecution` to true
+    !> * Otherwise
+    !>    * Check if the PC export directory exists
+    !>    * If the PC export directory doesn't exist
+    !>       * Output an error message and set `abortExecution` to true
     if ( trim(exportDirPC) == '' ) then
-      !! Output an error message and set abortExecution to true
+      !
       write(iostd, *)
       write(iostd, '(" Variable : ""exportDirPC"" is not defined!")')
       write(iostd, '(" usage : exportDirPC = ''./Export/''")')
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
-    !! If the PC export directory isn't blank
+      !
     else
-      !! Check if the PC export directory exists
+      !
       inquire(file= trim(exportDirPC), exist = file_exists)
       !
-      !! If the PC export directory doesn't exist
       if ( file_exists .eqv. .false. ) then
-        !! Output an error message and set abortExecution to true
+        !
         write(iostd, '(" exportDir :", a, " does not exist !")') trim(exportDirPC)
         write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
         abortExecution = .true.
+        !
       endif
+      !
     endif
     !
-    !! Output the given PC export directory
     write(iostd, '("exportDirPC = ''", a, "''")') trim(exportDirPC)
+      !! * Output the given PC export directory
     !
-    !! If the elements path is blank
+    !> * If the elements path is blank
+    !>    * Output a warning message and set the default value to `./`
     if ( trim(elementsPath) == '' ) then
-      !! Output a warning message and set the default value
+      !
       write(iostd, *)
       write(iostd, '(" Variable : ""elementsPath"" is not defined!")')
       write(iostd, '(" usage : elementsPath = ''./''")')
       write(iostd, '(" The current directory will be used as elementsPath.")')
       elementsPath = './'
+      !
     endif
     !
-    !! Check if the elements path folder exists already
     inquire(file= trim(elementsPath), exist = file_exists)
+      !! * Check if the elements path folder exists already
     !
-    !! If the elements path folder doesn't already exist
+    !> * If the elements path folder doesn't already exist
+    !>    * Create the directory by writing the `mkdir` command to a string
+    !>    * Then execute the command
     if ( .not.file_exists ) then
-      !! Create the directory by writing the mkdir command to a string
+      !
       write(mkDir, '("mkdir -p ", a)') trim(elementsPath) 
       !
-      !! Execute the command
       call system(mkDir)
+      !
     endif
     !
-    !! Output the elements path
     write(iostd, '("elementsPath = ''", a, "''")') trim(elementsPath)
+      !! * Output the elements path
     !
-    !! If iBandIinit is still less than zero
+    !...............................................................................................
+      !! * If `iBandIinit`, `iBandIfinal`, `iBandFinit`, or `iBandFfinal` is still less than zero
+      !!    * Output an error message and set `abortExecution` to true
+      !! * Then output each of their values
+    !
     if ( iBandIinit < 0 ) then
-      !! Ouput an error messge and set abortExecution to true
+      !
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandIinit"" is not defined!")')
       write(iostd, '(" usage : iBandIinit = 10")')
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
+      !
     endif
     !
-    !! Output the value of iBandIinit
     write(iostd, '("iBandIinit = ", i4)') iBandIinit
     !
-    !! If iBandIfinal is still less than zero
     if ( iBandIfinal < 0 ) then
-      !! Ouput an error messge and set abortExecution to true
+      !
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandIfinal"" is not defined!")')
       write(iostd, '(" usage : iBandIfinal = 20")')
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
+      !
     endif
     !
-    !! Output the value of iBandIfinal
     write(iostd, '("iBandIfinal = ", i4)') iBandIfinal
     !
-    !! If iBandFinit is still less than zero
     if ( iBandFinit < 0 ) then
-      !! Ouput an error messge and set abortExecution to true
+      !
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandFinit"" is not defined!")')
       write(iostd, '(" usage : iBandFinit = 9")')
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
+      !
     endif
     !
-    !! Output the value of iBandFinit
     write(iostd, '("iBandFinit = ", i4)') iBandFinit
     !
-    !! If iBandFfinal is still less than zero
     if ( iBandFfinal < 0 ) then
-      !! Ouput an error messge and set abortExecution to true
+      !
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandFfinal"" is not defined!")')
       write(iostd, '(" usage : iBandFfinal = 9")')
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
+      !
     endif
     !
-    !! Output the value of iBandFfinal
     write(iostd, '("iBandFfinal = ", i4)') iBandFfinal
     !
-    !! If calculateVfis is true and iBandFinit and iBandFfinal are not equal to each other
+    !...............................................................................................
+    !
+    !> * If `calculateVfis` is true and `iBandFinit` and `iBandFfinal` are not equal
+    !>    * Output an error message and set `abortExecution` to true
     if ( ( calculateVfis ) .and. ( iBandFinit /= iBandFfinal ) ) then
-      !! Output an error message and set abortExecution to true
+      !
       write(iostd, *)
       write(iostd, '(" Vfis can be calculated only if the final state is one and only one!")')
       write(iostd, '(" ''iBandFInit'' = ", i10)') iBandFinit
       write(iostd, '(" ''iBandFfinal'' = ", i10)') iBandFfinal
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
+      !
     endif
     !
-    !! Output the value of calculateVfis
     write(iostd, '("calculateVfis = ", l )') calculateVfis
+      !! * Output the value of `calculateVfis`
     !
-    !! If the VfisOutput file name is blank
+    !> * If the `VfisOutput` file name is blank
+    !>    * Output a warning message and set the default value to `VfisVsE`
     if ( trim(VfisOutput) == '' ) then
-      !! Output a warning message and set the default value
+      !
       write(iostd, *)
       write(iostd, '(" Variable : ""VfisOutput"" is not defined!")')
       write(iostd, '(" usage : VfisOutput = ''VfisVsE''")')
       write(iostd, '(" The default value ''VfisVsE'' will be used.")')
       VfisOutput = 'VfisVsE'
+      !
     endif
     !
-    !! Output the value of VfisOutput
     write(iostd, '("VfisOutput = ''", a, "''")') trim(VfisOutput)
+      !! * Output the value of `VfisOutput`
+    !> @todo
+    !> Check if there is any kind of check on `ki` and `kf`. Why was this commented out?
+    !> @endtodo
     !
     !if ( ki < 0 ) then
     !  write(iostd, *)
@@ -547,41 +606,52 @@ contains
     !  abortExecution = .true.
     !endif
     !
-    !! If the value of eBin is still less than zero
+    !> * If the value of `eBin` is still less than zero
+    !>    * Output a warning message and set the default value to 0.01 eV
     if ( eBin < 0.0_dp ) then
-      !! Output a warning message and set the default value
+      !
       write(iostd,'(" Variable : ""eBin"" is not defined!")')
       write(iostd,'(" usage : eBin = 0.01")')
       write(iostd,'(" A default value of 0.01 eV will be used !")')
       eBin = 0.01_dp ! eV
+      !
     endif
     !
-    !! Output the value of eBin
     write(iostd, '("eBin = ", f8.4, " (eV)")') eBin
+      !! * Output the value of eBin
     !
-    !! Convert eBin from eV to Hartree
     eBin = eBin*evToHartree
+      !! * Convert `eBin` from eV to Hartree
     !
-    !! If abortExecution was ever set to true
+    !> * If `abortExecution` was ever set to true
+    !>    * Output an error message and stop the program
     if ( abortExecution ) then
-      !! Output an error message and stop the program
       write(iostd, '(" Program stops!")')
       stop
     endif
     !
-    !! Make the output file available for other processes
     flush(iostd)
+      !! * Make the output file available for other processes
     !
     return
     !
   end subroutine checkInitialization
   !
   !
+  !---------------------------------------------------------------------------------------------------
   subroutine readInputPC()
+    !! Read input files in the Export directory created by
+    !! [[pw_export_for_tme(program)]]
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+    !! @todo
+    !! Change this subroutine to have arguments so that it is
+    !! clear that these variables are getting changed
+    !! @endtodo
     !
     implicit none
     !
-    !! Define local variables
     !integer, intent(in) :: id
     !
     integer :: i, j, l, ind, ik, iDum, iType, ni, irc
@@ -591,49 +661,53 @@ contains
     character(len = 300) :: textDum
     !
     logical :: file_exists
+      !! Whether or not the `input` file exists in the given 
+      !! Export directory
+      !! @todo
+      !! Change `file_exists` to `fileExists`
+      !! @endtodo
     !
-    !! Start a local timer
     call cpu_time(t1)
+      !! * Start a local timer
     !
-    !! Output header to output file
+    !> * Output header to output file
     write(iostd, *)
     write(iostd, '(" Reading perfect crystal inputs.")')
     write(iostd, *)
     !
-    !! Set the path for the input file from the PC export directory
     inputPC = trim(trim(exportDirPC)//'/input')
+      !! * Set the path for the input file from the PC export directory
     !
-    !! Check if the input file from the PC export directory exists
     inquire(file =trim(inputPC), exist = file_exists)
+      !! * Check if the input file from the PC export directory exists
     !
-    !! If the input file doesn't exist
+    !> * If the input file doesn't exist
+    !>    * Output an error message and end the program
     if ( file_exists .eqv. .false. ) then
-      !! Output an error message and end the program
+      !
       write(iostd, '(" File : ", a, " , does not exist!")') trim(inputPC)
       write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirPC)
       write(iostd, '(" Program stops!")')
       flush(iostd)
       stop
+      !
     endif
     !
-    !! Open the input file
+    !> * Open and read the input file
+    !> @todo
+    !> Create documentation for the input file and link to it here
+    !> @endtodo
     open(50, file=trim(inputPC), status = 'old')
     !
-    !! Read in a comment
     read(50, '(a)') textDum
-    !! Ignore the next line
     read(50, * ) 
     !
-    !! Read in another comment
     read(50, '(a)') textDum
-    !! Read in the number of k points
     read(50, '(i10)') nKptsPC
     !if ( kf < 0 ) kf = nKptsPC
     !
-    !! Read in another comment
     read(50, '(a)') textDum
     ! 
-    !! Allocate space for arrays
     allocate ( npwsPC(nKptsPC), wkPC(nKptsPC), xkPC(3,nKptsPC) )
     !
     !! For each k point

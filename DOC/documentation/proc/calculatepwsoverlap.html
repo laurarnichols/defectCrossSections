@@ -188,7 +188,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/calculatepwsoverlap.html#src">calculatePWsOverlap</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -270,7 +276,13 @@ public subroutine calculatePWsOverlap(ik)
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/calculatepwsoverlap.html#src">calculatePWsOverlap</a>
+  </div>
+</div>
+
 
 
     </section>
@@ -293,6 +305,39 @@ public subroutine calculatePWsOverlap(ik)
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">calculatePWsOverlap</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ik</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">readWfcPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">readWfcSD</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span> 
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+        <span class="n">Ufi</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">conjg</span><span class="p">(</span><span class="n">wfcSD</span><span class="p">(:,</span><span class="n">ibf</span><span class="p">))</span><span class="o">*</span><span class="n">wfcPC</span><span class="p">(:,</span><span class="n">ibi</span><span class="p">))</span>
+        <span class="c">!if ( ibi == ibf ) write(iostd,&#39;(2i4,3ES24.15E3)&#39;) ibf, ibi, Ufi(ibf, ibi, ik), abs(Ufi(ibf, ibi, ik))**2</span>
+        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">calculatePWsOverlap</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

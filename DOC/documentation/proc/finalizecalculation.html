@@ -188,7 +188,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/finalizecalculation.html#src">finalizeCalculation</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -244,7 +250,13 @@ public subroutine finalizeCalculation()
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/finalizecalculation.html#src">finalizeCalculation</a>
+  </div>
+</div>
+
 
 
     </section>
@@ -267,6 +279,27 @@ public subroutine finalizeCalculation()
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">finalizeCalculation</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="s1">&#39;(&quot;-----------------------------------------------------------------&quot;)&#39;</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">tf</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Total time needed:                         &quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">tf</span><span class="o">-</span><span class="n">t0</span>
+    <span class="c">!</span>
+    <span class="k">close</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">finalizeCalculation</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

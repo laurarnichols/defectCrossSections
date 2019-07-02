@@ -188,7 +188,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/readinputsd.html#src">readInputSD</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -244,7 +250,13 @@ public subroutine readInputSD()
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/readinputsd.html#src">readInputSD</a>
+  </div>
+</div>
+
 
 
     </section>
@@ -267,6 +279,206 @@ public subroutine readInputSD()
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readInputSD</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iType</span><span class="p">,</span> <span class="n">ni</span><span class="p">,</span> <span class="n">irc</span>
+    <span class="c">!</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ef</span>
+    <span class="c">!</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">textDum</span>
+    <span class="c">!</span>
+    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">file_exists</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Reading solid defect inputs.&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">input</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;/input&#39;</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">input</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">file_exists</span> <span class="p">.</span><span class="n">eqv</span><span class="p">.</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; File : &quot;, a, &quot; , does not exist!&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">input</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Please make sure that folder : &quot;, a, &quot; has been created successfully !&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Program stops!&quot;)&#39;</span><span class="p">)</span>
+      <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">input</span><span class="p">),</span> <span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;old&#39;</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span> <span class="p">)</span> <span class="n">omega</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nKpts</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="c">!</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">groundState</span><span class="p">(</span><span class="n">nKpts</span><span class="p">),</span> <span class="n">npwsSD</span><span class="p">(</span><span class="n">nKpts</span><span class="p">),</span> <span class="n">wk</span><span class="p">(</span><span class="n">nKpts</span><span class="p">),</span> <span class="n">xk</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nKpts</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nKpts</span>
+      <span class="c">!</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(3i10,4ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">groundState</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">npwsSD</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">xk</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">numOfGvecs</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">numOfPWsSD</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>     
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(6i10)&#39;</span><span class="p">)</span> <span class="n">fftxMin</span><span class="p">,</span> <span class="n">fftxMax</span><span class="p">,</span> <span class="n">fftyMin</span><span class="p">,</span> <span class="n">fftyMax</span><span class="p">,</span> <span class="n">fftzMin</span><span class="p">,</span> <span class="n">fftzMax</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a5, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">textDum</span><span class="p">,</span> <span class="n">at</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a5, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">textDum</span><span class="p">,</span> <span class="n">at</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a5, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">textDum</span><span class="p">,</span> <span class="n">at</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a5, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">textDum</span><span class="p">,</span> <span class="n">bg</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a5, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">textDum</span><span class="p">,</span> <span class="n">bg</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a5, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">textDum</span><span class="p">,</span> <span class="n">bg</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nIonsSD</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">numOfTypes</span>
+    <span class="c">!</span>
+    <span class="k">allocate</span><span class="p">(</span> <span class="n">posIonSD</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nIonsSD</span><span class="p">),</span> <span class="n">TYPNISD</span><span class="p">(</span><span class="n">nIonsSD</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nIonsSD</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span><span class="s1">&#39;(i10, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">TYPNISD</span><span class="p">(</span><span class="n">ni</span><span class="p">),</span> <span class="p">(</span><span class="n">posIonSD</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">ni</span><span class="p">),</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nBands</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nSpins</span>
+    <span class="c">!</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">numOfTypes</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">nProjsSD</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">do </span><span class="n">iType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypes</span>
+      <span class="c">!</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">symbol</span>
+      <span class="c">!</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">numOfAtoms</span>
+      <span class="c">!</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>              <span class="c">! number of projectors</span>
+      <span class="c">!</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> 
+        <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">l</span><span class="p">,</span> <span class="n">ind</span>
+        <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="o">=</span> <span class="n">l</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lmMax</span>
+      <span class="c">!</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span>
+      <span class="c">!</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">),</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">)</span> <span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span>
+        <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+      <span class="n">enddo</span>
+      <span class="c">! </span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">)</span> <span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+      <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
+        <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span>
+          <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> 
+        <span class="n">enddo</span>
+      <span class="n">enddo</span>
+      <span class="c">!  </span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F</span><span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F2</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="c">!</span>
+      <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F1</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F2</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
+        <span class="c">!</span>
+        <span class="n">irc</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span>
+        <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="o">=</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="o">-</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span> <span class="o">*</span> <span class="p">&amp;</span>
+            <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
+          <span class="c">!        </span>
+          <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">-</span> <span class="p">&amp;</span>
+                                         <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span>
+          <span class="c">!</span>
+          <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F2</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">-</span> <span class="p">&amp;</span>
+                                         <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">-</span> <span class="p">&amp;</span>
+                                         <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">+</span> <span class="p">&amp;</span>
+                                         <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span>
+        <span class="n">enddo</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+      <span class="n">nProjsSD</span> <span class="o">=</span> <span class="n">nProjsSD</span> <span class="o">+</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">numOfAtoms</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lmMax</span>
+      <span class="c">!</span>
+      <span class="k">deallocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span> <span class="p">)</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="n">JMAX</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">do </span><span class="n">iType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypes</span>
+      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">JMAX</span> <span class="p">)</span> <span class="n">JMAX</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+      <span class="n">enddo</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="n">maxL</span> <span class="o">=</span> <span class="n">JMAX</span>
+    <span class="n">JMAX</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">JMAX</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">iType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypes</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(</span> <span class="mi">0</span><span class="p">:</span><span class="n">JMAX</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">ef</span>
+    <span class="c">!</span>
+    <span class="k">close</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Reading solid defect inputs done in:                &quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+    <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">readInputSD</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>
