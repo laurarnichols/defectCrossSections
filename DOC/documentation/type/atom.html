@@ -130,7 +130,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="<p>60.0% of total for derived types.</p>Including implementation: 6 statements, 60.0% of total for derived types.">6 statements</a>
+    title="<p>77.3% of total for derived types.</p>Including implementation: 17 statements, 77.3% of total for derived types.">17 statements</a>
      </li> 
      
      
@@ -175,7 +175,7 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../type/atom.html#variable-symbol">symbol</a>
+      <a class="list-group-item" href="../type/atom.html#variable-irc">iRc</a>
       
       <a class="list-group-item" href="../type/atom.html#variable-numofatoms">numOfAtoms</a>
       
@@ -185,9 +185,17 @@
       
       <a class="list-group-item" href="../type/atom.html#variable-nmax">nMax</a>
       
-      <a class="list-group-item" href="../type/atom.html#variable-irc">iRc</a>
+      <a class="list-group-item" href="../type/atom.html#variable-symbol">symbol</a>
       
       <a class="list-group-item" href="../type/atom.html#variable-lps">lps</a>
+      
+      <a class="list-group-item" href="../type/atom.html#variable-bes_j_qr">bes_J_qr</a>
+      
+      <a class="list-group-item" href="../type/atom.html#variable-f">F</a>
+      
+      <a class="list-group-item" href="../type/atom.html#variable-f1">F1</a>
+      
+      <a class="list-group-item" href="../type/atom.html#variable-f2">F2</a>
       
       <a class="list-group-item" href="../type/atom.html#variable-r">r</a>
       
@@ -196,14 +204,6 @@
       <a class="list-group-item" href="../type/atom.html#variable-wae">wae</a>
       
       <a class="list-group-item" href="../type/atom.html#variable-wps">wps</a>
-      
-      <a class="list-group-item" href="../type/atom.html#variable-f">F</a>
-      
-      <a class="list-group-item" href="../type/atom.html#variable-f1">F1</a>
-      
-      <a class="list-group-item" href="../type/atom.html#variable-f2">F2</a>
-      
-      <a class="list-group-item" href="../type/atom.html#variable-bes_j_qr">bes_J_qr</a>
       
     </div>
   </div>
@@ -235,7 +235,9 @@
     
     <div class="col-md-9" id='text'>
       <h2>type, public :: atom</h2>
-    
+    <p>Define a new type to represent an atom in the structure. 
+ Each different type of atom in the structure will be another
+ variable with the type <code>atom</code>. </p>
     
     
     
@@ -253,7 +255,7 @@
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../type/atom.html#variable-symbol">symbol</a>
+      <a class="list-group-item" href="../type/atom.html#variable-irc">iRc</a>
       
       <a class="list-group-item" href="../type/atom.html#variable-numofatoms">numOfAtoms</a>
       
@@ -263,9 +265,17 @@
       
       <a class="list-group-item" href="../type/atom.html#variable-nmax">nMax</a>
       
-      <a class="list-group-item" href="../type/atom.html#variable-irc">iRc</a>
+      <a class="list-group-item" href="../type/atom.html#variable-symbol">symbol</a>
       
       <a class="list-group-item" href="../type/atom.html#variable-lps">lps</a>
+      
+      <a class="list-group-item" href="../type/atom.html#variable-bes_j_qr">bes_J_qr</a>
+      
+      <a class="list-group-item" href="../type/atom.html#variable-f">F</a>
+      
+      <a class="list-group-item" href="../type/atom.html#variable-f1">F1</a>
+      
+      <a class="list-group-item" href="../type/atom.html#variable-f2">F2</a>
       
       <a class="list-group-item" href="../type/atom.html#variable-r">r</a>
       
@@ -274,14 +284,6 @@
       <a class="list-group-item" href="../type/atom.html#variable-wae">wae</a>
       
       <a class="list-group-item" href="../type/atom.html#variable-wps">wps</a>
-      
-      <a class="list-group-item" href="../type/atom.html#variable-f">F</a>
-      
-      <a class="list-group-item" href="../type/atom.html#variable-f1">F1</a>
-      
-      <a class="list-group-item" href="../type/atom.html#variable-f2">F2</a>
-      
-      <a class="list-group-item" href="../type/atom.html#variable-bes_j_qr">bes_J_qr</a>
       
     </div>
   </div>
@@ -329,11 +331,11 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-symbol"></span>character(len=2),</td>
+  <td><span class="anchor" id="variable-irc"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>symbol</strong></td><td></td><td></td><td></td>
+  <td><strong>iRc</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -347,7 +349,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>numOfAtoms</strong></td><td></td><td></td><td></td>
+  <td><strong>numOfAtoms</strong></td><td></td><td></td><td><p>Number of atoms of a specific type in the structure</p></td>
   
 </tr>
 
@@ -399,11 +401,11 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-irc"></span>integer,</td>
+  <td><span class="anchor" id="variable-symbol"></span>character(len=2),</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iRc</strong></td><td></td><td></td><td></td>
+  <td><strong>symbol</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -418,6 +420,62 @@
   <td>public,</td>
   <td>allocatable</td><td>::</td>
   <td><strong>lps</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-bes_j_qr"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>bes_J_qr</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>F</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f1"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>F1</strong>(:,:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f2"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>F2</strong>(:,:,:)</td><td></td><td></td><td></td>
   
 </tr>
 
@@ -474,62 +532,6 @@
   <td>public,</td>
   <td>allocatable</td><td>::</td>
   <td><strong>wps</strong>(:,:)</td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-f"></span>real(kind=dp),</td>
-  
-  <td>public,</td>
-  <td>allocatable</td><td>::</td>
-  <td><strong>F</strong>(:,:)</td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-f1"></span>real(kind=dp),</td>
-  
-  <td>public,</td>
-  <td>allocatable</td><td>::</td>
-  <td><strong>F1</strong>(:,:,:)</td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-f2"></span>real(kind=dp),</td>
-  
-  <td>public,</td>
-  <td>allocatable</td><td>::</td>
-  <td><strong>F2</strong>(:,:,:)</td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-bes_j_qr"></span>real(kind=dp),</td>
-  
-  <td>public,</td>
-  <td>allocatable</td><td>::</td>
-  <td><strong>bes_J_qr</strong>(:,:)</td><td></td><td></td><td></td>
   
 </tr>
 

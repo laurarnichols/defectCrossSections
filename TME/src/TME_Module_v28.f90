@@ -14,14 +14,14 @@ module TMEModule
     !! ID of the root process
   !
   ! Declare real parameters
-  real(kind = dp), parameter ::          pi = 3.141592653589793_dp
-    !! Pi
-  real(kind = dp), parameter ::       sq4pi = 3.544907701811032_dp
-    !! \(\sqrt{4\pi}\)
   real(kind = dp), parameter :: evToHartree = 0.03674932538878_dp
     !! Conversion factor from eV to Hartree
   real(kind = dp), parameter :: HartreeToEv = 27.21138386_dp
     !! Conversion factor from Hartree to eV
+  real(kind = dp), parameter :: pi = 3.141592653589793_dp
+    !! Pi
+  real(kind = dp), parameter :: sq4pi = 3.544907701811032_dp
+    !! \(\sqrt{4\pi}\)
   !
   ! Declare complex parameter
   complex(kind = dp), parameter ::    ii = cmplx(0.0_dp, 1.0_dp, kind = dp)
@@ -104,42 +104,99 @@ module TMEModule
   integer :: numprocs
     !! Number of processes in the MPI pool
   !
+  ! Declare scalar reals
+  real(kind = dp) :: eBin
+  real(kind = dp) t0
+    !! Start time for program
+  real(kind = dp) tf
+    !! End time for program
+  real(kind = dp) :: omega
+  real(kind = dp) :: threej
+  !
+  ! Declare scalar complex numbers
+  complex(kind = dp) :: paw
+  complex(kind = dp) :: paw2
+  complex(kind = dp) :: pseudo1
+  complex(kind = dp) :: pseudo2
+  !
+  ! Define scalar logicals
+  logical :: calculateVfis
+  logical :: coulomb
+  logical :: gamma_only
+  logical :: master
+  logical :: tmes_file_exists
+  !
   ! Declare scalar characters
+  character(len = 300) :: elementsPath
   character(len = 200) :: exportDirSD
     !! SD output directory from the [[pw_export_for_TME(program)]] program
   character(len = 200) :: exportDirPC
     !! PC output directory from the [[pw_export_for_TME(program)]] program
-  character(len = 200) :: VfisOutput
-    !! Output file for ??
   character(len = 300) :: input
   character(len = 300) :: inputPC
-  character(len = 300) :: textDum
-    !! Dummy variable to hold unneeded lines from input file
-  character(len = 300) :: elementsPath
   character(len = 320) :: mkdir
     !! Command for creating the elements path directory
+  character(len = 300) :: textDum
+    !! Dummy variable to hold unneeded lines from input file
+  character(len = 200) :: VfisOutput
+    !! Output file for ??
   !
-  integer, allocatable :: counts(:), displmnt(:), nPWsI(:), nPWsF(:)
   !
-  real(kind = dp) t0, tf, at(3,3), bg(3,3)
-  !
-  real(kind = dp) :: omega, threej
-  !
-  real(kind = dp), allocatable :: eigvI(:), eigvF(:), gvecs(:,:), posIonSD(:,:), posIonPC(:,:)
-  real(kind = dp), allocatable :: wk(:), xk(:,:)
-  real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
-  !
-  complex(kind = dp), allocatable :: wfcPC(:,:), wfcSD(:,:), Ufi(:,:,:), paw_SDKKPC(:,:), paw_id(:,:)
-  complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
-  complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:), paw_fi(:,:)
-  complex(kind = dp), allocatable :: paw_PsiPC(:,:), paw_SDPhi(:,:)
-  complex(kind = dp), allocatable :: betaPC(:,:), cProjBetaPCPsiSD(:,:,:)
-  complex(kind = dp), allocatable :: betaSD(:,:), cProjBetaSDPhiPC(:,:,:)
-  !
-  integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:), groundState(:)
-  integer, allocatable :: npwsSD(:), pwGindPC(:), pwGindSD(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
+  ! Declare matrix/vector integers
+  integer, allocatable :: counts(:)
+  integer, allocatable :: displmnt(:)
+  integer, allocatable :: groundState(:)
+  integer, allocatable :: igvs(:,:,:)
+  integer, allocatable :: iqs(:)
+  integer, allocatable :: nFs(:,:)
+  integer, allocatable :: ngs(:,:)
+  integer, allocatable :: nIs(:,:)
+  integer, allocatable :: nPWsI(:)
+  integer, allocatable :: nPWsF(:)
   integer, allocatable :: npwsPC(:)
-  real(kind = dp), allocatable :: wkPC(:), xkPC(:,:)
+  integer, allocatable :: npwsSD(:)
+  integer, allocatable :: pwGindPC(:)
+  integer, allocatable :: pwGindSD(:)
+  integer, allocatable :: pwGvecs(:,:)
+  integer, allocatable :: pwGs(:,:)
+  integer, allocatable :: TYPNIPC(:)
+  integer, allocatable :: TYPNISD(:)
+  !
+  ! Declare matrix/vector reals
+  real(kind = dp) at(3,3)
+  real(kind = dp) bg(3,3)
+  real(kind = dp), allocatable :: absVfi2(:,:)
+  real(kind = dp), allocatable :: DE(:,:)
+  real(kind = dp), allocatable :: eigvF(:)
+  real(kind = dp), allocatable :: eigvI(:)
+  real(kind = dp), allocatable :: gvecs(:,:)
+  real(kind = dp), allocatable :: posIonPC(:,:)
+  real(kind = dp), allocatable :: posIonSD(:,:)
+  real(kind = dp), allocatable :: wk(:)
+  real(kind = dp), allocatable :: wkPC(:)
+  real(kind = dp), allocatable :: xk(:,:)
+  real(kind = dp), allocatable :: xkPC(:,:)
+  !
+  ! Declare matrix/vector complex numbers
+  complex(kind = dp), allocatable :: betaPC(:,:)
+  complex(kind = dp), allocatable :: betaSD(:,:)
+  complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:,:)
+  complex(kind = dp), allocatable :: cProjBetaSDPhiPC(:,:,:)
+  complex(kind = dp), allocatable :: cProjPC(:,:,:)
+  complex(kind = dp), allocatable :: cProjSD(:,:,:)
+  complex(kind = dp), allocatable :: paw_id(:,:)
+  complex(kind = dp), allocatable :: paw_fi(:,:)
+  complex(kind = dp), allocatable :: pawKPC(:,:,:)
+  complex(kind = dp), allocatable :: paw_PsiPC(:,:)
+  complex(kind = dp), allocatable :: pawPsiPC(:,:)
+  complex(kind = dp), allocatable :: pawSDK(:,:,:)
+  complex(kind = dp), allocatable :: paw_SDPhi(:,:)
+  complex(kind = dp), allocatable :: pawSDPhi(:,:)
+  complex(kind = dp), allocatable :: paw_SDKKPC(:,:)
+  complex(kind = dp), allocatable :: Ufi(:,:,:)
+  complex(kind = dp), allocatable :: wfcPC(:,:)
+  complex(kind = dp), allocatable :: wfcSD(:,:)
+  !
   !
 !  type :: crystal
 !    integer :: Jmax, maxL, iTypes, nn, nm
@@ -165,29 +222,56 @@ module TMEModule
 !  end type crystal
   !
   type :: atom
+    !! Define a new type to represent an atom in the structure. 
+    !! Each different type of atom in the structure will be another
+    !! variable with the type `atom`. 
+    !
+    ! Define scalar integers
+    integer :: iRc
+    integer :: numOfAtoms
+      !! Number of atoms of a specific type in the structure
+    integer :: lMax
+    integer :: lmMax
+    integer :: nMax
+    ! 
+    ! Define scalar character
     character(len = 2) :: symbol
-    integer :: numOfAtoms, lMax, lmMax, nMax, iRc
+    !
+    ! Define matrix/vector integer
     integer, allocatable :: lps(:)
-    real(kind = dp), allocatable :: r(:), rab(:), wae(:,:), wps(:,:), F(:,:), F1(:,:,:), F2(:,:,:), bes_J_qr(:,:)
+    !
+    ! Define matrix/vector reals
+    real(kind = dp), allocatable :: bes_J_qr(:,:)
+    real(kind = dp), allocatable :: F(:,:)
+    real(kind = dp), allocatable :: F1(:,:,:)
+    real(kind = dp), allocatable :: F2(:,:,:)
+    real(kind = dp), allocatable :: r(:)
+    real(kind = dp), allocatable :: rab(:)
+    real(kind = dp), allocatable :: wae(:,:)
+    real(kind = dp), allocatable :: wps(:,:)
+    !
   end type atom
   !
-  TYPE(atom), allocatable :: atoms(:), atomsPC(:)
+  ! Define vectors of atoms
+  TYPE(atom), allocatable :: atoms(:)
+  TYPE(atom), allocatable :: atomsPC(:)
   !
   type :: vec
+    !
     integer :: ind
-    integer, allocatable :: igN(:), igM(:)
+    integer, allocatable :: igN(:)
+    integer, allocatable :: igM(:)
   end type vec
   !
-  TYPE(vec), allocatable :: vecs(:), newVecs(:)
+  ! Define vectors of vecs
+  TYPE(vec), allocatable :: vecs(:)
+  TYPE(vec), allocatable :: newVecs(:)
   !
-  real(kind = dp) :: eBin
-  complex(kind = dp) :: paw, pseudo1, pseudo2, paw2
-  !
-  logical :: gamma_only, master, calculateVfis, coulomb, tmes_file_exists
   !
   NAMELIST /TME_Input/ exportDirSD, exportDirPC, elementsPath, &
                        iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
                        ki, kf, calculateVfis, VfisOutput, eBin
+                       !! Used to group the variables read in from the .in file
   !
   !
 contains
