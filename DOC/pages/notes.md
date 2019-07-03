@@ -1,4 +1,6 @@
-# Notes
+title: Notes
+author: Laura Nichols
+date: 7/3/2019
 
 * Can use `xcrysden` to visualize QE input and output
 * Can convert from QE output to xsf (VASP format) using `PW/tools/pwo2xsf.sh`

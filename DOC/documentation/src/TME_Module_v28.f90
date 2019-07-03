@@ -282,10 +282,7 @@ contains
     !! Delete any previous output, initialize input variables,
     !! start a timer, and read in the input files
     !!
-    !! @todo
-    !! Change this subroutine to have arguments to make clear 
-    !! that these variables are getting changed
-    !! @endtodo
+    !! @todo Change this subroutine to have arguments to make clear that these variables are getting changed @endtodo
     !!
     implicit none
     !
@@ -336,10 +333,7 @@ contains
     !! Set default values for all of the input variables
     !! that can easily be tested to see if they were changed
     !!
-    !! @todo
-    !! Change this subroutine to have arguments to make clear 
-    !! that these variables are getting changed
-    !! @endtodo
+    !! @todo Change this subroutine to have arguments to make clear that these variables are getting changed @endtodo
     !!
     implicit none
     !
@@ -374,20 +368,15 @@ contains
     !!
     !! <h2>Walkthrough</h2>
     !!
-    !! @todo
-    !! Change this subroutine to have arguments to make clear 
-    !! that these variables are getting changed
-    !! @endtodo
+    !! @todo Change this subroutine to have arguments to make clear that these variables are getting changed @endtodo
     !!
     implicit none
     !
     logical :: file_exists
       !! Whether or not the exported directory from [[pw_export_for_TME(program)]]
       !! exists
-      !!
-      !! @todo
-      !! Change `file_exists` to `fileExists`
-      !! @endtodo
+    !>
+    !> @todo Change `file_exists` to `fileExists` @endtodo
     logical:: abortExecution
     !
     abortExecution = .false.
@@ -573,9 +562,7 @@ contains
     !
     write(iostd, '("VfisOutput = ''", a, "''")') trim(VfisOutput)
       !! * Output the value of `VfisOutput`
-    !> @todo
-    !> Check if there is any kind of check on `ki` and `kf`. Why was this commented out?
-    !> @endtodo
+    !> @todo Check if there is any kind of check on `ki` and `kf`. Why was this commented out? @endtodo
     !
     !if ( ki < 0 ) then
     !  write(iostd, *)
@@ -645,10 +632,7 @@ contains
     !!
     !! <h2>Walkthrough</h2>
     !!
-    !! @todo
-    !! Change this subroutine to have arguments so that it is
-    !! clear that these variables are getting changed
-    !! @endtodo
+    !! @todo Change this subroutine to have arguments so that it is clear that these variables are getting changed @endtodo
     !
     implicit none
     !
@@ -663,9 +647,7 @@ contains
     logical :: file_exists
       !! Whether or not the `input` file exists in the given 
       !! Export directory
-      !! @todo
-      !! Change `file_exists` to `fileExists`
-      !! @endtodo
+    !> @todo Change `file_exists` to `fileExists` @endtodo
     !
     call cpu_time(t1)
       !! * Start a local timer
@@ -695,12 +677,8 @@ contains
     !
     !...............................................................................................
     !> * Open and read the input file
-    !> @todo
-    !> Create documentation for the input file and link to it here
-    !> @endtodo
-    !> @todo
-    !> Add information about these variables to top
-    !> @endtodo
+    !> @todo Create documentation for the input file and link to it here @endtodo
+    !> @todo Add information about these variables to top @endtodo
     open(50, file=trim(inputPC), status = 'old')
     !
     read(50, '(a)') textDum
@@ -824,12 +802,8 @@ contains
       atomsPC(iType)%F2 = 0.0_dp
       !
       !> * Calculate `F`, `F1`, and `F2` using the all-electron and psuedowvefunctions
-      !> @todo
-      !> Look more into how AE and PS wavefunctions are combined to further understand this
-      !> @endtodo
-      !> @todo
-      !> Move this behavior to another subroutine for clarity
-      !> @endtodo
+      !> @todo Look more into how AE and PS wavefunctions are combined to further understand this @endtodo
+      !> @todo Move this behavior to another subroutine for clarity @endtodo
       do j = 1, atomsPC(iType)%lMax
         !
         irc = atomsPC(iType)%iRc

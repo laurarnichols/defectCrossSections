@@ -49,6 +49,8 @@
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
         
+            <li><a href='../page/index.html'>README</a></li>
+      
             <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
               <a href="#" class="dropdown-toggle"
               data-toggle="dropdown" role="button"
@@ -216,17 +218,12 @@ public subroutine readInputPC()
     <p>Read input files in the Export directory created by
  <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
 <p><h2>Walkthrough</h2></p>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change this subroutine to have arguments so that it is
- clear that these variables are getting changed
- </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change this subroutine to have arguments so that it is clear that these variables are getting changed </p></div>
 <p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>file_exists</code> to <code>fileExists</code> </p></div>
+<p>* Start a local timer</p>
 <ul>
-<li>
-<p>Start a local timer</p>
-</li>
-<li>
-<p>Output header to output file</p>
-</li>
+<li>Output header to output file</li>
 <li>
 <p>Set the path for the input file from the PC export directory</p>
 </li>
@@ -241,18 +238,14 @@ public subroutine readInputPC()
 </li>
 <li>
 <p>Open and read the input file
- </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Create documentation for the input file and link to it here
- </p></div>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Add information about these variables to top
- </p></div>
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Create documentation for the input file and link to it here </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Add information about these variables to top </p></div>
 <p>
 </li>
 <li>
 <p>Calculate <code>F</code>, <code>F1</code>, and <code>F2</code> using the all-electron and psuedowvefunctions
- </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Look more into how AE and PS wavefunctions are combined to further understand this
- </p></div>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Move this behavior to another subroutine for clarity
- </p></div>
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Look more into how AE and PS wavefunctions are combined to further understand this </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Move this behavior to another subroutine for clarity </p></div>
 <p>
 </li>
 <li>
@@ -341,10 +334,7 @@ public subroutine readInputPC()
     <span class="c">!!</span>
     <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
     <span class="c">!!</span>
-    <span class="c">!! @todo</span>
-    <span class="c">!! Change this subroutine to have arguments so that it is</span>
-    <span class="c">!! clear that these variables are getting changed</span>
-    <span class="c">!! @endtodo</span>
+    <span class="c">!! @todo Change this subroutine to have arguments so that it is clear that these variables are getting changed @endtodo</span>
     <span class="c">!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
@@ -359,9 +349,7 @@ public subroutine readInputPC()
     <span class="kt">logical</span> <span class="kd">::</span> <span class="n">file_exists</span>
       <span class="c">!! Whether or not the `input` file exists in the given </span>
       <span class="c">!! Export directory</span>
-      <span class="c">!! @todo</span>
-      <span class="c">!! Change `file_exists` to `fileExists`</span>
-      <span class="c">!! @endtodo</span>
+    <span class="c">!&gt; @todo Change `file_exists` to `fileExists` @endtodo</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
       <span class="c">!! * Start a local timer</span>
@@ -391,12 +379,8 @@ public subroutine readInputPC()
     <span class="c">!</span>
     <span class="c">!...............................................................................................</span>
     <span class="c">!&gt; * Open and read the input file</span>
-    <span class="c">!&gt; @todo</span>
-    <span class="c">!&gt; Create documentation for the input file and link to it here</span>
-    <span class="c">!&gt; @endtodo</span>
-    <span class="c">!&gt; @todo</span>
-    <span class="c">!&gt; Add information about these variables to top</span>
-    <span class="c">!&gt; @endtodo</span>
+    <span class="c">!&gt; @todo Create documentation for the input file and link to it here @endtodo</span>
+    <span class="c">!&gt; @todo Add information about these variables to top @endtodo</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">inputPC</span><span class="p">),</span> <span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;old&#39;</span><span class="p">)</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
@@ -520,12 +504,8 @@ public subroutine readInputPC()
       <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F2</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
       <span class="c">!</span>
       <span class="c">!&gt; * Calculate `F`, `F1`, and `F2` using the all-electron and psuedowvefunctions</span>
-      <span class="c">!&gt; @todo</span>
-      <span class="c">!&gt; Look more into how AE and PS wavefunctions are combined to further understand this</span>
-      <span class="c">!&gt; @endtodo</span>
-      <span class="c">!&gt; @todo</span>
-      <span class="c">!&gt; Move this behavior to another subroutine for clarity</span>
-      <span class="c">!&gt; @endtodo</span>
+      <span class="c">!&gt; @todo Look more into how AE and PS wavefunctions are combined to further understand this @endtodo</span>
+      <span class="c">!&gt; @todo Move this behavior to another subroutine for clarity @endtodo</span>
       <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
         <span class="c">!</span>
         <span class="n">irc</span> <span class="o">=</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span>
