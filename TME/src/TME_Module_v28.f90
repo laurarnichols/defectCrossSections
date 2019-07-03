@@ -675,7 +675,7 @@ contains
     endif
     !
     !...............................................................................................
-    !> * Open and read the [input](./pages/inputOutput/input) file
+    !> * Open and read the [input](../../pages/inputOutput/input) file
     !> @todo Add information about these variables to top @endtodo
     open(50, file=trim(inputPC), status = 'old')
     !
