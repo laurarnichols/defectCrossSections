@@ -1166,7 +1166,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>fftxMin</strong></td><td></td><td></td><td></td>
+  <td><strong>fftxMin</strong></td><td></td><td></td><td><p>x min for fft grid; not read in from PC input</p></td>
   
 </tr>
 
@@ -1180,7 +1180,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>fftxMax</strong></td><td></td><td></td><td></td>
+  <td><strong>fftxMax</strong></td><td></td><td></td><td><p>x max for fft grid; not read in from PC input</p></td>
   
 </tr>
 
@@ -1194,7 +1194,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>fftyMin</strong></td><td></td><td></td><td></td>
+  <td><strong>fftyMin</strong></td><td></td><td></td><td><p>y min for fft grid; not read in from PC input</p></td>
   
 </tr>
 
@@ -1208,7 +1208,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>fftyMax</strong></td><td></td><td></td><td></td>
+  <td><strong>fftyMax</strong></td><td></td><td></td><td><p>y max for fft grid; not read in from PC input</p></td>
   
 </tr>
 
@@ -1222,7 +1222,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>fftzMin</strong></td><td></td><td></td><td></td>
+  <td><strong>fftzMin</strong></td><td></td><td></td><td><p>z min for fft grid; not read in from PC input</p></td>
   
 </tr>
 
@@ -1236,7 +1236,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>fftzMax</strong></td><td></td><td></td><td></td>
+  <td><strong>fftzMax</strong></td><td></td><td></td><td><p>z max for fft grid; not read in from PC input</p></td>
   
 </tr>
 
@@ -1754,7 +1754,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>nIonsPC</strong></td><td></td><td></td><td></td>
+  <td><strong>nIonsPC</strong></td><td></td><td></td><td><p>Number of atoms in the PC input file</p></td>
   
 </tr>
 
@@ -1796,7 +1796,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>nKptsPC</strong></td><td></td><td></td><td></td>
+  <td><strong>nKptsPC</strong></td><td></td><td></td><td><p>The number of PC k points</p></td>
   
 </tr>
 
@@ -1964,7 +1964,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>numOfGvecs</strong></td><td></td><td></td><td></td>
+  <td><strong>numOfGvecs</strong></td><td></td><td></td><td><p>Number of G vectors; not read in from PC input</p></td>
   
 </tr>
 
@@ -1992,7 +1992,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>numOfPWsPC</strong></td><td></td><td></td><td></td>
+  <td><strong>numOfPWsPC</strong></td><td></td><td></td><td><p>Total number of plane waves from PC input</p></td>
   
 </tr>
 
@@ -2034,7 +2034,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>numOfTypesPC</strong></td><td></td><td></td><td></td>
+  <td><strong>numOfTypesPC</strong></td><td></td><td></td><td><p>Number of types of atoms in the PC input file</p></td>
   
 </tr>
 
@@ -2328,7 +2328,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>inputPC</strong></td><td></td><td></td><td></td>
+  <td><strong>inputPC</strong></td><td></td><td></td><td><p>The PC input file path</p></td>
   
 </tr>
 
@@ -2524,7 +2524,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>npwsPC</strong>(:)</td><td></td><td></td><td></td>
+  <td><strong>npwsPC</strong>(:)</td><td></td><td></td><td><p>Number of plane waves per k point; allocated in <code>readInputPC()</code></p></td>
   
 </tr>
 
@@ -2608,7 +2608,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>TYPNIPC</strong>(:)</td><td></td><td></td><td></td>
+  <td><strong>TYPNIPC</strong>(:)</td><td></td><td></td><td><p>Index of the type for a given atom from the PC input file</p></td>
   
 </tr>
 
@@ -2734,7 +2734,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>posIonPC</strong>(:,:)</td><td></td><td></td><td></td>
+  <td><strong>posIonPC</strong>(:,:)</td><td></td><td></td><td><p>Position of the atoms in the PC input file</p></td>
   
 </tr>
 
@@ -2776,7 +2776,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>wkPC</strong>(:)</td><td></td><td></td><td></td>
+  <td><strong>wkPC</strong>(:)</td><td></td><td></td><td><p>Allocated in <code>readInputPC()</code></p></td>
   
 </tr>
 
@@ -2804,7 +2804,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>xkPC</strong>(:,:)</td><td></td><td></td><td></td>
+  <td><strong>xkPC</strong>(:,:)</td><td></td><td></td><td><p>Allocated in <code>readInputPC()</code></p></td>
   
 </tr>
 
@@ -3084,7 +3084,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>atomsPC</strong>(:)</td><td></td><td></td><td></td>
+  <td><strong>atomsPC</strong>(:)</td><td></td><td></td><td><p>Holds the atoms from the PC input file; allocated in <code>readInputPC()</code></p></td>
   
 </tr>
 

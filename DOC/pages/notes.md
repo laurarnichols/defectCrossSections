@@ -10,3 +10,4 @@ date: 7/3/2019
   * optimized structure: extracts the optimized structure, if it is not present it extracts nothing
   * all structures as animation 
 * *What is the purpose of the QE calculation?* --> **Explore the TME program**
+* Could PC mean pristine crystal and SD mean single defect??

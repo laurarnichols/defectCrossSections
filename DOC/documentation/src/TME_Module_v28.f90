@@ -35,11 +35,17 @@ module TMEModule
   ! 
   ! Declare scalar integers
   integer :: fftxMin
+    !! x min for fft grid; not read in from PC input
   integer :: fftxMax
+    !! x max for fft grid; not read in from PC input
   integer :: fftyMin
+    !! y min for fft grid; not read in from PC input
   integer :: fftyMax
+    !! y max for fft grid; not read in from PC input
   integer :: fftzMin
+    !! z min for fft grid; not read in from PC input
   integer :: fftzMax
+    !! z max for fft grid; not read in from PC input
   integer :: gx
   integer :: gy
   integer :: gz
@@ -80,9 +86,11 @@ module TMEModule
   integer :: nGvsI
   integer :: nI
   integer :: nIonsPC
+    !! Number of atoms in the PC input file
   integer :: nIonsSD
   integer :: nKpts
   integer :: nKptsPC
+    !! The number of PC k points
   integer :: np
   integer :: nPP
   integer :: nProjsPC
@@ -95,11 +103,14 @@ module TMEModule
   integer :: nSquareProcs
   integer :: nSpins
   integer :: numOfGvecs
+    !! Number of G vectors; not read in from PC input
   integer :: numOfPWs
   integer :: numOfPWsPC
+    !! Total number of plane waves from PC input
   integer :: numOfPWsSD
   integer :: numOfTypes
   integer :: numOfTypesPC
+    !! Number of types of atoms in the PC input file
   integer :: numOfUsedGvecsPP
   integer :: numprocs
     !! Number of processes in the MPI pool
@@ -134,6 +145,7 @@ module TMEModule
     !! PC output directory from the [[pw_export_for_TME(program)]] program
   character(len = 300) :: input
   character(len = 300) :: inputPC
+    !! The PC input file path
   character(len = 320) :: mkdir
     !! Command for creating the elements path directory
   character(len = 300) :: textDum
@@ -154,12 +166,14 @@ module TMEModule
   integer, allocatable :: nPWsI(:)
   integer, allocatable :: nPWsF(:)
   integer, allocatable :: npwsPC(:)
+    !! Number of plane waves per k point; allocated in `readInputPC()`
   integer, allocatable :: npwsSD(:)
   integer, allocatable :: pwGindPC(:)
   integer, allocatable :: pwGindSD(:)
   integer, allocatable :: pwGvecs(:,:)
   integer, allocatable :: pwGs(:,:)
   integer, allocatable :: TYPNIPC(:)
+    !! Index of the type for a given atom from the PC input file
   integer, allocatable :: TYPNISD(:)
   !
   ! Declare matrix/vector reals
@@ -171,11 +185,14 @@ module TMEModule
   real(kind = dp), allocatable :: eigvI(:)
   real(kind = dp), allocatable :: gvecs(:,:)
   real(kind = dp), allocatable :: posIonPC(:,:)
+    !! Position of the atoms in the PC input file
   real(kind = dp), allocatable :: posIonSD(:,:)
   real(kind = dp), allocatable :: wk(:)
   real(kind = dp), allocatable :: wkPC(:)
+    !! Allocated in `readInputPC()`
   real(kind = dp), allocatable :: xk(:,:)
   real(kind = dp), allocatable :: xkPC(:,:)
+    !! Allocated in `readInputPC()`
   !
   ! Declare matrix/vector complex numbers
   complex(kind = dp), allocatable :: betaPC(:,:)
@@ -255,6 +272,7 @@ module TMEModule
   ! Define vectors of atoms
   TYPE(atom), allocatable :: atoms(:)
   TYPE(atom), allocatable :: atomsPC(:)
+    !! Holds the atoms from the PC input file; allocated in `readInputPC()`
   !
   type :: vec
     !
@@ -729,6 +747,7 @@ contains
     do ni = 1, nIonsPC
       !
       read(50,'(i10, 3ES24.15E3)') TYPNIPC(ni), (posIonPC(j,ni) , j = 1,3)
+        !! @todo Change `(posIonPC(j,ni) , j = 1,3)` to `posIonPC(1:3,ni)` in `readInputPC()` for clarity @endtodo
       !
     enddo
     !
