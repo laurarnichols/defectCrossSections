@@ -68,9 +68,11 @@ module TMEModule
   integer :: iTypes
   integer :: j
   integer :: JMAX
+    !! \(2*L_{\text{max}} + 1\)
   integer :: kf
   integer :: ki
   integer :: maxL
+    !! Maximum angular momentum of projector from any atom type
   integer :: myid
     !! ID for each MPI process
   integer :: n
@@ -246,12 +248,16 @@ module TMEModule
     !
     ! Define scalar integers
     integer :: iRc
+      !! Maximum radius of beta projector (outer radius to integrate);
+      !! for PAW augmentation charge may extend a bit further
     integer :: numOfAtoms
       !! Number of atoms of a specific type in the structure
     integer :: lMax
       !! Number of projectors
     integer :: lmMax
+      !! Number of channels
     integer :: nMax
+      !! Number of radial mesh points
     ! 
     ! Define scalar character
     character(len = 2) :: symbol
@@ -259,7 +265,7 @@ module TMEModule
     !
     ! Define matrix/vector integer
     integer, allocatable :: lps(:)
-      !! Allocated based on 
+      !! Angular momentum of each projector
     !
     ! Define matrix/vector reals
     real(kind = dp), allocatable :: bes_J_qr(:,:)
@@ -267,9 +273,13 @@ module TMEModule
     real(kind = dp), allocatable :: F1(:,:,:)
     real(kind = dp), allocatable :: F2(:,:,:)
     real(kind = dp), allocatable :: r(:)
+      !! Radial mesh
     real(kind = dp), allocatable :: rab(:)
+      !! Derivative of radial mesh
     real(kind = dp), allocatable :: wae(:,:)
+      !! All electron wavefunction
     real(kind = dp), allocatable :: wps(:,:)
+      !! Psuedowavefunction
     !
   end type atom
   !
@@ -1159,6 +1169,7 @@ contains
   !
   !
   subroutine readInputSD()
+    !! @todo Combine `readInputSD()` and `readInputPC()`
     !
     implicit none
     !

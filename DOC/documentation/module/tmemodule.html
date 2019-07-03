@@ -1516,7 +1516,9 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>JMAX</strong></td><td></td><td></td><td></td>
+  <td><strong>JMAX</strong></td><td></td><td></td><td><p>
+<script type="math/tex">2*L_{\text{max}} + 1</script>
+</p></td>
   
 </tr>
 
@@ -1558,7 +1560,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>maxL</strong></td><td></td><td></td><td></td>
+  <td><strong>maxL</strong></td><td></td><td></td><td><p>Maximum angular momentum of projector from any atom type</p></td>
   
 </tr>
 
@@ -3168,7 +3170,8 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iRc</strong></td><td></td><td></td><td></td>
+  <td><strong>iRc</strong></td><td></td><td></td><td><p>Maximum radius of beta projector (outer radius to integrate);
+ for PAW augmentation charge may extend a bit further</p></td>
   
 </tr>
 
@@ -3210,7 +3213,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>lmMax</strong></td><td></td><td></td><td></td>
+  <td><strong>lmMax</strong></td><td></td><td></td><td><p>Number of channels</p></td>
   
 </tr>
 
@@ -3224,7 +3227,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>nMax</strong></td><td></td><td></td><td></td>
+  <td><strong>nMax</strong></td><td></td><td></td><td><p>Number of radial mesh points</p></td>
   
 </tr>
 
@@ -3252,7 +3255,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>lps</strong>(:)</td><td></td><td></td><td><p>Allocated based on </p></td>
+  <td><strong>lps</strong>(:)</td><td></td><td></td><td><p>Angular momentum of each projector</p></td>
   
 </tr>
 
@@ -3322,7 +3325,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>r</strong>(:)</td><td></td><td></td><td></td>
+  <td><strong>r</strong>(:)</td><td></td><td></td><td><p>Radial mesh</p></td>
   
 </tr>
 
@@ -3336,7 +3339,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>rab</strong>(:)</td><td></td><td></td><td></td>
+  <td><strong>rab</strong>(:)</td><td></td><td></td><td><p>Derivative of radial mesh</p></td>
   
 </tr>
 
@@ -3350,7 +3353,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>wae</strong>(:,:)</td><td></td><td></td><td></td>
+  <td><strong>wae</strong>(:,:)</td><td></td><td></td><td><p>All electron wavefunction</p></td>
   
 </tr>
 
@@ -3364,7 +3367,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>wps</strong>(:,:)</td><td></td><td></td><td></td>
+  <td><strong>wps</strong>(:,:)</td><td></td><td></td><td><p>Psuedowavefunction</p></td>
   
 </tr>
 
@@ -3926,6 +3929,14 @@ public subroutine <a href='../proc/readinputsd.html'>readInputSD</a>()
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p></p><a href="../proc/readinputsd.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     

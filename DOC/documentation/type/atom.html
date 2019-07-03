@@ -355,7 +355,8 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iRc</strong></td><td></td><td></td><td></td>
+  <td><strong>iRc</strong></td><td></td><td></td><td><p>Maximum radius of beta projector (outer radius to integrate);
+ for PAW augmentation charge may extend a bit further</p></td>
   
 </tr>
 
@@ -397,7 +398,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>lmMax</strong></td><td></td><td></td><td></td>
+  <td><strong>lmMax</strong></td><td></td><td></td><td><p>Number of channels</p></td>
   
 </tr>
 
@@ -411,7 +412,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>nMax</strong></td><td></td><td></td><td></td>
+  <td><strong>nMax</strong></td><td></td><td></td><td><p>Number of radial mesh points</p></td>
   
 </tr>
 
@@ -439,7 +440,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>lps</strong>(:)</td><td></td><td></td><td><p>Allocated based on </p></td>
+  <td><strong>lps</strong>(:)</td><td></td><td></td><td><p>Angular momentum of each projector</p></td>
   
 </tr>
 
@@ -509,7 +510,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>r</strong>(:)</td><td></td><td></td><td></td>
+  <td><strong>r</strong>(:)</td><td></td><td></td><td><p>Radial mesh</p></td>
   
 </tr>
 
@@ -523,7 +524,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>rab</strong>(:)</td><td></td><td></td><td></td>
+  <td><strong>rab</strong>(:)</td><td></td><td></td><td><p>Derivative of radial mesh</p></td>
   
 </tr>
 
@@ -537,7 +538,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>wae</strong>(:,:)</td><td></td><td></td><td></td>
+  <td><strong>wae</strong>(:,:)</td><td></td><td></td><td><p>All electron wavefunction</p></td>
   
 </tr>
 
@@ -551,7 +552,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>wps</strong>(:,:)</td><td></td><td></td><td></td>
+  <td><strong>wps</strong>(:,:)</td><td></td><td></td><td><p>Psuedowavefunction</p></td>
   
 </tr>
 
@@ -579,12 +580,16 @@
     <span class="c">!</span>
     <span class="c">! Define scalar integers</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iRc</span>
+      <span class="c">!! Maximum radius of beta projector (outer radius to integrate);</span>
+      <span class="c">!! for PAW augmentation charge may extend a bit further</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">numOfAtoms</span>
       <span class="c">!! Number of atoms of a specific type in the structure</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">lMax</span>
       <span class="c">!! Number of projectors</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">lmMax</span>
+      <span class="c">!! Number of channels</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nMax</span>
+      <span class="c">!! Number of radial mesh points</span>
     <span class="c">! </span>
     <span class="c">! Define scalar character</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="kd">::</span> <span class="n">symbol</span>
@@ -592,7 +597,7 @@
     <span class="c">!</span>
     <span class="c">! Define matrix/vector integer</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">lps</span><span class="p">(:)</span>
-      <span class="c">!! Allocated based on </span>
+      <span class="c">!! Angular momentum of each projector</span>
     <span class="c">!</span>
     <span class="c">! Define matrix/vector reals</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">bes_J_qr</span><span class="p">(:,:)</span>
@@ -600,9 +605,13 @@
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">F1</span><span class="p">(:,:,:)</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">F2</span><span class="p">(:,:,:)</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">r</span><span class="p">(:)</span>
+      <span class="c">!! Radial mesh</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">rab</span><span class="p">(:)</span>
+      <span class="c">!! Derivative of radial mesh</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">wae</span><span class="p">(:,:)</span>
+      <span class="c">!! All electron wavefunction</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">wps</span><span class="p">(:,:)</span>
+      <span class="c">!! Psuedowavefunction</span>
     <span class="c">!</span>
   <span class="k">end type </span><span class="n">atom</span>
 </pre></div>

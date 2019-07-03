@@ -142,20 +142,21 @@
   <div class="row">
     <div class="col-md-9 col-md-push-3" id='text'>
       <ul>
-<li><code>../TME/src/TME_Module_v28.f90:245:</code> Consider changing <code>atom</code> type to <code>element</code> since it holds more than one atom</li>
-<li><code>../TME/src/TME_Module_v28.f90:307:</code> Change <code>readInput()</code> to have arguments to make clear that these variables are getting changed</li>
-<li><code>../TME/src/TME_Module_v28.f90:313:</code> Change <code>file_exists</code> to <code>fileExists</code> in <code>readInput()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:338:</code> Figure out what the difference in PC and SD is</li>
-<li><code>../TME/src/TME_Module_v28.f90:357:</code> Change <code>initialize()</code> to have arguments to make clear that these variables are getting changed</li>
-<li><code>../TME/src/TME_Module_v28.f90:392:</code> Change <code>checkInitialization()</code> to have arguments to make clear that these variables are getting changed</li>
-<li><code>../TME/src/TME_Module_v28.f90:400:</code> Change <code>file_exists</code> to <code>fileExists</code> in <code>checkInitialization()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:586:</code> Check if there is any kind of check on <code>ki</code> and <code>kf</code>. Why was this commented out?</li>
-<li><code>../TME/src/TME_Module_v28.f90:656:</code> Change <code>readInputPC()</code> to have arguments so that it is clear that these variables are getting changed</li>
-<li><code>../TME/src/TME_Module_v28.f90:671:</code> Change <code>file_exists</code> to <code>fileExists</code> in <code>readInputPC()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:701:</code> Add information about these variables to top</li>
-<li><code>../TME/src/TME_Module_v28.f90:754: Change</code>(posIonPC(j,ni) , j = 1,3)<code>to</code>posIonPC(1:<code>3,ni)</code> in <code>readInputPC()</code> for clarity</li>
-<li><code>../TME/src/TME_Module_v28.f90:826:</code> Look more into how AE and PS wavefunctions are combined to further understand this</li>
-<li><code>../TME/src/TME_Module_v28.f90:827:</code> Move this behavior to another subroutine for clarity</li>
+<li><code>../TME/src/TME_Module_v28.f90:247:</code> Consider changing <code>atom</code> type to <code>element</code> since it holds more than one atom</li>
+<li><code>../TME/src/TME_Module_v28.f90:317:</code> Change <code>readInput()</code> to have arguments to make clear that these variables are getting changed</li>
+<li><code>../TME/src/TME_Module_v28.f90:323:</code> Change <code>file_exists</code> to <code>fileExists</code> in <code>readInput()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:348:</code> Figure out what the difference in PC and SD is</li>
+<li><code>../TME/src/TME_Module_v28.f90:367:</code> Change <code>initialize()</code> to have arguments to make clear that these variables are getting changed</li>
+<li><code>../TME/src/TME_Module_v28.f90:402:</code> Change <code>checkInitialization()</code> to have arguments to make clear that these variables are getting changed</li>
+<li><code>../TME/src/TME_Module_v28.f90:410:</code> Change <code>file_exists</code> to <code>fileExists</code> in <code>checkInitialization()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:596:</code> Check if there is any kind of check on <code>ki</code> and <code>kf</code>. Why was this commented out?</li>
+<li><code>../TME/src/TME_Module_v28.f90:666:</code> Change <code>readInputPC()</code> to have arguments so that it is clear that these variables are getting changed</li>
+<li><code>../TME/src/TME_Module_v28.f90:681:</code> Change <code>file_exists</code> to <code>fileExists</code> in <code>readInputPC()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:711:</code> Add information about these variables to top</li>
+<li><code>../TME/src/TME_Module_v28.f90:764: Change</code>(posIonPC(j,ni) , j = 1,3)<code>to</code>posIonPC(1:<code>3,ni)</code> in <code>readInputPC()</code> for clarity</li>
+<li><code>../TME/src/TME_Module_v28.f90:836:</code> Look more into how AE and PS wavefunctions are combined to further understand this</li>
+<li><code>../TME/src/TME_Module_v28.f90:837:</code> Move this behavior to another subroutine for clarity</li>
+<li><code>../TME/src/TME_Module_v28.f90:1172:</code> Combine <code>readInputSD()</code> and <code>readInputPC()</code></li>
 </ul>
     </div>
     
