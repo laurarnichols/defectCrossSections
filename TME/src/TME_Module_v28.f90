@@ -277,7 +277,7 @@ module TMEModule
 !=====================================================================================================
 contains
   !
-  !---------------------------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------------------------------------------------------------
   subroutine readInput()
     !! Delete any previous output, initialize input variables,
     !! start a timer, and read in the input files
@@ -331,7 +331,7 @@ contains
   end subroutine readInput
   !
   !
-  !---------------------------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------------------------------------------------------------
   subroutine initialize()
     !! Set default values for all of the input variables
     !! that can easily be tested to see if they were changed
@@ -366,7 +366,7 @@ contains
   end subroutine initialize
   !
   !
-  !---------------------------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------------------------------------------------------------
   subroutine checkInitialization()
     !! Check to see if variables from .in file still
     !! have the values set in [[TMEModule(module):initialize(subroutine)]]
@@ -638,7 +638,7 @@ contains
   end subroutine checkInitialization
   !
   !
-  !---------------------------------------------------------------------------------------------------
+  !---------------------------------------------------------------------------------------------------------------------------------
   subroutine readInputPC()
     !! Read input files in the Export directory created by
     !! [[pw_export_for_tme(program)]]
@@ -693,9 +693,13 @@ contains
       !
     endif
     !
+    !...............................................................................................
     !> * Open and read the input file
     !> @todo
     !> Create documentation for the input file and link to it here
+    !> @endtodo
+    !> @todo
+    !> Add information about these variables to top
     !> @endtodo
     open(50, file=trim(inputPC), status = 'old')
     !
@@ -710,164 +714,126 @@ contains
     ! 
     allocate ( npwsPC(nKptsPC), wkPC(nKptsPC), xkPC(3,nKptsPC) )
     !
-    !! For each k point
     do ik = 1, nKptsPC
       !
-      !! Read in a line where you ignore the first two integers and store the rest
       read(50, '(3i10,4ES24.15E3)') iDum, iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
       !
     enddo
     !
-    !! Read in another comment
     read(50, '(a)') textDum
-    !! Read in the number of g vectors
     read(50, * ) ! numOfGvecs
     !
-    !! Read in another comment
     read(50, '(a)') textDum
-    ! Read in the total number of plane waves
     read(50, '(i10)') numOfPWsPC
     !
-    !! Read in another comment
     read(50, '(a)') textDum     
-    !! Read in the min/max values for the fft grid
     read(50, * ) ! fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
     !read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
     !
-    !! Read in another comment
     read(50, '(a)') textDum
-    !! Ignore the next 3 lines that hold the cell size in a.u.
     read(50,  * )
     read(50,  * )
     read(50,  * )
     !
-    !! Read in another comment
     read(50, '(a)') textDum
-    !! Ignore the next 3 lines that hold the reciprocal cell size in a.u.
     read(50, * )
     read(50, * )
     read(50, * )
     !
-    !! Read in another comment
     read(50, '(a)') textDum
-    !! Read in the number of atoms
     read(50, '(i10)') nIonsPC
     !
-    !! Read in another comment
     read(50, '(a)') textDum
-    !! Read in the number of different types of atoms
     read(50, '(i10)') numOfTypesPC
     !
-    !! Allocate space for arrays
     allocate( posIonPC(3,nIonsPC), TYPNIPC(nIonsPC) )
     !
-    !! Read in another comment
     read(50, '(a)') textDum
-    !! For each atom
+    !
     do ni = 1, nIonsPC
-      !! Read in the type index and position
+      !
       read(50,'(i10, 3ES24.15E3)') TYPNIPC(ni), (posIonPC(j,ni) , j = 1,3)
+      !
     enddo
     !
-    !! Read in another comment
     read(50, '(a)') textDum
-    !! Ignore the next line that has the number of bands
     read(50, * )
     !
-    !! Read in another comment
     read(50, '(a)') textDum
-    !! Ignore the next line that has the spin format
     read(50, * ) 
     !
-    !! Allocate space for array
     allocate ( atomsPC(numOfTypesPC) )
     !
-    !! Initialize the number of projectors to zero
     nProjsPC = 0
-    !! For each atom type
+    !
     do iType = 1, numOfTypesPC
       !
-      !! Read in a comment
       read(50, '(a)') textDum
-      !! Read in the element name (symbol) for this atom type
       read(50, *) atomsPC(iType)%symbol
       !
-      !! Read in a comment
       read(50, '(a)') textDum
-      !! Read in the number of atoms of this type
       read(50, '(i10)') atomsPC(iType)%numOfAtoms
       !
-      !! Read in a comment
       read(50, '(a)') textDum
-      !! Read in the number of projectors
       read(50, '(i10)') atomsPC(iType)%lMax              ! number of projectors
       !
-      !! Allocate space for the lps array based on the number of projectors input
       allocate ( atomsPC(iType)%lps( atomsPC(iType)%lMax ) )
       !
-      !! Read in a comment
       read(50, '(a)') textDum
-      !! For each projector
       do i = 1, atomsPC(iType)%lMax 
-        !! Read in the angular momentum and the index of the projector
+        !
         read(50, '(2i10)') l, ind
-        !! Store the value in the lps array in the atomsPC structure array
         atomsPC(iType)%lps(ind) = l
+        !
       enddo
       !
-      !! Read in a comment
       read(50, '(a)') textDum
-      !! Read in the number of channels
       read(50, '(i10)') atomsPC(iType)%lmMax
       !
-      !! Read in a comment
       read(50, '(a)') textDum
-      !! Read in the number of radial mesh points
       read(50, '(2i10)') atomsPC(iType)%nMax, atomsPC(iType)%iRc
       !
-      !! Allocate space for the r and rab arrays based on the size of the radial mesh
       allocate ( atomsPC(iType)%r(atomsPC(iType)%nMax), atomsPC(iType)%rab(atomsPC(iType)%nMax) )
       !
-      !! Read in a comment
       read(50, '(a)') textDum
-      !! For each point in the radial mesh
       do i = 1, atomsPC(iType)%nMax
-        !! Read in the radial grid and the integrable grid
+        !
         read(50, '(2ES24.15E3)') atomsPC(iType)%r(i), atomsPC(iType)%rab(i)
+        !
       enddo
       ! 
-      !! Allocate space for the ae and ps radial wavefunctions
       allocate ( atomsPC(iType)%wae(atomsPC(iType)%nMax, atomsPC(iType)%lMax) )
       allocate ( atomsPC(iType)%wps(atomsPC(iType)%nMax, atomsPC(iType)%lMax) )
       !
-      !! Read in a comment
       read(50, '(a)') textDum
-      !! For each projector
       do j = 1, atomsPC(iType)%lMax
-        !! For each radial mesh point
         do i = 1, atomsPC(iType)%nMax
-          !! Read in the ae and ps wavefunctions
+          !
           read(50, '(2ES24.15E3)') atomsPC(iType)%wae(i, j), atomsPC(iType)%wps(i, j) 
-!          write(iostd, '(2i5, ES24.15E3)') j, i, abs(atomsPC(iType)%wae(i, j)-atomsPC(iType)%wps(i, j))
+          ! write(iostd, '(2i5, ES24.15E3)') j, i, abs(atomsPC(iType)%wae(i, j)-atomsPC(iType)%wps(i, j))
+          !
         enddo
       enddo
       !  
-      !! Allocate spae for F, F1, and F2 arrays
       allocate ( atomsPC(iType)%F( atomsPC(iType)%iRc, atomsPC(iType)%lMax ) ) !, atomsPC(iType)%lMax) )
       allocate ( atomsPC(iType)%F1(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax ) )
       allocate ( atomsPC(iType)%F2(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax ) )
       !
-      !! Initialize all values to zero
       atomsPC(iType)%F = 0.0_dp
       atomsPC(iType)%F1 = 0.0_dp
       atomsPC(iType)%F2 = 0.0_dp
       !
-      !! For each projector
+      !> * Calculate `F`, `F1`, and `F2` using the all-electron and psuedowvefunctions
+      !> @todo
+      !> Look more into how AE and PS wavefunctions are combined to further understand this
+      !> @endtodo
+      !> @todo
+      !> Move this behavior to another subroutine for clarity
+      !> @endtodo
       do j = 1, atomsPC(iType)%lMax
         !
-        !! Store iRc for the given atom in a local variable
         irc = atomsPC(iType)%iRc
-        !! Calculate F, F1, and F2 ?????
+        !
         atomsPC(iType)%F(1:irc,j)=(atomsPC(iType)%wae(1:irc,j)-atomsPC(iType)%wps(1:irc,j))* &
               atomsPC(iType)%r(1:irc)*atomsPC(iType)%rab(1:irc)
         !
@@ -883,39 +849,42 @@ contains
         enddo
       enddo
       !
-      !! Sum the number of projections as the number of atoms per type times the number of channels per type
       nProjsPC = nProjsPC + atomsPC(iType)%numOfAtoms*atomsPC(iType)%lmMax
       !
 !      deallocate ( atomsPC(iType)%wae, atomsPC(iType)%wps )
       !
     enddo
     !
-    !! Close the input file
-    close(50)
+    !...............................................................................................
     !
-    !! Initialize JMAX to zero
+    close(50)
+      !! * Close the input file
+    !
+    !> * Go through the `lps` values for each projector for each atom
+    !> and find the max to store in `JMAX`
     JMAX = 0
-    !! For each type of atom
     do iType = 1, numOfTypesPC
-      !! For each projector
+      !
       do i = 1, atomsPC(iType)%lMax
-        !! Find the maximum value of the angular momentum
+        !
         if ( atomsPC(iType)%lps(i) > JMAX ) JMAX = atomsPC(iType)%lps(i)
+        !
       enddo
+      !
     enddo
     !
-    !! Set maxL to the JMAX value and change JMAX to 2*JMAX + 1
     maxL = JMAX
     JMAX = 2*JMAX + 1
     !
-    !! For each type of atom
     do iType = 1, numOfTypesPC
-      !! Allocate space for bes_J_qr and initialize to zero
+      !
       allocate ( atomsPC(iType)%bes_J_qr( 0:JMAX, atomsPC(iType)%iRc ) )
       atomsPC(iType)%bes_J_qr(:,:) = 0.0_dp
       !
     enddo
     !
+    !> * End the local timer and write out the total time to read the inputs
+    !> to the output file
     call cpu_time(t2)
     write(iostd, '(" Reading input files done in:                ", f10.2, " secs.")') t2-t1
     write(iostd, *)

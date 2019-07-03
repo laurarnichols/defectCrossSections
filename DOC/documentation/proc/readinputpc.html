@@ -243,73 +243,28 @@ public subroutine readInputPC()
 <p>Open and read the input file
  </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Create documentation for the input file and link to it here
  </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Add information about these variables to top
+ </p></div>
 <p>
 </li>
+<li>
+<p>Calculate <code>F</code>, <code>F1</code>, and <code>F2</code> using the all-electron and psuedowvefunctions
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Look more into how AE and PS wavefunctions are combined to further understand this
+ </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Move this behavior to another subroutine for clarity
+ </p></div>
+<p>
+</li>
+<li>
+<p>Close the input file</p>
+</li>
+<li>
+<p>Go through the <code>lps</code> values for each projector for each atom
+ and find the max to store in <code>JMAX</code></p>
+</li>
+<li>End the local timer and write out the total time to read the inputs
+ to the output file</li>
 </ul>
-<p>For each k point
- Read in a line where you ignore the first two integers and store the rest
- Read in another comment
- Read in the number of g vectors
- Read in another comment
- Read in another comment
- Read in the min/max values for the fft grid
- Read in another comment
- Ignore the next 3 lines that hold the cell size in a.u.
- Read in another comment
- Ignore the next 3 lines that hold the reciprocal cell size in a.u.
- Read in another comment
- Read in the number of atoms
- Read in another comment
- Read in the number of different types of atoms
- Allocate space for arrays
- Read in another comment
- For each atom
- Read in the type index and position
- Read in another comment
- Ignore the next line that has the number of bands
- Read in another comment
- Ignore the next line that has the spin format
- Allocate space for array
- Initialize the number of projectors to zero
- For each atom type
- Read in a comment
- Read in the element name (symbol) for this atom type
- Read in a comment
- Read in the number of atoms of this type
- Read in a comment
- Read in the number of projectors
- Allocate space for the lps array based on the number of projectors input
- Read in a comment
- For each projector
- Read in the angular momentum and the index of the projector
- Store the value in the lps array in the atomsPC structure array
- Read in a comment
- Read in the number of channels
- Read in a comment
- Read in the number of radial mesh points
- Allocate space for the r and rab arrays based on the size of the radial mesh
- Read in a comment
- For each point in the radial mesh
- Read in the radial grid and the integrable grid
- Allocate space for the ae and ps radial wavefunctions
- Read in a comment
- For each projector
- For each radial mesh point
- Read in the ae and ps wavefunctions
- Allocate spae for F, F1, and F2 arrays
- Initialize all values to zero
- For each projector
- Store iRc for the given atom in a local variable
- Calculate F, F1, and F2 ?????
- Sum the number of projections as the number of atoms per type times the number of channels per type
- Close the input file
- Initialize JMAX to zero
- For each type of atom
- For each projector
- Find the maximum value of the angular momentum
- Set maxL to the JMAX value and change JMAX to 2*JMAX + 1
- For each type of atom
- Allocate space for bes_J_qr and initialize to zero</p>
     
 
     <h3>Arguments</h3>
@@ -434,9 +389,13 @@ public subroutine readInputPC()
       <span class="c">!</span>
     <span class="n">endif</span>
     <span class="c">!</span>
+    <span class="c">!...............................................................................................</span>
     <span class="c">!&gt; * Open and read the input file</span>
     <span class="c">!&gt; @todo</span>
     <span class="c">!&gt; Create documentation for the input file and link to it here</span>
+    <span class="c">!&gt; @endtodo</span>
+    <span class="c">!&gt; @todo</span>
+    <span class="c">!&gt; Add information about these variables to top</span>
     <span class="c">!&gt; @endtodo</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">inputPC</span><span class="p">),</span> <span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;old&#39;</span><span class="p">)</span>
     <span class="c">!</span>
@@ -451,164 +410,126 @@ public subroutine readInputPC()
     <span class="c">! </span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">npwsPC</span><span class="p">(</span><span class="n">nKptsPC</span><span class="p">),</span> <span class="n">wkPC</span><span class="p">(</span><span class="n">nKptsPC</span><span class="p">),</span> <span class="n">xkPC</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nKptsPC</span><span class="p">)</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="c">!! For each k point</span>
     <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nKptsPC</span>
       <span class="c">!</span>
-      <span class="c">!! Read in a line where you ignore the first two integers and store the rest</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(3i10,4ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">npwsPC</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">wkPC</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">xkPC</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
-    <span class="c">!! Read in another comment</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="c">!! Read in the number of g vectors</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> <span class="c">! numOfGvecs</span>
     <span class="c">!</span>
-    <span class="c">!! Read in another comment</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="c">! Read in the total number of plane waves</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">numOfPWsPC</span>
     <span class="c">!</span>
-    <span class="c">!! Read in another comment</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>     
-    <span class="c">!! Read in the min/max values for the fft grid</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> <span class="c">! fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax</span>
     <span class="c">!read(50, &#39;(6i10)&#39;) fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax</span>
     <span class="c">!</span>
-    <span class="c">!! Read in another comment</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="c">!! Ignore the next 3 lines that hold the cell size in a.u.</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span>  <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span>  <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span>  <span class="o">*</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="c">!! Read in another comment</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="c">!! Ignore the next 3 lines that hold the reciprocal cell size in a.u.</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="c">!! Read in another comment</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="c">!! Read in the number of atoms</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nIonsPC</span>
     <span class="c">!</span>
-    <span class="c">!! Read in another comment</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="c">!! Read in the number of different types of atoms</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">numOfTypesPC</span>
     <span class="c">!</span>
-    <span class="c">!! Allocate space for arrays</span>
     <span class="k">allocate</span><span class="p">(</span> <span class="n">posIonPC</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nIonsPC</span><span class="p">),</span> <span class="n">TYPNIPC</span><span class="p">(</span><span class="n">nIonsPC</span><span class="p">)</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="c">!! Read in another comment</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="c">!! For each atom</span>
+    <span class="c">!</span>
     <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nIonsPC</span>
-      <span class="c">!! Read in the type index and position</span>
+      <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span><span class="s1">&#39;(i10, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">TYPNIPC</span><span class="p">(</span><span class="n">ni</span><span class="p">),</span> <span class="p">(</span><span class="n">posIonPC</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">ni</span><span class="p">)</span> <span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+      <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
-    <span class="c">!! Read in another comment</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="c">!! Ignore the next line that has the number of bands</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="c">!! Read in another comment</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="c">!! Ignore the next line that has the spin format</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> 
     <span class="c">!</span>
-    <span class="c">!! Allocate space for array</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">numOfTypesPC</span><span class="p">)</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="c">!! Initialize the number of projectors to zero</span>
     <span class="n">nProjsPC</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="c">!! For each atom type</span>
+    <span class="c">!</span>
     <span class="k">do </span><span class="n">iType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypesPC</span>
       <span class="c">!</span>
-      <span class="c">!! Read in a comment</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="c">!! Read in the element name (symbol) for this atom type</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">symbol</span>
       <span class="c">!</span>
-      <span class="c">!! Read in a comment</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="c">!! Read in the number of atoms of this type</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">numOfAtoms</span>
       <span class="c">!</span>
-      <span class="c">!! Read in a comment</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="c">!! Read in the number of projectors</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>              <span class="c">! number of projectors</span>
       <span class="c">!</span>
-      <span class="c">!! Allocate space for the lps array based on the number of projectors input</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
       <span class="c">!</span>
-      <span class="c">!! Read in a comment</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="c">!! For each projector</span>
       <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> 
-        <span class="c">!! Read in the angular momentum and the index of the projector</span>
+        <span class="c">!</span>
         <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">l</span><span class="p">,</span> <span class="n">ind</span>
-        <span class="c">!! Store the value in the lps array in the atomsPC structure array</span>
         <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="o">=</span> <span class="n">l</span>
+        <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
-      <span class="c">!! Read in a comment</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="c">!! Read in the number of channels</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lmMax</span>
       <span class="c">!</span>
-      <span class="c">!! Read in a comment</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="c">!! Read in the number of radial mesh points</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span>
       <span class="c">!</span>
-      <span class="c">!! Allocate space for the r and rab arrays based on the size of the radial mesh</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">),</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">)</span> <span class="p">)</span>
       <span class="c">!</span>
-      <span class="c">!! Read in a comment</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="c">!! For each point in the radial mesh</span>
       <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span>
-        <span class="c">!! Read in the radial grid and the integrable grid</span>
+        <span class="c">!</span>
         <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">! </span>
-      <span class="c">!! Allocate space for the ae and ps radial wavefunctions</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">)</span> <span class="p">)</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">)</span> <span class="p">)</span>
       <span class="c">!</span>
-      <span class="c">!! Read in a comment</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="c">!! For each projector</span>
       <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
-        <span class="c">!! For each radial mesh point</span>
         <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span>
-          <span class="c">!! Read in the ae and ps wavefunctions</span>
+          <span class="c">!</span>
           <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> 
-<span class="c">!          write(iostd, &#39;(2i5, ES24.15E3)&#39;) j, i, abs(atomsPC(iType)%wae(i, j)-atomsPC(iType)%wps(i, j))</span>
+          <span class="c">! write(iostd, &#39;(2i5, ES24.15E3)&#39;) j, i, abs(atomsPC(iType)%wae(i, j)-atomsPC(iType)%wps(i, j))</span>
+          <span class="c">!</span>
         <span class="n">enddo</span>
       <span class="n">enddo</span>
       <span class="c">!  </span>
-      <span class="c">!! Allocate spae for F, F1, and F2 arrays</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F</span><span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span> <span class="c">!, atomsPC(iType)%lMax) )</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F2</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
       <span class="c">!</span>
-      <span class="c">!! Initialize all values to zero</span>
       <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
       <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F1</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
       <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F2</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
       <span class="c">!</span>
-      <span class="c">!! For each projector</span>
+      <span class="c">!&gt; * Calculate `F`, `F1`, and `F2` using the all-electron and psuedowvefunctions</span>
+      <span class="c">!&gt; @todo</span>
+      <span class="c">!&gt; Look more into how AE and PS wavefunctions are combined to further understand this</span>
+      <span class="c">!&gt; @endtodo</span>
+      <span class="c">!&gt; @todo</span>
+      <span class="c">!&gt; Move this behavior to another subroutine for clarity</span>
+      <span class="c">!&gt; @endtodo</span>
       <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
         <span class="c">!</span>
-        <span class="c">!! Store iRc for the given atom in a local variable</span>
         <span class="n">irc</span> <span class="o">=</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span>
-        <span class="c">!! Calculate F, F1, and F2 ?????</span>
+        <span class="c">!</span>
         <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="o">=</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="o">-</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="o">*</span> <span class="p">&amp;</span>
               <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span><span class="o">*</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span>
         <span class="c">!</span>
@@ -624,39 +545,42 @@ public subroutine readInputPC()
         <span class="n">enddo</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
-      <span class="c">!! Sum the number of projections as the number of atoms per type times the number of channels per type</span>
       <span class="n">nProjsPC</span> <span class="o">=</span> <span class="n">nProjsPC</span> <span class="o">+</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">numOfAtoms</span><span class="o">*</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lmMax</span>
       <span class="c">!</span>
 <span class="c">!      deallocate ( atomsPC(iType)%wae, atomsPC(iType)%wps )</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
-    <span class="c">!! Close the input file</span>
-    <span class="k">close</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>
+    <span class="c">!...............................................................................................</span>
     <span class="c">!</span>
-    <span class="c">!! Initialize JMAX to zero</span>
+    <span class="k">close</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>
+      <span class="c">!! * Close the input file</span>
+    <span class="c">!</span>
+    <span class="c">!&gt; * Go through the `lps` values for each projector for each atom</span>
+    <span class="c">!&gt; and find the max to store in `JMAX`</span>
     <span class="n">JMAX</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="c">!! For each type of atom</span>
     <span class="k">do </span><span class="n">iType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypesPC</span>
-      <span class="c">!! For each projector</span>
+      <span class="c">!</span>
       <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
-        <span class="c">!! Find the maximum value of the angular momentum</span>
+        <span class="c">!</span>
         <span class="k">if</span> <span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">JMAX</span> <span class="p">)</span> <span class="n">JMAX</span> <span class="o">=</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="c">!</span>
       <span class="n">enddo</span>
+      <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
-    <span class="c">!! Set maxL to the JMAX value and change JMAX to 2*JMAX + 1</span>
     <span class="n">maxL</span> <span class="o">=</span> <span class="n">JMAX</span>
     <span class="n">JMAX</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">JMAX</span> <span class="o">+</span> <span class="mi">1</span>
     <span class="c">!</span>
-    <span class="c">!! For each type of atom</span>
     <span class="k">do </span><span class="n">iType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypesPC</span>
-      <span class="c">!! Allocate space for bes_J_qr and initialize to zero</span>
+      <span class="c">!</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(</span> <span class="mi">0</span><span class="p">:</span><span class="n">JMAX</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span> <span class="p">)</span> <span class="p">)</span>
       <span class="n">atomsPC</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
+    <span class="c">!&gt; * End the local timer and write out the total time to read the inputs</span>
+    <span class="c">!&gt; to the output file</span>
     <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Reading input files done in:                &quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
