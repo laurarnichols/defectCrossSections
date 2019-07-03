@@ -10,7 +10,7 @@
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>Notes &ndash; Carrier Cross Sections</title>
+    <title>Todo &ndash; Carrier Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -113,7 +113,7 @@
     <div class="container">
     
   <div class="row">
-    <h1>Notes</h1>
+    <h1>Todo</h1>
     <div class="row">
     <div class="col-lg-12">
     <div class="well well-sm" style="min-height: 40px;">
@@ -122,7 +122,7 @@
         <li><i class="fa fa-pencil"></i> Laura Nichols</li>
          
          
-        <li><i class="fa fa-calendar-o"></i> 7/3/2019</li>
+        <li><i class="fa fa-calendar-o"></i> 07/03/2019</li>
          
 <!--
         
@@ -132,7 +132,7 @@
       
          <li><a href='../page/index.html'>README</a></li>
       
-         <li class="active">Notes</li>
+         <li class="active">Todo</li>
       </ol>
     </div>
     </div>
@@ -142,14 +142,18 @@
   <div class="row">
     <div class="col-md-9 col-md-push-3" id='text'>
       <ul>
-<li>Can use <code>xcrysden</code> to visualize QE input and output</li>
-<li>Can convert from QE output to xsf (VASP format) using <code>PW/tools/pwo2xsf.sh</code></li>
-<li>There are four different types of extraction from the PWscf output:</li>
-<li>initial structure: the one reported from the input at the beginning of the output file (for the SCF calculation one should select this option)</li>
-<li>latest structure: the latest structure in the output file; if the latest structure is the optimized structure, then this one is extracted. For an SCF calculation only initial structure is reported and the "latest structure" extraction extracts noting in this case</li>
-<li>optimized structure: extracts the optimized structure, if it is not present it extracts nothing</li>
-<li>all structures as animation </li>
-<li><em>What is the purpose of the QE calculation?</em> --&gt; <strong>Explore the TME program</strong></li>
+<li>[ ] <code>../TME/src/TME_Module_v28.f90:285:</code> Change this subroutine to have arguments to make clear that these variables are getting changed</li>
+<li>[ ] <code>../TME/src/TME_Module_v28.f90:291:</code> Change <code>file_exists</code> to <code>fileExists</code></li>
+<li>[ ] <code>../TME/src/TME_Module_v28.f90:334:</code> Change this subroutine to have arguments to make clear that these variables are getting changed</li>
+<li>[ ] <code>../TME/src/TME_Module_v28.f90:369:</code> Change this subroutine to have arguments to make clear that these variables are getting changed</li>
+<li>[ ] <code>../TME/src/TME_Module_v28.f90:377:</code> Change <code>file_exists</code> to <code>fileExists</code></li>
+<li>[ ] <code>../TME/src/TME_Module_v28.f90:563:</code> Check if there is any kind of check on <code>ki</code> and <code>kf</code>. Why was this commented out?</li>
+<li>[ ] <code>../TME/src/TME_Module_v28.f90:633:</code> Change this subroutine to have arguments so that it is clear that these variables are getting changed</li>
+<li>[ ] <code>../TME/src/TME_Module_v28.f90:648:</code> Change <code>file_exists</code> to <code>fileExists</code></li>
+<li>[ ] <code>../TME/src/TME_Module_v28.f90:678:</code> Create documentation for the input file and link to it here</li>
+<li>[ ] <code>../TME/src/TME_Module_v28.f90:679:</code> Add information about these variables to top</li>
+<li>[ ] <code>../TME/src/TME_Module_v28.f90:803:</code> Look more into how AE and PS wavefunctions are combined to further understand this</li>
+<li>[ ] <code>../TME/src/TME_Module_v28.f90:804:</code> Move this behavior to another subroutine for clarity</li>
 </ul>
     </div>
     
@@ -176,12 +180,12 @@
             
             </li>
             
-            <li role="presentation" class="disabled">
+            <li role="presentation">
             <a href='../page/./notes.html'>Notes</a>
             
             </li>
             
-            <li role="presentation">
+            <li role="presentation" class="disabled">
             <a href='../page/./todo.html'>Todo</a>
             
             </li>

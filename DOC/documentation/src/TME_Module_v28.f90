@@ -288,9 +288,7 @@ contains
     !
     logical :: file_exists
       !! Whether or not the output file already exists
-      !! @todo 
-      !! Change `file_exists` to `fileExists`
-      !! @endtodo
+      !! @todo Change `file_exists` to `fileExists` @endtodo
     !
     call cpu_time(t0)
         !! * Start a timer
