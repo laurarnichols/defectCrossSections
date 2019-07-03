@@ -219,7 +219,7 @@ public subroutine checkInitialization()
  have the values set in <a href="../module/tmemodule.html#proc-initialize">initialize</a>
  or if they have values that aren't allowed</p>
 <p><h2>Walkthrough</h2></p>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change this subroutine to have arguments to make clear that these variables are getting changed </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>checkInitialization()</code> to have arguments to make clear that these variables are getting changed </p></div>
 <p>
 <ul>
 <li>
@@ -408,7 +408,7 @@ public subroutine checkInitialization()
     <span class="c">!!</span>
     <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
     <span class="c">!!</span>
-    <span class="c">!! @todo Change this subroutine to have arguments to make clear that these variables are getting changed @endtodo</span>
+    <span class="c">!! @todo Change `checkInitialization()` to have arguments to make clear that these variables are getting changed @endtodo</span>
     <span class="c">!!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
@@ -416,7 +416,7 @@ public subroutine checkInitialization()
       <span class="c">!! Whether or not the exported directory from [[pw_export_for_TME(program)]]</span>
       <span class="c">!! exists</span>
     <span class="c">!&gt;</span>
-    <span class="c">!&gt; @todo Change `file_exists` to `fileExists` @endtodo</span>
+    <span class="c">!&gt; @todo Change `file_exists` to `fileExists` in `checkInitialization()` @endtodo</span>
     <span class="kt">logical</span><span class="kd">::</span> <span class="n">abortExecution</span>
     <span class="c">!</span>
     <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>

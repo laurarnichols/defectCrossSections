@@ -282,13 +282,13 @@ contains
     !! Delete any previous output, initialize input variables,
     !! start a timer, and read in the input files
     !!
-    !! @todo Change this subroutine to have arguments to make clear that these variables are getting changed @endtodo
+    !! @todo Change `readInput()` to have arguments to make clear that these variables are getting changed @endtodo
     !!
     implicit none
     !
     logical :: file_exists
       !! Whether or not the output file already exists
-      !! @todo Change `file_exists` to `fileExists` @endtodo
+      !! @todo Change `file_exists` to `fileExists` in `readInput()` @endtodo
     !
     call cpu_time(t0)
         !! * Start a timer
@@ -313,6 +313,7 @@ contains
     call checkInitialization()
         !! * Check that all required variables were input and have values that make sense
     !
+    !> @todo Figure out what the difference in PC and SD is @endtodo
     call readInputPC()
         !! * Read PC inputs
     call readInputSD()
@@ -331,7 +332,7 @@ contains
     !! Set default values for all of the input variables
     !! that can easily be tested to see if they were changed
     !!
-    !! @todo Change this subroutine to have arguments to make clear that these variables are getting changed @endtodo
+    !! @todo Change `initialize()` to have arguments to make clear that these variables are getting changed @endtodo
     !!
     implicit none
     !
@@ -366,7 +367,7 @@ contains
     !!
     !! <h2>Walkthrough</h2>
     !!
-    !! @todo Change this subroutine to have arguments to make clear that these variables are getting changed @endtodo
+    !! @todo Change `checkInitialization()` to have arguments to make clear that these variables are getting changed @endtodo
     !!
     implicit none
     !
@@ -374,7 +375,7 @@ contains
       !! Whether or not the exported directory from [[pw_export_for_TME(program)]]
       !! exists
     !>
-    !> @todo Change `file_exists` to `fileExists` @endtodo
+    !> @todo Change `file_exists` to `fileExists` in `checkInitialization()` @endtodo
     logical:: abortExecution
     !
     abortExecution = .false.
@@ -630,7 +631,7 @@ contains
     !!
     !! <h2>Walkthrough</h2>
     !!
-    !! @todo Change this subroutine to have arguments so that it is clear that these variables are getting changed @endtodo
+    !! @todo Change `readInputPC()` to have arguments so that it is clear that these variables are getting changed @endtodo
     !
     implicit none
     !
@@ -645,7 +646,7 @@ contains
     logical :: file_exists
       !! Whether or not the `input` file exists in the given 
       !! Export directory
-    !> @todo Change `file_exists` to `fileExists` @endtodo
+    !> @todo Change `file_exists` to `fileExists` in `readInputPC()`@endtodo
     !
     call cpu_time(t1)
       !! * Start a local timer
@@ -674,8 +675,7 @@ contains
     endif
     !
     !...............................................................................................
-    !> * Open and read the input file
-    !> @todo Create documentation for the input file and link to it here @endtodo
+    !> * Open and read the [input](./pages/inputOutput/input) file
     !> @todo Add information about these variables to top @endtodo
     open(50, file=trim(inputPC), status = 'old')
     !
