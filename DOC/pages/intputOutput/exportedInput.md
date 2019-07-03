@@ -1,8 +1,8 @@
-title: `input` file (exported from [[pw_export_for_tme(program)]])
+title: input
 author: Laura Nichols
 date: 7/3/2019
 
-This file has the following format:
+This file is exported from [[pw_export_for_tme(program)]]. It has the following format:
 ```
 # Cell volume (a.u.)^3. Format: '(ES24.15E3)'
   2.653020000000000E+002
