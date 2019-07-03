@@ -2608,7 +2608,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>TYPNIPC</strong>(:)</td><td></td><td></td><td><p>Index of the type for a given atom from the PC input file</p></td>
+  <td><strong>TYPNIPC</strong>(:)</td><td></td><td></td><td><p>Index of the type for a given atom from the PC input file; allocated in <code>readInputPC()</code></p></td>
   
 </tr>
 
@@ -2734,7 +2734,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>posIonPC</strong>(:,:)</td><td></td><td></td><td><p>Position of the atoms in the PC input file</p></td>
+  <td><strong>posIonPC</strong>(:,:)</td><td></td><td></td><td><p>Position of the atoms in the PC input file; allocated in <code>readInputPC()</code></p></td>
   
 </tr>
 
@@ -3143,7 +3143,8 @@
     
     <p>Define a new type to represent an atom in the structure. 
  Each different type of atom in the structure will be another
- variable with the type <code>atom</code>. </p>
+ variable with the type <code>atom</code>. 
+ </p><a href="../type/atom.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
      
      <h4>Components</h4>
@@ -3195,7 +3196,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>lMax</strong></td><td></td><td></td><td></td>
+  <td><strong>lMax</strong></td><td></td><td></td><td><p>Number of projectors</p></td>
   
 </tr>
 
@@ -3237,7 +3238,7 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>symbol</strong></td><td></td><td></td><td></td>
+  <td><strong>symbol</strong></td><td></td><td></td><td><p>Element name for the given atom type</p></td>
   
 </tr>
 
@@ -3251,7 +3252,7 @@
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
-  <td><strong>lps</strong>(:)</td><td></td><td></td><td></td>
+  <td><strong>lps</strong>(:)</td><td></td><td></td><td><p>Allocated based on </p></td>
   
 </tr>
 

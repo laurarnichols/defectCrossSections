@@ -173,7 +173,7 @@ module TMEModule
   integer, allocatable :: pwGvecs(:,:)
   integer, allocatable :: pwGs(:,:)
   integer, allocatable :: TYPNIPC(:)
-    !! Index of the type for a given atom from the PC input file
+    !! Index of the type for a given atom from the PC input file; allocated in `readInputPC()`
   integer, allocatable :: TYPNISD(:)
   !
   ! Declare matrix/vector reals
@@ -185,7 +185,7 @@ module TMEModule
   real(kind = dp), allocatable :: eigvI(:)
   real(kind = dp), allocatable :: gvecs(:,:)
   real(kind = dp), allocatable :: posIonPC(:,:)
-    !! Position of the atoms in the PC input file
+    !! Position of the atoms in the PC input file; allocated in `readInputPC()`
   real(kind = dp), allocatable :: posIonSD(:,:)
   real(kind = dp), allocatable :: wk(:)
   real(kind = dp), allocatable :: wkPC(:)
@@ -242,20 +242,24 @@ module TMEModule
     !! Define a new type to represent an atom in the structure. 
     !! Each different type of atom in the structure will be another
     !! variable with the type `atom`. 
+    !! @todo Consider changing `atom` type to `element` since it holds more than one atom @endtodo
     !
     ! Define scalar integers
     integer :: iRc
     integer :: numOfAtoms
       !! Number of atoms of a specific type in the structure
     integer :: lMax
+      !! Number of projectors
     integer :: lmMax
     integer :: nMax
     ! 
     ! Define scalar character
     character(len = 2) :: symbol
+      !! Element name for the given atom type
     !
     ! Define matrix/vector integer
     integer, allocatable :: lps(:)
+      !! Allocated based on 
     !
     ! Define matrix/vector reals
     real(kind = dp), allocatable :: bes_J_qr(:,:)
