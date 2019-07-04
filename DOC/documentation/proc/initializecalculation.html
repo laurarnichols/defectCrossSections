@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.5% of total for procedures.">25 statements</a>
+    title=" 0.6% of total for procedures.">30 statements</a>
      </li> 
      
      
@@ -217,7 +217,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine initializeCalculation()
+public subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, VfisOutput, ki, kf, nKpts, eBin, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVfis, t0)
     
     
    
@@ -227,10 +227,11 @@ public subroutine initializeCalculation()
 
 
     
-    <p>Set default values for all of the input variables
- that can easily be tested to see if they were changed</p>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>initializeCalculation()</code> to have arguments to make clear that these variables are getting changed </p></div>
-<p>
+    <p>Initialize the calculation by starting timer,
+ setting start values for variables to be read from
+ <code>.in</code> file, removing any existing output in the output directory,
+ and opening a clean output file</p>
+<p><h2>Walkthrough</h2></p>
 <ul>
 <li>
 <p>Start a timer</p>
@@ -245,8 +246,229 @@ public subroutine initializeCalculation()
 
     <h3>Arguments</h3>
     
-    <em>None</em>
-    <br>
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-exportdirsd"></span>character(len=200),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>exportDirSD</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-exportdirpc"></span>character(len=200),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>exportDirPC</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-elementspath"></span>character(len=300),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>elementsPath</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-vfisoutput"></span>character(len=200),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>VfisOutput</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ki"></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ki</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-kf"></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>kf</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nkpts"></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>nKpts</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ebin"></span>real(kind=dp),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>eBin</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibandiinit"></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iBandIinit</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibandifinal"></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iBandIfinal</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibandfinit"></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iBandFinit</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibandffinal"></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iBandFfinal</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-calculatevfis"></span>logical,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>calculateVfis</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-t0%7E2"></span>real(kind=dp),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>t0</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
     
     
     
@@ -355,14 +577,25 @@ public subroutine initializeCalculation()
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initializeCalculation</span><span class="p">()</span>
-    <span class="c">!! Set default values for all of the input variables</span>
-    <span class="c">!! that can easily be tested to see if they were changed</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initializeCalculation</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">,</span> <span class="n">exportDirPC</span><span class="p">,</span> <span class="n">elementsPath</span><span class="p">,</span> <span class="n">VFisOutput</span><span class="p">,</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">nKpts</span><span class="p">,</span> <span class="n">eBin</span><span class="p">,</span> <span class="p">&amp;</span>
+                                   <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">calculateVFis</span><span class="p">,</span> <span class="n">t0</span><span class="p">)</span>
+    <span class="c">!! Initialize the calculation by starting timer,</span>
+    <span class="c">!! setting start values for variables to be read from</span>
+    <span class="c">!! `.in` file, removing any existing output in the output directory,</span>
+    <span class="c">!! and opening a clean output file</span>
     <span class="c">!!</span>
-    <span class="c">!! @todo Change `initializeCalculation()` to have arguments to make clear that these variables are getting changed @endtodo</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
     <span class="c">!!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">nKpts</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+    <span class="c">!</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">eBin</span><span class="p">,</span> <span class="n">t0</span>
+    <span class="c">!</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">exportDirSD</span><span class="p">,</span> <span class="n">exportDirPC</span><span class="p">,</span> <span class="n">VfisOutput</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">elementsPath</span>
+    <span class="c">!</span>
+    <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">calculateVfis</span>
     <span class="kt">logical</span> <span class="kd">::</span> <span class="n">fileExists</span>
       <span class="c">!! Whether or not the output file already exists</span>
     <span class="c">!</span>

@@ -22,7 +22,8 @@ program transitionMatrixElements
   ! If this is the root process
   if ( myid == root ) then
     !
-    call initializeCalculation()
+    call initializeCalculation(exportDirSD, exportDirPC, elementsPath, VFisOutput, ki, kf, nKpts, eBin, &
+                               iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVFis, t0)
       !! * Initialize the calculation by 
       !!    * starting timer
       !!    * setting start values for variables to be read from

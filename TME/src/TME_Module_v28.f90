@@ -310,14 +310,25 @@ module TMEModule
 contains
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine initializeCalculation()
-    !! Set default values for all of the input variables
-    !! that can easily be tested to see if they were changed
+  subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, VFisOutput, ki, kf, nKpts, eBin, &
+                                   iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVFis, t0)
+    !! Initialize the calculation by starting timer,
+    !! setting start values for variables to be read from
+    !! `.in` file, removing any existing output in the output directory,
+    !! and opening a clean output file
     !!
-    !! @todo Change `initializeCalculation()` to have arguments to make clear that these variables are getting changed @endtodo
+    !! <h2>Walkthrough</h2>
     !!
     implicit none
     !
+    integer, intent(out) :: ki, kf, nKpts, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+    !
+    real(kind = dp), intent(out) :: eBin, t0
+    !
+    character(len = 200), intent(out) :: exportDirSD, exportDirPC, VfisOutput
+    character(len = 300), intent(out) :: elementsPath
+    !
+    logical, intent(out) :: calculateVfis
     logical :: fileExists
       !! Whether or not the output file already exists
     !
