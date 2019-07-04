@@ -240,16 +240,7 @@
     </div>
     
 
-    <ul>
-<li>Initialize the calculation by <ul>
-<li>starting timer</li>
-<li>setting start values for variables to be read from
-  <code>.in</code> file, </li>
-<li>removing any existing output in the output directory</li>
-<li>opening a clean output file</li>
-</ul>
-</li>
-</ul>
+    <p>Call <a href="../module/tmemodule.html#proc-initializecalculation">initializeCalculation</a></p>
     
     <br>
 
@@ -396,12 +387,7 @@
     <span class="c">!</span>
     <span class="k">call </span><span class="n">initializeCalculation</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">,</span> <span class="n">exportDirPC</span><span class="p">,</span> <span class="n">elementsPath</span><span class="p">,</span> <span class="n">VFisOutput</span><span class="p">,</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">nKpts</span><span class="p">,</span> <span class="n">eBin</span><span class="p">,</span> <span class="p">&amp;</span>
                                <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">calculateVFis</span><span class="p">,</span> <span class="n">t0</span><span class="p">)</span>
-      <span class="c">!! * Initialize the calculation by </span>
-      <span class="c">!!    * starting timer</span>
-      <span class="c">!!    * setting start values for variables to be read from</span>
-      <span class="c">!!      `.in` file, </span>
-      <span class="c">!!    * removing any existing output in the output directory</span>
-      <span class="c">!!    * opening a clean output file</span>
+      <span class="c">!! Call [[TMEModule(module):initializeCalculation(subroutine)]]</span>
     <span class="c">! </span>
     <span class="c">! Reading input, initializing and checking all variables of the calculation.</span>
     <span class="k">call </span><span class="n">readInput</span><span class="p">()</span>

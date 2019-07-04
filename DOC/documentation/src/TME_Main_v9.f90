@@ -24,12 +24,7 @@ program transitionMatrixElements
     !
     call initializeCalculation(exportDirSD, exportDirPC, elementsPath, VFisOutput, ki, kf, nKpts, eBin, &
                                iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVFis, t0)
-      !! * Initialize the calculation by 
-      !!    * starting timer
-      !!    * setting start values for variables to be read from
-      !!      `.in` file, 
-      !!    * removing any existing output in the output directory
-      !!    * opening a clean output file
+      !! Call [[TMEModule(module):initializeCalculation(subroutine)]]
     ! 
     ! Reading input, initializing and checking all variables of the calculation.
     call readInput()
