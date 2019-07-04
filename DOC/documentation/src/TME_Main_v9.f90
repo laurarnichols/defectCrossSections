@@ -22,9 +22,14 @@ program transitionMatrixElements
   ! If this is the root process
   if ( myid == root ) then
     !
-    ! Start a timer
-    call cpu_time(t0)
-    !
+    call initializeCalculation()
+      !! * Initialize the calculation by 
+      !!    * starting timer
+      !!    * setting start values for variables to be read from
+      !!      `.in` file, 
+      !!    * removing any existing output in the output directory
+      !!    * opening a clean output file
+    ! 
     ! Reading input, initializing and checking all variables of the calculation.
     call readInput()
     !

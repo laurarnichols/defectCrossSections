@@ -132,21 +132,21 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.4% of total for procedures.">17 statements</a>
+    title=" 0.2% of total for procedures.">11 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/TME_Module_v28.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/Mj_Module_v1.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/tme_module_v28.f90.html'>TME_Module_v28.f90</a></li>
+     <li><a href='../sourcefile/mj_module_v1.f90.html'>Mj_Module_v1.f90</a></li>
     
-     <li><a href='../module/tmemodule.html'>TMEModule</a></li>
+     <li><a href='../module/mjmodule.html'>MjModule</a></li>
     
   
      <li class="active">initialize</li>
@@ -190,13 +190,7 @@
 
 
 
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
-  <div class="list-group">
-    <a class="list-group-item" href="../proc/initialize.html#src">initialize</a>
-  </div>
-</div>
-
+<em>None</em>
 
 
 </div>
@@ -214,11 +208,6 @@ public subroutine initialize()
   
 
 
-    
-    <p>Set default values for all of the input variables
- that can easily be tested to see if they were changed</p>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>initialize()</code> to have arguments to make clear that these variables are getting changed </p></div>
-<p>
     
 
     <h3>Arguments</h3>
@@ -257,13 +246,7 @@ public subroutine initialize()
 
 
 
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
-  <div class="list-group">
-    <a class="list-group-item" href="../proc/initialize.html#src">initialize</a>
-  </div>
-</div>
-
+<em>None</em>
 
 
     </section>
@@ -286,42 +269,6 @@ public subroutine initialize()
 
     
     
-    
-    <section>
-    <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initialize</span><span class="p">()</span>
-    <span class="c">!! Set default values for all of the input variables</span>
-    <span class="c">!! that can easily be tested to see if they were changed</span>
-    <span class="c">!!</span>
-    <span class="c">!! @todo Change `initialize()` to have arguments to make clear that these variables are getting changed @endtodo</span>
-    <span class="c">!!</span>
-    <span class="k">implicit none</span>
-    <span class="c">!</span>
-    <span class="n">exportDirSD</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-    <span class="n">exportDirPC</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-    <span class="n">elementsPath</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-    <span class="n">VfisOutput</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-    <span class="c">!</span>
-    <span class="n">ki</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">kf</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">nKpts</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="c">!</span>
-    <span class="n">eBin</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0_dp</span>
-    <span class="c">!</span>
-    <span class="n">iBandIinit</span>  <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">iBandIfinal</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">iBandFinit</span>  <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">iBandFfinal</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="c">!</span>
-    <span class="n">calculateVfis</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-    <span class="c">!</span>
-    <span class="k">return</span>
-    <span class="c">!</span>
-  <span class="k">end subroutine </span><span class="n">initialize</span>
-</pre></div>
-
-    </section>
-    <br>
     
     
     </div>

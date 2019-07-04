@@ -10,7 +10,7 @@
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>initialize &ndash; Carrier Cross Sections</title>
+    <title>initializeCalculation &ndash; Carrier Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -114,7 +114,7 @@
     
   
   <div class="row">
-    <h1>initialize
+    <h1>initializeCalculation
       <small>Subroutine</small>
     
     </h1>
@@ -132,24 +132,24 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.2% of total for procedures.">8 statements</a>
+    title=" 0.5% of total for procedures.">25 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/Sigma_Module_v4.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/TME_Module_v28.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/sigma_module_v4.f90.html'>Sigma_Module_v4.f90</a></li>
+     <li><a href='../sourcefile/tme_module_v28.f90.html'>TME_Module_v28.f90</a></li>
     
-     <li><a href='../module/sigma_module.html'>sigma_module</a></li>
+     <li><a href='../module/tmemodule.html'>TMEModule</a></li>
     
   
-     <li class="active">initialize</li>
+     <li class="active">initializeCalculation</li>
   </ol>
 </div>
 </div>
@@ -172,6 +172,18 @@
 
 
 
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-0">Variables</a></h3></div>
+  <div id="vars-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../proc/initializecalculation.html#variable-fileexists">fileExists</a>
+      
+    </div>
+  </div>
+</div>
+
+
 
 
 
@@ -193,7 +205,7 @@
 <div class="panel panel-primary">
   <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
   <div class="list-group">
-    <a class="list-group-item" href="../proc/initialize%7E5.html#src">initialize</a>
+    <a class="list-group-item" href="../proc/initializecalculation.html#src">initializeCalculation</a>
   </div>
 </div>
 
@@ -205,7 +217,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine initialize()
+public subroutine initializeCalculation()
     
     
    
@@ -214,6 +226,21 @@ public subroutine initialize()
   
 
 
+    
+    <p>Set default values for all of the input variables
+ that can easily be tested to see if they were changed</p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>initialize()</code> to have arguments to make clear that these variables are getting changed </p></div>
+<p>
+<ul>
+<li>
+<p>Start a timer</p>
+</li>
+<li>
+<p>Check if file output exists,
+ and delete it if it does</p>
+</li>
+<li>Open new output file</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -234,6 +261,18 @@ public subroutine initialize()
 
 
 
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
+  <div id="vars-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../proc/initializecalculation.html#variable-fileexists">fileExists</a>
+      
+    </div>
+  </div>
+</div>
+
+
 
 
 
@@ -255,7 +294,7 @@ public subroutine initialize()
 <div class="panel panel-primary">
   <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
   <div class="list-group">
-    <a class="list-group-item" href="../proc/initialize%7E5.html#src">initialize</a>
+    <a class="list-group-item" href="../proc/initializecalculation.html#src">initializeCalculation</a>
   </div>
 </div>
 
@@ -266,6 +305,38 @@ public subroutine initialize()
 
     
 
+    
+    <section>    
+      <h2>Variables</h2>
+    
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Visibility</th>
+
+<th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-fileexists"></span>logical,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>fileExists</strong></td><td></td><td></td><td><p>Whether or not the output file already exists</p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+    </section>
+    <br>
     
     
     
@@ -284,19 +355,52 @@ public subroutine initialize()
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initialize</span><span class="p">()</span>
-    <span class="c">!</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initializeCalculation</span><span class="p">()</span>
+    <span class="c">!! Set default values for all of the input variables</span>
+    <span class="c">!! that can easily be tested to see if they were changed</span>
+    <span class="c">!!</span>
+    <span class="c">!! @todo Change `initialize()` to have arguments to make clear that these variables are getting changed @endtodo</span>
+    <span class="c">!!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
-    <span class="n">VfisInput</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-    <span class="n">LSFinput</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-    <span class="n">crossSectionOutput</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">fileExists</span>
+      <span class="c">!! Whether or not the output file already exists</span>
     <span class="c">!</span>
-    <span class="n">de</span> <span class="o">=</span> <span class="n">maxEnergy</span><span class="o">*</span><span class="n">eVToHartree</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">nOfEnergyBins</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
+    <span class="n">exportDirSD</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">exportDirPC</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">elementsPath</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">VfisOutput</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="c">!</span>
+    <span class="n">ki</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">kf</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">nKpts</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="c">!</span>
+    <span class="n">eBin</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0_dp</span>
+    <span class="c">!</span>
+    <span class="n">iBandIinit</span>  <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">iBandIfinal</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">iBandFinit</span>  <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">iBandFfinal</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="c">!</span>
+    <span class="n">calculateVfis</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t0</span><span class="p">)</span>
+        <span class="c">!! * Start a timer</span>
+    <span class="c">!</span>
+    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">fileExists</span><span class="p">)</span>
+        <span class="c">!! * Check if file output exists,</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">fileExists</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">!! and delete it if it does</span>
+      <span class="k">open</span> <span class="p">(</span><span class="n">unit</span> <span class="o">=</span> <span class="mi">11</span><span class="p">,</span> <span class="k">file</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;old&quot;</span><span class="p">)</span>
+      <span class="k">close</span><span class="p">(</span><span class="n">unit</span> <span class="o">=</span> <span class="mi">11</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;delete&quot;</span><span class="p">)</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">open</span> <span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="k">file</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;new&#39;</span><span class="p">)</span>
+        <span class="c">!! * Open new output file</span>
     <span class="c">!</span>
     <span class="k">return</span>
     <span class="c">!</span>
-  <span class="k">end subroutine </span><span class="n">initialize</span>
+  <span class="k">end subroutine </span><span class="n">initializeCalculation</span>
 </pre></div>
 
     </section>

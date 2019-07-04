@@ -132,21 +132,21 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.3% of total for procedures.">12 statements</a>
+    title=" 0.2% of total for procedures.">8 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/LSF_linear_Module_v1.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/Sigma_Module_v4.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/lsf_linear_module_v1.f90.html'>LSF_linear_Module_v1.f90</a></li>
+     <li><a href='../sourcefile/sigma_module_v4.f90.html'>Sigma_Module_v4.f90</a></li>
     
-     <li><a href='../module/lsf.html'>lsf</a></li>
+     <li><a href='../module/sigma_module.html'>sigma_module</a></li>
     
   
      <li class="active">initialize</li>
@@ -190,7 +190,13 @@
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/initialize%7E4.html#src">initialize</a>
+  </div>
+</div>
+
 
 
 </div>
@@ -246,7 +252,13 @@ public subroutine initialize()
 
 
 
-<em>None</em>
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/initialize%7E4.html#src">initialize</a>
+  </div>
+</div>
+
 
 
     </section>
@@ -269,6 +281,26 @@ public subroutine initialize()
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initialize</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="n">VfisInput</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">LSFinput</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">crossSectionOutput</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="c">!</span>
+    <span class="n">de</span> <span class="o">=</span> <span class="n">maxEnergy</span><span class="o">*</span><span class="n">eVToHartree</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">nOfEnergyBins</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">initialize</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

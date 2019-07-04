@@ -310,63 +310,16 @@ module TMEModule
 contains
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readInput()
-    !! Delete any previous output, initialize input variables,
-    !! start a timer, and read in the input files
-    !!
-    !! @todo Change `readInput()` to have arguments to make clear that these variables are getting changed @endtodo
-    !!
-    implicit none
-    !
-    logical :: file_exists
-      !! Whether or not the output file already exists
-      !! @todo Change `file_exists` to `fileExists` in `readInput()` @endtodo
-    !
-    call cpu_time(t0)
-        !! * Start a timer
-    !
-    inquire(file = output, exist = file_exists)
-        !! * Check if file output exists,
-    if ( file_exists ) then
-        !! and delete it if it does
-      open (unit = 11, file = output, status = "old")
-      close(unit = 11, status = "delete")
-    endif
-    !
-    open (iostd, file = output, status='new')
-        !! * Open new output file
-    !
-    call initialize()
-        !! * Set default values for input variables
-    !
-    READ (5, TME_Input, iostat = ios)
-        !! * Read input from command line (or input file if use `< TME_Input.md`)
-    !
-    call checkInitialization()
-        !! * Check that all required variables were input and have values that make sense
-    !
-    !> @todo Figure out what the difference in PC and SD is @endtodo
-    call readInputPC()
-        !! * Read PC inputs
-    call readInputSD()
-        !! * Read SD inputs
-    !
-    numOfPWs = max( numOfPWsPC, numOfPWsSD )
-        !! * Calculate the number of plane waves as the maximum of the number of PC and SD plane waves
-    !
-    return
-    !
-  end subroutine readInput
-  !
-  !
-  !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine initialize()
+  subroutine initializeCalculation()
     !! Set default values for all of the input variables
     !! that can easily be tested to see if they were changed
     !!
     !! @todo Change `initialize()` to have arguments to make clear that these variables are getting changed @endtodo
     !!
     implicit none
+    !
+    logical :: fileExists
+      !! Whether or not the output file already exists
     !
     exportDirSD = ''
     exportDirPC = ''
@@ -386,9 +339,52 @@ contains
     !
     calculateVfis = .false.
     !
+    call cpu_time(t0)
+        !! * Start a timer
+    !
+    inquire(file = output, exist = fileExists)
+        !! * Check if file output exists,
+    if ( fileExists ) then
+        !! and delete it if it does
+      open (unit = 11, file = output, status = "old")
+      close(unit = 11, status = "delete")
+    endif
+    !
+    open (iostd, file = output, status='new')
+        !! * Open new output file
+    !
     return
     !
-  end subroutine initialize
+  end subroutine initializeCalculation
+  !
+  !
+  !---------------------------------------------------------------------------------------------------------------------------------
+  subroutine readInput()
+    !! Delete any previous output, initialize input variables,
+    !! start a timer, and read in the input files
+    !!
+    !! @todo Change `readInput()` to have arguments to make clear that these variables are getting changed @endtodo
+    !!
+    implicit none
+    !
+    READ (5, TME_Input, iostat = ios)
+        !! * Read input from command line (or input file if use `< TME_Input.md`)
+    !
+    call checkInitialization()
+        !! * Check that all required variables were input and have values that make sense
+    !
+    !> @todo Figure out what the difference in PC and SD is @endtodo
+    call readInputPC()
+        !! * Read PC inputs
+    call readInputSD()
+        !! * Read SD inputs
+    !
+    numOfPWs = max( numOfPWsPC, numOfPWsSD )
+        !! * Calculate the number of plane waves as the maximum of the number of PC and SD plane waves
+    !
+    return
+    !
+  end subroutine readInput
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
