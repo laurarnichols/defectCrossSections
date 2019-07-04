@@ -3,7 +3,7 @@ author: Laura Nichols
 date: 07/04/2019
 
 * `../TME/src/TME_Module_v28.f90:247:` Consider changing `atom` type to `element` since it holds more than one atom
-* `../TME/src/TME_Module_v28.f90:317:` Change `initialize()` to have arguments to make clear that these variables are getting changed
+* `../TME/src/TME_Module_v28.f90:317:` Change `initializeCalculation()` to have arguments to make clear that these variables are getting changed
 * `../TME/src/TME_Module_v28.f90:366:` Change `readInput()` to have arguments to make clear that these variables are getting changed
 * `../TME/src/TME_Module_v28.f90:376:` Figure out what the difference in PC and SD is
 * `../TME/src/TME_Module_v28.f90:398:` Change `checkInitialization()` to have arguments to make clear that these variables are getting changed

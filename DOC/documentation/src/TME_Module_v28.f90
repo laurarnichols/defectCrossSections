@@ -314,7 +314,7 @@ contains
     !! Set default values for all of the input variables
     !! that can easily be tested to see if they were changed
     !!
-    !! @todo Change `initialize()` to have arguments to make clear that these variables are getting changed @endtodo
+    !! @todo Change `initializeCalculation()` to have arguments to make clear that these variables are getting changed @endtodo
     !!
     implicit none
     !
@@ -390,7 +390,7 @@ contains
   !---------------------------------------------------------------------------------------------------------------------------------
   subroutine checkInitialization()
     !! Check to see if variables from .in file still
-    !! have the values set in [[TMEModule(module):initialize(subroutine)]]
+    !! have the values set in [[TMEModule(module):initializeCalculation(subroutine)]]
     !! or if they have values that aren't allowed
     !!
     !! <h2>Walkthrough</h2>
