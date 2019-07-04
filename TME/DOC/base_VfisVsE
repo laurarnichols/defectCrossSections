@@ -1,0 +1,6 @@
+# Averaged |<f|V|i>|^2 over K-points versus energy.
+#                 Cell volume :   2.653020000000000E+002 (a.u.)^3,   Format : '(ES24.15E3)'
+#   Minimun transition energy :   1.797693134862316E+308 (Hartree),  Format : '(ES24.15E3)'
+# |DHif|^2 at minimum Tr. En. :   6.250000000000000E-002 (Hartree^2),Format : '(ES24.15E3)'
+#                  Energy bin :   1.837466269439000E-003 (Hartree),  Format : '(ES24.15E3)'
+# Energy (Hartree), averaged |<f|V|i>|^2 over K-points (Hartree)^2, standard deviation (Hartree)^2. Format : '(3ES24.15E3)'

@@ -1,0 +1,31 @@
+ Inputs : 
+exportDirSD = '../../ExportPC'
+exportDirPC = '../../ExportPC'
+elementsPath = '.'
+iBandIinit =    3
+iBandIfinal =    1
+iBandFinit =    1
+iBandFfinal =    1
+calculateVfis = T
+
+ Variable : "VfisOutput" is not defined!
+ usage : VfisOutput = 'VfisVsE'
+ The default value 'VfisVsE' will be used.
+VfisOutput = 'VfisVsE'
+eBin =   0.0500 (eV)
+
+ Reading perfect crystal inputs.
+
+ Reading input files done in:                      0.00 secs.
+
+
+ Reading solid defect inputs.
+
+ Reading solid defect inputs done in:                      0.02 secs.
+
+ Reading Ufi(:,:) of k-point:    1
+ Reading Ufi(:,:) done in:                         0.00 secs.
+ Reading Ufi(:,:) of k-point:    2
+ Reading Ufi(:,:) done in:                         0.00 secs.
+-----------------------------------------------------------------
+ Total time needed:                               0.02 secs.
