@@ -10,11 +10,9 @@ src_dir:../LSF/src/linearTerms
 src_dir:../Sigma/src
 output_dir:./documentation
 media_dir:./media
-display: public
-         protected
-         private
 source: true
 page_dir: ./pages
+proc_internals: true
 ---
 
 ## Installation
