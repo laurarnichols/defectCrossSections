@@ -214,6 +214,7 @@ module TMEModule
   complex(kind = dp), allocatable :: wfcSD(:,:)
   !
   !
+  !> @todo Use crystal type instead of all of the explicit variables @endtodo
 !  type :: crystal
 !    integer :: Jmax, maxL, iTypes, nn, nm
 !    integer :: numOfPWs, nIons, nKpts, nProjs, numOfTypes
@@ -381,7 +382,7 @@ contains
         !! * Check that all required variables were input and have values that make sense
     !
     !> @todo Figure out what the difference in PC and SD is @endtodo
-    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC)
+    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC, numOfPWsPC)
         !! * Read PC inputs
     call readInputSD(exportDirSD, nKpts)
         !! * Read SD inputs
@@ -660,7 +661,7 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk)
+  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs)
     !! Read input files in the Export directory created by
     !! [[pw_export_for_tme(program)]]
     !!
@@ -674,6 +675,8 @@ contains
     !integer, intent(in) :: id
     integer, intent(out) :: nKpts
       !! The number of k points
+    integer, intent(out) :: numOfPWs
+      !! The total number of plane waves
     integer, allocatable, intent(out) :: npws(:)
     !
     real(kind = dp), allocatable, intent(out) :: wk(:)
@@ -811,7 +814,7 @@ contains
     endif
     !
     read(50, '(a)') textDum
-    read(50, '(i10)') numOfPWsPC
+    read(50, '(i10)') numOfPWs
     !
     read(50, '(a)') textDum     
     read(50, * ) ! fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax

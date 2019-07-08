@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="29.8% of total for modules and submodules.">1401 statements</a>
+    title="29.8% of total for modules and submodules.">1402 statements</a>
      </li> 
      
      
@@ -309,7 +309,7 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-numofgvecs">numOfGvecs</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-numofpws">numOfPWs</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-numofpws%7E2">numOfPWs</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-numofpwspc">numOfPWsPC</a>
       
@@ -736,7 +736,7 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-numofgvecs">numOfGvecs</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-numofpws">numOfPWs</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-numofpws%7E2">numOfPWs</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-numofpwspc">numOfPWsPC</a>
       
@@ -1968,7 +1968,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-numofpws"></span>integer,</td>
+  <td><span class="anchor" id="variable-numofpws%7E2"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -3107,10 +3107,7 @@
   <div class="panel-body">
     
     
-    <p>Define a new type to represent an atom in the structure. 
- Each different type of atom in the structure will be another
- variable with the type <code>atom</code>. 
- </p><a href="../type/atom.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    <p></p><a href="../type/atom.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
      
      <h4>Components</h4>
@@ -3736,7 +3733,7 @@ public subroutine <a href='../proc/checkinitialization.html'>checkInitialization
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-readqeexport"></span><h3>
-public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalType, exportDir, nKpts, npws, wk, xk)
+public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs)
     
     
    
@@ -3854,6 +3851,21 @@ public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalTy
   
   <td>allocatable</td><td>::</td>
   <td><strong>xk</strong>(:,:)</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>numOfPWs</strong></td><td><p>The total number of plane waves</p></td>
   
 </tr>
 

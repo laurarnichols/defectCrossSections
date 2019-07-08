@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 3.3% of total for procedures.">156 statements</a>
+    title=" 3.3% of total for procedures.">157 statements</a>
      </li> 
      
      
@@ -245,7 +245,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk)
+public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs)
     
     
    
@@ -416,6 +416,21 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk)
   
   <td>allocatable</td><td>::</td>
   <td><strong>xk</strong>(:,:)</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-numofpws"></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>numOfPWs</strong></td><td><p>The total number of plane waves</p></td>
   
 </tr>
 
@@ -755,7 +770,7 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk)
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readQEExport</span><span class="p">(</span><span class="n">crystalType</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">nKpts</span><span class="p">,</span> <span class="n">npws</span><span class="p">,</span> <span class="n">wk</span><span class="p">,</span> <span class="n">xk</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readQEExport</span><span class="p">(</span><span class="n">crystalType</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">nKpts</span><span class="p">,</span> <span class="n">npws</span><span class="p">,</span> <span class="n">wk</span><span class="p">,</span> <span class="n">xk</span><span class="p">,</span> <span class="n">numOfPWs</span><span class="p">)</span>
     <span class="c">!! Read input files in the Export directory created by</span>
     <span class="c">!! [[pw_export_for_tme(program)]]</span>
     <span class="c">!!</span>
@@ -769,6 +784,8 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk)
     <span class="c">!integer, intent(in) :: id</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nKpts</span>
       <span class="c">!! The number of k points</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">numOfPWs</span>
+      <span class="c">!! The total number of plane waves</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">npws</span><span class="p">(:)</span>
     <span class="c">!</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">wk</span><span class="p">(:)</span>
@@ -906,7 +923,7 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk)
     <span class="n">endif</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">numOfPWsPC</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">numOfPWs</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>     
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> <span class="c">! fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax</span>
