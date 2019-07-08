@@ -382,9 +382,9 @@ contains
         !! * Check that all required variables were input and have values that make sense
     !
     !> @todo Figure out what the difference in PC and SD is @endtodo
-    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC, numOfPWsPC, nIonsPC, numOfTypesPC)
+    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC, numOfPWsPC, nIonsPC, numOfTypesPC, posIonPC, TYPNIPC)
         !! * Read PC inputs
-    !call readQEExport('SD', exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD, numOfTypes)
+    !call readQEExport('SD', exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD, numOfTypes, posIonSD, TYPNISD)
     call readInputSD(exportDirSD, nKpts)
         !! * Read SD inputs
     !
@@ -662,7 +662,7 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, numOfTypes)
+  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, numOfTypes, posIon, TYPNI)
     !! Read input files in the Export directory created by
     !! [[pw_export_for_tme(program)]]
     !!
@@ -683,9 +683,11 @@ contains
     integer, intent(out) :: numOfTypes
       !! The number of different types of atoms
     integer, allocatable, intent(out) :: npws(:)
+    integer, allocatable, intent(out) :: TYPNI(:)
     !
     real(kind = dp), allocatable, intent(out) :: wk(:)
     real(kind = dp), allocatable, intent(out) :: xk(:,:)
+    real(kind = dp), allocatable, intent(out) :: posIon(:,:)
     !
     character(len = 2), intent(in) :: crystalType
       !! 'PC' for pristine crystal or 'SD' for solid defect
@@ -889,14 +891,14 @@ contains
     read(50, '(a)') textDum
     read(50, '(i10)') numOfTypes
     !
-    allocate( posIonPC(3,nIons), TYPNIPC(nIons) )
+    allocate( posIon(3,nIons), TYPNI(nIons) )
     !
     read(50, '(a)') textDum
     !
     do ni = 1, nIons
       !
-      read(50,'(i10, 3ES24.15E3)') TYPNIPC(ni), (posIonPC(j,ni) , j = 1,3)
-        !! @todo Change `(posIonPC(j,ni) , j = 1,3)` to `posIonPC(1:3,ni)` in `readInputPC()` for clarity @endtodo
+      read(50,'(i10, 3ES24.15E3)') TYPNI(ni), (posIon(j,ni) , j = 1,3)
+        !! @todo Change `(posIon(j,ni) , j = 1,3)` to `posIon(1:3,ni)` in `readQEExport()` for clarity @endtodo
       !
     enddo
     !
