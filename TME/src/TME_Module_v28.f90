@@ -307,7 +307,7 @@ module TMEModule
 contains
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, VFisOutput, ki, kf, nKpts, eBin, &
+  subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, VFisOutput, ki, kf, eBin, &
                                    iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVFis, t0)
     !! Initialize the calculation by starting timer,
     !! setting start values for variables to be read from
@@ -318,7 +318,7 @@ contains
     !!
     implicit none
     !
-    integer, intent(out) :: ki, kf, nKpts, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+    integer, intent(out) :: ki, kf, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
     !
     real(kind = dp), intent(out) :: eBin, t0
     !
@@ -336,7 +336,6 @@ contains
     !
     ki = -1
     kf = -1
-    nKpts = -1
     !
     eBin = -1.0_dp
     !
@@ -382,9 +381,9 @@ contains
         !! * Check that all required variables were input and have values that make sense
     !
     !> @todo Figure out what the difference in PC and SD is @endtodo
-    call readQEExport('PC', exportDirPC)
+    call readQEExport('PC', exportDirPC, nKptsPC)
         !! * Read PC inputs
-    call readInputSD(exportDirSD)
+    call readInputSD(exportDirSD, nKpts)
         !! * Read SD inputs
     !
     numOfPWs = max( numOfPWsPC, numOfPWsSD )
@@ -661,7 +660,7 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readQEExport(crystalType, exportDir)
+  subroutine readQEExport(crystalType, exportDir, nKpts)
     !! Read input files in the Export directory created by
     !! [[pw_export_for_tme(program)]]
     !!
@@ -673,6 +672,8 @@ contains
     implicit none
     !
     !integer, intent(in) :: id
+    integer, intent(out) :: nKpts
+      !! The number of k points
     !
     character(len = 2), intent(in) :: crystalType
       !! 'PC' for pristine crystal or 'SD' for solid defect
@@ -776,14 +777,14 @@ contains
     endif
     !
     read(50, '(a)') textDum
-    read(50, '(i10)') nKptsPC
+    read(50, '(i10)') nKpts
     !if ( kf < 0 ) kf = nKptsPC
     !
     read(50, '(a)') textDum
     ! 
-    allocate ( npwsPC(nKptsPC), wkPC(nKptsPC), xkPC(3,nKptsPC) )
+    allocate ( npwsPC(nKpts), wkPC(nKpts), xkPC(3,nKpts) )
     !
-    do ik = 1, nKptsPC
+    do ik = 1, nKpts
       !
       read(50, '(3i10,4ES24.15E3)') iDum, iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
       !
@@ -1229,10 +1230,13 @@ contains
   end subroutine readWfcSD
   !
   !
-  subroutine readInputSD(exportDir)
+  subroutine readInputSD(exportDir, nKpts)
     !! @todo Combine `readInputSD()` and `readInputPC()`
     !
     implicit none
+    !
+    integer, intent(out) :: nKpts
+      !! The number of k points
     !
     character(len = 200), intent(in) :: exportDir
       !! Export directory from [[pw_export_for_tme(program)]]

@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.6% of total for procedures.">30 statements</a>
+    title=" 0.6% of total for procedures.">29 statements</a>
      </li> 
      
      
@@ -217,7 +217,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, VfisOutput, ki, kf, nKpts, eBin, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVfis, t0)
+public subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, VfisOutput, ki, kf, eBin, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVfis, t0)
     
     
    
@@ -343,21 +343,6 @@ public subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, 
   
   <td></td><td>::</td>
   <td><strong>kf</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-nkpts"></span>integer,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>nKpts</strong></td><td></td>
   
 </tr>
 
@@ -577,7 +562,7 @@ public subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, 
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initializeCalculation</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">,</span> <span class="n">exportDirPC</span><span class="p">,</span> <span class="n">elementsPath</span><span class="p">,</span> <span class="n">VFisOutput</span><span class="p">,</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">nKpts</span><span class="p">,</span> <span class="n">eBin</span><span class="p">,</span> <span class="p">&amp;</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initializeCalculation</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">,</span> <span class="n">exportDirPC</span><span class="p">,</span> <span class="n">elementsPath</span><span class="p">,</span> <span class="n">VFisOutput</span><span class="p">,</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">eBin</span><span class="p">,</span> <span class="p">&amp;</span>
                                    <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">calculateVFis</span><span class="p">,</span> <span class="n">t0</span><span class="p">)</span>
     <span class="c">!! Initialize the calculation by starting timer,</span>
     <span class="c">!! setting start values for variables to be read from</span>
@@ -588,7 +573,7 @@ public subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, 
     <span class="c">!!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
-    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">nKpts</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
     <span class="c">!</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">eBin</span><span class="p">,</span> <span class="n">t0</span>
     <span class="c">!</span>
@@ -606,7 +591,6 @@ public subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, 
     <span class="c">!</span>
     <span class="n">ki</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="n">kf</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">nKpts</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="c">!</span>
     <span class="n">eBin</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0_dp</span>
     <span class="c">!</span>

@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 2.7% of total for procedures.">128 statements</a>
+    title=" 2.7% of total for procedures.">129 statements</a>
      </li> 
      
      
@@ -245,7 +245,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine readInputSD(exportDir)
+public subroutine readInputSD(exportDir, nKpts)
     
     
    
@@ -282,6 +282,21 @@ public subroutine readInputSD(exportDir)
   
   <td></td><td>::</td>
   <td><strong>exportDir</strong></td><td><p>Export directory from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nkpts%7E2"></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>nKpts</strong></td><td><p>The number of k points</p></td>
   
 </tr>
 
@@ -620,10 +635,13 @@ public subroutine readInputSD(exportDir)
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readInputSD</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readInputSD</span><span class="p">(</span><span class="n">exportDir</span><span class="p">,</span> <span class="n">nKpts</span><span class="p">)</span>
     <span class="c">!! @todo Combine `readInputSD()` and `readInputPC()`</span>
     <span class="c">!</span>
     <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nKpts</span>
+      <span class="c">!! The number of k points</span>
     <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">exportDir</span>
       <span class="c">!! Export directory from [[pw_export_for_tme(program)]]</span>
