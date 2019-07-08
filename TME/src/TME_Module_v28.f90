@@ -382,9 +382,11 @@ contains
         !! * Check that all required variables were input and have values that make sense
     !
     !> @todo Figure out what the difference in PC and SD is @endtodo
-    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC, numOfPWsPC, nIonsPC, numOfTypesPC, posIonPC, TYPNIPC, atomsPC)
+    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC, numOfPWsPC, nIonsPC, &
+                      numOfTypesPC, posIonPC, TYPNIPC, atomsPC, nProjsPC)
         !! * Read PC inputs
-    !call readQEExport('SD', exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD, numOfTypes, posIonSD, TYPNISD, atoms)
+    !call readQEExport('SD', exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD, &
+    !                  numOfTypes, posIonSD, TYPNISD, atoms, nProjsSD)
     call readInputSD(exportDirSD, nKpts)
         !! * Read SD inputs
     !
@@ -662,7 +664,8 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, numOfTypes, posIon, TYPNI, atoms)
+  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, &
+                          numOfTypes, posIon, TYPNI, atoms, nProjs)
     !! Read input files in the Export directory created by
     !! [[pw_export_for_tme(program)]]
     !!
@@ -675,13 +678,15 @@ contains
     !
     !integer, intent(in) :: id
     integer, intent(out) :: nKpts
-      !! The number of k points
+      !! Number of k points
     integer, intent(out) :: numOfPWs
-      !! The total number of plane waves
+      !! Total number of plane waves
     integer, intent(out) :: nIons
       !! Total number of atoms in system
     integer, intent(out) :: numOfTypes
-      !! The number of different types of atoms
+      !! Number of different types of atoms
+    integer, intent(out) :: nProjs
+      !! Number of projectors
     integer, allocatable, intent(out) :: npws(:)
     integer, allocatable, intent(out) :: TYPNI(:)
     !
@@ -930,7 +935,7 @@ contains
     !
     allocate ( atoms(numOfTypes) )
     !
-    nProjsPC = 0
+    nProjs = 0
     !
     do iType = 1, numOfTypes
       !
@@ -1011,7 +1016,7 @@ contains
         enddo
       enddo
       !
-      nProjsPC = nProjsPC + atoms(iType)%numOfAtoms*atoms(iType)%lmMax
+      nProjs = nProjs + atoms(iType)%numOfAtoms*atoms(iType)%lmMax
       !
 !      deallocate ( atoms(iType)%wae, atoms(iType)%wps )
       !

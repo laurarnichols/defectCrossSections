@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="30.4% of total for modules and submodules.">1437 statements</a>
+    title="30.4% of total for modules and submodules.">1438 statements</a>
      </li> 
      
      
@@ -3733,7 +3733,7 @@ public subroutine <a href='../proc/checkinitialization.html'>checkInitialization
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-readqeexport"></span><h3>
-public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, numOfTypes, posIon, TYPNI, atoms)
+public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, numOfTypes, posIon, TYPNI, atoms, nProjs)
     
     
    
@@ -3805,7 +3805,7 @@ public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalTy
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>nKpts</strong></td><td><p>The number of k points</p></td>
+  <td><strong>nKpts</strong></td><td><p>Number of k points</p></td>
   
 </tr>
 
@@ -3865,7 +3865,7 @@ public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalTy
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>numOfPWs</strong></td><td><p>The total number of plane waves</p></td>
+  <td><strong>numOfPWs</strong></td><td><p>Total number of plane waves</p></td>
   
 </tr>
 
@@ -3895,7 +3895,7 @@ public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalTy
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>numOfTypes</strong></td><td><p>The number of different types of atoms</p></td>
+  <td><strong>numOfTypes</strong></td><td><p>Number of different types of atoms</p></td>
   
 </tr>
 
@@ -3941,6 +3941,21 @@ public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalTy
   
   <td>allocatable</td><td>::</td>
   <td><strong>atoms</strong>(:)</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>nProjs</strong></td><td><p>Number of projectors</p></td>
   
 </tr>
 
