@@ -318,9 +318,9 @@ public subroutine readInput()
         <span class="c">!! * Check that all required variables were input and have values that make sense</span>
     <span class="c">!</span>
     <span class="c">!&gt; @todo Figure out what the difference in PC and SD is @endtodo</span>
-    <span class="k">call </span><span class="n">readQEExport</span><span class="p">(</span><span class="s1">&#39;PC&#39;</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">readQEExport</span><span class="p">(</span><span class="s1">&#39;PC&#39;</span><span class="p">,</span> <span class="n">exportDirPC</span><span class="p">)</span>
         <span class="c">!! * Read PC inputs</span>
-    <span class="k">call </span><span class="n">readInputSD</span><span class="p">()</span>
+    <span class="k">call </span><span class="n">readInputSD</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">)</span>
         <span class="c">!! * Read SD inputs</span>
     <span class="c">!</span>
     <span class="n">numOfPWs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span> <span class="n">numOfPWsPC</span><span class="p">,</span> <span class="n">numOfPWsSD</span> <span class="p">)</span>

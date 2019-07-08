@@ -145,9 +145,6 @@ module TMEModule
     !! SD output directory from the [[pw_export_for_TME(program)]] program
   character(len = 200) :: exportDirPC
     !! PC output directory from the [[pw_export_for_TME(program)]] program
-  character(len = 300) :: input
-  character(len = 300) :: inputPC
-    !! The PC input file path
   character(len = 320) :: mkdir
     !! Command for creating the elements path directory
   character(len = 300) :: textDum
@@ -385,9 +382,9 @@ contains
         !! * Check that all required variables were input and have values that make sense
     !
     !> @todo Figure out what the difference in PC and SD is @endtodo
-    call readQEExport('PC')
+    call readQEExport('PC', exportDirPC)
         !! * Read PC inputs
-    call readInputSD()
+    call readInputSD('SD', exportDirSD)
         !! * Read SD inputs
     !
     numOfPWs = max( numOfPWsPC, numOfPWsSD )
@@ -664,7 +661,7 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readQEExport(crystalType)
+  subroutine readQEExport(crystalType, exportDir)
     !! Read input files in the Export directory created by
     !! [[pw_export_for_tme(program)]]
     !!
@@ -676,6 +673,12 @@ contains
     implicit none
     !
     !integer, intent(in) :: id
+    !
+    character, intent(in) :: crystalType
+      !! 'PC' for pristine crystal or 'SD' for solid defect
+    character(len = 200), intent(in) :: exportDir
+      !! Export directory from [[pw_export_for_tme(program)]]
+    !
     !
     integer :: i, j, ik, iType, ni
       !! Loop indices
@@ -696,8 +699,8 @@ contains
     !
     character(len = 300) :: textDum
       !! Dummy variable to hold trash from input file
-    character, intent(in) :: crystalType
-      !! 'PC' for pristine crystal or 'SD' for solid defect
+    character(len = 300) :: input
+      !! The input file path
     !
     logical :: fileExists
       !! Whether or not the `input` file exists in the given 
@@ -706,23 +709,43 @@ contains
     call cpu_time(t1)
       !! * Start a local timer
     !
-    !> * Output header to output file
+    !> * Output header to output file based on the input crystal type
+    !> @note
+    !> The program will end if a crystal type other than `PC` or `SD` is used.
+    !> @endnote
     write(iostd, *)
-    write(iostd, '(" Reading perfect crystal inputs.")')
+    if ( crystalType == 'PC' ) then
+      !
+      write(iostd, '(" Reading perfect crystal inputs.")')
+      !
+    else if ( crystalType == 'SD' ) then
+      !
+      !write(iostd, '(" Reading solid defect inputs.")')
+      call readInputSD(exportDir)
+      return
+      !
+    else
+      !
+      write(iostd, '("Unknown crystal type", a, ".")') crystalType
+      write(iostd, '("Please only use PC for pristine crystal or SD for solid defect.")')
+      write(iostd, '(" Program stops!")')
+      flush(iostd)
+      stop
+      !
     write(iostd, *)
     !
-    inputPC = trim(trim(exportDirPC)//'/input')
+    input = trim(trim(exportDir)//'/input')
       !! * Set the path for the input file from the PC export directory
     !
-    inquire(file =trim(inputPC), exist = fileExists)
+    inquire(file =trim(input), exist = fileExists)
       !! * Check if the input file from the PC export directory exists
     !
     !> * If the input file doesn't exist
     !>    * Output an error message and end the program
     if ( fileExists .eqv. .false. ) then
       !
-      write(iostd, '(" File : ", a, " , does not exist!")') trim(inputPC)
-      write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirPC)
+      write(iostd, '(" File : ", a, " , does not exist!")') trim(input)
+      write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDir)
       write(iostd, '(" Program stops!")')
       flush(iostd)
       stop
@@ -732,7 +755,7 @@ contains
     !...............................................................................................
     !> * Open and read the [input](../page/inputOutput/exportedInput.html) file
     !> @todo Add information about these variables to top @endtodo
-    open(50, file=trim(inputPC), status = 'old')
+    open(50, file=trim(input), status = 'old')
     !
     read(50, '(a)') textDum
     read(50, * ) 
@@ -1191,10 +1214,13 @@ contains
   end subroutine readWfcSD
   !
   !
-  subroutine readInputSD()
+  subroutine readInputSD(exportDir)
     !! @todo Combine `readInputSD()` and `readInputPC()`
     !
     implicit none
+    !
+    character(len = 200), intent(in) :: exportDir
+      !! Export directory from [[pw_export_for_tme(program)]]
     !
     integer :: i, j, l, ind, ik, iDum, iType, ni, irc
     !
@@ -1202,6 +1228,8 @@ contains
     real(kind = dp) :: ef
     !
     character(len = 300) :: textDum
+    character(len = 300) :: input
+      !! The input file path
     !
     logical :: file_exists
     !
@@ -1211,13 +1239,13 @@ contains
     write(iostd, '(" Reading solid defect inputs.")')
     write(iostd, *)
     !
-    input = trim(trim(exportDirSD)//'/input')
+    input = trim(trim(exportDir)//'/input')
     !
     inquire(file = trim(input), exist = file_exists)
     !
     if ( file_exists .eqv. .false. ) then
       write(iostd, '(" File : ", a, " , does not exist!")') trim(input)
-      write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirSD)
+      write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDir)
       write(iostd, '(" Program stops!")')
       flush(iostd)
     endif

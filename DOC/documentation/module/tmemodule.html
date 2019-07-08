@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="29.4% of total for modules and submodules.">1375 statements</a>
+    title="29.6% of total for modules and submodules.">1388 statements</a>
      </li> 
      
      
@@ -356,10 +356,6 @@
       <a class="list-group-item" href="../module/tmemodule.html#variable-exportdirsd%7E2">exportDirSD</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-exportdirpc%7E2">exportDirPC</a>
-      
-      <a class="list-group-item" href="../module/tmemodule.html#variable-input">input</a>
-      
-      <a class="list-group-item" href="../module/tmemodule.html#variable-inputpc">inputPC</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-mkdir">mkdir</a>
       
@@ -787,10 +783,6 @@
       <a class="list-group-item" href="../module/tmemodule.html#variable-exportdirsd%7E2">exportDirSD</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-exportdirpc%7E2">exportDirPC</a>
-      
-      <a class="list-group-item" href="../module/tmemodule.html#variable-input">input</a>
-      
-      <a class="list-group-item" href="../module/tmemodule.html#variable-inputpc">inputPC</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-mkdir">mkdir</a>
       
@@ -2312,34 +2304,6 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-input"></span>character(len=300),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>input</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-inputpc"></span>character(len=300),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>inputPC</strong></td><td></td><td></td><td><p>The PC input file path</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
   <td><span class="anchor" id="variable-mkdir"></span>character(len=320),</td>
   
   <td>public</td>
@@ -3787,7 +3751,7 @@ public subroutine <a href='../proc/checkinitialization.html'>checkInitialization
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-readqeexport"></span><h3>
-public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalType)
+public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalType, exportDir)
     
     
    
@@ -3824,12 +3788,27 @@ public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalTy
   
 <tr>
   
-  <td><span class="anchor" ></span>character,</td>
+  <td><span class="anchor" ></span>character(len=2),</td>
   <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
   <td><strong>crystalType</strong></td><td><p>'PC' for pristine crystal or 'SD' for solid defect</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=200),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>exportDir</strong></td><td><p>Export directory from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p></td>
   
 </tr>
 
@@ -4176,7 +4155,7 @@ public subroutine <a href='../proc/readwfcsd.html'>readWfcSD</a>(ik)
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-readinputsd"></span><h3>
-public subroutine <a href='../proc/readinputsd.html'>readInputSD</a>()
+public subroutine <a href='../proc/readinputsd.html'>readInputSD</a>(exportDir)
     
     
    
@@ -4195,7 +4174,36 @@ public subroutine <a href='../proc/readinputsd.html'>readInputSD</a>()
     
     <h4>Arguments</h4>
     
-      <em>None</em>
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=200),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>exportDir</strong></td><td><p>Export directory from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
     
     
 

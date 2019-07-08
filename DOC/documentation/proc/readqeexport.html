@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 2.8% of total for procedures.">130 statements</a>
+    title=" 3.0% of total for procedures.">143 statements</a>
      </li> 
      
      
@@ -203,6 +203,8 @@
       
       <a class="list-group-item" href="../proc/readqeexport.html#variable-textdum">textDum</a>
       
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-input">input</a>
+      
       <a class="list-group-item" href="../proc/readqeexport.html#variable-fileexists%7E2">fileExists</a>
       
     </div>
@@ -243,7 +245,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine readQEExport(crystalType)
+public subroutine readQEExport(crystalType, exportDir)
     
     
    
@@ -263,7 +265,10 @@ public subroutine readQEExport(crystalType)
 <p>Start a local timer</p>
 </li>
 <li>
-<p>Output header to output file</p>
+<p>Output header to output file based on the input crystal type
+ </p><div class="alert alert-info" role="alert"><h4>Note</h4><p>The program will end if a crystal type other than <code>PC</code> or <code>SD</code> is used.
+ </p></div>
+<p>
 </li>
 <li>
 <p>Set the path for the input file from the PC export directory</p>
@@ -322,12 +327,27 @@ public subroutine readQEExport(crystalType)
   
 <tr>
   
-  <td><span class="anchor" id="variable-crystaltype"></span>character,</td>
+  <td><span class="anchor" id="variable-crystaltype"></span>character(len=2),</td>
   <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
   <td><strong>crystalType</strong></td><td><p>'PC' for pristine crystal or 'SD' for solid defect</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-exportdir%7E3"></span>character(len=200),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>exportDir</strong></td><td><p>Export directory from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p></td>
   
 </tr>
 
@@ -378,6 +398,8 @@ public subroutine readQEExport(crystalType)
       <a class="list-group-item" href="../proc/readqeexport.html#variable-ef">ef</a>
       
       <a class="list-group-item" href="../proc/readqeexport.html#variable-textdum">textDum</a>
+      
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-input">input</a>
       
       <a class="list-group-item" href="../proc/readqeexport.html#variable-fileexists%7E2">fileExists</a>
       
@@ -619,6 +641,20 @@ public subroutine readQEExport(crystalType)
   
 <tr>
   
+  <td><span class="anchor" id="variable-input"></span>character(len=300),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>input</strong></td><td></td><td></td><td><p>The input file path</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-fileexists%7E2"></span>logical,</td>
   
   <td>public</td>
@@ -651,7 +687,7 @@ public subroutine readQEExport(crystalType)
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readQEExport</span><span class="p">(</span><span class="n">crystalType</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readQEExport</span><span class="p">(</span><span class="n">crystalType</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">)</span>
     <span class="c">!! Read input files in the Export directory created by</span>
     <span class="c">!! [[pw_export_for_tme(program)]]</span>
     <span class="c">!!</span>
@@ -663,6 +699,12 @@ public subroutine readQEExport(crystalType)
     <span class="k">implicit none</span>
     <span class="c">!</span>
     <span class="c">!integer, intent(in) :: id</span>
+    <span class="c">!</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">2</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">crystalType</span>
+      <span class="c">!! &#39;PC&#39; for pristine crystal or &#39;SD&#39; for solid defect</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">exportDir</span>
+      <span class="c">!! Export directory from [[pw_export_for_tme(program)]]</span>
+    <span class="c">!</span>
     <span class="c">!</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">iType</span><span class="p">,</span> <span class="n">ni</span>
       <span class="c">!! Loop indices</span>
@@ -683,8 +725,8 @@ public subroutine readQEExport(crystalType)
     <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">textDum</span>
       <span class="c">!! Dummy variable to hold trash from input file</span>
-    <span class="kt">character</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">crystalType</span>
-      <span class="c">!! &#39;PC&#39; for pristine crystal or &#39;SD&#39; for solid defect</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">input</span>
+      <span class="c">!! The input file path</span>
     <span class="c">!</span>
     <span class="kt">logical</span> <span class="kd">::</span> <span class="n">fileExists</span>
       <span class="c">!! Whether or not the `input` file exists in the given </span>
@@ -693,23 +735,45 @@ public subroutine readQEExport(crystalType)
     <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
       <span class="c">!! * Start a local timer</span>
     <span class="c">!</span>
-    <span class="c">!&gt; * Output header to output file</span>
+    <span class="c">!&gt; * Output header to output file based on the input crystal type</span>
+    <span class="c">!&gt; @note</span>
+    <span class="c">!&gt; The program will end if a crystal type other than `PC` or `SD` is used.</span>
+    <span class="c">!&gt; @endnote</span>
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Reading perfect crystal inputs.&quot;)&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Reading perfect crystal inputs.&quot;)&#39;</span><span class="p">)</span>
+      <span class="c">!</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="c">!write(iostd, &#39;(&quot; Reading solid defect inputs.&quot;)&#39;)</span>
+      <span class="k">call </span><span class="n">readInputSD</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span>
+      <span class="k">return</span>
+      <span class="c">!</span>
+    <span class="k">else</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;Unknown crystal type&quot;, a, &quot;.&quot;)&#39;</span><span class="p">)</span> <span class="n">crystalType</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;Please only use PC for pristine crystal or SD for solid defect.&quot;)&#39;</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Program stops!&quot;)&#39;</span><span class="p">)</span>
+      <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+      <span class="k">stop</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
     <span class="c">!</span>
-    <span class="n">inputPC</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDirPC</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;/input&#39;</span><span class="p">)</span>
+    <span class="n">input</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;/input&#39;</span><span class="p">)</span>
       <span class="c">!! * Set the path for the input file from the PC export directory</span>
     <span class="c">!</span>
-    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">inputPC</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">fileExists</span><span class="p">)</span>
+    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">input</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">fileExists</span><span class="p">)</span>
       <span class="c">!! * Check if the input file from the PC export directory exists</span>
     <span class="c">!</span>
     <span class="c">!&gt; * If the input file doesn&#39;t exist</span>
     <span class="c">!&gt;    * Output an error message and end the program</span>
     <span class="k">if</span> <span class="p">(</span> <span class="n">fileExists</span> <span class="p">.</span><span class="n">eqv</span><span class="p">.</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; File : &quot;, a, &quot; , does not exist!&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">inputPC</span><span class="p">)</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Please make sure that folder : &quot;, a, &quot; has been created successfully !&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDirPC</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; File : &quot;, a, &quot; , does not exist!&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">input</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Please make sure that folder : &quot;, a, &quot; has been created successfully !&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Program stops!&quot;)&#39;</span><span class="p">)</span>
       <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
       <span class="k">stop</span>
@@ -719,7 +783,7 @@ public subroutine readQEExport(crystalType)
     <span class="c">!...............................................................................................</span>
     <span class="c">!&gt; * Open and read the [input](../page/inputOutput/exportedInput.html) file</span>
     <span class="c">!&gt; @todo Add information about these variables to top @endtodo</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">inputPC</span><span class="p">),</span> <span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;old&#39;</span><span class="p">)</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">input</span><span class="p">),</span> <span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;old&#39;</span><span class="p">)</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> 

@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 2.7% of total for procedures.">126 statements</a>
+    title=" 2.7% of total for procedures.">128 statements</a>
      </li> 
      
      
@@ -203,6 +203,8 @@
       
       <a class="list-group-item" href="../proc/readinputsd.html#variable-textdum%7E2">textDum</a>
       
+      <a class="list-group-item" href="../proc/readinputsd.html#variable-input%7E2">input</a>
+      
       <a class="list-group-item" href="../proc/readinputsd.html#variable-file_exists%7E3">file_exists</a>
       
     </div>
@@ -243,7 +245,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine readInputSD()
+public subroutine readInputSD(exportDir)
     
     
    
@@ -258,8 +260,34 @@ public subroutine readInputSD()
 
     <h3>Arguments</h3>
     
-    <em>None</em>
-    <br>
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-exportdir%7E4"></span>character(len=200),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>exportDir</strong></td><td><p>Export directory from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
     
     
     
@@ -304,6 +332,8 @@ public subroutine readInputSD()
       <a class="list-group-item" href="../proc/readinputsd.html#variable-ef%7E2">ef</a>
       
       <a class="list-group-item" href="../proc/readinputsd.html#variable-textdum%7E2">textDum</a>
+      
+      <a class="list-group-item" href="../proc/readinputsd.html#variable-input%7E2">input</a>
       
       <a class="list-group-item" href="../proc/readinputsd.html#variable-file_exists%7E3">file_exists</a>
       
@@ -545,6 +575,20 @@ public subroutine readInputSD()
   
 <tr>
   
+  <td><span class="anchor" id="variable-input%7E2"></span>character(len=300),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>input</strong></td><td></td><td></td><td><p>The input file path</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-file_exists%7E3"></span>logical,</td>
   
   <td>public</td>
@@ -576,10 +620,13 @@ public subroutine readInputSD()
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readInputSD</span><span class="p">()</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readInputSD</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span>
     <span class="c">!! @todo Combine `readInputSD()` and `readInputPC()`</span>
     <span class="c">!</span>
     <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">exportDir</span>
+      <span class="c">!! Export directory from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iType</span><span class="p">,</span> <span class="n">ni</span><span class="p">,</span> <span class="n">irc</span>
     <span class="c">!</span>
@@ -587,6 +634,8 @@ public subroutine readInputSD()
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ef</span>
     <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">textDum</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">input</span>
+      <span class="c">!! The input file path</span>
     <span class="c">!</span>
     <span class="kt">logical</span> <span class="kd">::</span> <span class="n">file_exists</span>
     <span class="c">!</span>
@@ -596,13 +645,13 @@ public subroutine readInputSD()
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Reading solid defect inputs.&quot;)&#39;</span><span class="p">)</span>
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
     <span class="c">!</span>
-    <span class="n">input</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;/input&#39;</span><span class="p">)</span>
+    <span class="n">input</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;/input&#39;</span><span class="p">)</span>
     <span class="c">!</span>
     <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">input</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
     <span class="c">!</span>
     <span class="k">if</span> <span class="p">(</span> <span class="n">file_exists</span> <span class="p">.</span><span class="n">eqv</span><span class="p">.</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span> <span class="p">)</span> <span class="k">then</span>
 <span class="k">      write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; File : &quot;, a, &quot; , does not exist!&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">input</span><span class="p">)</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Please make sure that folder : &quot;, a, &quot; has been created successfully !&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Please make sure that folder : &quot;, a, &quot; has been created successfully !&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Program stops!&quot;)&#39;</span><span class="p">)</span>
       <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
     <span class="n">endif</span>
