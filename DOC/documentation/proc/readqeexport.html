@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 3.3% of total for procedures.">157 statements</a>
+    title=" 3.4% of total for procedures.">160 statements</a>
      </li> 
      
      
@@ -294,6 +294,10 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
 <p>
 <p></p><div class="alert alert-info" role="alert"><h4>Note</h4><p>Only read the number of G vectors from the solid
  defect crystal because??
+ </p></div>
+<p>
+<p></p><div class="alert alert-info" role="alert"><h4>Note</h4><p>Only read the fft grid from the solid defect crystal
+ because??
  </p></div>
 <p>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>(posIonPC(j,ni) , j = 1,3)</code> to <code>posIonPC(1:3,ni)</code> in <code>readInputPC()</code> for clarity </p></div>
@@ -906,18 +910,18 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
+    <span class="c">!</span>
     <span class="c">!&gt; @note</span>
     <span class="c">!&gt; Only read the number of G vectors from the solid</span>
     <span class="c">!&gt; defect crystal because??</span>
     <span class="c">!&gt; @endnote</span>
     <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> 
       <span class="c">!</span>
     <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> <span class="n">numOfGvecs</span>
       <span class="c">!</span>
     <span class="n">endif</span>
@@ -926,8 +930,20 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">numOfPWs</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>     
-    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> <span class="c">! fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax</span>
-    <span class="c">!read(50, &#39;(6i10)&#39;) fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax</span>
+    <span class="c">!</span>
+    <span class="c">!&gt; @note</span>
+    <span class="c">!&gt; Only read the fft grid from the solid defect crystal</span>
+    <span class="c">!&gt; because??</span>
+    <span class="c">!&gt; @endnote</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> 
+      <span class="c">!</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(6i10)&#39;</span><span class="p">)</span> <span class="n">fftxMin</span><span class="p">,</span> <span class="n">fftxMax</span><span class="p">,</span> <span class="n">fftyMin</span><span class="p">,</span> <span class="n">fftyMax</span><span class="p">,</span> <span class="n">fftzMin</span><span class="p">,</span> <span class="n">fftzMax</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span>  <span class="o">*</span> <span class="p">)</span>

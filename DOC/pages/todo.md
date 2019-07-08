@@ -11,7 +11,7 @@ date: 07/08/2019
 * `../TME/src/TME_Module_v28.f90:600:` Check if there is any kind of check on `ki` and `kf`. Why was this commented out?
 * `../TME/src/TME_Module_v28.f90:670:` Change `readInputPC()` to have arguments so that it is clear that these variables are getting changed
 * `../TME/src/TME_Module_v28.f90:767:` Add information about these variables to top
-* `../TME/src/TME_Module_v28.f90:846: Change `(posIonPC(j,ni) , j = 1,3)` to `posIonPC(1:`3,ni)` in `readInputPC()` for clarity
-* `../TME/src/TME_Module_v28.f90:918:` Look more into how AE and PS wavefunctions are combined to further understand this
-* `../TME/src/TME_Module_v28.f90:919:` Move this behavior to another subroutine for clarity
-* `../TME/src/TME_Module_v28.f90:1254:` Combine `readInputSD()` and `readInputPC()`
+* `../TME/src/TME_Module_v28.f90:858: Change `(posIonPC(j,ni) , j = 1,3)` to `posIonPC(1:`3,ni)` in `readInputPC()` for clarity
+* `../TME/src/TME_Module_v28.f90:930:` Look more into how AE and PS wavefunctions are combined to further understand this
+* `../TME/src/TME_Module_v28.f90:931:` Move this behavior to another subroutine for clarity
+* `../TME/src/TME_Module_v28.f90:1266:` Combine `readInputSD()` and `readInputPC()`
