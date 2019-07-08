@@ -794,8 +794,21 @@ contains
       !
     enddo
     !
-    read(50, '(a)') textDum
-    read(50, * ) ! numOfGvecs
+    !> @note
+    !> Only read the number of G vectors from the solid
+    !> defect crystal because??
+    !> @endnote
+    if ( crystalType == 'PC' ) then
+      !
+      read(50, '(a)') textDum
+      read(50, * ) 
+      !
+    else if ( crystalType == 'SD' ) then
+      !
+      read(50, '(a)') textDum
+      read(50, * ) numOfGvecs
+      !
+    endif
     !
     read(50, '(a)') textDum
     read(50, '(i10)') numOfPWsPC
