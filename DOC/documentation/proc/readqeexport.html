@@ -10,7 +10,7 @@
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>readInputPC &ndash; Carrier Cross Sections</title>
+    <title>readQEExport &ndash; Carrier Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -114,7 +114,7 @@
     
   
   <div class="row">
-    <h1>readInputPC
+    <h1>readQEExport
       <small>Subroutine</small>
     
     </h1>
@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 2.6% of total for procedures.">123 statements</a>
+    title=" 2.8% of total for procedures.">130 statements</a>
      </li> 
      
      
@@ -149,7 +149,7 @@
      <li><a href='../module/tmemodule.html'>TMEModule</a></li>
     
   
-     <li class="active">readInputPC</li>
+     <li class="active">readQEExport</li>
   </ol>
 </div>
 </div>
@@ -177,31 +177,33 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-i%7E3">i</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-i%7E3">i</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-j%7E3">j</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-j%7E3">j</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-l">l</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-ik%7E3">ik</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-ind%7E2">ind</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-itype">iType</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-ik%7E3">ik</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-ni">ni</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-idum">iDum</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-irc">irc</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-itype">iType</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-l">l</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-ni">ni</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-ind%7E2">ind</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-irc">irc</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-idum">iDum</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-t1">t1</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-t1">t1</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-t2">t2</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-t2">t2</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-textdum">textDum</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-ef">ef</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-file_exists%7E3">file_exists</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-textdum">textDum</a>
+      
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-fileexists%7E2">fileExists</a>
       
     </div>
   </div>
@@ -229,7 +231,7 @@
 <div class="panel panel-primary">
   <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
   <div class="list-group">
-    <a class="list-group-item" href="../proc/readinputpc.html#src">readInputPC</a>
+    <a class="list-group-item" href="../proc/readqeexport.html#src">readQEExport</a>
   </div>
 </div>
 
@@ -241,7 +243,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine readInputPC()
+public subroutine readQEExport(crystalType)
     
     
    
@@ -256,10 +258,13 @@ public subroutine readInputPC()
 <p><h2>Walkthrough</h2></p>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>readInputPC()</code> to have arguments so that it is clear that these variables are getting changed </p></div>
 <p>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>file_exists</code> to <code>fileExists</code> in <code>readInputPC()</code></p></div>
-<p>* Start a local timer</p>
 <ul>
-<li>Output header to output file</li>
+<li>
+<p>Start a local timer</p>
+</li>
+<li>
+<p>Output header to output file</p>
+</li>
 <li>
 <p>Set the path for the input file from the PC export directory</p>
 </li>
@@ -301,8 +306,34 @@ public subroutine readInputPC()
 
     <h3>Arguments</h3>
     
-    <em>None</em>
-    <br>
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-crystaltype"></span>character,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>crystalType</strong></td><td><p>'PC' for pristine crystal or 'SD' for solid defect</p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
     
     
     
@@ -322,31 +353,33 @@ public subroutine readInputPC()
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-i%7E3">i</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-i%7E3">i</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-j%7E3">j</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-j%7E3">j</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-l">l</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-ik%7E3">ik</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-ind%7E2">ind</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-itype">iType</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-ik%7E3">ik</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-ni">ni</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-idum">iDum</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-irc">irc</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-itype">iType</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-l">l</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-ni">ni</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-ind%7E2">ind</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-irc">irc</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-idum">iDum</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-t1">t1</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-t1">t1</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-t2">t2</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-t2">t2</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-textdum">textDum</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-ef">ef</a>
       
-      <a class="list-group-item" href="../proc/readinputpc.html#variable-file_exists%7E3">file_exists</a>
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-textdum">textDum</a>
+      
+      <a class="list-group-item" href="../proc/readqeexport.html#variable-fileexists%7E2">fileExists</a>
       
     </div>
   </div>
@@ -374,7 +407,7 @@ public subroutine readInputPC()
 <div class="panel panel-primary">
   <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
   <div class="list-group">
-    <a class="list-group-item" href="../proc/readinputpc.html#src">readInputPC</a>
+    <a class="list-group-item" href="../proc/readqeexport.html#src">readQEExport</a>
   </div>
 </div>
 
@@ -408,7 +441,7 @@ public subroutine readInputPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>i</strong></td><td></td><td></td><td></td>
+  <td><strong>i</strong></td><td></td><td></td><td><p>Loop indices</p></td>
   
 </tr>
 
@@ -422,35 +455,7 @@ public subroutine readInputPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>j</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-l"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>l</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-ind%7E2"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>ind</strong></td><td></td><td></td><td></td>
+  <td><strong>j</strong></td><td></td><td></td><td><p>Loop indices</p></td>
   
 </tr>
 
@@ -464,21 +469,7 @@ public subroutine readInputPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ik</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-idum"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>iDum</strong></td><td></td><td></td><td></td>
+  <td><strong>ik</strong></td><td></td><td></td><td><p>Loop indices</p></td>
   
 </tr>
 
@@ -492,7 +483,7 @@ public subroutine readInputPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iType</strong></td><td></td><td></td><td></td>
+  <td><strong>iType</strong></td><td></td><td></td><td><p>Loop indices</p></td>
   
 </tr>
 
@@ -506,7 +497,7 @@ public subroutine readInputPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ni</strong></td><td></td><td></td><td></td>
+  <td><strong>ni</strong></td><td></td><td></td><td><p>Loop indices</p></td>
   
 </tr>
 
@@ -520,7 +511,49 @@ public subroutine readInputPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>irc</strong></td><td></td><td></td><td></td>
+  <td><strong>irc</strong></td><td></td><td></td><td><p>Local value of iRc for each atom so don't have to keep accessing in loop</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-l"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>l</strong></td><td></td><td></td><td><p>Angular momentum of each projector read from input file</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ind%7E2"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ind</strong></td><td></td><td></td><td><p>Index of each projector read from input file</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-idum"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>iDum</strong></td><td></td><td></td><td><p>Dummy variable to hold trash from input file</p></td>
   
 </tr>
 
@@ -534,7 +567,7 @@ public subroutine readInputPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>t1</strong></td><td></td><td></td><td></td>
+  <td><strong>t1</strong></td><td></td><td></td><td><p>Local start time</p></td>
   
 </tr>
 
@@ -548,7 +581,21 @@ public subroutine readInputPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>t2</strong></td><td></td><td></td><td></td>
+  <td><strong>t2</strong></td><td></td><td></td><td><p>Local end time</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ef"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ef</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -562,7 +609,7 @@ public subroutine readInputPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>textDum</strong></td><td></td><td></td><td></td>
+  <td><strong>textDum</strong></td><td></td><td></td><td><p>Dummy variable to hold trash from input file</p></td>
   
 </tr>
 
@@ -572,11 +619,11 @@ public subroutine readInputPC()
   
 <tr>
   
-  <td><span class="anchor" id="variable-file_exists%7E3"></span>logical,</td>
+  <td><span class="anchor" id="variable-fileexists%7E2"></span>logical,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>file_exists</strong></td><td></td><td></td><td><p>Whether or not the <code>input</code> file exists in the given 
+  <td><strong>fileExists</strong></td><td></td><td></td><td><p>Whether or not the <code>input</code> file exists in the given 
  Export directory</p></td>
   
 </tr>
@@ -604,7 +651,7 @@ public subroutine readInputPC()
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readInputPC</span><span class="p">()</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readQEExport</span><span class="p">(</span><span class="n">crystalType</span><span class="p">)</span>
     <span class="c">!! Read input files in the Export directory created by</span>
     <span class="c">!! [[pw_export_for_tme(program)]]</span>
     <span class="c">!!</span>
@@ -617,16 +664,31 @@ public subroutine readInputPC()
     <span class="c">!</span>
     <span class="c">!integer, intent(in) :: id</span>
     <span class="c">!</span>
-    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iType</span><span class="p">,</span> <span class="n">ni</span><span class="p">,</span> <span class="n">irc</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">iType</span><span class="p">,</span> <span class="n">ni</span>
+      <span class="c">!! Loop indices</span>
+    <span class="kt">integer</span><span class="kd">::</span> <span class="n">irc</span>
+      <span class="c">!! Local value of iRc for each atom so don&#39;t have to keep accessing in loop</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">l</span>
+      <span class="c">!! Angular momentum of each projector read from input file</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ind</span>
+      <span class="c">!! Index of each projector read from input file</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iDum</span>
+      <span class="c">!! Dummy variable to hold trash from input file</span>
     <span class="c">!</span>
-    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> 
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t1</span>
+      <span class="c">!! Local start time</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t2</span>
+      <span class="c">!! Local end time</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ef</span>
     <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">textDum</span>
+      <span class="c">!! Dummy variable to hold trash from input file</span>
+    <span class="kt">character</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">crystalType</span>
+      <span class="c">!! &#39;PC&#39; for pristine crystal or &#39;SD&#39; for solid defect</span>
     <span class="c">!</span>
-    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">file_exists</span>
+    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">fileExists</span>
       <span class="c">!! Whether or not the `input` file exists in the given </span>
       <span class="c">!! Export directory</span>
-    <span class="c">!&gt; @todo Change `file_exists` to `fileExists` in `readInputPC()`@endtodo</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
       <span class="c">!! * Start a local timer</span>
@@ -639,12 +701,12 @@ public subroutine readInputPC()
     <span class="n">inputPC</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDirPC</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;/input&#39;</span><span class="p">)</span>
       <span class="c">!! * Set the path for the input file from the PC export directory</span>
     <span class="c">!</span>
-    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">inputPC</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
+    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">inputPC</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">fileExists</span><span class="p">)</span>
       <span class="c">!! * Check if the input file from the PC export directory exists</span>
     <span class="c">!</span>
     <span class="c">!&gt; * If the input file doesn&#39;t exist</span>
     <span class="c">!&gt;    * Output an error message and end the program</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">file_exists</span> <span class="p">.</span><span class="n">eqv</span><span class="p">.</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">fileExists</span> <span class="p">.</span><span class="n">eqv</span><span class="p">.</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; File : &quot;, a, &quot; , does not exist!&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">inputPC</span><span class="p">)</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Please make sure that folder : &quot;, a, &quot; has been created successfully !&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDirPC</span><span class="p">)</span>
@@ -845,7 +907,7 @@ public subroutine readInputPC()
     <span class="c">!</span>
     <span class="k">return</span>
     <span class="c">!</span>
-  <span class="k">end subroutine </span><span class="n">readInputPC</span>
+  <span class="k">end subroutine </span><span class="n">readQEExport</span>
 </pre></div>
 
     </section>

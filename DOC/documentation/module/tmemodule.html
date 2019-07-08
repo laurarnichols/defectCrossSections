@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="29.3% of total for modules and submodules.">1368 statements</a>
+    title="29.4% of total for modules and submodules.">1375 statements</a>
      </li> 
      
      
@@ -514,7 +514,7 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#proc-checkinitialization">checkInitialization</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#proc-readinputpc">readInputPC</a>
+      <a class="list-group-item" href="../module/tmemodule.html#proc-readqeexport">readQEExport</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#proc-distributepwstoprocs">distributePWsToProcs</a>
       
@@ -945,7 +945,7 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#proc-checkinitialization">checkInitialization</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#proc-readinputpc">readInputPC</a>
+      <a class="list-group-item" href="../module/tmemodule.html#proc-readqeexport">readQEExport</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#proc-distributepwstoprocs">distributePWsToProcs</a>
       
@@ -3786,8 +3786,8 @@ public subroutine <a href='../proc/checkinitialization.html'>checkInitialization
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-readinputpc"></span><h3>
-public subroutine <a href='../proc/readinputpc.html'>readInputPC</a>()
+  <div class="panel-heading codesum"><span class="anchor" id="proc-readqeexport"></span><h3>
+public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalType)
     
     
    
@@ -3803,11 +3803,40 @@ public subroutine <a href='../proc/readinputpc.html'>readInputPC</a>()
 
 
 <p>Read input files in the Export directory created by
- <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p><a href="../proc/readinputpc.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+ <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p><a href="../proc/readqeexport.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
-      <em>None</em>
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>crystalType</strong></td><td><p>'PC' for pristine crystal or 'SD' for solid defect</p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
     
     
 

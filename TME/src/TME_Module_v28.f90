@@ -664,7 +664,7 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readInputPC()
+  subroutine readQEExport(crystalType)
     !! Read input files in the Export directory created by
     !! [[pw_export_for_tme(program)]]
     !!
@@ -677,16 +677,31 @@ contains
     !
     !integer, intent(in) :: id
     !
-    integer :: i, j, l, ind, ik, iDum, iType, ni, irc
+    integer :: i, j, ik, iType, ni
+      !! Loop indices
+    integer:: irc
+      !! Local value of iRc for each atom so don't have to keep accessing in loop
+    integer :: l
+      !! Angular momentum of each projector read from input file
+    integer :: ind
+      !! Index of each projector read from input file
+    integer :: iDum
+      !! Dummy variable to hold trash from input file
     !
-    real(kind = dp) :: t1, t2 
+    real(kind = dp) :: t1
+      !! Local start time
+    real(kind = dp) :: t2
+      !! Local end time
+    real(kind = dp) :: ef
     !
     character(len = 300) :: textDum
+      !! Dummy variable to hold trash from input file
+    character, intent(in) :: crystalType
+      !! 'PC' for pristine crystal or 'SD' for solid defect
     !
-    logical :: file_exists
+    logical :: fileExists
       !! Whether or not the `input` file exists in the given 
       !! Export directory
-    !> @todo Change `file_exists` to `fileExists` in `readInputPC()`@endtodo
     !
     call cpu_time(t1)
       !! * Start a local timer
@@ -699,12 +714,12 @@ contains
     inputPC = trim(trim(exportDirPC)//'/input')
       !! * Set the path for the input file from the PC export directory
     !
-    inquire(file =trim(inputPC), exist = file_exists)
+    inquire(file =trim(inputPC), exist = fileExists)
       !! * Check if the input file from the PC export directory exists
     !
     !> * If the input file doesn't exist
     !>    * Output an error message and end the program
-    if ( file_exists .eqv. .false. ) then
+    if ( fileExists .eqv. .false. ) then
       !
       write(iostd, '(" File : ", a, " , does not exist!")') trim(inputPC)
       write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirPC)
@@ -905,7 +920,7 @@ contains
     !
     return
     !
-  end subroutine readInputPC
+  end subroutine readQEExport
   !
   !
   subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
