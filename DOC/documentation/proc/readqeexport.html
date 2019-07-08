@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 3.6% of total for procedures.">172 statements</a>
+    title=" 3.8% of total for procedures.">179 statements</a>
      </li> 
      
      
@@ -903,12 +903,26 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="c">! </span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">npws</span><span class="p">(</span><span class="n">nKpts</span><span class="p">),</span> <span class="n">wk</span><span class="p">(</span><span class="n">nKpts</span><span class="p">),</span> <span class="n">xk</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nKpts</span><span class="p">)</span> <span class="p">)</span>
-    <span class="c">!</span>
-    <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nKpts</span>
+    <span class="c">! </span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(3i10,4ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">xk</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
+      <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nKpts</span>
+        <span class="c">!</span>
+        <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(3i10,4ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">xk</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
+        <span class="c">!</span>
+      <span class="n">enddo</span>
       <span class="c">!</span>
-    <span class="n">enddo</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="k">allocate</span><span class="p">(</span> <span class="n">groundState</span><span class="p">(</span><span class="n">nKpts</span><span class="p">)</span> <span class="p">)</span> 
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nKpts</span>
+        <span class="c">!</span>
+        <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(3i10,4ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">groundState</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">xk</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
+        <span class="c">!</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="c">!</span>

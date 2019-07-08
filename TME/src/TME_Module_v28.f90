@@ -790,12 +790,26 @@ contains
     read(50, '(a)') textDum
     ! 
     allocate ( npws(nKpts), wk(nKpts), xk(3,nKpts) )
-    !
-    do ik = 1, nKpts
+    ! 
+    if ( crystalType == 'PC' ) then
       !
-      read(50, '(3i10,4ES24.15E3)') iDum, iDum, npws(ik), wk(ik), xk(1:3,ik)
+      do ik = 1, nKpts
+        !
+        read(50, '(3i10,4ES24.15E3)') iDum, iDum, npws(ik), wk(ik), xk(1:3,ik)
+        !
+      enddo
       !
-    enddo
+    else if ( crystalType == 'SD' ) then
+      !
+      allocate( groundState(nKpts) ) 
+      !
+      do ik = 1, nKpts
+        !
+        read(50, '(3i10,4ES24.15E3)') iDum, groundState(ik), npws(ik), wk(ik), xk(1:3,ik)
+        !
+      enddo
+      !
+    endif
     !
     read(50, '(a)') textDum
     !
