@@ -388,7 +388,6 @@ contains
         !! * Read PC inputs
     call readQEExport('SD', exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD, &
                       numOfTypes, posIonSD, TYPNISD, atoms, nProjsSD)
-    !call readInputSD(exportDirSD, nKpts)
         !! * Read SD inputs
     !
     numOfPWs = max( numOfPWsPC, numOfPWsSD )
@@ -729,7 +728,6 @@ contains
       !! Whether or not the `input` file exists in the given 
       !! Export directory
     !
-    write(6,'("In subroutine with crystal type ", a)') crystalType
     call cpu_time(t1)
       !! * Start a local timer
     !
@@ -745,8 +743,6 @@ contains
     else if ( crystalType == 'SD' ) then
       !
       write(iostd, '(" Reading solid defect inputs.")')
-      !call readInputSD(exportDir, nKpts)
-      !return
       !
     else
       !
@@ -939,7 +935,6 @@ contains
     !
     nProjs = 0
     !
-    write(6,'("To beginning of loop with crystal type ", a)') crystalType
     do iType = 1, numOfTypes
       !
       read(50, '(a)') textDum
@@ -1035,7 +1030,6 @@ contains
       deallocate ( atoms(iType)%wae, atoms(iType)%wps )
       !
     enddo
-    write(6,'("To end of loop with crystal type ", a)') crystalType
     !
     !...............................................................................................
     !
@@ -1343,210 +1337,6 @@ contains
     return
     !
   end subroutine readWfcSD
-  !
-  !
-  subroutine readInputSD(exportDir, nKpts)
-    !! @todo Combine `readInputSD()` and `readInputPC()`
-    !
-    implicit none
-    !
-    integer, intent(out) :: nKpts
-      !! The number of k points
-    !
-    character(len = 200), intent(in) :: exportDir
-      !! Export directory from [[pw_export_for_tme(program)]]
-    !
-    integer :: i, j, l, ind, ik, iDum, iType, ni, irc
-    !
-    real(kind = dp) :: t1, t2
-    real(kind = dp) :: ef
-    !
-    character(len = 300) :: textDum
-    character(len = 300) :: input
-      !! The input file path
-    !
-    logical :: file_exists
-    !
-    call cpu_time(t1)
-    !
-    write(iostd, *)
-    write(iostd, '(" Reading solid defect inputs.")')
-    write(iostd, *)
-    !
-    input = trim(trim(exportDir)//'/input')
-    !
-    inquire(file = trim(input), exist = file_exists)
-    !
-    if ( file_exists .eqv. .false. ) then
-      write(iostd, '(" File : ", a, " , does not exist!")') trim(input)
-      write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDir)
-      write(iostd, '(" Program stops!")')
-      flush(iostd)
-    endif
-    !
-    open(50, file=trim(input), status = 'old')
-    !
-    read(50, '(a)') textDum
-    read(50, '(ES24.15E3)' ) omega
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') nKpts
-    !
-    read(50, '(a)') textDum
-    !
-    allocate ( groundState(nKpts), npwsSD(nKpts), wk(nKpts), xk(3,nKpts) )
-    !
-    do ik = 1, nKpts
-      !
-      read(50, '(3i10,4ES24.15E3)') iDum, groundState(ik), npwsSD(ik), wk(ik), xk(1:3,ik)
-      !
-    enddo
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') numOfGvecs
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') numOfPWsSD
-    !
-    read(50, '(a)') textDum     
-    read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
-    !
-    read(50, '(a)') textDum
-    read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,1)
-    read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,2)
-    read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,3)
-    !
-    read(50, '(a)') textDum
-    read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,1)
-    read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,2)
-    read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,3)
-    !
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') nIonsSD
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') numOfTypes
-    !
-    allocate( posIonSD(3,nIonsSD), TYPNISD(nIonsSD) )
-    !
-    read(50, '(a)') textDum
-    do ni = 1, nIonsSD
-      read(50,'(i10, 3ES24.15E3)') TYPNISD(ni), (posIonSD(j,ni), j = 1,3)
-    enddo
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') nBands
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') nSpins
-    !
-    allocate ( atoms(numOfTypes) )
-    !
-    nProjsSD = 0
-    do iType = 1, numOfTypes
-      !
-      read(50, '(a)') textDum
-      read(50, *) atoms(iType)%symbol
-      !
-      read(50, '(a)') textDum
-      read(50, '(i10)') atoms(iType)%numOfAtoms
-      !
-      read(50, '(a)') textDum
-      read(50, '(i10)') atoms(iType)%lMax              ! number of projectors
-      !
-      allocate ( atoms(iType)%lps( atoms(iType)%lMax ) )
-      !
-      read(50, '(a)') textDum
-      do i = 1, atoms(iType)%lMax 
-        read(50, '(2i10)') l, ind
-        atoms(iType)%lps(ind) = l
-      enddo
-      !
-      read(50, '(a)') textDum
-      read(50, '(i10)') atoms(iType)%lmMax
-      !
-      read(50, '(a)') textDum
-      read(50, '(2i10)') atoms(iType)%nMax, atoms(iType)%iRc
-      !
-      allocate ( atoms(iType)%r(atoms(iType)%nMax), atoms(iType)%rab(atoms(iType)%nMax) )
-      !
-      read(50, '(a)') textDum
-      do i = 1, atoms(iType)%nMax
-        read(50, '(2ES24.15E3)') atoms(iType)%r(i), atoms(iType)%rab(i)
-      enddo
-      ! 
-      allocate ( atoms(iType)%wae(atoms(iType)%nMax, atoms(iType)%lMax) )
-      allocate ( atoms(iType)%wps(atoms(iType)%nMax, atoms(iType)%lMax) )
-      !
-      read(50, '(a)') textDum
-      do j = 1, atoms(iType)%lMax
-        do i = 1, atoms(iType)%nMax
-          read(50, '(2ES24.15E3)') atoms(iType)%wae(i, j), atoms(iType)%wps(i, j) 
-        enddo
-      enddo
-      !  
-      allocate ( atoms(iType)%F( atoms(iType)%iRc, atoms(iType)%lMax ) )
-      allocate ( atoms(iType)%F1(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax ) )
-      allocate ( atoms(iType)%F2(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax ) )
-      !
-      atoms(iType)%F = 0.0_dp
-      atoms(iType)%F1 = 0.0_dp
-      atoms(iType)%F2 = 0.0_dp
-      !
-      do j = 1, atoms(iType)%lMax
-        !
-        irc = atoms(iType)%iRc
-        atoms(iType)%F(1:irc,j)=(atoms(iType)%wae(1:irc,j)-atoms(iType)%wps(1:irc,j))*atoms(iType)%r(1:irc) * &
-            atoms(iType)%rab(1:irc)
-        !
-        do i = 1, atoms(iType)%lMax
-          !        
-          atoms(iType)%F1(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
-                                         atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
-          !
-          atoms(iType)%F2(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wae(1:irc,j) - &
-                                         atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
-                                         atoms(iType)%wps(1:irc,i)*atoms(iType)%wae(1:irc,j) + &
-                                         atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
-        enddo
-      enddo
-      !
-      nProjsSD = nProjsSD + atoms(iType)%numOfAtoms*atoms(iType)%lmMax
-      !
-      deallocate ( atoms(iType)%wae, atoms(iType)%wps )
-      !
-    enddo
-    !
-    JMAX = 0
-    do iType = 1, numOfTypes
-      do i = 1, atoms(iType)%lMax
-        if ( atoms(iType)%lps(i) > JMAX ) JMAX = atoms(iType)%lps(i)
-      enddo
-    enddo
-    !
-    maxL = JMAX
-    JMAX = 2*JMAX + 1
-    !
-    do iType = 1, numOfTypes
-      allocate ( atoms(iType)%bes_J_qr( 0:JMAX, atoms(iType)%iRc ) )
-      atoms(iType)%bes_J_qr(:,:) = 0.0_dp
-      !
-    enddo
-    !
-    read(50, '(a)') textDum
-    read(50, '(ES24.15E3)') ef
-    !
-    close(50)
-    !
-    call cpu_time(t2)
-    write(iostd, '(" Reading solid defect inputs done in:                ", f10.2, " secs.")') t2-t1
-    write(iostd, *)
-    flush(iostd)
-    !
-    return
-    !
-  end subroutine readInputSD
   !
   !
   subroutine calculatePWsOverlap(ik)

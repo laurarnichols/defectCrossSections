@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 4.2% of total for procedures.">200 statements</a>
+    title=" 4.2% of total for procedures.">197 statements</a>
      </li> 
      
      
@@ -931,7 +931,6 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
       <span class="c">!! Whether or not the `input` file exists in the given </span>
       <span class="c">!! Export directory</span>
     <span class="c">!</span>
-    <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="s1">&#39;(&quot;In subroutine with crystal type &quot;, a)&#39;</span><span class="p">)</span> <span class="n">crystalType</span>
     <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
       <span class="c">!! * Start a local timer</span>
     <span class="c">!</span>
@@ -947,8 +946,6 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Reading solid defect inputs.&quot;)&#39;</span><span class="p">)</span>
-      <span class="c">!call readInputSD(exportDir, nKpts)</span>
-      <span class="c">!return</span>
       <span class="c">!</span>
     <span class="k">else</span>
       <span class="c">!</span>
@@ -1141,7 +1138,6 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="c">!</span>
     <span class="n">nProjs</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="c">!</span>
-    <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="s1">&#39;(&quot;To beginning of loop with crystal type &quot;, a)&#39;</span><span class="p">)</span> <span class="n">crystalType</span>
     <span class="k">do </span><span class="n">iType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypes</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
@@ -1237,7 +1233,6 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
       <span class="k">deallocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span> <span class="p">)</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
-    <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="s1">&#39;(&quot;To end of loop with crystal type &quot;, a)&#39;</span><span class="p">)</span> <span class="n">crystalType</span>
     <span class="c">!</span>
     <span class="c">!...............................................................................................</span>
     <span class="c">!</span>
