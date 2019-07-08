@@ -382,12 +382,13 @@ contains
         !! * Check that all required variables were input and have values that make sense
     !
     !> @todo Figure out what the difference in PC and SD is @endtodo
+    write(6,'("Calling subroutine with crystal type ", a)') 'PC'
     call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC, numOfPWsPC, nIonsPC, &
                       numOfTypesPC, posIonPC, TYPNIPC, atomsPC, nProjsPC)
         !! * Read PC inputs
-    !call readQEExport('SD', exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD, &
-    !                  numOfTypes, posIonSD, TYPNISD, atoms, nProjsSD)
-    call readInputSD(exportDirSD, nKpts)
+    call readQEExport('SD', exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD, &
+                      numOfTypes, posIonSD, TYPNISD, atoms, nProjsSD)
+    !call readInputSD(exportDirSD, nKpts)
         !! * Read SD inputs
     !
     numOfPWs = max( numOfPWsPC, numOfPWsSD )
@@ -728,6 +729,7 @@ contains
       !! Whether or not the `input` file exists in the given 
       !! Export directory
     !
+    write(6,'("In subroutine with crystal type ", a)') crystalType
     call cpu_time(t1)
       !! * Start a local timer
     !
@@ -742,9 +744,9 @@ contains
       !
     else if ( crystalType == 'SD' ) then
       !
-      !write(iostd, '(" Reading solid defect inputs.")')
-      call readInputSD(exportDir, nKpts)
-      return
+      write(iostd, '(" Reading solid defect inputs.")')
+      !call readInputSD(exportDir, nKpts)
+      !return
       !
     else
       !
@@ -937,6 +939,7 @@ contains
     !
     nProjs = 0
     !
+    write(6,'("To beginning of loop with crystal type ", a)') crystalType
     do iType = 1, numOfTypes
       !
       read(50, '(a)') textDum
@@ -1005,8 +1008,19 @@ contains
               atoms(iType)%r(1:irc)*atoms(iType)%rab(1:irc)
         !
         do i = 1, atoms(iType)%lMax
-          atoms(iType)%F1(1:irc,i,j) = ( atoms(iType)%wps(1:irc,i)*atoms(iType)%wae(1:irc,j) - &
-    &                                      atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
+          !> @todo Figure out if differences in PC and SD `F1` calculations are intentional @endtodo
+          !> @todo Figure out if should be `(wps_i wae_j - wae_i wps_j)r_{ab}` @endtodo
+          if ( crystalType == 'PC' ) then
+            !
+            atoms(iType)%F1(1:irc,i,j) = ( atoms(iType)%wps(1:irc,i)*atoms(iType)%wae(1:irc,j) - &
+                                           atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
+            !
+          else if ( crystalType == 'SD' ) then
+            !
+            atoms(iType)%F1(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
+                                           atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
+            !
+          endif
           !
           atoms(iType)%F2(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wae(1:irc,j) - &
                                            atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
@@ -1018,9 +1032,10 @@ contains
       !
       nProjs = nProjs + atoms(iType)%numOfAtoms*atoms(iType)%lmMax
       !
-!      deallocate ( atoms(iType)%wae, atoms(iType)%wps )
+      deallocate ( atoms(iType)%wae, atoms(iType)%wps )
       !
     enddo
+    write(6,'("To end of loop with crystal type ", a)') crystalType
     !
     !...............................................................................................
     !
