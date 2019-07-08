@@ -760,7 +760,20 @@ contains
     open(50, file=trim(input), status = 'old')
     !
     read(50, '(a)') textDum
-    read(50, * ) 
+    !
+    !> @note
+    !> Only read \(\omega\) from solid defect crystal because that
+    !> is the structure where we are interested in phonons??
+    !> @endnote
+    if ( crystalType == 'PC' ) then
+      !
+      read(50, * ) 
+      !
+    else if (crystalType == 'SD' ) then
+      !
+      read(50, '(ES24.15E3)' ) omega
+      !
+    endif
     !
     read(50, '(a)') textDum
     read(50, '(i10)') nKptsPC

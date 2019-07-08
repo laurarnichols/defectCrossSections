@@ -384,7 +384,7 @@ contains
     !> @todo Figure out what the difference in PC and SD is @endtodo
     call readQEExport('PC', exportDirPC)
         !! * Read PC inputs
-    call readInputSD('SD', exportDirSD)
+    call readInputSD(exportDirSD)
         !! * Read SD inputs
     !
     numOfPWs = max( numOfPWsPC, numOfPWsSD )
@@ -674,7 +674,7 @@ contains
     !
     !integer, intent(in) :: id
     !
-    character, intent(in) :: crystalType
+    character(len = 2), intent(in) :: crystalType
       !! 'PC' for pristine crystal or 'SD' for solid defect
     character(len = 200), intent(in) :: exportDir
       !! Export directory from [[pw_export_for_tme(program)]]
@@ -732,6 +732,8 @@ contains
       flush(iostd)
       stop
       !
+    endif
+    !
     write(iostd, *)
     !
     input = trim(trim(exportDir)//'/input')
@@ -758,7 +760,20 @@ contains
     open(50, file=trim(input), status = 'old')
     !
     read(50, '(a)') textDum
-    read(50, * ) 
+    !
+    !> @note
+    !> Only read \(\omega\) from solid defect crystal because that
+    !> is the structure where we are interested in phonons??
+    !> @endnote
+    if ( crystalType == 'PC' ) then
+      !
+      read(50, * ) 
+      !
+    else if (crystalType == 'SD' ) then
+      !
+      read(50, '(ES24.15E3)' ) omega
+      !
+    endif
     !
     read(50, '(a)') textDum
     read(50, '(i10)') nKptsPC
