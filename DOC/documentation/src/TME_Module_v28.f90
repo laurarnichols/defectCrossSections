@@ -903,10 +903,28 @@ contains
     enddo
     !
     read(50, '(a)') textDum
-    read(50, * )
+    !
+    if ( crystalType == 'PC' ) then
+      !
+      read(50, * )
+      !
+    else if ( crystalType == 'SD' ) then
+      !
+      read(50, '(i10)') nBands
+      !
+    endif
     !
     read(50, '(a)') textDum
-    read(50, * ) 
+    !
+    if ( crystalType == 'PC' ) then
+      !
+      read(50, * )
+      !
+    else if ( crystalType == 'SD' ) then
+      !
+      read(50, '(i10)') nSpins
+      !
+    endif
     !
     allocate ( atomsPC(numOfTypes) )
     !
