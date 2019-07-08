@@ -833,14 +833,36 @@ contains
     endif
     !
     read(50, '(a)') textDum
-    read(50,  * )
-    read(50,  * )
-    read(50,  * )
+    !
+    if ( crystalType == 'PC' ) then
+      !
+      read(50,  * )
+      read(50,  * )
+      read(50,  * )
+      !
+    else if ( crystalType == 'SD' ) then
+      !
+      read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,1)
+      read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,2)
+      read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,3)
+      !
+    endif
     !
     read(50, '(a)') textDum
-    read(50, * )
-    read(50, * )
-    read(50, * )
+    !
+    if ( crystalType == 'PC' ) then
+      !
+      read(50,  * )
+      read(50,  * )
+      read(50,  * )
+      !
+    else if ( crystalType == 'SD' ) then
+      !
+      read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,1)
+      read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,2)
+      read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,3)
+      !
+    endif
     !
     read(50, '(a)') textDum
     read(50, '(i10)') nIonsPC
