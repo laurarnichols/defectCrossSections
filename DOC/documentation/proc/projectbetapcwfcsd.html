@@ -415,29 +415,29 @@ public subroutine projectBetaPCwfcSD(ik)
     <span class="c">!</span>
     <span class="c">! Reading PC projectors</span>
     <span class="c">!</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDirPC</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/grid.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/grid.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="k">allocate</span> <span class="p">(</span> <span class="n">pwGindPC</span><span class="p">(</span><span class="n">npwsPC</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">pwGindPC</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npwsPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(4i10)&#39;</span><span class="p">)</span> <span class="n">pwGindPC</span><span class="p">(</span><span class="n">ig</span><span class="p">),</span> <span class="n">iDumV</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
     <span class="c">!</span>
-    <span class="k">allocate</span> <span class="p">(</span> <span class="n">betaPC</span><span class="p">(</span><span class="n">numOfPWs</span><span class="p">,</span> <span class="n">nProjsPC</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">betaPC</span><span class="p">(</span><span class="n">numOfPWs</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span><span class="p">)</span> <span class="p">)</span>
     <span class="c">!</span>
     <span class="n">betaPC</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
     <span class="c">!</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDirPC</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projectors.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projectors.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="k">read</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">nProjsPC</span><span class="p">,</span> <span class="n">npw</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">npw</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nProjsPC</span> 
+    <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span>
       <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npw</span>
         <span class="k">read</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span><span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">betaPC</span><span class="p">(</span><span class="n">pwGindPC</span><span class="p">(</span><span class="n">i</span><span class="p">),</span><span class="n">j</span><span class="p">)</span>
       <span class="n">enddo</span>
@@ -448,7 +448,7 @@ public subroutine projectBetaPCwfcSD(ik)
     <span class="k">deallocate</span> <span class="p">(</span> <span class="n">pwGindPC</span> <span class="p">)</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
-      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nProjsPC</span>
+      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span>
         <span class="n">cProjBetaPCPsiSD</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">conjg</span><span class="p">(</span><span class="n">betaPC</span><span class="p">(:,</span><span class="n">i</span><span class="p">))</span><span class="o">*</span><span class="n">wfcSD</span><span class="p">(:,</span><span class="n">j</span><span class="p">))</span>
         <span class="c">!write(65,&#39;(2f17.12)&#39;) cProjPC(i,j,1) - cProjBetaPCPsiSD(i,j,1)</span>
       <span class="n">enddo</span>

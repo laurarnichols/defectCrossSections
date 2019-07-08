@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 4.2% of total for procedures.">197 statements</a>
+    title=" 4.0% of total for procedures.">185 statements</a>
      </li> 
      
      
@@ -245,7 +245,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, numOfTypes, posIon, TYPNI, atoms, nProjs)
+public subroutine readQEExport(system)
     
     
    
@@ -300,7 +300,7 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
  because??
  </p></div>
 <p>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>(posIon(j,ni) , j = 1,3)</code> to <code>posIon(1:3,ni)</code> in <code>readQEExport()</code> for clarity </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>(system%posIon(j,ni) , j = 1,3)</code> to <code>system%posIon(1:3,ni)</code> in <code>readQEExport()</code> for clarity </p></div>
 <p>
 <ul>
 <li>Calculate <code>F</code>, <code>F1</code>, and <code>F2</code> using the all-electron and psuedowvefunctions
@@ -317,7 +317,9 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
 </li>
 <li>
 <p>Go through the <code>lps</code> values for each projector for each atom
- and find the max to store in <code>JMAX</code></p>
+ and find the max to store in <code>JMAX</code>
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if intentional to only use <code>JMAX</code> from SD input </p></div>
+<p>
 </li>
 <li>End the local timer and write out the total time to read the inputs
  to the output file</li>
@@ -342,192 +344,12 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
   
 <tr>
   
-  <td><span class="anchor" id="variable-crystaltype"></span>character(len=2),</td>
-  <td>intent(in)</td>
+  <td><span class="anchor" id="variable-system"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td>intent(inout)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>crystalType</strong></td><td><p>'PC' for pristine crystal or 'SD' for solid defect</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-exportdir%7E3"></span>character(len=200),</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>exportDir</strong></td><td><p>Export directory from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-nkpts"></span>integer,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>nKpts</strong></td><td><p>Number of k points</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-npws"></span>integer,</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>npws</strong>(:)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-wk"></span>real(kind=dp),</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>wk</strong>(:)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-xk"></span>real(kind=dp),</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>xk</strong>(:,:)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-numofpws"></span>integer,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>numOfPWs</strong></td><td><p>Total number of plane waves</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-nions"></span>integer,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>nIons</strong></td><td><p>Total number of atoms in system</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-numoftypes"></span>integer,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>numOfTypes</strong></td><td><p>Number of different types of atoms</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-posion"></span>real(kind=dp),</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>posIon</strong>(:,:)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-typni"></span>integer,</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>TYPNI</strong>(:)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-atoms"></span>type(<a href='../type/atom.html'>atom</a>),</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>atoms</strong>(:)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-nprojs"></span>integer,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>nProjs</strong></td><td><p>Number of projectors</p></td>
+  <td><strong>system</strong></td><td></td>
   
 </tr>
 
@@ -867,8 +689,7 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readQEExport</span><span class="p">(</span><span class="n">crystalType</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">nKpts</span><span class="p">,</span> <span class="n">npws</span><span class="p">,</span> <span class="n">wk</span><span class="p">,</span> <span class="n">xk</span><span class="p">,</span> <span class="n">numOfPWs</span><span class="p">,</span> <span class="n">nIons</span><span class="p">,</span> <span class="p">&amp;</span>
-                          <span class="n">numOfTypes</span><span class="p">,</span> <span class="n">posIon</span><span class="p">,</span> <span class="n">TYPNI</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">nProjs</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readQEExport</span><span class="p">(</span><span class="nb">system</span><span class="p">)</span>
     <span class="c">!! Read input files in the Export directory created by</span>
     <span class="c">!! [[pw_export_for_tme(program)]]</span>
     <span class="c">!!</span>
@@ -880,30 +701,8 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="k">implicit none</span>
     <span class="c">!</span>
     <span class="c">!integer, intent(in) :: id</span>
-    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nKpts</span>
-      <span class="c">!! Number of k points</span>
-    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">numOfPWs</span>
-      <span class="c">!! Total number of plane waves</span>
-    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nIons</span>
-      <span class="c">!! Total number of atoms in system</span>
-    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">numOfTypes</span>
-      <span class="c">!! Number of different types of atoms</span>
-    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nProjs</span>
-      <span class="c">!! Number of projectors</span>
-    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">npws</span><span class="p">(:)</span>
-    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">TYPNI</span><span class="p">(:)</span>
     <span class="c">!</span>
-    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">wk</span><span class="p">(:)</span>
-    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">xk</span><span class="p">(:,:)</span>
-    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">posIon</span><span class="p">(:,:)</span>
-    <span class="c">!</span>
-    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">2</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">crystalType</span>
-      <span class="c">!! &#39;PC&#39; for pristine crystal or &#39;SD&#39; for solid defect</span>
-    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">exportDir</span>
-      <span class="c">!! Export directory from [[pw_export_for_tme(program)]]</span>
-    <span class="c">!</span>
-    <span class="k">TYPE</span><span class="p">(</span><span class="n">atom</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">atoms</span><span class="p">(:)</span>
-    <span class="c">!</span>
+    <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="nb">system</span>
     <span class="c">!</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">iType</span><span class="p">,</span> <span class="n">ni</span>
       <span class="c">!! Loop indices</span>
@@ -939,17 +738,17 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="c">!&gt; The program will end if a crystal type other than `PC` or `SD` is used.</span>
     <span class="c">!&gt; @endnote</span>
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Reading perfect crystal inputs.&quot;)&#39;</span><span class="p">)</span>
       <span class="c">!</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Reading solid defect inputs.&quot;)&#39;</span><span class="p">)</span>
       <span class="c">!</span>
     <span class="k">else</span>
       <span class="c">!</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;Unknown crystal type&quot;, a, &quot;.&quot;)&#39;</span><span class="p">)</span> <span class="n">crystalType</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;Unknown crystal type&quot;, a, &quot;.&quot;)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;Please only use PC for pristine crystal or SD for solid defect.&quot;)&#39;</span><span class="p">)</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Program stops!&quot;)&#39;</span><span class="p">)</span>
       <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
@@ -959,7 +758,7 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
     <span class="c">!</span>
-    <span class="n">input</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;/input&#39;</span><span class="p">)</span>
+    <span class="n">input</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;/input&#39;</span><span class="p">)</span>
       <span class="c">!! * Set the path for the input file from the PC export directory</span>
     <span class="c">!</span>
     <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">input</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">fileExists</span><span class="p">)</span>
@@ -970,7 +769,7 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="k">if</span> <span class="p">(</span> <span class="n">fileExists</span> <span class="p">.</span><span class="n">eqv</span><span class="p">.</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; File : &quot;, a, &quot; , does not exist!&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">input</span><span class="p">)</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Please make sure that folder : &quot;, a, &quot; has been created successfully !&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Please make sure that folder : &quot;, a, &quot; has been created successfully !&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Program stops!&quot;)&#39;</span><span class="p">)</span>
       <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
       <span class="k">stop</span>
@@ -988,39 +787,39 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="c">!&gt; Only read \(\omega\) from solid defect crystal because that</span>
     <span class="c">!&gt; is the structure where we are interested in phonons??</span>
     <span class="c">!&gt; @endnote</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> 
       <span class="c">!</span>
-    <span class="k">else if</span> <span class="p">(</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">else if</span> <span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span> <span class="p">)</span> <span class="n">omega</span>
       <span class="c">!</span>
     <span class="n">endif</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nKpts</span>
-    <span class="c">!if ( kf &lt; 0 ) kf = nKpts</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">nKpts</span>
+    <span class="c">!if ( kf &lt; 0 ) kf = system%nKpts</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="c">! </span>
-    <span class="k">allocate</span> <span class="p">(</span> <span class="n">npws</span><span class="p">(</span><span class="n">nKpts</span><span class="p">),</span> <span class="n">wk</span><span class="p">(</span><span class="n">nKpts</span><span class="p">),</span> <span class="n">xk</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nKpts</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">nKpts</span><span class="p">),</span> <span class="nb">system</span><span class="p">%</span><span class="n">wk</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">nKpts</span><span class="p">),</span> <span class="nb">system</span><span class="p">%</span><span class="n">xk</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="nb">system</span><span class="p">%</span><span class="n">nKpts</span><span class="p">)</span> <span class="p">)</span>
     <span class="c">! </span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
-      <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nKpts</span>
+      <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">nKpts</span>
         <span class="c">!</span>
-        <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(3i10,4ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">xk</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
+        <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(3i10,4ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="nb">system</span><span class="p">%</span><span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="nb">system</span><span class="p">%</span><span class="n">xk</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
-      <span class="k">allocate</span><span class="p">(</span> <span class="n">groundState</span><span class="p">(</span><span class="n">nKpts</span><span class="p">)</span> <span class="p">)</span> 
+      <span class="k">allocate</span><span class="p">(</span> <span class="n">groundState</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">nKpts</span><span class="p">)</span> <span class="p">)</span> 
       <span class="c">!</span>
-      <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nKpts</span>
+      <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">nKpts</span>
         <span class="c">!</span>
-        <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(3i10,4ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">groundState</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">xk</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
+        <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(3i10,4ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">groundState</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="nb">system</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="nb">system</span><span class="p">%</span><span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="nb">system</span><span class="p">%</span><span class="n">xk</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
@@ -1032,18 +831,18 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="c">!&gt; Only read the number of G vectors from the solid</span>
     <span class="c">!&gt; defect crystal because??</span>
     <span class="c">!&gt; @endnote</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> 
       <span class="c">!</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> <span class="n">numOfGvecs</span>
       <span class="c">!</span>
     <span class="n">endif</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">numOfPWs</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">numOfPWs</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>     
     <span class="c">!</span>
@@ -1051,11 +850,11 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="c">!&gt; Only read the fft grid from the solid defect crystal</span>
     <span class="c">!&gt; because??</span>
     <span class="c">!&gt; @endnote</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> 
       <span class="c">!</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(6i10)&#39;</span><span class="p">)</span> <span class="n">fftxMin</span><span class="p">,</span> <span class="n">fftxMax</span><span class="p">,</span> <span class="n">fftyMin</span><span class="p">,</span> <span class="n">fftyMax</span><span class="p">,</span> <span class="n">fftzMin</span><span class="p">,</span> <span class="n">fftzMax</span>
       <span class="c">!</span>
@@ -1063,13 +862,13 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="c">!</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span>  <span class="o">*</span> <span class="p">)</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span>  <span class="o">*</span> <span class="p">)</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span>  <span class="o">*</span> <span class="p">)</span>
       <span class="c">!</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a5, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">textDum</span><span class="p">,</span> <span class="n">at</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a5, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">textDum</span><span class="p">,</span> <span class="n">at</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
@@ -1079,13 +878,13 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="c">!</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span>  <span class="o">*</span> <span class="p">)</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span>  <span class="o">*</span> <span class="p">)</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span>  <span class="o">*</span> <span class="p">)</span>
       <span class="c">!</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a5, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">textDum</span><span class="p">,</span> <span class="n">bg</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a5, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">textDum</span><span class="p">,</span> <span class="n">bg</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
@@ -1094,29 +893,29 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="n">endif</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nIons</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">nIons</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">numOfTypes</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">numOfTypes</span>
     <span class="c">!</span>
-    <span class="k">allocate</span><span class="p">(</span> <span class="n">posIon</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nIons</span><span class="p">),</span> <span class="n">TYPNI</span><span class="p">(</span><span class="n">nIons</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span><span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">posIon</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="nb">system</span><span class="p">%</span><span class="n">nIons</span><span class="p">),</span> <span class="nb">system</span><span class="p">%</span><span class="n">atomTypeIndex</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">nIons</span><span class="p">)</span> <span class="p">)</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nIons</span>
+    <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">nIons</span>
       <span class="c">!</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span><span class="s1">&#39;(i10, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">TYPNI</span><span class="p">(</span><span class="n">ni</span><span class="p">),</span> <span class="p">(</span><span class="n">posIon</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">ni</span><span class="p">)</span> <span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
-        <span class="c">!! @todo Change `(posIon(j,ni) , j = 1,3)` to `posIon(1:3,ni)` in `readQEExport()` for clarity @endtodo</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span><span class="s1">&#39;(i10, 3ES24.15E3)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">atomTypeIndex</span><span class="p">(</span><span class="n">ni</span><span class="p">),</span> <span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">posIon</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">ni</span><span class="p">)</span> <span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+        <span class="c">!! @todo Change `(system%posIon(j,ni) , j = 1,3)` to `system%posIon(1:3,ni)` in `readQEExport()` for clarity @endtodo</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="c">!</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
       <span class="c">!</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nBands</span>
       <span class="c">!</span>
@@ -1124,113 +923,116 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="c">!</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
       <span class="c">!</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nSpins</span>
       <span class="c">!</span>
     <span class="n">endif</span>
     <span class="c">!</span>
-    <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">numOfTypes</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">numOfTypes</span><span class="p">)</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="n">nProjs</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="nb">system</span><span class="p">%</span><span class="n">nProjs</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">iType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypes</span>
+    <span class="k">do </span><span class="n">iType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">numOfTypes</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">symbol</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">symbol</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">numOfAtoms</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">numOfAtoms</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>              <span class="c">! number of projectors</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>              <span class="c">! number of projectors</span>
       <span class="c">!</span>
-      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> 
+      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> 
         <span class="c">!</span>
         <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">l</span><span class="p">,</span> <span class="n">ind</span>
-        <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="o">=</span> <span class="n">l</span>
+        <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="o">=</span> <span class="n">l</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lmMax</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lmMax</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span>
       <span class="c">!</span>
-      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">),</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">),</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">)</span> <span class="p">)</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span>
+      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span>
         <span class="c">!</span>
-        <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">! </span>
-      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">)</span> <span class="p">)</span>
-      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">)</span> <span class="p">)</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
-      <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
-        <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span>
+      <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
+        <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">nMax</span>
           <span class="c">!</span>
-          <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> 
-          <span class="c">! write(iostd, &#39;(2i5, ES24.15E3)&#39;) j, i, abs(atoms(iType)%wae(i, j)-atoms(iType)%wps(i, j))</span>
+          <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span> 
+          <span class="c">! write(iostd, &#39;(2i5, ES24.15E3)&#39;) j, i, abs(system%atoms(iType)%wae(i, j)-system%atoms(iType)%wps(i, j))</span>
           <span class="c">!</span>
         <span class="n">enddo</span>
       <span class="n">enddo</span>
       <span class="c">!  </span>
-      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F</span><span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span> <span class="c">!, atoms(iType)%lMax) )</span>
-      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
-      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F2</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F</span><span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span> <span class="c">!, system%atoms(iType)%lMax) )</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F2</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
       <span class="c">!</span>
-      <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-      <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F1</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-      <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F2</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F1</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F2</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
       <span class="c">!</span>
       <span class="c">!&gt; * Calculate `F`, `F1`, and `F2` using the all-electron and psuedowvefunctions</span>
       <span class="c">!&gt; @todo Look more into how AE and PS wavefunctions are combined to further understand this @endtodo</span>
       <span class="c">!&gt; @todo Move this behavior to another subroutine for clarity @endtodo</span>
-      <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
+      <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
         <span class="c">!</span>
-        <span class="n">irc</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span>
+        <span class="n">irc</span> <span class="o">=</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span>
         <span class="c">!</span>
-        <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="o">=</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="o">-</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="o">*</span> <span class="p">&amp;</span>
-              <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span>
+        <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="o">=</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="o">-</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="o">*</span> <span class="p">&amp;</span>
+              <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span><span class="o">*</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span>
         <span class="c">!</span>
-        <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
+        <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
           <span class="c">!&gt; @todo Figure out if differences in PC and SD `F1` calculations are intentional @endtodo</span>
           <span class="c">!&gt; @todo Figure out if should be `(wps_i wae_j - wae_i wps_j)r_{ab}` @endtodo</span>
-          <span class="k">if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
+          <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
             <span class="c">!</span>
-            <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">-</span> <span class="p">&amp;</span>
-                                           <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span>
+            <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">-</span> <span class="p">&amp;</span>
+                                                  <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="o">*</span> <span class="p">&amp;</span>
+                                                  <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span>
             <span class="c">!</span>
-          <span class="k">else if</span> <span class="p">(</span> <span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
+          <span class="k">else if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
             <span class="c">!</span>
-            <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">-</span> <span class="p">&amp;</span>
-                                           <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span>
+            <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">-</span> <span class="p">&amp;</span>
+                                                  <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="o">*</span> <span class="p">&amp;</span> 
+                                                  <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span>
             <span class="c">!</span>
           <span class="n">endif</span>
           <span class="c">!</span>
-          <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F2</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">-</span> <span class="p">&amp;</span>
-                                           <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">-</span> <span class="p">&amp;</span>
-                                           <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">+</span> <span class="p">&amp;</span>
-    <span class="p">&amp;</span>                                      <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span>
+          <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">F2</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">-</span> <span class="p">&amp;</span>
+                                           <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">-</span> <span class="p">&amp;</span>
+                                           <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">+</span> <span class="p">&amp;</span>
+                                           <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">i</span><span class="p">)</span><span class="o">*</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="o">*</span> <span class="p">&amp;</span> 
+                                           <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">rab</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">irc</span><span class="p">)</span>
 
         <span class="n">enddo</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
-      <span class="n">nProjs</span> <span class="o">=</span> <span class="n">nProjs</span> <span class="o">+</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">numOfAtoms</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lmMax</span>
+      <span class="nb">system</span><span class="p">%</span><span class="n">nProjs</span> <span class="o">=</span> <span class="nb">system</span><span class="p">%</span><span class="n">nProjs</span> <span class="o">+</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">numOfAtoms</span><span class="o">*</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lmMax</span>
       <span class="c">!</span>
-      <span class="k">deallocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span> <span class="p">)</span>
+      <span class="k">deallocate</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wae</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">wps</span> <span class="p">)</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
@@ -1241,12 +1043,13 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="c">!</span>
     <span class="c">!&gt; * Go through the `lps` values for each projector for each atom</span>
     <span class="c">!&gt; and find the max to store in `JMAX`</span>
+    <span class="c">!&gt; @todo Figure out if intentional to only use `JMAX` from SD input @endtodo</span>
     <span class="n">JMAX</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">do </span><span class="n">iType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypes</span>
+    <span class="k">do </span><span class="n">iType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">numOfTypes</span>
       <span class="c">!</span>
-      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
+      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
         <span class="c">!</span>
-        <span class="k">if</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">JMAX</span> <span class="p">)</span> <span class="n">JMAX</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">JMAX</span> <span class="p">)</span> <span class="n">JMAX</span> <span class="o">=</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
@@ -1255,10 +1058,10 @@ public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numO
     <span class="n">maxL</span> <span class="o">=</span> <span class="n">JMAX</span>
     <span class="n">JMAX</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">JMAX</span> <span class="o">+</span> <span class="mi">1</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">iType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypes</span>
+    <span class="k">do </span><span class="n">iType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">numOfTypes</span>
       <span class="c">!</span>
-      <span class="k">allocate</span> <span class="p">(</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(</span> <span class="mi">0</span><span class="p">:</span><span class="n">JMAX</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span> <span class="p">)</span> <span class="p">)</span>
-      <span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(</span> <span class="mi">0</span><span class="p">:</span><span class="n">JMAX</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">iRc</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>

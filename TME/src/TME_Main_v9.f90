@@ -22,7 +22,7 @@ program transitionMatrixElements
   ! If this is the root process
   if ( myid == root ) then
     !
-    call initializeCalculation(exportDirSD, exportDirPC, elementsPath, VFisOutput, ki, kf, nKpts, eBin, &
+    call initializeCalculation(solidDefect, perfectCrystal, elementsPath, VFisOutput, ki, kf, eBin, &
                                iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVFis, t0)
       !! Call [[TMEModule(module):initializeCalculation(subroutine)]]
     ! 
@@ -34,7 +34,7 @@ program transitionMatrixElements
     !
     ! Allocate space for variables
     allocate ( counts(0:numprocs-1), displmnt(0:numprocs-1) )
-    allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKptsPC) )
+    allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, perfectCrystal%nKpts) )
     allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
@@ -65,100 +65,102 @@ program transitionMatrixElements
   call MPI_BCAST(iBandFinit,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   !
-  call MPI_BCAST(nKptsPC,     1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+  call MPI_BCAST(perfectCrystal%nKpts,     1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   !
-  call MPI_BCAST(nProjsPC,    1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(nProjsSD,    1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+  call MPI_BCAST(perfectCrystal%nProjs,    1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+  call MPI_BCAST(solidDefect%nProjs,    1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(nBands,      1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(nSpins,      1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(numOfPWs,    1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+  call MPI_BCAST(solidDefect%numOfPWs,    1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(numOfGvecs,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   !
   call MPI_BCAST(nPWsI, numprocs, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   call MPI_BCAST(nPWsF, numprocs, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   !
-  call MPI_BCAST(numOfTypesPC, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+  call MPI_BCAST(perfectCrystal%numOfTypes, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   call MPI_BCAST(JMAX, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   !
   ! Have other processes allocate space for gvecs so that root can send to them
   if ( myid /= root ) allocate ( gvecs(3, numOfGvecs) )
   call MPI_BCAST(gvecs, size(gvecs), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !
-  if ( myid /= root ) allocate ( atomsPC(numOfTypesPC) )
+  if ( myid /= root ) allocate ( perfectCrystal%atoms(perfectCrystal%numOfTypes) )
   !
   ! For each type of ???
-  do i = 1, numOfTypesPC
+  do i = 1, perfectCrystal%numOfTypes
     !
-    ! Broadcast the variables in the atomsPC structure array
-    call MPI_BCAST(atomsPC(i)%numOfAtoms, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atomsPC(i)%lMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atomsPC(i)%lmMax,      1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atomsPC(i)%nMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atomsPC(i)%iRc,        1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    ! Broadcast the variables in the perfect crystal atoms structure array
+    call MPI_BCAST(perfectCrystal%atoms(i)%numOfAtoms, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(perfectCrystal%atoms(i)%lMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(perfectCrystal%atoms(i)%lmMax,      1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(perfectCrystal%atoms(i)%nMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(perfectCrystal%atoms(i)%iRc,        1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     !
-    ! Allocate space for arrays in atomsPC structure
+    ! Allocate space for arrays in the perfect crystal atoms structure
     if ( myid /= root ) then 
-      allocate( atomsPC(i)%lps(atomsPC(i)%lMax) )
-      allocate( atomsPC(i)%r  (atomsPC(i)%nMax) )
-      allocate( atomsPC(i)%rab(atomsPC(i)%nMax) )
-      allocate( atomsPC(i)%F(atomsPC(i)%iRc, atomsPC(i)%lMax ) )
-      allocate( atomsPC(i)%F1(atomsPC(i)%iRc, atomsPC(i)%lMax, atomsPC(i)%lMax ) )
-      allocate( atomsPC(i)%bes_J_qr ( 0:JMAX, atomsPC(i)%iRc) )
+      allocate( perfectCrystal%atoms(i)%lps(perfectCrystal%atoms(i)%lMax) )
+      allocate( perfectCrystal%atoms(i)%r  (perfectCrystal%atoms(i)%nMax) )
+      allocate( perfectCrystal%atoms(i)%rab(perfectCrystal%atoms(i)%nMax) )
+      allocate( perfectCrystal%atoms(i)%F(perfectCrystal%atoms(i)%iRc, perfectCrystal%atoms(i)%lMax ) )
+      allocate(perfectCrystal%atoms(i)%F1(perfectCrystal%atoms(i)%iRc, perfectCrystal%atoms(i)%lMax, perfectCrystal%atoms(i)%lMax))
+      allocate( perfectCrystal%atoms(i)%bes_J_qr ( 0:JMAX, perfectCrystal%atoms(i)%iRc) )
     endif
     !
     ! Broadcast arrays from root to all other processes
-    call MPI_BCAST(atomsPC(i)%lps, size(atomsPC(i)%lps), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atomsPC(i)%r,   size(atomsPC(i)%r),   MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atomsPC(i)%rab, size(atomsPC(i)%rab), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atomsPC(i)%F,   size(atomsPC(i)%F),   MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atomsPC(i)%F1,  size(atomsPC(i)%F1),  MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atomsPC(i)%bes_J_qr, size(atomsPC(i)%bes_J_qr), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(perfectCrystal%atoms(i)%lps, size(perfectCrystal%atoms(i)%lps), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(perfectCrystal%atoms(i)%r,   size(perfectCrystal%atoms(i)%r),   MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(perfectCrystal%atoms(i)%rab, size(perfectCrystal%atoms(i)%rab), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(perfectCrystal%atoms(i)%F,   size(perfectCrystal%atoms(i)%F),   MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(perfectCrystal%atoms(i)%F1,  size(perfectCrystal%atoms(i)%F1),  MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(perfectCrystal%atoms(i)%bes_J_qr, size(perfectCrystal%atoms(i)%bes_J_qr), &
+                   MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   enddo
   !
-  call MPI_BCAST(nIonsPC, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+  call MPI_BCAST(perfectCrystal%nIons, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   !
-  if ( myid /= root ) allocate( posIonPC(3, nIonsPC), TYPNIPC(nIonsPC) )
-  call MPI_BCAST(TYPNIPC,  size(TYPNIPC),  MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-  call MPI_BCAST(posIonPC, size(posIonPC), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
+  if ( myid /= root ) allocate( perfectCrystal%posIon(3, perfectCrystal%nIons), perfectCrystal%atomTypeIndex(perfectCrystal%nIons) )
+  call MPI_BCAST(perfectCrystal%atomTypeIndex,  size(perfectCrystal%atomTypeIndex),  MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+  call MPI_BCAST(perfectCrystal%posIon, size(perfectCrystal%posIon), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !
-  call MPI_BCAST(numOfTypes, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+  call MPI_BCAST(solidDefect%numOfTypes, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   !
-  if ( myid /= root ) allocate ( atoms(numOfTypes) )
+  if ( myid /= root ) allocate ( solidDefect%atoms(solidDefect%numOfTypes) )
   !
-  do i = 1, numOfTypes
+  do i = 1, solidDefect%numOfTypes
     !
-    call MPI_BCAST(atoms(i)%numOfAtoms, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atoms(i)%lMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atoms(i)%lmMax,      1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atoms(i)%nMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atoms(i)%iRc,        1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(solidDefect%atoms(i)%numOfAtoms, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(solidDefect%atoms(i)%lMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(solidDefect%atoms(i)%lmMax,      1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(solidDefect%atoms(i)%nMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(solidDefect%atoms(i)%iRc,        1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     !
     if ( myid /= root ) then 
-      allocate( atoms(i)%lps(atoms(i)%lMax) )
-      allocate( atoms(i)%r(atoms(i)%nMax) )
-      allocate( atoms(i)%rab(atoms(i)%nMax) )
-      allocate( atoms(i)%F(atoms(i)%iRc, atoms(i)%lMax ) )
-      allocate( atoms(i)%F1(atoms(i)%iRc, atoms(i)%lMax, atoms(i)%lMax ) )
-      allocate( atoms(i)%bes_J_qr( 0:JMAX, atoms(i)%iRc) )
+      allocate( solidDefect%atoms(i)%lps(solidDefect%atoms(i)%lMax) )
+      allocate( solidDefect%atoms(i)%r(solidDefect%atoms(i)%nMax) )
+      allocate( solidDefect%atoms(i)%rab(solidDefect%atoms(i)%nMax) )
+      allocate( solidDefect%atoms(i)%F(solidDefect%atoms(i)%iRc, solidDefect%atoms(i)%lMax ) )
+      allocate( solidDefect%atoms(i)%F1(solidDefect%atoms(i)%iRc, solidDefect%atoms(i)%lMax, solidDefect%atoms(i)%lMax ) )
+      allocate( solidDefect%atoms(i)%bes_J_qr( 0:JMAX, solidDefect%atoms(i)%iRc) )
     endif
     !
-    call MPI_BCAST(atoms(i)%lps, size(atoms(i)%lps), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atoms(i)%r, size(atoms(i)%r), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atoms(i)%rab, size(atoms(i)%rab), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atoms(i)%F, size(atoms(i)%F), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atoms(i)%F1, size(atoms(i)%F1), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atoms(i)%bes_J_qr, size(atoms(i)%bes_J_qr), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(solidDefect%atoms(i)%lps, size(solidDefect%atoms(i)%lps), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(solidDefect%atoms(i)%r, size(solidDefect%atoms(i)%r), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(solidDefect%atoms(i)%rab, size(solidDefect%atoms(i)%rab), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(solidDefect%atoms(i)%F, size(solidDefect%atoms(i)%F), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(solidDefect%atoms(i)%F1, size(solidDefect%atoms(i)%F1), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
+    call MPI_BCAST(solidDefect%atoms(i)%bes_J_qr, size(solidDefect%atoms(i)%bes_J_qr), MPI_DOUBLE_PRECISION, &
+                   root,MPI_COMM_WORLD,ierr)
   enddo
   !
-  call MPI_BCAST(nIonsSD, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+  call MPI_BCAST(solidDefect%nIons, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   !
-  if ( myid /= root ) allocate( posIonSD(3, nIonsSD), TYPNISD(nIonsSD) )
-  call MPI_BCAST(TYPNISD,  size(TYPNISD),  MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-  call MPI_BCAST(posIonSD, size(posIonSD), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
+  if ( myid /= root ) allocate( solidDefect%posIon(3, solidDefect%nIons), solidDefect%atomTypeIndex(solidDefect%nIons) )
+  call MPI_BCAST(solidDefect%atomTypeIndex,  size(solidDefect%atomTypeIndex),  MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+  call MPI_BCAST(solidDefect%posIon, size(solidDefect%posIon), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !
   allocate ( paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
   !
-  do ik = 1, nKptsPC
+  do ik = 1, perfectCrystal%nKpts
     !
     if ( myid == root ) then
       !
@@ -171,19 +173,19 @@ program transitionMatrixElements
     !
     if ( .not.tmes_file_exists ) then
       !
-      allocate ( cProjPC(nProjsPC, nBands, nSpins) )
-      allocate ( cProjSD(nProjsSD, nBands, nSpins) )
+      allocate ( cProjPC(perfectCrystal%nProjs, nBands, nSpins) )
+      allocate ( cProjSD(solidDefect%nProjs, nBands, nSpins) )
       !
       if ( myid == root ) then
         !
-        write(iostd, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4)') ik, nKptsPC
+        write(iostd, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4)') ik, perfectCrystal%nKpts
         flush(iostd)
         !
         write(iostd, *)
         write(iostd, '("    Plane waves part begun.")')
         write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> begun.")')
         call cpu_time(t1)
-        allocate( wfcPC (numOfPWs, iBandIinit:iBandIfinal), wfcSD (numOfPWs, iBandFinit:iBandFfinal ) )
+        allocate( wfcPC (solidDefect%numOfPWs, iBandIinit:iBandIfinal), wfcSD (solidDefect%numOfPWs, iBandFinit:iBandFfinal ) )
         !
         call calculatePWsOverlap(ik)
         !
@@ -201,7 +203,7 @@ program transitionMatrixElements
         !
         call readProjectionsPC(ik)
         !
-        allocate ( cProjBetaPCPsiSD(nProjsPC, nBands, nSpins) )
+        allocate ( cProjBetaPCPsiSD(perfectCrystal%nProjs, nBands, nSpins) )
         call projectBetaPCwfcSD(ik)
         !
         deallocate ( wfcSD )
@@ -218,7 +220,7 @@ program transitionMatrixElements
         !
         call readProjectionsSD(ik)
         !
-        allocate ( cProjBetaSDPhiPC(nProjsSD, nBands, nSpins) )
+        allocate ( cProjBetaSDPhiPC(solidDefect%nProjs, nBands, nSpins) )
         call projectBetaSDwfcPC(ik)
         !
         deallocate ( wfcPC )

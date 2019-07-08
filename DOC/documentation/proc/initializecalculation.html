@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.6% of total for procedures.">29 statements</a>
+    title=" 0.7% of total for procedures.">32 statements</a>
      </li> 
      
      
@@ -217,7 +217,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, VfisOutput, ki, kf, eBin, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVfis, t0)
+public subroutine initializeCalculation(solidDefect, pristineCrystal, elementsPath, VfisOutput, ki, kf, eBin, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVfis, t0)
     
     
    
@@ -262,12 +262,12 @@ public subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, 
   
 <tr>
   
-  <td><span class="anchor" id="variable-exportdirsd"></span>character(len=200),</td>
-  <td>intent(out)</td>
+  <td><span class="anchor" id="variable-soliddefect"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td>intent(inout)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>exportDirSD</strong></td><td></td>
+  <td><strong>solidDefect</strong></td><td></td>
   
 </tr>
 
@@ -277,12 +277,12 @@ public subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, 
   
 <tr>
   
-  <td><span class="anchor" id="variable-exportdirpc"></span>character(len=200),</td>
-  <td>intent(out)</td>
+  <td><span class="anchor" id="variable-pristinecrystal"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td>intent(inout)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>exportDirPC</strong></td><td></td>
+  <td><strong>pristineCrystal</strong></td><td></td>
   
 </tr>
 
@@ -562,7 +562,7 @@ public subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, 
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initializeCalculation</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">,</span> <span class="n">exportDirPC</span><span class="p">,</span> <span class="n">elementsPath</span><span class="p">,</span> <span class="n">VFisOutput</span><span class="p">,</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">eBin</span><span class="p">,</span> <span class="p">&amp;</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initializeCalculation</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">,</span> <span class="n">pristineCrystal</span><span class="p">,</span> <span class="n">elementsPath</span><span class="p">,</span> <span class="n">VFisOutput</span><span class="p">,</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">eBin</span><span class="p">,</span> <span class="p">&amp;</span>
                                    <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">calculateVFis</span><span class="p">,</span> <span class="n">t0</span><span class="p">)</span>
     <span class="c">!! Initialize the calculation by starting timer,</span>
     <span class="c">!! setting start values for variables to be read from</span>
@@ -577,15 +577,16 @@ public subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, 
     <span class="c">!</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">eBin</span><span class="p">,</span> <span class="n">t0</span>
     <span class="c">!</span>
-    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">exportDirSD</span><span class="p">,</span> <span class="n">exportDirPC</span><span class="p">,</span> <span class="n">VfisOutput</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">VfisOutput</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">elementsPath</span>
     <span class="c">!</span>
     <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">calculateVfis</span>
     <span class="kt">logical</span> <span class="kd">::</span> <span class="n">fileExists</span>
       <span class="c">!! Whether or not the output file already exists</span>
+    <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">solidDefect</span><span class="p">,</span> <span class="n">pristineCrystal</span>
     <span class="c">!</span>
-    <span class="n">exportDirSD</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-    <span class="n">exportDirPC</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="n">elementsPath</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="n">VfisOutput</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="c">!</span>
@@ -600,6 +601,9 @@ public subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, 
     <span class="n">iBandFfinal</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="c">!</span>
     <span class="n">calculateVfis</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+    <span class="c">!</span>
+    <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">=</span> <span class="s1">&#39;PC&#39;</span>
+    <span class="n">solidDefect</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">=</span> <span class="s1">&#39;SD&#39;</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t0</span><span class="p">)</span>
         <span class="c">!! * Start a timer</span>

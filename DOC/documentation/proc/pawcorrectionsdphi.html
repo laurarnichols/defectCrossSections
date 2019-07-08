@@ -646,24 +646,24 @@ public subroutine pawCorrectionSDPhi()
     <span class="c">!</span>
     <span class="n">LMBASE</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nIonsSD</span> <span class="c">! LOOP OVER THE IONS</span>
+    <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nIons</span> <span class="c">! LOOP OVER THE IONS</span>
       <span class="c">!</span>
-      <span class="n">iT</span> <span class="o">=</span> <span class="n">TYPNISD</span><span class="p">(</span><span class="n">ni</span><span class="p">)</span>
+      <span class="n">iT</span> <span class="o">=</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">atomTypeIndex</span><span class="p">(</span><span class="n">ni</span><span class="p">)</span>
       <span class="n">LM</span> <span class="o">=</span> <span class="mi">0</span>
-      <span class="k">DO </span><span class="n">LL</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lMax</span>
-        <span class="n">L</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">LPS</span><span class="p">(</span><span class="n">LL</span><span class="p">)</span>
+      <span class="k">DO </span><span class="n">LL</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lMax</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">LPS</span><span class="p">(</span><span class="n">LL</span><span class="p">)</span>
         <span class="k">DO </span><span class="n">M</span> <span class="o">=</span> <span class="o">-</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span>
           <span class="n">LM</span> <span class="o">=</span> <span class="n">LM</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">!1st index for CPROJ</span>
           <span class="c">!</span>
           <span class="n">LMP</span> <span class="o">=</span> <span class="mi">0</span>
-          <span class="k">DO </span><span class="n">LLP</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lMax</span>
-            <span class="n">LP</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">LPS</span><span class="p">(</span><span class="n">LLP</span><span class="p">)</span>
+          <span class="k">DO </span><span class="n">LLP</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lMax</span>
+            <span class="n">LP</span> <span class="o">=</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">LPS</span><span class="p">(</span><span class="n">LLP</span><span class="p">)</span>
             <span class="k">DO </span><span class="n">MP</span> <span class="o">=</span> <span class="o">-</span><span class="n">LP</span><span class="p">,</span> <span class="n">LP</span>
               <span class="n">LMP</span> <span class="o">=</span> <span class="n">LMP</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">! 2nd index for CPROJ</span>
               <span class="c">!</span>
               <span class="n">atomicOverlap</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
               <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">L</span> <span class="o">==</span> <span class="n">LP</span><span class="p">).</span><span class="nb">and</span><span class="p">.(</span><span class="n">M</span> <span class="o">==</span> <span class="n">MP</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">                </span><span class="n">atomicOverlap</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">F1</span><span class="p">(:,</span><span class="n">LL</span><span class="p">,</span><span class="n">LLP</span><span class="p">))</span>
+<span class="k">                </span><span class="n">atomicOverlap</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">F1</span><span class="p">(:,</span><span class="n">LL</span><span class="p">,</span><span class="n">LLP</span><span class="p">))</span>
                 <span class="c">!</span>
                 <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
                   <span class="n">cProjIe</span> <span class="o">=</span> <span class="n">cProjBetaSDPhiPC</span><span class="p">(</span><span class="n">LMP</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">)</span>
@@ -683,7 +683,7 @@ public subroutine pawCorrectionSDPhi()
           <span class="n">ENDDO</span>
         <span class="n">ENDDO</span>
       <span class="n">ENDDO</span>
-      <span class="n">LMBASE</span> <span class="o">=</span> <span class="n">LMBASE</span> <span class="o">+</span> <span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lmMax</span>
+      <span class="n">LMBASE</span> <span class="o">=</span> <span class="n">LMBASE</span> <span class="o">+</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lmMax</span>
     <span class="n">ENDDO</span>
     <span class="c">!</span>
     <span class="k">return</span>

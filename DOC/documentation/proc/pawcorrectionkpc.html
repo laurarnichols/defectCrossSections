@@ -778,34 +778,34 @@ public subroutine pawCorrectionKPC()
       <span class="c">!</span>
       <span class="n">LMBASE</span> <span class="o">=</span> <span class="mi">0</span>
       <span class="c">!</span>
-      <span class="k">do </span><span class="n">iT</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">numOfTypesPC</span>
+      <span class="k">do </span><span class="n">iT</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">numOfTypes</span>
         <span class="c">!</span>
-        <span class="k">DO </span><span class="n">I</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">iRc</span> <span class="c">! nMax - 1</span>
+        <span class="k">DO </span><span class="n">I</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">iRc</span> <span class="c">! nMax - 1</span>
           <span class="c">!</span>
           <span class="n">JL</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-          <span class="k">CALL </span><span class="n">bessel_j</span><span class="p">(</span><span class="n">q</span><span class="o">*</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">I</span><span class="p">),</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">JL</span><span class="p">)</span> <span class="c">! returns the spherical bessel at qr point</span>
-          <span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(:,</span><span class="n">I</span><span class="p">)</span> <span class="o">=</span> <span class="n">JL</span><span class="p">(:)</span>
+          <span class="k">CALL </span><span class="n">bessel_j</span><span class="p">(</span><span class="n">q</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">I</span><span class="p">),</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">JL</span><span class="p">)</span> <span class="c">! returns the spherical bessel at qr point</span>
+          <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(:,</span><span class="n">I</span><span class="p">)</span> <span class="o">=</span> <span class="n">JL</span><span class="p">(:)</span>
           <span class="c">!</span>
         <span class="n">ENDDO</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
-      <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nIonsPC</span> <span class="c">! LOOP OVER THE IONS</span>
+      <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nIons</span> <span class="c">! LOOP OVER THE IONS</span>
         <span class="c">!</span>
-        <span class="n">qDotR</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">ig</span><span class="p">)</span><span class="o">*</span><span class="n">posIonPC</span><span class="p">(:,</span><span class="n">ni</span><span class="p">))</span>
+        <span class="n">qDotR</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">ig</span><span class="p">)</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">posIon</span><span class="p">(:,</span><span class="n">ni</span><span class="p">))</span>
         <span class="c">!</span>
         <span class="n">ATOMIC_CENTER</span> <span class="o">=</span> <span class="nb">exp</span><span class="p">(</span> <span class="o">-</span><span class="n">ii</span><span class="o">*</span><span class="nb">cmplx</span><span class="p">(</span><span class="n">qDotR</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="p">)</span>
         <span class="c">!</span>
-        <span class="n">iT</span> <span class="o">=</span> <span class="n">TYPNIPC</span><span class="p">(</span><span class="n">ni</span><span class="p">)</span>
+        <span class="n">iT</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atomTypeIndex</span><span class="p">(</span><span class="n">ni</span><span class="p">)</span>
         <span class="n">LM</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">DO </span><span class="n">LL</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lMax</span>
-          <span class="n">L</span> <span class="o">=</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">LPS</span><span class="p">(</span><span class="n">LL</span><span class="p">)</span>
+        <span class="k">DO </span><span class="n">LL</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lMax</span>
+          <span class="n">L</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">LPS</span><span class="p">(</span><span class="n">LL</span><span class="p">)</span>
           <span class="k">DO </span><span class="n">M</span> <span class="o">=</span> <span class="o">-</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span>
             <span class="n">LM</span> <span class="o">=</span> <span class="n">LM</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">!1st index for CPROJ</span>
             <span class="c">!</span>
             <span class="n">FI</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
             <span class="c">!</span>
-            <span class="n">FI</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(</span><span class="n">L</span><span class="p">,:)</span><span class="o">*</span><span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">F</span><span class="p">(:,</span><span class="n">LL</span><span class="p">))</span> <span class="c">! radial part integration F contains rab</span>
+            <span class="n">FI</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(</span><span class="n">L</span><span class="p">,:)</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">F</span><span class="p">(:,</span><span class="n">LL</span><span class="p">))</span> <span class="c">! radial part integration F contains rab</span>
             <span class="c">!</span>
             <span class="n">ind</span> <span class="o">=</span> <span class="n">L</span><span class="o">*</span><span class="p">(</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">M</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">! index for spherical harmonics</span>
             <span class="n">VifQ_aug</span> <span class="o">=</span> <span class="n">ATOMIC_CENTER</span><span class="o">*</span><span class="n">Y</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="n">II</span><span class="p">)</span><span class="o">**</span><span class="n">L</span><span class="o">*</span><span class="n">FI</span>
@@ -822,7 +822,7 @@ public subroutine pawCorrectionKPC()
             <span class="c">!</span>
           <span class="n">ENDDO</span>
         <span class="n">ENDDO</span>
-        <span class="n">LMBASE</span> <span class="o">=</span> <span class="n">LMBASE</span> <span class="o">+</span> <span class="n">atomsPC</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lmMax</span>
+        <span class="n">LMBASE</span> <span class="o">=</span> <span class="n">LMBASE</span> <span class="o">+</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lmMax</span>
       <span class="n">ENDDO</span>
       <span class="c">!</span>
     <span class="n">enddo</span>

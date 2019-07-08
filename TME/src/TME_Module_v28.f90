@@ -87,16 +87,8 @@ module TMEModule
   integer :: nGvsF
   integer :: nGvsI
   integer :: nI
-  integer :: nIonsPC
-    !! Number of atoms in the PC input file
-  integer :: nIonsSD
-  integer :: nKpts
-  integer :: nKptsPC
-    !! The number of PC k points
   integer :: np
   integer :: nPP
-  integer :: nProjsPC
-  integer :: nProjsSD
   integer :: npw
   integer :: npwMf
   integer :: npwMi
@@ -107,12 +99,6 @@ module TMEModule
   integer :: numOfGvecs
     !! Number of G vectors; not read in from PC input
   integer :: numOfPWs
-  integer :: numOfPWsPC
-    !! Total number of plane waves from PC input
-  integer :: numOfPWsSD
-  integer :: numOfTypes
-  integer :: numOfTypesPC
-    !! Number of types of atoms in the PC input file
   integer :: numOfUsedGvecsPP
   integer :: numprocs
     !! Number of processes in the MPI pool
@@ -141,16 +127,14 @@ module TMEModule
   !
   ! Declare scalar characters
   character(len = 300) :: elementsPath
-  character(len = 200) :: exportDirSD
-    !! SD output directory from the [[pw_export_for_TME(program)]] program
-  character(len = 200) :: exportDirPC
-    !! PC output directory from the [[pw_export_for_TME(program)]] program
   character(len = 320) :: mkdir
     !! Command for creating the elements path directory
   character(len = 300) :: textDum
     !! Dummy variable to hold unneeded lines from input file
   character(len = 200) :: VfisOutput
     !! Output file for ??
+  character(len = 200) :: exportDirSD
+  character(len = 200) :: exportDirPC
   !
   !
   ! Declare matrix/vector integers
@@ -164,16 +148,10 @@ module TMEModule
   integer, allocatable :: nIs(:,:)
   integer, allocatable :: nPWsI(:)
   integer, allocatable :: nPWsF(:)
-  integer, allocatable :: npwsPC(:)
-    !! Number of plane waves per k point; allocated in `readInputPC()`
-  integer, allocatable :: npwsSD(:)
   integer, allocatable :: pwGindPC(:)
   integer, allocatable :: pwGindSD(:)
   integer, allocatable :: pwGvecs(:,:)
   integer, allocatable :: pwGs(:,:)
-  integer, allocatable :: TYPNIPC(:)
-    !! Index of the type for a given atom from the PC input file; allocated in `readInputPC()`
-  integer, allocatable :: TYPNISD(:)
   !
   ! Declare matrix/vector reals
   real(kind = dp) at(3,3)
@@ -183,15 +161,6 @@ module TMEModule
   real(kind = dp), allocatable :: eigvF(:)
   real(kind = dp), allocatable :: eigvI(:)
   real(kind = dp), allocatable :: gvecs(:,:)
-  real(kind = dp), allocatable :: posIonPC(:,:)
-    !! Position of the atoms in the PC input file; allocated in `readInputPC()`
-  real(kind = dp), allocatable :: posIonSD(:,:)
-  real(kind = dp), allocatable :: wk(:)
-  real(kind = dp), allocatable :: wkPC(:)
-    !! Allocated in `readInputPC()`
-  real(kind = dp), allocatable :: xk(:,:)
-  real(kind = dp), allocatable :: xkPC(:,:)
-    !! Allocated in `readInputPC()`
   !
   ! Declare matrix/vector complex numbers
   complex(kind = dp), allocatable :: betaPC(:,:)
@@ -214,29 +183,6 @@ module TMEModule
   complex(kind = dp), allocatable :: wfcSD(:,:)
   !
   !
-  !> @todo Use crystal type instead of all of the explicit variables @endtodo
-!  type :: crystal
-!    integer :: Jmax, maxL, iTypes, nn, nm
-!    integer :: numOfPWs, nIons, nKpts, nProjs, numOfTypes
-!    integer :: nBands, nSpins
-!    integer :: i, j, n1, n2, n3, n4, n, id
-!    !
-!    real(kind = dp) at(3,3), bg(3,3)
-!    !
-!    real(kind = dp) :: omega
-!    !
-!    real(kind = dp), allocatable :: eigvI(:), eigvF(:), posIon(:,:), wk(:), xk(:,:)
-!    real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
-!    !
-!    complex(kind = dp), allocatable :: wfc(:,:), wfcSD(:,:), Ufi(:,:,:)
-!    complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)
-!    !
-!    integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:), groundState(:)
-!    integer, allocatable :: npws(:), pwGindI(:), pwGindF(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
-!    integer, allocatable :: npwsPC(:)
-!    real(kind = dp), allocatable :: wkPC(:), xkPC(:,:)
-!
-!  end type crystal
   !
   type :: atom
     !! Define a new type to represent an atom in the structure. 
@@ -281,10 +227,62 @@ module TMEModule
     !
   end type atom
   !
-  ! Define vectors of atoms
-  TYPE(atom), allocatable :: atoms(:)
-  TYPE(atom), allocatable :: atomsPC(:)
-    !! Holds the atoms from the PC input file; allocated in `readInputPC()`
+  !
+  !> @todo Use crystal type instead of all of the explicit variables @endtodo
+  type :: crystal
+    integer :: nKpts
+      !! Number of k points
+    integer :: numOfPWs
+      !! Total number of plane waves
+    integer :: nIons
+      !! Total number of atoms in system
+    integer :: numOfTypes
+      !! Number of different types of atoms
+    integer :: nProjs
+      !! Number of projectors
+    integer, allocatable :: npws(:)
+      !! Number of plane waves per k point
+    integer, allocatable :: atomTypeIndex(:)
+      !! Index of the given atom type
+    !
+    real(kind = dp), allocatable :: wk(:)
+    real(kind = dp), allocatable :: xk(:, :)
+    real(kind = dp), allocatable :: posIon(:,:)
+    !
+    character(len = 2) crystalType
+      !! 'PC' for pristine crystal and 'SD' for solid defect
+    character(len = 200) :: exportDir
+      !! Export directory from [[pw_export_for_tme(program)]]
+    !
+    TYPE(atom), allocatable :: atoms(:)
+    !
+!    integer :: Jmax, maxL, iTypes, nn, nm
+!    integer :: numOfPWs, nIons, nKpts, nProjs, numOfTypes
+!    integer :: nBands, nSpins
+!    integer :: i, j, n1, n2, n3, n4, n, id
+!    !
+!    real(kind = dp) :: at(3,3), bg(3,3)
+!    !
+!    real(kind = dp) :: omega
+!    !
+!    real(kind = dp), allocatable :: eigvI(:), eigvF(:), posIon(:,:), wk(:), xk(:,:)
+!    real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
+!    !
+!    complex(kind = dp), allocatable :: wfc(:,:), wfcSD(:,:), Ufi(:,:,:)
+!    complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)
+!    !
+!    integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:), groundState(:)
+!    integer, allocatable :: npws(:), pwGindI(:), pwGindF(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
+!    integer, allocatable :: npwsPC(:)
+!    real(kind = dp), allocatable :: wkPC(:), xkPC(:,:)
+!
+  end type crystal
+  !
+  TYPE(crystal) :: perfectCrystal
+    !! Structure that holds all of the information on the perfect crystal
+  !
+  TYPE(crystal) :: solidDefect
+    !! Structure that holds all of the information on the solid defect
   !
   type :: vec
     !
@@ -308,7 +306,7 @@ module TMEModule
 contains
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine initializeCalculation(exportDirSD, exportDirPC, elementsPath, VFisOutput, ki, kf, eBin, &
+  subroutine initializeCalculation(solidDefect, pristineCrystal, elementsPath, VFisOutput, ki, kf, eBin, &
                                    iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVFis, t0)
     !! Initialize the calculation by starting timer,
     !! setting start values for variables to be read from
@@ -323,15 +321,16 @@ contains
     !
     real(kind = dp), intent(out) :: eBin, t0
     !
-    character(len = 200), intent(out) :: exportDirSD, exportDirPC, VfisOutput
+    character(len = 200), intent(out) :: VfisOutput
     character(len = 300), intent(out) :: elementsPath
     !
     logical, intent(out) :: calculateVfis
     logical :: fileExists
       !! Whether or not the output file already exists
+    TYPE(crystal), intent(inout) :: solidDefect, pristineCrystal
     !
-    exportDirSD = ''
-    exportDirPC = ''
+    solidDefect%exportDir = ''
+    perfectCrystal%exportDir = ''
     elementsPath = ''
     VfisOutput = ''
     !
@@ -346,6 +345,9 @@ contains
     iBandFfinal = -1
     !
     calculateVfis = .false.
+    !
+    perfectCrystal%crystalType = 'PC'
+    solidDefect%crystalType = 'SD'
     !
     call cpu_time(t0)
         !! * Start a timer
@@ -377,20 +379,20 @@ contains
     !
     READ (5, TME_Input, iostat = ios)
         !! * Read input from command line (or input file if use `< TME_Input.md`)
+    solidDefect%exportDir = exportDirSD
+    perfectCrystal%exportDir = exportDirPC
     !
     call checkInitialization()
         !! * Check that all required variables were input and have values that make sense
     !
     !> @todo Figure out what the difference in PC and SD is @endtodo
     write(6,'("Calling subroutine with crystal type ", a)') 'PC'
-    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC, numOfPWsPC, nIonsPC, &
-                      numOfTypesPC, posIonPC, TYPNIPC, atomsPC, nProjsPC)
-        !! * Read PC inputs
-    call readQEExport('SD', exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD, &
-                      numOfTypes, posIonSD, TYPNISD, atoms, nProjsSD)
-        !! * Read SD inputs
+    call readQEExport(perfectCrystal)
+        !! * Read perfect crystal inputs
+    call readQEExport(solidDefect)
+        !! * Read solid defect inputs
     !
-    numOfPWs = max( numOfPWsPC, numOfPWsSD )
+    numOfPWs = max( perfectCrystal%numOfPWs, solidDefect%numOfPWs )
         !! * Calculate the number of plane waves as the maximum of the number of PC and SD plane waves
     !
     return
@@ -430,21 +432,21 @@ contains
     !>    * Check if the SD export directory exists
     !>    * If the SD export directory doesn't exist
     !>       * Output an error message and set `abortExecution` to true
-    if ( trim(exportDirSD) == '' ) then
+    if ( trim(solidDefect%exportDir) == '' ) then
       !
       write(iostd, *)
-      write(iostd, '(" Variable : ""exportDirSD"" is not defined!")')
+      write(iostd, '(" Variable: ""exportDirSD"" is not defined!")')
       write(iostd, '(" usage : exportDirSD = ''./Export/''")')
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
       !
     else
       !
-      inquire(file= trim(exportDirSD), exist = file_exists)
+      inquire(file= trim(solidDefect%exportDir), exist = file_exists)
       !
       if ( file_exists .eqv. .false. ) then
         !
-        write(iostd, '(" exportDirSD :", a, " does not exist !")') trim(exportDirSD)
+        write(iostd, '(" exportDirSD :", a, " does not exist !")') trim(solidDefect%exportDir)
         write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
         abortExecution = .true.
         !
@@ -452,7 +454,7 @@ contains
       !
     endif
     !
-    write(iostd, '("exportDirSD = ''", a, "''")') trim(exportDirSD)
+    write(iostd, '("exportDirSD = ''", a, "''")') trim(solidDefect%exportDir)
       !! * Output the given SD export directory
     !
     !> * If the PC export directory variable is blank
@@ -461,7 +463,7 @@ contains
     !>    * Check if the PC export directory exists
     !>    * If the PC export directory doesn't exist
     !>       * Output an error message and set `abortExecution` to true
-    if ( trim(exportDirPC) == '' ) then
+    if ( trim(perfectCrystal%exportDir) == '' ) then
       !
       write(iostd, *)
       write(iostd, '(" Variable : ""exportDirPC"" is not defined!")')
@@ -471,11 +473,11 @@ contains
       !
     else
       !
-      inquire(file= trim(exportDirPC), exist = file_exists)
+      inquire(file= trim(perfectCrystal%exportDir), exist = file_exists)
       !
       if ( file_exists .eqv. .false. ) then
         !
-        write(iostd, '(" exportDir :", a, " does not exist !")') trim(exportDirPC)
+        write(iostd, '(" exportDirPC :", a, " does not exist !")') trim(perfectCrystal%exportDir)
         write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
         abortExecution = .true.
         !
@@ -483,7 +485,7 @@ contains
       !
     endif
     !
-    write(iostd, '("exportDirPC = ''", a, "''")') trim(exportDirPC)
+    write(iostd, '("exportDirPC = ''", a, "''")') trim(perfectCrystal%exportDir)
       !! * Output the given PC export directory
     !
     !> * If the elements path is blank
@@ -664,8 +666,7 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, &
-                          numOfTypes, posIon, TYPNI, atoms, nProjs)
+  subroutine readQEExport(system)
     !! Read input files in the Export directory created by
     !! [[pw_export_for_tme(program)]]
     !!
@@ -677,30 +678,8 @@ contains
     implicit none
     !
     !integer, intent(in) :: id
-    integer, intent(out) :: nKpts
-      !! Number of k points
-    integer, intent(out) :: numOfPWs
-      !! Total number of plane waves
-    integer, intent(out) :: nIons
-      !! Total number of atoms in system
-    integer, intent(out) :: numOfTypes
-      !! Number of different types of atoms
-    integer, intent(out) :: nProjs
-      !! Number of projectors
-    integer, allocatable, intent(out) :: npws(:)
-    integer, allocatable, intent(out) :: TYPNI(:)
     !
-    real(kind = dp), allocatable, intent(out) :: wk(:)
-    real(kind = dp), allocatable, intent(out) :: xk(:,:)
-    real(kind = dp), allocatable, intent(out) :: posIon(:,:)
-    !
-    character(len = 2), intent(in) :: crystalType
-      !! 'PC' for pristine crystal or 'SD' for solid defect
-    character(len = 200), intent(in) :: exportDir
-      !! Export directory from [[pw_export_for_tme(program)]]
-    !
-    TYPE(atom), allocatable, intent(out) :: atoms(:)
-    !
+    TYPE(crystal), intent(inout) :: system
     !
     integer :: i, j, ik, iType, ni
       !! Loop indices
@@ -736,17 +715,17 @@ contains
     !> The program will end if a crystal type other than `PC` or `SD` is used.
     !> @endnote
     write(iostd, *)
-    if ( crystalType == 'PC' ) then
+    if ( system%crystalType == 'PC' ) then
       !
       write(iostd, '(" Reading perfect crystal inputs.")')
       !
-    else if ( crystalType == 'SD' ) then
+    else if ( system%crystalType == 'SD' ) then
       !
       write(iostd, '(" Reading solid defect inputs.")')
       !
     else
       !
-      write(iostd, '("Unknown crystal type", a, ".")') crystalType
+      write(iostd, '("Unknown crystal type", a, ".")') system%crystalType
       write(iostd, '("Please only use PC for pristine crystal or SD for solid defect.")')
       write(iostd, '(" Program stops!")')
       flush(iostd)
@@ -756,7 +735,7 @@ contains
     !
     write(iostd, *)
     !
-    input = trim(trim(exportDir)//'/input')
+    input = trim(trim(system%exportDir)//'/input')
       !! * Set the path for the input file from the PC export directory
     !
     inquire(file =trim(input), exist = fileExists)
@@ -767,7 +746,7 @@ contains
     if ( fileExists .eqv. .false. ) then
       !
       write(iostd, '(" File : ", a, " , does not exist!")') trim(input)
-      write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDir)
+      write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(system%exportDir)
       write(iostd, '(" Program stops!")')
       flush(iostd)
       stop
@@ -785,39 +764,39 @@ contains
     !> Only read \(\omega\) from solid defect crystal because that
     !> is the structure where we are interested in phonons??
     !> @endnote
-    if ( crystalType == 'PC' ) then
+    if ( system%crystalType == 'PC' ) then
       !
       read(50, * ) 
       !
-    else if (crystalType == 'SD' ) then
+    else if (system%crystalType == 'SD' ) then
       !
       read(50, '(ES24.15E3)' ) omega
       !
     endif
     !
     read(50, '(a)') textDum
-    read(50, '(i10)') nKpts
-    !if ( kf < 0 ) kf = nKpts
+    read(50, '(i10)') system%nKpts
+    !if ( kf < 0 ) kf = system%nKpts
     !
     read(50, '(a)') textDum
     ! 
-    allocate ( npws(nKpts), wk(nKpts), xk(3,nKpts) )
+    allocate ( system%npws(system%nKpts), system%wk(system%nKpts), system%xk(3,system%nKpts) )
     ! 
-    if ( crystalType == 'PC' ) then
+    if ( system%crystalType == 'PC' ) then
       !
-      do ik = 1, nKpts
+      do ik = 1, system%nKpts
         !
-        read(50, '(3i10,4ES24.15E3)') iDum, iDum, npws(ik), wk(ik), xk(1:3,ik)
+        read(50, '(3i10,4ES24.15E3)') iDum, iDum, system%npws(ik), system%wk(ik), system%xk(1:3,ik)
         !
       enddo
       !
-    else if ( crystalType == 'SD' ) then
+    else if ( system%crystalType == 'SD' ) then
       !
-      allocate( groundState(nKpts) ) 
+      allocate( groundState(system%nKpts) ) 
       !
-      do ik = 1, nKpts
+      do ik = 1, system%nKpts
         !
-        read(50, '(3i10,4ES24.15E3)') iDum, groundState(ik), npws(ik), wk(ik), xk(1:3,ik)
+        read(50, '(3i10,4ES24.15E3)') iDum, groundState(ik), system%npws(ik), system%wk(ik), system%xk(1:3,ik)
         !
       enddo
       !
@@ -829,18 +808,18 @@ contains
     !> Only read the number of G vectors from the solid
     !> defect crystal because??
     !> @endnote
-    if ( crystalType == 'PC' ) then
+    if ( system%crystalType == 'PC' ) then
       !
       read(50, * ) 
       !
-    else if ( crystalType == 'SD' ) then
+    else if ( system%crystalType == 'SD' ) then
       !
       read(50, * ) numOfGvecs
       !
     endif
     !
     read(50, '(a)') textDum
-    read(50, '(i10)') numOfPWs
+    read(50, '(i10)') system%numOfPWs
     !
     read(50, '(a)') textDum     
     !
@@ -848,11 +827,11 @@ contains
     !> Only read the fft grid from the solid defect crystal
     !> because??
     !> @endnote
-    if ( crystalType == 'PC' ) then
+    if ( system%crystalType == 'PC' ) then
       !
       read(50, * ) 
       !
-    else if ( crystalType == 'SD' ) then
+    else if ( system%crystalType == 'SD' ) then
       !
       read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
       !
@@ -860,13 +839,13 @@ contains
     !
     read(50, '(a)') textDum
     !
-    if ( crystalType == 'PC' ) then
+    if ( system%crystalType == 'PC' ) then
       !
       read(50,  * )
       read(50,  * )
       read(50,  * )
       !
-    else if ( crystalType == 'SD' ) then
+    else if ( system%crystalType == 'SD' ) then
       !
       read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,1)
       read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,2)
@@ -876,13 +855,13 @@ contains
     !
     read(50, '(a)') textDum
     !
-    if ( crystalType == 'PC' ) then
+    if ( system%crystalType == 'PC' ) then
       !
       read(50,  * )
       read(50,  * )
       read(50,  * )
       !
-    else if ( crystalType == 'SD' ) then
+    else if ( system%crystalType == 'SD' ) then
       !
       read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,1)
       read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,2)
@@ -891,29 +870,29 @@ contains
     endif
     !
     read(50, '(a)') textDum
-    read(50, '(i10)') nIons
+    read(50, '(i10)') system%nIons
     !
     read(50, '(a)') textDum
-    read(50, '(i10)') numOfTypes
+    read(50, '(i10)') system%numOfTypes
     !
-    allocate( posIon(3,nIons), TYPNI(nIons) )
+    allocate( system%posIon(3,system%nIons), system%atomTypeIndex(system%nIons) )
     !
     read(50, '(a)') textDum
     !
-    do ni = 1, nIons
+    do ni = 1, system%nIons
       !
-      read(50,'(i10, 3ES24.15E3)') TYPNI(ni), (posIon(j,ni) , j = 1,3)
-        !! @todo Change `(posIon(j,ni) , j = 1,3)` to `posIon(1:3,ni)` in `readQEExport()` for clarity @endtodo
+      read(50,'(i10, 3ES24.15E3)') system%atomTypeIndex(ni), (system%posIon(j,ni) , j = 1,3)
+        !! @todo Change `(system%posIon(j,ni) , j = 1,3)` to `system%posIon(1:3,ni)` in `readQEExport()` for clarity @endtodo
       !
     enddo
     !
     read(50, '(a)') textDum
     !
-    if ( crystalType == 'PC' ) then
+    if ( system%crystalType == 'PC' ) then
       !
       read(50, * )
       !
-    else if ( crystalType == 'SD' ) then
+    else if ( system%crystalType == 'SD' ) then
       !
       read(50, '(i10)') nBands
       !
@@ -921,113 +900,116 @@ contains
     !
     read(50, '(a)') textDum
     !
-    if ( crystalType == 'PC' ) then
+    if ( system%crystalType == 'PC' ) then
       !
       read(50, * )
       !
-    else if ( crystalType == 'SD' ) then
+    else if ( system%crystalType == 'SD' ) then
       !
       read(50, '(i10)') nSpins
       !
     endif
     !
-    allocate ( atoms(numOfTypes) )
+    allocate ( system%atoms(system%numOfTypes) )
     !
-    nProjs = 0
+    system%nProjs = 0
     !
-    do iType = 1, numOfTypes
+    do iType = 1, system%numOfTypes
       !
       read(50, '(a)') textDum
-      read(50, *) atoms(iType)%symbol
+      read(50, *) system%atoms(iType)%symbol
       !
       read(50, '(a)') textDum
-      read(50, '(i10)') atoms(iType)%numOfAtoms
+      read(50, '(i10)') system%atoms(iType)%numOfAtoms
       !
       read(50, '(a)') textDum
-      read(50, '(i10)') atoms(iType)%lMax              ! number of projectors
+      read(50, '(i10)') system%atoms(iType)%lMax              ! number of projectors
       !
-      allocate ( atoms(iType)%lps( atoms(iType)%lMax ) )
+      allocate ( system%atoms(iType)%lps( system%atoms(iType)%lMax ) )
       !
       read(50, '(a)') textDum
-      do i = 1, atoms(iType)%lMax 
+      do i = 1, system%atoms(iType)%lMax 
         !
         read(50, '(2i10)') l, ind
-        atoms(iType)%lps(ind) = l
+        system%atoms(iType)%lps(ind) = l
         !
       enddo
       !
       read(50, '(a)') textDum
-      read(50, '(i10)') atoms(iType)%lmMax
+      read(50, '(i10)') system%atoms(iType)%lmMax
       !
       read(50, '(a)') textDum
-      read(50, '(2i10)') atoms(iType)%nMax, atoms(iType)%iRc
+      read(50, '(2i10)') system%atoms(iType)%nMax, system%atoms(iType)%iRc
       !
-      allocate ( atoms(iType)%r(atoms(iType)%nMax), atoms(iType)%rab(atoms(iType)%nMax) )
+      allocate ( system%atoms(iType)%r(system%atoms(iType)%nMax), system%atoms(iType)%rab(system%atoms(iType)%nMax) )
       !
       read(50, '(a)') textDum
-      do i = 1, atoms(iType)%nMax
+      do i = 1, system%atoms(iType)%nMax
         !
-        read(50, '(2ES24.15E3)') atoms(iType)%r(i), atoms(iType)%rab(i)
+        read(50, '(2ES24.15E3)') system%atoms(iType)%r(i), system%atoms(iType)%rab(i)
         !
       enddo
       ! 
-      allocate ( atoms(iType)%wae(atoms(iType)%nMax, atoms(iType)%lMax) )
-      allocate ( atoms(iType)%wps(atoms(iType)%nMax, atoms(iType)%lMax) )
+      allocate ( system%atoms(iType)%wae(system%atoms(iType)%nMax, system%atoms(iType)%lMax) )
+      allocate ( system%atoms(iType)%wps(system%atoms(iType)%nMax, system%atoms(iType)%lMax) )
       !
       read(50, '(a)') textDum
-      do j = 1, atoms(iType)%lMax
-        do i = 1, atoms(iType)%nMax
+      do j = 1, system%atoms(iType)%lMax
+        do i = 1, system%atoms(iType)%nMax
           !
-          read(50, '(2ES24.15E3)') atoms(iType)%wae(i, j), atoms(iType)%wps(i, j) 
-          ! write(iostd, '(2i5, ES24.15E3)') j, i, abs(atoms(iType)%wae(i, j)-atoms(iType)%wps(i, j))
+          read(50, '(2ES24.15E3)') system%atoms(iType)%wae(i, j), system%atoms(iType)%wps(i, j) 
+          ! write(iostd, '(2i5, ES24.15E3)') j, i, abs(system%atoms(iType)%wae(i, j)-system%atoms(iType)%wps(i, j))
           !
         enddo
       enddo
       !  
-      allocate ( atoms(iType)%F( atoms(iType)%iRc, atoms(iType)%lMax ) ) !, atoms(iType)%lMax) )
-      allocate ( atoms(iType)%F1(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax ) )
-      allocate ( atoms(iType)%F2(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax ) )
+      allocate ( system%atoms(iType)%F( system%atoms(iType)%iRc, system%atoms(iType)%lMax ) ) !, system%atoms(iType)%lMax) )
+      allocate ( system%atoms(iType)%F1(system%atoms(iType)%iRc, system%atoms(iType)%lMax, system%atoms(iType)%lMax ) )
+      allocate ( system%atoms(iType)%F2(system%atoms(iType)%iRc, system%atoms(iType)%lMax, system%atoms(iType)%lMax ) )
       !
-      atoms(iType)%F = 0.0_dp
-      atoms(iType)%F1 = 0.0_dp
-      atoms(iType)%F2 = 0.0_dp
+      system%atoms(iType)%F = 0.0_dp
+      system%atoms(iType)%F1 = 0.0_dp
+      system%atoms(iType)%F2 = 0.0_dp
       !
       !> * Calculate `F`, `F1`, and `F2` using the all-electron and psuedowvefunctions
       !> @todo Look more into how AE and PS wavefunctions are combined to further understand this @endtodo
       !> @todo Move this behavior to another subroutine for clarity @endtodo
-      do j = 1, atoms(iType)%lMax
+      do j = 1, system%atoms(iType)%lMax
         !
-        irc = atoms(iType)%iRc
+        irc = system%atoms(iType)%iRc
         !
-        atoms(iType)%F(1:irc,j)=(atoms(iType)%wae(1:irc,j)-atoms(iType)%wps(1:irc,j))* &
-              atoms(iType)%r(1:irc)*atoms(iType)%rab(1:irc)
+        system%atoms(iType)%F(1:irc,j)=(system%atoms(iType)%wae(1:irc,j)-system%atoms(iType)%wps(1:irc,j))* &
+              system%atoms(iType)%r(1:irc)*system%atoms(iType)%rab(1:irc)
         !
-        do i = 1, atoms(iType)%lMax
+        do i = 1, system%atoms(iType)%lMax
           !> @todo Figure out if differences in PC and SD `F1` calculations are intentional @endtodo
           !> @todo Figure out if should be `(wps_i wae_j - wae_i wps_j)r_{ab}` @endtodo
-          if ( crystalType == 'PC' ) then
+          if ( system%crystalType == 'PC' ) then
             !
-            atoms(iType)%F1(1:irc,i,j) = ( atoms(iType)%wps(1:irc,i)*atoms(iType)%wae(1:irc,j) - &
-                                           atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
+            system%atoms(iType)%F1(1:irc,i,j) = ( system%atoms(iType)%wps(1:irc,i)*system%atoms(iType)%wae(1:irc,j) - &
+                                                  system%atoms(iType)%wps(1:irc,i)*system%atoms(iType)%wps(1:irc,j))* &
+                                                  system%atoms(iType)%rab(1:irc)
             !
-          else if ( crystalType == 'SD' ) then
+          else if ( system%crystalType == 'SD' ) then
             !
-            atoms(iType)%F1(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
-                                           atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
+            system%atoms(iType)%F1(1:irc,i,j) = ( system%atoms(iType)%wae(1:irc,i)*system%atoms(iType)%wps(1:irc,j) - &
+                                                  system%atoms(iType)%wps(1:irc,i)*system%atoms(iType)%wps(1:irc,j))* & 
+                                                  system%atoms(iType)%rab(1:irc)
             !
           endif
           !
-          atoms(iType)%F2(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wae(1:irc,j) - &
-                                           atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
-                                           atoms(iType)%wps(1:irc,i)*atoms(iType)%wae(1:irc,j) + &
-    &                                      atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
+          system%atoms(iType)%F2(1:irc,i,j) = ( system%atoms(iType)%wae(1:irc,i)*system%atoms(iType)%wae(1:irc,j) - &
+                                           system%atoms(iType)%wae(1:irc,i)*system%atoms(iType)%wps(1:irc,j) - &
+                                           system%atoms(iType)%wps(1:irc,i)*system%atoms(iType)%wae(1:irc,j) + &
+                                           system%atoms(iType)%wps(1:irc,i)*system%atoms(iType)%wps(1:irc,j))* & 
+                                           system%atoms(iType)%rab(1:irc)
 
         enddo
       enddo
       !
-      nProjs = nProjs + atoms(iType)%numOfAtoms*atoms(iType)%lmMax
+      system%nProjs = system%nProjs + system%atoms(iType)%numOfAtoms*system%atoms(iType)%lmMax
       !
-      deallocate ( atoms(iType)%wae, atoms(iType)%wps )
+      deallocate ( system%atoms(iType)%wae, system%atoms(iType)%wps )
       !
     enddo
     !
@@ -1038,12 +1020,13 @@ contains
     !
     !> * Go through the `lps` values for each projector for each atom
     !> and find the max to store in `JMAX`
+    !> @todo Figure out if intentional to only use `JMAX` from SD input @endtodo
     JMAX = 0
-    do iType = 1, numOfTypes
+    do iType = 1, system%numOfTypes
       !
-      do i = 1, atoms(iType)%lMax
+      do i = 1, system%atoms(iType)%lMax
         !
-        if ( atoms(iType)%lps(i) > JMAX ) JMAX = atoms(iType)%lps(i)
+        if ( system%atoms(iType)%lps(i) > JMAX ) JMAX = system%atoms(iType)%lps(i)
         !
       enddo
       !
@@ -1052,10 +1035,10 @@ contains
     maxL = JMAX
     JMAX = 2*JMAX + 1
     !
-    do iType = 1, numOfTypes
+    do iType = 1, system%numOfTypes
       !
-      allocate ( atoms(iType)%bes_J_qr( 0:JMAX, atoms(iType)%iRc ) )
-      atoms(iType)%bes_J_qr(:,:) = 0.0_dp
+      allocate ( system%atoms(iType)%bes_J_qr( 0:JMAX, system%atoms(iType)%iRc ) )
+      system%atoms(iType)%bes_J_qr(:,:) = 0.0_dp
       !
     enddo
     !
@@ -1145,7 +1128,7 @@ contains
     !
     integer :: ig, iDum, iGx, iGy, iGz
     !
-    open(72, file=trim(exportDirSD)//"/mgrid")
+    open(72, file=trim(solidDefect%exportDir)//"/mgrid")
     !
     read(72, * )
     read(72, * )
@@ -1181,26 +1164,26 @@ contains
     !
     call int2str(ik, iks)
     !
-    open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
+    open(72, file=trim(perfectCrystal%exportDir)//"/grid."//trim(iks))
     !
     read(72, * )
     read(72, * )
     !
-    allocate ( pwGindPC(npwsPC(ik)) )
+    allocate ( pwGindPC(perfectCrystal%npws(ik)) )
     !
-    do ig = 1, npwsPC(ik)
+    do ig = 1, perfectCrystal%npws(ik)
       read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
     enddo
     !
     close(72)
     !
-    open(72, file=trim(exportDirPC)//"/wfc."//trim(iks))
+    open(72, file=trim(perfectCrystal%exportDir)//"/wfc."//trim(iks))
     !
     read(72, * )
     read(72, * )
     !
     do ib = 1, iBandIinit - 1
-      do ig = 1, npwsPC(ik)
+      do ig = 1, perfectCrystal%npws(ik)
         read(72, *)
       enddo
     enddo
@@ -1208,7 +1191,7 @@ contains
     wfcPC(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
     !
     do ib = iBandIinit, iBandIfinal
-      do ig = 1, npwsPC(ik)
+      do ig = 1, perfectCrystal%npws(ik)
         read(72, '(2ES24.15E3)') wfc
         wfcPC(pwGindPC(ig), ib) = wfc
       enddo
@@ -1236,29 +1219,29 @@ contains
     !
     ! Reading PC projectors
     !
-    open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
+    open(72, file=trim(perfectCrystal%exportDir)//"/grid."//trim(iks))
     !
     read(72, * )
     read(72, * )
     !
-    allocate ( pwGindPC(npwsPC(ik)) )
+    allocate ( pwGindPC(perfectCrystal%npws(ik)) )
     !
-    do ig = 1, npwsPC(ik)
+    do ig = 1, perfectCrystal%npws(ik)
       read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
     enddo
     !
     close(72)
     !
-    allocate ( betaPC(numOfPWs, nProjsPC) )
+    allocate ( betaPC(numOfPWs, perfectCrystal%nProjs) )
     !
     betaPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
-    open(73, file=trim(exportDirPC)//"/projectors."//trim(iks))
+    open(73, file=trim(perfectCrystal%exportDir)//"/projectors."//trim(iks))
     !
     read(73, '(a)') textDum
-    read(73, '(2i10)') nProjsPC, npw
+    read(73, '(2i10)') perfectCrystal%nProjs, npw
     !
-    do j = 1, nProjsPC 
+    do j = 1, perfectCrystal%nProjs
       do i = 1, npw
         read(73,'(2ES24.15E3)') betaPC(pwGindPC(i),j)
       enddo
@@ -1269,7 +1252,7 @@ contains
     deallocate ( pwGindPC )
     !
     do j = iBandFinit, iBandFfinal
-      do i = 1, nProjsPC
+      do i = 1, perfectCrystal%nProjs
         cProjBetaPCPsiSD(i,j,1) = sum(conjg(betaPC(:,i))*wfcSD(:,j))
         !write(65,'(2f17.12)') cProjPC(i,j,1) - cProjBetaPCPsiSD(i,j,1)
       enddo
@@ -1297,26 +1280,26 @@ contains
     !
     call int2str(ik, iks)
     !
-    open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
+    open(72, file=trim(solidDefect%exportDir)//"/grid."//trim(iks))
     !
     read(72, * )
     read(72, * )
     !
-    allocate ( pwGindSD(npwsSD(ik)) )
+    allocate ( pwGindSD(solidDefect%npws(ik)) )
     !
-    do ig = 1, npwsSD(ik)
+    do ig = 1, solidDefect%npws(ik)
       read(72, '(4i10)') pwGindSD(ig), iDumV(1:3)
     enddo
     !
     close(72)
     !
-    open(72, file=trim(exportDirSD)//"/wfc."//trim(iks))
+    open(72, file=trim(solidDefect%exportDir)//"/wfc."//trim(iks))
     !
     read(72, * )
     read(72, * )
     !
     do ib = 1, iBandFinit - 1
-      do ig = 1, npwsSD(ik)
+      do ig = 1, solidDefect%npws(ik)
         read(72, *)
       enddo
     enddo
@@ -1324,7 +1307,7 @@ contains
     wfcSD(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
     !
     do ib = iBandFinit, iBandFfinal
-      do ig = 1, npwsSD(ik)
+      do ig = 1, solidDefect%npws(ik)
         read(72, '(2ES24.15E3)') wfc
         wfcSD(pwGindSD(ig), ib) = wfc
       enddo
@@ -1382,12 +1365,12 @@ contains
     !
     ! Reading projections
     !
-    open(72, file=trim(exportDirPC)//"/projections."//trim(iks))
+    open(72, file=trim(perfectCrystal%exportDir)//"/projections."//trim(iks))
     !
     read(72, *)
     !
     do j = 1, nBands  ! number of bands 
-      do i = 1, nProjsPC ! number of projections
+      do i = 1, perfectCrystal%nProjs ! number of projections
         read(72,'(2ES24.15E3)') cProjPC(i,j,1)
       enddo
     enddo
@@ -1414,12 +1397,12 @@ contains
     !
     ! Reading projections
     !
-    open(72, file=trim(exportDirSD)//"/projections."//trim(iks))
+    open(72, file=trim(solidDefect%exportDir)//"/projections."//trim(iks))
     !
     read(72, *)
     !
     do j = 1, nBands  ! number of bands 
-      do i = 1, nProjsSD ! number of projections
+      do i = 1, solidDefect%nProjs ! number of projections
         read(72,'(2ES24.15E3)') cProjSD(i,j,1)
       enddo
     enddo
@@ -1444,29 +1427,29 @@ contains
     !
     ! Reading SD projectors
     !
-    open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
+    open(72, file=trim(solidDefect%exportDir)//"/grid."//trim(iks))
     !
     read(72, * )
     read(72, * )
     !
-    allocate ( pwGindSD(npwsSD(ik)) )
+    allocate ( pwGindSD(solidDefect%npws(ik)) )
     !
-    do ig = 1, npwsSD(ik)
+    do ig = 1, solidDefect%npws(ik)
       read(72, '(4i10)') pwGindSD(ig), iDumV(1:3)
     enddo
     !
     close(72)
     !
-    allocate ( betaSD(numOfPWs, nProjsSD) )
+    allocate ( betaSD(numOfPWs, solidDefect%nProjs) )
     !
     betaSD(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
-    open(73, file=trim(exportDirSD)//"/projectors."//trim(iks))
+    open(73, file=trim(solidDefect%exportDir)//"/projectors."//trim(iks))
     !
     read(73, '(a)') textDum
-    read(73, '(2i10)') nProjsSD, npw
+    read(73, '(2i10)') solidDefect%nProjs, npw
     !
-    do j = 1, nProjsSD 
+    do j = 1, solidDefect%nProjs
       do i = 1, npw
         read(73,'(2ES24.15E3)') betaSD(pwGindSD(i),j)
       enddo
@@ -1477,7 +1460,7 @@ contains
     deallocate ( pwGindSD )
     !
     do j = iBandIinit, iBandIfinal
-      do i = 1, nProjsSD
+      do i = 1, solidDefect%nProjs
         cProjBetaSDPhiPC(i,j,1) = sum(conjg(betaSD(:,i))*wfcPC(:,j))
         !write(66,'(2f17.12)') cProjSD(i,j,1) - cProjBetaSDPhiPC(i,j,1)
       enddo
@@ -1534,34 +1517,34 @@ contains
       !
       LMBASE = 0
       !
-      do iT = 1, numOfTypesPC
+      do iT = 1, perfectCrystal%numOfTypes
         !
-        DO I = 1, atomsPC(iT)%iRc ! nMax - 1
+        DO I = 1, perfectCrystal%atoms(iT)%iRc ! nMax - 1
           !
           JL = 0.0_dp
-          CALL bessel_j(q*atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
-          atomsPC(iT)%bes_J_qr(:,I) = JL(:)
+          CALL bessel_j(q*solidDefect%atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
+          perfectCrystal%atoms(iT)%bes_J_qr(:,I) = JL(:)
           !
         ENDDO
         !
       enddo
       !
-      do ni = 1, nIonsPC ! LOOP OVER THE IONS
+      do ni = 1, perfectCrystal%nIons ! LOOP OVER THE IONS
         !
-        qDotR = sum(gvecs(:,ig)*posIonPC(:,ni))
+        qDotR = sum(gvecs(:,ig)*perfectCrystal%posIon(:,ni))
         !
         ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
         !
-        iT = TYPNIPC(ni)
+        iT = perfectCrystal%atomTypeIndex(ni)
         LM = 0
-        DO LL = 1, atomsPC(iT)%lMax
-          L = atomsPC(iT)%LPS(LL)
+        DO LL = 1, perfectCrystal%atoms(iT)%lMax
+          L = perfectCrystal%atoms(iT)%LPS(LL)
           DO M = -L, L
             LM = LM + 1 !1st index for CPROJ
             !
             FI = 0.0_dp
             !
-            FI = sum(atomsPC(iT)%bes_J_qr(L,:)*atomsPC(iT)%F(:,LL)) ! radial part integration F contains rab
+            FI = sum(perfectCrystal%atoms(iT)%bes_J_qr(L,:)*perfectCrystal%atoms(iT)%F(:,LL)) ! radial part integration F contains rab
             !
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
             VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**L*FI
@@ -1578,7 +1561,7 @@ contains
             !
           ENDDO
         ENDDO
-        LMBASE = LMBASE + atomsPC(iT)%lmMax
+        LMBASE = LMBASE + perfectCrystal%atoms(iT)%lmMax
       ENDDO
       !
     enddo
@@ -1631,33 +1614,33 @@ contains
       !
       LMBASE = 0
       !
-      do iT = 1, numOfTypes
+      do iT = 1, solidDefect%numOfTypes
         !
-        DO I = 1, atoms(iT)%iRc ! nMax - 1
+        DO I = 1, solidDefect%atoms(iT)%iRc ! nMax - 1
           !
           JL = 0.0_dp
-          CALL bessel_j(q*atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
-          atoms(iT)%bes_J_qr(:,I) = JL(:)
+          CALL bessel_j(q*solidDefect%atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
+          solidDefect%atoms(iT)%bes_J_qr(:,I) = JL(:)
           !
         ENDDO
       enddo
       !
-      do ni = 1, nIonsSD ! LOOP OVER THE IONS
+      do ni = 1, solidDefect%nIons ! LOOP OVER THE IONS
         !
-        qDotR = sum(gvecs(:,ig)*posIonSD(:,ni))
+        qDotR = sum(gvecs(:,ig)*solidDefect%posIon(:,ni))
         !
         ATOMIC_CENTER = exp( ii*cmplx(qDotR, 0.0_dp, kind = dp) )
         !
-        iT = TYPNISD(ni)
+        iT = solidDefect%atomTypeIndex(ni)
         LM = 0
-        DO LL = 1, atoms(iT)%lMax
-          L = atoms(iT)%LPS(LL)
+        DO LL = 1, solidDefect%atoms(iT)%lMax
+          L = solidDefect%atoms(iT)%LPS(LL)
           DO M = -L, L
             LM = LM + 1 !1st index for CPROJ
             !
             FI = 0.0_dp
             !
-            FI = sum(atoms(iT)%bes_J_qr(L,:)*atoms(iT)%F(:,LL)) ! radial part integration F contains rab
+            FI = sum(solidDefect%atoms(iT)%bes_J_qr(L,:)*solidDefect%atoms(iT)%F(:,LL)) ! radial part integration F contains rab
             !
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
             VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**L*FI
@@ -1674,7 +1657,7 @@ contains
             !
           ENDDO
         ENDDO
-        LMBASE = LMBASE + atoms(iT)%lmMax
+        LMBASE = LMBASE + solidDefect%atoms(iT)%lmMax
       ENDDO
       !
     enddo
@@ -1704,24 +1687,24 @@ contains
     !
     LMBASE = 0
     !
-    do niPC = 1, nIonsPC ! LOOP OVER THE IONS
+    do niPC = 1, perfectCrystal%nIons ! LOOP OVER THE IONS
       !
-      iT = TYPNIPC(niPC)
+      iT = perfectCrystal%atomTypeIndex(niPC)
       LM = 0
-      DO LL = 1, atomsPC(iT)%lMax
-        L = atomsPC(iT)%LPS(LL)
+      DO LL = 1, perfectCrystal%atoms(iT)%lMax
+        L = perfectCrystal%atoms(iT)%LPS(LL)
         DO M = -L, L
           LM = LM + 1 !1st index for CPROJ
           !
           LMP = 0
-          DO LLP = 1, atomsPC(iT)%lMax
-            LP = atomsPC(iT)%LPS(LLP)
+          DO LLP = 1, perfectCrystal%atoms(iT)%lMax
+            LP = perfectCrystal%atoms(iT)%LPS(LLP)
             DO MP = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
               !
               atomicOverlap = 0.0_dp
               if ( (L == LP).and.(M == MP) ) then 
-                atomicOverlap = sum(atomsPC(iT)%F1(:,LL, LLP))
+                atomicOverlap = sum(perfectCrystal%atoms(iT)%F1(:,LL, LLP))
                 !
                 do ibi = iBandIinit, iBandIfinal
                   cProjIe = cProjPC(LMP + LMBASE, ibi, ISPIN)
@@ -1743,7 +1726,7 @@ contains
           ENDDO
         ENDDO
       ENDDO
-      LMBASE = LMBASE + atomsPC(iT)%lmMax
+      LMBASE = LMBASE + perfectCrystal%atoms(iT)%lmMax
     ENDDO
     !
     return
@@ -1769,24 +1752,24 @@ contains
     !
     LMBASE = 0
     !
-    do ni = 1, nIonsSD ! LOOP OVER THE IONS
+    do ni = 1, solidDefect%nIons ! LOOP OVER THE IONS
       !
-      iT = TYPNISD(ni)
+      iT = solidDefect%atomTypeIndex(ni)
       LM = 0
-      DO LL = 1, atoms(iT)%lMax
-        L = atoms(iT)%LPS(LL)
+      DO LL = 1, solidDefect%atoms(iT)%lMax
+        L = solidDefect%atoms(iT)%LPS(LL)
         DO M = -L, L
           LM = LM + 1 !1st index for CPROJ
           !
           LMP = 0
-          DO LLP = 1, atoms(iT)%lMax
-            LP = atoms(iT)%LPS(LLP)
+          DO LLP = 1, solidDefect%atoms(iT)%lMax
+            LP = solidDefect%atoms(iT)%LPS(LLP)
             DO MP = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
               !
               atomicOverlap = 0.0_dp
               if ( (L == LP).and.(M == MP) ) then
-                atomicOverlap = sum(atoms(iT)%F1(:,LL,LLP))
+                atomicOverlap = sum(solidDefect%atoms(iT)%F1(:,LL,LLP))
                 !
                 do ibi = iBandIinit, iBandIfinal
                   cProjIe = cProjBetaSDPhiPC(LMP + LMBASE, ibi, ISPIN)
@@ -1806,7 +1789,7 @@ contains
           ENDDO
         ENDDO
       ENDDO
-      LMBASE = LMBASE + atoms(iT)%lmMax
+      LMBASE = LMBASE + solidDefect%atoms(iT)%lmMax
     ENDDO
     !
     return
@@ -1830,7 +1813,7 @@ contains
     !
     ispin = 1
     !
-    !open(52, file=trim(exportDirPC)//"/Qij")
+    !open(52, file=trim(perfectCrystal%exportDir)//"/Qij")
     !read(52,*)
     !allocate ( Qij (8,8) )
     !do LL = 1, 8
@@ -1844,23 +1827,23 @@ contains
     !
     LMBASE = 0
     !
-    do niPC = 1, nIonsPC ! LOOP OVER THE IONS
+    do niPC = 1, perfectCrystal%nIons ! LOOP OVER THE IONS
       !
-      iT = TYPNIPC(niPC)
+      iT = perfectCrystal%atomTypeIndex(niPC)
       LM = 0
-      DO LL = 1, atomsPC(iT)%lMax
-        L = atomsPC(iT)%LPS(LL)
+      DO LL = 1, perfectCrystal%atoms(iT)%lMax
+        L = perfectCrystal%atoms(iT)%LPS(LL)
         DO M = -L, L
           LM = LM + 1 !1st index for CPROJ
           !
           LMP = 0
-          DO LLP = 1, atomsPC(iT)%lMax
-            LP = atomsPC(iT)%LPS(LLP)
+          DO LLP = 1, perfectCrystal%atoms(iT)%lMax
+            LP = perfectCrystal%atoms(iT)%LPS(LLP)
             DO MP = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
               !
               atomicOverlap = 0.0_dp
-              if ( (L == LP).and.(M == MP) ) atomicOverlap = sum(atomsPC(iT)%F2(:,LL,LLP))
+              if ( (L == LP).and.(M == MP) ) atomicOverlap = sum(perfectCrystal%atoms(iT)%F2(:,LL,LLP))
               !
               do ibi = iBandIinit, iBandIfinal
                 cProjIe = cProjPC(LMP + LMBASE, ibi, ISPIN)
@@ -1878,7 +1861,7 @@ contains
           ENDDO
         ENDDO
       ENDDO
-      LMBASE = LMBASE + atomsPC(iT)%lmMax
+      LMBASE = LMBASE + perfectCrystal%atoms(iT)%lmMax
     ENDDO
     !
     return
@@ -1897,7 +1880,7 @@ contains
     !
     call int2str(ik, iks)
     !
-    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(iks))
+    open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(iks))
     !
     read(72, * )
     read(72, * )
@@ -1912,7 +1895,7 @@ contains
     !
     close(72)
     !
-    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(iks))
+    open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(iks))
     !
     read(72, * )
     read(72, * ) 
@@ -1945,12 +1928,12 @@ contains
     !
     character (len = 300) :: text
     !
-    allocate( DE(iBandIinit:iBandIfinal, nKptsPC), absVfi2(iBandIinit:iBandIfinal, nKptsPC) )
+    allocate( DE(iBandIinit:iBandIfinal, perfectCrystal%nKpts), absVfi2(iBandIinit:iBandIfinal, perfectCrystal%nKpts) )
     ! 
     DE(:,:) = 0.0_dp
     absVfi2(:,:) = 0.0_dp 
     !
-    do ik = 1, nKptsPC
+    do ik = 1, perfectCrystal%nKpts
       !
       eigvI(:) = 0.0_dp
       eigvF(:) = 0.0_dp
@@ -1979,15 +1962,15 @@ contains
     nKsInEbin(:) = 0
     sumWk(:) = 0.0_dp
     !
-    do ik = 1, nKptsPC
+    do ik = 1, perfectCrystal%nKpts
       !
       do ib = iBandIinit, iBandIfinal
         !
         if ( abs( eMin - DE(ib,ik)) < 1.0e-3_dp ) DHifMin = absVfi2(ib, ik)
         iE = int((DE(ib, ik)-eMin)/eBin)
         if ( absVfi2(ib, ik) > 0.0_dp ) then
-          absVfiOfE2(iE) = absVfiOfE2(iE) + wkPC(ik)*absVfi2(ib, ik)
-          sumWk(iE) = sumWk(iE) + wkPC(ik)
+          absVfiOfE2(iE) = absVfiOfE2(iE) + perfectCrystal%wk(ik)*absVfi2(ib, ik)
+          sumWk(iE) = sumWk(iE) + perfectCrystal%wk(ik)
           nKsInEbin(iE) = nKsInEbin(iE) + 1
         else
           write(iostd,*) 'lalala', absVfi2(ib, ik)
@@ -2007,7 +1990,7 @@ contains
     write(text, '("# Energy (eV) shifted by half eBin, |<f|V|i>|^2 (Hartree)^2,")')
     write(11, '(a, " k-point index. Format : ''(2ES24.15E3,i10)''")') trim(text)
     !
-    do ik = 1, nKptsPC
+    do ik = 1, perfectCrystal%nKpts
       !
       do ib = iBandIinit, iBandIfinal
         !
@@ -2017,7 +2000,7 @@ contains
         write(11, '(2ES24.15E3,i10)') (eMin + (iE+0.5_dp)*eBin)*HartreeToEv, x, ik
         write(12, '(2ES24.15E3,i10)') DE(ib,ik)*HartreeToEv, absVfi2(ib, ik), ik
         !write(11, '(2ES24.15E3,i10)') (eMin + iE*eBin + eBin/2.0_dp), x, ik
-        sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + wkPC(ik)*(x - av)**2/sumWk(iE)
+        sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + perfectCrystal%wk(ik)*(x - av)**2/sumWk(iE)
         !
       enddo
       !

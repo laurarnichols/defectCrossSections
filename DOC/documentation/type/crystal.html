@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+   
+   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the cross section of a defect that can capture or scatter a carrier.">
+    
+    <meta name="author" content="" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>crystal &ndash; Carrier Cross Sections </title>
+
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <link href="../css/font-awesome.min.css" rel="stylesheet">
+    <link href="../css/local.css" rel="stylesheet">
+    
+    <link  href="../tipuesearch/tipuesearch.css" rel="stylesheet">
+    
+    
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    
+    <script src="../js/jquery-2.1.3.min.js"></script>
+    <script src="../js/svg-pan-zoom.min.js"></script>
+
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../index.html">Carrier Cross Sections </a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+        
+            <li><a href='../page/index.html'>README</a></li>
+      
+            <li class="dropdown hidden-xs visible-sm visible-md hidden-lg">
+              <a href="#" class="dropdown-toggle"
+              data-toggle="dropdown" role="button"
+              aria-haspopup="true"
+     aria-expanded="false">Contents <span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          
+              
+            <li><a href="../lists/files.html">Source Files</a></li>
+        
+        
+        
+            <li><a href="../lists/modules.html">Modules</a></li>
+        
+            
+                                
+            <li><a href="../lists/procedures.html">Procedures</a></li>
+        
+               
+            <li><a href="../lists/types.html">Derived Types</a></li>
+        
+        
+            <li><a href="../lists/programs.html">Programs</a></li>
+        
+            </ul>
+            </li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/files.html">Source Files</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/modules.html">Modules</a></li>
+
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/procedures.html">Procedures</a></li>
+
+                             
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/types.html">Derived Types</a></li>
+
+
+<li class="visible-xs hidden-sm visible-lg"><a href="../lists/programs.html">Programs</a></li>
+
+          </ul>
+        
+        <form action="../search.html" class="navbar-form navbar-right" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+        </div>
+<!--
+        <button type="submit" class="btn btn-default">Submit</button>
+-->
+        </form>
+        
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+    
+  
+  <div class="row">
+    <h1>crystal
+    <small>Derived Type</small>
+    
+    </h1>
+    
+<div class="row">
+  <div class="col-lg-12">
+<div class="well well-sm">
+  <ul class="list-inline" style="margin-bottom:0px;display:inline">
+     
+     
+     
+     
+    
+    
+     <li><i class="fa fa-list-ol"></i>
+       <a data-toggle="tooltip"
+    data-placement="bottom" data-html="true"
+    title="<p>40.5% of total for derived types.</p>Including implementation: 15 statements, 40.5% of total for derived types.">15 statements</a>
+     </li> 
+     
+     
+     
+    <li><i class="fa fa-code"></i><a href="../src/TME_Module_v28.f90"> Source File</a></li>
+     
+     
+  </ul>
+  <ol class="breadcrumb in-well text-right">
+  
+    
+     <li><a href='../sourcefile/tme_module_v28.f90.html'>TME_Module_v28.f90</a></li>
+    
+     <li><a href='../module/tmemodule.html'>TMEModule</a></li>
+    
+  
+     <li class="active">crystal</li>
+  </ol>
+</div>
+</div>
+</div>
+<script>
+  $(function () {
+  $('[data-toggle="tooltip"]').tooltip()
+  })
+</script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+    
+<div id="sidebar">
+  
+<h3>Contents</h3>
+ 
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-0">Variables</a></h3></div>
+  <div id="vars-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-nkpts">nKpts</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-numofpws">numOfPWs</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-nions">nIons</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-numoftypes">numOfTypes</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-nprojs">nProjs</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-npws">npws</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-atomtypeindex">atomTypeIndex</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-wk">wk</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-xk">xk</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-posion">posIon</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-crystaltype">crystalType</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-exportdir">exportDir</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-atoms">atoms</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../type/crystal.html#src">crystal</a>
+  </div>
+</div>
+
+
+
+</div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+      <h2>type, public :: crystal</h2>
+    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Use crystal type instead of all of the explicit variables </p></div>
+<p>
+    
+    
+    
+    <br>
+
+    <section class="visible-xs visible-sm hidden-md">
+      
+<h3>Contents</h3>
+ 
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
+  <div id="vars-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-nkpts">nKpts</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-numofpws">numOfPWs</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-nions">nIons</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-numoftypes">numOfTypes</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-nprojs">nProjs</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-npws">npws</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-atomtypeindex">atomTypeIndex</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-wk">wk</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-xk">xk</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-posion">posIon</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-crystaltype">crystalType</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-exportdir">exportDir</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-atoms">atoms</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../type/crystal.html#src">crystal</a>
+  </div>
+</div>
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
+    
+    <section>
+    <h2>Components</h2>
+    
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Visibility</th>
+
+<th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nkpts"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nKpts</strong></td><td></td><td></td><td><p>Number of k points</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-numofpws"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>numOfPWs</strong></td><td></td><td></td><td><p>Total number of plane waves</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nions"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nIons</strong></td><td></td><td></td><td><p>Total number of atoms in system</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-numoftypes"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>numOfTypes</strong></td><td></td><td></td><td><p>Number of different types of atoms</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nprojs"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nProjs</strong></td><td></td><td></td><td><p>Number of projectors</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-npws"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>npws</strong>(:)</td><td></td><td></td><td><p>Number of plane waves per k point</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-atomtypeindex"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>atomTypeIndex</strong>(:)</td><td></td><td></td><td><p>Index of the given atom type</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-wk"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>wk</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-xk"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>xk</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-posion"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>posIon</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-crystaltype"></span>character(len=2),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>crystalType</strong></td><td></td><td></td><td><p>'PC' for pristine crystal and 'SD' for solid defect</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-exportdir"></span>character(len=200),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>exportDir</strong></td><td></td><td></td><td><p>Export directory from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-atoms"></span>type(<a href='../type/atom.html'>atom</a>),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>atoms</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+    </section>
+    <br>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <section>
+    <h3><span class="anchor" id="src"></span>Source Code</h3>
+    <div class="highlight"><pre><span></span>  <span class="k">type</span> <span class="kd">::</span> <span class="n">crystal</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nKpts</span>
+      <span class="c">!! Number of k points</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">numOfPWs</span>
+      <span class="c">!! Total number of plane waves</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nIons</span>
+      <span class="c">!! Total number of atoms in system</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">numOfTypes</span>
+      <span class="c">!! Number of different types of atoms</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nProjs</span>
+      <span class="c">!! Number of projectors</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">npws</span><span class="p">(:)</span>
+      <span class="c">!! Number of plane waves per k point</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">atomTypeIndex</span><span class="p">(:)</span>
+      <span class="c">!! Index of the given atom type</span>
+    <span class="c">!</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">wk</span><span class="p">(:)</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">xk</span><span class="p">(:,</span> <span class="p">:)</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">posIon</span><span class="p">(:,:)</span>
+    <span class="c">!</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="n">crystalType</span>
+      <span class="c">!! &#39;PC&#39; for pristine crystal and &#39;SD&#39; for solid defect</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">)</span> <span class="kd">::</span> <span class="n">exportDir</span>
+      <span class="c">!! Export directory from [[pw_export_for_tme(program)]]</span>
+    <span class="c">!</span>
+    <span class="k">TYPE</span><span class="p">(</span><span class="n">atom</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">atoms</span><span class="p">(:)</span>
+    <span class="c">!</span>
+<span class="c">!    integer :: Jmax, maxL, iTypes, nn, nm</span>
+<span class="c">!    integer :: numOfPWs, nIons, nKpts, nProjs, numOfTypes</span>
+<span class="c">!    integer :: nBands, nSpins</span>
+<span class="c">!    integer :: i, j, n1, n2, n3, n4, n, id</span>
+<span class="c">!    !</span>
+<span class="c">!    real(kind = dp) :: at(3,3), bg(3,3)</span>
+<span class="c">!    !</span>
+<span class="c">!    real(kind = dp) :: omega</span>
+<span class="c">!    !</span>
+<span class="c">!    real(kind = dp), allocatable :: eigvI(:), eigvF(:), posIon(:,:), wk(:), xk(:,:)</span>
+<span class="c">!    real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)</span>
+<span class="c">!    !</span>
+<span class="c">!    complex(kind = dp), allocatable :: wfc(:,:), wfcSD(:,:), Ufi(:,:,:)</span>
+<span class="c">!    complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)</span>
+<span class="c">!    !</span>
+<span class="c">!    integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:), groundState(:)</span>
+<span class="c">!    integer, allocatable :: npws(:), pwGindI(:), pwGindF(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)</span>
+<span class="c">!    integer, allocatable :: npwsPC(:)</span>
+<span class="c">!    real(kind = dp), allocatable :: wkPC(:), xkPC(:,:)</span>
+<span class="c">!</span>
+  <span class="k">end type </span><span class="n">crystal</span>
+</pre></div>
+
+    </section>
+    
+    
+    </div>
+  </div>
+
+
+    <hr>    
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+      <div class="row">
+        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+                                          </p></div>
+        <div class="col-xs-6 col-md-4 col-md-push-4">
+          <p class="text-right">
+            Documentation generated by 
+            <a href="https://github.com/cmacmackin/ford">FORD</a>
+            
+          </p>
+        </div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Carrier Cross Sections was developed by </p></div>
+      </div>
+      <br>
+      </div> <!-- /container -->    
+    </footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+<!--
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+-->
+    <script src="../js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- MathJax JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } },
+        jax: ['input/TeX','input/MathML','output/HTML-CSS'],
+        extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']
+      });
+    </script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+    <script src="../tipuesearch/tipuesearch_content.js"></script>
+    <script src="../tipuesearch/tipuesearch_set.js"></script>
+    <script src="../tipuesearch/tipuesearch.js"></script>
+    
+    
+  </body>
+</html>

@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.2% of total for procedures.">10 statements</a>
+    title=" 0.3% of total for procedures.">12 statements</a>
      </li> 
      
      
@@ -220,16 +220,12 @@ public subroutine readInput()
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>readInput()</code> to have arguments to make clear that these variables are getting changed </p></div>
 <p>
 <ul>
-<li>
-<p>Read input from command line (or input file if use <code>&lt; TME_Input.md</code>)</p>
-</li>
-<li>
-<p>Check that all required variables were input and have values that make sense</p>
-</li>
+<li>Read input from command line (or input file if use <code>&lt; TME_Input.md</code>)</li>
+<li>Check that all required variables were input and have values that make sense</li>
 </ul>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out what the difference in PC and SD is </p></div>
-<p>* Read PC inputs
- * Read SD inputs</p>
+<p>* Read perfect crystal inputs
+ * Read solid defect inputs</p>
 <ul>
 <li>Calculate the number of plane waves as the maximum of the number of PC and SD plane waves</li>
 </ul>
@@ -313,20 +309,20 @@ public subroutine readInput()
     <span class="c">!</span>
     <span class="k">READ</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">TME_Input</span><span class="p">,</span> <span class="n">iostat</span> <span class="o">=</span> <span class="n">ios</span><span class="p">)</span>
         <span class="c">!! * Read input from command line (or input file if use `&lt; TME_Input.md`)</span>
+    <span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span> <span class="o">=</span> <span class="n">exportDirSD</span>
+    <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span> <span class="o">=</span> <span class="n">exportDirPC</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="n">checkInitialization</span><span class="p">()</span>
         <span class="c">!! * Check that all required variables were input and have values that make sense</span>
     <span class="c">!</span>
     <span class="c">!&gt; @todo Figure out what the difference in PC and SD is @endtodo</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="s1">&#39;(&quot;Calling subroutine with crystal type &quot;, a)&#39;</span><span class="p">)</span> <span class="s1">&#39;PC&#39;</span>
-    <span class="k">call </span><span class="n">readQEExport</span><span class="p">(</span><span class="s1">&#39;PC&#39;</span><span class="p">,</span> <span class="n">exportDirPC</span><span class="p">,</span> <span class="n">nKptsPC</span><span class="p">,</span> <span class="n">npwsPC</span><span class="p">,</span> <span class="n">wkPC</span><span class="p">,</span> <span class="n">xkPC</span><span class="p">,</span> <span class="n">numOfPWsPC</span><span class="p">,</span> <span class="n">nIonsPC</span><span class="p">,</span> <span class="p">&amp;</span>
-                      <span class="n">numOfTypesPC</span><span class="p">,</span> <span class="n">posIonPC</span><span class="p">,</span> <span class="n">TYPNIPC</span><span class="p">,</span> <span class="n">atomsPC</span><span class="p">,</span> <span class="n">nProjsPC</span><span class="p">)</span>
-        <span class="c">!! * Read PC inputs</span>
-    <span class="k">call </span><span class="n">readQEExport</span><span class="p">(</span><span class="s1">&#39;SD&#39;</span><span class="p">,</span> <span class="n">exportDirSD</span><span class="p">,</span> <span class="n">nKpts</span><span class="p">,</span> <span class="n">npwsSD</span><span class="p">,</span> <span class="n">wk</span><span class="p">,</span> <span class="n">xk</span><span class="p">,</span> <span class="n">numOfPWsSD</span><span class="p">,</span> <span class="n">nIonsSD</span><span class="p">,</span> <span class="p">&amp;</span>
-                      <span class="n">numOfTypes</span><span class="p">,</span> <span class="n">posIonSD</span><span class="p">,</span> <span class="n">TYPNISD</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">nProjsSD</span><span class="p">)</span>
-        <span class="c">!! * Read SD inputs</span>
+    <span class="k">call </span><span class="n">readQEExport</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">)</span>
+        <span class="c">!! * Read perfect crystal inputs</span>
+    <span class="k">call </span><span class="n">readQEExport</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">)</span>
+        <span class="c">!! * Read solid defect inputs</span>
     <span class="c">!</span>
-    <span class="n">numOfPWs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span> <span class="n">numOfPWsPC</span><span class="p">,</span> <span class="n">numOfPWsSD</span> <span class="p">)</span>
+    <span class="n">numOfPWs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">numOfPWs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">numOfPWs</span> <span class="p">)</span>
         <span class="c">!! * Calculate the number of plane waves as the maximum of the number of PC and SD plane waves</span>
     <span class="c">!</span>
     <span class="k">return</span>

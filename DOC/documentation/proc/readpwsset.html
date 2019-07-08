@@ -418,7 +418,7 @@ public subroutine readPWsSet()
     <span class="c">!</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ig</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iGx</span><span class="p">,</span> <span class="n">iGy</span><span class="p">,</span> <span class="n">iGz</span>
     <span class="c">!</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/mgrid&quot;</span><span class="p">)</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/mgrid&quot;</span><span class="p">)</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
