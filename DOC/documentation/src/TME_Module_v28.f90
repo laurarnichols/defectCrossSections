@@ -385,7 +385,7 @@ contains
         !! * Check that all required variables were input and have values that make sense
     !
     !> @todo Figure out what the difference in PC and SD is @endtodo
-    call readInputPC()
+    call readQEExport('PC')
         !! * Read PC inputs
     call readInputSD()
         !! * Read SD inputs
