@@ -382,9 +382,9 @@ contains
         !! * Check that all required variables were input and have values that make sense
     !
     !> @todo Figure out what the difference in PC and SD is @endtodo
-    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC, numOfPWsPC, nIonsPC, numOfTypesPC, posIonPC, TYPNIPC)
+    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC, numOfPWsPC, nIonsPC, numOfTypesPC, posIonPC, TYPNIPC, atomsPC)
         !! * Read PC inputs
-    !call readQEExport('SD', exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD, numOfTypes, posIonSD, TYPNISD)
+    !call readQEExport('SD', exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD, numOfTypes, posIonSD, TYPNISD, atoms)
     call readInputSD(exportDirSD, nKpts)
         !! * Read SD inputs
     !
@@ -662,7 +662,7 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, numOfTypes, posIon, TYPNI)
+  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, numOfTypes, posIon, TYPNI, atoms)
     !! Read input files in the Export directory created by
     !! [[pw_export_for_tme(program)]]
     !!
@@ -693,6 +693,8 @@ contains
       !! 'PC' for pristine crystal or 'SD' for solid defect
     character(len = 200), intent(in) :: exportDir
       !! Export directory from [[pw_export_for_tme(program)]]
+    !
+    TYPE(atom), allocatable, intent(out) :: atoms(:)
     !
     !
     integer :: i, j, ik, iType, ni
@@ -926,92 +928,92 @@ contains
       !
     endif
     !
-    allocate ( atomsPC(numOfTypes) )
+    allocate ( atoms(numOfTypes) )
     !
     nProjsPC = 0
     !
     do iType = 1, numOfTypes
       !
       read(50, '(a)') textDum
-      read(50, *) atomsPC(iType)%symbol
+      read(50, *) atoms(iType)%symbol
       !
       read(50, '(a)') textDum
-      read(50, '(i10)') atomsPC(iType)%numOfAtoms
+      read(50, '(i10)') atoms(iType)%numOfAtoms
       !
       read(50, '(a)') textDum
-      read(50, '(i10)') atomsPC(iType)%lMax              ! number of projectors
+      read(50, '(i10)') atoms(iType)%lMax              ! number of projectors
       !
-      allocate ( atomsPC(iType)%lps( atomsPC(iType)%lMax ) )
+      allocate ( atoms(iType)%lps( atoms(iType)%lMax ) )
       !
       read(50, '(a)') textDum
-      do i = 1, atomsPC(iType)%lMax 
+      do i = 1, atoms(iType)%lMax 
         !
         read(50, '(2i10)') l, ind
-        atomsPC(iType)%lps(ind) = l
+        atoms(iType)%lps(ind) = l
         !
       enddo
       !
       read(50, '(a)') textDum
-      read(50, '(i10)') atomsPC(iType)%lmMax
+      read(50, '(i10)') atoms(iType)%lmMax
       !
       read(50, '(a)') textDum
-      read(50, '(2i10)') atomsPC(iType)%nMax, atomsPC(iType)%iRc
+      read(50, '(2i10)') atoms(iType)%nMax, atoms(iType)%iRc
       !
-      allocate ( atomsPC(iType)%r(atomsPC(iType)%nMax), atomsPC(iType)%rab(atomsPC(iType)%nMax) )
+      allocate ( atoms(iType)%r(atoms(iType)%nMax), atoms(iType)%rab(atoms(iType)%nMax) )
       !
       read(50, '(a)') textDum
-      do i = 1, atomsPC(iType)%nMax
+      do i = 1, atoms(iType)%nMax
         !
-        read(50, '(2ES24.15E3)') atomsPC(iType)%r(i), atomsPC(iType)%rab(i)
+        read(50, '(2ES24.15E3)') atoms(iType)%r(i), atoms(iType)%rab(i)
         !
       enddo
       ! 
-      allocate ( atomsPC(iType)%wae(atomsPC(iType)%nMax, atomsPC(iType)%lMax) )
-      allocate ( atomsPC(iType)%wps(atomsPC(iType)%nMax, atomsPC(iType)%lMax) )
+      allocate ( atoms(iType)%wae(atoms(iType)%nMax, atoms(iType)%lMax) )
+      allocate ( atoms(iType)%wps(atoms(iType)%nMax, atoms(iType)%lMax) )
       !
       read(50, '(a)') textDum
-      do j = 1, atomsPC(iType)%lMax
-        do i = 1, atomsPC(iType)%nMax
+      do j = 1, atoms(iType)%lMax
+        do i = 1, atoms(iType)%nMax
           !
-          read(50, '(2ES24.15E3)') atomsPC(iType)%wae(i, j), atomsPC(iType)%wps(i, j) 
-          ! write(iostd, '(2i5, ES24.15E3)') j, i, abs(atomsPC(iType)%wae(i, j)-atomsPC(iType)%wps(i, j))
+          read(50, '(2ES24.15E3)') atoms(iType)%wae(i, j), atoms(iType)%wps(i, j) 
+          ! write(iostd, '(2i5, ES24.15E3)') j, i, abs(atoms(iType)%wae(i, j)-atoms(iType)%wps(i, j))
           !
         enddo
       enddo
       !  
-      allocate ( atomsPC(iType)%F( atomsPC(iType)%iRc, atomsPC(iType)%lMax ) ) !, atomsPC(iType)%lMax) )
-      allocate ( atomsPC(iType)%F1(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax ) )
-      allocate ( atomsPC(iType)%F2(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax ) )
+      allocate ( atoms(iType)%F( atoms(iType)%iRc, atoms(iType)%lMax ) ) !, atoms(iType)%lMax) )
+      allocate ( atoms(iType)%F1(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax ) )
+      allocate ( atoms(iType)%F2(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax ) )
       !
-      atomsPC(iType)%F = 0.0_dp
-      atomsPC(iType)%F1 = 0.0_dp
-      atomsPC(iType)%F2 = 0.0_dp
+      atoms(iType)%F = 0.0_dp
+      atoms(iType)%F1 = 0.0_dp
+      atoms(iType)%F2 = 0.0_dp
       !
       !> * Calculate `F`, `F1`, and `F2` using the all-electron and psuedowvefunctions
       !> @todo Look more into how AE and PS wavefunctions are combined to further understand this @endtodo
       !> @todo Move this behavior to another subroutine for clarity @endtodo
-      do j = 1, atomsPC(iType)%lMax
+      do j = 1, atoms(iType)%lMax
         !
-        irc = atomsPC(iType)%iRc
+        irc = atoms(iType)%iRc
         !
-        atomsPC(iType)%F(1:irc,j)=(atomsPC(iType)%wae(1:irc,j)-atomsPC(iType)%wps(1:irc,j))* &
-              atomsPC(iType)%r(1:irc)*atomsPC(iType)%rab(1:irc)
+        atoms(iType)%F(1:irc,j)=(atoms(iType)%wae(1:irc,j)-atoms(iType)%wps(1:irc,j))* &
+              atoms(iType)%r(1:irc)*atoms(iType)%rab(1:irc)
         !
-        do i = 1, atomsPC(iType)%lMax
-          atomsPC(iType)%F1(1:irc,i,j) = ( atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wae(1:irc,j) - &
-    &                                      atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wps(1:irc,j))*atomsPC(iType)%rab(1:irc)
+        do i = 1, atoms(iType)%lMax
+          atoms(iType)%F1(1:irc,i,j) = ( atoms(iType)%wps(1:irc,i)*atoms(iType)%wae(1:irc,j) - &
+    &                                      atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
           !
-          atomsPC(iType)%F2(1:irc,i,j) = ( atomsPC(iType)%wae(1:irc,i)*atomsPC(iType)%wae(1:irc,j) - &
-                                           atomsPC(iType)%wae(1:irc,i)*atomsPC(iType)%wps(1:irc,j) - &
-                                           atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wae(1:irc,j) + &
-    &                                      atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wps(1:irc,j))*atomsPC(iType)%rab(1:irc)
+          atoms(iType)%F2(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wae(1:irc,j) - &
+                                           atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
+                                           atoms(iType)%wps(1:irc,i)*atoms(iType)%wae(1:irc,j) + &
+    &                                      atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
 
         enddo
       enddo
       !
-      nProjsPC = nProjsPC + atomsPC(iType)%numOfAtoms*atomsPC(iType)%lmMax
+      nProjsPC = nProjsPC + atoms(iType)%numOfAtoms*atoms(iType)%lmMax
       !
-!      deallocate ( atomsPC(iType)%wae, atomsPC(iType)%wps )
+!      deallocate ( atoms(iType)%wae, atoms(iType)%wps )
       !
     enddo
     !
@@ -1025,9 +1027,9 @@ contains
     JMAX = 0
     do iType = 1, numOfTypes
       !
-      do i = 1, atomsPC(iType)%lMax
+      do i = 1, atoms(iType)%lMax
         !
-        if ( atomsPC(iType)%lps(i) > JMAX ) JMAX = atomsPC(iType)%lps(i)
+        if ( atoms(iType)%lps(i) > JMAX ) JMAX = atoms(iType)%lps(i)
         !
       enddo
       !
@@ -1038,8 +1040,8 @@ contains
     !
     do iType = 1, numOfTypes
       !
-      allocate ( atomsPC(iType)%bes_J_qr( 0:JMAX, atomsPC(iType)%iRc ) )
-      atomsPC(iType)%bes_J_qr(:,:) = 0.0_dp
+      allocate ( atoms(iType)%bes_J_qr( 0:JMAX, atoms(iType)%iRc ) )
+      atoms(iType)%bes_J_qr(:,:) = 0.0_dp
       !
     enddo
     !

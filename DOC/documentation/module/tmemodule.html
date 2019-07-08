@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="30.3% of total for modules and submodules.">1436 statements</a>
+    title="30.4% of total for modules and submodules.">1437 statements</a>
      </li> 
      
      
@@ -461,7 +461,7 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-wfcsd">wfcSD</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-atoms">atoms</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-atoms%7E2">atoms</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-atomspc">atomsPC</a>
       
@@ -888,7 +888,7 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-wfcsd">wfcSD</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-atoms">atoms</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-atoms%7E2">atoms</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-atomspc">atomsPC</a>
       
@@ -3032,7 +3032,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-atoms"></span>type(<a href='../type/atom.html'>atom</a>),</td>
+  <td><span class="anchor" id="variable-atoms%7E2"></span>type(<a href='../type/atom.html'>atom</a>),</td>
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
@@ -3733,7 +3733,7 @@ public subroutine <a href='../proc/checkinitialization.html'>checkInitialization
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-readqeexport"></span><h3>
-public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, numOfTypes, posIon, TYPNI)
+public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, numOfTypes, posIon, TYPNI, atoms)
     
     
    
@@ -3926,6 +3926,21 @@ public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalTy
   
   <td>allocatable</td><td>::</td>
   <td><strong>TYPNI</strong>(:)</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>type(<a href='../type/atom.html'>atom</a>),</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>allocatable</td><td>::</td>
+  <td><strong>atoms</strong>(:)</td><td></td>
   
 </tr>
 
