@@ -382,9 +382,9 @@ contains
         !! * Check that all required variables were input and have values that make sense
     !
     !> @todo Figure out what the difference in PC and SD is @endtodo
-    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC, numOfPWsPC, nIonsPC)
+    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC, numOfPWsPC, nIonsPC, numOfTypesPC)
         !! * Read PC inputs
-    !call readQEExport('SD', exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD)
+    !call readQEExport('SD', exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD, numOfTypes)
     call readInputSD(exportDirSD, nKpts)
         !! * Read SD inputs
     !
@@ -662,7 +662,7 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons)
+  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, numOfTypes)
     !! Read input files in the Export directory created by
     !! [[pw_export_for_tme(program)]]
     !!
@@ -679,6 +679,9 @@ contains
     integer, intent(out) :: numOfPWs
       !! The total number of plane waves
     integer, intent(out) :: nIons
+      !! Total number of atoms in system
+    integer, intent(out) :: numOfTypes
+      !! The number of different types of atoms
     integer, allocatable, intent(out) :: npws(:)
     !
     real(kind = dp), allocatable, intent(out) :: wk(:)
@@ -884,7 +887,7 @@ contains
     read(50, '(i10)') nIons
     !
     read(50, '(a)') textDum
-    read(50, '(i10)') numOfTypesPC
+    read(50, '(i10)') numOfTypes
     !
     allocate( posIonPC(3,nIons), TYPNIPC(nIons) )
     !
@@ -903,11 +906,11 @@ contains
     read(50, '(a)') textDum
     read(50, * ) 
     !
-    allocate ( atomsPC(numOfTypesPC) )
+    allocate ( atomsPC(numOfTypes) )
     !
     nProjsPC = 0
     !
-    do iType = 1, numOfTypesPC
+    do iType = 1, numOfTypes
       !
       read(50, '(a)') textDum
       read(50, *) atomsPC(iType)%symbol
@@ -1000,7 +1003,7 @@ contains
     !> * Go through the `lps` values for each projector for each atom
     !> and find the max to store in `JMAX`
     JMAX = 0
-    do iType = 1, numOfTypesPC
+    do iType = 1, numOfTypes
       !
       do i = 1, atomsPC(iType)%lMax
         !
@@ -1013,7 +1016,7 @@ contains
     maxL = JMAX
     JMAX = 2*JMAX + 1
     !
-    do iType = 1, numOfTypesPC
+    do iType = 1, numOfTypes
       !
       allocate ( atomsPC(iType)%bes_J_qr( 0:JMAX, atomsPC(iType)%iRc ) )
       atomsPC(iType)%bes_J_qr(:,:) = 0.0_dp

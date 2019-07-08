@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="30.2% of total for modules and submodules.">1425 statements</a>
+    title="30.2% of total for modules and submodules.">1426 statements</a>
      </li> 
      
      
@@ -315,7 +315,7 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-numofpwssd">numOfPWsSD</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-numoftypes">numOfTypes</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-numoftypes%7E2">numOfTypes</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-numoftypespc">numOfTypesPC</a>
       
@@ -742,7 +742,7 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-numofpwssd">numOfPWsSD</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-numoftypes">numOfTypes</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-numoftypes%7E2">numOfTypes</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-numoftypespc">numOfTypesPC</a>
       
@@ -2010,7 +2010,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-numoftypes"></span>integer,</td>
+  <td><span class="anchor" id="variable-numoftypes%7E2"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -3733,7 +3733,7 @@ public subroutine <a href='../proc/checkinitialization.html'>checkInitialization
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-readqeexport"></span><h3>
-public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons)
+public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons, numOfTypes)
     
     
    
@@ -3880,7 +3880,22 @@ public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalTy
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>nIons</strong></td><td></td>
+  <td><strong>nIons</strong></td><td><p>Total number of atoms in system</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>numOfTypes</strong></td><td><p>The number of different types of atoms</p></td>
   
 </tr>
 
