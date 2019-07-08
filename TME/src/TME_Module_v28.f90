@@ -722,7 +722,7 @@ contains
     else if ( crystalType == 'SD' ) then
       !
       !write(iostd, '(" Reading solid defect inputs.")')
-      call readInputSD(exportDir)
+      call readInputSD(exportDir, nKpts)
       return
       !
     else
