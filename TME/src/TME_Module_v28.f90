@@ -381,7 +381,7 @@ contains
         !! * Check that all required variables were input and have values that make sense
     !
     !> @todo Figure out what the difference in PC and SD is @endtodo
-    call readQEExport('PC', exportDirPC, nKptsPC)
+    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC)
         !! * Read PC inputs
     call readInputSD(exportDirSD, nKpts)
         !! * Read SD inputs
@@ -660,7 +660,7 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readQEExport(crystalType, exportDir, nKpts)
+  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk)
     !! Read input files in the Export directory created by
     !! [[pw_export_for_tme(program)]]
     !!
@@ -674,6 +674,10 @@ contains
     !integer, intent(in) :: id
     integer, intent(out) :: nKpts
       !! The number of k points
+    integer, allocatable, intent(out) :: npws(:)
+    !
+    real(kind = dp), allocatable, intent(out) :: wk(:)
+    real(kind = dp), allocatable, intent(out) :: xk(:,:)
     !
     character(len = 2), intent(in) :: crystalType
       !! 'PC' for pristine crystal or 'SD' for solid defect
@@ -778,15 +782,15 @@ contains
     !
     read(50, '(a)') textDum
     read(50, '(i10)') nKpts
-    !if ( kf < 0 ) kf = nKptsPC
+    !if ( kf < 0 ) kf = nKpts
     !
     read(50, '(a)') textDum
     ! 
-    allocate ( npwsPC(nKpts), wkPC(nKpts), xkPC(3,nKpts) )
+    allocate ( npws(nKpts), wk(nKpts), xk(3,nKpts) )
     !
     do ik = 1, nKpts
       !
-      read(50, '(3i10,4ES24.15E3)') iDum, iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
+      read(50, '(3i10,4ES24.15E3)') iDum, iDum, npws(ik), wk(ik), xk(1:3,ik)
       !
     enddo
     !

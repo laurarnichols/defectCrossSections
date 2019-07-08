@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 3.1% of total for procedures.">148 statements</a>
+    title=" 3.2% of total for procedures.">151 statements</a>
      </li> 
      
      
@@ -245,7 +245,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine readQEExport(crystalType, exportDir, nKpts)
+public subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk)
     
     
    
@@ -367,6 +367,51 @@ public subroutine readQEExport(crystalType, exportDir, nKpts)
   
   <td></td><td>::</td>
   <td><strong>nKpts</strong></td><td><p>The number of k points</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-npws"></span>integer,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>allocatable</td><td>::</td>
+  <td><strong>npws</strong>(:)</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-wk"></span>real(kind=dp),</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>allocatable</td><td>::</td>
+  <td><strong>wk</strong>(:)</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-xk"></span>real(kind=dp),</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>allocatable</td><td>::</td>
+  <td><strong>xk</strong>(:,:)</td><td></td>
   
 </tr>
 
@@ -706,7 +751,7 @@ public subroutine readQEExport(crystalType, exportDir, nKpts)
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readQEExport</span><span class="p">(</span><span class="n">crystalType</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">nKpts</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readQEExport</span><span class="p">(</span><span class="n">crystalType</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">nKpts</span><span class="p">,</span> <span class="n">npws</span><span class="p">,</span> <span class="n">wk</span><span class="p">,</span> <span class="n">xk</span><span class="p">)</span>
     <span class="c">!! Read input files in the Export directory created by</span>
     <span class="c">!! [[pw_export_for_tme(program)]]</span>
     <span class="c">!!</span>
@@ -720,6 +765,10 @@ public subroutine readQEExport(crystalType, exportDir, nKpts)
     <span class="c">!integer, intent(in) :: id</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nKpts</span>
       <span class="c">!! The number of k points</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">npws</span><span class="p">(:)</span>
+    <span class="c">!</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">wk</span><span class="p">(:)</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">xk</span><span class="p">(:,:)</span>
     <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">2</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">crystalType</span>
       <span class="c">!! &#39;PC&#39; for pristine crystal or &#39;SD&#39; for solid defect</span>
@@ -824,15 +873,15 @@ public subroutine readQEExport(crystalType, exportDir, nKpts)
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">nKpts</span>
-    <span class="c">!if ( kf &lt; 0 ) kf = nKptsPC</span>
+    <span class="c">!if ( kf &lt; 0 ) kf = nKpts</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="c">! </span>
-    <span class="k">allocate</span> <span class="p">(</span> <span class="n">npwsPC</span><span class="p">(</span><span class="n">nKpts</span><span class="p">),</span> <span class="n">wkPC</span><span class="p">(</span><span class="n">nKpts</span><span class="p">),</span> <span class="n">xkPC</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nKpts</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">npws</span><span class="p">(</span><span class="n">nKpts</span><span class="p">),</span> <span class="n">wk</span><span class="p">(</span><span class="n">nKpts</span><span class="p">),</span> <span class="n">xk</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nKpts</span><span class="p">)</span> <span class="p">)</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nKpts</span>
       <span class="c">!</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(3i10,4ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">npwsPC</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">wkPC</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">xkPC</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(3i10,4ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">xk</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>

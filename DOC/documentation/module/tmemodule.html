@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="29.7% of total for modules and submodules.">1393 statements</a>
+    title="29.8% of total for modules and submodules.">1396 statements</a>
      </li> 
      
      
@@ -417,11 +417,11 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-posionsd">posIonSD</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-wk">wk</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-wk%7E2">wk</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-wkpc">wkPC</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-xk">xk</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-xk%7E2">xk</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-xkpc">xkPC</a>
       
@@ -844,11 +844,11 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-posionsd">posIonSD</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-wk">wk</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-wk%7E2">wk</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-wkpc">wkPC</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-xk">xk</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-xk%7E2">xk</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-xkpc">xkPC</a>
       
@@ -2724,7 +2724,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-wk"></span>real(kind=dp),</td>
+  <td><span class="anchor" id="variable-wk%7E2"></span>real(kind=dp),</td>
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
@@ -2752,7 +2752,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-xk"></span>real(kind=dp),</td>
+  <td><span class="anchor" id="variable-xk%7E2"></span>real(kind=dp),</td>
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
@@ -3736,7 +3736,7 @@ public subroutine <a href='../proc/checkinitialization.html'>checkInitialization
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-readqeexport"></span><h3>
-public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalType, exportDir, nKpts)
+public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalType, exportDir, nKpts, npws, wk, xk)
     
     
    
@@ -3809,6 +3809,51 @@ public subroutine <a href='../proc/readqeexport.html'>readQEExport</a>(crystalTy
   
   <td></td><td>::</td>
   <td><strong>nKpts</strong></td><td><p>The number of k points</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>allocatable</td><td>::</td>
+  <td><strong>npws</strong>(:)</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real(kind=dp),</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>allocatable</td><td>::</td>
+  <td><strong>wk</strong>(:)</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real(kind=dp),</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>allocatable</td><td>::</td>
+  <td><strong>xk</strong>(:,:)</td><td></td>
   
 </tr>
 
