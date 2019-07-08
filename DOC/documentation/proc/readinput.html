@@ -228,10 +228,14 @@ public subroutine readInput()
 </li>
 </ul>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out what the difference in PC and SD is </p></div>
-<p>* Read PC inputs
- * Read SD inputs</p>
+<p>* Read PC inputs</p>
 <ul>
-<li>Calculate the number of plane waves as the maximum of the number of PC and SD plane waves</li>
+<li>
+<p>Read SD inputs</p>
+</li>
+<li>
+<p>Calculate the number of plane waves as the maximum of the number of PC and SD plane waves</p>
+</li>
 </ul>
     
 
@@ -318,8 +322,9 @@ public subroutine readInput()
         <span class="c">!! * Check that all required variables were input and have values that make sense</span>
     <span class="c">!</span>
     <span class="c">!&gt; @todo Figure out what the difference in PC and SD is @endtodo</span>
-    <span class="k">call </span><span class="n">readQEExport</span><span class="p">(</span><span class="s1">&#39;PC&#39;</span><span class="p">,</span> <span class="n">exportDirPC</span><span class="p">,</span> <span class="n">nKptsPC</span><span class="p">,</span> <span class="n">npwsPC</span><span class="p">,</span> <span class="n">wkPC</span><span class="p">,</span> <span class="n">xkPC</span><span class="p">,</span> <span class="n">numOfPWsPC</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">readQEExport</span><span class="p">(</span><span class="s1">&#39;PC&#39;</span><span class="p">,</span> <span class="n">exportDirPC</span><span class="p">,</span> <span class="n">nKptsPC</span><span class="p">,</span> <span class="n">npwsPC</span><span class="p">,</span> <span class="n">wkPC</span><span class="p">,</span> <span class="n">xkPC</span><span class="p">,</span> <span class="n">numOfPWsPC</span><span class="p">,</span> <span class="n">nIonsPC</span><span class="p">)</span>
         <span class="c">!! * Read PC inputs</span>
+    <span class="c">!call readQEExport(&#39;SD&#39;, exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD)</span>
     <span class="k">call </span><span class="n">readInputSD</span><span class="p">(</span><span class="n">exportDirSD</span><span class="p">,</span> <span class="n">nKpts</span><span class="p">)</span>
         <span class="c">!! * Read SD inputs</span>
     <span class="c">!</span>

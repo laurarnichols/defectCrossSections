@@ -382,8 +382,9 @@ contains
         !! * Check that all required variables were input and have values that make sense
     !
     !> @todo Figure out what the difference in PC and SD is @endtodo
-    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC, numOfPWsPC)
+    call readQEExport('PC', exportDirPC, nKptsPC, npwsPC, wkPC, xkPC, numOfPWsPC, nIonsPC)
         !! * Read PC inputs
+    !call readQEExport('SD', exportDirSD, nKpts, npwsSD, wk, xk, numOfPWsSD, nIonsSD)
     call readInputSD(exportDirSD, nKpts)
         !! * Read SD inputs
     !
@@ -661,7 +662,7 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs)
+  subroutine readQEExport(crystalType, exportDir, nKpts, npws, wk, xk, numOfPWs, nIons)
     !! Read input files in the Export directory created by
     !! [[pw_export_for_tme(program)]]
     !!
@@ -677,6 +678,7 @@ contains
       !! The number of k points
     integer, intent(out) :: numOfPWs
       !! The total number of plane waves
+    integer, intent(out) :: nIons
     integer, allocatable, intent(out) :: npws(:)
     !
     real(kind = dp), allocatable, intent(out) :: wk(:)
@@ -879,16 +881,16 @@ contains
     endif
     !
     read(50, '(a)') textDum
-    read(50, '(i10)') nIonsPC
+    read(50, '(i10)') nIons
     !
     read(50, '(a)') textDum
     read(50, '(i10)') numOfTypesPC
     !
-    allocate( posIonPC(3,nIonsPC), TYPNIPC(nIonsPC) )
+    allocate( posIonPC(3,nIons), TYPNIPC(nIons) )
     !
     read(50, '(a)') textDum
     !
-    do ni = 1, nIonsPC
+    do ni = 1, nIons
       !
       read(50,'(i10, 3ES24.15E3)') TYPNIPC(ni), (posIonPC(j,ni) , j = 1,3)
         !! @todo Change `(posIonPC(j,ni) , j = 1,3)` to `posIonPC(1:3,ni)` in `readInputPC()` for clarity @endtodo
