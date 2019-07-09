@@ -565,6 +565,8 @@
       <span class="c">!! Number of plane waves per k point</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">atomTypeIndex</span><span class="p">(:)</span>
       <span class="c">!! Index of the given atom type</span>
+    <span class="c">!integer, allocatable :: groundState(:)</span>
+      <span class="c">! Was read from input file but not used, so removed</span>
     <span class="c">!</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">omega</span>
       <span class="c">!! Cell volume</span>
@@ -591,7 +593,7 @@
 <span class="c">!    complex(kind = dp), allocatable :: wfc(:,:), wfcSD(:,:), Ufi(:,:,:)</span>
 <span class="c">!    complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)</span>
 <span class="c">!    !</span>
-<span class="c">!    integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:), groundState(:)</span>
+<span class="c">!    integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:)</span>
 <span class="c">!    integer, allocatable :: pwGindI(:), pwGindF(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)</span>
 <span class="c">!    integer, allocatable :: npwsPC(:)</span>
 <span class="c">!</span>

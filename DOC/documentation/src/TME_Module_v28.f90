@@ -140,7 +140,6 @@ module TMEModule
   ! Declare matrix/vector integers
   integer, allocatable :: counts(:)
   integer, allocatable :: displmnt(:)
-  integer, allocatable :: groundState(:)
   integer, allocatable :: igvs(:,:,:)
   integer, allocatable :: iqs(:)
   integer, allocatable :: nFs(:,:)
@@ -244,6 +243,8 @@ module TMEModule
       !! Number of plane waves per k point
     integer, allocatable :: atomTypeIndex(:)
       !! Index of the given atom type
+    !integer, allocatable :: groundState(:)
+      ! Was read from input file but not used, so removed
     !
     real(kind = dp) :: omega
       !! Cell volume
@@ -270,7 +271,7 @@ module TMEModule
 !    complex(kind = dp), allocatable :: wfc(:,:), wfcSD(:,:), Ufi(:,:,:)
 !    complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)
 !    !
-!    integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:), groundState(:)
+!    integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:)
 !    integer, allocatable :: pwGindI(:), pwGindF(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
 !    integer, allocatable :: npwsPC(:)
 !
@@ -768,25 +769,16 @@ contains
     ! 
     allocate ( system%npws(system%nKpts), system%wk(system%nKpts), system%xk(3,system%nKpts) )
     ! 
-    if ( system%crystalType == 'PC' ) then
+    !allocate( system%groundState(system%nKpts) ) 
+      ! Don't allocate space for groundState because it is never used
+    !
+    do ik = 1, system%nKpts
       !
-      do ik = 1, system%nKpts
-        !
-        read(50, '(3i10,4ES24.15E3)') iDum, iDum, system%npws(ik), system%wk(ik), system%xk(1:3,ik)
-        !
-      enddo
+      !read(50, '(3i10,4ES24.15E3)') iDum, system%groundState(ik), system%npws(ik), system%wk(ik), system%xk(1:3,ik)
+        ! Don't read in groundState because it is never used
+      read(50, '(3i10,4ES24.15E3)') iDum, iDum, system%npws(ik), system%wk(ik), system%xk(1:3,ik)
       !
-    else if ( system%crystalType == 'SD' ) then
-      !
-      allocate( groundState(system%nKpts) ) 
-      !
-      do ik = 1, system%nKpts
-        !
-        read(50, '(3i10,4ES24.15E3)') iDum, groundState(ik), system%npws(ik), system%wk(ik), system%xk(1:3,ik)
-        !
-      enddo
-      !
-    endif
+    enddo
     !
     read(50, '(a)') textDum
     !
@@ -996,6 +988,8 @@ contains
       system%nProjs = system%nProjs + system%atoms(iType)%numOfAtoms*system%atoms(iType)%lmMax
       !
       deallocate ( system%atoms(iType)%wae, system%atoms(iType)%wps )
+      !deallocate ( system%groundState )
+        ! Don't use because groundState is never used
       !
     enddo
     !
