@@ -97,8 +97,6 @@ module TMEModule
   integer :: npwNi
   integer :: nSquareProcs
   integer :: nSpins
-  integer :: numOfGvecs
-    !! Number of G vectors; not read in from PC input
   integer :: numOfPWs
   integer :: numOfUsedGvecsPP
   integer :: numprocs
@@ -239,6 +237,8 @@ module TMEModule
       !! Number of different types of atoms
     integer :: nProjs
       !! Number of projectors
+    integer :: numOfGvecs
+      !! Number of G vectors
     integer, allocatable :: npws(:)
       !! Number of plane waves per k point
     integer, allocatable :: atomTypeIndex(:)
@@ -782,19 +782,7 @@ contains
     !
     read(50, '(a)') textDum
     !
-    !> @note
-    !> Only read the number of G vectors from the solid
-    !> defect crystal because??
-    !> @endnote
-    if ( system%crystalType == 'PC' ) then
-      !
-      read(50, * ) 
-      !
-    else if ( system%crystalType == 'SD' ) then
-      !
-      read(50, * ) numOfGvecs
-      !
-    endif
+    read(50, * ) system%numOfGvecs
     !
     read(50, '(a)') textDum
     read(50, '(i10)') system%numOfPWs
@@ -1113,11 +1101,11 @@ contains
     read(72, * )
     read(72, * )
     !
-    allocate ( gvecs(3, numOfGvecs ) )
+    allocate ( gvecs(3, solidDefect%numOfGvecs ) )
     !
     gvecs(:,:) = 0.0_dp
     !
-    do ig = 1, numOfGvecs
+    do ig = 1, solidDefect%numOfGvecs
       read(72, '(4i10)') iDum, iGx, iGy, iGz
       gvecs(1,ig) = dble(iGx)*bg(1,1) + dble(iGy)*bg(1,2) + dble(iGz)*bg(1,3)
       gvecs(2,ig) = dble(iGx)*bg(2,1) + dble(iGy)*bg(2,2) + dble(iGz)*bg(2,3)
@@ -1476,7 +1464,7 @@ contains
     !
     pawKPC(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
-    do ig = nPWsI(myid), nPWsF(myid) ! 1, numOfGvecs
+    do ig = nPWsI(myid), nPWsF(myid) ! 1, solidDefect%numOfGvecs
       !
       if ( myid == root ) then 
         if ( (ig == nPWsI(myid) + 1000) .or. (mod(ig, 25000) == 0) .or. (ig == nPWsF(myid)) ) then
@@ -1574,7 +1562,7 @@ contains
     !
     pawSDK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
-    do ig = nPWsI(myid), nPWsF(myid) ! 1, numOfGvecs
+    do ig = nPWsI(myid), nPWsF(myid) ! 1, solidDefect%numOfGvecs
       !
       if ( myid == root ) then
         if ( (ig == nPWsI(myid) + 1000) .or. (mod(ig, 25000) == 0) .or. (ig == nPWsF(myid)) ) then

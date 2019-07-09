@@ -45,7 +45,7 @@ program transitionMatrixElements
     Ufi(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
     ! Distribute plane waves to processes ???
-    call distributePWsToProcs(numOfGvecs, numprocs)
+    call distributePWsToProcs(solidDefect%numOfGvecs, numprocs)
     !
     ! Initialize the number of initial and final plane waves to zero for each process
     nPWsI(:) = 0
@@ -72,7 +72,7 @@ program transitionMatrixElements
   call MPI_BCAST(nBands,      1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(nSpins,      1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(solidDefect%numOfPWs,    1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(numOfGvecs,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+  call MPI_BCAST(solidDefect%numOfGvecs,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   !
   call MPI_BCAST(nPWsI, numprocs, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   call MPI_BCAST(nPWsF, numprocs, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
@@ -81,7 +81,7 @@ program transitionMatrixElements
   call MPI_BCAST(JMAX, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   !
   ! Have other processes allocate space for gvecs so that root can send to them
-  if ( myid /= root ) allocate ( gvecs(3, numOfGvecs) )
+  if ( myid /= root ) allocate ( gvecs(3, solidDefect%numOfGvecs) )
   call MPI_BCAST(gvecs, size(gvecs), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !
   if ( myid /= root ) allocate ( perfectCrystal%atoms(perfectCrystal%numOfTypes) )
