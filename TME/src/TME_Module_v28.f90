@@ -35,18 +35,6 @@ module TMEModule
   !
   ! 
   ! Declare scalar integers
-  integer :: fftxMin
-    !! x min for fft grid; not read in from PC input
-  integer :: fftxMax
-    !! x max for fft grid; not read in from PC input
-  integer :: fftyMin
-    !! y min for fft grid; not read in from PC input
-  integer :: fftyMax
-    !! y max for fft grid; not read in from PC input
-  integer :: fftzMin
-    !! z min for fft grid; not read in from PC input
-  integer :: fftzMax
-    !! z max for fft grid; not read in from PC input
   integer :: gx
   integer :: gy
   integer :: gz
@@ -239,12 +227,14 @@ module TMEModule
       !! Number of projectors
     integer :: numOfGvecs
       !! Number of G vectors
+    !integer :: fftxMax, fftxMin, fftyMax, fftyMin, fftzMax, fftzMin
+      !! FFT grid was read from `input` file but not used, so removed
     integer, allocatable :: npws(:)
       !! Number of plane waves per k point
     integer, allocatable :: atomTypeIndex(:)
       !! Index of the given atom type
     !integer, allocatable :: groundState(:)
-      ! Was read from input file but not used, so removed
+      ! Was read from `input` file but not used, so removed
     !
     real(kind = dp) :: omega
       !! Cell volume
@@ -789,19 +779,9 @@ contains
     !
     read(50, '(a)') textDum     
     !
-    !> @note
-    !> Only read the fft grid from the solid defect crystal
-    !> because??
-    !> @endnote
-    if ( system%crystalType == 'PC' ) then
-      !
-      read(50, * ) 
-      !
-    else if ( system%crystalType == 'SD' ) then
-      !
-      read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
-      !
-    endif
+    !read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
+      ! Don't read in FFT grid because it is never used
+    read(50,  * )
     !
     read(50, '(a)') textDum
     !

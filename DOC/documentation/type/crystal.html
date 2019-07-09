@@ -422,7 +422,8 @@
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>numOfGvecs</strong></td><td></td><td></td><td><p>Number of G vectors</p></td>
+  <td><strong>numOfGvecs</strong></td><td></td><td></td><td><p>Number of G vectors</p>
+<p>FFT grid was read from <code>input</code> file but not used, so removed</p></td>
   
 </tr>
 
@@ -581,12 +582,14 @@
       <span class="c">!! Number of projectors</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">numOfGvecs</span>
       <span class="c">!! Number of G vectors</span>
+    <span class="c">!integer :: fftxMax, fftxMin, fftyMax, fftyMin, fftzMax, fftzMin</span>
+      <span class="c">!! FFT grid was read from `input` file but not used, so removed</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">npws</span><span class="p">(:)</span>
       <span class="c">!! Number of plane waves per k point</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">atomTypeIndex</span><span class="p">(:)</span>
       <span class="c">!! Index of the given atom type</span>
     <span class="c">!integer, allocatable :: groundState(:)</span>
-      <span class="c">! Was read from input file but not used, so removed</span>
+      <span class="c">! Was read from `input` file but not used, so removed</span>
     <span class="c">!</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">omega</span>
       <span class="c">!! Cell volume</span>
