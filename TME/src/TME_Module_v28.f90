@@ -139,7 +139,6 @@ module TMEModule
   integer, allocatable :: pwGs(:,:)
   !
   ! Declare matrix/vector reals
-  real(kind = dp) bg(3,3)
   real(kind = dp), allocatable :: absVfi2(:,:)
   real(kind = dp), allocatable :: DE(:,:)
   real(kind = dp), allocatable :: eigvF(:)
@@ -239,6 +238,7 @@ module TMEModule
       !! Cell volume
     !real(kind = dp) :: at(3,3)
       ! Was read from `input` file but not used, so removed
+    real(kind = dp) :: bg(3,3)
     real(kind = dp), allocatable :: wk(:)
     real(kind = dp), allocatable :: xk(:, :)
     real(kind = dp), allocatable :: posIon(:,:)
@@ -254,7 +254,6 @@ module TMEModule
 !    integer :: nBands, nSpins
 !    integer :: i, j, n1, n2, n3, n4, n, id
 !    !
-!    real(kind = dp) :: bg(3,3)
 !    !
 !    real(kind = dp), allocatable :: eigvI(:), eigvF(:)
 !    real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
@@ -376,7 +375,6 @@ contains
         !! * Check that all required variables were input and have values that make sense
     !
     !> @todo Figure out what the difference in PC and SD is @endtodo
-    write(6,'("Calling subroutine with crystal type ", a)') 'PC'
     call readQEExport(perfectCrystal)
         !! * Read perfect crystal inputs
     call readQEExport(solidDefect)
@@ -796,19 +794,9 @@ contains
     !
     read(50, '(a)') textDum
     !
-    if ( system%crystalType == 'PC' ) then
-      !
-      read(50,  * )
-      read(50,  * )
-      read(50,  * )
-      !
-    else if ( system%crystalType == 'SD' ) then
-      !
-      read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,1)
-      read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,2)
-      read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,3)
-      !
-    endif
+    read(50, '(a5, 3ES24.15E3)') textDum, system%bg(1:3,1)
+    read(50, '(a5, 3ES24.15E3)') textDum, system%bg(1:3,2)
+    read(50, '(a5, 3ES24.15E3)') textDum, system%bg(1:3,3)
     !
     read(50, '(a)') textDum
     read(50, '(i10)') system%nIons
@@ -1082,9 +1070,9 @@ contains
     !
     do ig = 1, solidDefect%numOfGvecs
       read(72, '(4i10)') iDum, iGx, iGy, iGz
-      gvecs(1,ig) = dble(iGx)*bg(1,1) + dble(iGy)*bg(1,2) + dble(iGz)*bg(1,3)
-      gvecs(2,ig) = dble(iGx)*bg(2,1) + dble(iGy)*bg(2,2) + dble(iGz)*bg(2,3)
-      gvecs(3,ig) = dble(iGx)*bg(3,1) + dble(iGy)*bg(3,2) + dble(iGz)*bg(3,3)
+      gvecs(1,ig) = dble(iGx)*solidDefect%bg(1,1) + dble(iGy)*solidDefect%bg(1,2) + dble(iGz)*solidDefect%bg(1,3)
+      gvecs(2,ig) = dble(iGx)*solidDefect%bg(2,1) + dble(iGy)*solidDefect%bg(2,2) + dble(iGz)*solidDefect%bg(2,3)
+      gvecs(3,ig) = dble(iGx)*solidDefect%bg(3,1) + dble(iGy)*solidDefect%bg(3,2) + dble(iGz)*solidDefect%bg(3,3)
     enddo
     !
     close(72)
