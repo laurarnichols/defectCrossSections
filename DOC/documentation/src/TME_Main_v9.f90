@@ -313,7 +313,9 @@ program transitionMatrixElements
         write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> done in", f10.2, " secs.")') t2-t1
         flush(iostd)
         !
-        Ufi(:,:,ik) = Ufi(:,:,ik) + paw_SDPhi(:,:) + paw_PsiPC(:,:) + paw_SDKKPC(:,:)*16.0_dp*pi*pi/omega
+        Ufi(:,:,ik) = Ufi(:,:,ik) + paw_SDPhi(:,:) + paw_PsiPC(:,:) + paw_SDKKPC(:,:)*16.0_dp*pi*pi/solidDefect%omega
+          !! @todo Figure out if should be solid defect volume or pristine @endtodo
+          !! @todo Are pristine and solid defect volume the same? @endtodo
         !
         call writeResults(ik)
         !
@@ -322,7 +324,7 @@ program transitionMatrixElements
         !do ibi = iBandIinit, iBandIfinal
         !  !
         !  do ibf = iBandFinit, iBandFfinal
-        !    !paw = paw_SDPhi(ibf,ibi) + paw_PsiPC(ibf,ibi) + paw_SDKKPC(ibf,ibi)*16.0_dp*pi*pi/omega
+        !    !paw = paw_SDPhi(ibf,ibi) + paw_PsiPC(ibf,ibi) + paw_SDKKPC(ibf,ibi)*16.0_dp*pi*pi/solidDefect%omega
         !    !write(iostd,'(" paw ", 2i4, 6f15.10)') ibi, ibf, Ufi(ibf, ibi, ik), paw, Ufi(ibf, ibi, ik) + paw
         !    !Ufi(ibf, ibi, ik) = Ufi(ibf, ibi, ik) + paw
         !    write(iostd,'(" Ufi ", 2i4, 2ES24.15E3)') ibi, ibf, Ufi(ibf, ibi, ik)

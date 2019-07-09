@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 4.0% of total for procedures.">185 statements</a>
+    title=" 3.9% of total for procedures.">181 statements</a>
      </li> 
      
      
@@ -288,10 +288,6 @@ public subroutine readQEExport(system)
 <p>
 </li>
 </ul>
-<p></p><div class="alert alert-info" role="alert"><h4>Note</h4><p>Only read <script type="math/tex">\omega</script> from solid defect crystal because that
- is the structure where we are interested in phonons??
- </p></div>
-<p>
 <p></p><div class="alert alert-info" role="alert"><h4>Note</h4><p>Only read the number of G vectors from the solid
  defect crystal because??
  </p></div>
@@ -783,19 +779,7 @@ public subroutine readQEExport(system)
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="c">!</span>
-    <span class="c">!&gt; @note</span>
-    <span class="c">!&gt; Only read \(\omega\) from solid defect crystal because that</span>
-    <span class="c">!&gt; is the structure where we are interested in phonons??</span>
-    <span class="c">!&gt; @endnote</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
-      <span class="c">!</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> 
-      <span class="c">!</span>
-    <span class="k">else if</span> <span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="k">then</span>
-      <span class="c">!</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span> <span class="p">)</span> <span class="n">omega</span>
-      <span class="c">!</span>
-    <span class="n">endif</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span> <span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">omega</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">nKpts</span>

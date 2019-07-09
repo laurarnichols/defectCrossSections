@@ -241,6 +241,9 @@
     
 
     <p>Call <a href="../module/tmemodule.html#proc-initializecalculation">initializeCalculation</a></p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if should be solid defect volume or pristine </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Are pristine and solid defect volume the same? </p></div>
+<p>
     
     <br>
 
@@ -676,7 +679,9 @@
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      \\sum_k &lt;PAW_SD|\\vec{k}&gt;&lt;\\vec{k}|PAW_PC&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
         <span class="c">!</span>
-        <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">+</span> <span class="n">paw_SDPhi</span><span class="p">(:,:)</span> <span class="o">+</span> <span class="n">paw_PsiPC</span><span class="p">(:,:)</span> <span class="o">+</span> <span class="n">paw_SDKKPC</span><span class="p">(:,:)</span><span class="o">*</span><span class="mi">1</span><span class="mf">6.0_dp</span><span class="o">*</span><span class="n">pi</span><span class="o">*</span><span class="n">pi</span><span class="o">/</span><span class="n">omega</span>
+        <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">+</span> <span class="n">paw_SDPhi</span><span class="p">(:,:)</span> <span class="o">+</span> <span class="n">paw_PsiPC</span><span class="p">(:,:)</span> <span class="o">+</span> <span class="n">paw_SDKKPC</span><span class="p">(:,:)</span><span class="o">*</span><span class="mi">1</span><span class="mf">6.0_dp</span><span class="o">*</span><span class="n">pi</span><span class="o">*</span><span class="n">pi</span><span class="o">/</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">omega</span>
+          <span class="c">!! @todo Figure out if should be solid defect volume or pristine @endtodo</span>
+          <span class="c">!! @todo Are pristine and solid defect volume the same? @endtodo</span>
         <span class="c">!</span>
         <span class="k">call </span><span class="n">writeResults</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
         <span class="c">!</span>
@@ -685,7 +690,7 @@
         <span class="c">!do ibi = iBandIinit, iBandIfinal</span>
         <span class="c">!  !</span>
         <span class="c">!  do ibf = iBandFinit, iBandFfinal</span>
-        <span class="c">!    !paw = paw_SDPhi(ibf,ibi) + paw_PsiPC(ibf,ibi) + paw_SDKKPC(ibf,ibi)*16.0_dp*pi*pi/omega</span>
+        <span class="c">!    !paw = paw_SDPhi(ibf,ibi) + paw_PsiPC(ibf,ibi) + paw_SDKKPC(ibf,ibi)*16.0_dp*pi*pi/solidDefect%omega</span>
         <span class="c">!    !write(iostd,&#39;(&quot; paw &quot;, 2i4, 6f15.10)&#39;) ibi, ibf, Ufi(ibf, ibi, ik), paw, Ufi(ibf, ibi, ik) + paw</span>
         <span class="c">!    !Ufi(ibf, ibi, ik) = Ufi(ibf, ibi, ik) + paw</span>
         <span class="c">!    write(iostd,&#39;(&quot; Ufi &quot;, 2i4, 2ES24.15E3)&#39;) ibi, ibf, Ufi(ibf, ibi, ik)</span>

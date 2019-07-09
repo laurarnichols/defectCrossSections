@@ -110,7 +110,6 @@ module TMEModule
     !! Start time for program
   real(kind = dp) tf
     !! End time for program
-  real(kind = dp) :: omega
   real(kind = dp) :: threej
   !
   ! Declare scalar complex numbers
@@ -246,6 +245,8 @@ module TMEModule
     integer, allocatable :: atomTypeIndex(:)
       !! Index of the given atom type
     !
+    real(kind = dp) :: omega
+      !! Cell volume
     real(kind = dp), allocatable :: wk(:)
     real(kind = dp), allocatable :: xk(:, :)
     real(kind = dp), allocatable :: posIon(:,:)
@@ -258,24 +259,20 @@ module TMEModule
     TYPE(atom), allocatable :: atoms(:)
     !
 !    integer :: Jmax, maxL, iTypes, nn, nm
-!    integer :: numOfPWs, nIons, nKpts, nProjs, numOfTypes
 !    integer :: nBands, nSpins
 !    integer :: i, j, n1, n2, n3, n4, n, id
 !    !
 !    real(kind = dp) :: at(3,3), bg(3,3)
 !    !
-!    real(kind = dp) :: omega
-!    !
-!    real(kind = dp), allocatable :: eigvI(:), eigvF(:), posIon(:,:), wk(:), xk(:,:)
+!    real(kind = dp), allocatable :: eigvI(:), eigvF(:)
 !    real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
 !    !
 !    complex(kind = dp), allocatable :: wfc(:,:), wfcSD(:,:), Ufi(:,:,:)
 !    complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)
 !    !
-!    integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:), groundState(:)
-!    integer, allocatable :: npws(:), pwGindI(:), pwGindF(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
+!    integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:), groundState(:)
+!    integer, allocatable :: pwGindI(:), pwGindF(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
 !    integer, allocatable :: npwsPC(:)
-!    real(kind = dp), allocatable :: wkPC(:), xkPC(:,:)
 !
   end type crystal
   !
@@ -761,19 +758,7 @@ contains
     !
     read(50, '(a)') textDum
     !
-    !> @note
-    !> Only read \(\omega\) from solid defect crystal because that
-    !> is the structure where we are interested in phonons??
-    !> @endnote
-    if ( system%crystalType == 'PC' ) then
-      !
-      read(50, * ) 
-      !
-    else if (system%crystalType == 'SD' ) then
-      !
-      read(50, '(ES24.15E3)' ) omega
-      !
-    endif
+    read(50, '(ES24.15E3)' ) system%omega
     !
     read(50, '(a)') textDum
     read(50, '(i10)') system%nKpts
@@ -1567,7 +1552,7 @@ contains
       !
     enddo
     !
-    !pawKPC(:,:,:) = pawKPC(:,:,:)*4.0_dp*pi/sqrt(omega)
+    !pawKPC(:,:,:) = pawKPC(:,:,:)*4.0_dp*pi/sqrt(solidDefect%omega)
     !
     return
     !
@@ -1663,7 +1648,7 @@ contains
       !
     enddo
     !
-    !pawSDK(:,:,:) = pawSDK(:,:,:)*4.0_dp*pi/sqrt(omega)
+    !pawSDK(:,:,:) = pawSDK(:,:,:)*4.0_dp*pi/sqrt(solidDefect%omega)
     !
     return
     !
@@ -2012,7 +1997,7 @@ contains
     open(63, file=trim(VfisOutput), status='unknown')
     !
     write(63, '("# Averaged |<f|V|i>|^2 over K-points versus energy.")')
-    write(63, '("#                 Cell volume : ", ES24.15E3, " (a.u.)^3,   Format : ''(ES24.15E3)''")') omega
+    write(63, '("#                 Cell volume : ", ES24.15E3, " (a.u.)^3,   Format : ''(ES24.15E3)''")') solidDefect%omega
     write(63, '("#   Minimun transition energy : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eMin
     write(63, '("# |DHif|^2 at minimum Tr. En. : ", ES24.15E3, " (Hartree^2),Format : ''(ES24.15E3)''")') DHifMin
     write(63, '("#                  Energy bin : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eBin
@@ -2149,7 +2134,7 @@ contains
     !
     open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
     !
-    write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
+    write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') solidDefect%omega
     !
     text = "# Total number of <f|U|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
     write(17,'(a, " Format : ''(5i10)''")') trim(text)

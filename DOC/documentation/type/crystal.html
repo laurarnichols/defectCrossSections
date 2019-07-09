@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="<p>40.5% of total for derived types.</p>Including implementation: 15 statements, 40.5% of total for derived types.">15 statements</a>
+    title="<p>42.1% of total for derived types.</p>Including implementation: 16 statements, 42.1% of total for derived types.">16 statements</a>
      </li> 
      
      
@@ -190,6 +190,8 @@
       <a class="list-group-item" href="../type/crystal.html#variable-npws">npws</a>
       
       <a class="list-group-item" href="../type/crystal.html#variable-atomtypeindex">atomTypeIndex</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-omega">omega</a>
       
       <a class="list-group-item" href="../type/crystal.html#variable-wk">wk</a>
       
@@ -273,6 +275,8 @@
       <a class="list-group-item" href="../type/crystal.html#variable-npws">npws</a>
       
       <a class="list-group-item" href="../type/crystal.html#variable-atomtypeindex">atomTypeIndex</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-omega">omega</a>
       
       <a class="list-group-item" href="../type/crystal.html#variable-wk">wk</a>
       
@@ -438,6 +442,20 @@
   
 <tr>
   
+  <td><span class="anchor" id="variable-omega"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>omega</strong></td><td></td><td></td><td><p>Cell volume</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-wk"></span>real(kind=dp),</td>
   
   <td>public,</td>
@@ -548,6 +566,8 @@
     <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">atomTypeIndex</span><span class="p">(:)</span>
       <span class="c">!! Index of the given atom type</span>
     <span class="c">!</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">omega</span>
+      <span class="c">!! Cell volume</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">wk</span><span class="p">(:)</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">xk</span><span class="p">(:,</span> <span class="p">:)</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">posIon</span><span class="p">(:,:)</span>
@@ -560,24 +580,20 @@
     <span class="k">TYPE</span><span class="p">(</span><span class="n">atom</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">atoms</span><span class="p">(:)</span>
     <span class="c">!</span>
 <span class="c">!    integer :: Jmax, maxL, iTypes, nn, nm</span>
-<span class="c">!    integer :: numOfPWs, nIons, nKpts, nProjs, numOfTypes</span>
 <span class="c">!    integer :: nBands, nSpins</span>
 <span class="c">!    integer :: i, j, n1, n2, n3, n4, n, id</span>
 <span class="c">!    !</span>
 <span class="c">!    real(kind = dp) :: at(3,3), bg(3,3)</span>
 <span class="c">!    !</span>
-<span class="c">!    real(kind = dp) :: omega</span>
-<span class="c">!    !</span>
-<span class="c">!    real(kind = dp), allocatable :: eigvI(:), eigvF(:), posIon(:,:), wk(:), xk(:,:)</span>
+<span class="c">!    real(kind = dp), allocatable :: eigvI(:), eigvF(:)</span>
 <span class="c">!    real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)</span>
 <span class="c">!    !</span>
 <span class="c">!    complex(kind = dp), allocatable :: wfc(:,:), wfcSD(:,:), Ufi(:,:,:)</span>
 <span class="c">!    complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)</span>
 <span class="c">!    !</span>
-<span class="c">!    integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:), groundState(:)</span>
-<span class="c">!    integer, allocatable :: npws(:), pwGindI(:), pwGindF(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)</span>
+<span class="c">!    integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:), groundState(:)</span>
+<span class="c">!    integer, allocatable :: pwGindI(:), pwGindF(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)</span>
 <span class="c">!    integer, allocatable :: npwsPC(:)</span>
-<span class="c">!    real(kind = dp), allocatable :: wkPC(:), xkPC(:,:)</span>
 <span class="c">!</span>
   <span class="k">end type </span><span class="n">crystal</span>
 </pre></div>
