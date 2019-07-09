@@ -31,6 +31,7 @@ module TMEModule
   character(len = 6), parameter ::      output = 'output'
     !! Name of the output file;
     !! used in [[TMEModule(module):readInput(subroutine)]]
+    !! @todo Change I/O from file to console so that usage matches that of QE @endtodo
   !
   ! 
   ! Declare scalar integers
