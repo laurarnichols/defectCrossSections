@@ -139,7 +139,6 @@ module TMEModule
   integer, allocatable :: pwGs(:,:)
   !
   ! Declare matrix/vector reals
-  real(kind = dp) at(3,3)
   real(kind = dp) bg(3,3)
   real(kind = dp), allocatable :: absVfi2(:,:)
   real(kind = dp), allocatable :: DE(:,:)
@@ -238,6 +237,8 @@ module TMEModule
     !
     real(kind = dp) :: omega
       !! Cell volume
+    !real(kind = dp) :: at(3,3)
+      ! Was read from `input` file but not used, so removed
     real(kind = dp), allocatable :: wk(:)
     real(kind = dp), allocatable :: xk(:, :)
     real(kind = dp), allocatable :: posIon(:,:)
@@ -253,7 +254,7 @@ module TMEModule
 !    integer :: nBands, nSpins
 !    integer :: i, j, n1, n2, n3, n4, n, id
 !    !
-!    real(kind = dp) :: at(3,3), bg(3,3)
+!    real(kind = dp) :: bg(3,3)
 !    !
 !    real(kind = dp), allocatable :: eigvI(:), eigvF(:)
 !    real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
@@ -785,19 +786,13 @@ contains
     !
     read(50, '(a)') textDum
     !
-    if ( system%crystalType == 'PC' ) then
-      !
-      read(50,  * )
-      read(50,  * )
-      read(50,  * )
-      !
-    else if ( system%crystalType == 'SD' ) then
-      !
-      read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,1)
-      read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,2)
-      read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,3)
-      !
-    endif
+    !read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,1)
+    !read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,2)
+    !read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,3)
+      ! Don't read in `at` because it is never used
+    read(50,  * )
+    read(50,  * )
+    read(50,  * )
     !
     read(50, '(a)') textDum
     !
