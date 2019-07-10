@@ -352,7 +352,8 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readInput(perfectCrystal, solidDefect)
+  subroutine readInput(perfectCrystal, solidDefect, elementsPath, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
+                       ki, kf, calculateVfis, VfisOutput)
     !! Delete any previous output, initialize input variables,
     !! start a timer, and read in the input files
     !!
@@ -360,18 +361,25 @@ contains
     !!
     implicit none
     !
+    integer, intent(inout) :: ki, kf, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+    !
+    character(len = 300), intent(inout) :: elementsPath
+    character(len = 200), intent(inout) :: VfisOutput
     character(len = 200) :: exportDirSD
     character(len = 200) :: exportDirPC
     !
-    TYPE(crystal), intent(out) :: perfectCrystal
+    logical, intent(inout) :: calculateVfis
+    !
+    TYPE(crystal), intent(inout) :: perfectCrystal
       !! Holds all of the information on the perfect crystal
-    TYPE(crystal), intent(out) :: solidDefect
+    TYPE(crystal), intent(inout) :: solidDefect
       !! Holds all of the information on the defective crystal
     !
     NAMELIST /TME_Input/ exportDirSD, exportDirPC, elementsPath, &
                        iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
                        ki, kf, calculateVfis, VfisOutput, eBin
                        !! Used to group the variables read in from the .in file
+    !
     !
     READ (5, TME_Input, iostat = ios)
         !! * Read input from command line (or input file if use `< TME_Input.md`)

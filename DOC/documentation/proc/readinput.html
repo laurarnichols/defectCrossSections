@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.3% of total for procedures.">16 statements</a>
+    title=" 0.4% of total for procedures.">20 statements</a>
      </li> 
      
      
@@ -219,7 +219,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine readInput(perfectCrystal, solidDefect)
+public subroutine readInput(perfectCrystal, solidDefect, elementsPath, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ki, kf, calculateVfis, VfisOutput)
     
     
    
@@ -270,7 +270,7 @@ public subroutine readInput(perfectCrystal, solidDefect)
 <tr>
   
   <td><span class="anchor" id="variable-perfectcrystal"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
-  <td>intent(out)</td>
+  <td>intent(inout)</td>
   <td></td>
   
   <td></td><td>::</td>
@@ -285,11 +285,146 @@ public subroutine readInput(perfectCrystal, solidDefect)
 <tr>
   
   <td><span class="anchor" id="variable-soliddefect%7E2"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
-  <td>intent(out)</td>
+  <td>intent(inout)</td>
   <td></td>
   
   <td></td><td>::</td>
   <td><strong>solidDefect</strong></td><td><p>Holds all of the information on the defective crystal</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-elementspath%7E2"></span>character(len=300),</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>elementsPath</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibandiinit%7E2"></span>integer,</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iBandIinit</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibandifinal%7E2"></span>integer,</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iBandIfinal</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibandfinit%7E2"></span>integer,</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iBandFinit</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ibandffinal%7E2"></span>integer,</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>iBandFfinal</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ki%7E2"></span>integer,</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>ki</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-kf%7E2"></span>integer,</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>kf</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-calculatevfis%7E2"></span>logical,</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>calculateVfis</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-vfisoutput%7E2"></span>character(len=200),</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>VfisOutput</strong></td><td></td>
   
 </tr>
 
@@ -420,7 +555,8 @@ public subroutine readInput(perfectCrystal, solidDefect)
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readInput</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readInput</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">,</span> <span class="n">elementsPath</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span><span class="p">,</span> <span class="p">&amp;</span>
+                       <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">calculateVfis</span><span class="p">,</span> <span class="n">VfisOutput</span><span class="p">)</span>
     <span class="c">!! Delete any previous output, initialize input variables,</span>
     <span class="c">!! start a timer, and read in the input files</span>
     <span class="c">!!</span>
@@ -428,18 +564,25 @@ public subroutine readInput(perfectCrystal, solidDefect)
     <span class="c">!!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+    <span class="c">!</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">elementsPath</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">VfisOutput</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">)</span> <span class="kd">::</span> <span class="n">exportDirSD</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">)</span> <span class="kd">::</span> <span class="n">exportDirPC</span>
     <span class="c">!</span>
-    <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">perfectCrystal</span>
+    <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">calculateVfis</span>
+    <span class="c">!</span>
+    <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">perfectCrystal</span>
       <span class="c">!! Holds all of the information on the perfect crystal</span>
-    <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">solidDefect</span>
+    <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">solidDefect</span>
       <span class="c">!! Holds all of the information on the defective crystal</span>
     <span class="c">!</span>
     <span class="k">NAMELIST</span> <span class="o">/</span><span class="n">TME_Input</span><span class="o">/</span> <span class="n">exportDirSD</span><span class="p">,</span> <span class="n">exportDirPC</span><span class="p">,</span> <span class="n">elementsPath</span><span class="p">,</span> <span class="p">&amp;</span>
                        <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span><span class="p">,</span> <span class="p">&amp;</span>
                        <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">calculateVfis</span><span class="p">,</span> <span class="n">VfisOutput</span><span class="p">,</span> <span class="n">eBin</span>
                        <span class="c">!! Used to group the variables read in from the .in file</span>
+    <span class="c">!</span>
     <span class="c">!</span>
     <span class="k">READ</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">TME_Input</span><span class="p">,</span> <span class="n">iostat</span> <span class="o">=</span> <span class="n">ios</span><span class="p">)</span>
         <span class="c">!! * Read input from command line (or input file if use `&lt; TME_Input.md`)</span>
