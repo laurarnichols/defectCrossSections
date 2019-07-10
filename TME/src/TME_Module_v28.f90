@@ -69,7 +69,6 @@ module TMEModule
   integer :: n2
   integer :: n3
   integer :: n4
-  integer :: nBands
   integer :: nF
   integer :: nGf
   integer :: nGi
@@ -227,6 +226,8 @@ module TMEModule
       !! Number of G vectors
     !integer :: fftxMax, fftxMin, fftyMax, fftyMin, fftzMax, fftzMin
       !! FFT grid was read from `input` file but not used, so removed
+    integer :: nBands
+      !! Number of bands
     integer, allocatable :: npws(:)
       !! Number of plane waves per k point
     integer, allocatable :: atomTypeIndex(:)
@@ -251,7 +252,7 @@ module TMEModule
     TYPE(atom), allocatable :: atoms(:)
     !
 !    integer :: Jmax, maxL, iTypes, nn, nm
-!    integer :: nBands, nSpins
+!    integer :: nSpins
 !    integer :: i, j, n1, n2, n3, n4, n, id
 !    !
 !    !
@@ -817,15 +818,7 @@ contains
     !
     read(50, '(a)') textDum
     !
-    if ( system%crystalType == 'PC' ) then
-      !
-      read(50, * )
-      !
-    else if ( system%crystalType == 'SD' ) then
-      !
-      read(50, '(i10)') nBands
-      !
-    endif
+    read(50, '(i10)') system%nBands
     !
     read(50, '(a)') textDum
     !
@@ -1300,7 +1293,7 @@ contains
     !
     read(72, *)
     !
-    do j = 1, nBands  ! number of bands 
+    do j = 1, solidDefect%nBands  ! number of bands 
       do i = 1, perfectCrystal%nProjs ! number of projections
         read(72,'(2ES24.15E3)') cProjPC(i,j,1)
       enddo
@@ -1332,7 +1325,7 @@ contains
     !
     read(72, *)
     !
-    do j = 1, nBands  ! number of bands 
+    do j = 1, solidDefect%nBands  ! number of bands 
       do i = 1, solidDefect%nProjs ! number of projections
         read(72,'(2ES24.15E3)') cProjSD(i,j,1)
       enddo

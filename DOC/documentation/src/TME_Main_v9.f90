@@ -69,7 +69,7 @@ program transitionMatrixElements
   !
   call MPI_BCAST(perfectCrystal%nProjs,    1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(solidDefect%nProjs,    1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(nBands,      1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+  call MPI_BCAST(solidDefect%nBands,      1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(nSpins,      1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(solidDefect%numOfPWs,    1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(solidDefect%numOfGvecs,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
@@ -173,8 +173,8 @@ program transitionMatrixElements
     !
     if ( .not.tmes_file_exists ) then
       !
-      allocate ( cProjPC(perfectCrystal%nProjs, nBands, nSpins) )
-      allocate ( cProjSD(solidDefect%nProjs, nBands, nSpins) )
+      allocate ( cProjPC(perfectCrystal%nProjs, solidDefect%nBands, nSpins) )
+      allocate ( cProjSD(solidDefect%nProjs, solidDefect%nBands, nSpins) )
       !
       if ( myid == root ) then
         !
@@ -203,7 +203,7 @@ program transitionMatrixElements
         !
         call readProjectionsPC(ik)
         !
-        allocate ( cProjBetaPCPsiSD(perfectCrystal%nProjs, nBands, nSpins) )
+        allocate ( cProjBetaPCPsiSD(perfectCrystal%nProjs, solidDefect%nBands, nSpins) )
         call projectBetaPCwfcSD(ik)
         !
         deallocate ( wfcSD )
@@ -220,7 +220,7 @@ program transitionMatrixElements
         !
         call readProjectionsSD(ik)
         !
-        allocate ( cProjBetaSDPhiPC(solidDefect%nProjs, nBands, nSpins) )
+        allocate ( cProjBetaSDPhiPC(solidDefect%nProjs, solidDefect%nBands, nSpins) )
         call projectBetaSDwfcPC(ik)
         !
         deallocate ( wfcPC )

@@ -421,7 +421,7 @@ public subroutine readProjectionsSD(ik)
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nBands</span>  <span class="c">! number of bands </span>
+    <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span>  <span class="c">! number of bands </span>
       <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nProjs</span> <span class="c">! number of projections</span>
         <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span><span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">cProjSD</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
       <span class="n">enddo</span>

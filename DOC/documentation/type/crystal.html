@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="<p>45.0% of total for derived types.</p>Including implementation: 18 statements, 45.0% of total for derived types.">18 statements</a>
+    title="<p>46.3% of total for derived types.</p>Including implementation: 19 statements, 46.3% of total for derived types.">19 statements</a>
      </li> 
      
      
@@ -188,6 +188,8 @@
       <a class="list-group-item" href="../type/crystal.html#variable-nprojs">nProjs</a>
       
       <a class="list-group-item" href="../type/crystal.html#variable-numofgvecs">numOfGvecs</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-nbands">nBands</a>
       
       <a class="list-group-item" href="../type/crystal.html#variable-npws">npws</a>
       
@@ -277,6 +279,8 @@
       <a class="list-group-item" href="../type/crystal.html#variable-nprojs">nProjs</a>
       
       <a class="list-group-item" href="../type/crystal.html#variable-numofgvecs">numOfGvecs</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-nbands">nBands</a>
       
       <a class="list-group-item" href="../type/crystal.html#variable-npws">npws</a>
       
@@ -428,6 +432,20 @@
   <td></td><td>::</td>
   <td><strong>numOfGvecs</strong></td><td></td><td></td><td><p>Number of G vectors</p>
 <p>FFT grid was read from <code>input</code> file but not used, so removed</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nbands"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nBands</strong></td><td></td><td></td><td><p>Number of bands</p></td>
   
 </tr>
 
@@ -602,6 +620,8 @@
       <span class="c">!! Number of G vectors</span>
     <span class="c">!integer :: fftxMax, fftxMin, fftyMax, fftyMin, fftzMax, fftzMin</span>
       <span class="c">!! FFT grid was read from `input` file but not used, so removed</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nBands</span>
+      <span class="c">!! Number of bands</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">npws</span><span class="p">(:)</span>
       <span class="c">!! Number of plane waves per k point</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">atomTypeIndex</span><span class="p">(:)</span>
@@ -626,7 +646,7 @@
     <span class="k">TYPE</span><span class="p">(</span><span class="n">atom</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">atoms</span><span class="p">(:)</span>
     <span class="c">!</span>
 <span class="c">!    integer :: Jmax, maxL, iTypes, nn, nm</span>
-<span class="c">!    integer :: nBands, nSpins</span>
+<span class="c">!    integer :: nSpins</span>
 <span class="c">!    integer :: i, j, n1, n2, n3, n4, n, id</span>
 <span class="c">!    !</span>
 <span class="c">!    !</span>
