@@ -83,7 +83,6 @@ module TMEModule
   integer :: npwNf
   integer :: npwNi
   integer :: nSquareProcs
-  integer :: nSpins
   integer :: numOfPWs
   integer :: numOfUsedGvecsPP
   integer :: numprocs
@@ -228,6 +227,8 @@ module TMEModule
       !! FFT grid was read from `input` file but not used, so removed
     integer :: nBands
       !! Number of bands
+    integer :: nSpins
+      !! Number of spins
     integer, allocatable :: npws(:)
       !! Number of plane waves per k point
     integer, allocatable :: atomTypeIndex(:)
@@ -252,7 +253,6 @@ module TMEModule
     TYPE(atom), allocatable :: atoms(:)
     !
 !    integer :: Jmax, maxL, iTypes, nn, nm
-!    integer :: nSpins
 !    integer :: i, j, n1, n2, n3, n4, n, id
 !    !
 !    !
@@ -822,15 +822,7 @@ contains
     !
     read(50, '(a)') textDum
     !
-    if ( system%crystalType == 'PC' ) then
-      !
-      read(50, * )
-      !
-    else if ( system%crystalType == 'SD' ) then
-      !
-      read(50, '(i10)') nSpins
-      !
-    endif
+    read(50, '(i10)') system%nSpins
     !
     allocate ( system%atoms(system%numOfTypes) )
     !
