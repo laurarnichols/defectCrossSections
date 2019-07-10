@@ -209,7 +209,6 @@ module TMEModule
   end type atom
   !
   !
-  !> @todo Use crystal type instead of all of the explicit variables @endtodo
   type :: crystal
     integer :: nKpts
       !! Number of k points
