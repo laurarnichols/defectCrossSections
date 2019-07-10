@@ -117,8 +117,6 @@ module TMEModule
     !! Dummy variable to hold unneeded lines from input file
   character(len = 200) :: VfisOutput
     !! Output file for ??
-  character(len = 200) :: exportDirSD
-  character(len = 200) :: exportDirPC
   !
   !
   ! Declare matrix/vector integers
@@ -285,10 +283,6 @@ module TMEModule
   TYPE(vec), allocatable :: newVecs(:)
   !
   !
-  NAMELIST /TME_Input/ exportDirSD, exportDirPC, elementsPath, &
-                       iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
-                       ki, kf, calculateVfis, VfisOutput, eBin
-                       !! Used to group the variables read in from the .in file
   !
   !
 !=====================================================================================================
@@ -358,13 +352,26 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readInput()
+  subroutine readInput(perfectCrystal, solidDefect)
     !! Delete any previous output, initialize input variables,
     !! start a timer, and read in the input files
     !!
     !! @todo Change `readInput()` to have arguments to make clear that these variables are getting changed @endtodo
     !!
     implicit none
+    !
+    character(len = 200) :: exportDirSD
+    character(len = 200) :: exportDirPC
+    !
+    TYPE(crystal), intent(out) :: perfectCrystal
+      !! Holds all of the information on the perfect crystal
+    TYPE(crystal), intent(out) :: solidDefect
+      !! Holds all of the information on the defective crystal
+    !
+    NAMELIST /TME_Input/ exportDirSD, exportDirPC, elementsPath, &
+                       iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
+                       ki, kf, calculateVfis, VfisOutput, eBin
+                       !! Used to group the variables read in from the .in file
     !
     READ (5, TME_Input, iostat = ios)
         !! * Read input from command line (or input file if use `< TME_Input.md`)
@@ -374,7 +381,6 @@ contains
     call checkInitialization()
         !! * Check that all required variables were input and have values that make sense
     !
-    !> @todo Figure out what the difference in PC and SD is @endtodo
     call readQEExport(perfectCrystal)
         !! * Read perfect crystal inputs
     call readQEExport(solidDefect)

@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="27.6% of total for modules and submodules.">1254 statements</a>
+    title="27.6% of total for modules and submodules.">1256 statements</a>
      </li> 
      
      
@@ -319,10 +319,6 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-vfisoutput%7E2">VfisOutput</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-exportdirsd">exportDirSD</a>
-      
-      <a class="list-group-item" href="../module/tmemodule.html#variable-exportdirpc">exportDirPC</a>
-      
       <a class="list-group-item" href="../module/tmemodule.html#variable-counts">counts</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-displmnt">displmnt</a>
@@ -395,9 +391,9 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-wfcsd">wfcSD</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-perfectcrystal">perfectCrystal</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-perfectcrystal%7E2">perfectCrystal</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-soliddefect%7E2">solidDefect</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-soliddefect%7E3">solidDefect</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-vecs">vecs</a>
       
@@ -514,7 +510,6 @@
     <div class="col-md-9" id='text'>
     <p>Declare all global variables
  and house all subroutines</p>
-<p>Used to group the variables read in from the .in file</p>
       
     
   
@@ -680,10 +675,6 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-vfisoutput%7E2">VfisOutput</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-exportdirsd">exportDirSD</a>
-      
-      <a class="list-group-item" href="../module/tmemodule.html#variable-exportdirpc">exportDirPC</a>
-      
       <a class="list-group-item" href="../module/tmemodule.html#variable-counts">counts</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-displmnt">displmnt</a>
@@ -756,9 +747,9 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-wfcsd">wfcSD</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-perfectcrystal">perfectCrystal</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-perfectcrystal%7E2">perfectCrystal</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-soliddefect%7E2">solidDefect</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-soliddefect%7E3">solidDefect</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-vecs">vecs</a>
       
@@ -1908,34 +1899,6 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-exportdirsd"></span>character(len=200),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>exportDirSD</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-exportdirpc"></span>character(len=200),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>exportDirPC</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
   <td><span class="anchor" id="variable-counts"></span>integer,</td>
   
   <td>public,</td>
@@ -2440,7 +2403,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-perfectcrystal"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td><span class="anchor" id="variable-perfectcrystal%7E2"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -2454,7 +2417,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-soliddefect%7E2"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td><span class="anchor" id="variable-soliddefect%7E3"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -3363,7 +3326,7 @@ public subroutine <a href='../proc/initializecalculation.html'>initializeCalcula
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-readinput"></span><h3>
-public subroutine <a href='../proc/readinput.html'>readInput</a>()
+public subroutine <a href='../proc/readinput.html'>readInput</a>(perfectCrystal, solidDefect)
     
     
    
@@ -3383,7 +3346,51 @@ public subroutine <a href='../proc/readinput.html'>readInput</a>()
     
     <h4>Arguments</h4>
     
-      <em>None</em>
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>perfectCrystal</strong></td><td><p>Holds all of the information on the perfect crystal</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>solidDefect</strong></td><td><p>Holds all of the information on the defective crystal</p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
     
     
 

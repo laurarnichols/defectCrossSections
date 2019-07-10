@@ -146,20 +146,19 @@
 <li><code>../TME/src/TME_Main_v9.f90:317:</code> Figure out if should be solid defect volume or pristine</li>
 <li><code>../TME/src/TME_Main_v9.f90:318:</code> Are pristine and solid defect volume the same?</li>
 <li><code>../TME/src/TME_Module_v28.f90:34:</code> Change I/O from file to console so that usage matches that of QE</li>
-<li><code>../TME/src/TME_Module_v28.f90:172:</code> Consider changing <code>atom</code> type to <code>element</code> since it holds more than one atom</li>
-<li><code>../TME/src/TME_Module_v28.f90:365:</code> Change <code>readInput()</code> to have arguments to make clear that these variables are getting changed</li>
-<li><code>../TME/src/TME_Module_v28.f90:377:</code> Figure out what the difference in PC and SD is</li>
-<li><code>../TME/src/TME_Module_v28.f90:399:</code> Change <code>checkInitialization()</code> to have arguments to make clear that these variables are getting changed</li>
-<li><code>../TME/src/TME_Module_v28.f90:407:</code> Change <code>file_exists</code> to <code>fileExists</code> in <code>checkInitialization()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:593:</code> Check if there is any kind of check on <code>ki</code> and <code>kf</code>. Why was this commented out?</li>
-<li><code>../TME/src/TME_Module_v28.f90:663:</code> Change <code>readInputPC()</code> to have arguments so that it is clear that these variables are getting changed</li>
-<li><code>../TME/src/TME_Module_v28.f90:746:</code> Add information about these variables to top</li>
-<li><code>../TME/src/TME_Module_v28.f90:814: Change</code>(system%posIon(j,ni) , j = 1,3)<code>to</code>system%posIon(1:<code>3,ni)</code> in <code>readQEExport()</code> for clarity</li>
-<li><code>../TME/src/TME_Module_v28.f90:888:</code> Look more into how AE and PS wavefunctions are combined to further understand this</li>
-<li><code>../TME/src/TME_Module_v28.f90:889:</code> Move this behavior to another subroutine for clarity</li>
-<li><code>../TME/src/TME_Module_v28.f90:898:</code> Figure out if differences in PC and SD <code>F1</code> calculations are intentional</li>
-<li><code>../TME/src/TME_Module_v28.f90:899:</code> Figure out if should be <code>(wps_i wae_j - wae_i wps_j)r_{ab}</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:938:</code> Figure out if intentional to only use <code>JMAX</code> from SD input</li>
+<li><code>../TME/src/TME_Module_v28.f90:170:</code> Consider changing <code>atom</code> type to <code>element</code> since it holds more than one atom</li>
+<li><code>../TME/src/TME_Module_v28.f90:359:</code> Change <code>readInput()</code> to have arguments to make clear that these variables are getting changed</li>
+<li><code>../TME/src/TME_Module_v28.f90:405:</code> Change <code>checkInitialization()</code> to have arguments to make clear that these variables are getting changed</li>
+<li><code>../TME/src/TME_Module_v28.f90:413:</code> Change <code>file_exists</code> to <code>fileExists</code> in <code>checkInitialization()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:599:</code> Check if there is any kind of check on <code>ki</code> and <code>kf</code>. Why was this commented out?</li>
+<li><code>../TME/src/TME_Module_v28.f90:669:</code> Change <code>readInputPC()</code> to have arguments so that it is clear that these variables are getting changed</li>
+<li><code>../TME/src/TME_Module_v28.f90:752:</code> Add information about these variables to top</li>
+<li><code>../TME/src/TME_Module_v28.f90:820: Change</code>(system%posIon(j,ni) , j = 1,3)<code>to</code>system%posIon(1:<code>3,ni)</code> in <code>readQEExport()</code> for clarity</li>
+<li><code>../TME/src/TME_Module_v28.f90:894:</code> Look more into how AE and PS wavefunctions are combined to further understand this</li>
+<li><code>../TME/src/TME_Module_v28.f90:895:</code> Move this behavior to another subroutine for clarity</li>
+<li><code>../TME/src/TME_Module_v28.f90:904:</code> Figure out if differences in PC and SD <code>F1</code> calculations are intentional</li>
+<li><code>../TME/src/TME_Module_v28.f90:905:</code> Figure out if should be <code>(wps_i wae_j - wae_i wps_j)r_{ab}</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:944:</code> Figure out if intentional to only use <code>JMAX</code> from SD input</li>
 </ul>
     </div>
     

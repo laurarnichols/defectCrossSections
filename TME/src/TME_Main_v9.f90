@@ -27,7 +27,7 @@ program transitionMatrixElements
       !! Call [[TMEModule(module):initializeCalculation(subroutine)]]
     ! 
     ! Reading input, initializing and checking all variables of the calculation.
-    call readInput()
+    call readInput(perfectCrystal, solidDefect)
     !
     ! ????????????????????????????????
     call readPWsSet()

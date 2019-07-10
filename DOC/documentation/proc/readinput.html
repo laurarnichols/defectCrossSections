@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.2% of total for procedures.">11 statements</a>
+    title=" 0.3% of total for procedures.">16 statements</a>
      </li> 
      
      
@@ -172,6 +172,20 @@
 
 
 
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-0">Variables</a></h3></div>
+  <div id="vars-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../proc/readinput.html#variable-exportdirsd">exportDirSD</a>
+      
+      <a class="list-group-item" href="../proc/readinput.html#variable-exportdirpc">exportDirPC</a>
+      
+    </div>
+  </div>
+</div>
+
+
 
 
 
@@ -205,7 +219,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine readInput()
+public subroutine readInput(perfectCrystal, solidDefect)
     
     
    
@@ -219,22 +233,69 @@ public subroutine readInput()
  start a timer, and read in the input files</p>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>readInput()</code> to have arguments to make clear that these variables are getting changed </p></div>
 <p>
+<p>Used to group the variables read in from the .in file</p>
 <ul>
 <li>Read input from command line (or input file if use <code>&lt; TME_Input.md</code>)</li>
-<li>Check that all required variables were input and have values that make sense</li>
-</ul>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out what the difference in PC and SD is </p></div>
-<p>* Read perfect crystal inputs
- * Read solid defect inputs</p>
-<ul>
-<li>Calculate the number of plane waves as the maximum of the number of PC and SD plane waves</li>
+<li>
+<p>Check that all required variables were input and have values that make sense</p>
+</li>
+<li>
+<p>Read perfect crystal inputs</p>
+</li>
+<li>
+<p>Read solid defect inputs</p>
+</li>
+<li>
+<p>Calculate the number of plane waves as the maximum of the number of PC and SD plane waves</p>
+</li>
 </ul>
     
 
     <h3>Arguments</h3>
     
-    <em>None</em>
-    <br>
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-perfectcrystal"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>perfectCrystal</strong></td><td><p>Holds all of the information on the perfect crystal</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-soliddefect%7E2"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>solidDefect</strong></td><td><p>Holds all of the information on the defective crystal</p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
     
     
     
@@ -247,6 +308,20 @@ public subroutine readInput()
 <h3>Contents</h3>
  
 
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
+  <div id="vars-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../proc/readinput.html#variable-exportdirsd">exportDirSD</a>
+      
+      <a class="list-group-item" href="../proc/readinput.html#variable-exportdirpc">exportDirPC</a>
+      
+    </div>
+  </div>
+</div>
 
 
 
@@ -282,6 +357,52 @@ public subroutine readInput()
     
 
     
+    <section>    
+      <h2>Variables</h2>
+    
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Visibility</th>
+
+<th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-exportdirsd"></span>character(len=200),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>exportDirSD</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-exportdirpc"></span>character(len=200),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>exportDirPC</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+    </section>
+    <br>
+    
     
     
     
@@ -299,13 +420,26 @@ public subroutine readInput()
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readInput</span><span class="p">()</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readInput</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">)</span>
     <span class="c">!! Delete any previous output, initialize input variables,</span>
     <span class="c">!! start a timer, and read in the input files</span>
     <span class="c">!!</span>
     <span class="c">!! @todo Change `readInput()` to have arguments to make clear that these variables are getting changed @endtodo</span>
     <span class="c">!!</span>
     <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">)</span> <span class="kd">::</span> <span class="n">exportDirSD</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">)</span> <span class="kd">::</span> <span class="n">exportDirPC</span>
+    <span class="c">!</span>
+    <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">perfectCrystal</span>
+      <span class="c">!! Holds all of the information on the perfect crystal</span>
+    <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">solidDefect</span>
+      <span class="c">!! Holds all of the information on the defective crystal</span>
+    <span class="c">!</span>
+    <span class="k">NAMELIST</span> <span class="o">/</span><span class="n">TME_Input</span><span class="o">/</span> <span class="n">exportDirSD</span><span class="p">,</span> <span class="n">exportDirPC</span><span class="p">,</span> <span class="n">elementsPath</span><span class="p">,</span> <span class="p">&amp;</span>
+                       <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span><span class="p">,</span> <span class="p">&amp;</span>
+                       <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">calculateVfis</span><span class="p">,</span> <span class="n">VfisOutput</span><span class="p">,</span> <span class="n">eBin</span>
+                       <span class="c">!! Used to group the variables read in from the .in file</span>
     <span class="c">!</span>
     <span class="k">READ</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">TME_Input</span><span class="p">,</span> <span class="n">iostat</span> <span class="o">=</span> <span class="n">ios</span><span class="p">)</span>
         <span class="c">!! * Read input from command line (or input file if use `&lt; TME_Input.md`)</span>
@@ -315,7 +449,6 @@ public subroutine readInput()
     <span class="k">call </span><span class="n">checkInitialization</span><span class="p">()</span>
         <span class="c">!! * Check that all required variables were input and have values that make sense</span>
     <span class="c">!</span>
-    <span class="c">!&gt; @todo Figure out what the difference in PC and SD is @endtodo</span>
     <span class="k">call </span><span class="n">readQEExport</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">)</span>
         <span class="c">!! * Read perfect crystal inputs</span>
     <span class="k">call </span><span class="n">readQEExport</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">)</span>
