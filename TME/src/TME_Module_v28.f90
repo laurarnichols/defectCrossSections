@@ -283,8 +283,6 @@ module TMEModule
   TYPE(vec), allocatable :: newVecs(:)
   !
   !
-  !
-  !
 !=====================================================================================================
 contains
   !
@@ -357,8 +355,6 @@ contains
     !! Delete any previous output, initialize input variables,
     !! start a timer, and read in the input files
     !!
-    !! @todo Change `readInput()` to have arguments to make clear that these variables are getting changed @endtodo
-    !!
     implicit none
     !
     integer, intent(inout) :: ki, kf, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
@@ -414,11 +410,9 @@ contains
     !!
     implicit none
     !
-    logical :: file_exists
+    logical :: fileExists
       !! Whether or not the exported directory from [[pw_export_for_TME(program)]]
       !! exists
-    !>
-    !> @todo Change `file_exists` to `fileExists` in `checkInitialization()` @endtodo
     logical:: abortExecution
     !
     abortExecution = .false.
@@ -434,19 +428,10 @@ contains
     !>    * Check if the SD export directory exists
     !>    * If the SD export directory doesn't exist
     !>       * Output an error message and set `abortExecution` to true
-    if ( trim(solidDefect%exportDir) == '' ) then
+    if ( wasRead(LEN(trim(solidDefect%exportDir))-1, 'exportDirSD', 'exportDirSD = ''./Export/''', abortExecution) ) then
+      inquire(file= trim(solidDefect%exportDir), exist = fileExists)
       !
-      write(iostd, *)
-      write(iostd, '(" Variable: ""exportDirSD"" is not defined!")')
-      write(iostd, '(" usage : exportDirSD = ''./Export/''")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
-      !
-    else
-      !
-      inquire(file= trim(solidDefect%exportDir), exist = file_exists)
-      !
-      if ( file_exists .eqv. .false. ) then
+      if ( fileExists .eqv. .false. ) then
         !
         write(iostd, '(" exportDirSD :", a, " does not exist !")') trim(solidDefect%exportDir)
         write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
@@ -475,9 +460,9 @@ contains
       !
     else
       !
-      inquire(file= trim(perfectCrystal%exportDir), exist = file_exists)
+      inquire(file= trim(perfectCrystal%exportDir), exist = fileExists)
       !
-      if ( file_exists .eqv. .false. ) then
+      if ( fileExists .eqv. .false. ) then
         !
         write(iostd, '(" exportDirPC :", a, " does not exist !")') trim(perfectCrystal%exportDir)
         write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
@@ -502,13 +487,13 @@ contains
       !
     endif
     !
-    inquire(file= trim(elementsPath), exist = file_exists)
+    inquire(file= trim(elementsPath), exist = fileExists)
       !! * Check if the elements path folder exists already
     !
     !> * If the elements path folder doesn't already exist
     !>    * Create the directory by writing the `mkdir` command to a string
     !>    * Then execute the command
-    if ( .not.file_exists ) then
+    if ( .not. fileExists ) then
       !
       write(mkDir, '("mkdir -p ", a)') trim(elementsPath) 
       !
@@ -604,7 +589,7 @@ contains
     !
     write(iostd, '("VfisOutput = ''", a, "''")') trim(VfisOutput)
       !! * Output the value of `VfisOutput`
-    !> @todo Check if there is any kind of check on `ki` and `kf`. Why was this commented out? @endtodo
+    !> @todo Remove everything with `ki` and `kf` because never used @endtodo
     !
     !if ( ki < 0 ) then
     !  write(iostd, *)
@@ -666,6 +651,58 @@ contains
     !
   end subroutine checkInitialization
   !
+  !---------------------------------------------------------------------------------------------------------------------------------
+  function wasRead(inputVal, variableName, usage, abortExecution) 
+    !! Determine if an input variable still has the default value.
+    !! If it does, output an error message and possibly set the program
+    !! to abort. Not all variables would cause the program to abort,
+    !! so this program assumes that if you pass in the logical `abortExecution`
+    !! then the variable is required and causes the program to abort 
+    !! if missing.
+    !!
+    implicit none
+    !
+    integer, intent(in) :: inputVal
+      !! Variable that is being tested for having been read
+    !
+    character(len=*), intent(in) :: variableName
+      !! Name of the variable used in output message
+    character(len=*), intent(in) :: usage
+      !! Example of how the variable can be used
+    !
+    logical, optional, intent(inout) :: abortExecution
+      !! Optional logical for if the program should be aborted 
+    logical :: wasRead
+      !! Whether or not the input variable was read from the input file;
+      !! this is the return value
+    !
+    !! <h2>Walkthrough</h2>
+    !!
+    wasRead = .true.
+      !! * Default return value is true
+    !
+    if ( inputVal < 0) then
+      !! * If the input variable still has the default value
+      !!    * output an error message
+      !!    * set the program to abort if that variable was sent in
+      !!    * set the return value to false to indicate that the 
+      !!      variable wasn't read
+      !
+      write(iostd, *)
+      write(iostd, '(" Variable : """, a, """ is not defined!")') variableName
+      write(iostd, '(" usage : ", a)') usage
+      if(present(abortExecution)) then
+        !
+        write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+        abortExecution = .true.
+        !
+      endif 
+      !
+      wasRead = .false.
+      !
+    endif
+    !
+  end function wasRead
   !
   !---------------------------------------------------------------------------------------------------------------------------------
   subroutine readQEExport(system)

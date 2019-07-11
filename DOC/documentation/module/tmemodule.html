@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="27.7% of total for modules and submodules.">1260 statements</a>
+    title="27.9% of total for modules and submodules.">1273 statements</a>
      </li> 
      
      
@@ -428,6 +428,18 @@
   </div>
 </div>
 
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#funcs-0">Functions</a></h3></div>
+  <div id="funcs-0" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/tmemodule.html#proc-wasread">wasRead</a>
+      
+    </div>
+  </div>
+</div>
 
 
 
@@ -784,6 +796,18 @@
   </div>
 </div>
 
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#funcs-1">Functions</a></h3></div>
+  <div id="funcs-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../module/tmemodule.html#proc-wasread">wasRead</a>
+      
+    </div>
+  </div>
+</div>
 
 
 
@@ -3075,6 +3099,131 @@
   <br>
     
     
+     
+    <section>
+    <h2>Functions</h2>
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-wasread"></span><h3>
+public function <a href='../proc/wasread.html'>wasRead</a>(inputVal, variableName, usage, abortExecution)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>Determine if an input variable still has the default value.
+ If it does, output an error message and possibly set the program
+ to abort. Not all variables would cause the program to abort,
+ so this program assumes that if you pass in the logical <code>abortExecution</code>
+ then the variable is required and causes the program to abort 
+ if missing.</p><a href="../proc/wasread.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>inputVal</strong></td><td><p>Variable that is being tested for having been read</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>variableName</strong></td><td><p>Name of the variable used in output message</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>usage</strong></td><td><p>Example of how the variable can be used</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>logical,</td>
+  <td>intent(inout),</td>
+  <td>optional</td>
+  
+  <td></td><td>::</td>
+  <td><strong>abortExecution</strong></td><td><p>Optional logical for if the program should be aborted </p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  
+  
+  
+  
+     <h4>Return Value <small>logical
+  </small></h4>
+  <p>Whether or not the input variable was read from the input file;
+ this is the return value</p><a href="None" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+
+  </div>
+  </div>
+
+    
+    </section>
+    <br>
     
 
     

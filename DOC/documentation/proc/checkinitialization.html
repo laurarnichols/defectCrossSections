@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 2.5% of total for procedures.">113 statements</a>
+    title=" 2.3% of total for procedures.">107 statements</a>
      </li> 
      
      
@@ -177,9 +177,9 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/checkinitialization.html#variable-file_exists%7E2">file_exists</a>
+      <a class="list-group-item" href="../proc/checkinitialization.html#variable-fileexists%7E2">fileExists</a>
       
-      <a class="list-group-item" href="../proc/checkinitialization.html#variable-abortexecution">abortExecution</a>
+      <a class="list-group-item" href="../proc/checkinitialization.html#variable-abortexecution%7E2">abortExecution</a>
       
     </div>
   </div>
@@ -249,9 +249,7 @@ public subroutine checkInitialization()
 <li>Output an error message and set <code>abortExecution</code> to true</li>
 </ul>
 </li>
-<li>
-<p>Otherwise</p>
-<ul>
+<li>Otherwise<ul>
 <li>Check if the SD export directory exists</li>
 <li>If the SD export directory doesn't exist</li>
 <li>Output an error message and set <code>abortExecution</code> to true</li>
@@ -322,7 +320,7 @@ public subroutine checkInitialization()
 </li>
 <li>
 <p>Output the value of <code>VfisOutput</code>
- </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Check if there is any kind of check on <code>ki</code> and <code>kf</code>. Why was this commented out? </p></div>
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Remove everything with <code>ki</code> and <code>kf</code> because never used </p></div>
 <p>
 </li>
 <li>
@@ -370,9 +368,9 @@ public subroutine checkInitialization()
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/checkinitialization.html#variable-file_exists%7E2">file_exists</a>
+      <a class="list-group-item" href="../proc/checkinitialization.html#variable-fileexists%7E2">fileExists</a>
       
-      <a class="list-group-item" href="../proc/checkinitialization.html#variable-abortexecution">abortExecution</a>
+      <a class="list-group-item" href="../proc/checkinitialization.html#variable-abortexecution%7E2">abortExecution</a>
       
     </div>
   </div>
@@ -430,11 +428,11 @@ public subroutine checkInitialization()
   
 <tr>
   
-  <td><span class="anchor" id="variable-file_exists%7E2"></span>logical,</td>
+  <td><span class="anchor" id="variable-fileexists%7E2"></span>logical,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>file_exists</strong></td><td></td><td></td><td><p>Whether or not the exported directory from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a>
+  <td><strong>fileExists</strong></td><td></td><td></td><td><p>Whether or not the exported directory from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a>
  exists</p></td>
   
 </tr>
@@ -445,12 +443,11 @@ public subroutine checkInitialization()
   
 <tr>
   
-  <td><span class="anchor" id="variable-abortexecution"></span>logical,</td>
+  <td><span class="anchor" id="variable-abortexecution%7E2"></span>logical,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>abortExecution</strong></td><td></td><td></td><td><p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>file_exists</code> to <code>fileExists</code> in <code>checkInitialization()</code> </p></div>
-<p></td>
+  <td><strong>abortExecution</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -488,11 +485,9 @@ public subroutine checkInitialization()
     <span class="c">!!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
-    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">file_exists</span>
+    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">fileExists</span>
       <span class="c">!! Whether or not the exported directory from [[pw_export_for_TME(program)]]</span>
       <span class="c">!! exists</span>
-    <span class="c">!&gt;</span>
-    <span class="c">!&gt; @todo Change `file_exists` to `fileExists` in `checkInitialization()` @endtodo</span>
     <span class="kt">logical</span><span class="kd">::</span> <span class="n">abortExecution</span>
     <span class="c">!</span>
     <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
@@ -508,19 +503,10 @@ public subroutine checkInitialization()
     <span class="c">!&gt;    * Check if the SD export directory exists</span>
     <span class="c">!&gt;    * If the SD export directory doesn&#39;t exist</span>
     <span class="c">!&gt;       * Output an error message and set `abortExecution` to true</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">wasRead</span><span class="p">(</span><span class="nb">LEN</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;exportDirSD&#39;</span><span class="p">,</span> <span class="s1">&#39;exportDirSD = &#39;&#39;./Export/&#39;&#39;&#39;</span><span class="p">,</span> <span class="n">abortExecution</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">fileExists</span><span class="p">)</span>
       <span class="c">!</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Variable: &quot;&quot;exportDirSD&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; usage : exportDirSD = &#39;&#39;./Export/&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
-      <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
-      <span class="c">!</span>
-    <span class="k">else</span>
-      <span class="c">!</span>
-      <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
-      <span class="c">!</span>
-      <span class="k">if</span> <span class="p">(</span> <span class="n">file_exists</span> <span class="p">.</span><span class="n">eqv</span><span class="p">.</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">fileExists</span> <span class="p">.</span><span class="n">eqv</span><span class="p">.</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span> <span class="p">)</span> <span class="k">then</span>
         <span class="c">!</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; exportDirSD :&quot;, a, &quot; does not exist !&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
@@ -549,9 +535,9 @@ public subroutine checkInitialization()
       <span class="c">!</span>
     <span class="k">else</span>
       <span class="c">!</span>
-      <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
+      <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">fileExists</span><span class="p">)</span>
       <span class="c">!</span>
-      <span class="k">if</span> <span class="p">(</span> <span class="n">file_exists</span> <span class="p">.</span><span class="n">eqv</span><span class="p">.</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">fileExists</span> <span class="p">.</span><span class="n">eqv</span><span class="p">.</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span> <span class="p">)</span> <span class="k">then</span>
         <span class="c">!</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; exportDirPC :&quot;, a, &quot; does not exist !&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
@@ -576,13 +562,13 @@ public subroutine checkInitialization()
       <span class="c">!</span>
     <span class="n">endif</span>
     <span class="c">!</span>
-    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
+    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">fileExists</span><span class="p">)</span>
       <span class="c">!! * Check if the elements path folder exists already</span>
     <span class="c">!</span>
     <span class="c">!&gt; * If the elements path folder doesn&#39;t already exist</span>
     <span class="c">!&gt;    * Create the directory by writing the `mkdir` command to a string</span>
     <span class="c">!&gt;    * Then execute the command</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span><span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">fileExists</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">write</span><span class="p">(</span><span class="n">mkDir</span><span class="p">,</span> <span class="s1">&#39;(&quot;mkdir -p &quot;, a)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">)</span> 
       <span class="c">!</span>
@@ -678,7 +664,7 @@ public subroutine checkInitialization()
     <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;VfisOutput = &#39;&#39;&quot;, a, &quot;&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">VfisOutput</span><span class="p">)</span>
       <span class="c">!! * Output the value of `VfisOutput`</span>
-    <span class="c">!&gt; @todo Check if there is any kind of check on `ki` and `kf`. Why was this commented out? @endtodo</span>
+    <span class="c">!&gt; @todo Remove everything with `ki` and `kf` because never used @endtodo</span>
     <span class="c">!</span>
     <span class="c">!if ( ki &lt; 0 ) then</span>
     <span class="c">!  write(iostd, *)</span>
