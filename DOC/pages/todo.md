@@ -9,11 +9,11 @@ date: 07/11/2019
 * `../TME/src/TME_Module_v28.f90:170:` Consider changing `atom` type to `element` since it holds more than one atom
 * `../TME/src/TME_Module_v28.f90:409:` Change `checkInitialization()` to have arguments to make clear that these variables are getting changed
 * `../TME/src/TME_Module_v28.f90:551:` Remove everything with `ki` and `kf` because never used
-* `../TME/src/TME_Module_v28.f90:688:` Change `readInputPC()` to have arguments so that it is clear that these variables are getting changed
-* `../TME/src/TME_Module_v28.f90:771:` Add information about these variables to top
-* `../TME/src/TME_Module_v28.f90:839: Change `(system%posIon(j,ni) , j = 1,3)` to `system%posIon(1:`3,ni)` in `readQEExport()` for clarity
-* `../TME/src/TME_Module_v28.f90:913:` Look more into how AE and PS wavefunctions are combined to further understand this
-* `../TME/src/TME_Module_v28.f90:914:` Move this behavior to another subroutine for clarity
-* `../TME/src/TME_Module_v28.f90:923:` Figure out if differences in PC and SD `F1` calculations are intentional
-* `../TME/src/TME_Module_v28.f90:924:` Figure out if should be `(wps_i wae_j - wae_i wps_j)r_{ab}`
-* `../TME/src/TME_Module_v28.f90:963:` Figure out if intentional to only use `JMAX` from SD input
+* `../TME/src/TME_Module_v28.f90:682:` Change `readInputPC()` to have arguments so that it is clear that these variables are getting changed
+* `../TME/src/TME_Module_v28.f90:765:` Add information about these variables to top
+* `../TME/src/TME_Module_v28.f90:833: Change `(system%posIon(j,ni) , j = 1,3)` to `system%posIon(1:`3,ni)` in `readQEExport()` for clarity
+* `../TME/src/TME_Module_v28.f90:907:` Look more into how AE and PS wavefunctions are combined to further understand this
+* `../TME/src/TME_Module_v28.f90:908:` Move this behavior to another subroutine for clarity
+* `../TME/src/TME_Module_v28.f90:917:` Figure out if differences in PC and SD `F1` calculations are intentional
+* `../TME/src/TME_Module_v28.f90:918:` Figure out if should be `(wps_i wae_j - wae_i wps_j)r_{ab}`
+* `../TME/src/TME_Module_v28.f90:957:` Figure out if intentional to only use `JMAX` from SD input

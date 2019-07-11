@@ -550,25 +550,21 @@ contains
       !! * Output the value of `VfisOutput`
     !> @todo Remove everything with `ki` and `kf` because never used @endtodo
     !
-    !if ( ki < 0 ) then
-    !  write(iostd, *)
-    !  write(iostd, '(" Initial k-point index is not defined!")')
-    !  write(iostd, '(" Variable : ""ki"" is not defined!")')
-    !  write(iostd, '(" usage : ki = 1")')
-    !  !write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-    !  !abortExecution = .true.
+    !if( .not. wasRead(ki, 'ki', 'ki = 1') ) then
+    !  !! * If `ki` wasn't read, set the default value to 1
+    !  !
     !  write(iostd, '(" ki = 1 will be used.")')
     !  ki = 1
+    !  !
     !endif
     !
-    !if ( kf < 0 ) then
-    !  write(iostd, *)
-    !  write(iostd, '(" Final k-point index is not defined!")')
-    !  write(iostd, '(" Variable : ""kf"" is not defined!")')
-    !  write(iostd, '(" usage : kf = 1")')
-    !  !write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+    !if( .not. wasRead(kf, 'kf', 'kf = 1') ) then
+    !  !! * If `kf` wasn't read, set the default value to the total 
+    !  !!   number of k points (actually done in [[TMEModeul(module):readQEInput(subroutine)]]
+    !  !!   where the total number of k points is read
+    !  !
     !  write(iostd, '(" kf = total number of k-points will be used.")')
-    !  !abortExecution = .true.
+    !  !
     !endif
     !
     !if ( ki /= kf ) then
@@ -579,12 +575,10 @@ contains
     !  abortExecution = .true.
     !endif
     !
-    !> * If the value of `eBin` is still less than zero
-    !>    * Output a warning message and set the default value to 0.01 eV
-    if ( eBin < 0.0_dp ) then
+    if ( .not. wasRead(INT(eBin), 'eBin', 'eBin = 0.01') ) then
+      !! * If the value of `eBin` was not read
+      !!    * Output a warning message and set the default value to 0.01 eV
       !
-      write(iostd,'(" Variable : ""eBin"" is not defined!")')
-      write(iostd,'(" usage : eBin = 0.01")')
       write(iostd,'(" A default value of 0.01 eV will be used !")')
       eBin = 0.01_dp ! eV
       !
@@ -596,9 +590,9 @@ contains
     eBin = eBin*evToHartree
       !! * Convert `eBin` from eV to Hartree
     !
-    !> * If `abortExecution` was ever set to true
-    !>    * Output an error message and stop the program
     if ( abortExecution ) then
+      !! * If `abortExecution` was ever set to true
+      !!    * Output an error message and stop the program
       write(iostd, '(" Program stops!")')
       stop
     endif

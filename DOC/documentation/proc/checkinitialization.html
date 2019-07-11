@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.7% of total for procedures.">78 statements</a>
+    title=" 1.7% of total for procedures.">76 statements</a>
      </li> 
      
      
@@ -310,7 +310,7 @@ public subroutine checkInitialization()
 <p>
 </li>
 <li>
-<p>If the value of <code>eBin</code> is still less than zero</p>
+<p>If the value of <code>eBin</code> was not read</p>
 <ul>
 <li>Output a warning message and set the default value to 0.01 eV</li>
 </ul>
@@ -611,25 +611,21 @@ public subroutine checkInitialization()
       <span class="c">!! * Output the value of `VfisOutput`</span>
     <span class="c">!&gt; @todo Remove everything with `ki` and `kf` because never used @endtodo</span>
     <span class="c">!</span>
-    <span class="c">!if ( ki &lt; 0 ) then</span>
-    <span class="c">!  write(iostd, *)</span>
-    <span class="c">!  write(iostd, &#39;(&quot; Initial k-point index is not defined!&quot;)&#39;)</span>
-    <span class="c">!  write(iostd, &#39;(&quot; Variable : &quot;&quot;ki&quot;&quot; is not defined!&quot;)&#39;)</span>
-    <span class="c">!  write(iostd, &#39;(&quot; usage : ki = 1&quot;)&#39;)</span>
-    <span class="c">!  !write(iostd, &#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;)</span>
-    <span class="c">!  !abortExecution = .true.</span>
+    <span class="c">!if( .not. wasRead(ki, &#39;ki&#39;, &#39;ki = 1&#39;) ) then</span>
+    <span class="c">!  !! * If `ki` wasn&#39;t read, set the default value to 1</span>
+    <span class="c">!  !</span>
     <span class="c">!  write(iostd, &#39;(&quot; ki = 1 will be used.&quot;)&#39;)</span>
     <span class="c">!  ki = 1</span>
+    <span class="c">!  !</span>
     <span class="c">!endif</span>
     <span class="c">!</span>
-    <span class="c">!if ( kf &lt; 0 ) then</span>
-    <span class="c">!  write(iostd, *)</span>
-    <span class="c">!  write(iostd, &#39;(&quot; Final k-point index is not defined!&quot;)&#39;)</span>
-    <span class="c">!  write(iostd, &#39;(&quot; Variable : &quot;&quot;kf&quot;&quot; is not defined!&quot;)&#39;)</span>
-    <span class="c">!  write(iostd, &#39;(&quot; usage : kf = 1&quot;)&#39;)</span>
-    <span class="c">!  !write(iostd, &#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;)</span>
+    <span class="c">!if( .not. wasRead(kf, &#39;kf&#39;, &#39;kf = 1&#39;) ) then</span>
+    <span class="c">!  !! * If `kf` wasn&#39;t read, set the default value to the total </span>
+    <span class="c">!  !!   number of k points (actually done in [[TMEModeul(module):readQEInput(subroutine)]]</span>
+    <span class="c">!  !!   where the total number of k points is read</span>
+    <span class="c">!  !</span>
     <span class="c">!  write(iostd, &#39;(&quot; kf = total number of k-points will be used.&quot;)&#39;)</span>
-    <span class="c">!  !abortExecution = .true.</span>
+    <span class="c">!  !</span>
     <span class="c">!endif</span>
     <span class="c">!</span>
     <span class="c">!if ( ki /= kf ) then</span>
@@ -640,12 +636,10 @@ public subroutine checkInitialization()
     <span class="c">!  abortExecution = .true.</span>
     <span class="c">!endif</span>
     <span class="c">!</span>
-    <span class="c">!&gt; * If the value of `eBin` is still less than zero</span>
-    <span class="c">!&gt;    * Output a warning message and set the default value to 0.01 eV</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">eBin</span> <span class="o">&lt;</span> <span class="mf">0.0_dp</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">wasRead</span><span class="p">(</span><span class="nb">INT</span><span class="p">(</span><span class="n">eBin</span><span class="p">),</span> <span class="s1">&#39;eBin&#39;</span><span class="p">,</span> <span class="s1">&#39;eBin = 0.01&#39;</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!! * If the value of `eBin` was not read</span>
+      <span class="c">!!    * Output a warning message and set the default value to 0.01 eV</span>
       <span class="c">!</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="s1">&#39;(&quot; Variable : &quot;&quot;eBin&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="s1">&#39;(&quot; usage : eBin = 0.01&quot;)&#39;</span><span class="p">)</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="s1">&#39;(&quot; A default value of 0.01 eV will be used !&quot;)&#39;</span><span class="p">)</span>
       <span class="n">eBin</span> <span class="o">=</span> <span class="mf">0.01_dp</span> <span class="c">! eV</span>
       <span class="c">!</span>
@@ -657,10 +651,10 @@ public subroutine checkInitialization()
     <span class="n">eBin</span> <span class="o">=</span> <span class="n">eBin</span><span class="o">*</span><span class="n">evToHartree</span>
       <span class="c">!! * Convert `eBin` from eV to Hartree</span>
     <span class="c">!</span>
-    <span class="c">!&gt; * If `abortExecution` was ever set to true</span>
-    <span class="c">!&gt;    * Output an error message and stop the program</span>
     <span class="k">if</span> <span class="p">(</span> <span class="n">abortExecution</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">      write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Program stops!&quot;)&#39;</span><span class="p">)</span>
+      <span class="c">!! * If `abortExecution` was ever set to true</span>
+      <span class="c">!!    * Output an error message and stop the program</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Program stops!&quot;)&#39;</span><span class="p">)</span>
       <span class="k">stop</span>
 <span class="k">    </span><span class="n">endif</span>
     <span class="c">!</span>
