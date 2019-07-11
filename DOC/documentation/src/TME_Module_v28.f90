@@ -422,12 +422,13 @@ contains
     write(iostd, '(" Inputs : ")')
       !! * Write out a header to the output file
     !
-    !> * If the SD export directory variable was read
-    !>    * Check if the SD export directory exists
-    !>    * If the SD export directory doesn't exist
-    !>       * Output an error message and set `abortExecution` to true
-    !>    * Output the given SD export directory
     if ( wasRead(LEN(trim(solidDefect%exportDir))-1, 'exportDirSD', 'exportDirSD = ''./Export/''', abortExecution) ) then
+      !! * If the SD export directory variable was read
+      !!    * Check if the SD export directory exists
+      !!    * If the SD export directory doesn't exist
+      !!       * Output an error message and set `abortExecution` to true
+      !!    * Output the given SD export directory
+      !
       inquire(file= trim(solidDefect%exportDir), exist = fileExists)
       !
       if ( fileExists .eqv. .false. ) then
@@ -443,12 +444,13 @@ contains
     endif
     !
     !
-    !> * If the PC export directory variable was read
-    !>    * Check if the PC export directory exists
-    !>    * If the PC export directory doesn't exist
-    !>       * Output an error message and set `abortExecution` to true
-    !>    * Output the given PC export directory
     if ( wasRead(LEN(trim(perfectCrystal%exportDir))-1, 'exportDirPC', 'exportDirPC = ''./Export/''', abortExecution) ) then
+      !! * If the PC export directory variable was read
+      !!    * Check if the PC export directory exists
+      !!    * If the PC export directory doesn't exist
+      !!       * Output an error message and set `abortExecution` to true
+      !!    * Output the given PC export directory
+      !
       inquire(file= trim(perfectCrystal%exportDir), exist = fileExists)
       !
       if ( fileExists .eqv. .false. ) then
@@ -463,9 +465,8 @@ contains
       !
     endif
     !
-    !> * If the elements path is blank
-    !>    * Output a warning message and set the default value to `./`
     if( .not. wasRead(LEN(elementsPath)-1, 'elementsPath', 'elementsPath = ''./''') ) then
+      !! * If the elements path was not read, set the default value to `./`
       !
       write(iostd, '(" The current directory will be used as elementsPath.")')
       elementsPath = './'
@@ -475,10 +476,10 @@ contains
     inquire(file= trim(elementsPath), exist = fileExists)
       !! * Check if the elements path folder exists already
     !
-    !> * If the elements path folder doesn't already exist
-    !>    * Create the directory by writing the `mkdir` command to a string
-    !>    * Then execute the command
     if ( .not. fileExists ) then
+      !! * If the elements path folder doesn't already exist
+      !!    * Write the `mkdir` command to a string
+      !!    * Execute the command to create the directory
       !
       write(mkDir, '("mkdir -p ", a)') trim(elementsPath) 
       !
@@ -489,60 +490,33 @@ contains
     write(iostd, '("elementsPath = ''", a, "''")') trim(elementsPath)
       !! * Output the elements path
     !
-    !...............................................................................................
-      !! * If `iBandIinit`, `iBandIfinal`, `iBandFinit`, or `iBandFfinal` is still less than zero
-      !!    * Output an error message and set `abortExecution` to true
-      !! * Then output each of their values
-    !
-    if ( iBandIinit < 0 ) then
+    if( wasRead(iBandIinit, 'iBandIinit', 'iBandIinit = 10', abortExecution) ) then
+      !! * If `iBandIinit` was read, output its value
       !
-      write(iostd, *)
-      write(iostd, '(" Variable : ""iBandIinit"" is not defined!")')
-      write(iostd, '(" usage : iBandIinit = 10")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
+      write(iostd, '("iBandIinit = ", i4)') iBandIinit
       !
     endif
     !
-    write(iostd, '("iBandIinit = ", i4)') iBandIinit
-    !
-    if ( iBandIfinal < 0 ) then
+    if( wasRead(iBandIfinal, 'iBandIfinal', 'iBandIfinal = 20', abortExecution) ) then
+      !! * If `iBandIfinal` was read, output its value
       !
-      write(iostd, *)
-      write(iostd, '(" Variable : ""iBandIfinal"" is not defined!")')
-      write(iostd, '(" usage : iBandIfinal = 20")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
+      write(iostd, '("iBandIfinal = ", i4)') iBandIfinal
       !
     endif
     !
-    write(iostd, '("iBandIfinal = ", i4)') iBandIfinal
-    !
-    if ( iBandFinit < 0 ) then
+    if( wasRead(iBandFinit, 'iBandFinit', 'iBandFinit = 9', abortExecution) ) then
+      !! * If `iBandFinit` was read, output its value
       !
-      write(iostd, *)
-      write(iostd, '(" Variable : ""iBandFinit"" is not defined!")')
-      write(iostd, '(" usage : iBandFinit = 9")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
+      write(iostd, '("iBandFinit = ", i4)') iBandFinit
       !
     endif
     !
-    write(iostd, '("iBandFinit = ", i4)') iBandFinit
-    !
-    if ( iBandFfinal < 0 ) then
+    if( wasRead(iBandFfinal, 'iBandFfinal', 'iBandFfinal = 9', abortExecution) ) then
+      !! * If `iBandFfinal` was read, output its value
       !
-      write(iostd, *)
-      write(iostd, '(" Variable : ""iBandFfinal"" is not defined!")')
-      write(iostd, '(" usage : iBandFfinal = 9")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
+      write(iostd, '("iBandFfinal = ", i4)') iBandFfinal
       !
     endif
-    !
-    write(iostd, '("iBandFfinal = ", i4)') iBandFfinal
-    !
-    !...............................................................................................
     !
     !> * If `calculateVfis` is true and `iBandFinit` and `iBandFfinal` are not equal
     !>    * Output an error message and set `abortExecution` to true
