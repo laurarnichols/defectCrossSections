@@ -422,12 +422,11 @@ contains
     write(iostd, '(" Inputs : ")')
       !! * Write out a header to the output file
     !
-    !> * If the SD export directory variable is blank
-    !>    * Output an error message and set `abortExecution` to true
-    !> * Otherwise
+    !> * If the SD export directory variable was read
     !>    * Check if the SD export directory exists
     !>    * If the SD export directory doesn't exist
     !>       * Output an error message and set `abortExecution` to true
+    !>    * Output the given SD export directory
     if ( wasRead(LEN(trim(solidDefect%exportDir))-1, 'exportDirSD', 'exportDirSD = ''./Export/''', abortExecution) ) then
       inquire(file= trim(solidDefect%exportDir), exist = fileExists)
       !
@@ -439,27 +438,17 @@ contains
         !
       endif
       !
+      write(iostd, '("exportDirSD = ''", a, "''")') trim(solidDefect%exportDir)
+      !
     endif
     !
-    write(iostd, '("exportDirSD = ''", a, "''")') trim(solidDefect%exportDir)
-      !! * Output the given SD export directory
     !
-    !> * If the PC export directory variable is blank
-    !>    * Output an error message and set `abortExecution` to true
-    !> * Otherwise
+    !> * If the PC export directory variable was read
     !>    * Check if the PC export directory exists
     !>    * If the PC export directory doesn't exist
     !>       * Output an error message and set `abortExecution` to true
-    if ( trim(perfectCrystal%exportDir) == '' ) then
-      !
-      write(iostd, *)
-      write(iostd, '(" Variable : ""exportDirPC"" is not defined!")')
-      write(iostd, '(" usage : exportDirPC = ''./Export/''")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
-      !
-    else
-      !
+    !>    * Output the given PC export directory
+    if ( wasRead(LEN(trim(perfectCrystal%exportDir))-1, 'exportDirPC', 'exportDirPC = ''./Export/''', abortExecution) ) then
       inquire(file= trim(perfectCrystal%exportDir), exist = fileExists)
       !
       if ( fileExists .eqv. .false. ) then
@@ -470,18 +459,14 @@ contains
         !
       endif
       !
+      write(iostd, '("exportDirPC = ''", a, "''")') trim(perfectCrystal%exportDir)
+      !
     endif
-    !
-    write(iostd, '("exportDirPC = ''", a, "''")') trim(perfectCrystal%exportDir)
-      !! * Output the given PC export directory
     !
     !> * If the elements path is blank
     !>    * Output a warning message and set the default value to `./`
-    if ( trim(elementsPath) == '' ) then
+    if( .not. wasRead(LEN(elementsPath)-1, 'elementsPath', 'elementsPath = ''./''') ) then
       !
-      write(iostd, *)
-      write(iostd, '(" Variable : ""elementsPath"" is not defined!")')
-      write(iostd, '(" usage : elementsPath = ''./''")')
       write(iostd, '(" The current directory will be used as elementsPath.")')
       elementsPath = './'
       !
@@ -660,10 +645,25 @@ contains
     !! then the variable is required and causes the program to abort 
     !! if missing.
     !!
+    !! I could not find a clean way to allow this function to receive
+    !! different types of variables (integer, real, character, etc.), so
+    !! I made the argument be an integer so that each type could be sent
+    !! in a different way. Each case is set up so that the value is tested to
+    !! see if it is less than zero to determine if the variable still has
+    !! its default value
+    !!
+    !! * For strings, the default value is `''`, so pass in 
+    !! `LEN(trim(variable))-1` as this should be less than zero if
+    !! the string still has the default value and greater than or equal 
+    !! to zero otherwise
+    !! * For integers the default values are less than zero, so just pass as is 
+    !! * Real variables also have a negative default value, so just pass the
+    !! value cast from real to integer
+    !!
     implicit none
     !
     integer, intent(in) :: inputVal
-      !! Variable that is being tested for having been read
+      !! Value to compare with 0 to see if a variable has been read;
     !
     character(len=*), intent(in) :: variableName
       !! Name of the variable used in output message

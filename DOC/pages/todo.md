@@ -2,13 +2,12 @@ title: Todo
 author: Laura Nichols
 date: 07/11/2019
 
-* Binary file ../TME/src/.TME_Module_v28.f90.swp matches
 * `../TME/src/TME_Main_v9.f90:318:` Figure out if should be solid defect volume or pristine
 * `../TME/src/TME_Main_v9.f90:319:` Are pristine and solid defect volume the same?
 * `../TME/src/TME_Module_v28.f90:34:` Change I/O from file to console so that usage matches that of QE
 * `../TME/src/TME_Module_v28.f90:170:` Consider changing `atom` type to `element` since it holds more than one atom
 * `../TME/src/TME_Module_v28.f90:409:` Change `checkInitialization()` to have arguments to make clear that these variables are getting changed
-* `../TME/src/TME_Module_v28.f90:592:` Remove everything with `ki` and `kf` because never used
+* `../TME/src/TME_Module_v28.f90:577:` Remove everything with `ki` and `kf` because never used
 * `../TME/src/TME_Module_v28.f90:714:` Change `readInputPC()` to have arguments so that it is clear that these variables are getting changed
 * `../TME/src/TME_Module_v28.f90:797:` Add information about these variables to top
 * `../TME/src/TME_Module_v28.f90:865: Change `(system%posIon(j,ni) , j = 1,3)` to `system%posIon(1:`3,ni)` in `readQEExport()` for clarity

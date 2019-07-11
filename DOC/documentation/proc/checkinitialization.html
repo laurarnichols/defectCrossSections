@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 2.3% of total for procedures.">107 statements</a>
+    title=" 2.1% of total for procedures.">98 statements</a>
      </li> 
      
      
@@ -244,36 +244,20 @@ public subroutine checkInitialization()
 <p>Write out a header to the output file</p>
 </li>
 <li>
-<p>If the SD export directory variable is blank</p>
+<p>If the SD export directory variable was read</p>
 <ul>
-<li>Output an error message and set <code>abortExecution</code> to true</li>
-</ul>
-</li>
-<li>Otherwise<ul>
 <li>Check if the SD export directory exists</li>
 <li>If the SD export directory doesn't exist</li>
 <li>Output an error message and set <code>abortExecution</code> to true</li>
+<li>Output the given SD export directory</li>
 </ul>
 </li>
-<li>
-<p>Output the given SD export directory</p>
-</li>
-<li>
-<p>If the PC export directory variable is blank</p>
-<ul>
-<li>Output an error message and set <code>abortExecution</code> to true</li>
-</ul>
-</li>
-<li>
-<p>Otherwise</p>
-<ul>
+<li>If the PC export directory variable was read<ul>
 <li>Check if the PC export directory exists</li>
 <li>If the PC export directory doesn't exist</li>
 <li>Output an error message and set <code>abortExecution</code> to true</li>
+<li>Output the given PC export directory</li>
 </ul>
-</li>
-<li>
-<p>Output the given PC export directory</p>
 </li>
 <li>
 <p>If the elements path is blank</p>
@@ -497,12 +481,11 @@ public subroutine checkInitialization()
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Inputs : &quot;)&#39;</span><span class="p">)</span>
       <span class="c">!! * Write out a header to the output file</span>
     <span class="c">!</span>
-    <span class="c">!&gt; * If the SD export directory variable is blank</span>
-    <span class="c">!&gt;    * Output an error message and set `abortExecution` to true</span>
-    <span class="c">!&gt; * Otherwise</span>
+    <span class="c">!&gt; * If the SD export directory variable was read</span>
     <span class="c">!&gt;    * Check if the SD export directory exists</span>
     <span class="c">!&gt;    * If the SD export directory doesn&#39;t exist</span>
     <span class="c">!&gt;       * Output an error message and set `abortExecution` to true</span>
+    <span class="c">!&gt;    * Output the given SD export directory</span>
     <span class="k">if</span> <span class="p">(</span> <span class="n">wasRead</span><span class="p">(</span><span class="nb">LEN</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;exportDirSD&#39;</span><span class="p">,</span> <span class="s1">&#39;exportDirSD = &#39;&#39;./Export/&#39;&#39;&#39;</span><span class="p">,</span> <span class="n">abortExecution</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
 <span class="k">      inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">fileExists</span><span class="p">)</span>
       <span class="c">!</span>
@@ -514,28 +497,18 @@ public subroutine checkInitialization()
         <span class="c">!</span>
       <span class="n">endif</span>
       <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;exportDirSD = &#39;&#39;&quot;, a, &quot;&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span>
+      <span class="c">!</span>
     <span class="n">endif</span>
     <span class="c">!</span>
-    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;exportDirSD = &#39;&#39;&quot;, a, &quot;&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span>
-      <span class="c">!! * Output the given SD export directory</span>
     <span class="c">!</span>
-    <span class="c">!&gt; * If the PC export directory variable is blank</span>
-    <span class="c">!&gt;    * Output an error message and set `abortExecution` to true</span>
-    <span class="c">!&gt; * Otherwise</span>
+    <span class="c">!&gt; * If the PC export directory variable was read</span>
     <span class="c">!&gt;    * Check if the PC export directory exists</span>
     <span class="c">!&gt;    * If the PC export directory doesn&#39;t exist</span>
     <span class="c">!&gt;       * Output an error message and set `abortExecution` to true</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="p">)</span> <span class="k">then</span>
-      <span class="c">!</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Variable : &quot;&quot;exportDirPC&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; usage : exportDirPC = &#39;&#39;./Export/&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
-      <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
-      <span class="c">!</span>
-    <span class="k">else</span>
-      <span class="c">!</span>
-      <span class="k">inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">fileExists</span><span class="p">)</span>
+    <span class="c">!&gt;    * Output the given PC export directory</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">wasRead</span><span class="p">(</span><span class="nb">LEN</span><span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">))</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;exportDirPC&#39;</span><span class="p">,</span> <span class="s1">&#39;exportDirPC = &#39;&#39;./Export/&#39;&#39;&#39;</span><span class="p">,</span> <span class="n">abortExecution</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      inquire</span><span class="p">(</span><span class="k">file</span><span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">fileExists</span><span class="p">)</span>
       <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span> <span class="n">fileExists</span> <span class="p">.</span><span class="n">eqv</span><span class="p">.</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span> <span class="p">)</span> <span class="k">then</span>
         <span class="c">!</span>
@@ -545,18 +518,14 @@ public subroutine checkInitialization()
         <span class="c">!</span>
       <span class="n">endif</span>
       <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;exportDirPC = &#39;&#39;&quot;, a, &quot;&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span>
+      <span class="c">!</span>
     <span class="n">endif</span>
-    <span class="c">!</span>
-    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;exportDirPC = &#39;&#39;&quot;, a, &quot;&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span>
-      <span class="c">!! * Output the given PC export directory</span>
     <span class="c">!</span>
     <span class="c">!&gt; * If the elements path is blank</span>
     <span class="c">!&gt;    * Output a warning message and set the default value to `./`</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span><span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">wasRead</span><span class="p">(</span><span class="nb">LEN</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;elementsPath&#39;</span><span class="p">,</span> <span class="s1">&#39;elementsPath = &#39;&#39;./&#39;&#39;&#39;</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Variable : &quot;&quot;elementsPath&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; usage : elementsPath = &#39;&#39;./&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; The current directory will be used as elementsPath.&quot;)&#39;</span><span class="p">)</span>
       <span class="n">elementsPath</span> <span class="o">=</span> <span class="s1">&#39;./&#39;</span>
       <span class="c">!</span>

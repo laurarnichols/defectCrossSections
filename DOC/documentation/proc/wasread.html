@@ -221,7 +221,22 @@ public function wasRead(inputVal, variableName, usage, abortExecution)
  so this program assumes that if you pass in the logical <code>abortExecution</code>
  then the variable is required and causes the program to abort 
  if missing.</p>
+<p>I could not find a clean way to allow this function to receive
+ different types of variables (integer, real, character, etc.), so
+ I made the argument be an integer so that each type could be sent
+ in a different way. Each case is set up so that the value is tested to
+ see if it is less than zero to determine if the variable still has
+ its default value</p>
 <ul>
+<li>For strings, the default value is <code>''</code>, so pass in 
+ <code>LEN(trim(variable))-1</code> as this should be less than zero if
+ the string still has the default value and greater than or equal 
+ to zero otherwise</li>
+<li>For integers the default values are less than zero, so just pass as is </li>
+<li>
+<p>Real variables also have a negative default value, so just pass the
+ value cast from real to integer</p>
+</li>
 <li>
 <p>Default return value is true</p>
 </li>
@@ -260,7 +275,7 @@ public function wasRead(inputVal, variableName, usage, abortExecution)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>inputVal</strong></td><td><p>Variable that is being tested for having been read</p></td>
+  <td><strong>inputVal</strong></td><td><p>Value to compare with 0 to see if a variable has been read;</p></td>
   
 </tr>
 
@@ -395,10 +410,25 @@ public function wasRead(inputVal, variableName, usage, abortExecution)
     <span class="c">!! then the variable is required and causes the program to abort </span>
     <span class="c">!! if missing.</span>
     <span class="c">!!</span>
+    <span class="c">!! I could not find a clean way to allow this function to receive</span>
+    <span class="c">!! different types of variables (integer, real, character, etc.), so</span>
+    <span class="c">!! I made the argument be an integer so that each type could be sent</span>
+    <span class="c">!! in a different way. Each case is set up so that the value is tested to</span>
+    <span class="c">!! see if it is less than zero to determine if the variable still has</span>
+    <span class="c">!! its default value</span>
+    <span class="c">!!</span>
+    <span class="c">!! * For strings, the default value is `&#39;&#39;`, so pass in </span>
+    <span class="c">!! `LEN(trim(variable))-1` as this should be less than zero if</span>
+    <span class="c">!! the string still has the default value and greater than or equal </span>
+    <span class="c">!! to zero otherwise</span>
+    <span class="c">!! * For integers the default values are less than zero, so just pass as is </span>
+    <span class="c">!! * Real variables also have a negative default value, so just pass the</span>
+    <span class="c">!! value cast from real to integer</span>
+    <span class="c">!!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">inputVal</span>
-      <span class="c">!! Variable that is being tested for having been read</span>
+      <span class="c">!! Value to compare with 0 to see if a variable has been read;</span>
     <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=*</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">variableName</span>
       <span class="c">!! Name of the variable used in output message</span>
