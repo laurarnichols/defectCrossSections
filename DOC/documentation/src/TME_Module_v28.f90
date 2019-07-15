@@ -1424,7 +1424,7 @@ contains
   !
   !
   subroutine pawCorrectionKPC()
-    !! @todo Document `pawCorrection()` @endtodo
+    !! @todo Document `pawCorrectionKPC()` @endtodo
     !
     implicit none
     !

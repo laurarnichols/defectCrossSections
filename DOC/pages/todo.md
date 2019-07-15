@@ -28,7 +28,7 @@ date: 07/15/2019
 * `../TME/src/TME_Module_v28.f90:1331:` Figure out the difference between PC and SD `readProjections` and possibly merge
 * `../TME/src/TME_Module_v28.f90:1364:` Document `projectBetaSDwfcPC()`
 * `../TME/src/TME_Module_v28.f90:1365:` Figure out the difference between PC and SD `projectBeta_wfc_` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1427:` Document `pawCorrection()`
+* `../TME/src/TME_Module_v28.f90:1427:` Document `pawCorrectionKPC()`
 * `../TME/src/TME_Module_v28.f90:1526:` Document `pawCorrectionSDK()`
 * `../TME/src/TME_Module_v28.f90:1527:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
 * `../TME/src/TME_Module_v28.f90:1624:` Document `pawCorrectionPsiPC()`
