@@ -258,8 +258,6 @@ public subroutine readQEExport(system)
     <p>Read input files in the Export directory created by
  <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
 <p><h2>Walkthrough</h2></p>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>readInputPC()</code> to have arguments so that it is clear that these variables are getting changed </p></div>
-<p>
 <ul>
 <li>
 <p>Start a local timer</p>
@@ -283,9 +281,7 @@ public subroutine readQEExport(system)
 </ul>
 </li>
 <li>
-<p>Open and read the <a href="../page/inputOutput/exportedInput.html">input</a> file
- </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Add information about these variables to top </p></div>
-<p>
+<p>Open and read the <a href="../page/inputOutput/exportedInput.html">input</a> file</p>
 </li>
 </ul>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change <code>(system%posIon(j,ni) , j = 1,3)</code> to <code>system%posIon(1:3,ni)</code> in <code>readQEExport()</code> for clarity </p></div>
@@ -453,7 +449,7 @@ public subroutine readQEExport(system)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>i</strong></td><td></td><td></td><td><p>Loop indices</p></td>
+  <td><strong>i</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -467,7 +463,7 @@ public subroutine readQEExport(system)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>j</strong></td><td></td><td></td><td><p>Loop indices</p></td>
+  <td><strong>j</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -481,7 +477,7 @@ public subroutine readQEExport(system)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ik</strong></td><td></td><td></td><td><p>Loop indices</p></td>
+  <td><strong>ik</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -495,7 +491,7 @@ public subroutine readQEExport(system)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iType</strong></td><td></td><td></td><td><p>Loop indices</p></td>
+  <td><strong>iType</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -509,7 +505,7 @@ public subroutine readQEExport(system)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ni</strong></td><td></td><td></td><td><p>Loop indices</p></td>
+  <td><strong>ni</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -683,8 +679,6 @@ public subroutine readQEExport(system)
     <span class="c">!!</span>
     <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
     <span class="c">!!</span>
-    <span class="c">!! @todo Change `readInputPC()` to have arguments so that it is clear that these variables are getting changed @endtodo</span>
-    <span class="c">!!</span>
     <span class="c">!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
@@ -693,7 +687,7 @@ public subroutine readQEExport(system)
     <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="nb">system</span>
     <span class="c">!</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">iType</span><span class="p">,</span> <span class="n">ni</span>
-      <span class="c">!! Loop indices</span>
+      <span class="c">!! Loop index</span>
     <span class="kt">integer</span><span class="kd">::</span> <span class="n">irc</span>
       <span class="c">!! Local value of iRc for each atom so don&#39;t have to keep accessing in loop</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">l</span>
@@ -766,7 +760,7 @@ public subroutine readQEExport(system)
     <span class="c">!</span>
     <span class="c">!...............................................................................................</span>
     <span class="c">!&gt; * Open and read the [input](../page/inputOutput/exportedInput.html) file</span>
-    <span class="c">!&gt; @todo Add information about these variables to top @endtodo</span>
+    <span class="c">!</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">input</span><span class="p">),</span> <span class="n">status</span> <span class="o">=</span> <span class="s1">&#39;old&#39;</span><span class="p">)</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>

@@ -670,6 +670,8 @@ contains
       !
     endif
     !
+    return
+    !
   end function wasRead
   !
   !---------------------------------------------------------------------------------------------------------------------------------
@@ -679,8 +681,6 @@ contains
     !!
     !! <h2>Walkthrough</h2>
     !!
-    !! @todo Change `readInputPC()` to have arguments so that it is clear that these variables are getting changed @endtodo
-    !!
     !
     implicit none
     !
@@ -689,7 +689,7 @@ contains
     TYPE(crystal), intent(inout) :: system
     !
     integer :: i, j, ik, iType, ni
-      !! Loop indices
+      !! Loop index
     integer:: irc
       !! Local value of iRc for each atom so don't have to keep accessing in loop
     integer :: l
@@ -762,7 +762,7 @@ contains
     !
     !...............................................................................................
     !> * Open and read the [input](../page/inputOutput/exportedInput.html) file
-    !> @todo Add information about these variables to top @endtodo
+    !
     open(50, file=trim(input), status = 'old')
     !
     read(50, '(a)') textDum
@@ -989,6 +989,7 @@ contains
   !
   !
   subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
+    !! @todo Document `distributePWstoProcs()` @endtodo
     !
     implicit none
     !
@@ -1018,6 +1019,7 @@ contains
   !
   !
   subroutine int2str(integ, string)
+    !! @todo Document `int2str()` @endtodo
     !
     implicit none
     integer :: integ
@@ -1041,6 +1043,7 @@ contains
   !
   !
   subroutine finalizeCalculation()
+    !! Stop timer, write out total time taken, and close the output file
     !
     implicit none
     !
@@ -1057,6 +1060,7 @@ contains
   !
   !
   subroutine readPWsSet()
+    !! @todo Document `readPWsSet()` @endtodo
     !
     implicit none
     !
@@ -1086,6 +1090,7 @@ contains
   !
   !
   subroutine readWfcPC(ik)
+    !! @todo Document `readWfcPC()` @endtodo
     !
     implicit none
     !
@@ -1141,6 +1146,7 @@ contains
   !
   !
   subroutine projectBetaPCwfcSD(ik)
+    !! @todo Document `projectBetaPCwfcSD()` @endtodo
     !
     implicit none
     !
@@ -1202,6 +1208,8 @@ contains
   !
   !
   subroutine readWfcSD(ik)
+    !! @todo Document `readWfcSD()` @endtodo
+    !! @todo Figure out difference between PC and SD `readWfc` and possibly merge @endtodo
     !
     implicit none
     !
@@ -1257,6 +1265,7 @@ contains
   !
   !
   subroutine calculatePWsOverlap(ik)
+    !! @todo Document `calculatePWsOverlap()` @endtodo
     !
     implicit none
     !
@@ -1285,6 +1294,7 @@ contains
   !
   !
   subroutine readProjectionsPC(ik)
+    !! @todo Document `readProjectionsPC()` @endtodo
     !
     implicit none
     !
@@ -1317,6 +1327,8 @@ contains
   !
   !
   subroutine readProjectionsSD(ik)
+    !! @todo Document `readProjectionsSD()` @endtodo
+    !! @todo Figure out the difference between PC and SD `readProjections` and possibly merge @endtodo
     !
     implicit none
     !
@@ -1349,6 +1361,8 @@ contains
   !
   !
   subroutine projectBetaSDwfcPC(ik)
+    !! @todo Document `projectBetaSDwfcPC()` @endtodo
+    !! @todo Figure out the difference between PC and SD `projectBeta_wfc_` and possibly merge @endtodo
     !
     implicit none
     !
@@ -1410,6 +1424,7 @@ contains
   !
   !
   subroutine pawCorrectionKPC()
+    !! @todo Document `pawCorrection()` @endtodo
     !
     implicit none
     !
@@ -1508,6 +1523,8 @@ contains
   !
   !
   subroutine pawCorrectionSDK()
+    !! @todo Document `pawCorrectionSDK()` @endtodo
+    !! @todo Figure out the difference between PC and SD `pawCorrection_K` and possibly merge @endtodo
     !
     implicit none
     !
@@ -1604,6 +1621,7 @@ contains
   !
   !
   subroutine pawCorrectionPsiPC()
+    !! @todo Document `pawCorrectionPsiPC()` @endtodo
     !
     ! calculates the augmentation part of the transition matrix element
     !
@@ -1669,6 +1687,8 @@ contains
   !
   !
   subroutine pawCorrectionSDPhi()
+    !! @todo Document `pawCorrectionSDPhi()` @endtodo
+    !! @todo Figure out the difference between PC and SD `pawCorrectionPsi` and possibly merge @endtodo
     !
     ! calculates the augmentation part of the transition matrix element
     !
@@ -1732,6 +1752,8 @@ contains
   !
   !
   subroutine pawCorrection()
+    !! @todo Document `pawCorrection()` @endtodo
+    !! @todo Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions @endtodo
     !
     ! calculates the augmentation part of the transition matrix element
     !
@@ -1804,6 +1826,7 @@ contains
   !
   !
   subroutine readEigenvalues(ik)
+    !! @todo Document `readEigenvalues()` @endtodo
     !
     implicit none
     !
@@ -1850,6 +1873,7 @@ contains
   !
   !
   subroutine calculateVfiElements()
+    !! @todo Document `calculateVFiElements()` @endtodo
     !
     implicit none
     !
@@ -1971,6 +1995,7 @@ contains
   !
   !
   subroutine checkIfCalculated(ik, tmes_file_exists)
+    !! @todo Document `checkIfCalculated()` @endtodo
     !
     implicit none
     !
@@ -1979,6 +2004,7 @@ contains
     !
     character(len = 300) :: Uelements
     !
+    !> @todo Change if statement to use `int2str` subroutine @endtodo
     if ( ik < 10 ) then
       write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
     else if ( ik < 100 ) then
@@ -1999,6 +2025,7 @@ contains
   !
   !
   subroutine readUfis(ik)
+    !! @todo Document `readUfis()` @endtodo
     !
     implicit none
     !
@@ -2052,6 +2079,7 @@ contains
   !
   !
   subroutine writeResults(ik)
+    !! @todo Document `writeResults()` @endto
     !
     implicit none
     !
@@ -2113,6 +2141,7 @@ contains
    !
    !
   subroutine bessel_j (x, lmax, jl)
+    !! @todo Document `bessel_j()` @endtodo
     !
     ! x is the argument of j, jl(0:lmax) is the output values.
     implicit none
