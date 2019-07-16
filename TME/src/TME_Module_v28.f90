@@ -618,7 +618,7 @@ contains
     !
     TYPE(crystal), intent(inout) :: system
     !
-    integer :: i, j, ik, iType, ni
+    integer :: i, ik, iType, ni
       !! Loop index
     integer:: irc
       !! Local value of iRc for each atom so don't have to keep accessing in loop
@@ -759,8 +759,7 @@ contains
     !
     do ni = 1, system%nIons
       !
-      read(50,'(i10, 3ES24.15E3)') system%atomTypeIndex(ni), (system%posIon(j,ni) , j = 1,3)
-        !! @todo Change `(system%posIon(j,ni) , j = 1,3)` to `system%posIon(1:3,ni)` in `readQEExport()` for clarity @endtodo
+      read(50,'(i10, 3ES24.15E3)') system%atomTypeIndex(ni), system%posIon(1:3,ni)
       !
     enddo
     !
