@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.4% of total for procedures.">19 statements</a>
+    title=" 0.2% of total for procedures.">11 statements</a>
      </li> 
      
      
@@ -178,6 +178,8 @@
     <div class="list-group">
       
       <a class="list-group-item" href="../proc/checkifcalculated.html#variable-uelements">Uelements</a>
+      
+      <a class="list-group-item" href="../proc/checkifcalculated.html#variable-intstring">intString</a>
       
     </div>
   </div>
@@ -229,9 +231,14 @@ public subroutine checkIfCalculated(ik, tmes_file_exists)
     
     <p>Determine if the output file for a given k point already exists</p>
 <p><h2>Walkthrough</h2></p>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change if statement to use <code>int2str</code> subroutine </p></div>
-<p>* Determine what the file name should be based on the k point index
- * Check if that file already exists</p>
+<ul>
+<li>
+<p>Determine what the file name should be based on the k point index</p>
+</li>
+<li>
+<p>Check if that file already exists</p>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -300,6 +307,8 @@ public subroutine checkIfCalculated(ik, tmes_file_exists)
       
       <a class="list-group-item" href="../proc/checkifcalculated.html#variable-uelements">Uelements</a>
       
+      <a class="list-group-item" href="../proc/checkifcalculated.html#variable-intstring">intString</a>
+      
     </div>
   </div>
 </div>
@@ -364,6 +373,20 @@ public subroutine checkIfCalculated(ik, tmes_file_exists)
   
 </tr>
 
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-intstring"></span>character(len=300),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>intString</strong></td><td></td><td></td><td><p>String version of integer input <code>ik</code></p></td>
+  
+</tr>
+
 </tbody>
 </table>
 
@@ -402,20 +425,12 @@ public subroutine checkIfCalculated(ik, tmes_file_exists)
     <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">Uelements</span>
       <span class="c">!! Output file name</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">intString</span>
+      <span class="c">!! String version of integer input `ik`</span>
     <span class="c">!</span>
-    <span class="c">!&gt; @todo Change if statement to use `int2str` subroutine @endtodo</span>
-    <span class="c">!&gt; * Determine what the file name should be based on the k point index</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i1,&quot;_kptF_&quot;,i1)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">100</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i2,&quot;_kptF_&quot;,i2)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">1000</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i3,&quot;_kptF_&quot;,i3)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">10000</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i4,&quot;_kptF_&quot;,i4)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">10000</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i5,&quot;_kptF_&quot;,i5)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
-    <span class="n">endif</span>
+    <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">intString</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,a,&quot;_kptF_&quot;,a)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">intString</span><span class="p">),</span> <span class="nb">trim</span><span class="p">(</span><span class="n">intString</span><span class="p">)</span>
+      <span class="c">!! * Determine what the file name should be based on the k point index</span>
     <span class="c">!</span>
     <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">)</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">Uelements</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">tmes_file_exists</span><span class="p">)</span>
       <span class="c">!! * Check if that file already exists</span>

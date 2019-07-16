@@ -1023,20 +1023,12 @@ contains
     !
     character(len = 300) :: Uelements
       !! Output file name
+    character(len = 300) :: intString
+      !! String version of integer input `ik`
     !
-    !> @todo Change if statement to use `int2str` subroutine @endtodo
-    !> * Determine what the file name should be based on the k point index
-    if ( ik < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
-    else if ( ik < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
-    else if ( ik < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
-    endif
+    call int2str(ik, intString)
+    write(Uelements, '("/TMEs_kptI_",a,"_kptF_",a)') trim(intString), trim(intString)
+      !! * Determine what the file name should be based on the k point index
     !
     inquire(file = trim(elementsPath)//trim(Uelements), exist = tmes_file_exists)
       !! * Check if that file already exists
