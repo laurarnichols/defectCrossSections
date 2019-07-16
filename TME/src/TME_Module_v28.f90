@@ -961,7 +961,6 @@ contains
   !
   !
   subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
-    !! @todo Document `distributePWstoProcs()` @endtodo
     !! Determine how many g vectors each process should get
     !!
     !! <h2>Walkthrough</h2>
