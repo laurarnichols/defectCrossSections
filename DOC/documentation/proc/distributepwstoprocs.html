@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.4% of total for procedures.">20 statements</a>
+    title=" 0.4% of total for procedures.">17 statements</a>
      </li> 
      
      
@@ -230,7 +230,19 @@ public subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
 
     
     <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>distributePWstoProcs()</code> </p></div>
-<p>
+<p>Determine how many g vectors each process should get</p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>Determine the base number of g vectors to give 
+   to each process</li>
+<li>
+<p>Determine the number of g vectors left over after that</p>
+</li>
+<li>
+<p>For each process, give the base amount and an extra
+   if there were any still left over</p>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -256,7 +268,7 @@ public subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>nOfPWs</strong></td><td></td>
+  <td><strong>nOfPWs</strong></td><td><p>Number of g vectors</p></td>
   
 </tr>
 
@@ -271,7 +283,7 @@ public subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>nOfBlocks</strong></td><td></td>
+  <td><strong>nOfBlocks</strong></td><td><p>Number of processes</p></td>
   
 </tr>
 
@@ -361,7 +373,7 @@ public subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iStep</strong></td><td></td><td></td><td></td>
+  <td><strong>iStep</strong></td><td></td><td></td><td><p>Number of g vectors per number of processes</p></td>
   
 </tr>
 
@@ -375,7 +387,8 @@ public subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iModu</strong></td><td></td><td></td><td></td>
+  <td><strong>iModu</strong></td><td></td><td></td><td><p>Number of remaining g vectors after giving
+ each process the same number of g vectors</p></td>
   
 </tr>
 
@@ -404,28 +417,48 @@ public subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">distributePWsToProcs</span><span class="p">(</span><span class="n">nOfPWs</span><span class="p">,</span> <span class="n">nOfBlocks</span><span class="p">)</span>
     <span class="c">!! @todo Document `distributePWstoProcs()` @endtodo</span>
+    <span class="c">!! Determine how many g vectors each process should get</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
     <span class="c">!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span>  <span class="kd">::</span> <span class="n">nOfPWs</span>
+      <span class="c">!! Number of g vectors</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span>  <span class="kd">::</span> <span class="n">nOfBlocks</span>
-    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iStep</span><span class="p">,</span> <span class="n">iModu</span>
+      <span class="c">!! Number of processes</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iStep</span>
+      <span class="c">!! Number of g vectors per number of processes</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iModu</span>
+      <span class="c">!! Number of remaining g vectors after giving</span>
+      <span class="c">!! each process the same number of g vectors</span>
     <span class="c">!</span>
     <span class="n">iStep</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nOfPWs</span><span class="o">/</span><span class="n">nOfBlocks</span><span class="p">)</span>
+      <span class="c">!! * Determine the base number of g vectors to give </span>
+      <span class="c">!!   to each process</span>
     <span class="n">iModu</span> <span class="o">=</span> <span class="nb">mod</span><span class="p">(</span><span class="n">nOfPWs</span><span class="p">,</span><span class="n">nOfBlocks</span><span class="p">)</span>
+      <span class="c">!! * Determine the number of g vectors left over after that</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nOfBlocks</span> <span class="o">-</span> <span class="mi">1</span>
+      <span class="c">!! * For each process, give the base amount and an extra</span>
+      <span class="c">!!   if there were any still left over</span>
       <span class="n">counts</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">iStep</span>
+      <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span> <span class="n">iModu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">        </span><span class="n">counts</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">counts</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="c">!</span>
+        <span class="n">counts</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">counts</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="c">!</span>
         <span class="n">iModu</span> <span class="o">=</span> <span class="n">iModu</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="c">!</span>
       <span class="n">endif</span>
+      <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
-    <span class="n">displmnt</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nOfBlocks</span><span class="o">-</span><span class="mi">1</span>
-      <span class="n">displmnt</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">displmnt</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">counts</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-    <span class="n">enddo</span>
+    <span class="c">!displmnt(0) = 0</span>
+    <span class="c">!do i = 1, nOfBlocks-1</span>
+    <span class="c">!  displmnt(i) = displmnt(i-1) + counts(i)</span>
+    <span class="c">!enddo</span>
     <span class="c">!</span>
     <span class="k">return</span>
     <span class="c">!</span>

@@ -263,9 +263,13 @@
 <li>Call <a href="../module/tmemodule.html#proc-readinput">readInput</a> to read program input and
   QE Export output</li>
 <li>Call <a href="../module/tmemodule.html#proc-readpwsset">readPWsSet</a> to read g vectors from <code>mgrid</code> file</li>
+<li>Initialize all values in <code>Ufi</code> matrix to complex double zero</li>
+<li>Figure out how many g vectors/plane waves to give each process</li>
 </ul>
 </li>
 </ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if SD and PC <code>numOfGvecs</code> should be the same </p></div>
+<p>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if should be solid defect volume or pristine </p></div>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Are pristine and solid defect volume the same? </p></div>
 <p>
@@ -424,6 +428,8 @@
     <span class="c">!!    * Call [[TMEModule(module):readInput(subroutine)]] to read program input and</span>
     <span class="c">!!      QE Export output</span>
     <span class="c">!!    * Call [[TMEModule(module):readPWsSet(subroutine)]] to read g vectors from `mgrid` file</span>
+    <span class="c">!!    * Initialize all values in `Ufi` matrix to complex double zero</span>
+    <span class="c">!!    * Figure out how many g vectors/plane waves to give each process</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="n">initializeCalculation</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">,</span> <span class="n">elementsPath</span><span class="p">,</span> <span class="n">VFisOutput</span><span class="p">,</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">eBin</span><span class="p">,</span> <span class="p">&amp;</span>
                                <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">calculateVFis</span><span class="p">,</span> <span class="n">t0</span><span class="p">)</span>
@@ -433,7 +439,7 @@
     <span class="c">!</span>
     <span class="k">call </span><span class="n">readPWsSet</span><span class="p">()</span>
     <span class="c">!</span>
-    <span class="k">allocate</span> <span class="p">(</span> <span class="n">counts</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numprocs</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">displmnt</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numprocs</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">counts</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numprocs</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span><span class="c">!, displmnt(0:numprocs-1) )</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">Ufi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nKpts</span><span class="p">)</span> <span class="p">)</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_SDKKPC</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_PsiPC</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
@@ -441,11 +447,10 @@
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_fi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">eigvI</span> <span class="p">(</span><span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">),</span> <span class="n">eigvF</span> <span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">)</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="c">! Initialize all values in Ufi matrix to complex double zero</span>
     <span class="n">Ufi</span><span class="p">(:,:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
     <span class="c">!</span>
-    <span class="c">! Distribute plane waves to processes ???</span>
     <span class="k">call </span><span class="n">distributePWsToProcs</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">numOfGvecs</span><span class="p">,</span> <span class="n">numprocs</span><span class="p">)</span>
+      <span class="c">!! @todo Figure out if SD and PC `numOfGvecs` should be the same @endtodo</span>
     <span class="c">!</span>
     <span class="c">! Initialize the number of initial and final plane waves to zero for each process</span>
     <span class="n">nPWsI</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>

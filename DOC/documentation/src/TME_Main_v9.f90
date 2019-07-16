@@ -29,6 +29,8 @@ program transitionMatrixElements
     !!    * Call [[TMEModule(module):readInput(subroutine)]] to read program input and
     !!      QE Export output
     !!    * Call [[TMEModule(module):readPWsSet(subroutine)]] to read g vectors from `mgrid` file
+    !!    * Initialize all values in `Ufi` matrix to complex double zero
+    !!    * Figure out how many g vectors/plane waves to give each process
     !
     call initializeCalculation(solidDefect, perfectCrystal, elementsPath, VFisOutput, ki, kf, eBin, &
                                iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVFis, t0)
@@ -38,7 +40,7 @@ program transitionMatrixElements
     !
     call readPWsSet()
     !
-    allocate ( counts(0:numprocs-1), displmnt(0:numprocs-1) )
+    allocate ( counts(0:numprocs-1) )!, displmnt(0:numprocs-1) )
     allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, perfectCrystal%nKpts) )
     allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
@@ -46,11 +48,10 @@ program transitionMatrixElements
     allocate ( paw_fi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( eigvI (iBandIinit:iBandIfinal), eigvF (iBandFinit:iBandFfinal) )
     !
-    ! Initialize all values in Ufi matrix to complex double zero
     Ufi(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
-    ! Distribute plane waves to processes ???
     call distributePWsToProcs(solidDefect%numOfGvecs, numprocs)
+      !! @todo Figure out if SD and PC `numOfGvecs` should be the same @endtodo
     !
     ! Initialize the number of initial and final plane waves to zero for each process
     nPWsI(:) = 0

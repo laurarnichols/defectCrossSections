@@ -121,7 +121,7 @@ module TMEModule
   !
   ! Declare matrix/vector integers
   integer, allocatable :: counts(:)
-  integer, allocatable :: displmnt(:)
+  !integer, allocatable :: displmnt(:)
   integer, allocatable :: igvs(:,:,:)
   integer, allocatable :: iqs(:)
   integer, allocatable :: nFs(:,:)
@@ -962,28 +962,48 @@ contains
   !
   subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
     !! @todo Document `distributePWstoProcs()` @endtodo
+    !! Determine how many g vectors each process should get
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     !
     implicit none
     !
     integer, intent(in)  :: nOfPWs
+      !! Number of g vectors
     integer, intent(in)  :: nOfBlocks
-    integer :: iStep, iModu
+      !! Number of processes
+    integer :: iStep
+      !! Number of g vectors per number of processes
+    integer :: iModu
+      !! Number of remaining g vectors after giving
+      !! each process the same number of g vectors
     !
     iStep = int(nOfPWs/nOfBlocks)
+      !! * Determine the base number of g vectors to give 
+      !!   to each process
     iModu = mod(nOfPWs,nOfBlocks)
+      !! * Determine the number of g vectors left over after that
     !
     do i = 0, nOfBlocks - 1
+      !! * For each process, give the base amount and an extra
+      !!   if there were any still left over
       counts(i) = iStep
+      !
       if ( iModu > 0 ) then
+        !
         counts(i) = counts(i) + 1
+        !
         iModu = iModu - 1
+        !
       endif
+      !
     enddo
     !
-    displmnt(0) = 0
-    do i = 1, nOfBlocks-1
-      displmnt(i) = displmnt(i-1) + counts(i)
-    enddo
+    !displmnt(0) = 0
+    !do i = 1, nOfBlocks-1
+    !  displmnt(i) = displmnt(i-1) + counts(i)
+    !enddo
     !
     return
     !
