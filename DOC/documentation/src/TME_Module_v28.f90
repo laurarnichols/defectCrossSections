@@ -605,76 +605,6 @@ contains
   end subroutine checkInitialization
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  function wasRead(inputVal, variableName, usage, abortExecution) 
-    !! Determine if an input variable still has the default value.
-    !! If it does, output an error message and possibly set the program
-    !! to abort. Not all variables would cause the program to abort,
-    !! so this program assumes that if you pass in the logical `abortExecution`
-    !! then the variable is required and causes the program to abort 
-    !! if missing.
-    !!
-    !! I could not find a clean way to allow this function to receive
-    !! different types of variables (integer, real, character, etc.), so
-    !! I made the argument be an integer so that each type could be sent
-    !! in a different way. Each case is set up so that the value is tested to
-    !! see if it is less than zero to determine if the variable still has
-    !! its default value
-    !!
-    !! * For strings, the default value is `''`, so pass in 
-    !! `LEN(trim(variable))-1` as this should be less than zero if
-    !! the string still has the default value and greater than or equal 
-    !! to zero otherwise
-    !! * For integers the default values are less than zero, so just pass as is 
-    !! * Real variables also have a negative default value, so just pass the
-    !! value cast from real to integer
-    !!
-    implicit none
-    !
-    integer, intent(in) :: inputVal
-      !! Value to compare with 0 to see if a variable has been read;
-    !
-    character(len=*), intent(in) :: variableName
-      !! Name of the variable used in output message
-    character(len=*), intent(in) :: usage
-      !! Example of how the variable can be used
-    !
-    logical, optional, intent(inout) :: abortExecution
-      !! Optional logical for if the program should be aborted 
-    logical :: wasRead
-      !! Whether or not the input variable was read from the input file;
-      !! this is the return value
-    !
-    !! <h2>Walkthrough</h2>
-    !!
-    wasRead = .true.
-      !! * Default return value is true
-    !
-    if ( inputVal < 0) then
-      !! * If the input variable still has the default value
-      !!    * output an error message
-      !!    * set the program to abort if that variable was sent in
-      !!    * set the return value to false to indicate that the 
-      !!      variable wasn't read
-      !
-      write(iostd, *)
-      write(iostd, '(" Variable : """, a, """ is not defined!")') variableName
-      write(iostd, '(" usage : ", a)') usage
-      if(present(abortExecution)) then
-        !
-        write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-        abortExecution = .true.
-        !
-      endif 
-      !
-      wasRead = .false.
-      !
-    endif
-    !
-    return
-    !
-  end function wasRead
-  !
-  !---------------------------------------------------------------------------------------------------------------------------------
   subroutine readQEExport(system)
     !! Read input files in the Export directory created by
     !! [[pw_export_for_tme(program)]]
@@ -988,6 +918,36 @@ contains
   end subroutine readQEExport
   !
   !
+  subroutine readPWsSet()
+    !! @todo Document `readPWsSet()` @endtodo
+    !
+    implicit none
+    !
+    integer :: ig, iDum, iGx, iGy, iGz
+    !
+    open(72, file=trim(solidDefect%exportDir)//"/mgrid")
+    !
+    read(72, * )
+    read(72, * )
+    !
+    allocate ( gvecs(3, solidDefect%numOfGvecs ) )
+    !
+    gvecs(:,:) = 0.0_dp
+    !
+    do ig = 1, solidDefect%numOfGvecs
+      read(72, '(4i10)') iDum, iGx, iGy, iGz
+      gvecs(1,ig) = dble(iGx)*solidDefect%bg(1,1) + dble(iGy)*solidDefect%bg(1,2) + dble(iGz)*solidDefect%bg(1,3)
+      gvecs(2,ig) = dble(iGx)*solidDefect%bg(2,1) + dble(iGy)*solidDefect%bg(2,2) + dble(iGz)*solidDefect%bg(2,3)
+      gvecs(3,ig) = dble(iGx)*solidDefect%bg(3,1) + dble(iGy)*solidDefect%bg(3,2) + dble(iGz)*solidDefect%bg(3,3)
+    enddo
+    !
+    close(72)
+    !
+    return
+    !
+  end subroutine readPWsSet
+  !
+  !
   subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
     !! @todo Document `distributePWstoProcs()` @endtodo
     !
@@ -1018,75 +978,63 @@ contains
   end subroutine distributePWsToProcs
   !
   !
-  subroutine int2str(integ, string)
-    !! @todo Document `int2str()` @endtodo
+  subroutine checkIfCalculated(ik, tmes_file_exists)
+    !! @todo Document `checkIfCalculated()` @endtodo
     !
     implicit none
-    integer :: integ
-    character(len = 300) :: string
     !
-    if ( integ < 10 ) then
-      write(string, '(i1)') integ
-    else if ( integ < 100 ) then
-      write(string, '(i2)') integ
-    else if ( integ < 1000 ) then
-      write(string, '(i3)') integ
-    else if ( integ < 10000 ) then
-      write(string, '(i4)') integ
+    integer, intent(in) :: ik
+    logical, intent(out) :: tmes_file_exists
+    !
+    character(len = 300) :: Uelements
+    !
+    !> @todo Change if statement to use `int2str` subroutine @endtodo
+    if ( ik < 10 ) then
+      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
+    else if ( ik < 100 ) then
+      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
+    else if ( ik < 1000 ) then
+      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
     endif
     !
-    string = trim(string)
+    inquire(file = trim(elementsPath)//trim(Uelements), exist = tmes_file_exists)
     !
     return
     !
-  end subroutine int2str
+  end subroutine checkIfCalculated
   !
   !
-  subroutine finalizeCalculation()
-    !! Stop timer, write out total time taken, and close the output file
+  subroutine calculatePWsOverlap(ik)
+    !! @todo Document `calculatePWsOverlap()` @endtodo
     !
     implicit none
     !
-    write(iostd,'("-----------------------------------------------------------------")')
+    integer, intent(in) :: ik
+    integer :: ibi, ibf
     !
-    call cpu_time(tf)
-    write(iostd, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
+    call readWfcPC(ik)
     !
-    close(iostd)
+    call readWfcSD(ik)
     !
-    return
+    Ufi(:,:,ik) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
-  end subroutine finalizeCalculation
-  !
-  !
-  subroutine readPWsSet()
-    !! @todo Document `readPWsSet()` @endtodo
-    !
-    implicit none
-    !
-    integer :: ig, iDum, iGx, iGy, iGz
-    !
-    open(72, file=trim(solidDefect%exportDir)//"/mgrid")
-    !
-    read(72, * )
-    read(72, * )
-    !
-    allocate ( gvecs(3, solidDefect%numOfGvecs ) )
-    !
-    gvecs(:,:) = 0.0_dp
-    !
-    do ig = 1, solidDefect%numOfGvecs
-      read(72, '(4i10)') iDum, iGx, iGy, iGz
-      gvecs(1,ig) = dble(iGx)*solidDefect%bg(1,1) + dble(iGy)*solidDefect%bg(1,2) + dble(iGz)*solidDefect%bg(1,3)
-      gvecs(2,ig) = dble(iGx)*solidDefect%bg(2,1) + dble(iGy)*solidDefect%bg(2,2) + dble(iGz)*solidDefect%bg(2,3)
-      gvecs(3,ig) = dble(iGx)*solidDefect%bg(3,1) + dble(iGy)*solidDefect%bg(3,2) + dble(iGz)*solidDefect%bg(3,3)
+    do ibi = iBandIinit, iBandIfinal 
+      !
+      do ibf = iBandFinit, iBandFfinal
+        Ufi(ibf, ibi, ik) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
+        !if ( ibi == ibf ) write(iostd,'(2i4,3ES24.15E3)') ibf, ibi, Ufi(ibf, ibi, ik), abs(Ufi(ibf, ibi, ik))**2
+        flush(iostd)
+      enddo
+      !
     enddo
     !
-    close(72)
-    !
     return
     !
-  end subroutine readPWsSet
+  end subroutine calculatePWsOverlap
   !
   !
   subroutine readWfcPC(ik)
@@ -1145,68 +1093,6 @@ contains
   end subroutine readWfcPC
   !
   !
-  subroutine projectBetaPCwfcSD(ik)
-    !! @todo Document `projectBetaPCwfcSD()` @endtodo
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: ig, iDumV(3)
-    !
-    character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
-    ! Reading PC projectors
-    !
-    open(72, file=trim(perfectCrystal%exportDir)//"/grid."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    allocate ( pwGindPC(perfectCrystal%npws(ik)) )
-    !
-    do ig = 1, perfectCrystal%npws(ik)
-      read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
-    enddo
-    !
-    close(72)
-    !
-    allocate ( betaPC(numOfPWs, perfectCrystal%nProjs) )
-    !
-    betaPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    !
-    open(73, file=trim(perfectCrystal%exportDir)//"/projectors."//trim(iks))
-    !
-    read(73, '(a)') textDum
-    read(73, '(2i10)') perfectCrystal%nProjs, npw
-    !
-    do j = 1, perfectCrystal%nProjs
-      do i = 1, npw
-        read(73,'(2ES24.15E3)') betaPC(pwGindPC(i),j)
-      enddo
-    enddo
-    !
-    close(73)
-    !
-    deallocate ( pwGindPC )
-    !
-    do j = iBandFinit, iBandFfinal
-      do i = 1, perfectCrystal%nProjs
-        cProjBetaPCPsiSD(i,j,1) = sum(conjg(betaPC(:,i))*wfcSD(:,j))
-        !write(65,'(2f17.12)') cProjPC(i,j,1) - cProjBetaPCPsiSD(i,j,1)
-      enddo
-    enddo
-    !
-    !close(65)
-    !
-    deallocate ( betaPC )
-    !
-    return
-    !
-  end subroutine projectBetaPCwfcSD
-  !
-  !
   subroutine readWfcSD(ik)
     !! @todo Document `readWfcSD()` @endtodo
     !! @todo Figure out difference between PC and SD `readWfc` and possibly merge @endtodo
@@ -1262,35 +1148,6 @@ contains
     return
     !
   end subroutine readWfcSD
-  !
-  !
-  subroutine calculatePWsOverlap(ik)
-    !! @todo Document `calculatePWsOverlap()` @endtodo
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: ibi, ibf
-    !
-    call readWfcPC(ik)
-    !
-    call readWfcSD(ik)
-    !
-    Ufi(:,:,ik) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    !
-    do ibi = iBandIinit, iBandIfinal 
-      !
-      do ibf = iBandFinit, iBandFfinal
-        Ufi(ibf, ibi, ik) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
-        !if ( ibi == ibf ) write(iostd,'(2i4,3ES24.15E3)') ibf, ibi, Ufi(ibf, ibi, ik), abs(Ufi(ibf, ibi, ik))**2
-        flush(iostd)
-      enddo
-      !
-    enddo
-    !
-    return
-    !
-  end subroutine calculatePWsOverlap
   !
   !
   subroutine readProjectionsPC(ik)
@@ -1360,6 +1217,68 @@ contains
   end subroutine readProjectionsSD
   !
   !
+  subroutine projectBetaPCwfcSD(ik)
+    !! @todo Document `projectBetaPCwfcSD()` @endtodo
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
+    integer :: ig, iDumV(3)
+    !
+    character(len = 300) :: iks
+    !
+    call int2str(ik, iks)
+    !
+    ! Reading PC projectors
+    !
+    open(72, file=trim(perfectCrystal%exportDir)//"/grid."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    allocate ( pwGindPC(perfectCrystal%npws(ik)) )
+    !
+    do ig = 1, perfectCrystal%npws(ik)
+      read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
+    enddo
+    !
+    close(72)
+    !
+    allocate ( betaPC(numOfPWs, perfectCrystal%nProjs) )
+    !
+    betaPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    !
+    open(73, file=trim(perfectCrystal%exportDir)//"/projectors."//trim(iks))
+    !
+    read(73, '(a)') textDum
+    read(73, '(2i10)') perfectCrystal%nProjs, npw
+    !
+    do j = 1, perfectCrystal%nProjs
+      do i = 1, npw
+        read(73,'(2ES24.15E3)') betaPC(pwGindPC(i),j)
+      enddo
+    enddo
+    !
+    close(73)
+    !
+    deallocate ( pwGindPC )
+    !
+    do j = iBandFinit, iBandFfinal
+      do i = 1, perfectCrystal%nProjs
+        cProjBetaPCPsiSD(i,j,1) = sum(conjg(betaPC(:,i))*wfcSD(:,j))
+        !write(65,'(2f17.12)') cProjPC(i,j,1) - cProjBetaPCPsiSD(i,j,1)
+      enddo
+    enddo
+    !
+    !close(65)
+    !
+    deallocate ( betaPC )
+    !
+    return
+    !
+  end subroutine projectBetaPCwfcSD
+  !
+  !
   subroutine projectBetaSDwfcPC(ik)
     !! @todo Document `projectBetaSDwfcPC()` @endtodo
     !! @todo Figure out the difference between PC and SD `projectBeta_wfc_` and possibly merge @endtodo
@@ -1421,6 +1340,137 @@ contains
     return
     !
   end subroutine projectBetaSDwfcPC
+  !
+  !
+  subroutine pawCorrectionPsiPC()
+    !! @todo Document `pawCorrectionPsiPC()` @endtodo
+    !
+    ! calculates the augmentation part of the transition matrix element
+    !
+    implicit none
+    integer :: ibi, ibf, niPC, ispin 
+    integer :: LL, LLP, LMBASE, LM, LMP
+    integer :: L, M, LP, MP, iT
+    real(kind = dp) :: atomicOverlap
+    !
+    complex(kind = dp) :: cProjIe, cProjFe
+    !
+    ispin = 1
+    !
+    paw_PsiPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    !
+    LMBASE = 0
+    !
+    do niPC = 1, perfectCrystal%nIons ! LOOP OVER THE IONS
+      !
+      iT = perfectCrystal%atomTypeIndex(niPC)
+      LM = 0
+      DO LL = 1, perfectCrystal%atoms(iT)%lMax
+        L = perfectCrystal%atoms(iT)%LPS(LL)
+        DO M = -L, L
+          LM = LM + 1 !1st index for CPROJ
+          !
+          LMP = 0
+          DO LLP = 1, perfectCrystal%atoms(iT)%lMax
+            LP = perfectCrystal%atoms(iT)%LPS(LLP)
+            DO MP = -LP, LP
+              LMP = LMP + 1 ! 2nd index for CPROJ
+              !
+              atomicOverlap = 0.0_dp
+              if ( (L == LP).and.(M == MP) ) then 
+                atomicOverlap = sum(perfectCrystal%atoms(iT)%F1(:,LL, LLP))
+                !
+                do ibi = iBandIinit, iBandIfinal
+                  cProjIe = cProjPC(LMP + LMBASE, ibi, ISPIN)
+                  !
+                  do ibf = iBandFinit, iBandFfinal
+                    cProjFe = conjg(cProjBetaPCPsiSD(LM + LMBASE, ibf, ISPIN))
+                    !
+                    paw_PsiPC(ibf, ibi) = paw_PsiPC(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
+                    !write(iostd,*) LL, LLP, L, M, atomicOverlap
+                    flush(iostd)
+                    !
+                  enddo
+                  !
+                enddo
+                !
+              endif
+              !
+            ENDDO
+          ENDDO
+        ENDDO
+      ENDDO
+      LMBASE = LMBASE + perfectCrystal%atoms(iT)%lmMax
+    ENDDO
+    !
+    return
+    !
+  end subroutine pawCorrectionPsiPC
+  !
+  !
+  subroutine pawCorrectionSDPhi()
+    !! @todo Document `pawCorrectionSDPhi()` @endtodo
+    !! @todo Figure out the difference between PC and SD `pawCorrectionPsi` and possibly merge @endtodo
+    !
+    ! calculates the augmentation part of the transition matrix element
+    !
+    implicit none
+    integer :: ibi, ibf, ni, ispin 
+    integer :: LL, LLP, LMBASE, LM, LMP
+    integer :: L, M, LP, MP, iT
+    real(kind = dp) :: atomicOverlap
+    !
+    complex(kind = dp) :: cProjIe, cProjFe
+    !
+    ispin = 1
+    !
+    paw_SDPhi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    !
+    LMBASE = 0
+    !
+    do ni = 1, solidDefect%nIons ! LOOP OVER THE IONS
+      !
+      iT = solidDefect%atomTypeIndex(ni)
+      LM = 0
+      DO LL = 1, solidDefect%atoms(iT)%lMax
+        L = solidDefect%atoms(iT)%LPS(LL)
+        DO M = -L, L
+          LM = LM + 1 !1st index for CPROJ
+          !
+          LMP = 0
+          DO LLP = 1, solidDefect%atoms(iT)%lMax
+            LP = solidDefect%atoms(iT)%LPS(LLP)
+            DO MP = -LP, LP
+              LMP = LMP + 1 ! 2nd index for CPROJ
+              !
+              atomicOverlap = 0.0_dp
+              if ( (L == LP).and.(M == MP) ) then
+                atomicOverlap = sum(solidDefect%atoms(iT)%F1(:,LL,LLP))
+                !
+                do ibi = iBandIinit, iBandIfinal
+                  cProjIe = cProjBetaSDPhiPC(LMP + LMBASE, ibi, ISPIN)
+                  !
+                  do ibf = iBandFinit, iBandFfinal
+                    cProjFe = conjg(cProjSD(LM + LMBASE, ibf, ISPIN))
+                    !
+                    paw_SDPhi(ibf, ibi) = paw_SDPhi(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
+                    !
+                  enddo
+                  !
+                enddo
+                !
+              endif
+              !
+            ENDDO
+          ENDDO
+        ENDDO
+      ENDDO
+      LMBASE = LMBASE + solidDefect%atoms(iT)%lmMax
+    ENDDO
+    !
+    return
+    !
+  end subroutine pawCorrectionSDPhi
   !
   !
   subroutine pawCorrectionKPC()
@@ -1620,137 +1670,6 @@ contains
   end subroutine pawCorrectionSDK
   !
   !
-  subroutine pawCorrectionPsiPC()
-    !! @todo Document `pawCorrectionPsiPC()` @endtodo
-    !
-    ! calculates the augmentation part of the transition matrix element
-    !
-    implicit none
-    integer :: ibi, ibf, niPC, ispin 
-    integer :: LL, LLP, LMBASE, LM, LMP
-    integer :: L, M, LP, MP, iT
-    real(kind = dp) :: atomicOverlap
-    !
-    complex(kind = dp) :: cProjIe, cProjFe
-    !
-    ispin = 1
-    !
-    paw_PsiPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    !
-    LMBASE = 0
-    !
-    do niPC = 1, perfectCrystal%nIons ! LOOP OVER THE IONS
-      !
-      iT = perfectCrystal%atomTypeIndex(niPC)
-      LM = 0
-      DO LL = 1, perfectCrystal%atoms(iT)%lMax
-        L = perfectCrystal%atoms(iT)%LPS(LL)
-        DO M = -L, L
-          LM = LM + 1 !1st index for CPROJ
-          !
-          LMP = 0
-          DO LLP = 1, perfectCrystal%atoms(iT)%lMax
-            LP = perfectCrystal%atoms(iT)%LPS(LLP)
-            DO MP = -LP, LP
-              LMP = LMP + 1 ! 2nd index for CPROJ
-              !
-              atomicOverlap = 0.0_dp
-              if ( (L == LP).and.(M == MP) ) then 
-                atomicOverlap = sum(perfectCrystal%atoms(iT)%F1(:,LL, LLP))
-                !
-                do ibi = iBandIinit, iBandIfinal
-                  cProjIe = cProjPC(LMP + LMBASE, ibi, ISPIN)
-                  !
-                  do ibf = iBandFinit, iBandFfinal
-                    cProjFe = conjg(cProjBetaPCPsiSD(LM + LMBASE, ibf, ISPIN))
-                    !
-                    paw_PsiPC(ibf, ibi) = paw_PsiPC(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
-                    !write(iostd,*) LL, LLP, L, M, atomicOverlap
-                    flush(iostd)
-                    !
-                  enddo
-                  !
-                enddo
-                !
-              endif
-              !
-            ENDDO
-          ENDDO
-        ENDDO
-      ENDDO
-      LMBASE = LMBASE + perfectCrystal%atoms(iT)%lmMax
-    ENDDO
-    !
-    return
-    !
-  end subroutine pawCorrectionPsiPC
-  !
-  !
-  subroutine pawCorrectionSDPhi()
-    !! @todo Document `pawCorrectionSDPhi()` @endtodo
-    !! @todo Figure out the difference between PC and SD `pawCorrectionPsi` and possibly merge @endtodo
-    !
-    ! calculates the augmentation part of the transition matrix element
-    !
-    implicit none
-    integer :: ibi, ibf, ni, ispin 
-    integer :: LL, LLP, LMBASE, LM, LMP
-    integer :: L, M, LP, MP, iT
-    real(kind = dp) :: atomicOverlap
-    !
-    complex(kind = dp) :: cProjIe, cProjFe
-    !
-    ispin = 1
-    !
-    paw_SDPhi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    !
-    LMBASE = 0
-    !
-    do ni = 1, solidDefect%nIons ! LOOP OVER THE IONS
-      !
-      iT = solidDefect%atomTypeIndex(ni)
-      LM = 0
-      DO LL = 1, solidDefect%atoms(iT)%lMax
-        L = solidDefect%atoms(iT)%LPS(LL)
-        DO M = -L, L
-          LM = LM + 1 !1st index for CPROJ
-          !
-          LMP = 0
-          DO LLP = 1, solidDefect%atoms(iT)%lMax
-            LP = solidDefect%atoms(iT)%LPS(LLP)
-            DO MP = -LP, LP
-              LMP = LMP + 1 ! 2nd index for CPROJ
-              !
-              atomicOverlap = 0.0_dp
-              if ( (L == LP).and.(M == MP) ) then
-                atomicOverlap = sum(solidDefect%atoms(iT)%F1(:,LL,LLP))
-                !
-                do ibi = iBandIinit, iBandIfinal
-                  cProjIe = cProjBetaSDPhiPC(LMP + LMBASE, ibi, ISPIN)
-                  !
-                  do ibf = iBandFinit, iBandFfinal
-                    cProjFe = conjg(cProjSD(LM + LMBASE, ibf, ISPIN))
-                    !
-                    paw_SDPhi(ibf, ibi) = paw_SDPhi(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
-                    !
-                  enddo
-                  !
-                enddo
-                !
-              endif
-              !
-            ENDDO
-          ENDDO
-        ENDDO
-      ENDDO
-      LMBASE = LMBASE + solidDefect%atoms(iT)%lmMax
-    ENDDO
-    !
-    return
-    !
-  end subroutine pawCorrectionSDPhi
-  !
-  !
   subroutine pawCorrection()
     !! @todo Document `pawCorrection()` @endtodo
     !! @todo Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions @endtodo
@@ -1823,352 +1742,6 @@ contains
     return
     !
   end subroutine pawCorrection
-  !
-  !
-  subroutine readEigenvalues(ik)
-    !! @todo Document `readEigenvalues()` @endtodo
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: ib
-    !
-    character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
-    open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    do ib = 1, iBandIinit - 1
-      read(72, *)
-    enddo
-    !
-    do ib = iBandIinit, iBandIfinal
-      read(72, '(ES24.15E3)') eigvI(ib)
-    enddo
-    !
-    close(72)
-    !
-    open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(iks))
-    !
-    read(72, * )
-    read(72, * ) 
-    !
-    do ib = 1, iBandFinit - 1
-      read(72, *)
-    enddo
-    !
-    do ib = iBandFinit, iBandFfinal
-      read(72, '(ES24.15E3)') eigvF(ib)
-    enddo
-    !
-    close(72)
-    !
-    return
-    !
-  end subroutine readEigenvalues
-  !
-  !
-  subroutine calculateVfiElements()
-    !! @todo Document `calculateVFiElements()` @endtodo
-    !
-    implicit none
-    !
-    integer :: ik, ib, nOfEnergies, iE
-    !
-    real(kind = dp) :: eMin, eMax, E, av, sd, x, EiMinusEf, A, DHifMin
-    !
-    real(kind = dp), allocatable :: sumWk(:), sAbsVfiOfE2(:), absVfiOfE2(:)
-    integer, allocatable :: nKsInEbin(:)
-    !
-    character (len = 300) :: text
-    !
-    allocate( DE(iBandIinit:iBandIfinal, perfectCrystal%nKpts), absVfi2(iBandIinit:iBandIfinal, perfectCrystal%nKpts) )
-    ! 
-    DE(:,:) = 0.0_dp
-    absVfi2(:,:) = 0.0_dp 
-    !
-    do ik = 1, perfectCrystal%nKpts
-      !
-      eigvI(:) = 0.0_dp
-      eigvF(:) = 0.0_dp
-      !
-      call readEigenvalues(ik)
-      !
-      do ib = iBandIinit, iBandIfinal
-        !
-        EiMinusEf = eigvI(ib) - eigvF(iBandFinit)
-        absVfi2(ib,ik) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ik))**2 - abs(Ufi(iBandFinit,ib,ik))**4 )
-        !
-        DE(ib, ik) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ik))
-        !
-      enddo
-      !
-    enddo
-    !
-    eMin = minval( DE(:,:) )
-    eMax = maxval( DE(:,:) )
-    !
-    nOfEnergies = int((eMax-eMin)/eBin) + 1
-    !
-    allocate ( absVfiOfE2(0:nOfEnergies), nKsInEbin(0:nOfEnergies), sumWk(0:nOfEnergies) )
-    !
-    absVfiOfE2(:) = 0.0_dp
-    nKsInEbin(:) = 0
-    sumWk(:) = 0.0_dp
-    !
-    do ik = 1, perfectCrystal%nKpts
-      !
-      do ib = iBandIinit, iBandIfinal
-        !
-        if ( abs( eMin - DE(ib,ik)) < 1.0e-3_dp ) DHifMin = absVfi2(ib, ik)
-        iE = int((DE(ib, ik)-eMin)/eBin)
-        if ( absVfi2(ib, ik) > 0.0_dp ) then
-          absVfiOfE2(iE) = absVfiOfE2(iE) + perfectCrystal%wk(ik)*absVfi2(ib, ik)
-          sumWk(iE) = sumWk(iE) + perfectCrystal%wk(ik)
-          nKsInEbin(iE) = nKsInEbin(iE) + 1
-        else
-          write(iostd,*) 'lalala', absVfi2(ib, ik)
-        endif
-        !
-      enddo
-      !
-    enddo
-    !
-    allocate ( sAbsVfiOfE2(0:nOfEnergies) )
-    !
-    sAbsVfiOfE2 = 0.0_dp
-    !
-    open(11, file=trim(VfisOutput)//'ofKpt', status='unknown')
-    !
-    write(11, '("# |<f|V|i>|^2 versus energy for all the k-points.")')
-    write(text, '("# Energy (eV) shifted by half eBin, |<f|V|i>|^2 (Hartree)^2,")')
-    write(11, '(a, " k-point index. Format : ''(2ES24.15E3,i10)''")') trim(text)
-    !
-    do ik = 1, perfectCrystal%nKpts
-      !
-      do ib = iBandIinit, iBandIfinal
-        !
-        iE = int((DE(ib,ik)-eMin)/eBin)
-        av = absVfiOfE2(iE)/sumWk(iE)
-        x = absVfi2(ib,ik)
-        write(11, '(2ES24.15E3,i10)') (eMin + (iE+0.5_dp)*eBin)*HartreeToEv, x, ik
-        write(12, '(2ES24.15E3,i10)') DE(ib,ik)*HartreeToEv, absVfi2(ib, ik), ik
-        !write(11, '(2ES24.15E3,i10)') (eMin + iE*eBin + eBin/2.0_dp), x, ik
-        sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + perfectCrystal%wk(ik)*(x - av)**2/sumWk(iE)
-        !
-      enddo
-      !
-    enddo
-    !
-    close(11)
-    !
-    open(63, file=trim(VfisOutput), status='unknown')
-    !
-    write(63, '("# Averaged |<f|V|i>|^2 over K-points versus energy.")')
-    write(63, '("#                 Cell volume : ", ES24.15E3, " (a.u.)^3,   Format : ''(ES24.15E3)''")') solidDefect%omega
-    write(63, '("#   Minimun transition energy : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eMin
-    write(63, '("# |DHif|^2 at minimum Tr. En. : ", ES24.15E3, " (Hartree^2),Format : ''(ES24.15E3)''")') DHifMin
-    write(63, '("#                  Energy bin : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eBin
-    write(text, '("# Energy (Hartree), averaged |<f|V|i>|^2 over K-points (Hartree)^2,")')
-    write(63, '(a, " standard deviation (Hartree)^2. Format : ''(3ES24.15E3)''")') trim(text)
-    !
-    do iE = 0, nOfEnergies
-      E = iE*eBin
-      av = 0.0_dp
-      sd = 0.0_dp
-      if (nKsInEbin(iE) > 0) then
-        av = absVfiOfE2(iE)/sumWk(iE)
-        sd = sqrt(sAbsVfiOfE2(iE))
-      endif
-      write(63,'(3ES24.15E3)') eMin + E, av, sd
-    enddo
-    !
-    close(63)
-    !
-    return
-    !
-  end subroutine calculateVfiElements
-  !
-  !
-  subroutine checkIfCalculated(ik, tmes_file_exists)
-    !! @todo Document `checkIfCalculated()` @endtodo
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    logical, intent(out) :: tmes_file_exists
-    !
-    character(len = 300) :: Uelements
-    !
-    !> @todo Change if statement to use `int2str` subroutine @endtodo
-    if ( ik < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
-    else if ( ik < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
-    else if ( ik < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
-    endif
-    !
-    inquire(file = trim(elementsPath)//trim(Uelements), exist = tmes_file_exists)
-    !
-    return
-    !
-  end subroutine checkIfCalculated
-  !
-  !
-  subroutine readUfis(ik)
-    !! @todo Document `readUfis()` @endtodo
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    !
-    integer :: ibi, ibf, totalNumberOfElements, iDum, i
-    real(kind = dp) :: rDum, t1, t2
-    complex(kind = dp):: cUfi
-    !
-    character(len = 300) :: Uelements
-    !
-    call cpu_time(t1)
-    write(iostd, '(" Reading Ufi(:,:) of k-point: ", i4)') ik
-    !
-    if ( ik < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
-    else if ( ik < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
-    else if ( ik < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
-    endif
-    !
-    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
-    !
-    read(17, *) 
-    read(17, *) 
-    read(17,'(5i10)') totalNumberOfElements, iDum, iDum, iDum, iDum
-    read(17, *) 
-    !
-    do i = 1, totalNumberOfElements
-      !
-      read(17, 1001) ibf, ibi, rDum, cUfi, rDum
-      Ufi(ibf,ibi,ik) = cUfi
-      !    
-    enddo
-    !
-    close(17)
-    !
-    call cpu_time(t2)
-    write(iostd, '(" Reading Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
-    !
- 1001 format(2i10,4ES24.15E3)
-    !
-    return
-    !
-  end subroutine readUfis
-  !
-  !
-  subroutine writeResults(ik)
-    !! @todo Document `writeResults()` @endto
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    !
-    integer :: ibi, ibf, totalNumberOfElements
-    real(kind = dp) :: t1, t2
-    !
-    character(len = 300) :: text, Uelements
-    !
-    call cpu_time(t1)
-    !
-    call readEigenvalues(ik)
-    !
-    write(iostd, '(" Writing Ufi(:,:).")')
-    !
-    if ( ik < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
-    else if ( ik < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
-    else if ( ik < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
-    endif
-    !
-    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
-    !
-    write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') solidDefect%omega
-    !
-    text = "# Total number of <f|U|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
-    write(17,'(a, " Format : ''(5i10)''")') trim(text)
-    !
-    totalNumberOfElements = (iBandIfinal - iBandIinit + 1)*(iBandFfinal - iBandFinit + 1)
-    write(17,'(5i10)') totalNumberOfElements, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-    !
-    write(17, '("# Final Band, Initial Band, Delta energy, Complex <f|U|i>, |<f|U|i>|^2 Format : ''(2i10,4ES24.15E3)''")')
-    !
-    do ibf = iBandFinit, iBandFfinal
-      do ibi = iBandIinit, iBandIfinal
-        !
-        write(17, 1001) ibf, ibi, eigvI(ibi) - eigvF(ibf), Ufi(ibf,ibi,ik), abs(Ufi(ibf,ibi,ik))**2
-        !    
-      enddo
-    enddo
-    !
-    close(17)
-    !
-    call cpu_time(t2)
-    write(iostd, '(" Writing Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
-    !
- 1001 format(2i10,4ES24.15E3)
-    !
-    return
-    !
-  end subroutine writeResults
-   !
-   !
-  subroutine bessel_j (x, lmax, jl)
-    !! @todo Document `bessel_j()` @endtodo
-    !
-    ! x is the argument of j, jl(0:lmax) is the output values.
-    implicit none
-    integer, intent(in) :: lmax
-    real(kind = dp), intent(in) :: x
-    real(kind = dp), intent(out) :: jl(0:lmax)
-    integer :: l
-    !
-    if (x <= 0.0_dp) then
-      jl = 0.0_dp
-      jl(0) = 1.0_dp
-      return
-    end if
-    !
-    jl(0) = sin(x)/x
-    if (lmax <= 0) return
-    jl(1) = (jl(0)-cos(x))/x
-    if (lmax == 1) return
-    !
-    do l = 2, lmax
-      jl(l) = dble(2*l-1)*jl(l-1)/x - jl(l-2)
-    enddo
-    !
-    return
-    !
-  end subroutine bessel_j
-  !
   !
   !
   subroutine ylm(v_in,lmax,y)
@@ -2446,5 +2019,433 @@ contains
   999 RETURN
   END subroutine ylm
   !
+  !
+  subroutine bessel_j (x, lmax, jl)
+    !! @todo Document `bessel_j()` @endtodo
+    !
+    ! x is the argument of j, jl(0:lmax) is the output values.
+    implicit none
+    integer, intent(in) :: lmax
+    real(kind = dp), intent(in) :: x
+    real(kind = dp), intent(out) :: jl(0:lmax)
+    integer :: l
+    !
+    if (x <= 0.0_dp) then
+      jl = 0.0_dp
+      jl(0) = 1.0_dp
+      return
+    end if
+    !
+    jl(0) = sin(x)/x
+    if (lmax <= 0) return
+    jl(1) = (jl(0)-cos(x))/x
+    if (lmax == 1) return
+    !
+    do l = 2, lmax
+      jl(l) = dble(2*l-1)*jl(l-1)/x - jl(l-2)
+    enddo
+    !
+    return
+    !
+  end subroutine bessel_j
+  !
+  !
+  subroutine writeResults(ik)
+    !! @todo Document `writeResults()` @endto
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
+    !
+    integer :: ibi, ibf, totalNumberOfElements
+    real(kind = dp) :: t1, t2
+    !
+    character(len = 300) :: text, Uelements
+    !
+    call cpu_time(t1)
+    !
+    call readEigenvalues(ik)
+    !
+    write(iostd, '(" Writing Ufi(:,:).")')
+    !
+    if ( ik < 10 ) then
+      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
+    else if ( ik < 100 ) then
+      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
+    else if ( ik < 1000 ) then
+      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
+    endif
+    !
+    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
+    !
+    write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') solidDefect%omega
+    !
+    text = "# Total number of <f|U|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
+    write(17,'(a, " Format : ''(5i10)''")') trim(text)
+    !
+    totalNumberOfElements = (iBandIfinal - iBandIinit + 1)*(iBandFfinal - iBandFinit + 1)
+    write(17,'(5i10)') totalNumberOfElements, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+    !
+    write(17, '("# Final Band, Initial Band, Delta energy, Complex <f|U|i>, |<f|U|i>|^2 Format : ''(2i10,4ES24.15E3)''")')
+    !
+    do ibf = iBandFinit, iBandFfinal
+      do ibi = iBandIinit, iBandIfinal
+        !
+        write(17, 1001) ibf, ibi, eigvI(ibi) - eigvF(ibf), Ufi(ibf,ibi,ik), abs(Ufi(ibf,ibi,ik))**2
+        !    
+      enddo
+    enddo
+    !
+    close(17)
+    !
+    call cpu_time(t2)
+    write(iostd, '(" Writing Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
+    !
+ 1001 format(2i10,4ES24.15E3)
+    !
+    return
+    !
+  end subroutine writeResults
+  !
+  !
+  subroutine readUfis(ik)
+    !! @todo Document `readUfis()` @endtodo
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
+    !
+    integer :: ibi, ibf, totalNumberOfElements, iDum, i
+    real(kind = dp) :: rDum, t1, t2
+    complex(kind = dp):: cUfi
+    !
+    character(len = 300) :: Uelements
+    !
+    call cpu_time(t1)
+    write(iostd, '(" Reading Ufi(:,:) of k-point: ", i4)') ik
+    !
+    if ( ik < 10 ) then
+      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
+    else if ( ik < 100 ) then
+      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
+    else if ( ik < 1000 ) then
+      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
+    endif
+    !
+    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
+    !
+    read(17, *) 
+    read(17, *) 
+    read(17,'(5i10)') totalNumberOfElements, iDum, iDum, iDum, iDum
+    read(17, *) 
+    !
+    do i = 1, totalNumberOfElements
+      !
+      read(17, 1001) ibf, ibi, rDum, cUfi, rDum
+      Ufi(ibf,ibi,ik) = cUfi
+      !    
+    enddo
+    !
+    close(17)
+    !
+    call cpu_time(t2)
+    write(iostd, '(" Reading Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
+    !
+ 1001 format(2i10,4ES24.15E3)
+    !
+    return
+    !
+  end subroutine readUfis
+  !
+  !
+  subroutine calculateVfiElements()
+    !! @todo Document `calculateVFiElements()` @endtodo
+    !
+    implicit none
+    !
+    integer :: ik, ib, nOfEnergies, iE
+    !
+    real(kind = dp) :: eMin, eMax, E, av, sd, x, EiMinusEf, A, DHifMin
+    !
+    real(kind = dp), allocatable :: sumWk(:), sAbsVfiOfE2(:), absVfiOfE2(:)
+    integer, allocatable :: nKsInEbin(:)
+    !
+    character (len = 300) :: text
+    !
+    allocate( DE(iBandIinit:iBandIfinal, perfectCrystal%nKpts), absVfi2(iBandIinit:iBandIfinal, perfectCrystal%nKpts) )
+    ! 
+    DE(:,:) = 0.0_dp
+    absVfi2(:,:) = 0.0_dp 
+    !
+    do ik = 1, perfectCrystal%nKpts
+      !
+      eigvI(:) = 0.0_dp
+      eigvF(:) = 0.0_dp
+      !
+      call readEigenvalues(ik)
+      !
+      do ib = iBandIinit, iBandIfinal
+        !
+        EiMinusEf = eigvI(ib) - eigvF(iBandFinit)
+        absVfi2(ib,ik) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ik))**2 - abs(Ufi(iBandFinit,ib,ik))**4 )
+        !
+        DE(ib, ik) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ik))
+        !
+      enddo
+      !
+    enddo
+    !
+    eMin = minval( DE(:,:) )
+    eMax = maxval( DE(:,:) )
+    !
+    nOfEnergies = int((eMax-eMin)/eBin) + 1
+    !
+    allocate ( absVfiOfE2(0:nOfEnergies), nKsInEbin(0:nOfEnergies), sumWk(0:nOfEnergies) )
+    !
+    absVfiOfE2(:) = 0.0_dp
+    nKsInEbin(:) = 0
+    sumWk(:) = 0.0_dp
+    !
+    do ik = 1, perfectCrystal%nKpts
+      !
+      do ib = iBandIinit, iBandIfinal
+        !
+        if ( abs( eMin - DE(ib,ik)) < 1.0e-3_dp ) DHifMin = absVfi2(ib, ik)
+        iE = int((DE(ib, ik)-eMin)/eBin)
+        if ( absVfi2(ib, ik) > 0.0_dp ) then
+          absVfiOfE2(iE) = absVfiOfE2(iE) + perfectCrystal%wk(ik)*absVfi2(ib, ik)
+          sumWk(iE) = sumWk(iE) + perfectCrystal%wk(ik)
+          nKsInEbin(iE) = nKsInEbin(iE) + 1
+        else
+          write(iostd,*) 'lalala', absVfi2(ib, ik)
+        endif
+        !
+      enddo
+      !
+    enddo
+    !
+    allocate ( sAbsVfiOfE2(0:nOfEnergies) )
+    !
+    sAbsVfiOfE2 = 0.0_dp
+    !
+    open(11, file=trim(VfisOutput)//'ofKpt', status='unknown')
+    !
+    write(11, '("# |<f|V|i>|^2 versus energy for all the k-points.")')
+    write(text, '("# Energy (eV) shifted by half eBin, |<f|V|i>|^2 (Hartree)^2,")')
+    write(11, '(a, " k-point index. Format : ''(2ES24.15E3,i10)''")') trim(text)
+    !
+    do ik = 1, perfectCrystal%nKpts
+      !
+      do ib = iBandIinit, iBandIfinal
+        !
+        iE = int((DE(ib,ik)-eMin)/eBin)
+        av = absVfiOfE2(iE)/sumWk(iE)
+        x = absVfi2(ib,ik)
+        write(11, '(2ES24.15E3,i10)') (eMin + (iE+0.5_dp)*eBin)*HartreeToEv, x, ik
+        write(12, '(2ES24.15E3,i10)') DE(ib,ik)*HartreeToEv, absVfi2(ib, ik), ik
+        !write(11, '(2ES24.15E3,i10)') (eMin + iE*eBin + eBin/2.0_dp), x, ik
+        sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + perfectCrystal%wk(ik)*(x - av)**2/sumWk(iE)
+        !
+      enddo
+      !
+    enddo
+    !
+    close(11)
+    !
+    open(63, file=trim(VfisOutput), status='unknown')
+    !
+    write(63, '("# Averaged |<f|V|i>|^2 over K-points versus energy.")')
+    write(63, '("#                 Cell volume : ", ES24.15E3, " (a.u.)^3,   Format : ''(ES24.15E3)''")') solidDefect%omega
+    write(63, '("#   Minimun transition energy : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eMin
+    write(63, '("# |DHif|^2 at minimum Tr. En. : ", ES24.15E3, " (Hartree^2),Format : ''(ES24.15E3)''")') DHifMin
+    write(63, '("#                  Energy bin : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eBin
+    write(text, '("# Energy (Hartree), averaged |<f|V|i>|^2 over K-points (Hartree)^2,")')
+    write(63, '(a, " standard deviation (Hartree)^2. Format : ''(3ES24.15E3)''")') trim(text)
+    !
+    do iE = 0, nOfEnergies
+      E = iE*eBin
+      av = 0.0_dp
+      sd = 0.0_dp
+      if (nKsInEbin(iE) > 0) then
+        av = absVfiOfE2(iE)/sumWk(iE)
+        sd = sqrt(sAbsVfiOfE2(iE))
+      endif
+      write(63,'(3ES24.15E3)') eMin + E, av, sd
+    enddo
+    !
+    close(63)
+    !
+    return
+    !
+  end subroutine calculateVfiElements
+  !
+  !
+  subroutine readEigenvalues(ik)
+    !! @todo Document `readEigenvalues()` @endtodo
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
+    integer :: ib
+    !
+    character(len = 300) :: iks
+    !
+    call int2str(ik, iks)
+    !
+    open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    do ib = 1, iBandIinit - 1
+      read(72, *)
+    enddo
+    !
+    do ib = iBandIinit, iBandIfinal
+      read(72, '(ES24.15E3)') eigvI(ib)
+    enddo
+    !
+    close(72)
+    !
+    open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(iks))
+    !
+    read(72, * )
+    read(72, * ) 
+    !
+    do ib = 1, iBandFinit - 1
+      read(72, *)
+    enddo
+    !
+    do ib = iBandFinit, iBandFfinal
+      read(72, '(ES24.15E3)') eigvF(ib)
+    enddo
+    !
+    close(72)
+    !
+    return
+    !
+  end subroutine readEigenvalues
+  !
+  !
+  subroutine finalizeCalculation()
+    !! Stop timer, write out total time taken, and close the output file
+    !
+    implicit none
+    !
+    write(iostd,'("-----------------------------------------------------------------")')
+    !
+    call cpu_time(tf)
+    write(iostd, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
+    !
+    close(iostd)
+    !
+    return
+    !
+  end subroutine finalizeCalculation
+  !
+!=====================================================================================================
+! Utility functions that simplify the code and may be used multiple times
+  !
+  !---------------------------------------------------------------------------------------------------------------------------------
+  function wasRead(inputVal, variableName, usage, abortExecution) 
+    !! Determine if an input variable still has the default value.
+    !! If it does, output an error message and possibly set the program
+    !! to abort. Not all variables would cause the program to abort,
+    !! so this program assumes that if you pass in the logical `abortExecution`
+    !! then the variable is required and causes the program to abort 
+    !! if missing.
+    !!
+    !! I could not find a clean way to allow this function to receive
+    !! different types of variables (integer, real, character, etc.), so
+    !! I made the argument be an integer so that each type could be sent
+    !! in a different way. Each case is set up so that the value is tested to
+    !! see if it is less than zero to determine if the variable still has
+    !! its default value
+    !!
+    !! * For strings, the default value is `''`, so pass in 
+    !! `LEN(trim(variable))-1` as this should be less than zero if
+    !! the string still has the default value and greater than or equal 
+    !! to zero otherwise
+    !! * For integers the default values are less than zero, so just pass as is 
+    !! * Real variables also have a negative default value, so just pass the
+    !! value cast from real to integer
+    !!
+    implicit none
+    !
+    integer, intent(in) :: inputVal
+      !! Value to compare with 0 to see if a variable has been read;
+    !
+    character(len=*), intent(in) :: variableName
+      !! Name of the variable used in output message
+    character(len=*), intent(in) :: usage
+      !! Example of how the variable can be used
+    !
+    logical, optional, intent(inout) :: abortExecution
+      !! Optional logical for if the program should be aborted 
+    logical :: wasRead
+      !! Whether or not the input variable was read from the input file;
+      !! this is the return value
+    !
+    !! <h2>Walkthrough</h2>
+    !!
+    wasRead = .true.
+      !! * Default return value is true
+    !
+    if ( inputVal < 0) then
+      !! * If the input variable still has the default value
+      !!    * output an error message
+      !!    * set the program to abort if that variable was sent in
+      !!    * set the return value to false to indicate that the 
+      !!      variable wasn't read
+      !
+      write(iostd, *)
+      write(iostd, '(" Variable : """, a, """ is not defined!")') variableName
+      write(iostd, '(" usage : ", a)') usage
+      if(present(abortExecution)) then
+        !
+        write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+        abortExecution = .true.
+        !
+      endif 
+      !
+      wasRead = .false.
+      !
+    endif
+    !
+    return
+    !
+  end function wasRead
+  !
+  !---------------------------------------------------------------------------------------------------------------------------------
+  subroutine int2str(integ, string)
+    !! @todo Document `int2str()` @endtodo
+    !
+    implicit none
+    integer :: integ
+    character(len = 300) :: string
+    !
+    if ( integ < 10 ) then
+      write(string, '(i1)') integ
+    else if ( integ < 100 ) then
+      write(string, '(i2)') integ
+    else if ( integ < 1000 ) then
+      write(string, '(i3)') integ
+    else if ( integ < 10000 ) then
+      write(string, '(i4)') integ
+    endif
+    !
+    string = trim(string)
+    !
+    return
+    !
+  end subroutine int2str
   !
 end module TMEModule
