@@ -2465,7 +2465,7 @@ contains
   !
   !---------------------------------------------------------------------------------------------------------------------------------
   subroutine int2str(integ, string)
-    !! @todo Document `int2str()` @endtodo
+    !! Write a give integer to a string, using only as many digits as needed
     !
     implicit none
     integer :: integ
