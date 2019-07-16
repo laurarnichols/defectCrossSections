@@ -1,40 +1,43 @@
 program transitionMatrixElements
   !! @todo Finish documentation for main program @endtodo
-  ! Use pre-built mpi library and declarations module that 
-  ! is defined in TME_Module_v28.f90
+  !!
+  !! <h2>Walkthrough</h2>
+  !!
   use mpi
   use TMEModule
+    !! * Use pre-built mpi library and declarations module that 
+    !! is defined in TME_Module_v28.f90
   !
   implicit none
   !
-  ! Declare start and end times
   real(kind = dp) :: t1, t2
+    !! * Declare start and end times
   !
-  ! Initialize MPI environment
   call MPI_INIT(ierr)
-  ! Determine the rank or ID of the calling process
+    !! * Initialize MPI environment
   call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
-  ! Determine the size of the MPI pool (i.e., the number of processes)
+    !! * Determine the rank or ID of the calling process
   call MPI_COMM_SIZE(MPI_COMM_WORLD, numprocs, ierr)
+    !! * Determine the size of the MPI pool (i.e., the number of processes)
   !
-  ! Allocate space for variables
   allocate ( nPWsI(0:numprocs-1), nPWsF(0:numprocs-1) )
   !
-  ! If this is the root process
   if ( myid == root ) then
+    !! * If this is the root process
+    !!    * Call [[TMEModule(module):initializeCalculation(subroutine)]] 
+    !!      to start timer and set default values
+    !!    * Call [[TMEModule(module):readInput(subroutine)]] to read program input and
+    !!      QE Export output
+    !!    * Call [[TMEModule(module):readPWsSet(subroutine)]] to read g vectors from `mgrid` file
     !
     call initializeCalculation(solidDefect, perfectCrystal, elementsPath, VFisOutput, ki, kf, eBin, &
                                iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVFis, t0)
-      !! Call [[TMEModule(module):initializeCalculation(subroutine)]]
     ! 
-    ! Reading input, initializing and checking all variables of the calculation.
     call readInput(perfectCrystal, solidDefect, elementsPath, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
                        ki, kf, calculateVfis, VfisOutput)
     !
-    ! ????????????????????????????????
     call readPWsSet()
     !
-    ! Allocate space for variables
     allocate ( counts(0:numprocs-1), displmnt(0:numprocs-1) )
     allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, perfectCrystal%nKpts) )
     allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )

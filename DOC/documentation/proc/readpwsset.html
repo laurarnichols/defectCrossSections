@@ -235,8 +235,31 @@ public subroutine readPWsSet()
 
 
     
-    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>readPWsSet()</code> </p></div>
-<p>
+    <p>Read the g vectors in Miller indices from <code>mgrid</code> file and convert
+ using reciprocal lattice vectors</p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>
+<p>Open the <code>mgrid</code> file from Export directory from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
+</li>
+<li>
+<p>Ignore the first two lines as they are comments</p>
+</li>
+<li>
+<p>Allocate space for the g vectors</p>
+</li>
+<li>
+<p>Initialize all of the g vectors to zero</p>
+</li>
+<li>
+<p>For each g vector</p>
+<ul>
+<li>Read in the g vector in terms of Miller indices</li>
+<li>Calculate the g vector using the reciprocal lattice vectors from input file
+ Close the <code>mgrid</code> file</li>
+</ul>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -416,22 +439,33 @@ public subroutine readPWsSet()
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readPWsSet</span><span class="p">()</span>
-    <span class="c">!! @todo Document `readPWsSet()` @endtodo</span>
+    <span class="c">!! Read the g vectors in Miller indices from `mgrid` file and convert</span>
+    <span class="c">!! using reciprocal lattice vectors</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
     <span class="c">!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ig</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iGx</span><span class="p">,</span> <span class="n">iGy</span><span class="p">,</span> <span class="n">iGz</span>
     <span class="c">!</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/mgrid&quot;</span><span class="p">)</span>
+      <span class="c">!! * Open the `mgrid` file from Export directory from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
+    <span class="c">!&gt; * Ignore the first two lines as they are comments</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="c">!</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">gvecs</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">numOfGvecs</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="c">!! * Allocate space for the g vectors</span>
     <span class="c">!</span>
     <span class="n">gvecs</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="c">!! * Initialize all of the g vectors to zero</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">numOfGvecs</span>
+      <span class="c">!! * For each g vector</span>
+      <span class="c">!!    * Read in the g vector in terms of Miller indices</span>
+      <span class="c">!!    * Calculate the g vector using the reciprocal lattice vectors from input file</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(4i10)&#39;</span><span class="p">)</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iGx</span><span class="p">,</span> <span class="n">iGy</span><span class="p">,</span> <span class="n">iGz</span>
       <span class="n">gvecs</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">ig</span><span class="p">)</span> <span class="o">=</span> <span class="nb">dble</span><span class="p">(</span><span class="n">iGx</span><span class="p">)</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">bg</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="nb">dble</span><span class="p">(</span><span class="n">iGy</span><span class="p">)</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">bg</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="nb">dble</span><span class="p">(</span><span class="n">iGz</span><span class="p">)</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">bg</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
       <span class="n">gvecs</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="n">ig</span><span class="p">)</span> <span class="o">=</span> <span class="nb">dble</span><span class="p">(</span><span class="n">iGx</span><span class="p">)</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">bg</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="nb">dble</span><span class="p">(</span><span class="n">iGy</span><span class="p">)</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">bg</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="nb">dble</span><span class="p">(</span><span class="n">iGz</span><span class="p">)</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">bg</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
@@ -439,6 +473,7 @@ public subroutine readPWsSet()
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+      <span class="c">!! Close the `mgrid` file</span>
     <span class="c">!</span>
     <span class="k">return</span>
     <span class="c">!</span>

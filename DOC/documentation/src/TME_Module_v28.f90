@@ -919,22 +919,33 @@ contains
   !
   !
   subroutine readPWsSet()
-    !! @todo Document `readPWsSet()` @endtodo
+    !! Read the g vectors in Miller indices from `mgrid` file and convert
+    !! using reciprocal lattice vectors
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     !
     implicit none
     !
     integer :: ig, iDum, iGx, iGy, iGz
     !
     open(72, file=trim(solidDefect%exportDir)//"/mgrid")
+      !! * Open the `mgrid` file from Export directory from [[pw_export_for_tme(program)]]
     !
+    !> * Ignore the first two lines as they are comments
     read(72, * )
     read(72, * )
     !
     allocate ( gvecs(3, solidDefect%numOfGvecs ) )
+      !! * Allocate space for the g vectors
     !
     gvecs(:,:) = 0.0_dp
+      !! * Initialize all of the g vectors to zero
     !
     do ig = 1, solidDefect%numOfGvecs
+      !! * For each g vector
+      !!    * Read in the g vector in terms of Miller indices
+      !!    * Calculate the g vector using the reciprocal lattice vectors from input file
       read(72, '(4i10)') iDum, iGx, iGy, iGz
       gvecs(1,ig) = dble(iGx)*solidDefect%bg(1,1) + dble(iGy)*solidDefect%bg(1,2) + dble(iGz)*solidDefect%bg(1,3)
       gvecs(2,ig) = dble(iGx)*solidDefect%bg(2,1) + dble(iGy)*solidDefect%bg(2,2) + dble(iGz)*solidDefect%bg(2,3)
@@ -942,6 +953,7 @@ contains
     enddo
     !
     close(72)
+      !! Close the `mgrid` file
     !
     return
     !
@@ -953,8 +965,8 @@ contains
     !
     implicit none
     !
-    integer, intent(in)  :: nOfPWs, nOfBlocks
-    !
+    integer, intent(in)  :: nOfPWs
+    integer, intent(in)  :: nOfBlocks
     integer :: iStep, iModu
     !
     iStep = int(nOfPWs/nOfBlocks)
