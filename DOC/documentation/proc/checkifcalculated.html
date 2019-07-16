@@ -227,10 +227,11 @@ public subroutine checkIfCalculated(ik, tmes_file_exists)
 
 
     
-    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>checkIfCalculated()</code> </p></div>
-<p>
+    <p>Determine if the output file for a given k point already exists</p>
+<p><h2>Walkthrough</h2></p>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change if statement to use <code>int2str</code> subroutine </p></div>
-<p>
+<p>* Determine what the file name should be based on the k point index
+ * Check if that file already exists</p>
     
 
     <h3>Arguments</h3>
@@ -256,7 +257,7 @@ public subroutine checkIfCalculated(ik, tmes_file_exists)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>ik</strong></td><td></td>
+  <td><strong>ik</strong></td><td><p>K point index</p></td>
   
 </tr>
 
@@ -271,7 +272,7 @@ public subroutine checkIfCalculated(ik, tmes_file_exists)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>tmes_file_exists</strong></td><td></td>
+  <td><strong>tmes_file_exists</strong></td><td><p>Whether or not the output file exists</p></td>
   
 </tr>
 
@@ -359,7 +360,7 @@ public subroutine checkIfCalculated(ik, tmes_file_exists)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>Uelements</strong></td><td></td><td></td><td></td>
+  <td><strong>Uelements</strong></td><td></td><td></td><td><p>Output file name</p></td>
   
 </tr>
 
@@ -387,16 +388,23 @@ public subroutine checkIfCalculated(ik, tmes_file_exists)
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">checkIfCalculated</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">tmes_file_exists</span><span class="p">)</span>
-    <span class="c">!! @todo Document `checkIfCalculated()` @endtodo</span>
+    <span class="c">!! Determine if the output file for a given k point already exists</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
     <span class="c">!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ik</span>
+      <span class="c">!! K point index</span>
     <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">tmes_file_exists</span>
+      <span class="c">!! Whether or not the output file exists</span>
     <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">Uelements</span>
+      <span class="c">!! Output file name</span>
     <span class="c">!</span>
     <span class="c">!&gt; @todo Change if statement to use `int2str` subroutine @endtodo</span>
+    <span class="c">!&gt; * Determine what the file name should be based on the k point index</span>
     <span class="k">if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="p">)</span> <span class="k">then</span>
 <span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i1,&quot;_kptF_&quot;,i1)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
     <span class="k">else if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">100</span> <span class="p">)</span> <span class="k">then</span>
@@ -410,6 +418,7 @@ public subroutine checkIfCalculated(ik, tmes_file_exists)
     <span class="n">endif</span>
     <span class="c">!</span>
     <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">)</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">Uelements</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">tmes_file_exists</span><span class="p">)</span>
+      <span class="c">!! * Check if that file already exists</span>
     <span class="c">!</span>
     <span class="k">return</span>
     <span class="c">!</span>

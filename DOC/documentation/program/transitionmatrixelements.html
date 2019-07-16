@@ -265,12 +265,17 @@
 <li>Call <a href="../module/tmemodule.html#proc-readpwsset">readPWsSet</a> to read g vectors from <code>mgrid</code> file</li>
 <li>Initialize all values in <code>Ufi</code> matrix to complex double zero</li>
 <li>Figure out how many g vectors/plane waves to give each process</li>
+<li>Initialize the number of initial and final plane waves to zero for each process</li>
+<li>For each process, calculate the initial (before this process) and final (after this process)
+  number of plane waves</li>
 </ul>
 </li>
 </ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if need to allocate space for arrays so soon </p></div>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if SD and PC <code>numOfGvecs</code> should be the same </p></div>
 <p>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if should be solid defect volume or pristine </p></div>
+<p>Broadcast variables from root process to all other processes, allocating space as needed
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if should be solid defect volume or pristine </p></div>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Are pristine and solid defect volume the same? </p></div>
 <p>
     
@@ -430,6 +435,9 @@
     <span class="c">!!    * Call [[TMEModule(module):readPWsSet(subroutine)]] to read g vectors from `mgrid` file</span>
     <span class="c">!!    * Initialize all values in `Ufi` matrix to complex double zero</span>
     <span class="c">!!    * Figure out how many g vectors/plane waves to give each process</span>
+    <span class="c">!!    * Initialize the number of initial and final plane waves to zero for each process</span>
+    <span class="c">!!    * For each process, calculate the initial (before this process) and final (after this process)</span>
+    <span class="c">!!      number of plane waves</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="n">initializeCalculation</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">,</span> <span class="n">elementsPath</span><span class="p">,</span> <span class="n">VFisOutput</span><span class="p">,</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">eBin</span><span class="p">,</span> <span class="p">&amp;</span>
                                <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">calculateVFis</span><span class="p">,</span> <span class="n">t0</span><span class="p">)</span>
@@ -439,6 +447,7 @@
     <span class="c">!</span>
     <span class="k">call </span><span class="n">readPWsSet</span><span class="p">()</span>
     <span class="c">!</span>
+    <span class="c">!&gt; @todo Figure out if need to allocate space for arrays so soon @endtodo</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">counts</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numprocs</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span><span class="c">!, displmnt(0:numprocs-1) )</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">Ufi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nKpts</span><span class="p">)</span> <span class="p">)</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_SDKKPC</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
@@ -452,11 +461,9 @@
     <span class="k">call </span><span class="n">distributePWsToProcs</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">numOfGvecs</span><span class="p">,</span> <span class="n">numprocs</span><span class="p">)</span>
       <span class="c">!! @todo Figure out if SD and PC `numOfGvecs` should be the same @endtodo</span>
     <span class="c">!</span>
-    <span class="c">! Initialize the number of initial and final plane waves to zero for each process</span>
     <span class="n">nPWsI</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">nPWsF</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="c">!</span>
-    <span class="c">! For each process, calculate the number of initial and final plane waves</span>
     <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">numprocs</span> <span class="o">-</span> <span class="mi">1</span>
       <span class="n">nPWsI</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">counts</span><span class="p">(:</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
       <span class="n">nPWsF</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">counts</span><span class="p">(:</span><span class="n">i</span><span class="p">))</span>
@@ -464,7 +471,9 @@
     <span class="c">!  </span>
   <span class="n">endif</span>
   <span class="c">!</span>
-  <span class="c">! Broadcast variables from root process to all other processes</span>
+  <span class="c">!--------------------------------------------------------------------------------------------------------</span>
+  <span class="c">!&gt; Broadcast variables from root process to all other processes, allocating space as needed</span>
+  <span class="c">!</span>
   <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iBandIinit</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
   <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
   <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
@@ -485,23 +494,19 @@
   <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">numOfTypes</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
   <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">JMAX</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
   <span class="c">!</span>
-  <span class="c">! Have other processes allocate space for gvecs so that root can send to them</span>
   <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">/=</span> <span class="n">root</span> <span class="p">)</span> <span class="k">allocate</span> <span class="p">(</span> <span class="n">gvecs</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">numOfGvecs</span><span class="p">)</span> <span class="p">)</span>
   <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">gvecs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">gvecs</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
   <span class="c">!</span>
   <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">/=</span> <span class="n">root</span> <span class="p">)</span> <span class="k">allocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">numOfTypes</span><span class="p">)</span> <span class="p">)</span>
   <span class="c">!</span>
-  <span class="c">! For each type of ???</span>
   <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">numOfTypes</span>
     <span class="c">!</span>
-    <span class="c">! Broadcast the variables in the perfect crystal atoms structure array</span>
     <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">numOfAtoms</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
     <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lMax</span><span class="p">,</span>       <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
     <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lmMax</span><span class="p">,</span>      <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
     <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">nMax</span><span class="p">,</span>       <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
     <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">iRc</span><span class="p">,</span>        <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
     <span class="c">!</span>
-    <span class="c">! Allocate space for arrays in the perfect crystal atoms structure</span>
     <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">/=</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then </span>
 <span class="k">      allocate</span><span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lMax</span><span class="p">)</span> <span class="p">)</span>
       <span class="k">allocate</span><span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">r</span>  <span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">nMax</span><span class="p">)</span> <span class="p">)</span>
@@ -511,7 +516,6 @@
       <span class="k">allocate</span><span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">bes_J_qr</span> <span class="p">(</span> <span class="mi">0</span><span class="p">:</span><span class="n">JMAX</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">iRc</span><span class="p">)</span> <span class="p">)</span>
     <span class="n">endif</span>
     <span class="c">!</span>
-    <span class="c">! Broadcast arrays from root to all other processes</span>
     <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lps</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">lps</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
     <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">r</span><span class="p">,</span>   <span class="n">size</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">r</span><span class="p">),</span>   <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
     <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">rab</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">i</span><span class="p">)%</span><span class="n">rab</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
@@ -564,6 +568,8 @@
   <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">posIon</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">posIon</span><span class="p">),</span> <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
   <span class="c">!</span>
   <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_id</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="c">!--------------------------------------------------------------------------------------------------------</span>
   <span class="c">!</span>
   <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nKpts</span>
     <span class="c">!</span>

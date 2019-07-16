@@ -144,9 +144,10 @@
       <ul>
 <li>Binary file ../TME/src/.TME_Main_v9.f90.swp matches</li>
 <li><code>../TME/src/TME_Main_v9.f90:2:</code> Finish documentation for main program</li>
-<li><code>../TME/src/TME_Main_v9.f90:54:</code> Figure out if SD and PC <code>numOfGvecs</code> should be the same</li>
-<li><code>../TME/src/TME_Main_v9.f90:323:</code> Figure out if should be solid defect volume or pristine</li>
-<li><code>../TME/src/TME_Main_v9.f90:324:</code> Are pristine and solid defect volume the same?</li>
+<li><code>../TME/src/TME_Main_v9.f90:46:</code> Figure out if need to allocate space for arrays so soon</li>
+<li><code>../TME/src/TME_Main_v9.f90:58:</code> Figure out if SD and PC <code>numOfGvecs</code> should be the same</li>
+<li><code>../TME/src/TME_Main_v9.f90:324:</code> Figure out if should be solid defect volume or pristine</li>
+<li><code>../TME/src/TME_Main_v9.f90:325:</code> Are pristine and solid defect volume the same?</li>
 <li><code>../TME/src/TME_Module_v28.f90:34:</code> Change I/O from file to console so that usage matches that of QE</li>
 <li><code>../TME/src/TME_Module_v28.f90:170:</code> Consider changing <code>atom</code> type to <code>element</code> since it holds more than one atom</li>
 <li><code>../TME/src/TME_Module_v28.f90:409:</code> Change <code>checkInitialization()</code> to have arguments to make clear that these variables are getting changed</li>
@@ -157,32 +158,31 @@
 <li><code>../TME/src/TME_Module_v28.f90:847:</code> Figure out if differences in PC and SD <code>F1</code> calculations are intentional</li>
 <li><code>../TME/src/TME_Module_v28.f90:848:</code> Figure out if should be <code>(wps_i wae_j - wae_i wps_j)r_{ab}</code></li>
 <li><code>../TME/src/TME_Module_v28.f90:887:</code> Figure out if intentional to only use <code>JMAX</code> from SD input</li>
-<li><code>../TME/src/TME_Module_v28.f90:1013:</code> Document <code>checkIfCalculated()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1022:</code> Change if statement to use <code>int2str</code> subroutine</li>
-<li><code>../TME/src/TME_Module_v28.f90:1043:</code> Document <code>calculatePWsOverlap()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1072:</code> Document <code>readWfcPC()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1128:</code> Document <code>readWfcSD()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1129:</code> Figure out difference between PC and SD <code>readWfc</code> and possibly merge</li>
-<li><code>../TME/src/TME_Module_v28.f90:1185:</code> Document <code>readProjectionsPC()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1218:</code> Document <code>readProjectionsSD()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1219:</code> Figure out the difference between PC and SD <code>readProjections</code> and possibly merge</li>
-<li><code>../TME/src/TME_Module_v28.f90:1252:</code> Document <code>projectBetaPCwfcSD()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1314:</code> Document <code>projectBetaSDwfcPC()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1315:</code> Figure out the difference between PC and SD <code>projectBeta_wfc_</code> and possibly merge</li>
-<li><code>../TME/src/TME_Module_v28.f90:1377:</code> Document <code>pawCorrectionPsiPC()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1443:</code> Document <code>pawCorrectionSDPhi()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1444:</code> Figure out the difference between PC and SD <code>pawCorrectionPsi</code> and possibly merge</li>
-<li><code>../TME/src/TME_Module_v28.f90:1508:</code> Document <code>pawCorrectionKPC()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1607:</code> Document <code>pawCorrectionSDK()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1608:</code> Figure out the difference between PC and SD <code>pawCorrection_K</code> and possibly merge</li>
-<li><code>../TME/src/TME_Module_v28.f90:1705:</code> Document <code>pawCorrection()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1706:</code> Figure out difference between <code>pawCorrection()</code> and the PC <code>pawCorrection</code> functions</li>
-<li><code>../TME/src/TME_Module_v28.f90:2055:</code> Document <code>bessel_j()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:2085:</code> Document <code>writeResults()</code> @endto</li>
-<li><code>../TME/src/TME_Module_v28.f90:2147:</code> Document <code>readUfis()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:2201:</code> Document <code>calculateVFiElements()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:2323:</code> Document <code>readEigenvalues()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:2460:</code> Document <code>int2str()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1028:</code> Change if statement to use <code>int2str</code> subroutine</li>
+<li><code>../TME/src/TME_Module_v28.f90:1051:</code> Document <code>calculatePWsOverlap()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1080:</code> Document <code>readWfcPC()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1136:</code> Document <code>readWfcSD()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1137:</code> Figure out difference between PC and SD <code>readWfc</code> and possibly merge</li>
+<li><code>../TME/src/TME_Module_v28.f90:1193:</code> Document <code>readProjectionsPC()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1226:</code> Document <code>readProjectionsSD()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1227:</code> Figure out the difference between PC and SD <code>readProjections</code> and possibly merge</li>
+<li><code>../TME/src/TME_Module_v28.f90:1260:</code> Document <code>projectBetaPCwfcSD()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1322:</code> Document <code>projectBetaSDwfcPC()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1323:</code> Figure out the difference between PC and SD <code>projectBeta_wfc_</code> and possibly merge</li>
+<li><code>../TME/src/TME_Module_v28.f90:1385:</code> Document <code>pawCorrectionPsiPC()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1451:</code> Document <code>pawCorrectionSDPhi()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1452:</code> Figure out the difference between PC and SD <code>pawCorrectionPsi</code> and possibly merge</li>
+<li><code>../TME/src/TME_Module_v28.f90:1516:</code> Document <code>pawCorrectionKPC()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1615:</code> Document <code>pawCorrectionSDK()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1616:</code> Figure out the difference between PC and SD <code>pawCorrection_K</code> and possibly merge</li>
+<li><code>../TME/src/TME_Module_v28.f90:1713:</code> Document <code>pawCorrection()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1714:</code> Figure out difference between <code>pawCorrection()</code> and the PC <code>pawCorrection</code> functions</li>
+<li><code>../TME/src/TME_Module_v28.f90:2063:</code> Document <code>bessel_j()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:2093:</code> Document <code>writeResults()</code> @endto</li>
+<li><code>../TME/src/TME_Module_v28.f90:2155:</code> Document <code>readUfis()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:2209:</code> Document <code>calculateVFiElements()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:2331:</code> Document <code>readEigenvalues()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:2468:</code> Document <code>int2str()</code></li>
 </ul>
     </div>
     

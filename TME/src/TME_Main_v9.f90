@@ -31,6 +31,9 @@ program transitionMatrixElements
     !!    * Call [[TMEModule(module):readPWsSet(subroutine)]] to read g vectors from `mgrid` file
     !!    * Initialize all values in `Ufi` matrix to complex double zero
     !!    * Figure out how many g vectors/plane waves to give each process
+    !!    * Initialize the number of initial and final plane waves to zero for each process
+    !!    * For each process, calculate the initial (before this process) and final (after this process)
+    !!      number of plane waves
     !
     call initializeCalculation(solidDefect, perfectCrystal, elementsPath, VFisOutput, ki, kf, eBin, &
                                iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVFis, t0)
@@ -40,6 +43,7 @@ program transitionMatrixElements
     !
     call readPWsSet()
     !
+    !> @todo Figure out if need to allocate space for arrays so soon @endtodo
     allocate ( counts(0:numprocs-1) )!, displmnt(0:numprocs-1) )
     allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, perfectCrystal%nKpts) )
     allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
@@ -53,11 +57,9 @@ program transitionMatrixElements
     call distributePWsToProcs(solidDefect%numOfGvecs, numprocs)
       !! @todo Figure out if SD and PC `numOfGvecs` should be the same @endtodo
     !
-    ! Initialize the number of initial and final plane waves to zero for each process
     nPWsI(:) = 0
     nPWsF(:) = 0
     !
-    ! For each process, calculate the number of initial and final plane waves
     do i = 0, numprocs - 1
       nPWsI(i) = 1 + sum(counts(:i-1))
       nPWsF(i) = sum(counts(:i))
@@ -65,7 +67,9 @@ program transitionMatrixElements
     !  
   endif
   !
-  ! Broadcast variables from root process to all other processes
+  !--------------------------------------------------------------------------------------------------------
+  !> Broadcast variables from root process to all other processes, allocating space as needed
+  !
   call MPI_BCAST(iBandIinit,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(iBandFinit,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
@@ -86,23 +90,19 @@ program transitionMatrixElements
   call MPI_BCAST(perfectCrystal%numOfTypes, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   call MPI_BCAST(JMAX, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   !
-  ! Have other processes allocate space for gvecs so that root can send to them
   if ( myid /= root ) allocate ( gvecs(3, solidDefect%numOfGvecs) )
   call MPI_BCAST(gvecs, size(gvecs), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !
   if ( myid /= root ) allocate ( perfectCrystal%atoms(perfectCrystal%numOfTypes) )
   !
-  ! For each type of ???
   do i = 1, perfectCrystal%numOfTypes
     !
-    ! Broadcast the variables in the perfect crystal atoms structure array
     call MPI_BCAST(perfectCrystal%atoms(i)%numOfAtoms, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(perfectCrystal%atoms(i)%lMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(perfectCrystal%atoms(i)%lmMax,      1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(perfectCrystal%atoms(i)%nMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(perfectCrystal%atoms(i)%iRc,        1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     !
-    ! Allocate space for arrays in the perfect crystal atoms structure
     if ( myid /= root ) then 
       allocate( perfectCrystal%atoms(i)%lps(perfectCrystal%atoms(i)%lMax) )
       allocate( perfectCrystal%atoms(i)%r  (perfectCrystal%atoms(i)%nMax) )
@@ -112,7 +112,6 @@ program transitionMatrixElements
       allocate( perfectCrystal%atoms(i)%bes_J_qr ( 0:JMAX, perfectCrystal%atoms(i)%iRc) )
     endif
     !
-    ! Broadcast arrays from root to all other processes
     call MPI_BCAST(perfectCrystal%atoms(i)%lps, size(perfectCrystal%atoms(i)%lps), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
     call MPI_BCAST(perfectCrystal%atoms(i)%r,   size(perfectCrystal%atoms(i)%r),   MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
     call MPI_BCAST(perfectCrystal%atoms(i)%rab, size(perfectCrystal%atoms(i)%rab), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
@@ -165,6 +164,8 @@ program transitionMatrixElements
   call MPI_BCAST(solidDefect%posIon, size(solidDefect%posIon), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !
   allocate ( paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
+  !
+  !--------------------------------------------------------------------------------------------------------
   !
   do ik = 1, perfectCrystal%nKpts
     !

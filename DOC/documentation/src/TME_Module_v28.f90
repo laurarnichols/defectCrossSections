@@ -1010,16 +1010,23 @@ contains
   !
   !
   subroutine checkIfCalculated(ik, tmes_file_exists)
-    !! @todo Document `checkIfCalculated()` @endtodo
+    !! Determine if the output file for a given k point already exists
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     !
     implicit none
     !
     integer, intent(in) :: ik
+      !! K point index
     logical, intent(out) :: tmes_file_exists
+      !! Whether or not the output file exists
     !
     character(len = 300) :: Uelements
+      !! Output file name
     !
     !> @todo Change if statement to use `int2str` subroutine @endtodo
+    !> * Determine what the file name should be based on the k point index
     if ( ik < 10 ) then
       write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
     else if ( ik < 100 ) then
@@ -1033,6 +1040,7 @@ contains
     endif
     !
     inquire(file = trim(elementsPath)//trim(Uelements), exist = tmes_file_exists)
+      !! * Check if that file already exists
     !
     return
     !
