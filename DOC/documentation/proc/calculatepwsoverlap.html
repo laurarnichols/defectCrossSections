@@ -231,6 +231,27 @@ public subroutine calculatePWsOverlap(ik)
     
     <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>calculatePWsOverlap()</code> </p></div>
 <p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>
+<p>Read the perfect crystal wavefunction ([[TMEModule(module)::readWfc(subroutine)]])</p>
+</li>
+<li>
+<p>Read the solid defect wavefunction ([[TMEModule(module)::readWfc(subroutine)]])</p>
+</li>
+<li>
+<p>Initialize <code>Ufi</code> for the given k point to complex double zero</p>
+</li>
+<li>
+<p>For each initial band, calculate <script type="math/tex">\sum \phi_f^*\psi_i</script> (overlap??) with each final band</p>
+</li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out what <code>Ufi</code> is supposed to be </p></div>
+<p><div class="alert alert-info" role="alert"><h4>Note</h4><p><code>Ufi</code> may be representing the overlap (<script type="math/tex">\langle\tilde{\Psi}|\tilde{\Phi}\rangle</script>). 
+ But if that is the case, why is <script type="math/tex">\Phi</script> the one that has the complex conjugate? And why
+ is there no integral?
+ </p></div>
+<p>
     
 
     <h3>Arguments</h3>
@@ -256,7 +277,7 @@ public subroutine calculatePWsOverlap(ik)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>ik</strong></td><td></td>
+  <td><strong>ik</strong></td><td><p>K point index</p></td>
   
 </tr>
 
@@ -346,7 +367,7 @@ public subroutine calculatePWsOverlap(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ibi</strong></td><td></td><td></td><td></td>
+  <td><strong>ibi</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -360,7 +381,7 @@ public subroutine calculatePWsOverlap(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ibf</strong></td><td></td><td></td><td></td>
+  <td><strong>ibf</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -389,24 +410,42 @@ public subroutine calculatePWsOverlap(ik)
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">calculatePWsOverlap</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
     <span class="c">!! @todo Document `calculatePWsOverlap()` @endtodo</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
     <span class="c">!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ik</span>
+      <span class="c">!! K point index</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span>
+      <span class="c">!! Loop index</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="n">readWfc</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">)</span>
+      <span class="c">!! * Read the perfect crystal wavefunction ([[TMEModule(module)::readWfc(subroutine)]])</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="n">readWfc</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">)</span>
+      <span class="c">!! * Read the solid defect wavefunction ([[TMEModule(module)::readWfc(subroutine)]])</span>
     <span class="c">!</span>
     <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+      <span class="c">!! * Initialize `Ufi` for the given k point to complex double zero</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span> 
       <span class="c">!</span>
       <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+        <span class="c">!! * For each initial band, calculate \(\sum \phi_f^*\psi_i\) (overlap??) with each final band</span>
+        <span class="c">!!</span>
         <span class="n">Ufi</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">conjg</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">wfc</span><span class="p">(:,</span><span class="n">ibf</span><span class="p">))</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wfc</span><span class="p">(:,</span><span class="n">ibi</span><span class="p">))</span>
+          <span class="c">!! @todo Figure out what `Ufi` is supposed to be @endtodo</span>
+          <span class="c">!! @note </span>
+          <span class="c">!! `Ufi` may be representing the overlap (\(\langle\tilde{\Psi}|\tilde{\Phi}\rangle\)). </span>
+          <span class="c">!! But if that is the case, why is \(\Phi\) the one that has the complex conjugate? And why</span>
+          <span class="c">!! is there no integral?</span>
+          <span class="c">!! @endnote</span>
+          <span class="c">!!</span>
         <span class="c">!if ( ibi == ibf ) write(iostd,&#39;(2i4,3ES24.15E3)&#39;) ibf, ibi, Ufi(ibf, ibi, ik), abs(Ufi(ibf, ibi, ik))**2</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
     <span class="n">enddo</span>

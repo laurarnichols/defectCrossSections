@@ -1037,24 +1037,42 @@ contains
   !
   subroutine calculatePWsOverlap(ik)
     !! @todo Document `calculatePWsOverlap()` @endtodo
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     !
     implicit none
     !
     integer, intent(in) :: ik
+      !! K point index
     integer :: ibi, ibf
+      !! Loop index
     !
     call readWfc(ik, perfectCrystal)
+      !! * Read the perfect crystal wavefunction ([[TMEModule(module)::readWfc(subroutine)]])
     !
     call readWfc(ik, solidDefect)
+      !! * Read the solid defect wavefunction ([[TMEModule(module)::readWfc(subroutine)]])
     !
     Ufi(:,:,ik) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+      !! * Initialize `Ufi` for the given k point to complex double zero
     !
     do ibi = iBandIinit, iBandIfinal 
       !
       do ibf = iBandFinit, iBandFfinal
+        !! * For each initial band, calculate \(\sum \phi_f^*\psi_i\) (overlap??) with each final band
+        !!
         Ufi(ibf, ibi, ik) = sum(conjg(solidDefect%wfc(:,ibf))*perfectCrystal%wfc(:,ibi))
+          !! @todo Figure out what `Ufi` is supposed to be @endtodo
+          !! @note 
+          !! `Ufi` may be representing the overlap (\(\langle\tilde{\Psi}|\tilde{\Phi}\rangle\)). 
+          !! But if that is the case, why is \(\Phi\) the one that has the complex conjugate? And why
+          !! is there no integral?
+          !! @endnote
+          !!
         !if ( ibi == ibf ) write(iostd,'(2i4,3ES24.15E3)') ibf, ibi, Ufi(ibf, ibi, ik), abs(Ufi(ibf, ibi, ik))**2
         flush(iostd)
+        !
       enddo
       !
     enddo
