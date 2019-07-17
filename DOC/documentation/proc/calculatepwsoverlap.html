@@ -234,10 +234,10 @@ public subroutine calculatePWsOverlap(ik)
 <p><h2>Walkthrough</h2></p>
 <ul>
 <li>
-<p>Read the perfect crystal wavefunction using [[TMEModule(module)::readWfc(subroutine)]]</p>
+<p>Read the perfect crystal wavefunction (<a href="../module/tmemodule.html#proc-readwfc">readWfc</a>)</p>
 </li>
 <li>
-<p>Read the solid defect wavefunction using [[TMEModule(module)::readWfc(subroutine)]]</p>
+<p>Read the solid defect wavefunction (<a href="../module/tmemodule.html#proc-readwfc">readWfc</a>)</p>
 </li>
 <li>
 <p>Initialize <code>Ufi</code> for the given k point to complex double zero</p>
@@ -422,10 +422,10 @@ public subroutine calculatePWsOverlap(ik)
       <span class="c">!! Loop index</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="n">readWfc</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">)</span>
-      <span class="c">!! * Read the perfect crystal wavefunction using [[TMEModule(module)::readWfc(subroutine)]]</span>
+      <span class="c">!! * Read the perfect crystal wavefunction ([[TMEModule(module):readWfc(subroutine)]])</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="n">readWfc</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">)</span>
-      <span class="c">!! * Read the solid defect wavefunction using [[TMEModule(module)::readWfc(subroutine)]]</span>
+      <span class="c">!! * Read the solid defect wavefunction ([[TMEModule(module):readWfc(subroutine)]])</span>
     <span class="c">!</span>
     <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
       <span class="c">!! * Initialize `Ufi` for the given k point to complex double zero</span>

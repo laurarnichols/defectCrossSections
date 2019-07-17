@@ -1049,10 +1049,10 @@ contains
       !! Loop index
     !
     call readWfc(ik, perfectCrystal)
-      !! * Read the perfect crystal wavefunction using [[TMEModule(module)::readWfc(subroutine)]]
+      !! * Read the perfect crystal wavefunction ([[TMEModule(module):readWfc(subroutine)]])
     !
     call readWfc(ik, solidDefect)
-      !! * Read the solid defect wavefunction using [[TMEModule(module)::readWfc(subroutine)]]
+      !! * Read the solid defect wavefunction ([[TMEModule(module):readWfc(subroutine)]])
     !
     Ufi(:,:,ik) = cmplx(0.0_dp, 0.0_dp, kind = dp)
       !! * Initialize `Ufi` for the given k point to complex double zero
