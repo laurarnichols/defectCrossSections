@@ -395,9 +395,9 @@ public subroutine calculatePWsOverlap(ik)
     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ik</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span>
     <span class="c">!</span>
-    <span class="k">call </span><span class="n">readWfcPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">readWfc</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">)</span>
     <span class="c">!</span>
-    <span class="k">call </span><span class="n">readWfcSD</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">readWfc</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">)</span>
     <span class="c">!</span>
     <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
     <span class="c">!</span>

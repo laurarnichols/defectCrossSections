@@ -10,7 +10,7 @@
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>readWfcPC &ndash; Carrier Cross Sections</title>
+    <title>readWfc &ndash; Carrier Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -114,7 +114,7 @@
     
   
   <div class="row">
-    <h1>readWfcPC
+    <h1>readWfc
       <small>Subroutine</small>
     
     </h1>
@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.8% of total for procedures.">36 statements</a>
+    title=" 0.8% of total for procedures.">37 statements</a>
      </li> 
      
      
@@ -149,7 +149,7 @@
      <li><a href='../module/tmemodule.html'>TMEModule</a></li>
     
   
-     <li class="active">readWfcPC</li>
+     <li class="active">readWfc</li>
   </ol>
 </div>
 </div>
@@ -177,17 +177,17 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-ib">ib</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-ib">ib</a>
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-ig%7E4">ig</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-ig%7E4">ig</a>
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-idumv">iDumV</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-idumv">iDumV</a>
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-pwgind">pwGind</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-pwgind">pwGind</a>
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-wfc%7E2">wfc</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-wfc%7E2">wfc</a>
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-iks%7E3">iks</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-iks%7E3">iks</a>
       
     </div>
   </div>
@@ -215,7 +215,7 @@
 <div class="panel panel-primary">
   <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
   <div class="list-group">
-    <a class="list-group-item" href="../proc/readwfcpc.html#src">readWfcPC</a>
+    <a class="list-group-item" href="../proc/readwfc.html#src">readWfc</a>
   </div>
 </div>
 
@@ -227,7 +227,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine readWfcPC(ik)
+public subroutine readWfc(ik, system)
     
     
    
@@ -313,6 +313,22 @@ public subroutine readWfcPC(ik)
   
 </tr>
 
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-system%7E2"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>system</strong></td><td><p>Holds the structure for the system you are working on
+ (either <code>perfectCrystal</code> or <code>solidDefect</code></p></td>
+  
+</tr>
+
 </tbody>
 </table>
 
@@ -335,17 +351,17 @@ public subroutine readWfcPC(ik)
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-ib">ib</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-ib">ib</a>
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-ig%7E4">ig</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-ig%7E4">ig</a>
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-idumv">iDumV</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-idumv">iDumV</a>
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-pwgind">pwGind</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-pwgind">pwGind</a>
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-wfc%7E2">wfc</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-wfc%7E2">wfc</a>
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-iks%7E3">iks</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-iks%7E3">iks</a>
       
     </div>
   </div>
@@ -373,7 +389,7 @@ public subroutine readWfcPC(ik)
 <div class="panel panel-primary">
   <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
   <div class="list-group">
-    <a class="list-group-item" href="../proc/readwfcpc.html#src">readWfcPC</a>
+    <a class="list-group-item" href="../proc/readwfc.html#src">readWfc</a>
   </div>
 </div>
 
@@ -504,7 +520,7 @@ public subroutine readWfcPC(ik)
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readWfcPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readWfc</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="nb">system</span><span class="p">)</span>
     <span class="c">!! Open the `grid.ki` file from [[pw_export_for_tme(program)]]</span>
     <span class="c">!! to get the indices for the wavefunction to be stored in, then</span>
     <span class="c">!! open the `wfc.ki` file and read in the wavefunction for the </span>
@@ -530,20 +546,24 @@ public subroutine readWfcPC(ik)
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">iks</span>
       <span class="c">!! String version of the k point index</span>
     <span class="c">!</span>
+    <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="nb">system</span>
+      <span class="c">!! Holds the structure for the system you are working on</span>
+      <span class="c">!! (either `perfectCrystal` or `solidDefect`</span>
+    <span class="c">!</span>
     <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">iks</span><span class="p">)</span>
       <span class="c">!! * Convert the k point index to a string</span>
     <span class="c">!</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/grid.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/grid.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
       <span class="c">!! * Open the `grid.ki` file from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
     <span class="c">!&gt; * Ignore the first two lines as they are comments</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="k">allocate</span> <span class="p">(</span> <span class="n">pwGind</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">pwGind</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span> <span class="p">)</span>
       <span class="c">!! * Allocate space for `pwGind`</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
       <span class="c">!! * For each plane wave for a given k point, </span>
       <span class="c">!!   read in the indices for the plane waves that </span>
       <span class="c">!!   are held in `wfc.ki`</span>
@@ -555,7 +575,7 @@ public subroutine readWfcPC(ik)
     <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
       <span class="c">!! * Close the `grid.ki` file</span>
     <span class="c">!</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/wfc.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/wfc.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
       <span class="c">!! * Open the `wfc.ki` file from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
     <span class="c">!&gt; Ignore the first two lines because they are comments</span>
@@ -563,7 +583,7 @@ public subroutine readWfcPC(ik)
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iBandIinit</span> <span class="o">-</span> <span class="mi">1</span>
-      <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+      <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
         <span class="c">!! * For each band before `iBandInit`, ignore all of the</span>
         <span class="c">!!   plane waves for the given k point</span>
         <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
@@ -571,17 +591,17 @@ public subroutine readWfcPC(ik)
       <span class="n">enddo</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
-    <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wfc</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+    <span class="nb">system</span><span class="p">%</span><span class="n">wfc</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
       <span class="c">!! * Initialize the wavefunction to complex double zero</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
-      <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+      <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
         <span class="c">!! * For bands between `iBandIinit` and `iBandIfinal`,</span>
         <span class="c">!!   read in all of the plane waves for the given k point</span>
         <span class="c">!!   and store them in the proper index of the system&#39;s `wfc`</span>
         <span class="c">!</span>
         <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">wfc</span>
-        <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wfc</span><span class="p">(</span><span class="n">pwGind</span><span class="p">(</span><span class="n">ig</span><span class="p">),</span> <span class="n">ib</span><span class="p">)</span> <span class="o">=</span> <span class="n">wfc</span>
+        <span class="nb">system</span><span class="p">%</span><span class="n">wfc</span><span class="p">(</span><span class="n">pwGind</span><span class="p">(</span><span class="n">ig</span><span class="p">),</span> <span class="n">ib</span><span class="p">)</span> <span class="o">=</span> <span class="n">wfc</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
     <span class="n">enddo</span>
@@ -594,7 +614,7 @@ public subroutine readWfcPC(ik)
     <span class="c">!</span>
     <span class="k">return</span>
     <span class="c">!</span>
-  <span class="k">end subroutine </span><span class="n">readWfcPC</span>
+  <span class="k">end subroutine </span><span class="n">readWfc</span>
 </pre></div>
 
     </section>

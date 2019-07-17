@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="27.2% of total for modules and submodules.">1234 statements</a>
+    title="26.7% of total for modules and submodules.">1200 statements</a>
      </li> 
      
      
@@ -217,9 +217,9 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-ierr%7E3">ierr</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-ig%7E10">ig</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-ig%7E9">ig</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-ik%7E19">ik</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-ik%7E18">ik</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-ind2">ind2</a>
       
@@ -454,9 +454,7 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#proc-calculatepwsoverlap">calculatePWsOverlap</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#proc-readwfcpc">readWfcPC</a>
-      
-      <a class="list-group-item" href="../module/tmemodule.html#proc-readwfcsd">readWfcSD</a>
+      <a class="list-group-item" href="../module/tmemodule.html#proc-readwfc">readWfc</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#proc-readprojectionspc">readProjectionsPC</a>
       
@@ -575,9 +573,9 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-ierr%7E3">ierr</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-ig%7E10">ig</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-ig%7E9">ig</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-ik%7E19">ik</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-ik%7E18">ik</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-ind2">ind2</a>
       
@@ -812,9 +810,7 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#proc-calculatepwsoverlap">calculatePWsOverlap</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#proc-readwfcpc">readWfcPC</a>
-      
-      <a class="list-group-item" href="../module/tmemodule.html#proc-readwfcsd">readWfcSD</a>
+      <a class="list-group-item" href="../module/tmemodule.html#proc-readwfc">readWfc</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#proc-readprojectionspc">readProjectionsPC</a>
       
@@ -1187,7 +1183,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-ig%7E10"></span>integer,</td>
+  <td><span class="anchor" id="variable-ig%7E9"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -1201,7 +1197,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-ik%7E19"></span>integer,</td>
+  <td><span class="anchor" id="variable-ik%7E18"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -3938,8 +3934,8 @@ public subroutine <a href='../proc/calculatepwsoverlap.html'>calculatePWsOverlap
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-readwfcpc"></span><h3>
-public subroutine <a href='../proc/readwfcpc.html'>readWfcPC</a>(ik)
+  <div class="panel-heading codesum"><span class="anchor" id="proc-readwfc"></span><h3>
+public subroutine <a href='../proc/readwfc.html'>readWfc</a>(ik, system)
     
     
    
@@ -3957,7 +3953,7 @@ public subroutine <a href='../proc/readwfcpc.html'>readWfcPC</a>(ik)
 <p>Open the <code>grid.ki</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a>
  to get the indices for the wavefunction to be stored in, then
  open the <code>wfc.ki</code> file and read in the wavefunction for the 
- proper bands and store in the proper indices in the system's <code>wfc</code></p><a href="../proc/readwfcpc.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+ proper bands and store in the proper indices in the system's <code>wfc</code></p><a href="../proc/readwfc.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -3987,62 +3983,19 @@ public subroutine <a href='../proc/readwfcpc.html'>readWfcPC</a>(ik)
   
 </tr>
 
-</tbody>
-</table>
-
-      
-    
-    
-
-  </div>
-  </div>
-
-    
-    
-  <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-readwfcsd"></span><h3>
-public subroutine <a href='../proc/readwfcsd.html'>readWfcSD</a>(ik)
-    
-    
-   
-</h3></div>
-  <div class="panel-body">
-       
-    
-
-
-
-
-
-
-
-<p></p><a href="../proc/readwfcsd.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-    <h4>Arguments</h4>
-    
-      
-      
-<table class="table table-striped varlist">
-<thead><tr><th>Type</th>
-<th>Intent</th><th>Optional</th>
-<th>Attributes</th><th></th><th>Name</th><th></th></thead>
-
-
-
-<tbody>
-
   
   
   
   
 <tr>
   
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
+  <td><span class="anchor" ></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td>intent(inout)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>ik</strong></td><td></td>
+  <td><strong>system</strong></td><td><p>Holds the structure for the system you are working on
+ (either <code>perfectCrystal</code> or <code>solidDefect</code></p></td>
   
 </tr>
 

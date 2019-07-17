@@ -1043,9 +1043,9 @@ contains
     integer, intent(in) :: ik
     integer :: ibi, ibf
     !
-    call readWfcPC(ik)
+    call readWfc(ik, perfectCrystal)
     !
-    call readWfcSD(ik)
+    call readWfc(ik, solidDefect)
     !
     Ufi(:,:,ik) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
@@ -1064,7 +1064,7 @@ contains
   end subroutine calculatePWsOverlap
   !
   !
-  subroutine readWfcPC(ik)
+  subroutine readWfc(ik, system)
     !! Open the `grid.ki` file from [[pw_export_for_tme(program)]]
     !! to get the indices for the wavefunction to be stored in, then
     !! open the `wfc.ki` file and read in the wavefunction for the 
@@ -1090,20 +1090,24 @@ contains
     character(len = 300) :: iks
       !! String version of the k point index
     !
+    TYPE(crystal), intent(inout) :: system
+      !! Holds the structure for the system you are working on
+      !! (either `perfectCrystal` or `solidDefect`
+    !
     call int2str(ik, iks)
       !! * Convert the k point index to a string
     !
-    open(72, file=trim(perfectCrystal%exportDir)//"/grid."//trim(iks))
+    open(72, file=trim(system%exportDir)//"/grid."//trim(iks))
       !! * Open the `grid.ki` file from [[pw_export_for_tme(program)]]
     !
     !> * Ignore the first two lines as they are comments
     read(72, * )
     read(72, * )
     !
-    allocate ( pwGind(perfectCrystal%npws(ik)) )
+    allocate ( pwGind(system%npws(ik)) )
       !! * Allocate space for `pwGind`
     !
-    do ig = 1, perfectCrystal%npws(ik)
+    do ig = 1, system%npws(ik)
       !! * For each plane wave for a given k point, 
       !!   read in the indices for the plane waves that 
       !!   are held in `wfc.ki`
@@ -1115,7 +1119,7 @@ contains
     close(72)
       !! * Close the `grid.ki` file
     !
-    open(72, file=trim(perfectCrystal%exportDir)//"/wfc."//trim(iks))
+    open(72, file=trim(system%exportDir)//"/wfc."//trim(iks))
       !! * Open the `wfc.ki` file from [[pw_export_for_tme(program)]]
     !
     !> Ignore the first two lines because they are comments
@@ -1123,7 +1127,7 @@ contains
     read(72, * )
     !
     do ib = 1, iBandIinit - 1
-      do ig = 1, perfectCrystal%npws(ik)
+      do ig = 1, system%npws(ik)
         !! * For each band before `iBandInit`, ignore all of the
         !!   plane waves for the given k point
         read(72, *)
@@ -1131,17 +1135,17 @@ contains
       enddo
     enddo
     !
-    perfectCrystal%wfc(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    system%wfc(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
       !! * Initialize the wavefunction to complex double zero
     !
     do ib = iBandIinit, iBandIfinal
-      do ig = 1, perfectCrystal%npws(ik)
+      do ig = 1, system%npws(ik)
         !! * For bands between `iBandIinit` and `iBandIfinal`,
         !!   read in all of the plane waves for the given k point
         !!   and store them in the proper index of the system's `wfc`
         !
         read(72, '(2ES24.15E3)') wfc
-        perfectCrystal%wfc(pwGind(ig), ib) = wfc
+        system%wfc(pwGind(ig), ib) = wfc
         !
       enddo
     enddo
@@ -1154,65 +1158,7 @@ contains
     !
     return
     !
-  end subroutine readWfcPC
-  !
-  !
-  subroutine readWfcSD(ik)
-    !! @todo Document `readWfcSD()` @endtodo
-    !! @todo Figure out difference between PC and SD `readWfc` and possibly merge @endtodo
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: ib, ig, iDumV(3)
-    integer, allocatable :: pwGind(:)
-    !
-    complex(kind = dp) :: wfc
-    !
-    character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
-    open(72, file=trim(solidDefect%exportDir)//"/grid."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    allocate ( pwGind(solidDefect%npws(ik)) )
-    !
-    do ig = 1, solidDefect%npws(ik)
-      read(72, '(4i10)') pwGind(ig), iDumV(1:3)
-    enddo
-    !
-    close(72)
-    !
-    open(72, file=trim(solidDefect%exportDir)//"/wfc."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    do ib = 1, iBandFinit - 1
-      do ig = 1, solidDefect%npws(ik)
-        read(72, *)
-      enddo
-    enddo
-    !
-    solidDefect%wfc(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-    !
-    do ib = iBandFinit, iBandFfinal
-      do ig = 1, solidDefect%npws(ik)
-        read(72, '(2ES24.15E3)') wfc
-        solidDefect%wfc(pwGind(ig), ib) = wfc
-      enddo
-    enddo
-    !
-    close(72)
-    !
-    deallocate ( pwGind )
-    !
-    return
-    !
-  end subroutine readWfcSD
+  end subroutine readWfc
   !
   !
   subroutine readProjectionsPC(ik)
