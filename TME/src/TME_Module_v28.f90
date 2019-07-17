@@ -1068,55 +1068,89 @@ contains
   !
   !
   subroutine readWfcPC(ik)
-    !! @todo Document `readWfcPC()` @endtodo
+    !! Open the `grid.ki` file from [[pw_export_for_tme(program)]]
+    !! to get the indices for the wavefunction to be stored in, then
+    !! open the `wfc.ki` file and read in the wavefunction for the 
+    !! proper bands and store in the proper indices in the system's `wfc`
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     !
     implicit none
     !
     integer, intent(in) :: ik
-    integer :: ib, ig, iDumV(3)
+      !! K point index
+    integer :: ib, ig
+      !! Loop index
+    integer :: iDumV(3)
     !
     complex(kind = dp) :: wfc
+      !! Wavefunction
     !
     character(len = 300) :: iks
+      !! String version of the k point index
     !
     call int2str(ik, iks)
+      !! * Convert the k point index to a string
     !
     open(72, file=trim(perfectCrystal%exportDir)//"/grid."//trim(iks))
+      !! * Open the `grid.ki` file from [[pw_export_for_tme(program)]]
     !
+    !> * Ignore the first two lines as they are comments
     read(72, * )
     read(72, * )
     !
     allocate ( pwGindPC(perfectCrystal%npws(ik)) )
+      !! * Allocate space for `pwGindPC`
     !
     do ig = 1, perfectCrystal%npws(ik)
+      !! * For each plane wave for a given k point, 
+      !!   read in the indices for the plane waves that 
+      !!   are held in `wfc.ki`
+      !
       read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
+      !
     enddo
     !
     close(72)
+      !! * Close the `grid.ki` file
     !
     open(72, file=trim(perfectCrystal%exportDir)//"/wfc."//trim(iks))
+      !! * Open the `wfc.ki` file from [[pw_export_for_tme(program)]]
     !
+    !> Ignore the first two lines because they are comments
     read(72, * )
     read(72, * )
     !
     do ib = 1, iBandIinit - 1
       do ig = 1, perfectCrystal%npws(ik)
+        !! * For each band before `iBandInit`, ignore all of the
+        !!   plane waves for the given k point
         read(72, *)
+        !
       enddo
     enddo
     !
     wfcPC(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+      !! * Initialize the wavefunction to complex double zero
     !
     do ib = iBandIinit, iBandIfinal
       do ig = 1, perfectCrystal%npws(ik)
+        !! * For bands between `iBandIinit` and `iBandIfinal`,
+        !!   read in all of the plane waves for the given k point
+        !!   and store them in the proper index of the system's `wfc`
+        !
         read(72, '(2ES24.15E3)') wfc
         wfcPC(pwGindPC(ig), ib) = wfc
+        !
       enddo
     enddo
     !
     close(72)
+      !! * Close the `wfc.ki` file
     !
     deallocate ( pwGindPC )
+      !! * Deallocate space for `pwGindPC`
     !
     return
     !

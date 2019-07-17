@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.7% of total for procedures.">34 statements</a>
+    title=" 0.8% of total for procedures.">35 statements</a>
      </li> 
      
      
@@ -235,8 +235,53 @@ public subroutine readWfcPC(ik)
 
 
     
-    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>readWfcPC()</code> </p></div>
-<p>
+    <p>Open the <code>grid.ki</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a>
+ to get the indices for the wavefunction to be stored in, then
+ open the <code>wfc.ki</code> file and read in the wavefunction for the 
+ proper bands and store in the proper indices in the system's <code>wfc</code></p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>
+<p>Convert the k point index to a string</p>
+</li>
+<li>
+<p>Open the <code>grid.ki</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
+</li>
+<li>
+<p>Ignore the first two lines as they are comments</p>
+</li>
+<li>
+<p>Allocate space for <code>pwGindPC</code></p>
+</li>
+<li>
+<p>For each plane wave for a given k point, 
+   read in the indices for the plane waves that 
+   are held in <code>wfc.ki</code></p>
+</li>
+<li>
+<p>Close the <code>grid.ki</code> file</p>
+</li>
+<li>
+<p>Open the <code>wfc.ki</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
+</li>
+</ul>
+<p>Ignore the first two lines because they are comments
+ * For each band before <code>iBandInit</code>, ignore all of the
+   plane waves for the given k point
+ * Initialize the wavefunction to complex double zero</p>
+<ul>
+<li>
+<p>For bands between <code>iBandIinit</code> and <code>iBandIfinal</code>,
+   read in all of the plane waves for the given k point
+   and store them in the proper index of the system's <code>wfc</code></p>
+</li>
+<li>
+<p>Close the <code>wfc.ki</code> file</p>
+</li>
+<li>
+<p>Deallocate space for <code>pwGindPC</code></p>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -262,7 +307,7 @@ public subroutine readWfcPC(ik)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>ik</strong></td><td></td>
+  <td><strong>ik</strong></td><td><p>K point index</p></td>
   
 </tr>
 
@@ -358,7 +403,7 @@ public subroutine readWfcPC(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ib</strong></td><td></td><td></td><td></td>
+  <td><strong>ib</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -372,7 +417,7 @@ public subroutine readWfcPC(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ig</strong></td><td></td><td></td><td></td>
+  <td><strong>ig</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -400,7 +445,7 @@ public subroutine readWfcPC(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>wfc</strong></td><td></td><td></td><td></td>
+  <td><strong>wfc</strong></td><td></td><td></td><td><p>Wavefunction</p></td>
   
 </tr>
 
@@ -414,7 +459,7 @@ public subroutine readWfcPC(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iks</strong></td><td></td><td></td><td></td>
+  <td><strong>iks</strong></td><td></td><td></td><td><p>String version of the k point index</p></td>
   
 </tr>
 
@@ -442,55 +487,89 @@ public subroutine readWfcPC(ik)
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readWfcPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
-    <span class="c">!! @todo Document `readWfcPC()` @endtodo</span>
+    <span class="c">!! Open the `grid.ki` file from [[pw_export_for_tme(program)]]</span>
+    <span class="c">!! to get the indices for the wavefunction to be stored in, then</span>
+    <span class="c">!! open the `wfc.ki` file and read in the wavefunction for the </span>
+    <span class="c">!! proper bands and store in the proper indices in the system&#39;s `wfc`</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
     <span class="c">!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ik</span>
-    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ib</span><span class="p">,</span> <span class="n">ig</span><span class="p">,</span> <span class="n">iDumV</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+      <span class="c">!! K point index</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ib</span><span class="p">,</span> <span class="n">ig</span>
+      <span class="c">!! Loop index</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iDumV</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
     <span class="c">!</span>
     <span class="kt">complex</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">wfc</span>
+      <span class="c">!! Wavefunction</span>
     <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">iks</span>
+      <span class="c">!! String version of the k point index</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">iks</span><span class="p">)</span>
+      <span class="c">!! * Convert the k point index to a string</span>
     <span class="c">!</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/grid.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+      <span class="c">!! * Open the `grid.ki` file from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
+    <span class="c">!&gt; * Ignore the first two lines as they are comments</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="c">!</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">pwGindPC</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span> <span class="p">)</span>
+      <span class="c">!! * Allocate space for `pwGindPC`</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+      <span class="c">!! * For each plane wave for a given k point, </span>
+      <span class="c">!!   read in the indices for the plane waves that </span>
+      <span class="c">!!   are held in `wfc.ki`</span>
+      <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(4i10)&#39;</span><span class="p">)</span> <span class="n">pwGindPC</span><span class="p">(</span><span class="n">ig</span><span class="p">),</span> <span class="n">iDumV</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">)</span>
+      <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+      <span class="c">!! * Close the `grid.ki` file</span>
     <span class="c">!</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/wfc.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+      <span class="c">!! * Open the `wfc.ki` file from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
+    <span class="c">!&gt; Ignore the first two lines because they are comments</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iBandIinit</span> <span class="o">-</span> <span class="mi">1</span>
       <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+        <span class="c">!! * For each band before `iBandInit`, ignore all of the</span>
+        <span class="c">!!   plane waves for the given k point</span>
         <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+        <span class="c">!</span>
       <span class="n">enddo</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="n">wfcPC</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+      <span class="c">!! * Initialize the wavefunction to complex double zero</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
       <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+        <span class="c">!! * For bands between `iBandIinit` and `iBandIfinal`,</span>
+        <span class="c">!!   read in all of the plane waves for the given k point</span>
+        <span class="c">!!   and store them in the proper index of the system&#39;s `wfc`</span>
+        <span class="c">!</span>
         <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">wfc</span>
         <span class="n">wfcPC</span><span class="p">(</span><span class="n">pwGindPC</span><span class="p">(</span><span class="n">ig</span><span class="p">),</span> <span class="n">ib</span><span class="p">)</span> <span class="o">=</span> <span class="n">wfc</span>
+        <span class="c">!</span>
       <span class="n">enddo</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+      <span class="c">!! * Close the `wfc.ki` file</span>
     <span class="c">!</span>
     <span class="k">deallocate</span> <span class="p">(</span> <span class="n">pwGindPC</span> <span class="p">)</span>
+      <span class="c">!! * Deallocate space for `pwGindPC`</span>
     <span class="c">!</span>
     <span class="k">return</span>
     <span class="c">!</span>

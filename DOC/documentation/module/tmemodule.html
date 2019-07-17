@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="27.2% of total for modules and submodules.">1232 statements</a>
+    title="27.2% of total for modules and submodules.">1233 statements</a>
      </li> 
      
      
@@ -4012,7 +4012,10 @@ public subroutine <a href='../proc/readwfcpc.html'>readWfcPC</a>(ik)
 
 
 
-<p></p><a href="../proc/readwfcpc.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+<p>Open the <code>grid.ki</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a>
+ to get the indices for the wavefunction to be stored in, then
+ open the <code>wfc.ki</code> file and read in the wavefunction for the 
+ proper bands and store in the proper indices in the system's <code>wfc</code></p><a href="../proc/readwfcpc.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -4038,7 +4041,7 @@ public subroutine <a href='../proc/readwfcpc.html'>readWfcPC</a>(ik)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>ik</strong></td><td></td>
+  <td><strong>ik</strong></td><td><p>K point index</p></td>
   
 </tr>
 
