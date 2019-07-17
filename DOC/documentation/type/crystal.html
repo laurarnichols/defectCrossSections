@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="<p>47.6% of total for derived types.</p>Including implementation: 20 statements, 47.6% of total for derived types.">20 statements</a>
+    title="<p>48.8% of total for derived types.</p>Including implementation: 21 statements, 48.8% of total for derived types.">21 statements</a>
      </li> 
      
      
@@ -206,6 +206,8 @@
       <a class="list-group-item" href="../type/crystal.html#variable-xk">xk</a>
       
       <a class="list-group-item" href="../type/crystal.html#variable-posion">posIon</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-wfc">wfc</a>
       
       <a class="list-group-item" href="../type/crystal.html#variable-crystaltype">crystalType</a>
       
@@ -298,6 +300,8 @@
       <a class="list-group-item" href="../type/crystal.html#variable-xk">xk</a>
       
       <a class="list-group-item" href="../type/crystal.html#variable-posion">posIon</a>
+      
+      <a class="list-group-item" href="../type/crystal.html#variable-wfc">wfc</a>
       
       <a class="list-group-item" href="../type/crystal.html#variable-crystaltype">crystalType</a>
       
@@ -570,6 +574,20 @@
   
 <tr>
   
+  <td><span class="anchor" id="variable-wfc"></span>complex(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>wfc</strong>(:,:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-crystaltype"></span>character(len=2),</td>
   
   <td>public</td>
@@ -657,6 +675,8 @@
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">xk</span><span class="p">(:,</span> <span class="p">:)</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">posIon</span><span class="p">(:,:)</span>
     <span class="c">!</span>
+    <span class="kt">complex</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">wfc</span><span class="p">(:,:)</span>
+    <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="n">crystalType</span>
       <span class="c">!! &#39;PC&#39; for pristine crystal and &#39;SD&#39; for solid defect</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">200</span><span class="p">)</span> <span class="kd">::</span> <span class="n">exportDir</span>
@@ -671,12 +691,11 @@
 <span class="c">!    real(kind = dp), allocatable :: eigvI(:), eigvF(:)</span>
 <span class="c">!    real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)</span>
 <span class="c">!    !</span>
-<span class="c">!    complex(kind = dp), allocatable :: wfc(:,:), wfcSD(:,:), Ufi(:,:,:)</span>
+<span class="c">!    complex(kind = dp), allocatable :: Ufi(:,:,:)</span>
 <span class="c">!    complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)</span>
 <span class="c">!    !</span>
 <span class="c">!    integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:)</span>
 <span class="c">!    integer, allocatable :: pwGindI(:), pwGindF(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)</span>
-<span class="c">!    integer, allocatable :: npwsPC(:)</span>
 <span class="c">!</span>
   <span class="k">end type </span><span class="n">crystal</span>
 </pre></div>

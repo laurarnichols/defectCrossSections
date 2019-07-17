@@ -158,8 +158,6 @@ module TMEModule
   complex(kind = dp), allocatable :: pawSDPhi(:,:)
   complex(kind = dp), allocatable :: paw_SDKKPC(:,:)
   complex(kind = dp), allocatable :: Ufi(:,:,:)
-  complex(kind = dp), allocatable :: wfcPC(:,:)
-  complex(kind = dp), allocatable :: wfcSD(:,:)
   !
   !
   !
@@ -242,6 +240,8 @@ module TMEModule
     real(kind = dp), allocatable :: xk(:, :)
     real(kind = dp), allocatable :: posIon(:,:)
     !
+    complex(kind = dp), allocatable :: wfc(:,:)
+    !
     character(len = 2) crystalType
       !! 'PC' for pristine crystal and 'SD' for solid defect
     character(len = 200) :: exportDir
@@ -256,12 +256,11 @@ module TMEModule
 !    real(kind = dp), allocatable :: eigvI(:), eigvF(:)
 !    real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
 !    !
-!    complex(kind = dp), allocatable :: wfc(:,:), wfcSD(:,:), Ufi(:,:,:)
+!    complex(kind = dp), allocatable :: Ufi(:,:,:)
 !    complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)
 !    !
 !    integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:)
 !    integer, allocatable :: pwGindI(:), pwGindF(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
-!    integer, allocatable :: npwsPC(:)
 !
   end type crystal
   !
@@ -1055,7 +1054,7 @@ contains
     do ibi = iBandIinit, iBandIfinal 
       !
       do ibf = iBandFinit, iBandFfinal
-        Ufi(ibf, ibi, ik) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
+        Ufi(ibf, ibi, ik) = sum(conjg(solidDefect%wfc(:,ibf))*perfectCrystal%wfc(:,ibi))
         !if ( ibi == ibf ) write(iostd,'(2i4,3ES24.15E3)') ibf, ibi, Ufi(ibf, ibi, ik), abs(Ufi(ibf, ibi, ik))**2
         flush(iostd)
       enddo
@@ -1131,7 +1130,7 @@ contains
       enddo
     enddo
     !
-    wfcPC(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    perfectCrystal%wfc(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
       !! * Initialize the wavefunction to complex double zero
     !
     do ib = iBandIinit, iBandIfinal
@@ -1141,7 +1140,7 @@ contains
         !!   and store them in the proper index of the system's `wfc`
         !
         read(72, '(2ES24.15E3)') wfc
-        wfcPC(pwGindPC(ig), ib) = wfc
+        perfectCrystal%wfc(pwGindPC(ig), ib) = wfc
         !
       enddo
     enddo
@@ -1196,12 +1195,12 @@ contains
       enddo
     enddo
     !
-    wfcSD(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    solidDefect%wfc(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
     !
     do ib = iBandFinit, iBandFfinal
       do ig = 1, solidDefect%npws(ik)
         read(72, '(2ES24.15E3)') wfc
-        wfcSD(pwGindSD(ig), ib) = wfc
+        solidDefect%wfc(pwGindSD(ig), ib) = wfc
       enddo
     enddo
     !
@@ -1329,7 +1328,7 @@ contains
     !
     do j = iBandFinit, iBandFfinal
       do i = 1, perfectCrystal%nProjs
-        cProjBetaPCPsiSD(i,j,1) = sum(conjg(betaPC(:,i))*wfcSD(:,j))
+        cProjBetaPCPsiSD(i,j,1) = sum(conjg(betaPC(:,i))*solidDefect%wfc(:,j))
         !write(65,'(2f17.12)') cProjPC(i,j,1) - cProjBetaPCPsiSD(i,j,1)
       enddo
     enddo
@@ -1392,7 +1391,7 @@ contains
     !
     do j = iBandIinit, iBandIfinal
       do i = 1, solidDefect%nProjs
-        cProjBetaSDPhiPC(i,j,1) = sum(conjg(betaSD(:,i))*wfcPC(:,j))
+        cProjBetaSDPhiPC(i,j,1) = sum(conjg(betaSD(:,i))*perfectCrystal%wfc(:,j))
         !write(66,'(2f17.12)') cProjSD(i,j,1) - cProjBetaSDPhiPC(i,j,1)
       enddo
     enddo

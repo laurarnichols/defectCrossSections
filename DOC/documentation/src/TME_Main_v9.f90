@@ -192,7 +192,8 @@ program transitionMatrixElements
         write(iostd, '("    Plane waves part begun.")')
         write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> begun.")')
         call cpu_time(t1)
-        allocate( wfcPC (solidDefect%numOfPWs, iBandIinit:iBandIfinal), wfcSD (solidDefect%numOfPWs, iBandFinit:iBandFfinal ) )
+        allocate( perfectCrystal%wfc (solidDefect%numOfPWs, iBandIinit:iBandIfinal), &
+                  solidDefect%wfc (solidDefect%numOfPWs, iBandFinit:iBandFfinal ) )
         !
         call calculatePWsOverlap(ik)
         !
@@ -213,7 +214,7 @@ program transitionMatrixElements
         allocate ( cProjBetaPCPsiSD(perfectCrystal%nProjs, solidDefect%nBands, solidDefect%nSpins) )
         call projectBetaPCwfcSD(ik)
         !
-        deallocate ( wfcSD )
+        deallocate ( solidDefect%wfc )
         !
         call pawCorrectionPsiPC()
         !
@@ -230,7 +231,7 @@ program transitionMatrixElements
         allocate ( cProjBetaSDPhiPC(solidDefect%nProjs, solidDefect%nBands, solidDefect%nSpins) )
         call projectBetaSDwfcPC(ik)
         !
-        deallocate ( wfcPC )
+        deallocate ( perfectCrystal%wfc )
         !
         call pawCorrectionSDPhi()
         deallocate ( cProjBetaSDPhiPC )

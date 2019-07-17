@@ -183,7 +183,7 @@
       
       <a class="list-group-item" href="../proc/readwfcpc.html#variable-idumv">iDumV</a>
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-wfc">wfc</a>
+      <a class="list-group-item" href="../proc/readwfcpc.html#variable-wfc%7E2">wfc</a>
       
       <a class="list-group-item" href="../proc/readwfcpc.html#variable-iks%7E3">iks</a>
       
@@ -339,7 +339,7 @@ public subroutine readWfcPC(ik)
       
       <a class="list-group-item" href="../proc/readwfcpc.html#variable-idumv">iDumV</a>
       
-      <a class="list-group-item" href="../proc/readwfcpc.html#variable-wfc">wfc</a>
+      <a class="list-group-item" href="../proc/readwfcpc.html#variable-wfc%7E2">wfc</a>
       
       <a class="list-group-item" href="../proc/readwfcpc.html#variable-iks%7E3">iks</a>
       
@@ -441,7 +441,7 @@ public subroutine readWfcPC(ik)
   
 <tr>
   
-  <td><span class="anchor" id="variable-wfc"></span>complex(kind=dp),</td>
+  <td><span class="anchor" id="variable-wfc%7E2"></span>complex(kind=dp),</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -550,7 +550,7 @@ public subroutine readWfcPC(ik)
       <span class="n">enddo</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
-    <span class="n">wfcPC</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+    <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wfc</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
       <span class="c">!! * Initialize the wavefunction to complex double zero</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
@@ -560,7 +560,7 @@ public subroutine readWfcPC(ik)
         <span class="c">!!   and store them in the proper index of the system&#39;s `wfc`</span>
         <span class="c">!</span>
         <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">wfc</span>
-        <span class="n">wfcPC</span><span class="p">(</span><span class="n">pwGindPC</span><span class="p">(</span><span class="n">ig</span><span class="p">),</span> <span class="n">ib</span><span class="p">)</span> <span class="o">=</span> <span class="n">wfc</span>
+        <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wfc</span><span class="p">(</span><span class="n">pwGindPC</span><span class="p">(</span><span class="n">ig</span><span class="p">),</span> <span class="n">ib</span><span class="p">)</span> <span class="o">=</span> <span class="n">wfc</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
     <span class="n">enddo</span>
