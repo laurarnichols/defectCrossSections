@@ -129,8 +129,6 @@ module TMEModule
   integer, allocatable :: nIs(:,:)
   integer, allocatable :: nPWsI(:)
   integer, allocatable :: nPWsF(:)
-  integer, allocatable :: pwGindPC(:)
-  integer, allocatable :: pwGindSD(:)
   integer, allocatable :: pwGvecs(:,:)
   integer, allocatable :: pwGs(:,:)
   !
@@ -260,7 +258,7 @@ module TMEModule
 !    complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)
 !    !
 !    integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:)
-!    integer, allocatable :: pwGindI(:), pwGindF(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
+!    integer, allocatable :: pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
 !
   end type crystal
   !
@@ -1082,6 +1080,9 @@ contains
     integer :: ib, ig
       !! Loop index
     integer :: iDumV(3)
+      !! Dummy vector to ignore g vectors from `grid.ki`
+    integer, allocatable :: pwGind(:)
+      !! Indices for the wavefunction of a given k point
     !
     complex(kind = dp) :: wfc
       !! Wavefunction
@@ -1099,15 +1100,15 @@ contains
     read(72, * )
     read(72, * )
     !
-    allocate ( pwGindPC(perfectCrystal%npws(ik)) )
-      !! * Allocate space for `pwGindPC`
+    allocate ( pwGind(perfectCrystal%npws(ik)) )
+      !! * Allocate space for `pwGind`
     !
     do ig = 1, perfectCrystal%npws(ik)
       !! * For each plane wave for a given k point, 
       !!   read in the indices for the plane waves that 
       !!   are held in `wfc.ki`
       !
-      read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
+      read(72, '(4i10)') pwGind(ig), iDumV(1:3)
       !
     enddo
     !
@@ -1140,7 +1141,7 @@ contains
         !!   and store them in the proper index of the system's `wfc`
         !
         read(72, '(2ES24.15E3)') wfc
-        perfectCrystal%wfc(pwGindPC(ig), ib) = wfc
+        perfectCrystal%wfc(pwGind(ig), ib) = wfc
         !
       enddo
     enddo
@@ -1148,8 +1149,8 @@ contains
     close(72)
       !! * Close the `wfc.ki` file
     !
-    deallocate ( pwGindPC )
-      !! * Deallocate space for `pwGindPC`
+    deallocate ( pwGind )
+      !! * Deallocate space for `pwGind`
     !
     return
     !
@@ -1164,6 +1165,7 @@ contains
     !
     integer, intent(in) :: ik
     integer :: ib, ig, iDumV(3)
+    integer, allocatable :: pwGind(:)
     !
     complex(kind = dp) :: wfc
     !
@@ -1176,10 +1178,10 @@ contains
     read(72, * )
     read(72, * )
     !
-    allocate ( pwGindSD(solidDefect%npws(ik)) )
+    allocate ( pwGind(solidDefect%npws(ik)) )
     !
     do ig = 1, solidDefect%npws(ik)
-      read(72, '(4i10)') pwGindSD(ig), iDumV(1:3)
+      read(72, '(4i10)') pwGind(ig), iDumV(1:3)
     enddo
     !
     close(72)
@@ -1200,13 +1202,13 @@ contains
     do ib = iBandFinit, iBandFfinal
       do ig = 1, solidDefect%npws(ik)
         read(72, '(2ES24.15E3)') wfc
-        solidDefect%wfc(pwGindSD(ig), ib) = wfc
+        solidDefect%wfc(pwGind(ig), ib) = wfc
       enddo
     enddo
     !
     close(72)
     !
-    deallocate ( pwGindSD )
+    deallocate ( pwGind )
     !
     return
     !
@@ -1287,6 +1289,7 @@ contains
     !
     integer, intent(in) :: ik
     integer :: ig, iDumV(3)
+    integer, allocatable :: pwGind(:)
     !
     character(len = 300) :: iks
     !
@@ -1299,10 +1302,10 @@ contains
     read(72, * )
     read(72, * )
     !
-    allocate ( pwGindPC(perfectCrystal%npws(ik)) )
+    allocate ( pwGind(perfectCrystal%npws(ik)) )
     !
     do ig = 1, perfectCrystal%npws(ik)
-      read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
+      read(72, '(4i10)') pwGind(ig), iDumV(1:3)
     enddo
     !
     close(72)
@@ -1318,13 +1321,13 @@ contains
     !
     do j = 1, perfectCrystal%nProjs
       do i = 1, npw
-        read(73,'(2ES24.15E3)') betaPC(pwGindPC(i),j)
+        read(73,'(2ES24.15E3)') betaPC(pwGind(i),j)
       enddo
     enddo
     !
     close(73)
     !
-    deallocate ( pwGindPC )
+    deallocate ( pwGind )
     !
     do j = iBandFinit, iBandFfinal
       do i = 1, perfectCrystal%nProjs
@@ -1350,6 +1353,7 @@ contains
     !
     integer, intent(in) :: ik
     integer :: ig, iDumV(3)
+    integer, allocatable :: pwGind(:)
     !
     character(len = 300) :: iks
     !
@@ -1362,10 +1366,10 @@ contains
     read(72, * )
     read(72, * )
     !
-    allocate ( pwGindSD(solidDefect%npws(ik)) )
+    allocate ( pwGind(solidDefect%npws(ik)) )
     !
     do ig = 1, solidDefect%npws(ik)
-      read(72, '(4i10)') pwGindSD(ig), iDumV(1:3)
+      read(72, '(4i10)') pwGind(ig), iDumV(1:3)
     enddo
     !
     close(72)
@@ -1381,13 +1385,13 @@ contains
     !
     do j = 1, solidDefect%nProjs
       do i = 1, npw
-        read(73,'(2ES24.15E3)') betaSD(pwGindSD(i),j)
+        read(73,'(2ES24.15E3)') betaSD(pwGind(i),j)
       enddo
     enddo
     !
     close(73)
     !
-    deallocate ( pwGindSD )
+    deallocate ( pwGind )
     !
     do j = iBandIinit, iBandIfinal
       do i = 1, solidDefect%nProjs

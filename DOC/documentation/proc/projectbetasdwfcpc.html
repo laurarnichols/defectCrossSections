@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.7% of total for procedures.">34 statements</a>
+    title=" 0.8% of total for procedures.">35 statements</a>
      </li> 
      
      
@@ -180,6 +180,8 @@
       <a class="list-group-item" href="../proc/projectbetasdwfcpc.html#variable-ig%7E7">ig</a>
       
       <a class="list-group-item" href="../proc/projectbetasdwfcpc.html#variable-idumv%7E4">iDumV</a>
+      
+      <a class="list-group-item" href="../proc/projectbetasdwfcpc.html#variable-pwgind%7E4">pwGind</a>
       
       <a class="list-group-item" href="../proc/projectbetasdwfcpc.html#variable-iks%7E8">iks</a>
       
@@ -289,6 +291,8 @@ public subroutine projectBetaSDwfcPC(ik)
       
       <a class="list-group-item" href="../proc/projectbetasdwfcpc.html#variable-idumv%7E4">iDumV</a>
       
+      <a class="list-group-item" href="../proc/projectbetasdwfcpc.html#variable-pwgind%7E4">pwGind</a>
+      
       <a class="list-group-item" href="../proc/projectbetasdwfcpc.html#variable-iks%7E8">iks</a>
       
     </div>
@@ -375,6 +379,20 @@ public subroutine projectBetaSDwfcPC(ik)
   
 <tr>
   
+  <td><span class="anchor" id="variable-pwgind%7E4"></span>integer,</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>pwGind</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-iks%7E8"></span>character(len=300),</td>
   
   <td>public</td>
@@ -414,6 +432,7 @@ public subroutine projectBetaSDwfcPC(ik)
     <span class="c">!</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ik</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ig</span><span class="p">,</span> <span class="n">iDumV</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">pwGind</span><span class="p">(:)</span>
     <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">iks</span>
     <span class="c">!</span>
@@ -426,10 +445,10 @@ public subroutine projectBetaSDwfcPC(ik)
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="k">allocate</span> <span class="p">(</span> <span class="n">pwGindSD</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">pwGind</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span> <span class="p">)</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(4i10)&#39;</span><span class="p">)</span> <span class="n">pwGindSD</span><span class="p">(</span><span class="n">ig</span><span class="p">),</span> <span class="n">iDumV</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">)</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(4i10)&#39;</span><span class="p">)</span> <span class="n">pwGind</span><span class="p">(</span><span class="n">ig</span><span class="p">),</span> <span class="n">iDumV</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
@@ -445,13 +464,13 @@ public subroutine projectBetaSDwfcPC(ik)
     <span class="c">!</span>
     <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nProjs</span>
       <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">npw</span>
-        <span class="k">read</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span><span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">betaSD</span><span class="p">(</span><span class="n">pwGindSD</span><span class="p">(</span><span class="n">i</span><span class="p">),</span><span class="n">j</span><span class="p">)</span>
+        <span class="k">read</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span><span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">betaSD</span><span class="p">(</span><span class="n">pwGind</span><span class="p">(</span><span class="n">i</span><span class="p">),</span><span class="n">j</span><span class="p">)</span>
       <span class="n">enddo</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">close</span><span class="p">(</span><span class="mi">73</span><span class="p">)</span>
     <span class="c">!</span>
-    <span class="k">deallocate</span> <span class="p">(</span> <span class="n">pwGindSD</span> <span class="p">)</span>
+    <span class="k">deallocate</span> <span class="p">(</span> <span class="n">pwGind</span> <span class="p">)</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
       <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nProjs</span>
