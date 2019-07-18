@@ -148,35 +148,34 @@
 <li><code>../TME/src/TME_Main_v9.f90:325:</code> Figure out if should be solid defect volume or pristine</li>
 <li><code>../TME/src/TME_Main_v9.f90:326:</code> Are pristine and solid defect volume the same?</li>
 <li><code>../TME/src/TME_Module_v28.f90:34:</code> Change I/O from file to console so that usage matches that of QE</li>
-<li><code>../TME/src/TME_Module_v28.f90:166:</code> Consider changing <code>atom</code> type to <code>element</code> since it holds more than one atom</li>
-<li><code>../TME/src/TME_Module_v28.f90:406:</code> Change <code>checkInitialization()</code> to have arguments to make clear that these variables are getting changed</li>
-<li><code>../TME/src/TME_Module_v28.f90:548:</code> Remove everything with <code>ki</code> and <code>kf</code> because never used</li>
-<li><code>../TME/src/TME_Module_v28.f90:833:</code> Look more into how AE and PS wavefunctions are combined to further understand this</li>
-<li><code>../TME/src/TME_Module_v28.f90:834:</code> Move this behavior to another subroutine for clarity</li>
-<li><code>../TME/src/TME_Module_v28.f90:843:</code> Figure out if differences in PC and SD <code>F1</code> calculations are intentional</li>
-<li><code>../TME/src/TME_Module_v28.f90:844:</code> Figure out if should be <code>(wps_i wae_j - wae_i wps_j)r_{ab}</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:883:</code> Figure out if intentional to only use <code>JMAX</code> from SD input</li>
-<li><code>../TME/src/TME_Module_v28.f90:1039:</code> Document <code>calculatePWsOverlap()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1066:</code> Figure out what <code>Ufi</code> is supposed to be</li>
-<li><code>../TME/src/TME_Module_v28.f90:1183:</code> Document <code>readProjectionsPC()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1216:</code> Document <code>readProjectionsSD()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1217:</code> Figure out the difference between PC and SD <code>readProjections</code> and possibly merge</li>
-<li><code>../TME/src/TME_Module_v28.f90:1250:</code> Document <code>projectBetaPCwfcSD()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1346:</code> Document <code>projectBetaSDwfcPC()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1347:</code> Figure out the difference between PC and SD <code>projectBeta_wfc_</code> and possibly merge</li>
-<li><code>../TME/src/TME_Module_v28.f90:1410:</code> Document <code>pawCorrectionPsiPC()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1476:</code> Document <code>pawCorrectionSDPhi()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1477:</code> Figure out the difference between PC and SD <code>pawCorrectionPsi</code> and possibly merge</li>
-<li><code>../TME/src/TME_Module_v28.f90:1541:</code> Document <code>pawCorrectionKPC()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1640:</code> Document <code>pawCorrectionSDK()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1641:</code> Figure out the difference between PC and SD <code>pawCorrection_K</code> and possibly merge</li>
-<li><code>../TME/src/TME_Module_v28.f90:1738:</code> Document <code>pawCorrection()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1739:</code> Figure out difference between <code>pawCorrection()</code> and the PC <code>pawCorrection</code> functions</li>
-<li><code>../TME/src/TME_Module_v28.f90:2088:</code> Document <code>bessel_j()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:2118:</code> Document <code>writeResults()</code> @endto</li>
-<li><code>../TME/src/TME_Module_v28.f90:2180:</code> Document <code>readUfis()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:2234:</code> Document <code>calculateVFiElements()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:2356:</code> Document <code>readEigenvalues()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:164:</code> Consider changing <code>atom</code> type to <code>element</code> since it holds more than one atom</li>
+<li><code>../TME/src/TME_Module_v28.f90:405:</code> Change <code>checkInitialization()</code> to have arguments to make clear that these variables are getting changed</li>
+<li><code>../TME/src/TME_Module_v28.f90:547:</code> Remove everything with <code>ki</code> and <code>kf</code> because never used</li>
+<li><code>../TME/src/TME_Module_v28.f90:832:</code> Look more into how AE and PS wavefunctions are combined to further understand this</li>
+<li><code>../TME/src/TME_Module_v28.f90:833:</code> Move this behavior to another subroutine for clarity</li>
+<li><code>../TME/src/TME_Module_v28.f90:842:</code> Figure out if differences in PC and SD <code>F1</code> calculations are intentional</li>
+<li><code>../TME/src/TME_Module_v28.f90:843:</code> Figure out if should be <code>(wps_i wae_j - wae_i wps_j)r_{ab}</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:882:</code> Figure out if intentional to only use <code>JMAX</code> from SD input</li>
+<li><code>../TME/src/TME_Module_v28.f90:1038:</code> Document <code>calculatePWsOverlap()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1065:</code> Figure out what <code>Ufi</code> is supposed to be</li>
+<li><code>../TME/src/TME_Module_v28.f90:1182:</code> Document <code>readProjectionsPC()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1215:</code> Document <code>readProjectionsSD()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1216:</code> Figure out the difference between PC and SD <code>readProjections</code> and possibly merge</li>
+<li><code>../TME/src/TME_Module_v28.f90:1347:</code> Document <code>projectBetaSDwfcPC()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1348:</code> Figure out the difference between PC and SD <code>projectBeta_wfc_</code> and possibly merge</li>
+<li><code>../TME/src/TME_Module_v28.f90:1411:</code> Document <code>pawCorrectionPsiPC()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1477:</code> Document <code>pawCorrectionSDPhi()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1478:</code> Figure out the difference between PC and SD <code>pawCorrectionPsi</code> and possibly merge</li>
+<li><code>../TME/src/TME_Module_v28.f90:1542:</code> Document <code>pawCorrectionKPC()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1641:</code> Document <code>pawCorrectionSDK()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1642:</code> Figure out the difference between PC and SD <code>pawCorrection_K</code> and possibly merge</li>
+<li><code>../TME/src/TME_Module_v28.f90:1739:</code> Document <code>pawCorrection()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1740:</code> Figure out difference between <code>pawCorrection()</code> and the PC <code>pawCorrection</code> functions</li>
+<li><code>../TME/src/TME_Module_v28.f90:2089:</code> Document <code>bessel_j()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:2119:</code> Document <code>writeResults()</code> @endto</li>
+<li><code>../TME/src/TME_Module_v28.f90:2181:</code> Document <code>readUfis()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:2235:</code> Document <code>calculateVFiElements()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:2357:</code> Document <code>readEigenvalues()</code></li>
 </ul>
     </div>
     

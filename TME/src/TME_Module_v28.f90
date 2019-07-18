@@ -140,8 +140,6 @@ module TMEModule
   real(kind = dp), allocatable :: gvecs(:,:)
   !
   ! Declare matrix/vector complex numbers
-  complex(kind = dp), allocatable :: betaPC(:,:)
-  complex(kind = dp), allocatable :: betaSD(:,:)
   complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:,:)
   complex(kind = dp), allocatable :: cProjBetaSDPhiPC(:,:,:)
   complex(kind = dp), allocatable :: cProjPC(:,:,:)
@@ -239,6 +237,7 @@ module TMEModule
     real(kind = dp), allocatable :: posIon(:,:)
     !
     complex(kind = dp), allocatable :: wfc(:,:)
+    complex(kind = dp), allocatable :: beta(:,:)
     !
     character(len = 2) crystalType
       !! 'PC' for pristine crystal and 'SD' for solid defect
@@ -1247,7 +1246,8 @@ contains
   !
   !
   subroutine projectBetaPCwfcSD(ik)
-    !! @todo Document `projectBetaPCwfcSD()` @endtodo
+    !! Calculate the projection of the solid defect wavefunction
+    !! 
     !!
     !! <h2>Walkthrough</h2>
     !!
@@ -1291,10 +1291,11 @@ contains
     close(72)
       !! * Close the `grid.ki` file
     !
-    allocate ( betaPC(numOfPWs, perfectCrystal%nProjs) )
+    !
+    allocate ( perfectCrystal%beta(numOfPWs, perfectCrystal%nProjs) )
       !! * Allocate space for \(\beta\)
     !
-    betaPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    perfectCrystal%beta(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
       !! * Initialize all values of \(\beta\) to complex double zero
     !
     open(73, file=trim(perfectCrystal%exportDir)//"/projectors."//trim(iks))
@@ -1313,7 +1314,7 @@ contains
         !! * Read in each \(|\beta\rangle\) and store in the proper index of `beta`
         !!   for the system
         !
-        read(73,'(2ES24.15E3)') betaPC(pwGind(i),j)
+        read(73,'(2ES24.15E3)') perfectCrystal%beta(pwGind(i),j)
         !
       enddo
     enddo
@@ -1328,13 +1329,13 @@ contains
         !! * For each band between `iBandFinit` and `iBandFfinal`,
         !!   calculate \(\langle\beta|\Phi\rangle\) for ???
         !
-        cProjBetaPCPsiSD(i,j,1) = sum(conjg(betaPC(:,i))*solidDefect%wfc(:,j))
+        cProjBetaPCPsiSD(i,j,1) = sum(conjg(perfectCrystal%beta(:,i))*solidDefect%wfc(:,j))
         !
       enddo
     enddo
     !
     !
-    deallocate ( betaPC )
+    deallocate ( perfectCrystal%beta )
       !! * Deallocate space for \(\beta\)
     !
     return
@@ -1371,9 +1372,9 @@ contains
     !
     close(72)
     !
-    allocate ( betaSD(numOfPWs, solidDefect%nProjs) )
+    allocate ( solidDefect%beta(numOfPWs, solidDefect%nProjs) )
     !
-    betaSD(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    solidDefect%beta(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
     open(73, file=trim(solidDefect%exportDir)//"/projectors."//trim(iks))
     !
@@ -1382,7 +1383,7 @@ contains
     !
     do j = 1, solidDefect%nProjs
       do i = 1, npw
-        read(73,'(2ES24.15E3)') betaSD(pwGind(i),j)
+        read(73,'(2ES24.15E3)') solidDefect%beta(pwGind(i),j)
       enddo
     enddo
     !
@@ -1392,14 +1393,14 @@ contains
     !
     do j = iBandIinit, iBandIfinal
       do i = 1, solidDefect%nProjs
-        cProjBetaSDPhiPC(i,j,1) = sum(conjg(betaSD(:,i))*perfectCrystal%wfc(:,j))
+        cProjBetaSDPhiPC(i,j,1) = sum(conjg(solidDefect%beta(:,i))*perfectCrystal%wfc(:,j))
         !write(66,'(2f17.12)') cProjSD(i,j,1) - cProjBetaSDPhiPC(i,j,1)
       enddo
     enddo
     !
     !close(66)
     !
-    deallocate ( betaSD )
+    deallocate ( solidDefect%beta )
     !
     return
     !
