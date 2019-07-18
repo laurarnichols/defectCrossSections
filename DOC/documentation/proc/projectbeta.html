@@ -10,7 +10,7 @@
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>projectBetaPCwfcSD &ndash; Carrier Cross Sections</title>
+    <title>projectBeta &ndash; Carrier Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -114,7 +114,7 @@
     
   
   <div class="row">
-    <h1>projectBetaPCwfcSD
+    <h1>projectBeta
       <small>Subroutine</small>
     
     </h1>
@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.8% of total for procedures.">36 statements</a>
+    title=" 1.0% of total for procedures.">46 statements</a>
      </li> 
      
      
@@ -149,7 +149,7 @@
      <li><a href='../module/tmemodule.html'>TMEModule</a></li>
     
   
-     <li class="active">projectBetaPCwfcSD</li>
+     <li class="active">projectBeta</li>
   </ol>
 </div>
 </div>
@@ -177,19 +177,19 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-ig%7E5">ig</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-ig%7E5">ig</a>
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-i%7E6">i</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-i%7E6">i</a>
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-j%7E5">j</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-j%7E5">j</a>
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-idumv%7E2">iDumV</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-idumv%7E2">iDumV</a>
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-idum%7E3">iDum</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-idum%7E3">iDum</a>
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-pwgind%7E2">pwGind</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-pwgind%7E2">pwGind</a>
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-iks%7E6">iks</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-iks%7E6">iks</a>
       
     </div>
   </div>
@@ -217,7 +217,7 @@
 <div class="panel panel-primary">
   <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
   <div class="list-group">
-    <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#src">projectBetaPCwfcSD</a>
+    <a class="list-group-item" href="../proc/projectbeta.html#src">projectBeta</a>
   </div>
 </div>
 
@@ -229,7 +229,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine projectBetaPCwfcSD(ik)
+public subroutine projectBeta(ik, betaSystem, projectedSystem)
     
     
    
@@ -261,11 +261,11 @@ public subroutine projectBetaPCwfcSD(ik)
 <p>Close the <code>grid.ki</code> file</p>
 </li>
 <li>
-<p>Allocate space for <script type="math/tex">\beta</script>
+<p>Allocate space for <script type="math/tex">|\beta\rangle</script>
 </p>
 </li>
 <li>
-<p>Initialize all values of <script type="math/tex">\beta</script> to complex double zero</p>
+<p>Initialize all values of <script type="math/tex">|\beta\rangle</script> to complex double zero</p>
 </li>
 <li>
 <p>Open the <code>projectors.ki</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
@@ -287,11 +287,19 @@ public subroutine projectBetaPCwfcSD(ik)
 <p>Deallocate space for <code>pwGind</code></p>
 </li>
 <li>
-<p>For each band between <code>iBandFinit</code> and <code>iBandFfinal</code>,
-   calculate <script type="math/tex">\langle\beta|\Phi\rangle</script> for ???</p>
+<p>If the system that you are getting <script type="math/tex">|\beta\rangle</script> from 
+   is the perfect crystal, then calculate 
+   <script type="math/tex">\langle\beta|\Phi\rangle</script> between <code>iBandFinit</code>
+   and <code>iBandFfinal</code></p>
 </li>
 <li>
-<p>Deallocate space for <script type="math/tex">\beta</script>
+<p>If the system that you are getting <script type="math/tex">|\beta\rangle</script> from 
+   is the solid defect, then calculate 
+   <script type="math/tex">\langle\beta|\Psi\rangle</script> between <code>iBandIinit</code>
+   and <code>iBandIfinal</code></p>
+</li>
+<li>
+<p>Deallocate space for <script type="math/tex">|\beta\rangle</script>
 </p>
 </li>
 </ul>
@@ -324,6 +332,38 @@ public subroutine projectBetaPCwfcSD(ik)
   
 </tr>
 
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-betasystem"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>betaSystem</strong></td><td><p>Holds the structure for the system you are getting <script type="math/tex">\beta</script> from
+ (either <code>perfectCrystal</code> or <code>solidDefect</code>)</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-projectedsystem"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>projectedSystem</strong></td><td><p>Holds the structure for the system you are projecting
+ (either <code>perfectCrystal</code> or <code>solidDefect</code>)</p></td>
+  
+</tr>
+
 </tbody>
 </table>
 
@@ -346,19 +386,19 @@ public subroutine projectBetaPCwfcSD(ik)
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-ig%7E5">ig</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-ig%7E5">ig</a>
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-i%7E6">i</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-i%7E6">i</a>
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-j%7E5">j</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-j%7E5">j</a>
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-idumv%7E2">iDumV</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-idumv%7E2">iDumV</a>
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-idum%7E3">iDum</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-idum%7E3">iDum</a>
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-pwgind%7E2">pwGind</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-pwgind%7E2">pwGind</a>
       
-      <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#variable-iks%7E6">iks</a>
+      <a class="list-group-item" href="../proc/projectbeta.html#variable-iks%7E6">iks</a>
       
     </div>
   </div>
@@ -386,7 +426,7 @@ public subroutine projectBetaPCwfcSD(ik)
 <div class="panel panel-primary">
   <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
   <div class="list-group">
-    <a class="list-group-item" href="../proc/projectbetapcwfcsd.html#src">projectBetaPCwfcSD</a>
+    <a class="list-group-item" href="../proc/projectbeta.html#src">projectBeta</a>
   </div>
 </div>
 
@@ -531,7 +571,7 @@ public subroutine projectBetaPCwfcSD(ik)
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">projectBetaPCwfcSD</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">projectBeta</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">betaSystem</span><span class="p">,</span> <span class="n">projectedSystem</span><span class="p">)</span>
     <span class="c">!! Calculate the projection of the solid defect wavefunction</span>
     <span class="c">!! </span>
     <span class="c">!!</span>
@@ -552,22 +592,29 @@ public subroutine projectBetaPCwfcSD(ik)
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">iks</span>
       <span class="c">!! String version of the k point index</span>
     <span class="c">!</span>
+    <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">betaSystem</span>
+      <span class="c">!! Holds the structure for the system you are getting \(\beta\) from</span>
+      <span class="c">!! (either `perfectCrystal` or `solidDefect`)</span>
+    <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">projectedSystem</span>
+      <span class="c">!! Holds the structure for the system you are projecting</span>
+      <span class="c">!! (either `perfectCrystal` or `solidDefect`)</span>
+    <span class="c">!</span>
     <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">iks</span><span class="p">)</span>
       <span class="c">!! * Convert the k point index to a string</span>
     <span class="c">!</span>
     <span class="c">! Reading PC projectors</span>
     <span class="c">!</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/grid.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">betaSystem</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/grid.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
       <span class="c">!! * Open the `grid.ki` file from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
     <span class="c">!&gt; * Ignore the next two lines as they are comments</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="k">allocate</span> <span class="p">(</span> <span class="n">pwGind</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">pwGind</span><span class="p">(</span><span class="n">betaSystem</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span> <span class="p">)</span>
       <span class="c">!! * Allocate space for `pwGind`</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">betaSystem</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
       <span class="c">!! * Read in the index for each plane wave</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(4i10)&#39;</span><span class="p">)</span> <span class="n">pwGind</span><span class="p">(</span><span class="n">ig</span><span class="p">),</span> <span class="n">iDumV</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">)</span>
@@ -578,13 +625,13 @@ public subroutine projectBetaPCwfcSD(ik)
       <span class="c">!! * Close the `grid.ki` file</span>
     <span class="c">!</span>
     <span class="c">!</span>
-    <span class="k">allocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">beta</span><span class="p">(</span><span class="n">numOfPWs</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span><span class="p">)</span> <span class="p">)</span>
-      <span class="c">!! * Allocate space for \(\beta\)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">betaSystem</span><span class="p">%</span><span class="n">beta</span><span class="p">(</span><span class="n">numOfPWs</span><span class="p">,</span> <span class="n">betaSystem</span><span class="p">%</span><span class="n">nProjs</span><span class="p">)</span> <span class="p">)</span>
+      <span class="c">!! * Allocate space for \(|\beta\rangle\)</span>
     <span class="c">!</span>
-    <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">beta</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
-      <span class="c">!! * Initialize all values of \(\beta\) to complex double zero</span>
+    <span class="n">betaSystem</span><span class="p">%</span><span class="n">beta</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+      <span class="c">!! * Initialize all values of \(|\beta\rangle\) to complex double zero</span>
     <span class="c">!</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projectors.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">betaSystem</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projectors.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
       <span class="c">!! * Open the `projectors.ki` file from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> 
@@ -595,12 +642,12 @@ public subroutine projectBetaPCwfcSD(ik)
       <span class="c">!!   and the number of plane waves for a given k point that was read in in the</span>
       <span class="c">!!   same subroutine</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span>
-      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+    <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">betaSystem</span><span class="p">%</span><span class="n">nProjs</span>
+      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">betaSystem</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
         <span class="c">!! * Read in each \(|\beta\rangle\) and store in the proper index of `beta`</span>
         <span class="c">!!   for the system</span>
         <span class="c">!</span>
-        <span class="k">read</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span><span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">beta</span><span class="p">(</span><span class="n">pwGind</span><span class="p">(</span><span class="n">i</span><span class="p">),</span><span class="n">j</span><span class="p">)</span>
+        <span class="k">read</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span><span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">betaSystem</span><span class="p">%</span><span class="n">beta</span><span class="p">(</span><span class="n">pwGind</span><span class="p">(</span><span class="n">i</span><span class="p">),</span><span class="n">j</span><span class="p">)</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
     <span class="n">enddo</span>
@@ -610,23 +657,40 @@ public subroutine projectBetaPCwfcSD(ik)
     <span class="k">deallocate</span> <span class="p">(</span> <span class="n">pwGind</span> <span class="p">)</span>
       <span class="c">!! * Deallocate space for `pwGind`</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
-      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span>
-        <span class="c">!! * For each band between `iBandFinit` and `iBandFfinal`,</span>
-        <span class="c">!!   calculate \(\langle\beta|\Phi\rangle\) for ???</span>
-        <span class="c">!</span>
-        <span class="n">cProjBetaPCPsiSD</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">conjg</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">beta</span><span class="p">(:,</span><span class="n">i</span><span class="p">))</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">wfc</span><span class="p">(:,</span><span class="n">j</span><span class="p">))</span>
-        <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">betaSystem</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s2">&quot;PC&quot;</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!! * If the system that you are getting \(|\beta\rangle\) from </span>
+      <span class="c">!!   is the perfect crystal, then calculate </span>
+      <span class="c">!!   \(\langle\beta|\Phi\rangle\) between `iBandFinit`</span>
+      <span class="c">!!   and `iBandFfinal`</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+        <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">betaSystem</span><span class="p">%</span><span class="n">nProjs</span>
+          <span class="c">!</span>
+          <span class="n">cProjBetaPCPsiSD</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">conjg</span><span class="p">(</span><span class="n">betaSystem</span><span class="p">%</span><span class="n">beta</span><span class="p">(:,</span><span class="n">i</span><span class="p">))</span><span class="o">*</span><span class="n">projectedSystem</span><span class="p">%</span><span class="n">wfc</span><span class="p">(:,</span><span class="n">j</span><span class="p">))</span>
+          <span class="c">!</span>
+        <span class="n">enddo</span>
       <span class="n">enddo</span>
-    <span class="n">enddo</span>
+      <span class="c">!</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="n">betaSystem</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s2">&quot;SD&quot;</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!! * If the system that you are getting \(|\beta\rangle\) from </span>
+      <span class="c">!!   is the solid defect, then calculate </span>
+      <span class="c">!!   \(\langle\beta|\Psi\rangle\) between `iBandIinit`</span>
+      <span class="c">!!   and `iBandIfinal`</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+        <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">betaSystem</span><span class="p">%</span><span class="n">nProjs</span>
+          <span class="n">cProjBetaSDPhiPC</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">conjg</span><span class="p">(</span><span class="n">betaSystem</span><span class="p">%</span><span class="n">beta</span><span class="p">(:,</span><span class="n">i</span><span class="p">))</span><span class="o">*</span><span class="n">projectedSystem</span><span class="p">%</span><span class="n">wfc</span><span class="p">(:,</span><span class="n">j</span><span class="p">))</span>
+        <span class="n">enddo</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
     <span class="c">!</span>
-    <span class="c">!</span>
-    <span class="k">deallocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">beta</span> <span class="p">)</span>
-      <span class="c">!! * Deallocate space for \(\beta\)</span>
+    <span class="k">deallocate</span> <span class="p">(</span> <span class="n">betaSystem</span><span class="p">%</span><span class="n">beta</span> <span class="p">)</span>
+      <span class="c">!! * Deallocate space for \(|\beta\rangle\)</span>
     <span class="c">!</span>
     <span class="k">return</span>
     <span class="c">!</span>
-  <span class="k">end subroutine </span><span class="n">projectBetaPCwfcSD</span>
+  <span class="k">end subroutine </span><span class="n">projectBeta</span>
 </pre></div>
 
     </section>

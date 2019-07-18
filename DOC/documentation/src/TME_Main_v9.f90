@@ -212,7 +212,7 @@ program transitionMatrixElements
         call readProjectionsPC(ik)
         !
         allocate ( cProjBetaPCPsiSD(perfectCrystal%nProjs, solidDefect%nBands, solidDefect%nSpins) )
-        call projectBetaPCwfcSD(ik)
+        call projectBeta(ik, perfectCrystal, solidDefect)
         !
         deallocate ( solidDefect%wfc )
         !
@@ -229,7 +229,7 @@ program transitionMatrixElements
         call readProjectionsSD(ik)
         !
         allocate ( cProjBetaSDPhiPC(solidDefect%nProjs, solidDefect%nBands, solidDefect%nSpins) )
-        call projectBetaSDwfcPC(ik)
+        call projectBeta(ik, solidDefect, perfectCrystal)
         !
         deallocate ( perfectCrystal%wfc )
         !

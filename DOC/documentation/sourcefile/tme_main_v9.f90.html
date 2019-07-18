@@ -481,7 +481,7 @@
 <a name="ln-212"></a>        <span class="k">call </span><span class="n">readProjectionsPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
 <a name="ln-213"></a>        <span class="c">!</span>
 <a name="ln-214"></a>        <span class="k">allocate</span> <span class="p">(</span> <span class="n">cProjBetaPCPsiSD</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
-<a name="ln-215"></a>        <span class="k">call </span><span class="n">projectBetaPCwfcSD</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+<a name="ln-215"></a>        <span class="k">call </span><span class="n">projectBeta</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">)</span>
 <a name="ln-216"></a>        <span class="c">!</span>
 <a name="ln-217"></a>        <span class="k">deallocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">wfc</span> <span class="p">)</span>
 <a name="ln-218"></a>        <span class="c">!</span>
@@ -498,7 +498,7 @@
 <a name="ln-229"></a>        <span class="k">call </span><span class="n">readProjectionsSD</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
 <a name="ln-230"></a>        <span class="c">!</span>
 <a name="ln-231"></a>        <span class="k">allocate</span> <span class="p">(</span> <span class="n">cProjBetaSDPhiPC</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
-<a name="ln-232"></a>        <span class="k">call </span><span class="n">projectBetaSDwfcPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+<a name="ln-232"></a>        <span class="k">call </span><span class="n">projectBeta</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">)</span>
 <a name="ln-233"></a>        <span class="c">!</span>
 <a name="ln-234"></a>        <span class="k">deallocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wfc</span> <span class="p">)</span>
 <a name="ln-235"></a>        <span class="c">!</span>

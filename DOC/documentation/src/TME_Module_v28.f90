@@ -1245,7 +1245,7 @@ contains
   end subroutine readProjectionsSD
   !
   !
-  subroutine projectBetaPCwfcSD(ik)
+  subroutine projectBeta(ik, betaSystem, projectedSystem)
     !! Calculate the projection of the solid defect wavefunction
     !! 
     !!
@@ -1266,22 +1266,29 @@ contains
     character(len = 300) :: iks
       !! String version of the k point index
     !
+    TYPE(crystal), intent(inout) :: betaSystem
+      !! Holds the structure for the system you are getting \(\beta\) from
+      !! (either `perfectCrystal` or `solidDefect`)
+    TYPE(crystal), intent(inout) :: projectedSystem
+      !! Holds the structure for the system you are projecting
+      !! (either `perfectCrystal` or `solidDefect`)
+    !
     call int2str(ik, iks)
       !! * Convert the k point index to a string
     !
     ! Reading PC projectors
     !
-    open(72, file=trim(perfectCrystal%exportDir)//"/grid."//trim(iks))
+    open(72, file=trim(betaSystem%exportDir)//"/grid."//trim(iks))
       !! * Open the `grid.ki` file from [[pw_export_for_tme(program)]]
     !
     !> * Ignore the next two lines as they are comments
     read(72, * )
     read(72, * )
     !
-    allocate ( pwGind(perfectCrystal%npws(ik)) )
+    allocate ( pwGind(betaSystem%npws(ik)) )
       !! * Allocate space for `pwGind`
     !
-    do ig = 1, perfectCrystal%npws(ik)
+    do ig = 1, betaSystem%npws(ik)
       !! * Read in the index for each plane wave
       !
       read(72, '(4i10)') pwGind(ig), iDumV(1:3)
@@ -1292,13 +1299,13 @@ contains
       !! * Close the `grid.ki` file
     !
     !
-    allocate ( perfectCrystal%beta(numOfPWs, perfectCrystal%nProjs) )
-      !! * Allocate space for \(\beta\)
+    allocate ( betaSystem%beta(numOfPWs, betaSystem%nProjs) )
+      !! * Allocate space for \(|\beta\rangle\)
     !
-    perfectCrystal%beta(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-      !! * Initialize all values of \(\beta\) to complex double zero
+    betaSystem%beta(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+      !! * Initialize all values of \(|\beta\rangle\) to complex double zero
     !
-    open(73, file=trim(perfectCrystal%exportDir)//"/projectors."//trim(iks))
+    open(73, file=trim(betaSystem%exportDir)//"/projectors."//trim(iks))
       !! * Open the `projectors.ki` file from [[pw_export_for_tme(program)]]
     !
     read(73, *) 
@@ -1309,12 +1316,12 @@ contains
       !!   and the number of plane waves for a given k point that was read in in the
       !!   same subroutine
     !
-    do j = 1, perfectCrystal%nProjs
-      do i = 1, perfectCrystal%npws(ik)
+    do j = 1, betaSystem%nProjs
+      do i = 1, betaSystem%npws(ik)
         !! * Read in each \(|\beta\rangle\) and store in the proper index of `beta`
         !!   for the system
         !
-        read(73,'(2ES24.15E3)') perfectCrystal%beta(pwGind(i),j)
+        read(73,'(2ES24.15E3)') betaSystem%beta(pwGind(i),j)
         !
       enddo
     enddo
@@ -1324,23 +1331,40 @@ contains
     deallocate ( pwGind )
       !! * Deallocate space for `pwGind`
     !
-    do j = iBandFinit, iBandFfinal
-      do i = 1, perfectCrystal%nProjs
-        !! * For each band between `iBandFinit` and `iBandFfinal`,
-        !!   calculate \(\langle\beta|\Phi\rangle\) for ???
-        !
-        cProjBetaPCPsiSD(i,j,1) = sum(conjg(perfectCrystal%beta(:,i))*solidDefect%wfc(:,j))
-        !
+    if ( betaSystem%crystalType == "PC" ) then
+      !! * If the system that you are getting \(|\beta\rangle\) from 
+      !!   is the perfect crystal, then calculate 
+      !!   \(\langle\beta|\Phi\rangle\) between `iBandFinit`
+      !!   and `iBandFfinal`
+      !
+      do j = iBandFinit, iBandFfinal
+        do i = 1, betaSystem%nProjs
+          !
+          cProjBetaPCPsiSD(i,j,1) = sum(conjg(betaSystem%beta(:,i))*projectedSystem%wfc(:,j))
+          !
+        enddo
       enddo
-    enddo
+      !
+    else if ( betaSystem%crystalType == "SD" ) then
+      !! * If the system that you are getting \(|\beta\rangle\) from 
+      !!   is the solid defect, then calculate 
+      !!   \(\langle\beta|\Psi\rangle\) between `iBandIinit`
+      !!   and `iBandIfinal`
+      !
+      do j = iBandIinit, iBandIfinal
+        do i = 1, betaSystem%nProjs
+          cProjBetaSDPhiPC(i,j,1) = sum(conjg(betaSystem%beta(:,i))*projectedSystem%wfc(:,j))
+        enddo
+      enddo
+      !
+    endif
     !
-    !
-    deallocate ( perfectCrystal%beta )
-      !! * Deallocate space for \(\beta\)
+    deallocate ( betaSystem%beta )
+      !! * Deallocate space for \(|\beta\rangle\)
     !
     return
     !
-  end subroutine projectBetaPCwfcSD
+  end subroutine projectBeta
   !
   !
   subroutine projectBetaSDwfcPC(ik)
