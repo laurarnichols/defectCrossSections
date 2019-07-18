@@ -1,8 +1,7 @@
 title: Todo
 author: Laura Nichols
-date: 07/17/2019
+date: 07/18/2019
 
-* Binary file ../TME/src/.TME_Main_v9.f90.swp matches
 * `../TME/src/TME_Main_v9.f90:2:` Finish documentation for main program
 * `../TME/src/TME_Main_v9.f90:46:` Figure out if need to allocate space for arrays so soon
 * `../TME/src/TME_Main_v9.f90:58:` Figure out if SD and PC `numOfGvecs` should be the same
@@ -23,18 +22,18 @@ date: 07/17/2019
 * `../TME/src/TME_Module_v28.f90:1216:` Document `readProjectionsSD()`
 * `../TME/src/TME_Module_v28.f90:1217:` Figure out the difference between PC and SD `readProjections` and possibly merge
 * `../TME/src/TME_Module_v28.f90:1250:` Document `projectBetaPCwfcSD()`
-* `../TME/src/TME_Module_v28.f90:1313:` Document `projectBetaSDwfcPC()`
-* `../TME/src/TME_Module_v28.f90:1314:` Figure out the difference between PC and SD `projectBeta_wfc_` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1377:` Document `pawCorrectionPsiPC()`
-* `../TME/src/TME_Module_v28.f90:1443:` Document `pawCorrectionSDPhi()`
-* `../TME/src/TME_Module_v28.f90:1444:` Figure out the difference between PC and SD `pawCorrectionPsi` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1508:` Document `pawCorrectionKPC()`
-* `../TME/src/TME_Module_v28.f90:1607:` Document `pawCorrectionSDK()`
-* `../TME/src/TME_Module_v28.f90:1608:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1705:` Document `pawCorrection()`
-* `../TME/src/TME_Module_v28.f90:1706:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
-* `../TME/src/TME_Module_v28.f90:2055:` Document `bessel_j()`
-* `../TME/src/TME_Module_v28.f90:2085:` Document `writeResults()` @endto
-* `../TME/src/TME_Module_v28.f90:2147:` Document `readUfis()`
-* `../TME/src/TME_Module_v28.f90:2201:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2323:` Document `readEigenvalues()`
+* `../TME/src/TME_Module_v28.f90:1346:` Document `projectBetaSDwfcPC()`
+* `../TME/src/TME_Module_v28.f90:1347:` Figure out the difference between PC and SD `projectBeta_wfc_` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1410:` Document `pawCorrectionPsiPC()`
+* `../TME/src/TME_Module_v28.f90:1476:` Document `pawCorrectionSDPhi()`
+* `../TME/src/TME_Module_v28.f90:1477:` Figure out the difference between PC and SD `pawCorrectionPsi` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1541:` Document `pawCorrectionKPC()`
+* `../TME/src/TME_Module_v28.f90:1640:` Document `pawCorrectionSDK()`
+* `../TME/src/TME_Module_v28.f90:1641:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1738:` Document `pawCorrection()`
+* `../TME/src/TME_Module_v28.f90:1739:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
+* `../TME/src/TME_Module_v28.f90:2088:` Document `bessel_j()`
+* `../TME/src/TME_Module_v28.f90:2118:` Document `writeResults()` @endto
+* `../TME/src/TME_Module_v28.f90:2180:` Document `readUfis()`
+* `../TME/src/TME_Module_v28.f90:2234:` Document `calculateVFiElements()`
+* `../TME/src/TME_Module_v28.f90:2356:` Document `readEigenvalues()`

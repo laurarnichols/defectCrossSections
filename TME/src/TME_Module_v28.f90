@@ -1248,61 +1248,94 @@ contains
   !
   subroutine projectBetaPCwfcSD(ik)
     !! @todo Document `projectBetaPCwfcSD()` @endtodo
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     !
     implicit none
     !
     integer, intent(in) :: ik
-    integer :: ig, iDumV(3)
+      !! K point index
+    integer :: ig, i, j
+      !! Loop index
+    integer :: iDumV(3), iDum
+      !! Dummy variable to ignore input from file
     integer, allocatable :: pwGind(:)
+      !! Indices for the wavefunction of a given k point
     !
     character(len = 300) :: iks
+      !! String version of the k point index
     !
     call int2str(ik, iks)
+      !! * Convert the k point index to a string
     !
     ! Reading PC projectors
     !
     open(72, file=trim(perfectCrystal%exportDir)//"/grid."//trim(iks))
+      !! * Open the `grid.ki` file from [[pw_export_for_tme(program)]]
     !
+    !> * Ignore the next two lines as they are comments
     read(72, * )
     read(72, * )
     !
     allocate ( pwGind(perfectCrystal%npws(ik)) )
+      !! * Allocate space for `pwGind`
     !
     do ig = 1, perfectCrystal%npws(ik)
+      !! * Read in the index for each plane wave
+      !
       read(72, '(4i10)') pwGind(ig), iDumV(1:3)
+      !
     enddo
     !
     close(72)
+      !! * Close the `grid.ki` file
     !
     allocate ( betaPC(numOfPWs, perfectCrystal%nProjs) )
+      !! * Allocate space for \(\beta\)
     !
     betaPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+      !! * Initialize all values of \(\beta\) to complex double zero
     !
     open(73, file=trim(perfectCrystal%exportDir)//"/projectors."//trim(iks))
+      !! * Open the `projectors.ki` file from [[pw_export_for_tme(program)]]
     !
-    read(73, '(a)') textDum
-    read(73, '(2i10)') perfectCrystal%nProjs, npw
+    read(73, *) 
+      !! * Ignore the first line because it is a comment
+    read(73, *) 
+      !! * Ignore the second line because it is the number of projectors that
+      !!   was already calculated in [[TMEModule(module):readQEExport(subroutine)]]
+      !!   and the number of plane waves for a given k point that was read in in the
+      !!   same subroutine
     !
     do j = 1, perfectCrystal%nProjs
-      do i = 1, npw
+      do i = 1, perfectCrystal%npws(ik)
+        !! * Read in each \(|\beta\rangle\) and store in the proper index of `beta`
+        !!   for the system
+        !
         read(73,'(2ES24.15E3)') betaPC(pwGind(i),j)
+        !
       enddo
     enddo
     !
     close(73)
     !
     deallocate ( pwGind )
+      !! * Deallocate space for `pwGind`
     !
     do j = iBandFinit, iBandFfinal
       do i = 1, perfectCrystal%nProjs
+        !! * For each band between `iBandFinit` and `iBandFfinal`,
+        !!   calculate \(\langle\beta|\Phi\rangle\) for ???
+        !
         cProjBetaPCPsiSD(i,j,1) = sum(conjg(betaPC(:,i))*solidDefect%wfc(:,j))
-        !write(65,'(2f17.12)') cProjPC(i,j,1) - cProjBetaPCPsiSD(i,j,1)
+        !
       enddo
     enddo
     !
-    !close(65)
     !
     deallocate ( betaPC )
+      !! * Deallocate space for \(\beta\)
     !
     return
     !
