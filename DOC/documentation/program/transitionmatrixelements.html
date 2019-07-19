@@ -584,8 +584,8 @@
     <span class="c">!</span>
     <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span><span class="n">tmes_file_exists</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
-      <span class="k">allocate</span> <span class="p">(</span> <span class="n">cProjPC</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
-      <span class="k">allocate</span> <span class="p">(</span> <span class="n">cProjSD</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">cProj</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
       <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
         <span class="c">!</span>
@@ -613,7 +613,7 @@
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\tilde{Psi}_f|PAW_PC&gt; begun.&quot;)&#39;</span><span class="p">)</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
         <span class="c">!</span>
-        <span class="k">call </span><span class="n">readProjectionsPC</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+        <span class="k">call </span><span class="n">readProjections</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">)</span>
         <span class="c">!</span>
         <span class="k">allocate</span> <span class="p">(</span> <span class="n">cProjBetaPCPsiSD</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
         <span class="k">call </span><span class="n">projectBeta</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">)</span>
@@ -630,7 +630,7 @@
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;PAW_SD|\\tilde{Phi}_i&gt; begun.&quot;)&#39;</span><span class="p">)</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
         <span class="c">!</span>
-        <span class="k">call </span><span class="n">readProjectionsSD</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+        <span class="k">call </span><span class="n">readProjections</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">)</span>
         <span class="c">!</span>
         <span class="k">allocate</span> <span class="p">(</span> <span class="n">cProjBetaSDPhiPC</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
         <span class="k">call </span><span class="n">projectBeta</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">)</span>
@@ -673,8 +673,8 @@
         <span class="c">!</span>
       <span class="n">endif</span>
       <span class="c">!</span>
-      <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">cProjPC</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">cProjPC</span><span class="p">),</span> <span class="n">MPI_DOUBLE_COMPLEX</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
-      <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">cProjSD</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">cProjSD</span><span class="p">),</span> <span class="n">MPI_DOUBLE_COMPLEX</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+      <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">),</span> <span class="n">MPI_DOUBLE_COMPLEX</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+      <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">cProj</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">cProj</span><span class="p">),</span> <span class="n">MPI_DOUBLE_COMPLEX</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
       <span class="c">!</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">pawKPC</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">):</span><span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">))</span> <span class="p">)</span>
       <span class="c">!</span>
@@ -751,8 +751,8 @@
         <span class="c">!</span>
       <span class="n">endif</span>
       <span class="c">!</span>
-      <span class="k">deallocate</span> <span class="p">(</span> <span class="n">cProjPC</span><span class="p">,</span> <span class="n">pawKPC</span> <span class="p">)</span>
-      <span class="k">deallocate</span> <span class="p">(</span> <span class="n">cProjSD</span><span class="p">,</span> <span class="n">pawSDK</span> <span class="p">)</span>
+      <span class="k">deallocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">,</span> <span class="n">pawKPC</span> <span class="p">)</span>
+      <span class="k">deallocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">cProj</span><span class="p">,</span> <span class="n">pawSDK</span> <span class="p">)</span>
       <span class="c">!</span>
     <span class="k">else</span>
       <span class="c">!</span>

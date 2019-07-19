@@ -180,8 +180,8 @@ program transitionMatrixElements
     !
     if ( .not.tmes_file_exists ) then
       !
-      allocate ( cProjPC(perfectCrystal%nProjs, solidDefect%nBands, solidDefect%nSpins) )
-      allocate ( cProjSD(solidDefect%nProjs, solidDefect%nBands, solidDefect%nSpins) )
+      allocate ( perfectCrystal%cProj(perfectCrystal%nProjs, solidDefect%nBands, solidDefect%nSpins) )
+      allocate ( solidDefect%cProj(solidDefect%nProjs, solidDefect%nBands, solidDefect%nSpins) )
       !
       if ( myid == root ) then
         !
@@ -209,7 +209,7 @@ program transitionMatrixElements
         write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> begun.")')
         flush(iostd)
         !
-        call readProjectionsPC(ik)
+        call readProjections(ik, perfectCrystal)
         !
         allocate ( cProjBetaPCPsiSD(perfectCrystal%nProjs, solidDefect%nBands, solidDefect%nSpins) )
         call projectBeta(ik, perfectCrystal, solidDefect)
@@ -226,7 +226,7 @@ program transitionMatrixElements
         write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> begun.")')
         flush(iostd)
         !
-        call readProjectionsSD(ik)
+        call readProjections(ik, solidDefect)
         !
         allocate ( cProjBetaSDPhiPC(solidDefect%nProjs, solidDefect%nBands, solidDefect%nSpins) )
         call projectBeta(ik, solidDefect, perfectCrystal)
@@ -269,8 +269,8 @@ program transitionMatrixElements
         !
       endif
       !
-      call MPI_BCAST(cProjPC, size(cProjPC), MPI_DOUBLE_COMPLEX, root, MPI_COMM_WORLD, ierr)
-      call MPI_BCAST(cProjSD, size(cProjSD), MPI_DOUBLE_COMPLEX, root, MPI_COMM_WORLD, ierr)
+      call MPI_BCAST(perfectCrystal%cProj, size(perfectCrystal%cProj), MPI_DOUBLE_COMPLEX, root, MPI_COMM_WORLD, ierr)
+      call MPI_BCAST(solidDefect%cProj, size(solidDefect%cProj), MPI_DOUBLE_COMPLEX, root, MPI_COMM_WORLD, ierr)
       !
       allocate ( pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid)) )
       !
@@ -347,8 +347,8 @@ program transitionMatrixElements
         !
       endif
       !
-      deallocate ( cProjPC, pawKPC )
-      deallocate ( cProjSD, pawSDK )
+      deallocate ( perfectCrystal%cProj, pawKPC )
+      deallocate ( solidDefect%cProj, pawSDK )
       !
     else
       !

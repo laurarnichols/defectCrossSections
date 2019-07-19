@@ -142,8 +142,6 @@ module TMEModule
   ! Declare matrix/vector complex numbers
   complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:,:)
   complex(kind = dp), allocatable :: cProjBetaSDPhiPC(:,:,:)
-  complex(kind = dp), allocatable :: cProjPC(:,:,:)
-  complex(kind = dp), allocatable :: cProjSD(:,:,:)
   complex(kind = dp), allocatable :: paw_id(:,:)
   complex(kind = dp), allocatable :: paw_fi(:,:)
   complex(kind = dp), allocatable :: pawKPC(:,:,:)
@@ -238,6 +236,7 @@ module TMEModule
     !
     complex(kind = dp), allocatable :: wfc(:,:)
     complex(kind = dp), allocatable :: beta(:,:)
+    complex(kind = dp), allocatable :: cProj(:,:,:)
     !
     character(len = 2) crystalType
       !! 'PC' for pristine crystal and 'SD' for solid defect
@@ -254,7 +253,6 @@ module TMEModule
 !    real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
 !    !
 !    complex(kind = dp), allocatable :: Ufi(:,:,:)
-!    complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)
 !    !
 !    integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:)
 !    integer, allocatable :: pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
@@ -613,6 +611,8 @@ contains
     !integer, intent(in) :: id
     !
     TYPE(crystal), intent(inout) :: system
+      !! Holds the structure for the system you are working on
+      !! (either `perfectCrystal` or `solidDefect`
     !
     integer :: i, ik, iType, ni
       !! Loop index
@@ -1109,7 +1109,7 @@ contains
     !
     TYPE(crystal), intent(inout) :: system
       !! Holds the structure for the system you are working on
-      !! (either `perfectCrystal` or `solidDefect`
+      !! (either `perfectCrystal` or `solidDefect`)
     !
     call int2str(ik, iks)
       !! * Convert the k point index to a string
@@ -1178,7 +1178,7 @@ contains
   end subroutine readWfc
   !
   !
-  subroutine readProjectionsPC(ik)
+  subroutine readProjections(ik, system)
     !! Read in the projection \(\langle\beta|\Psi\rangle\) for each band
     !!
     !! <H2>Walkthrough</h2>
@@ -1193,14 +1193,17 @@ contains
     !
     character(len = 300) :: iks
       !! String version of k point index
+    TYPE(crystal), intent(inout) :: system
+      !! Holds the structure for the system you are working on
+      !! (either `perfectCrystal` or `solidDefect`)
     !
     call int2str(ik, iks)
       !! * Convert the k point index to a string
     !
-    cProjPC(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
+    system%cProj(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
       !! * Initialize `cProj` to all complex double zero
     !
-    open(72, file=trim(perfectCrystal%exportDir)//"/projections."//trim(iks))
+    open(72, file=trim(system%exportDir)//"/projections."//trim(iks))
       !! * Open the `projections.iks` file from [[pw_export_for_tme(program)]]
     !
     read(72, *)
@@ -1214,10 +1217,10 @@ contains
     !! @todo Figure out if loop should be over `solidDefect` or `perfectCrystal` @endtodo
     !! @todo Look into `nSpins` to figure out if it is needed @endtodo
     do j = 1, solidDefect%nBands  ! number of bands 
-      do i = 1, perfectCrystal%nProjs ! number of projections
+      do i = 1, system%nProjs ! number of projections
         !! * For each band, read in the projections \(\langle\beta|\Psi\rangle\)
         !
-        read(72,'(2ES24.15E3)') cProjPC(i,j,1)
+        read(72,'(2ES24.15E3)') system%cProj(i,j,1)
         !
       enddo
     enddo
@@ -1226,41 +1229,7 @@ contains
     !
     return
     !
-  end subroutine readProjectionsPC
-  !
-  !
-  subroutine readProjectionsSD(ik)
-    !! @todo Document `readProjectionsSD()` @endtodo
-    !! @todo Figure out the difference between PC and SD `readProjections` and possibly merge @endtodo
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: i, j
-    !
-    character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
-    cProjSD(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
-    !
-    ! Reading projections
-    !
-    open(72, file=trim(solidDefect%exportDir)//"/projections."//trim(iks))
-    !
-    read(72, *)
-    !
-    do j = 1, solidDefect%nBands  ! number of bands 
-      do i = 1, solidDefect%nProjs ! number of projections
-        read(72,'(2ES24.15E3)') cProjSD(i,j,1)
-      enddo
-    enddo
-    !
-    close(72)
-    !
-    return
-    !
-  end subroutine readProjectionsSD
+  end subroutine readProjections
   !
   !
   subroutine projectBeta(ik, betaSystem, projectedSystem)
@@ -1424,7 +1393,7 @@ contains
                 atomicOverlap = sum(perfectCrystal%atoms(iT)%F1(:,LL, LLP))
                 !
                 do ibi = iBandIinit, iBandIfinal
-                  cProjIe = cProjPC(LMP + LMBASE, ibi, ISPIN)
+                  cProjIe = perfectCrystal%cProj(LMP + LMBASE, ibi, ISPIN)
                   !
                   do ibf = iBandFinit, iBandFfinal
                     cProjFe = conjg(cProjBetaPCPsiSD(LM + LMBASE, ibf, ISPIN))
@@ -1494,7 +1463,7 @@ contains
                   cProjIe = cProjBetaSDPhiPC(LMP + LMBASE, ibi, ISPIN)
                   !
                   do ibf = iBandFinit, iBandFfinal
-                    cProjFe = conjg(cProjSD(LM + LMBASE, ibf, ISPIN))
+                    cProjFe = conjg(solidDefect%cProj(LM + LMBASE, ibf, ISPIN))
                     !
                     paw_SDPhi(ibf, ibi) = paw_SDPhi(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
                     !
@@ -1595,7 +1564,7 @@ contains
               !
               do ibf = iBandFinit, iBandFfinal
                 !
-                pawKPC(ibf, ibi, ig) = pawKPC(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi, ISPIN)
+                pawKPC(ibf, ibi, ig) = pawKPC(ibf, ibi, ig) + VifQ_aug*perfectCrystal%cProj(LM + LMBASE, ibi, ISPIN)
                 !
               enddo
               !
@@ -1693,7 +1662,7 @@ contains
               !
               do ibf = iBandFinit, iBandFfinal
                 !
-                pawSDK(ibf, ibi, ig) = pawSDK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf, ISPIN))
+                pawSDK(ibf, ibi, ig) = pawSDK(ibf, ibi, ig) + VifQ_aug*conjg(solidDefect%cProj(LM + LMBASE, ibf, ISPIN))
                 !
               enddo
               !
@@ -1764,10 +1733,10 @@ contains
               if ( (L == LP).and.(M == MP) ) atomicOverlap = sum(perfectCrystal%atoms(iT)%F2(:,LL,LLP))
               !
               do ibi = iBandIinit, iBandIfinal
-                cProjIe = cProjPC(LMP + LMBASE, ibi, ISPIN)
+                cProjIe = perfectCrystal%cProj(LMP + LMBASE, ibi, ISPIN)
                 !
                 do ibf = iBandFinit, iBandFfinal
-                  cProjFe = conjg(cProjPC(LM + LMBASE, ibf, ISPIN))
+                  cProjFe = conjg(perfectCrystal%cProj(LM + LMBASE, ibf, ISPIN))
                   !
                   paw_fi(ibf, ibi) = paw_fi(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
                   !
