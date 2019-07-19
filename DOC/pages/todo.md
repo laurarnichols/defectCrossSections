@@ -1,6 +1,6 @@
 title: Todo
 author: Laura Nichols
-date: 07/18/2019
+date: 07/19/2019
 
 * `../TME/src/TME_Main_v9.f90:2:` Finish documentation for main program
 * `../TME/src/TME_Main_v9.f90:46:` Figure out if need to allocate space for arrays so soon
@@ -18,19 +18,21 @@ date: 07/18/2019
 * `../TME/src/TME_Module_v28.f90:882:` Figure out if intentional to only use `JMAX` from SD input
 * `../TME/src/TME_Module_v28.f90:1038:` Document `calculatePWsOverlap()`
 * `../TME/src/TME_Module_v28.f90:1065:` Figure out what `Ufi` is supposed to be
-* `../TME/src/TME_Module_v28.f90:1182:` Document `readProjectionsPC()`
-* `../TME/src/TME_Module_v28.f90:1215:` Document `readProjectionsSD()`
-* `../TME/src/TME_Module_v28.f90:1216:` Figure out the difference between PC and SD `readProjections` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1371:` Document `pawCorrectionPsiPC()`
-* `../TME/src/TME_Module_v28.f90:1437:` Document `pawCorrectionSDPhi()`
-* `../TME/src/TME_Module_v28.f90:1438:` Figure out the difference between PC and SD `pawCorrectionPsi` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1502:` Document `pawCorrectionKPC()`
-* `../TME/src/TME_Module_v28.f90:1601:` Document `pawCorrectionSDK()`
-* `../TME/src/TME_Module_v28.f90:1602:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1699:` Document `pawCorrection()`
-* `../TME/src/TME_Module_v28.f90:1700:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
-* `../TME/src/TME_Module_v28.f90:2049:` Document `bessel_j()`
-* `../TME/src/TME_Module_v28.f90:2079:` Document `writeResults()` @endto
-* `../TME/src/TME_Module_v28.f90:2141:` Document `readUfis()`
-* `../TME/src/TME_Module_v28.f90:2195:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2317:` Document `readEigenvalues()`
+* `../TME/src/TME_Module_v28.f90:1213:` Get actual perfect crystal and solid defect output to test
+* `../TME/src/TME_Module_v28.f90:1214:` Figure out if loop should be over `solidDefect` or `perfectCrystal`
+* `../TME/src/TME_Module_v28.f90:1215:` Look into `nSpins` to figure out if it is needed
+* `../TME/src/TME_Module_v28.f90:1233:` Document `readProjectionsSD()`
+* `../TME/src/TME_Module_v28.f90:1234:` Figure out the difference between PC and SD `readProjections` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1389:` Document `pawCorrectionPsiPC()`
+* `../TME/src/TME_Module_v28.f90:1455:` Document `pawCorrectionSDPhi()`
+* `../TME/src/TME_Module_v28.f90:1456:` Figure out the difference between PC and SD `pawCorrectionPsi` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1520:` Document `pawCorrectionKPC()`
+* `../TME/src/TME_Module_v28.f90:1619:` Document `pawCorrectionSDK()`
+* `../TME/src/TME_Module_v28.f90:1620:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1717:` Document `pawCorrection()`
+* `../TME/src/TME_Module_v28.f90:1718:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
+* `../TME/src/TME_Module_v28.f90:2067:` Document `bessel_j()`
+* `../TME/src/TME_Module_v28.f90:2097:` Document `writeResults()` @endto
+* `../TME/src/TME_Module_v28.f90:2159:` Document `readUfis()`
+* `../TME/src/TME_Module_v28.f90:2213:` Document `calculateVFiElements()`
+* `../TME/src/TME_Module_v28.f90:2335:` Document `readEigenvalues()`

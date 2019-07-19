@@ -1179,28 +1179,46 @@ contains
   !
   !
   subroutine readProjectionsPC(ik)
-    !! @todo Document `readProjectionsPC()` @endtodo
+    !! Read in the projection \(\langle\beta|\Psi\rangle\) for each band
+    !!
+    !! <H2>Walkthrough</h2>
+    !!
     !
     implicit none
     !
     integer, intent(in) :: ik
+      !! K point index
     integer :: i, j
+      !! Loop index
     !
     character(len = 300) :: iks
+      !! String version of k point index
     !
     call int2str(ik, iks)
+      !! * Convert the k point index to a string
     !
     cProjPC(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
-    !
-    ! Reading projections
+      !! * Initialize `cProj` to all complex double zero
     !
     open(72, file=trim(perfectCrystal%exportDir)//"/projections."//trim(iks))
+      !! * Open the `projections.iks` file from [[pw_export_for_tme(program)]]
     !
     read(72, *)
+      !! * Ignore the first line as it is a comment
     !
+    !write(6,'("Solid defect nBands: ", i3)') solidDefect%nBands
+    !write(6,'("Solid defect nSpins: ", i3)') solidDefect%nSpins
+    !write(6,'("Perfect crystal nBands: ", i3)') perfectCrystal%nBands
+    !write(6,'("Perfect crystal nSpins: ", i3)') perfectCrystal%nSpins
+    !! @todo Get actual perfect crystal and solid defect output to test @endtodo
+    !! @todo Figure out if loop should be over `solidDefect` or `perfectCrystal` @endtodo
+    !! @todo Look into `nSpins` to figure out if it is needed @endtodo
     do j = 1, solidDefect%nBands  ! number of bands 
       do i = 1, perfectCrystal%nProjs ! number of projections
+        !! * For each band, read in the projections \(\langle\beta|\Psi\rangle\)
+        !
         read(72,'(2ES24.15E3)') cProjPC(i,j,1)
+        !
       enddo
     enddo
     !
