@@ -802,7 +802,7 @@ public subroutine pawCorrectionSDK()
         <span class="c">!</span>
         <span class="n">iT</span> <span class="o">=</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">atomTypeIndex</span><span class="p">(</span><span class="n">ni</span><span class="p">)</span>
         <span class="n">LM</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">DO </span><span class="n">LL</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lMax</span>
+        <span class="k">DO </span><span class="n">LL</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">numProjs</span>
           <span class="n">L</span> <span class="o">=</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">LL</span><span class="p">)</span>
           <span class="k">DO </span><span class="n">M</span> <span class="o">=</span> <span class="o">-</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span>
             <span class="n">LM</span> <span class="o">=</span> <span class="n">LM</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">!1st index for CPROJ</span>

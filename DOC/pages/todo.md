@@ -2,12 +2,11 @@ title: Todo
 author: Laura Nichols
 date: 07/22/2019
 
-* Binary file ../TME/src/.TME_Module_v28.f90.swo matches
 * `../TME/src/TME_Main_v9.f90:2:` Finish documentation for main program
 * `../TME/src/TME_Main_v9.f90:46:` Figure out if need to allocate space for arrays so soon
 * `../TME/src/TME_Main_v9.f90:58:` Figure out if SD and PC `numOfGvecs` should be the same
-* `../TME/src/TME_Main_v9.f90:326:` Figure out if should be solid defect volume or pristine
-* `../TME/src/TME_Main_v9.f90:327:` Are pristine and solid defect volume the same?
+* `../TME/src/TME_Main_v9.f90:327:` Figure out if should be solid defect volume or pristine
+* `../TME/src/TME_Main_v9.f90:328:` Are pristine and solid defect volume the same?
 * `../TME/src/TME_Module_v28.f90:34:` Change I/O from file to console so that usage matches that of QE
 * `../TME/src/TME_Module_v28.f90:162:` Consider changing `atom` type to `element` since it holds more than one atom
 * `../TME/src/TME_Module_v28.f90:403:` Change `checkInitialization()` to have arguments to make clear that these variables are getting changed

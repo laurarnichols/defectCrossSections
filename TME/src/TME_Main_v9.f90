@@ -98,17 +98,18 @@ program transitionMatrixElements
   do i = 1, perfectCrystal%numOfTypes
     !
     call MPI_BCAST(perfectCrystal%atoms(i)%numOfAtoms, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(perfectCrystal%atoms(i)%lMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(perfectCrystal%atoms(i)%numProjs,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(perfectCrystal%atoms(i)%lmMax,      1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(perfectCrystal%atoms(i)%nMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(perfectCrystal%atoms(i)%iRc,        1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     !
     if ( myid /= root ) then 
-      allocate( perfectCrystal%atoms(i)%projAngMom(perfectCrystal%atoms(i)%lMax) )
+      allocate( perfectCrystal%atoms(i)%projAngMom(perfectCrystal%atoms(i)%numProjs) )
       allocate( perfectCrystal%atoms(i)%r  (perfectCrystal%atoms(i)%nMax) )
       allocate( perfectCrystal%atoms(i)%rab(perfectCrystal%atoms(i)%nMax) )
-      allocate( perfectCrystal%atoms(i)%F(perfectCrystal%atoms(i)%iRc, perfectCrystal%atoms(i)%lMax ) )
-      allocate(perfectCrystal%atoms(i)%F1(perfectCrystal%atoms(i)%iRc, perfectCrystal%atoms(i)%lMax, perfectCrystal%atoms(i)%lMax))
+      allocate( perfectCrystal%atoms(i)%F(perfectCrystal%atoms(i)%iRc, perfectCrystal%atoms(i)%numProjs ) )
+      allocate(perfectCrystal%atoms(i)%F1(perfectCrystal%atoms(i)%iRc, perfectCrystal%atoms(i)%numProjs, &
+               perfectCrystal%atoms(i)%numProjs))
       allocate( perfectCrystal%atoms(i)%bes_J_qr ( 0:JMAX, perfectCrystal%atoms(i)%iRc) )
     endif
     !
@@ -135,17 +136,17 @@ program transitionMatrixElements
   do i = 1, solidDefect%numOfTypes
     !
     call MPI_BCAST(solidDefect%atoms(i)%numOfAtoms, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(solidDefect%atoms(i)%lMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(solidDefect%atoms(i)%numProjs,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(solidDefect%atoms(i)%lmMax,      1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(solidDefect%atoms(i)%nMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(solidDefect%atoms(i)%iRc,        1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     !
     if ( myid /= root ) then 
-      allocate( solidDefect%atoms(i)%projAngMom(solidDefect%atoms(i)%lMax) )
+      allocate( solidDefect%atoms(i)%projAngMom(solidDefect%atoms(i)%numProjs) )
       allocate( solidDefect%atoms(i)%r(solidDefect%atoms(i)%nMax) )
       allocate( solidDefect%atoms(i)%rab(solidDefect%atoms(i)%nMax) )
-      allocate( solidDefect%atoms(i)%F(solidDefect%atoms(i)%iRc, solidDefect%atoms(i)%lMax ) )
-      allocate( solidDefect%atoms(i)%F1(solidDefect%atoms(i)%iRc, solidDefect%atoms(i)%lMax, solidDefect%atoms(i)%lMax ) )
+      allocate( solidDefect%atoms(i)%F(solidDefect%atoms(i)%iRc, solidDefect%atoms(i)%numProjs ) )
+      allocate( solidDefect%atoms(i)%F1(solidDefect%atoms(i)%iRc, solidDefect%atoms(i)%numProjs, solidDefect%atoms(i)%numProjs ) )
       allocate( solidDefect%atoms(i)%bes_J_qr( 0:JMAX, solidDefect%atoms(i)%iRc) )
     endif
     !

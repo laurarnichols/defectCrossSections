@@ -167,7 +167,7 @@ module TMEModule
       !! for PAW augmentation charge may extend a bit further
     integer :: numOfAtoms
       !! Number of atoms of a specific type in the structure
-    integer :: lMax
+    integer :: numProjs
       !! Number of projectors
     integer :: lmMax
       !! Number of channels
@@ -780,12 +780,12 @@ contains
       read(50, '(i10)') system%atoms(iType)%numOfAtoms
       !
       read(50, '(a)') textDum
-      read(50, '(i10)') system%atoms(iType)%lMax              ! number of projectors
+      read(50, '(i10)') system%atoms(iType)%numProjs              ! number of projectors
       !
-      allocate ( system%atoms(iType)%projAngMom( system%atoms(iType)%lMax ) )
+      allocate ( system%atoms(iType)%projAngMom( system%atoms(iType)%numProjs ) )
       !
       read(50, '(a)') textDum
-      do i = 1, system%atoms(iType)%lMax 
+      do i = 1, system%atoms(iType)%numProjs 
         !
         read(50, '(2i10)') l, ind
         system%atoms(iType)%projAngMom(ind) = l
@@ -807,11 +807,11 @@ contains
         !
       enddo
       ! 
-      allocate ( system%atoms(iType)%wae(system%atoms(iType)%nMax, system%atoms(iType)%lMax) )
-      allocate ( system%atoms(iType)%wps(system%atoms(iType)%nMax, system%atoms(iType)%lMax) )
+      allocate ( system%atoms(iType)%wae(system%atoms(iType)%nMax, system%atoms(iType)%numProjs) )
+      allocate ( system%atoms(iType)%wps(system%atoms(iType)%nMax, system%atoms(iType)%numProjs) )
       !
       read(50, '(a)') textDum
-      do j = 1, system%atoms(iType)%lMax
+      do j = 1, system%atoms(iType)%numProjs
         do i = 1, system%atoms(iType)%nMax
           !
           read(50, '(2ES24.15E3)') system%atoms(iType)%wae(i, j), system%atoms(iType)%wps(i, j) 
@@ -820,9 +820,9 @@ contains
         enddo
       enddo
       !  
-      allocate ( system%atoms(iType)%F( system%atoms(iType)%iRc, system%atoms(iType)%lMax ) ) !, system%atoms(iType)%lMax) )
-      allocate ( system%atoms(iType)%F1(system%atoms(iType)%iRc, system%atoms(iType)%lMax, system%atoms(iType)%lMax ) )
-      allocate ( system%atoms(iType)%F2(system%atoms(iType)%iRc, system%atoms(iType)%lMax, system%atoms(iType)%lMax ) )
+      allocate ( system%atoms(iType)%F( system%atoms(iType)%iRc, system%atoms(iType)%numProjs ) ) !, system%atoms(iType)%numProjs) )
+      allocate ( system%atoms(iType)%F1(system%atoms(iType)%iRc, system%atoms(iType)%numProjs, system%atoms(iType)%numProjs ) )
+      allocate ( system%atoms(iType)%F2(system%atoms(iType)%iRc, system%atoms(iType)%numProjs, system%atoms(iType)%numProjs ) )
       !
       system%atoms(iType)%F = 0.0_dp
       system%atoms(iType)%F1 = 0.0_dp
@@ -831,14 +831,14 @@ contains
       !> * Calculate `F`, `F1`, and `F2` using the all-electron and psuedowvefunctions
       !> @todo Look more into how AE and PS wavefunctions are combined to further understand this @endtodo
       !> @todo Move this behavior to another subroutine for clarity @endtodo
-      do j = 1, system%atoms(iType)%lMax
+      do j = 1, system%atoms(iType)%numProjs
         !
         irc = system%atoms(iType)%iRc
         !
         system%atoms(iType)%F(1:irc,j)=(system%atoms(iType)%wae(1:irc,j)-system%atoms(iType)%wps(1:irc,j))* &
               system%atoms(iType)%r(1:irc)*system%atoms(iType)%rab(1:irc)
         !
-        do i = 1, system%atoms(iType)%lMax
+        do i = 1, system%atoms(iType)%numProjs
           !> @todo Figure out if differences in PC and SD `F1` calculations are intentional @endtodo
           !> @todo Figure out if should be `(wps_i wae_j - wae_i wps_j)r_{ab}` @endtodo
           if ( system%crystalType == 'PC' ) then
@@ -883,7 +883,7 @@ contains
     JMAX = 0
     do iType = 1, system%numOfTypes
       !
-      do i = 1, system%atoms(iType)%lMax
+      do i = 1, system%atoms(iType)%numProjs
         !
         if ( system%atoms(iType)%projAngMom(i) > JMAX ) JMAX = system%atoms(iType)%projAngMom(i)
         !
@@ -1396,14 +1396,14 @@ contains
       !
       LM = 0
       !
-      do LL = 1, perfectCrystal%atoms(iAtomType)%lMax
+      do LL = 1, perfectCrystal%atoms(iAtomType)%numProjs
         !
         L = perfectCrystal%atoms(iAtomType)%projAngMom(LL)
         do M = -L, L
           LM = LM + 1 !1st index for CPROJ
           !
           LMP = 0
-          do LLP = 1, perfectCrystal%atoms(iAtomType)%lMax
+          do LLP = 1, perfectCrystal%atoms(iAtomType)%numProjs
             LP = perfectCrystal%atoms(iAtomType)%projAngMom(LLP)
             do MP = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
@@ -1464,13 +1464,13 @@ contains
       !
       iT = solidDefect%atomTypeIndex(ni)
       LM = 0
-      DO LL = 1, solidDefect%atoms(iT)%lMax
+      DO LL = 1, solidDefect%atoms(iT)%numProjs
         L = solidDefect%atoms(iT)%projAngMom(LL)
         DO M = -L, L
           LM = LM + 1 !1st index for CPROJ
           !
           LMP = 0
-          DO LLP = 1, solidDefect%atoms(iT)%lMax
+          DO LLP = 1, solidDefect%atoms(iT)%numProjs
             LP = solidDefect%atoms(iT)%projAngMom(LLP)
             DO MP = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
@@ -1568,7 +1568,7 @@ contains
         !
         iT = perfectCrystal%atomTypeIndex(ni)
         LM = 0
-        DO LL = 1, perfectCrystal%atoms(iT)%lMax
+        DO LL = 1, perfectCrystal%atoms(iT)%numProjs
           L = perfectCrystal%atoms(iT)%projAngMom(LL)
           DO M = -L, L
             LM = LM + 1 !1st index for CPROJ
@@ -1666,7 +1666,7 @@ contains
         !
         iT = solidDefect%atomTypeIndex(ni)
         LM = 0
-        DO LL = 1, solidDefect%atoms(iT)%lMax
+        DO LL = 1, solidDefect%atoms(iT)%numProjs
           L = solidDefect%atoms(iT)%projAngMom(LL)
           DO M = -L, L
             LM = LM + 1 !1st index for CPROJ
@@ -1738,13 +1738,13 @@ contains
       !
       iT = perfectCrystal%atomTypeIndex(niPC)
       LM = 0
-      DO LL = 1, perfectCrystal%atoms(iT)%lMax
+      DO LL = 1, perfectCrystal%atoms(iT)%numProjs
         L = perfectCrystal%atoms(iT)%projAngMom(LL)
         DO M = -L, L
           LM = LM + 1 !1st index for CPROJ
           !
           LMP = 0
-          DO LLP = 1, perfectCrystal%atoms(iT)%lMax
+          DO LLP = 1, perfectCrystal%atoms(iT)%numProjs
             LP = perfectCrystal%atoms(iT)%projAngMom(LLP)
             DO MP = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
