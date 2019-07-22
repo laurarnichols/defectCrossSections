@@ -2,12 +2,6 @@ title: Todo
 author: Laura Nichols
 date: 07/22/2019
 
-* `../TME/src/diff.txt:3:`< Document `pawCorrectionPsiPC()`
-* `../TME/src/diff.txt:6:`> Document `pawCorrectionSDPhi()`
-* `../TME/src/diff.txt:7:`> Figure out the difference between PC and SD `pawCorrectionPsi` and possibly merge
-* `../TME/src/PC.txt:2:` Document `pawCorrectionPsiPC()`
-* `../TME/src/SD.txt:2:` Document `pawCorrectionSDPhi()`
-* `../TME/src/SD.txt:3:` Figure out the difference between PC and SD `pawCorrectionPsi` and possibly merge
 * `../TME/src/TME_Main_v9.f90:2:` Finish documentation for main program
 * `../TME/src/TME_Main_v9.f90:46:` Figure out if need to allocate space for arrays so soon
 * `../TME/src/TME_Main_v9.f90:58:` Figure out if SD and PC `numOfGvecs` should be the same
@@ -35,8 +29,7 @@ date: 07/22/2019
 * `../TME/src/TME_Module_v28.f90:1576:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
 * `../TME/src/TME_Module_v28.f90:1673:` Document `pawCorrection()`
 * `../TME/src/TME_Module_v28.f90:1674:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
-* `../TME/src/TME_Module_v28.f90:2023:` Document `bessel_j()`
-* `../TME/src/TME_Module_v28.f90:2053:` Document `writeResults()` @endto
-* `../TME/src/TME_Module_v28.f90:2115:` Document `readUfis()`
-* `../TME/src/TME_Module_v28.f90:2169:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2291:` Document `readEigenvalues()`
+* `../TME/src/TME_Module_v28.f90:2070:` Document `writeResults()` @endto
+* `../TME/src/TME_Module_v28.f90:2132:` Document `readUfis()`
+* `../TME/src/TME_Module_v28.f90:2186:` Document `calculateVFiElements()`
+* `../TME/src/TME_Module_v28.f90:2308:` Document `readEigenvalues()`

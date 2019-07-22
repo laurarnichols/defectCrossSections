@@ -2020,28 +2020,45 @@ contains
   !
   !
   subroutine bessel_j (x, lmax, jl)
-    !! @todo Document `bessel_j()` @endtodo
+    !! Generates the 
+    !! (spherical bessel function of the first kind)[http://mathworld.wolfram.com/SphericalBesselFunctionoftheFirstKind.html]
+    !! for the given argument \(x\) and all possible indices from 0 to `lmax` 
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     !
-    ! x is the argument of j, jl(0:lmax) is the output values.
     implicit none
+    !
     integer, intent(in) :: lmax
-    real(kind = dp), intent(in) :: x
-    real(kind = dp), intent(out) :: jl(0:lmax)
     integer :: l
     !
+    real(kind = dp), intent(in) :: x
+    real(kind = dp), intent(out) :: jl(0:lmax)
+    !
     if (x <= 0.0_dp) then
+      !! * If \(x\) is less than zero, return 0 for all
+      !!   indices but 0 which is 1
+      !
       jl = 0.0_dp
       jl(0) = 1.0_dp
+      !
       return
+      !
     end if
     !
+    !> * Explicitly calculate the first 2 functions so can use 
+    !>   recursive definition for later terms
     jl(0) = sin(x)/x
     if (lmax <= 0) return
     jl(1) = (jl(0)-cos(x))/x
     if (lmax == 1) return
     !
     do l = 2, lmax
+      !! * Define the rest of the functions as
+      !!   \[j_l = (2l-1)j_{l-1}/x - j_{l-2}\]
+      !
       jl(l) = dble(2*l-1)*jl(l-1)/x - jl(l-2)
+      !
     enddo
     !
     return

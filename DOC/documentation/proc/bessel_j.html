@@ -227,8 +227,23 @@ public subroutine bessel_j(x, lmax, jl)
 
 
     
-    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>bessel_j()</code> </p></div>
-<p>
+    <p>Generates the 
+ (spherical bessel function of the first kind)[http://mathworld.wolfram.com/SphericalBesselFunctionoftheFirstKind.html]
+ for the given argument <script type="math/tex">x</script> and all possible indices from 0 to <code>lmax</code> </p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>
+<p>If <script type="math/tex">x</script> is less than zero, return 0 for all
+   indices but 0 which is 1</p>
+</li>
+<li>
+<p>Explicitly calculate the first 2 functions so can use 
+   recursive definition for later terms</p>
+</li>
+<li>Define the rest of the functions as
+   <script type="math/tex; mode=display">j_l = (2l-1)j_{l-1}/x - j_{l-2}</script>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -400,28 +415,45 @@ public subroutine bessel_j(x, lmax, jl)
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">bessel_j</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">lmax</span><span class="p">,</span> <span class="n">jl</span><span class="p">)</span>
-    <span class="c">!! @todo Document `bessel_j()` @endtodo</span>
+    <span class="c">!! Generates the </span>
+    <span class="c">!! (spherical bessel function of the first kind)[http://mathworld.wolfram.com/SphericalBesselFunctionoftheFirstKind.html]</span>
+    <span class="c">!! for the given argument \(x\) and all possible indices from 0 to `lmax` </span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
     <span class="c">!</span>
-    <span class="c">! x is the argument of j, jl(0:lmax) is the output values.</span>
     <span class="k">implicit none</span>
-<span class="k">    </span><span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">lmax</span>
-    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">x</span>
-    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">jl</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">lmax</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">lmax</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">l</span>
     <span class="c">!</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="mf">0.0_dp</span><span class="p">)</span> <span class="k">then</span>
-<span class="k">      </span><span class="n">jl</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-      <span class="n">jl</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mf">1.0_dp</span>
-      <span class="k">return</span>
-<span class="k">    end if</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">x</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">jl</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">lmax</span><span class="p">)</span>
     <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="mf">0.0_dp</span><span class="p">)</span> <span class="k">then</span>
+      <span class="c">!! * If \(x\) is less than zero, return 0 for all</span>
+      <span class="c">!!   indices but 0 which is 1</span>
+      <span class="c">!</span>
+      <span class="n">jl</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="n">jl</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mf">1.0_dp</span>
+      <span class="c">!</span>
+      <span class="k">return</span>
+      <span class="c">!</span>
+    <span class="k">end if</span>
+    <span class="c">!</span>
+    <span class="c">!&gt; * Explicitly calculate the first 2 functions so can use </span>
+    <span class="c">!&gt;   recursive definition for later terms</span>
     <span class="n">jl</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sin</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">/</span><span class="n">x</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">lmax</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">return</span>
 <span class="k">    </span><span class="n">jl</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="n">jl</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">-</span><span class="nb">cos</span><span class="p">(</span><span class="n">x</span><span class="p">))</span><span class="o">/</span><span class="n">x</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">lmax</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="k">return</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">l</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">lmax</span>
+      <span class="c">!! * Define the rest of the functions as</span>
+      <span class="c">!!   \[j_l = (2l-1)j_{l-1}/x - j_{l-2}\]</span>
+      <span class="c">!</span>
       <span class="n">jl</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="o">=</span> <span class="nb">dble</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">jl</span><span class="p">(</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="n">x</span> <span class="o">-</span> <span class="n">jl</span><span class="p">(</span><span class="n">l</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+      <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">return</span>
