@@ -154,25 +154,29 @@
 <li><code>../TME/src/TME_Module_v28.f90:832:</code> Look more into how AE and PS wavefunctions are combined to further understand this</li>
 <li><code>../TME/src/TME_Module_v28.f90:833:</code> Move this behavior to another subroutine for clarity</li>
 <li><code>../TME/src/TME_Module_v28.f90:842:</code> Figure out if differences in PC and SD <code>F1</code> calculations are intentional</li>
-<li><code>../TME/src/TME_Module_v28.f90:843:</code> Figure out if should be <code>(wps_i wae_j - wae_i wps_j)r_{ab}</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:882:</code> Figure out if intentional to only use <code>JMAX</code> from SD input</li>
-<li><code>../TME/src/TME_Module_v28.f90:1038:</code> Document <code>calculatePWsOverlap()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1065:</code> Figure out what <code>Ufi</code> is supposed to be</li>
-<li><code>../TME/src/TME_Module_v28.f90:1216:</code> Get actual perfect crystal and solid defect output to test</li>
-<li><code>../TME/src/TME_Module_v28.f90:1217:</code> Figure out if loop should be over <code>solidDefect</code> or <code>perfectCrystal</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1218:</code> Look into <code>nSpins</code> to figure out if it is needed</li>
-<li><code>../TME/src/TME_Module_v28.f90:1468:</code> Document <code>pawCorrectionSDPhi()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1469:</code> Figure out the difference between PC and SD <code>pawCorrectionPsi</code> and possibly merge</li>
-<li><code>../TME/src/TME_Module_v28.f90:1533:</code> Document <code>pawCorrectionKPC()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1632:</code> Document <code>pawCorrectionSDK()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1633:</code> Figure out the difference between PC and SD <code>pawCorrection_K</code> and possibly merge</li>
-<li><code>../TME/src/TME_Module_v28.f90:1730:</code> Document <code>pawCorrection()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1731:</code> Figure out difference between <code>pawCorrection()</code> and the PC <code>pawCorrection</code> functions</li>
-<li><code>../TME/src/TME_Module_v28.f90:2080:</code> Document <code>bessel_j()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:2110:</code> Document <code>writeResults()</code> @endto</li>
-<li><code>../TME/src/TME_Module_v28.f90:2172:</code> Document <code>readUfis()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:2226:</code> Document <code>calculateVFiElements()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:2348:</code> Document <code>readEigenvalues()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:843:</code> Figure out if should be <code>(wae_i wae_j - wps_i wps_j)r_{ab}</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:844:</code> Figure out if first term in each should be conjugated for inner product form</li>
+<li><code>../TME/src/TME_Module_v28.f90:845:</code> Figure out if <code>rab</code> plays role of <script type="math/tex">dr</script> within augmentation sphere</li>
+<li><code>../TME/src/TME_Module_v28.f90:884:</code> Figure out if intentional to only use <code>JMAX</code> from SD input</li>
+<li><code>../TME/src/TME_Module_v28.f90:1040:</code> Document <code>calculatePWsOverlap()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1067:</code> Figure out what <code>Ufi</code> is supposed to be</li>
+<li><code>../TME/src/TME_Module_v28.f90:1218:</code> Get actual perfect crystal and solid defect output to test</li>
+<li><code>../TME/src/TME_Module_v28.f90:1219:</code> Figure out if loop should be over <code>solidDefect</code> or <code>perfectCrystal</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1220:</code> Look into <code>nSpins</code> to figure out if it is needed</li>
+<li><code>../TME/src/TME_Module_v28.f90:1408:</code> Figure out the significance of <script type="math/tex">l = l^{\prime}</script> and <script type="math/tex">m = m^{\prime}</script>
+</li>
+<li><code>../TME/src/TME_Module_v28.f90:1474:</code> Document <code>pawCorrectionSDPhi()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1475:</code> Figure out the difference between PC and SD <code>pawCorrectionPsi</code> and possibly merge</li>
+<li><code>../TME/src/TME_Module_v28.f90:1539:</code> Document <code>pawCorrectionKPC()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1638:</code> Document <code>pawCorrectionSDK()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1639:</code> Figure out the difference between PC and SD <code>pawCorrection_K</code> and possibly merge</li>
+<li><code>../TME/src/TME_Module_v28.f90:1736:</code> Document <code>pawCorrection()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1737:</code> Figure out difference between <code>pawCorrection()</code> and the PC <code>pawCorrection</code> functions</li>
+<li><code>../TME/src/TME_Module_v28.f90:2086:</code> Document <code>bessel_j()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:2116:</code> Document <code>writeResults()</code> @endto</li>
+<li><code>../TME/src/TME_Module_v28.f90:2178:</code> Document <code>readUfis()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:2232:</code> Document <code>calculateVFiElements()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:2354:</code> Document <code>readEigenvalues()</code></li>
 </ul>
     </div>
     

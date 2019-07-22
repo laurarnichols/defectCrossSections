@@ -14,22 +14,25 @@ date: 07/22/2019
 * `../TME/src/TME_Module_v28.f90:832:` Look more into how AE and PS wavefunctions are combined to further understand this
 * `../TME/src/TME_Module_v28.f90:833:` Move this behavior to another subroutine for clarity
 * `../TME/src/TME_Module_v28.f90:842:` Figure out if differences in PC and SD `F1` calculations are intentional
-* `../TME/src/TME_Module_v28.f90:843:` Figure out if should be `(wps_i wae_j - wae_i wps_j)r_{ab}`
-* `../TME/src/TME_Module_v28.f90:882:` Figure out if intentional to only use `JMAX` from SD input
-* `../TME/src/TME_Module_v28.f90:1038:` Document `calculatePWsOverlap()`
-* `../TME/src/TME_Module_v28.f90:1065:` Figure out what `Ufi` is supposed to be
-* `../TME/src/TME_Module_v28.f90:1216:` Get actual perfect crystal and solid defect output to test
-* `../TME/src/TME_Module_v28.f90:1217:` Figure out if loop should be over `solidDefect` or `perfectCrystal`
-* `../TME/src/TME_Module_v28.f90:1218:` Look into `nSpins` to figure out if it is needed
-* `../TME/src/TME_Module_v28.f90:1468:` Document `pawCorrectionSDPhi()`
-* `../TME/src/TME_Module_v28.f90:1469:` Figure out the difference between PC and SD `pawCorrectionPsi` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1533:` Document `pawCorrectionKPC()`
-* `../TME/src/TME_Module_v28.f90:1632:` Document `pawCorrectionSDK()`
-* `../TME/src/TME_Module_v28.f90:1633:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1730:` Document `pawCorrection()`
-* `../TME/src/TME_Module_v28.f90:1731:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
-* `../TME/src/TME_Module_v28.f90:2080:` Document `bessel_j()`
-* `../TME/src/TME_Module_v28.f90:2110:` Document `writeResults()` @endto
-* `../TME/src/TME_Module_v28.f90:2172:` Document `readUfis()`
-* `../TME/src/TME_Module_v28.f90:2226:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2348:` Document `readEigenvalues()`
+* `../TME/src/TME_Module_v28.f90:843:` Figure out if should be `(wae_i wae_j - wps_i wps_j)r_{ab}`
+* `../TME/src/TME_Module_v28.f90:844:` Figure out if first term in each should be conjugated for inner product form
+* `../TME/src/TME_Module_v28.f90:845:` Figure out if `rab` plays role of \(dr\) within augmentation sphere
+* `../TME/src/TME_Module_v28.f90:884:` Figure out if intentional to only use `JMAX` from SD input
+* `../TME/src/TME_Module_v28.f90:1040:` Document `calculatePWsOverlap()`
+* `../TME/src/TME_Module_v28.f90:1067:` Figure out what `Ufi` is supposed to be
+* `../TME/src/TME_Module_v28.f90:1218:` Get actual perfect crystal and solid defect output to test
+* `../TME/src/TME_Module_v28.f90:1219:` Figure out if loop should be over `solidDefect` or `perfectCrystal`
+* `../TME/src/TME_Module_v28.f90:1220:` Look into `nSpins` to figure out if it is needed
+* `../TME/src/TME_Module_v28.f90:1408:` Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\)
+* `../TME/src/TME_Module_v28.f90:1474:` Document `pawCorrectionSDPhi()`
+* `../TME/src/TME_Module_v28.f90:1475:` Figure out the difference between PC and SD `pawCorrectionPsi` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1539:` Document `pawCorrectionKPC()`
+* `../TME/src/TME_Module_v28.f90:1638:` Document `pawCorrectionSDK()`
+* `../TME/src/TME_Module_v28.f90:1639:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1736:` Document `pawCorrection()`
+* `../TME/src/TME_Module_v28.f90:1737:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
+* `../TME/src/TME_Module_v28.f90:2086:` Document `bessel_j()`
+* `../TME/src/TME_Module_v28.f90:2116:` Document `writeResults()` @endto
+* `../TME/src/TME_Module_v28.f90:2178:` Document `readUfis()`
+* `../TME/src/TME_Module_v28.f90:2232:` Document `calculateVFiElements()`
+* `../TME/src/TME_Module_v28.f90:2354:` Document `readEigenvalues()`

@@ -840,7 +840,9 @@ contains
         !
         do i = 1, system%atoms(iType)%numProjs
           !> @todo Figure out if differences in PC and SD `F1` calculations are intentional @endtodo
-          !> @todo Figure out if should be `(wps_i wae_j - wae_i wps_j)r_{ab}` @endtodo
+          !> @todo Figure out if should be `(wae_i wae_j - wps_i wps_j)r_{ab}` @endtodo
+          !> @todo Figure out if first term in each should be conjugated for inner product form @endtodo
+          !> @todo Figure out if `rab` plays role of \(dr\) within augmentation sphere @endtodo
           if ( system%crystalType == 'PC' ) then
             !
             system%atoms(iType)%F1(1:irc,i,j) = ( system%atoms(iType)%wps(1:irc,i)*system%atoms(iType)%wae(1:irc,j) - &
@@ -1400,6 +1402,10 @@ contains
       !!    * Loop over the projectors twice, each time finding the
       !!      angular momentum quantum number (\(l\) and \(l^{\prime}\))
       !!      and magnetic quantum number (\(m\) and \(m^{\prime}\))
+      !!    * If \(l = l^{\prime}\) and \(m = m^{\prime}\), loop over the bands to
+      !!      calculate `paw_PsiPC`
+      !!
+      !! @todo Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\) @endtodo
       !
       iAtomType = perfectCrystal%atomTypeIndex(iIon)
       !

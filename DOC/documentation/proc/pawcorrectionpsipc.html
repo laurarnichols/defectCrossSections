@@ -282,9 +282,13 @@ public subroutine pawCorrectionPsiPC()
 <li>Loop over the projectors twice, each time finding the
   angular momentum quantum number (<script type="math/tex">l</script> and <script type="math/tex">l^{\prime}</script>)
   and magnetic quantum number (<script type="math/tex">m</script> and <script type="math/tex">m^{\prime}</script>)</li>
+<li>If <script type="math/tex">l = l^{\prime}</script> and <script type="math/tex">m = m^{\prime}</script>, loop over the bands to
+  calculate <code>paw_PsiPC</code></li>
 </ul>
 </li>
 </ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out the significance of <script type="math/tex">l = l^{\prime}</script> and <script type="math/tex">m = m^{\prime}</script> </p></div>
+<p>
     
 
     <h3>Arguments</h3>
@@ -701,6 +705,10 @@ public subroutine pawCorrectionPsiPC()
       <span class="c">!!    * Loop over the projectors twice, each time finding the</span>
       <span class="c">!!      angular momentum quantum number (\(l\) and \(l^{\prime}\))</span>
       <span class="c">!!      and magnetic quantum number (\(m\) and \(m^{\prime}\))</span>
+      <span class="c">!!    * If \(l = l^{\prime}\) and \(m = m^{\prime}\), loop over the bands to</span>
+      <span class="c">!!      calculate `paw_PsiPC`</span>
+      <span class="c">!!</span>
+      <span class="c">!! @todo Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\) @endtodo</span>
       <span class="c">!</span>
       <span class="n">iAtomType</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atomTypeIndex</span><span class="p">(</span><span class="n">iIon</span><span class="p">)</span>
       <span class="c">!</span>
