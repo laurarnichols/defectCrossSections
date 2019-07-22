@@ -279,6 +279,8 @@ public subroutine pawCorrectionPsiPC()
 <p>For each atom in the system</p>
 <ul>
 <li>Get the index for the atom type</li>
+<li>For each projector for the given atom</li>
+<li>Get the angular momentum of the projector</li>
 </ul>
 </li>
 </ul>
@@ -555,7 +557,7 @@ public subroutine pawCorrectionPsiPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>L</strong></td><td></td><td></td><td></td>
+  <td><strong>L</strong></td><td></td><td></td><td><p>Angular momentum for a given projector</p></td>
   
 </tr>
 
@@ -665,6 +667,7 @@ public subroutine pawCorrectionPsiPC()
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">LM</span><span class="p">,</span> <span class="n">LMP</span>
       <span class="c">!! Index for cProj</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">L</span>
+      <span class="c">!! Angular momentum for a given projector</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">LP</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iAtomType</span>
       <span class="c">!! Atom type index for a given ion in the system</span>
@@ -689,6 +692,8 @@ public subroutine pawCorrectionPsiPC()
     <span class="k">do </span><span class="n">iIon</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nIons</span> 
       <span class="c">!! * For each atom in the system</span>
       <span class="c">!!    * Get the index for the atom type</span>
+      <span class="c">!!    * For each projector for the given atom</span>
+      <span class="c">!!       * Get the angular momentum of the projector</span>
       <span class="c">!</span>
       <span class="n">iAtomType</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atomTypeIndex</span><span class="p">(</span><span class="n">iIon</span><span class="p">)</span>
       <span class="c">!</span>
@@ -697,6 +702,7 @@ public subroutine pawCorrectionPsiPC()
       <span class="k">do </span><span class="n">iProj</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">numProjs</span>
         <span class="c">!</span>
         <span class="n">L</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">iProj</span><span class="p">)</span>
+        <span class="c">!</span>
         <span class="k">do </span><span class="n">M</span> <span class="o">=</span> <span class="o">-</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span>
           <span class="n">LM</span> <span class="o">=</span> <span class="n">LM</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">!1st index for CPROJ</span>
           <span class="c">!</span>

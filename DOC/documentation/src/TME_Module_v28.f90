@@ -1367,6 +1367,7 @@ contains
     integer :: LM, LMP
       !! Index for cProj
     integer :: L
+      !! Angular momentum for a given projector
     integer :: LP
     integer :: iAtomType
       !! Atom type index for a given ion in the system
@@ -1391,6 +1392,8 @@ contains
     do iIon = 1, perfectCrystal%nIons 
       !! * For each atom in the system
       !!    * Get the index for the atom type
+      !!    * For each projector for the given atom
+      !!       * Get the angular momentum of the projector
       !
       iAtomType = perfectCrystal%atomTypeIndex(iIon)
       !
@@ -1399,6 +1402,7 @@ contains
       do iProj = 1, perfectCrystal%atoms(iAtomType)%numProjs
         !
         L = perfectCrystal%atoms(iAtomType)%projAngMom(iProj)
+        !
         do M = -L, L
           LM = LM + 1 !1st index for CPROJ
           !
