@@ -2021,7 +2021,7 @@ contains
   !
   subroutine bessel_j (x, lmax, jl)
     !! Generates the 
-    !! (spherical bessel function of the first kind)[http://mathworld.wolfram.com/SphericalBesselFunctionoftheFirstKind.html]
+    !! [spherical bessel function of the first kind](http://mathworld.wolfram.com/SphericalBesselFunctionoftheFirstKind.html)
     !! for the given argument \(x\) and all possible indices from 0 to `lmax` 
     !!
     !! <h2>Walkthrough</h2>
