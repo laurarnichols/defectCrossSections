@@ -1360,9 +1360,9 @@ contains
     !! <h2>Walkthrough</h2>
     !!
     implicit none
-    integer :: ibi, ibf, iIon, iProj, jProj, MP
+    integer :: ibi, ibf, iIon, iProj, jProj
       !! Loop index
-    integer :: m
+    integer :: m, mPrime
       !! Loop index for magnetic quantum number for a given projector
     integer :: ispin 
     integer :: LMBASE
@@ -1413,11 +1413,11 @@ contains
           !
           do jProj = 1, perfectCrystal%atoms(iAtomType)%numProjs
             LP = perfectCrystal%atoms(iAtomType)%projAngMom(jProj)
-            do MP = -LP, LP
+            do mPrime = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
               !
               atomicOverlap = 0.0_dp
-              if ( (l == LP).and.(m == MP) ) then 
+              if ( (l == LP).and.(m == mPrime) ) then 
                 atomicOverlap = sum(perfectCrystal%atoms(iAtomType)%F1(:,iProj, jProj))
                 !
                 do ibi = iBandIinit, iBandIfinal

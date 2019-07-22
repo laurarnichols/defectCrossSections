@@ -1629,9 +1629,9 @@
 <a name="ln-1360"></a>    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
 <a name="ln-1361"></a>    <span class="c">!!</span>
 <a name="ln-1362"></a>    <span class="k">implicit none</span>
-<a name="ln-1363"></a><span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">iIon</span><span class="p">,</span> <span class="n">iProj</span><span class="p">,</span> <span class="n">jProj</span><span class="p">,</span> <span class="n">MP</span>
+<a name="ln-1363"></a><span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">iIon</span><span class="p">,</span> <span class="n">iProj</span><span class="p">,</span> <span class="n">jProj</span>
 <a name="ln-1364"></a>      <span class="c">!! Loop index</span>
-<a name="ln-1365"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">m</span>
+<a name="ln-1365"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">m</span><span class="p">,</span> <span class="n">mPrime</span>
 <a name="ln-1366"></a>      <span class="c">!! Loop index for magnetic quantum number for a given projector</span>
 <a name="ln-1367"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ispin</span> 
 <a name="ln-1368"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">LMBASE</span>
@@ -1682,11 +1682,11 @@
 <a name="ln-1413"></a>          <span class="c">!</span>
 <a name="ln-1414"></a>          <span class="k">do </span><span class="n">jProj</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">numProjs</span>
 <a name="ln-1415"></a>            <span class="n">LP</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">jProj</span><span class="p">)</span>
-<a name="ln-1416"></a>            <span class="k">do </span><span class="n">MP</span> <span class="o">=</span> <span class="o">-</span><span class="n">LP</span><span class="p">,</span> <span class="n">LP</span>
+<a name="ln-1416"></a>            <span class="k">do </span><span class="n">mPrime</span> <span class="o">=</span> <span class="o">-</span><span class="n">LP</span><span class="p">,</span> <span class="n">LP</span>
 <a name="ln-1417"></a>              <span class="n">LMP</span> <span class="o">=</span> <span class="n">LMP</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">! 2nd index for CPROJ</span>
 <a name="ln-1418"></a>              <span class="c">!</span>
 <a name="ln-1419"></a>              <span class="n">atomicOverlap</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-<a name="ln-1420"></a>              <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">l</span> <span class="o">==</span> <span class="n">LP</span><span class="p">).</span><span class="nb">and</span><span class="p">.(</span><span class="n">m</span> <span class="o">==</span> <span class="n">MP</span><span class="p">)</span> <span class="p">)</span> <span class="k">then </span>
+<a name="ln-1420"></a>              <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">l</span> <span class="o">==</span> <span class="n">LP</span><span class="p">).</span><span class="nb">and</span><span class="p">.(</span><span class="n">m</span> <span class="o">==</span> <span class="n">mPrime</span><span class="p">)</span> <span class="p">)</span> <span class="k">then </span>
 <a name="ln-1421"></a><span class="k">                </span><span class="n">atomicOverlap</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(:,</span><span class="n">iProj</span><span class="p">,</span> <span class="n">jProj</span><span class="p">))</span>
 <a name="ln-1422"></a>                <span class="c">!</span>
 <a name="ln-1423"></a>                <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
