@@ -140,8 +140,6 @@ module TMEModule
   real(kind = dp), allocatable :: gvecs(:,:)
   !
   ! Declare matrix/vector complex numbers
-  complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:,:)
-  complex(kind = dp), allocatable :: cProjBetaSDPhiPC(:,:,:)
   complex(kind = dp), allocatable :: paw_id(:,:)
   complex(kind = dp), allocatable :: paw_fi(:,:)
   complex(kind = dp), allocatable :: pawKPC(:,:,:)
@@ -237,6 +235,7 @@ module TMEModule
     complex(kind = dp), allocatable :: wfc(:,:)
     complex(kind = dp), allocatable :: beta(:,:)
     complex(kind = dp), allocatable :: cProj(:,:,:)
+    complex(kind = dp), allocatable :: cCrossProj(:,:,:)
     !
     character(len = 2) crystalType
       !! 'PC' for pristine crystal and 'SD' for solid defect
@@ -1329,7 +1328,7 @@ contains
       do j = iBandFinit, iBandFfinal
         do i = 1, betaSystem%nProjs
           !
-          cProjBetaPCPsiSD(i,j,1) = sum(conjg(betaSystem%beta(:,i))*projectedSystem%wfc(:,j))
+          betaSystem%cCrossProj(i,j,1) = sum(conjg(betaSystem%beta(:,i))*projectedSystem%wfc(:,j))
           !
         enddo
       enddo
@@ -1342,7 +1341,7 @@ contains
       !
       do j = iBandIinit, iBandIfinal
         do i = 1, betaSystem%nProjs
-          cProjBetaSDPhiPC(i,j,1) = sum(conjg(betaSystem%beta(:,i))*projectedSystem%wfc(:,j))
+          betaSystem%cCrossProj(i,j,1) = sum(conjg(betaSystem%beta(:,i))*projectedSystem%wfc(:,j))
         enddo
       enddo
       !
@@ -1441,11 +1440,9 @@ contains
                   !
                   do ibf = iBandFinit, iBandFfinal
                     !
-                    cProjFe = conjg(cProjBetaPCPsiSD(LM + LMBASE, ibf, ISPIN))
+                    cProjFe = conjg(perfectCrystal%cCrossProj(LM + LMBASE, ibf, ISPIN))
                     !
                     paw_PsiPC(ibf, ibi) = paw_PsiPC(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
-                    !
-                    flush(iostd)
                     !
                   enddo
                   !
@@ -1510,7 +1507,7 @@ contains
                 atomicOverlap = sum(solidDefect%atoms(iT)%F1(:,LL,LLP))
                 !
                 do ibi = iBandIinit, iBandIfinal
-                  cProjIe = cProjBetaSDPhiPC(LMP + LMBASE, ibi, ISPIN)
+                  cProjIe = solidDefect%cCrossProj(LMP + LMBASE, ibi, ISPIN)
                   !
                   do ibf = iBandFinit, iBandFfinal
                     cProjFe = conjg(solidDefect%cProj(LM + LMBASE, ibf, ISPIN))

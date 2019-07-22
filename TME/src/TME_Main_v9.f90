@@ -213,14 +213,14 @@ program transitionMatrixElements
         !
         call readProjections(ik, perfectCrystal)
         !
-        allocate ( cProjBetaPCPsiSD(perfectCrystal%nProjs, solidDefect%nBands, solidDefect%nSpins) )
+        allocate ( perfectCrystal%cCrossProj(perfectCrystal%nProjs, solidDefect%nBands, solidDefect%nSpins) )
         call projectBeta(ik, perfectCrystal, solidDefect)
         !
         deallocate ( solidDefect%wfc )
         !
         call pawCorrectionPsiPC()
         !
-        deallocate ( cProjBetaPCPsiSD )
+        deallocate ( perfectCrystal%cCrossProj )
         !
         call cpu_time(t2)
         write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> done in", f10.2, " secs.")') t2-t1
@@ -230,13 +230,13 @@ program transitionMatrixElements
         !
         call readProjections(ik, solidDefect)
         !
-        allocate ( cProjBetaSDPhiPC(solidDefect%nProjs, solidDefect%nBands, solidDefect%nSpins) )
+        allocate ( solidDefect%cCrossProj(solidDefect%nProjs, solidDefect%nBands, solidDefect%nSpins) )
         call projectBeta(ik, solidDefect, perfectCrystal)
         !
         deallocate ( perfectCrystal%wfc )
         !
         call pawCorrectionSDPhi()
-        deallocate ( cProjBetaSDPhiPC )
+        deallocate ( solidDefect%cCrossProj )
         !
         call cpu_time(t2)
         write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> done in", f10.2, " secs.")') t2-t1

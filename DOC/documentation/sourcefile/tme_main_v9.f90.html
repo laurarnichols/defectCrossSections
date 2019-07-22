@@ -482,14 +482,14 @@
 <a name="ln-213"></a>        <span class="c">!</span>
 <a name="ln-214"></a>        <span class="k">call </span><span class="n">readProjections</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">)</span>
 <a name="ln-215"></a>        <span class="c">!</span>
-<a name="ln-216"></a>        <span class="k">allocate</span> <span class="p">(</span> <span class="n">cProjBetaPCPsiSD</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
+<a name="ln-216"></a>        <span class="k">allocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cCrossProj</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
 <a name="ln-217"></a>        <span class="k">call </span><span class="n">projectBeta</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">)</span>
 <a name="ln-218"></a>        <span class="c">!</span>
 <a name="ln-219"></a>        <span class="k">deallocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">wfc</span> <span class="p">)</span>
 <a name="ln-220"></a>        <span class="c">!</span>
 <a name="ln-221"></a>        <span class="k">call </span><span class="n">pawCorrectionPsiPC</span><span class="p">()</span>
 <a name="ln-222"></a>        <span class="c">!</span>
-<a name="ln-223"></a>        <span class="k">deallocate</span> <span class="p">(</span> <span class="n">cProjBetaPCPsiSD</span> <span class="p">)</span>
+<a name="ln-223"></a>        <span class="k">deallocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cCrossProj</span> <span class="p">)</span>
 <a name="ln-224"></a>        <span class="c">!</span>
 <a name="ln-225"></a>        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
 <a name="ln-226"></a>        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\tilde{Psi}_f|PAW_PC&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
@@ -499,13 +499,13 @@
 <a name="ln-230"></a>        <span class="c">!</span>
 <a name="ln-231"></a>        <span class="k">call </span><span class="n">readProjections</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">)</span>
 <a name="ln-232"></a>        <span class="c">!</span>
-<a name="ln-233"></a>        <span class="k">allocate</span> <span class="p">(</span> <span class="n">cProjBetaSDPhiPC</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
+<a name="ln-233"></a>        <span class="k">allocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">cCrossProj</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
 <a name="ln-234"></a>        <span class="k">call </span><span class="n">projectBeta</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">)</span>
 <a name="ln-235"></a>        <span class="c">!</span>
 <a name="ln-236"></a>        <span class="k">deallocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wfc</span> <span class="p">)</span>
 <a name="ln-237"></a>        <span class="c">!</span>
 <a name="ln-238"></a>        <span class="k">call </span><span class="n">pawCorrectionSDPhi</span><span class="p">()</span>
-<a name="ln-239"></a>        <span class="k">deallocate</span> <span class="p">(</span> <span class="n">cProjBetaSDPhiPC</span> <span class="p">)</span>
+<a name="ln-239"></a>        <span class="k">deallocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">cCrossProj</span> <span class="p">)</span>
 <a name="ln-240"></a>        <span class="c">!</span>
 <a name="ln-241"></a>        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
 <a name="ln-242"></a>        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;PAW_SD|\\tilde{Phi}_i&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>

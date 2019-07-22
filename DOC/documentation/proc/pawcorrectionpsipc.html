@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.1% of total for procedures.">48 statements</a>
+    title=" 1.0% of total for procedures.">47 statements</a>
      </li> 
      
      
@@ -744,11 +744,9 @@ public subroutine pawCorrectionPsiPC()
                   <span class="c">!</span>
                   <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
                     <span class="c">!</span>
-                    <span class="n">cProjFe</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">cProjBetaPCPsiSD</span><span class="p">(</span><span class="n">LM</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">))</span>
+                    <span class="n">cProjFe</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cCrossProj</span><span class="p">(</span><span class="n">LM</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">))</span>
                     <span class="c">!</span>
                     <span class="n">paw_PsiPC</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">)</span> <span class="o">=</span> <span class="n">paw_PsiPC</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">)</span> <span class="o">+</span> <span class="n">cProjFe</span><span class="o">*</span><span class="n">atomicOverlap</span><span class="o">*</span><span class="n">cProjIe</span>
-                    <span class="c">!</span>
-                    <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
                     <span class="c">!</span>
                   <span class="n">enddo</span>
                   <span class="c">!</span>
