@@ -270,7 +270,7 @@ public subroutine pawCorrectionPsiPC()
 <p>
 </li>
 <li>
-<p>Initialize all values in <code>paw_PsiPC</code> to complex double zero</p>
+<p>Initialize all values in <code>paw_Wfc</code> to complex double zero</p>
 </li>
 <li>
 <p>Initialize the base offset for <code>cProj</code>'s first index to zero</p>
@@ -283,7 +283,7 @@ public subroutine pawCorrectionPsiPC()
   angular momentum quantum number (<script type="math/tex">l</script> and <script type="math/tex">l^{\prime}</script>)
   and magnetic quantum number (<script type="math/tex">m</script> and <script type="math/tex">m^{\prime}</script>)</li>
 <li>If <script type="math/tex">l = l^{\prime}</script> and <script type="math/tex">m = m^{\prime}</script>, loop over the bands to
-  calculate <code>paw_PsiPC</code></li>
+  calculate <code>paw_Wfc</code></li>
 </ul>
 </li>
 </ul>
@@ -693,8 +693,8 @@ public subroutine pawCorrectionPsiPC()
       <span class="c">!!  what its purpose is</span>
       <span class="c">!! @endnote</span>
     <span class="c">!</span>
-    <span class="n">paw_PsiPC</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
-      <span class="c">!! * Initialize all values in `paw_PsiPC` to complex double zero</span>
+    <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+      <span class="c">!! * Initialize all values in `paw_Wfc` to complex double zero</span>
     <span class="c">!</span>
     <span class="n">LMBASE</span> <span class="o">=</span> <span class="mi">0</span>
       <span class="c">!! * Initialize the base offset for `cProj`&#39;s first index to zero</span>
@@ -706,7 +706,7 @@ public subroutine pawCorrectionPsiPC()
       <span class="c">!!      angular momentum quantum number (\(l\) and \(l^{\prime}\))</span>
       <span class="c">!!      and magnetic quantum number (\(m\) and \(m^{\prime}\))</span>
       <span class="c">!!    * If \(l = l^{\prime}\) and \(m = m^{\prime}\), loop over the bands to</span>
-      <span class="c">!!      calculate `paw_PsiPC`</span>
+      <span class="c">!!      calculate `paw_Wfc`</span>
       <span class="c">!!</span>
       <span class="c">!! @todo Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\) @endtodo</span>
       <span class="c">!</span>
@@ -746,7 +746,7 @@ public subroutine pawCorrectionPsiPC()
                     <span class="c">!</span>
                     <span class="n">cProjFe</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cCrossProj</span><span class="p">(</span><span class="n">LM</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">))</span>
                     <span class="c">!</span>
-                    <span class="n">paw_PsiPC</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">)</span> <span class="o">=</span> <span class="n">paw_PsiPC</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">)</span> <span class="o">+</span> <span class="n">cProjFe</span><span class="o">*</span><span class="n">atomicOverlap</span><span class="o">*</span><span class="n">cProjIe</span>
+                    <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">)</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">)</span> <span class="o">+</span> <span class="n">cProjFe</span><span class="o">*</span><span class="n">atomicOverlap</span><span class="o">*</span><span class="n">cProjIe</span>
                     <span class="c">!</span>
                   <span class="n">enddo</span>
                   <span class="c">!</span>

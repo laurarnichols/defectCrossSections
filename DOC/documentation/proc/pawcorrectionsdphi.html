@@ -648,7 +648,7 @@ public subroutine pawCorrectionSDPhi()
     <span class="c">!</span>
     <span class="n">ispin</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="c">!</span>
-    <span class="n">paw_SDPhi</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+    <span class="n">solidDefect</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
     <span class="c">!</span>
     <span class="n">LMBASE</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="c">!</span>
@@ -677,7 +677,7 @@ public subroutine pawCorrectionSDPhi()
                   <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
                     <span class="n">cProjFe</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">cProj</span><span class="p">(</span><span class="n">LM</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">))</span>
                     <span class="c">!</span>
-                    <span class="n">paw_SDPhi</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">)</span> <span class="o">=</span> <span class="n">paw_SDPhi</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">)</span> <span class="o">+</span> <span class="n">cProjFe</span><span class="o">*</span><span class="n">atomicOverlap</span><span class="o">*</span><span class="n">cProjIe</span>
+                    <span class="n">solidDefect</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">)</span> <span class="o">=</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">)</span> <span class="o">+</span> <span class="n">cProjFe</span><span class="o">*</span><span class="n">atomicOverlap</span><span class="o">*</span><span class="n">cProjIe</span>
                     <span class="c">!</span>
                   <span class="n">enddo</span>
                   <span class="c">!</span>

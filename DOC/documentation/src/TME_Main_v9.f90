@@ -47,8 +47,8 @@ program transitionMatrixElements
     allocate ( counts(0:numprocs-1) )!, displmnt(0:numprocs-1) )
     allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, perfectCrystal%nKpts) )
     allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-    allocate ( paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-    allocate ( paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
+    allocate ( perfectCrystal%paw_Wfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
+    allocate ( solidDefect%paw_Wfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( paw_fi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( eigvI (iBandIinit:iBandIfinal), eigvF (iBandFinit:iBandFfinal) )
     !
@@ -249,8 +249,8 @@ program transitionMatrixElements
         !do ibi = iBandIinit, iBandIfinal
         !  !
         !  do ibf = ibi, ibi
-        !    paw = paw_SDPhi(ibf,ibi) + paw_PsiPC(ibf,ibi)
-        !    write(iostd,'(" paw ", 2i4, 6ES14.5E3)') ibi, ibf, paw_SDPhi(ibf,ibi), paw_PsiPC(ibf,ibi), paw
+        !    paw = solidDefect%paw_Wfc(ibf,ibi) + perfectCrystal%paw_Wfc(ibf,ibi)
+        !    write(iostd,'(" paw ", 2i4, 6ES14.5E3)') ibi, ibf, solidDefect%paw_Wfc(ibf,ibi), perfectCrystal%paw_Wfc(ibf,ibi), paw
         !  enddo
         !  !
         !  flush(iostd)
@@ -261,7 +261,7 @@ program transitionMatrixElements
         !do ibi = iBandIinit, iBandIfinal
         !  !
         !  do ibf = ibi, ibi
-        !    paw = paw_SDPhi(ibf,ibi) + paw_PsiPC(ibf,ibi) + paw_fi(ibf,ibi)
+        !    paw = solidDefect%paw_Wfc(ibf,ibi) + perfectCrystal%paw_Wfc(ibf,ibi) + paw_fi(ibf,ibi)
         !    write(iostd,'(" paw ", 2i4, 6f15.10)') ibi, ibf, Ufi(ibf,ibi,ik), paw, Ufi(ibf,ibi,ik) + paw
         !  enddo
         !  !
@@ -323,7 +323,8 @@ program transitionMatrixElements
         write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> done in", f10.2, " secs.")') t2-t1
         flush(iostd)
         !
-        Ufi(:,:,ik) = Ufi(:,:,ik) + paw_SDPhi(:,:) + paw_PsiPC(:,:) + paw_SDKKPC(:,:)*16.0_dp*pi*pi/solidDefect%omega
+        Ufi(:,:,ik) = Ufi(:,:,ik) + solidDefect%paw_Wfc(:,:) + perfectCrystal%paw_Wfc(:,:) + &
+                      paw_SDKKPC(:,:)*16.0_dp*pi*pi/solidDefect%omega
           !! @todo Figure out if should be solid defect volume or pristine @endtodo
           !! @todo Are pristine and solid defect volume the same? @endtodo
         !
@@ -334,7 +335,7 @@ program transitionMatrixElements
         !do ibi = iBandIinit, iBandIfinal
         !  !
         !  do ibf = iBandFinit, iBandFfinal
-        !    !paw = paw_SDPhi(ibf,ibi) + paw_PsiPC(ibf,ibi) + paw_SDKKPC(ibf,ibi)*16.0_dp*pi*pi/solidDefect%omega
+        !    !paw = solidDefect%paw_Wfc(ibf,ibi) + perfectCrystal%paw_Wfc(ibf,ibi) + paw_SDKKPC(ibf,ibi)*16.0_dp*pi*pi/solidDefect%omega
         !    !write(iostd,'(" paw ", 2i4, 6f15.10)') ibi, ibf, Ufi(ibf, ibi, ik), paw, Ufi(ibf, ibi, ik) + paw
         !    !Ufi(ibf, ibi, ik) = Ufi(ibf, ibi, ik) + paw
         !    write(iostd,'(" Ufi ", 2i4, 2ES24.15E3)') ibi, ibf, Ufi(ibf, ibi, ik)
@@ -362,8 +363,8 @@ program transitionMatrixElements
   !
   if ( allocated ( paw_id ) ) deallocate ( paw_id )
   if ( myid == root ) then
-    if ( allocated ( paw_PsiPC ) ) deallocate ( paw_PsiPC )
-    if ( allocated ( paw_SDPhi ) ) deallocate ( paw_SDPhi )
+    if ( allocated ( perfectCrystal%paw_Wfc ) ) deallocate ( perfectCrystal%paw_Wfc )
+    if ( allocated ( solidDefect%paw_Wfc ) ) deallocate ( solidDefect%paw_Wfc )
   endif
   !
   ! Calculating Vfi

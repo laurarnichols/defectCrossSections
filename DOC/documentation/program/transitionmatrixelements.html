@@ -451,8 +451,8 @@
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">counts</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numprocs</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span><span class="c">!, displmnt(0:numprocs-1) )</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">Ufi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nKpts</span><span class="p">)</span> <span class="p">)</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_SDKKPC</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
-    <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_PsiPC</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
-    <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_SDPhi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">paw_fi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">)</span> <span class="p">)</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">eigvI</span> <span class="p">(</span><span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">),</span> <span class="n">eigvF</span> <span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">)</span> <span class="p">)</span>
     <span class="c">!</span>
@@ -653,8 +653,8 @@
         <span class="c">!do ibi = iBandIinit, iBandIfinal</span>
         <span class="c">!  !</span>
         <span class="c">!  do ibf = ibi, ibi</span>
-        <span class="c">!    paw = paw_SDPhi(ibf,ibi) + paw_PsiPC(ibf,ibi)</span>
-        <span class="c">!    write(iostd,&#39;(&quot; paw &quot;, 2i4, 6ES14.5E3)&#39;) ibi, ibf, paw_SDPhi(ibf,ibi), paw_PsiPC(ibf,ibi), paw</span>
+        <span class="c">!    paw = solidDefect%paw_Wfc(ibf,ibi) + perfectCrystal%paw_Wfc(ibf,ibi)</span>
+        <span class="c">!    write(iostd,&#39;(&quot; paw &quot;, 2i4, 6ES14.5E3)&#39;) ibi, ibf, solidDefect%paw_Wfc(ibf,ibi), perfectCrystal%paw_Wfc(ibf,ibi), paw</span>
         <span class="c">!  enddo</span>
         <span class="c">!  !</span>
         <span class="c">!  flush(iostd)</span>
@@ -665,7 +665,7 @@
         <span class="c">!do ibi = iBandIinit, iBandIfinal</span>
         <span class="c">!  !</span>
         <span class="c">!  do ibf = ibi, ibi</span>
-        <span class="c">!    paw = paw_SDPhi(ibf,ibi) + paw_PsiPC(ibf,ibi) + paw_fi(ibf,ibi)</span>
+        <span class="c">!    paw = solidDefect%paw_Wfc(ibf,ibi) + perfectCrystal%paw_Wfc(ibf,ibi) + paw_fi(ibf,ibi)</span>
         <span class="c">!    write(iostd,&#39;(&quot; paw &quot;, 2i4, 6f15.10)&#39;) ibi, ibf, Ufi(ibf,ibi,ik), paw, Ufi(ibf,ibi,ik) + paw</span>
         <span class="c">!  enddo</span>
         <span class="c">!  !</span>
@@ -727,7 +727,8 @@
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      \\sum_k &lt;PAW_SD|\\vec{k}&gt;&lt;\\vec{k}|PAW_PC&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
         <span class="c">!</span>
-        <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">+</span> <span class="n">paw_SDPhi</span><span class="p">(:,:)</span> <span class="o">+</span> <span class="n">paw_PsiPC</span><span class="p">(:,:)</span> <span class="o">+</span> <span class="n">paw_SDKKPC</span><span class="p">(:,:)</span><span class="o">*</span><span class="mi">1</span><span class="mf">6.0_dp</span><span class="o">*</span><span class="n">pi</span><span class="o">*</span><span class="n">pi</span><span class="o">/</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">omega</span>
+        <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">+</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(:,:)</span> <span class="o">+</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(:,:)</span> <span class="o">+</span> <span class="p">&amp;</span>
+                      <span class="n">paw_SDKKPC</span><span class="p">(:,:)</span><span class="o">*</span><span class="mi">1</span><span class="mf">6.0_dp</span><span class="o">*</span><span class="n">pi</span><span class="o">*</span><span class="n">pi</span><span class="o">/</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">omega</span>
           <span class="c">!! @todo Figure out if should be solid defect volume or pristine @endtodo</span>
           <span class="c">!! @todo Are pristine and solid defect volume the same? @endtodo</span>
         <span class="c">!</span>
@@ -738,7 +739,7 @@
         <span class="c">!do ibi = iBandIinit, iBandIfinal</span>
         <span class="c">!  !</span>
         <span class="c">!  do ibf = iBandFinit, iBandFfinal</span>
-        <span class="c">!    !paw = paw_SDPhi(ibf,ibi) + paw_PsiPC(ibf,ibi) + paw_SDKKPC(ibf,ibi)*16.0_dp*pi*pi/solidDefect%omega</span>
+        <span class="c">!    !paw = solidDefect%paw_Wfc(ibf,ibi) + perfectCrystal%paw_Wfc(ibf,ibi) + paw_SDKKPC(ibf,ibi)*16.0_dp*pi*pi/solidDefect%omega</span>
         <span class="c">!    !write(iostd,&#39;(&quot; paw &quot;, 2i4, 6f15.10)&#39;) ibi, ibf, Ufi(ibf, ibi, ik), paw, Ufi(ibf, ibi, ik) + paw</span>
         <span class="c">!    !Ufi(ibf, ibi, ik) = Ufi(ibf, ibi, ik) + paw</span>
         <span class="c">!    write(iostd,&#39;(&quot; Ufi &quot;, 2i4, 2ES24.15E3)&#39;) ibi, ibf, Ufi(ibf, ibi, ik)</span>
@@ -766,8 +767,8 @@
   <span class="c">!</span>
   <span class="k">if</span> <span class="p">(</span> <span class="nb">allocated</span> <span class="p">(</span> <span class="n">paw_id</span> <span class="p">)</span> <span class="p">)</span> <span class="k">deallocate</span> <span class="p">(</span> <span class="n">paw_id</span> <span class="p">)</span>
   <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">    if</span> <span class="p">(</span> <span class="nb">allocated</span> <span class="p">(</span> <span class="n">paw_PsiPC</span> <span class="p">)</span> <span class="p">)</span> <span class="k">deallocate</span> <span class="p">(</span> <span class="n">paw_PsiPC</span> <span class="p">)</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="nb">allocated</span> <span class="p">(</span> <span class="n">paw_SDPhi</span> <span class="p">)</span> <span class="p">)</span> <span class="k">deallocate</span> <span class="p">(</span> <span class="n">paw_SDPhi</span> <span class="p">)</span>
+<span class="k">    if</span> <span class="p">(</span> <span class="nb">allocated</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">paw_Wfc</span> <span class="p">)</span> <span class="p">)</span> <span class="k">deallocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">paw_Wfc</span> <span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="nb">allocated</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">paw_Wfc</span> <span class="p">)</span> <span class="p">)</span> <span class="k">deallocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">paw_Wfc</span> <span class="p">)</span>
   <span class="n">endif</span>
   <span class="c">!</span>
   <span class="c">! Calculating Vfi</span>

@@ -143,10 +143,8 @@ module TMEModule
   complex(kind = dp), allocatable :: paw_id(:,:)
   complex(kind = dp), allocatable :: paw_fi(:,:)
   complex(kind = dp), allocatable :: pawKPC(:,:,:)
-  complex(kind = dp), allocatable :: paw_PsiPC(:,:)
   complex(kind = dp), allocatable :: pawPsiPC(:,:)
   complex(kind = dp), allocatable :: pawSDK(:,:,:)
-  complex(kind = dp), allocatable :: paw_SDPhi(:,:)
   complex(kind = dp), allocatable :: pawSDPhi(:,:)
   complex(kind = dp), allocatable :: paw_SDKKPC(:,:)
   complex(kind = dp), allocatable :: Ufi(:,:,:)
@@ -236,6 +234,7 @@ module TMEModule
     complex(kind = dp), allocatable :: beta(:,:)
     complex(kind = dp), allocatable :: cProj(:,:,:)
     complex(kind = dp), allocatable :: cCrossProj(:,:,:)
+    complex(kind = dp), allocatable :: paw_Wfc(:,:)
     !
     character(len = 2) crystalType
       !! 'PC' for pristine crystal and 'SD' for solid defect
@@ -1389,8 +1388,8 @@ contains
       !!  what its purpose is
       !! @endnote
     !
-    paw_PsiPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-      !! * Initialize all values in `paw_PsiPC` to complex double zero
+    perfectCrystal%paw_Wfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+      !! * Initialize all values in `paw_Wfc` to complex double zero
     !
     LMBASE = 0
       !! * Initialize the base offset for `cProj`'s first index to zero
@@ -1402,7 +1401,7 @@ contains
       !!      angular momentum quantum number (\(l\) and \(l^{\prime}\))
       !!      and magnetic quantum number (\(m\) and \(m^{\prime}\))
       !!    * If \(l = l^{\prime}\) and \(m = m^{\prime}\), loop over the bands to
-      !!      calculate `paw_PsiPC`
+      !!      calculate `paw_Wfc`
       !!
       !! @todo Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\) @endtodo
       !
@@ -1442,7 +1441,7 @@ contains
                     !
                     cProjFe = conjg(perfectCrystal%cCrossProj(LM + LMBASE, ibf, ISPIN))
                     !
-                    paw_PsiPC(ibf, ibi) = paw_PsiPC(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
+                    perfectCrystal%paw_Wfc(ibf, ibi) = perfectCrystal%paw_Wfc(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
                     !
                   enddo
                   !
@@ -1483,7 +1482,7 @@ contains
     !
     ispin = 1
     !
-    paw_SDPhi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    solidDefect%paw_Wfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
     LMBASE = 0
     !
@@ -1512,7 +1511,7 @@ contains
                   do ibf = iBandFinit, iBandFfinal
                     cProjFe = conjg(solidDefect%cProj(LM + LMBASE, ibf, ISPIN))
                     !
-                    paw_SDPhi(ibf, ibi) = paw_SDPhi(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
+                    solidDefect%paw_Wfc(ibf, ibi) = solidDefect%paw_Wfc(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
                     !
                   enddo
                   !
