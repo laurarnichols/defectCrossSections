@@ -185,7 +185,7 @@
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-iproj">iProj</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-llp">LLP</a>
+      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-jproj">jProj</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-m">M</a>
       
@@ -317,7 +317,7 @@ public subroutine pawCorrectionPsiPC()
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-iproj">iProj</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-llp">LLP</a>
+      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-jproj">jProj</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-m">M</a>
       
@@ -455,11 +455,11 @@ public subroutine pawCorrectionPsiPC()
   
 <tr>
   
-  <td><span class="anchor" id="variable-llp"></span>integer,</td>
+  <td><span class="anchor" id="variable-jproj"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>LLP</strong></td><td></td><td></td><td><p>Loop index</p></td>
+  <td><strong>jProj</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -660,7 +660,7 @@ public subroutine pawCorrectionPsiPC()
     <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
     <span class="c">!!</span>
     <span class="k">implicit none</span>
-<span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">iIon</span><span class="p">,</span> <span class="n">iProj</span><span class="p">,</span> <span class="n">LLP</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">MP</span>
+<span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">iIon</span><span class="p">,</span> <span class="n">iProj</span><span class="p">,</span> <span class="n">jProj</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">MP</span>
       <span class="c">!! Loop index</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ispin</span> 
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">LMBASE</span>
@@ -707,14 +707,14 @@ public subroutine pawCorrectionPsiPC()
           <span class="n">LM</span> <span class="o">=</span> <span class="n">LM</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">!1st index for CPROJ</span>
           <span class="c">!</span>
           <span class="n">LMP</span> <span class="o">=</span> <span class="mi">0</span>
-          <span class="k">do </span><span class="n">LLP</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">numProjs</span>
-            <span class="n">LP</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">LLP</span><span class="p">)</span>
+          <span class="k">do </span><span class="n">jProj</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">numProjs</span>
+            <span class="n">LP</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">jProj</span><span class="p">)</span>
             <span class="k">do </span><span class="n">MP</span> <span class="o">=</span> <span class="o">-</span><span class="n">LP</span><span class="p">,</span> <span class="n">LP</span>
               <span class="n">LMP</span> <span class="o">=</span> <span class="n">LMP</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">! 2nd index for CPROJ</span>
               <span class="c">!</span>
               <span class="n">atomicOverlap</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
               <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">L</span> <span class="o">==</span> <span class="n">LP</span><span class="p">).</span><span class="nb">and</span><span class="p">.(</span><span class="n">M</span> <span class="o">==</span> <span class="n">MP</span><span class="p">)</span> <span class="p">)</span> <span class="k">then </span>
-<span class="k">                </span><span class="n">atomicOverlap</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(:,</span><span class="n">iProj</span><span class="p">,</span> <span class="n">LLP</span><span class="p">))</span>
+<span class="k">                </span><span class="n">atomicOverlap</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(:,</span><span class="n">iProj</span><span class="p">,</span> <span class="n">jProj</span><span class="p">))</span>
                 <span class="c">!</span>
                 <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
                   <span class="n">cProjIe</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">(</span><span class="n">LMP</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">)</span>

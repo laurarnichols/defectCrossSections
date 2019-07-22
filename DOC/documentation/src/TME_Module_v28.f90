@@ -1360,7 +1360,7 @@ contains
     !! <h2>Walkthrough</h2>
     !!
     implicit none
-    integer :: ibi, ibf, iIon, iProj, LLP, M, MP
+    integer :: ibi, ibf, iIon, iProj, jProj, M, MP
       !! Loop index
     integer :: ispin 
     integer :: LMBASE
@@ -1407,14 +1407,14 @@ contains
           LM = LM + 1 !1st index for CPROJ
           !
           LMP = 0
-          do LLP = 1, perfectCrystal%atoms(iAtomType)%numProjs
-            LP = perfectCrystal%atoms(iAtomType)%projAngMom(LLP)
+          do jProj = 1, perfectCrystal%atoms(iAtomType)%numProjs
+            LP = perfectCrystal%atoms(iAtomType)%projAngMom(jProj)
             do MP = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
               !
               atomicOverlap = 0.0_dp
               if ( (L == LP).and.(M == MP) ) then 
-                atomicOverlap = sum(perfectCrystal%atoms(iAtomType)%F1(:,iProj, LLP))
+                atomicOverlap = sum(perfectCrystal%atoms(iAtomType)%F1(:,iProj, jProj))
                 !
                 do ibi = iBandIinit, iBandIfinal
                   cProjIe = perfectCrystal%cProj(LMP + LMBASE, ibi, ISPIN)
