@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="26.0% of total for modules and submodules.">1161 statements</a>
+    title="25.4% of total for modules and submodules.">1123 statements</a>
      </li> 
      
      
@@ -209,9 +209,9 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-ibandiinit%7E3">iBandIinit</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-ibf%7E9">ibf</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-ibf%7E8">ibf</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-ibi%7E9">ibi</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-ibi%7E8">ibi</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-id">id</a>
       
@@ -444,9 +444,7 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#proc-projectbeta">projectBeta</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#proc-pawcorrectionpsipc">pawCorrectionPsiPC</a>
-      
-      <a class="list-group-item" href="../module/tmemodule.html#proc-pawcorrectionsdphi">pawCorrectionSDPhi</a>
+      <a class="list-group-item" href="../module/tmemodule.html#proc-pawcorrectionwfc">pawCorrectionWfc</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#proc-pawcorrectionkpc">pawCorrectionKPC</a>
       
@@ -545,9 +543,9 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-ibandiinit%7E3">iBandIinit</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-ibf%7E9">ibf</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-ibf%7E8">ibf</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#variable-ibi%7E9">ibi</a>
+      <a class="list-group-item" href="../module/tmemodule.html#variable-ibi%7E8">ibi</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#variable-id">id</a>
       
@@ -780,9 +778,7 @@
       
       <a class="list-group-item" href="../module/tmemodule.html#proc-projectbeta">projectBeta</a>
       
-      <a class="list-group-item" href="../module/tmemodule.html#proc-pawcorrectionpsipc">pawCorrectionPsiPC</a>
-      
-      <a class="list-group-item" href="../module/tmemodule.html#proc-pawcorrectionsdphi">pawCorrectionSDPhi</a>
+      <a class="list-group-item" href="../module/tmemodule.html#proc-pawcorrectionwfc">pawCorrectionWfc</a>
       
       <a class="list-group-item" href="../module/tmemodule.html#proc-pawcorrectionkpc">pawCorrectionKPC</a>
       
@@ -1087,7 +1083,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-ibf%7E9"></span>integer,</td>
+  <td><span class="anchor" id="variable-ibf%7E8"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -1101,7 +1097,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-ibi%7E9"></span>integer,</td>
+  <td><span class="anchor" id="variable-ibi%7E8"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -4083,8 +4079,8 @@ public subroutine <a href='../proc/projectbeta.html'>projectBeta</a>(ik, betaSys
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-pawcorrectionpsipc"></span><h3>
-public subroutine <a href='../proc/pawcorrectionpsipc.html'>pawCorrectionPsiPC</a>()
+  <div class="panel-heading codesum"><span class="anchor" id="proc-pawcorrectionwfc"></span><h3>
+public subroutine <a href='../proc/pawcorrectionwfc.html'>pawCorrectionWfc</a>(system)
     
     
    
@@ -4099,41 +4095,41 @@ public subroutine <a href='../proc/pawcorrectionpsipc.html'>pawCorrectionPsiPC</
 
 
 
-<p>Calculates the augmentation part of the transition matrix element</p><a href="../proc/pawcorrectionpsipc.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+<p>Calculates the augmentation part of the transition matrix element</p><a href="../proc/pawcorrectionwfc.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
-      <em>None</em>
-    
-    
-
-  </div>
-  </div>
-
-    
-    
-  <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-pawcorrectionsdphi"></span><h3>
-public subroutine <a href='../proc/pawcorrectionsdphi.html'>pawCorrectionSDPhi</a>()
-    
-    
-   
-</h3></div>
-  <div class="panel-body">
-       
-    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
 
 
 
+<tbody>
 
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>system</strong></td><td><p>Holds the structure for the system you are working on
+ (either <code>perfectCrystal</code> or <code>solidDefect</code>)</p></td>
+  
+</tr>
 
+</tbody>
+</table>
 
-
-<p></p><a href="../proc/pawcorrectionsdphi.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-    <h4>Arguments</h4>
-    
-      <em>None</em>
+      
     
     
 

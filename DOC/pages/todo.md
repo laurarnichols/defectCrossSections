@@ -29,16 +29,14 @@ date: 07/22/2019
 * `../TME/src/TME_Module_v28.f90:1216:` Get actual perfect crystal and solid defect output to test
 * `../TME/src/TME_Module_v28.f90:1217:` Figure out if loop should be over `solidDefect` or `perfectCrystal`
 * `../TME/src/TME_Module_v28.f90:1218:` Look into `nSpins` to figure out if it is needed
-* `../TME/src/TME_Module_v28.f90:1406:` Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\)
-* `../TME/src/TME_Module_v28.f90:1470:` Document `pawCorrectionSDPhi()`
-* `../TME/src/TME_Module_v28.f90:1471:` Figure out the difference between PC and SD `pawCorrectionPsi` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1535:` Document `pawCorrectionKPC()`
-* `../TME/src/TME_Module_v28.f90:1634:` Document `pawCorrectionSDK()`
-* `../TME/src/TME_Module_v28.f90:1635:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1732:` Document `pawCorrection()`
-* `../TME/src/TME_Module_v28.f90:1733:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
-* `../TME/src/TME_Module_v28.f90:2082:` Document `bessel_j()`
-* `../TME/src/TME_Module_v28.f90:2112:` Document `writeResults()` @endto
-* `../TME/src/TME_Module_v28.f90:2174:` Document `readUfis()`
-* `../TME/src/TME_Module_v28.f90:2228:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2350:` Document `readEigenvalues()`
+* `../TME/src/TME_Module_v28.f90:1410:` Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\)
+* `../TME/src/TME_Module_v28.f90:1476:` Document `pawCorrectionKPC()`
+* `../TME/src/TME_Module_v28.f90:1575:` Document `pawCorrectionSDK()`
+* `../TME/src/TME_Module_v28.f90:1576:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1673:` Document `pawCorrection()`
+* `../TME/src/TME_Module_v28.f90:1674:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
+* `../TME/src/TME_Module_v28.f90:2023:` Document `bessel_j()`
+* `../TME/src/TME_Module_v28.f90:2053:` Document `writeResults()` @endto
+* `../TME/src/TME_Module_v28.f90:2115:` Document `readUfis()`
+* `../TME/src/TME_Module_v28.f90:2169:` Document `calculateVFiElements()`
+* `../TME/src/TME_Module_v28.f90:2291:` Document `readEigenvalues()`

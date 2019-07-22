@@ -218,7 +218,7 @@ program transitionMatrixElements
         !
         deallocate ( solidDefect%wfc )
         !
-        call pawCorrectionPsiPC()
+        call pawCorrectionWfc(perfectCrystal)
         !
         deallocate ( perfectCrystal%cCrossProj )
         !
@@ -235,7 +235,7 @@ program transitionMatrixElements
         !
         deallocate ( perfectCrystal%wfc )
         !
-        call pawCorrectionSDPhi()
+        call pawCorrectionWfc(solidDefect)
         deallocate ( solidDefect%cCrossProj )
         !
         call cpu_time(t2)

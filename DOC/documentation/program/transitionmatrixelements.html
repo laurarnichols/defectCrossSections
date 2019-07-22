@@ -622,7 +622,7 @@
         <span class="c">!</span>
         <span class="k">deallocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">wfc</span> <span class="p">)</span>
         <span class="c">!</span>
-        <span class="k">call </span><span class="n">pawCorrectionPsiPC</span><span class="p">()</span>
+        <span class="k">call </span><span class="n">pawCorrectionWfc</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">)</span>
         <span class="c">!</span>
         <span class="k">deallocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cCrossProj</span> <span class="p">)</span>
         <span class="c">!</span>
@@ -639,7 +639,7 @@
         <span class="c">!</span>
         <span class="k">deallocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wfc</span> <span class="p">)</span>
         <span class="c">!</span>
-        <span class="k">call </span><span class="n">pawCorrectionSDPhi</span><span class="p">()</span>
+        <span class="k">call </span><span class="n">pawCorrectionWfc</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">)</span>
         <span class="k">deallocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">cCrossProj</span> <span class="p">)</span>
         <span class="c">!</span>
         <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>

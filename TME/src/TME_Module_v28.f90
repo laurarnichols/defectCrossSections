@@ -1354,7 +1354,7 @@ contains
   end subroutine projectBeta
   !
   !
-  subroutine pawCorrectionPsiPC()
+  subroutine pawCorrectionWfc(system)
     !! Calculates the augmentation part of the transition matrix element
     !!
     !! <h2>Walkthrough</h2>
@@ -1381,6 +1381,10 @@ contains
     !
     complex(kind = dp) :: cProjIe, cProjFe
     !
+    TYPE(crystal), intent(inout) :: system
+      !! Holds the structure for the system you are working on
+      !! (either `perfectCrystal` or `solidDefect`)
+    !
     ispin = 1
       !! * Set the value of `ispin` to 1
       !! @note
@@ -1388,13 +1392,13 @@ contains
       !!  what its purpose is
       !! @endnote
     !
-    perfectCrystal%paw_Wfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    system%paw_Wfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
       !! * Initialize all values in `paw_Wfc` to complex double zero
     !
     LMBASE = 0
       !! * Initialize the base offset for `cProj`'s first index to zero
     !
-    do iIon = 1, perfectCrystal%nIons 
+    do iIon = 1, system%nIons 
       !! * For each atom in the system
       !!    * Get the index for the atom type
       !!    * Loop over the projectors twice, each time finding the
@@ -1405,13 +1409,13 @@ contains
       !!
       !! @todo Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\) @endtodo
       !
-      iAtomType = perfectCrystal%atomTypeIndex(iIon)
+      iAtomType = system%atomTypeIndex(iIon)
       !
       LM = 0
       !
-      do iProj = 1, perfectCrystal%atoms(iAtomType)%numProjs
+      do iProj = 1, system%atoms(iAtomType)%numProjs
         !
-        l = perfectCrystal%atoms(iAtomType)%projAngMom(iProj)
+        l = system%atoms(iAtomType)%projAngMom(iProj)
         !
         do m = -l, l
           !
@@ -1419,9 +1423,9 @@ contains
           !
           LMP = 0
           !
-          do jProj = 1, perfectCrystal%atoms(iAtomType)%numProjs
+          do jProj = 1, system%atoms(iAtomType)%numProjs
             !
-            lPrime = perfectCrystal%atoms(iAtomType)%projAngMom(jProj)
+            lPrime = system%atoms(iAtomType)%projAngMom(jProj)
             !
             do mPrime = -lPrime, lPrime
               !
@@ -1431,17 +1435,19 @@ contains
               !
               if ( (l == lPrime).and.(m == mPrime) ) then 
                 !
-                atomicOverlap = sum(perfectCrystal%atoms(iAtomType)%F1(:,iProj, jProj))
+                atomicOverlap = sum(system%atoms(iAtomType)%F1(:,iProj, jProj))
                 !
                 do ibi = iBandIinit, iBandIfinal
                   !
-                  cProjIe = perfectCrystal%cProj(LMP + LMBASE, ibi, ISPIN)
+                  if ( system%crystalType == 'PC' ) cProjIe = system%cProj(LMP + LMBASE, ibi, ISPIN)
+                  if ( system%crystalType == 'SD' ) cProjIe = system%cCrossProj(LMP + LMBASE, ibi, ISPIN)
                   !
                   do ibf = iBandFinit, iBandFfinal
                     !
-                    cProjFe = conjg(perfectCrystal%cCrossProj(LM + LMBASE, ibf, ISPIN))
+                    if ( system%crystalType == 'PC' ) cProjFe = conjg(system%cCrossProj(LM + LMBASE, ibf, ISPIN))
+                    if ( system%crystalType == 'PC' ) cProjFe = conjg(system%cProj(LM + LMBASE, ibf, ISPIN))
                     !
-                    perfectCrystal%paw_Wfc(ibf, ibi) = perfectCrystal%paw_Wfc(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
+                    system%paw_Wfc(ibf, ibi) = system%paw_Wfc(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
                     !
                   enddo
                   !
@@ -1457,78 +1463,13 @@ contains
         !
       enddo
       !
-      LMBASE = LMBASE + perfectCrystal%atoms(iAtomType)%lmMax
+      LMBASE = LMBASE + system%atoms(iAtomType)%lmMax
       !
     enddo
     !
     return
     !
-  end subroutine pawCorrectionPsiPC
-  !
-  !
-  subroutine pawCorrectionSDPhi()
-    !! @todo Document `pawCorrectionSDPhi()` @endtodo
-    !! @todo Figure out the difference between PC and SD `pawCorrectionPsi` and possibly merge @endtodo
-    !
-    ! calculates the augmentation part of the transition matrix element
-    !
-    implicit none
-    integer :: ibi, ibf, ni, ispin 
-    integer :: LL, LLP, LMBASE, LM, LMP
-    integer :: L, M, LP, MP, iT
-    real(kind = dp) :: atomicOverlap
-    !
-    complex(kind = dp) :: cProjIe, cProjFe
-    !
-    ispin = 1
-    !
-    solidDefect%paw_Wfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    !
-    LMBASE = 0
-    !
-    do ni = 1, solidDefect%nIons ! LOOP OVER THE IONS
-      !
-      iT = solidDefect%atomTypeIndex(ni)
-      LM = 0
-      DO LL = 1, solidDefect%atoms(iT)%numProjs
-        L = solidDefect%atoms(iT)%projAngMom(LL)
-        DO M = -L, L
-          LM = LM + 1 !1st index for CPROJ
-          !
-          LMP = 0
-          DO LLP = 1, solidDefect%atoms(iT)%numProjs
-            LP = solidDefect%atoms(iT)%projAngMom(LLP)
-            DO MP = -LP, LP
-              LMP = LMP + 1 ! 2nd index for CPROJ
-              !
-              atomicOverlap = 0.0_dp
-              if ( (L == LP).and.(M == MP) ) then
-                atomicOverlap = sum(solidDefect%atoms(iT)%F1(:,LL,LLP))
-                !
-                do ibi = iBandIinit, iBandIfinal
-                  cProjIe = solidDefect%cCrossProj(LMP + LMBASE, ibi, ISPIN)
-                  !
-                  do ibf = iBandFinit, iBandFfinal
-                    cProjFe = conjg(solidDefect%cProj(LM + LMBASE, ibf, ISPIN))
-                    !
-                    solidDefect%paw_Wfc(ibf, ibi) = solidDefect%paw_Wfc(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
-                    !
-                  enddo
-                  !
-                enddo
-                !
-              endif
-              !
-            ENDDO
-          ENDDO
-        ENDDO
-      ENDDO
-      LMBASE = LMBASE + solidDefect%atoms(iT)%lmMax
-    ENDDO
-    !
-    return
-    !
-  end subroutine pawCorrectionSDPhi
+  end subroutine pawCorrectionWfc
   !
   !
   subroutine pawCorrectionKPC()
