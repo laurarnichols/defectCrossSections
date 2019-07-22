@@ -1360,8 +1360,12 @@ contains
     !! <h2>Walkthrough</h2>
     !!
     implicit none
-    integer :: ibi, ibf, iIon, iProj, jProj
-      !! Loop index
+    integer :: iIon
+      !! Loop index over atoms
+    integer :: iProj, jProj
+      !! Loop index of projectors
+    integer :: ibi, ibf
+      !! Loop index over bands
     integer :: m, mPrime
       !! Loop index for magnetic quantum number for a given projector
     integer :: ispin 
@@ -1393,8 +1397,9 @@ contains
     do iIon = 1, perfectCrystal%nIons 
       !! * For each atom in the system
       !!    * Get the index for the atom type
-      !!    * For each projector for the given atom
-      !!       * Get the angular momentum of the projector
+      !!    * Loop over the projectors twice, each time finding the
+      !!      angular momentum quantum number (\(l\) and \(l^{\prime}\))
+      !!      and magnetic quantum number (\(m\) and \(m^{\prime}\))
       !
       iAtomType = perfectCrystal%atomTypeIndex(iIon)
       !
