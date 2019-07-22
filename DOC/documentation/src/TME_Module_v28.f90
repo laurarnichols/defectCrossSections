@@ -1368,9 +1368,8 @@ contains
     integer :: LMBASE
     integer :: LM, LMP
       !! Index for cProj
-    integer :: l
+    integer :: l, lPrime
       !! Angular momentum quantum number for a given projector
-    integer :: LP
     integer :: iAtomType
       !! Atom type index for a given ion in the system
     !
@@ -1412,21 +1411,29 @@ contains
           LMP = 0
           !
           do jProj = 1, perfectCrystal%atoms(iAtomType)%numProjs
-            LP = perfectCrystal%atoms(iAtomType)%projAngMom(jProj)
-            do mPrime = -LP, LP
+            !
+            lPrime = perfectCrystal%atoms(iAtomType)%projAngMom(jProj)
+            !
+            do mPrime = -lPrime, lPrime
+              !
               LMP = LMP + 1 ! 2nd index for CPROJ
               !
               atomicOverlap = 0.0_dp
-              if ( (l == LP).and.(m == mPrime) ) then 
+              !
+              if ( (l == lPrime).and.(m == mPrime) ) then 
+                !
                 atomicOverlap = sum(perfectCrystal%atoms(iAtomType)%F1(:,iProj, jProj))
                 !
                 do ibi = iBandIinit, iBandIfinal
+                  !
                   cProjIe = perfectCrystal%cProj(LMP + LMBASE, ibi, ISPIN)
                   !
                   do ibf = iBandFinit, iBandFfinal
+                    !
                     cProjFe = conjg(cProjBetaPCPsiSD(LM + LMBASE, ibf, ISPIN))
                     !
                     paw_PsiPC(ibf, ibi) = paw_PsiPC(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
+                    !
                     flush(iostd)
                     !
                   enddo
@@ -1436,10 +1443,15 @@ contains
               endif
               !
             enddo
+            !
           enddo
+          !
         enddo
+        !
       enddo
+      !
       LMBASE = LMBASE + perfectCrystal%atoms(iAtomType)%lmMax
+      !
     enddo
     !
     return
