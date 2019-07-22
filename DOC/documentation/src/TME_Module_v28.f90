@@ -1360,7 +1360,7 @@ contains
     !! <h2>Walkthrough</h2>
     !!
     implicit none
-    integer :: ibi, ibf, iIon, LL, LLP, M, MP
+    integer :: ibi, ibf, iIon, iProj, LLP, M, MP
       !! Loop index
     integer :: ispin 
     integer :: LMBASE
@@ -1396,9 +1396,9 @@ contains
       !
       LM = 0
       !
-      do LL = 1, perfectCrystal%atoms(iAtomType)%numProjs
+      do iProj = 1, perfectCrystal%atoms(iAtomType)%numProjs
         !
-        L = perfectCrystal%atoms(iAtomType)%projAngMom(LL)
+        L = perfectCrystal%atoms(iAtomType)%projAngMom(iProj)
         do M = -L, L
           LM = LM + 1 !1st index for CPROJ
           !
@@ -1410,7 +1410,7 @@ contains
               !
               atomicOverlap = 0.0_dp
               if ( (L == LP).and.(M == MP) ) then 
-                atomicOverlap = sum(perfectCrystal%atoms(iAtomType)%F1(:,LL, LLP))
+                atomicOverlap = sum(perfectCrystal%atoms(iAtomType)%F1(:,iProj, LLP))
                 !
                 do ibi = iBandIinit, iBandIfinal
                   cProjIe = perfectCrystal%cProj(LMP + LMBASE, ibi, ISPIN)
@@ -1419,7 +1419,6 @@ contains
                     cProjFe = conjg(cProjBetaPCPsiSD(LM + LMBASE, ibf, ISPIN))
                     !
                     paw_PsiPC(ibf, ibi) = paw_PsiPC(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
-                    !write(iostd,*) LL, LLP, L, M, atomicOverlap
                     flush(iostd)
                     !
                   enddo
