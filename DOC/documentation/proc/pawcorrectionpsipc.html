@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.9% of total for procedures.">42 statements</a>
+    title=" 1.0% of total for procedures.">46 statements</a>
      </li> 
      
      
@@ -181,13 +181,17 @@
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-ibf%7E2">ibf</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-nipc">niPC</a>
-      
-      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-ispin%7E3">ispin</a>
+      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-iion">iIon</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-ll">LL</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-llp">LLP</a>
+      
+      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-m">M</a>
+      
+      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-mp">MP</a>
+      
+      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-ispin%7E3">ispin</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-lmbase">LMBASE</a>
       
@@ -197,13 +201,9 @@
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-l">L</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-m">M</a>
-      
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-lp">LP</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-mp">MP</a>
-      
-      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-it">iT</a>
+      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-iatomtype">iAtomType</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-atomicoverlap">atomicOverlap</a>
       
@@ -259,8 +259,29 @@ public subroutine pawCorrectionPsiPC()
 
 
     
-    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>pawCorrectionPsiPC()</code> </p></div>
+    <p>Calculates the augmentation part of the transition matrix element</p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>
+<p>Set the value of <code>ispin</code> to 1
+ </p><div class="alert alert-info" role="alert"><h4>Note</h4><p><code>ispin</code> never has a value other than one, so I'm not sure
+  what its purpose is
+ </p></div>
 <p>
+</li>
+<li>
+<p>Initialize all values in <code>paw_PsiPC</code> to complex double zero</p>
+</li>
+<li>
+<p>Initialize the base offset for <code>cProj</code>'s first index to zero</p>
+</li>
+<li>
+<p>For each atom in the system</p>
+<ul>
+<li>Get the index for the atom type</li>
+</ul>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -290,13 +311,17 @@ public subroutine pawCorrectionPsiPC()
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-ibf%7E2">ibf</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-nipc">niPC</a>
-      
-      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-ispin%7E3">ispin</a>
+      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-iion">iIon</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-ll">LL</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-llp">LLP</a>
+      
+      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-m">M</a>
+      
+      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-mp">MP</a>
+      
+      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-ispin%7E3">ispin</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-lmbase">LMBASE</a>
       
@@ -306,13 +331,9 @@ public subroutine pawCorrectionPsiPC()
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-l">L</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-m">M</a>
-      
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-lp">LP</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-mp">MP</a>
-      
-      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-it">iT</a>
+      <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-iatomtype">iAtomType</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionpsipc.html#variable-atomicoverlap">atomicOverlap</a>
       
@@ -380,7 +401,7 @@ public subroutine pawCorrectionPsiPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ibi</strong></td><td></td><td></td><td></td>
+  <td><strong>ibi</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -394,7 +415,7 @@ public subroutine pawCorrectionPsiPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ibf</strong></td><td></td><td></td><td></td>
+  <td><strong>ibf</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -404,11 +425,67 @@ public subroutine pawCorrectionPsiPC()
   
 <tr>
   
-  <td><span class="anchor" id="variable-nipc"></span>integer,</td>
+  <td><span class="anchor" id="variable-iion"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>niPC</strong></td><td></td><td></td><td></td>
+  <td><strong>iIon</strong></td><td></td><td></td><td><p>Loop index</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ll"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>LL</strong></td><td></td><td></td><td><p>Loop index</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-llp"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>LLP</strong></td><td></td><td></td><td><p>Loop index</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-m"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>M</strong></td><td></td><td></td><td><p>Loop index</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-mp"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>MP</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -423,34 +500,6 @@ public subroutine pawCorrectionPsiPC()
   <td>public</td>
   <td></td><td>::</td>
   <td><strong>ispin</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-ll"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>LL</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-llp"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>LLP</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -478,7 +527,7 @@ public subroutine pawCorrectionPsiPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>LM</strong></td><td></td><td></td><td></td>
+  <td><strong>LM</strong></td><td></td><td></td><td><p>Index for cProj</p></td>
   
 </tr>
 
@@ -492,7 +541,7 @@ public subroutine pawCorrectionPsiPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>LMP</strong></td><td></td><td></td><td></td>
+  <td><strong>LMP</strong></td><td></td><td></td><td><p>Index for cProj</p></td>
   
 </tr>
 
@@ -516,20 +565,6 @@ public subroutine pawCorrectionPsiPC()
   
 <tr>
   
-  <td><span class="anchor" id="variable-m"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>M</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
   <td><span class="anchor" id="variable-lp"></span>integer,</td>
   
   <td>public</td>
@@ -544,25 +579,11 @@ public subroutine pawCorrectionPsiPC()
   
 <tr>
   
-  <td><span class="anchor" id="variable-mp"></span>integer,</td>
+  <td><span class="anchor" id="variable-iatomtype"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>MP</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-it"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>iT</strong></td><td></td><td></td><td></td>
+  <td><strong>iAtomType</strong></td><td></td><td></td><td><p>Atom type index for a given ion in the system</p></td>
   
 </tr>
 
@@ -632,42 +653,62 @@ public subroutine pawCorrectionPsiPC()
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">pawCorrectionPsiPC</span><span class="p">()</span>
-    <span class="c">!! @todo Document `pawCorrectionPsiPC()` @endtodo</span>
-    <span class="c">!</span>
-    <span class="c">! calculates the augmentation part of the transition matrix element</span>
-    <span class="c">!</span>
+    <span class="c">!! Calculates the augmentation part of the transition matrix element</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
     <span class="k">implicit none</span>
-<span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">niPC</span><span class="p">,</span> <span class="n">ispin</span> 
-    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">LL</span><span class="p">,</span> <span class="n">LLP</span><span class="p">,</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">LM</span><span class="p">,</span> <span class="n">LMP</span>
-    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">L</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">LP</span><span class="p">,</span> <span class="n">MP</span><span class="p">,</span> <span class="n">iT</span>
+<span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">iIon</span><span class="p">,</span> <span class="n">LL</span><span class="p">,</span> <span class="n">LLP</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">MP</span>
+      <span class="c">!! Loop index</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ispin</span> 
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">LMBASE</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">LM</span><span class="p">,</span> <span class="n">LMP</span>
+      <span class="c">!! Index for cProj</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">L</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">LP</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iAtomType</span>
+      <span class="c">!! Atom type index for a given ion in the system</span>
+    <span class="c">!</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">atomicOverlap</span>
     <span class="c">!</span>
     <span class="kt">complex</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">cProjIe</span><span class="p">,</span> <span class="n">cProjFe</span>
     <span class="c">!</span>
     <span class="n">ispin</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="c">!! * Set the value of `ispin` to 1</span>
+      <span class="c">!! @note</span>
+      <span class="c">!! `ispin` never has a value other than one, so I&#39;m not sure</span>
+      <span class="c">!!  what its purpose is</span>
+      <span class="c">!! @endnote</span>
     <span class="c">!</span>
     <span class="n">paw_PsiPC</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+      <span class="c">!! * Initialize all values in `paw_PsiPC` to complex double zero</span>
     <span class="c">!</span>
     <span class="n">LMBASE</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="c">!! * Initialize the base offset for `cProj`&#39;s first index to zero</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">niPC</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nIons</span> <span class="c">! LOOP OVER THE IONS</span>
+    <span class="k">do </span><span class="n">iIon</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nIons</span> 
+      <span class="c">!! * For each atom in the system</span>
+      <span class="c">!!    * Get the index for the atom type</span>
       <span class="c">!</span>
-      <span class="n">iT</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atomTypeIndex</span><span class="p">(</span><span class="n">niPC</span><span class="p">)</span>
+      <span class="n">iAtomType</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atomTypeIndex</span><span class="p">(</span><span class="n">iIon</span><span class="p">)</span>
+      <span class="c">!</span>
       <span class="n">LM</span> <span class="o">=</span> <span class="mi">0</span>
-      <span class="k">DO </span><span class="n">LL</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lMax</span>
-        <span class="n">L</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">LPS</span><span class="p">(</span><span class="n">LL</span><span class="p">)</span>
-        <span class="k">DO </span><span class="n">M</span> <span class="o">=</span> <span class="o">-</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">LL</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">lMax</span>
+        <span class="c">!</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">LL</span><span class="p">)</span>
+        <span class="k">do </span><span class="n">M</span> <span class="o">=</span> <span class="o">-</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span>
           <span class="n">LM</span> <span class="o">=</span> <span class="n">LM</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">!1st index for CPROJ</span>
           <span class="c">!</span>
           <span class="n">LMP</span> <span class="o">=</span> <span class="mi">0</span>
-          <span class="k">DO </span><span class="n">LLP</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lMax</span>
-            <span class="n">LP</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">LPS</span><span class="p">(</span><span class="n">LLP</span><span class="p">)</span>
-            <span class="k">DO </span><span class="n">MP</span> <span class="o">=</span> <span class="o">-</span><span class="n">LP</span><span class="p">,</span> <span class="n">LP</span>
+          <span class="k">do </span><span class="n">LLP</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">lMax</span>
+            <span class="n">LP</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">LLP</span><span class="p">)</span>
+            <span class="k">do </span><span class="n">MP</span> <span class="o">=</span> <span class="o">-</span><span class="n">LP</span><span class="p">,</span> <span class="n">LP</span>
               <span class="n">LMP</span> <span class="o">=</span> <span class="n">LMP</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">! 2nd index for CPROJ</span>
               <span class="c">!</span>
               <span class="n">atomicOverlap</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
               <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">L</span> <span class="o">==</span> <span class="n">LP</span><span class="p">).</span><span class="nb">and</span><span class="p">.(</span><span class="n">M</span> <span class="o">==</span> <span class="n">MP</span><span class="p">)</span> <span class="p">)</span> <span class="k">then </span>
-<span class="k">                </span><span class="n">atomicOverlap</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">F1</span><span class="p">(:,</span><span class="n">LL</span><span class="p">,</span> <span class="n">LLP</span><span class="p">))</span>
+<span class="k">                </span><span class="n">atomicOverlap</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(:,</span><span class="n">LL</span><span class="p">,</span> <span class="n">LLP</span><span class="p">))</span>
                 <span class="c">!</span>
                 <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
                   <span class="n">cProjIe</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">(</span><span class="n">LMP</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">)</span>
@@ -685,12 +726,12 @@ public subroutine pawCorrectionPsiPC()
                 <span class="c">!</span>
               <span class="n">endif</span>
               <span class="c">!</span>
-            <span class="n">ENDDO</span>
-          <span class="n">ENDDO</span>
-        <span class="n">ENDDO</span>
-      <span class="n">ENDDO</span>
-      <span class="n">LMBASE</span> <span class="o">=</span> <span class="n">LMBASE</span> <span class="o">+</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lmMax</span>
-    <span class="n">ENDDO</span>
+            <span class="n">enddo</span>
+          <span class="n">enddo</span>
+        <span class="n">enddo</span>
+      <span class="n">enddo</span>
+      <span class="n">LMBASE</span> <span class="o">=</span> <span class="n">LMBASE</span> <span class="o">+</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">lmMax</span>
+    <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">return</span>
     <span class="c">!</span>

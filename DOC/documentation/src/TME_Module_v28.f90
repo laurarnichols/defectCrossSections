@@ -179,7 +179,7 @@ module TMEModule
       !! Element name for the given atom type
     !
     ! Define matrix/vector integer
-    integer, allocatable :: lps(:)
+    integer, allocatable :: projAngMom(:)
       !! Angular momentum of each projector
     !
     ! Define matrix/vector reals
@@ -782,13 +782,13 @@ contains
       read(50, '(a)') textDum
       read(50, '(i10)') system%atoms(iType)%lMax              ! number of projectors
       !
-      allocate ( system%atoms(iType)%lps( system%atoms(iType)%lMax ) )
+      allocate ( system%atoms(iType)%projAngMom( system%atoms(iType)%lMax ) )
       !
       read(50, '(a)') textDum
       do i = 1, system%atoms(iType)%lMax 
         !
         read(50, '(2i10)') l, ind
-        system%atoms(iType)%lps(ind) = l
+        system%atoms(iType)%projAngMom(ind) = l
         !
       enddo
       !
@@ -877,7 +877,7 @@ contains
     close(50)
       !! * Close the input file
     !
-    !> * Go through the `lps` values for each projector for each atom
+    !> * Go through the `projAngMom` values for each projector for each atom
     !> and find the max to store in `JMAX`
     !> @todo Figure out if intentional to only use `JMAX` from SD input @endtodo
     JMAX = 0
@@ -885,7 +885,7 @@ contains
       !
       do i = 1, system%atoms(iType)%lMax
         !
-        if ( system%atoms(iType)%lps(i) > JMAX ) JMAX = system%atoms(iType)%lps(i)
+        if ( system%atoms(iType)%projAngMom(i) > JMAX ) JMAX = system%atoms(iType)%projAngMom(i)
         !
       enddo
       !
@@ -1355,42 +1355,62 @@ contains
   !
   !
   subroutine pawCorrectionPsiPC()
-    !! @todo Document `pawCorrectionPsiPC()` @endtodo
-    !
-    ! calculates the augmentation part of the transition matrix element
-    !
+    !! Calculates the augmentation part of the transition matrix element
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
-    integer :: ibi, ibf, niPC, ispin 
-    integer :: LL, LLP, LMBASE, LM, LMP
-    integer :: L, M, LP, MP, iT
+    integer :: ibi, ibf, iIon, LL, LLP, M, MP
+      !! Loop index
+    integer :: ispin 
+    integer :: LMBASE
+    integer :: LM, LMP
+      !! Index for cProj
+    integer :: L
+    integer :: LP
+    integer :: iAtomType
+      !! Atom type index for a given ion in the system
+    !
     real(kind = dp) :: atomicOverlap
     !
     complex(kind = dp) :: cProjIe, cProjFe
     !
     ispin = 1
+      !! * Set the value of `ispin` to 1
+      !! @note
+      !! `ispin` never has a value other than one, so I'm not sure
+      !!  what its purpose is
+      !! @endnote
     !
     paw_PsiPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+      !! * Initialize all values in `paw_PsiPC` to complex double zero
     !
     LMBASE = 0
+      !! * Initialize the base offset for `cProj`'s first index to zero
     !
-    do niPC = 1, perfectCrystal%nIons ! LOOP OVER THE IONS
+    do iIon = 1, perfectCrystal%nIons 
+      !! * For each atom in the system
+      !!    * Get the index for the atom type
       !
-      iT = perfectCrystal%atomTypeIndex(niPC)
+      iAtomType = perfectCrystal%atomTypeIndex(iIon)
+      !
       LM = 0
-      DO LL = 1, perfectCrystal%atoms(iT)%lMax
-        L = perfectCrystal%atoms(iT)%LPS(LL)
-        DO M = -L, L
+      !
+      do LL = 1, perfectCrystal%atoms(iAtomType)%lMax
+        !
+        L = perfectCrystal%atoms(iAtomType)%projAngMom(LL)
+        do M = -L, L
           LM = LM + 1 !1st index for CPROJ
           !
           LMP = 0
-          DO LLP = 1, perfectCrystal%atoms(iT)%lMax
-            LP = perfectCrystal%atoms(iT)%LPS(LLP)
-            DO MP = -LP, LP
+          do LLP = 1, perfectCrystal%atoms(iAtomType)%lMax
+            LP = perfectCrystal%atoms(iAtomType)%projAngMom(LLP)
+            do MP = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
               !
               atomicOverlap = 0.0_dp
               if ( (L == LP).and.(M == MP) ) then 
-                atomicOverlap = sum(perfectCrystal%atoms(iT)%F1(:,LL, LLP))
+                atomicOverlap = sum(perfectCrystal%atoms(iAtomType)%F1(:,LL, LLP))
                 !
                 do ibi = iBandIinit, iBandIfinal
                   cProjIe = perfectCrystal%cProj(LMP + LMBASE, ibi, ISPIN)
@@ -1408,12 +1428,12 @@ contains
                 !
               endif
               !
-            ENDDO
-          ENDDO
-        ENDDO
-      ENDDO
-      LMBASE = LMBASE + perfectCrystal%atoms(iT)%lmMax
-    ENDDO
+            enddo
+          enddo
+        enddo
+      enddo
+      LMBASE = LMBASE + perfectCrystal%atoms(iAtomType)%lmMax
+    enddo
     !
     return
     !
@@ -1445,13 +1465,13 @@ contains
       iT = solidDefect%atomTypeIndex(ni)
       LM = 0
       DO LL = 1, solidDefect%atoms(iT)%lMax
-        L = solidDefect%atoms(iT)%LPS(LL)
+        L = solidDefect%atoms(iT)%projAngMom(LL)
         DO M = -L, L
           LM = LM + 1 !1st index for CPROJ
           !
           LMP = 0
           DO LLP = 1, solidDefect%atoms(iT)%lMax
-            LP = solidDefect%atoms(iT)%LPS(LLP)
+            LP = solidDefect%atoms(iT)%projAngMom(LLP)
             DO MP = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
               !
@@ -1549,7 +1569,7 @@ contains
         iT = perfectCrystal%atomTypeIndex(ni)
         LM = 0
         DO LL = 1, perfectCrystal%atoms(iT)%lMax
-          L = perfectCrystal%atoms(iT)%LPS(LL)
+          L = perfectCrystal%atoms(iT)%projAngMom(LL)
           DO M = -L, L
             LM = LM + 1 !1st index for CPROJ
             !
@@ -1647,7 +1667,7 @@ contains
         iT = solidDefect%atomTypeIndex(ni)
         LM = 0
         DO LL = 1, solidDefect%atoms(iT)%lMax
-          L = solidDefect%atoms(iT)%LPS(LL)
+          L = solidDefect%atoms(iT)%projAngMom(LL)
           DO M = -L, L
             LM = LM + 1 !1st index for CPROJ
             !
@@ -1719,13 +1739,13 @@ contains
       iT = perfectCrystal%atomTypeIndex(niPC)
       LM = 0
       DO LL = 1, perfectCrystal%atoms(iT)%lMax
-        L = perfectCrystal%atoms(iT)%LPS(LL)
+        L = perfectCrystal%atoms(iT)%projAngMom(LL)
         DO M = -L, L
           LM = LM + 1 !1st index for CPROJ
           !
           LMP = 0
           DO LLP = 1, perfectCrystal%atoms(iT)%lMax
-            LP = perfectCrystal%atoms(iT)%LPS(LLP)
+            LP = perfectCrystal%atoms(iT)%projAngMom(LLP)
             DO MP = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
               !

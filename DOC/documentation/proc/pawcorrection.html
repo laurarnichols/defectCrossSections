@@ -181,7 +181,7 @@
       
       <a class="list-group-item" href="../proc/pawcorrection.html#variable-ibf%7E6">ibf</a>
       
-      <a class="list-group-item" href="../proc/pawcorrection.html#variable-nipc%7E2">niPC</a>
+      <a class="list-group-item" href="../proc/pawcorrection.html#variable-nipc">niPC</a>
       
       <a class="list-group-item" href="../proc/pawcorrection.html#variable-ispin%7E7">ispin</a>
       
@@ -203,7 +203,7 @@
       
       <a class="list-group-item" href="../proc/pawcorrection.html#variable-mp%7E3">MP</a>
       
-      <a class="list-group-item" href="../proc/pawcorrection.html#variable-it%7E5">iT</a>
+      <a class="list-group-item" href="../proc/pawcorrection.html#variable-it%7E4">iT</a>
       
       <a class="list-group-item" href="../proc/pawcorrection.html#variable-atomicoverlap%7E3">atomicOverlap</a>
       
@@ -291,7 +291,7 @@ public subroutine pawCorrection()
       
       <a class="list-group-item" href="../proc/pawcorrection.html#variable-ibf%7E6">ibf</a>
       
-      <a class="list-group-item" href="../proc/pawcorrection.html#variable-nipc%7E2">niPC</a>
+      <a class="list-group-item" href="../proc/pawcorrection.html#variable-nipc">niPC</a>
       
       <a class="list-group-item" href="../proc/pawcorrection.html#variable-ispin%7E7">ispin</a>
       
@@ -313,7 +313,7 @@ public subroutine pawCorrection()
       
       <a class="list-group-item" href="../proc/pawcorrection.html#variable-mp%7E3">MP</a>
       
-      <a class="list-group-item" href="../proc/pawcorrection.html#variable-it%7E5">iT</a>
+      <a class="list-group-item" href="../proc/pawcorrection.html#variable-it%7E4">iT</a>
       
       <a class="list-group-item" href="../proc/pawcorrection.html#variable-atomicoverlap%7E3">atomicOverlap</a>
       
@@ -405,7 +405,7 @@ public subroutine pawCorrection()
   
 <tr>
   
-  <td><span class="anchor" id="variable-nipc%7E2"></span>integer,</td>
+  <td><span class="anchor" id="variable-nipc"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -559,7 +559,7 @@ public subroutine pawCorrection()
   
 <tr>
   
-  <td><span class="anchor" id="variable-it%7E5"></span>integer,</td>
+  <td><span class="anchor" id="variable-it%7E4"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -669,13 +669,13 @@ public subroutine pawCorrection()
       <span class="n">iT</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atomTypeIndex</span><span class="p">(</span><span class="n">niPC</span><span class="p">)</span>
       <span class="n">LM</span> <span class="o">=</span> <span class="mi">0</span>
       <span class="k">DO </span><span class="n">LL</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lMax</span>
-        <span class="n">L</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">LPS</span><span class="p">(</span><span class="n">LL</span><span class="p">)</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">LL</span><span class="p">)</span>
         <span class="k">DO </span><span class="n">M</span> <span class="o">=</span> <span class="o">-</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span>
           <span class="n">LM</span> <span class="o">=</span> <span class="n">LM</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">!1st index for CPROJ</span>
           <span class="c">!</span>
           <span class="n">LMP</span> <span class="o">=</span> <span class="mi">0</span>
           <span class="k">DO </span><span class="n">LLP</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lMax</span>
-            <span class="n">LP</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">LPS</span><span class="p">(</span><span class="n">LLP</span><span class="p">)</span>
+            <span class="n">LP</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">LLP</span><span class="p">)</span>
             <span class="k">DO </span><span class="n">MP</span> <span class="o">=</span> <span class="o">-</span><span class="n">LP</span><span class="p">,</span> <span class="n">LP</span>
               <span class="n">LMP</span> <span class="o">=</span> <span class="n">LMP</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">! 2nd index for CPROJ</span>
               <span class="c">!</span>

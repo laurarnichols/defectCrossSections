@@ -296,7 +296,7 @@ public subroutine readQEExport(system)
 <p>Close the input file</p>
 </li>
 <li>
-<p>Go through the <code>lps</code> values for each projector for each atom
+<p>Go through the <code>projAngMom</code> values for each projector for each atom
  and find the max to store in <code>JMAX</code>
  </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if intentional to only use <code>JMAX</code> from SD input </p></div>
 <p>
@@ -837,13 +837,13 @@ public subroutine readQEExport(system)
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>              <span class="c">! number of projectors</span>
       <span class="c">!</span>
-      <span class="k">allocate</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
+      <span class="k">allocate</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> <span class="p">)</span> <span class="p">)</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(a)&#39;</span><span class="p">)</span> <span class="n">textDum</span>
       <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span> 
         <span class="c">!</span>
         <span class="k">read</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">l</span><span class="p">,</span> <span class="n">ind</span>
-        <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="o">=</span> <span class="n">l</span>
+        <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="o">=</span> <span class="n">l</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
@@ -932,7 +932,7 @@ public subroutine readQEExport(system)
     <span class="k">close</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>
       <span class="c">!! * Close the input file</span>
     <span class="c">!</span>
-    <span class="c">!&gt; * Go through the `lps` values for each projector for each atom</span>
+    <span class="c">!&gt; * Go through the `projAngMom` values for each projector for each atom</span>
     <span class="c">!&gt; and find the max to store in `JMAX`</span>
     <span class="c">!&gt; @todo Figure out if intentional to only use `JMAX` from SD input @endtodo</span>
     <span class="n">JMAX</span> <span class="o">=</span> <span class="mi">0</span>
@@ -940,7 +940,7 @@ public subroutine readQEExport(system)
       <span class="c">!</span>
       <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lMax</span>
         <span class="c">!</span>
-        <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">JMAX</span> <span class="p">)</span> <span class="n">JMAX</span> <span class="o">=</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">lps</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">JMAX</span> <span class="p">)</span> <span class="n">JMAX</span> <span class="o">=</span> <span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iType</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
