@@ -1877,8 +1877,9 @@ contains
   !!
   !!   <h3>Formulas</h3>
   !!        Starting values:
-  !!           * \(Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\)
-  !!           * \(Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\)
+  !!        <ul>
+  !!           <li> \(Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\)</li>
+  !!           <li> \(Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\)</li>
   !!
   !!                                     +------+
   !!                                     |   3    i(Phi)
