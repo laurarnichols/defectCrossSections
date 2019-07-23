@@ -380,28 +380,18 @@ public subroutine ylm(V_in, LMAX, Y)
 <p><h3>Formulas</h3>
         Starting values:
         <ul>
-           <li> <script type="math/tex">Y_0^0 = \sqrt{\dfrac{1}{4\pi}}</script></li>
-           <li> <script type="math/tex">Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta</script></li></p>
-<div class="codehilite"><pre><span></span>                                 <span class="o">+</span><span class="c1">------+</span>
-                                 <span class="o">|</span>   <span class="mi">3</span>    <span class="n">i</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
-       <span class="n">Y</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span>  <span class="o">-</span> <span class="n">sin</span><span class="p">(</span><span class="n">Theta</span><span class="p">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="c1">----- e</span>
-                                <span class="err">\</span><span class="o">|</span> <span class="mi">8</span><span class="p">(</span><span class="n">Pi</span><span class="p">)</span>
-
-    <span class="n">Formula</span> <span class="mi">1</span><span class="p">:</span>
-
-       <span class="n">Y</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">l</span><span class="p">)</span> <span class="o">=</span>
-                       <span class="o">+</span><span class="c1">--------+</span>
-                       <span class="o">|</span> <span class="p">(</span><span class="mi">2</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>   <span class="n">i</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
-        <span class="o">-</span><span class="n">sin</span><span class="p">(</span><span class="n">Theta</span><span class="p">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="c1">------  e       Y(l-1,l-1)</span>
-                      <span class="err">\</span><span class="o">|</span>   <span class="mi">2</span><span class="n">l</span>
-
-    <span class="n">Formula</span> <span class="mi">2</span><span class="p">:</span>
-                              <span class="o">+</span><span class="c1">---------------+  </span>
-                              <span class="o">|</span>  <span class="p">(</span><span class="mi">2</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="p">)(</span><span class="mi">2</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>   
-       <span class="n">Y</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">m</span><span class="p">)</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">Theta</span><span class="p">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="c1">-------------- Y(l-1,m)  -</span>
-                             <span class="err">\</span><span class="o">|</span>   <span class="p">(</span><span class="n">l</span><span class="o">-</span><span class="n">m</span><span class="p">)(</span><span class="n">l</span><span class="o">+</span><span class="n">m</span><span class="p">)</span>
-
-                                <span class="o">+</span><span class="c1">--------------------+  </span>
+           <li><script type="math/tex">Y_0^0 = \sqrt{\dfrac{1}{4\pi}}</script></li>
+           <li><script type="math/tex">Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta</script></li>
+           <li><script type="math/tex">Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\pi}</script></li>
+        </ul>
+        Formula 1:
+        <script type="math/tex; mode=display">Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}</script>
+        Formula 2:
+                                  +---------------+<br>
+                                  |  (2l-1)(2l+1) <br>
+           Y(l,m) = cos(Theta) -+ | -------------- Y(l-1,m)  -
+                                 |   (l-m)(l+m)       </p>
+<div class="codehilite"><pre><span></span>                                <span class="o">+</span><span class="c1">--------------------+  </span>
                                 <span class="o">|</span><span class="p">(</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="o">+</span><span class="n">m</span><span class="p">)(</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="n">m</span><span class="p">)(</span><span class="mi">2</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
                           <span class="o">-</span>  <span class="o">-+</span> <span class="o">|</span><span class="c1">-------------------- Y(l-2,m)</span>
                                <span class="err">\</span><span class="o">|</span>  <span class="p">(</span><span class="mi">2</span><span class="n">l</span><span class="o">-</span><span class="mi">3</span><span class="p">)(</span><span class="n">l</span><span class="o">-</span><span class="n">m</span><span class="p">)(</span><span class="n">l</span><span class="o">+</span><span class="n">m</span><span class="p">)</span>
@@ -1197,22 +1187,12 @@ public subroutine ylm(V_in, LMAX, Y)
   <span class="c">!!   &lt;h3&gt;Formulas&lt;/h3&gt;</span>
   <span class="c">!!        Starting values:</span>
   <span class="c">!!        &lt;ul&gt;</span>
-  <span class="c">!!           &lt;li&gt; \(Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\)&lt;/li&gt;</span>
-  <span class="c">!!           &lt;li&gt; \(Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\)&lt;/li&gt;</span>
-  <span class="c">!!</span>
-  <span class="c">!!                                     +------+</span>
-  <span class="c">!!                                     |   3    i(Phi)</span>
-  <span class="c">!!           Y(1,1) =  - sin(Theta) -+ | ----- e</span>
-  <span class="c">!!                                    \| 8(Pi)  </span>
-  <span class="c">!!</span>
+  <span class="c">!!           &lt;li&gt;\(Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\)&lt;/li&gt;</span>
+  <span class="c">!!           &lt;li&gt;\(Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\)&lt;/li&gt;</span>
+  <span class="c">!!           &lt;li&gt;\(Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\pi}\)&lt;/li&gt;</span>
+  <span class="c">!!        &lt;/ul&gt;</span>
   <span class="c">!!        Formula 1:</span>
-  <span class="c">!!</span>
-  <span class="c">!!           Y(l,l) =</span>
-  <span class="c">!!                           +--------+</span>
-  <span class="c">!!                           | (2l+1)   i(Phi)</span>
-  <span class="c">!!            -sin(Theta) -+ | ------  e       Y(l-1,l-1)</span>
-  <span class="c">!!                          \|   2l  </span>
-  <span class="c">!!</span>
+  <span class="c">!!        \[Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}\]</span>
   <span class="c">!!        Formula 2:</span>
   <span class="c">!!                                  +---------------+  </span>
   <span class="c">!!                                  |  (2l-1)(2l+1)   </span>

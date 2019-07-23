@@ -1878,22 +1878,12 @@ contains
   !!   <h3>Formulas</h3>
   !!        Starting values:
   !!        <ul>
-  !!           <li> \(Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\)</li>
-  !!           <li> \(Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\)</li>
-  !!
-  !!                                     +------+
-  !!                                     |   3    i(Phi)
-  !!           Y(1,1) =  - sin(Theta) -+ | ----- e
-  !!                                    \| 8(Pi)  
-  !!
+  !!           <li>\(Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\)</li>
+  !!           <li>\(Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\)</li>
+  !!           <li>\(Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\pi}\)</li>
+  !!        </ul>
   !!        Formula 1:
-  !!
-  !!           Y(l,l) =
-  !!                           +--------+
-  !!                           | (2l+1)   i(Phi)
-  !!            -sin(Theta) -+ | ------  e       Y(l-1,l-1)
-  !!                          \|   2l  
-  !!
+  !!        \[Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}\]
   !!        Formula 2:
   !!                                  +---------------+  
   !!                                  |  (2l-1)(2l+1)   
