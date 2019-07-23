@@ -1786,10 +1786,11 @@ contains
   !! Returns the spherical harmonics for a given argument vector
   !! up to the maximum value of \(l\) given
   !!
-  !! `lmax`   : spherical harmonics are calculated for \(l = 0\) to `lmax`<br/>
+  !! `lmax`   : spherical harmonics are calculated for 
+  !!            \(l = 0, 1, ..., l_{\text{max}}\)<br/>
   !! `v`      : vector, argument of the spherical harmonics (we calculate
-  !! `Ylm(v/norm(v))`)<br/>
-  !! `y`      : array containing `Ylm(v)` for several \(l,m\)
+  !!            \(Y_{lm}(\mathbf{v}/|\mathbf{v}|)\))<br/>
+  !! `y`      : array containing \(Y_{lm}(\mathbf{v})\) for several \(l,m\)
   !!
   !! <h2>Description</h2>
   !!   <h3>Purpose</h3>
@@ -1801,7 +1802,6 @@ contains
   !!        \[ Y(l,m) = (-1)^m \sqrt{\frac{1}{\pi}} P_{lm}(\cos{\theta})
   !!        \rm
   !!        e^{\rm i m \phi} \]
-  !!                        
   !!        where  \(P_{lm}(\cos{\theta})\) is the normalized Associated
   !!        Legendre function. Thus,
   !!                     \[  Y(l,-m) = (-1)^m Y^*(l,m) \]
