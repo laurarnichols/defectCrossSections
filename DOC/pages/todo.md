@@ -26,16 +26,16 @@ date: 07/23/2019
 * `../TME/src/TME_Module_v28.f90:1220:` Look into `nSpins` to figure out if it is needed
 * `../TME/src/TME_Module_v28.f90:1412:` Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\)
 * `../TME/src/TME_Module_v28.f90:1478:` Document `pawCorrectionKPC()`
-* `../TME/src/TME_Module_v28.f90:1528:` Figure out if this output slows things down significantly
-* `../TME/src/TME_Module_v28.f90:1529:` Figure out if formula gives accurate representation of time left
-* `../TME/src/TME_Module_v28.f90:1573:` Figure out if this should be perfect crystal
-* `../TME/src/TME_Module_v28.f90:1574:` Figure out significance of "qr" point
-* `../TME/src/TME_Module_v28.f90:1577:` Test if can just directly store in each atom type's `bes_J_qr`
-* `../TME/src/TME_Module_v28.f90:1628:` Document `pawCorrectionSDK()`
-* `../TME/src/TME_Module_v28.f90:1629:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1726:` Document `pawCorrection()`
-* `../TME/src/TME_Module_v28.f90:1727:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
-* `../TME/src/TME_Module_v28.f90:2090:` Document `writeResults()` @endto
-* `../TME/src/TME_Module_v28.f90:2152:` Document `readUfis()`
-* `../TME/src/TME_Module_v28.f90:2206:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2328:` Document `readEigenvalues()`
+* `../TME/src/TME_Module_v28.f90:1530:` Figure out if this output slows things down significantly
+* `../TME/src/TME_Module_v28.f90:1531:` Figure out if formula gives accurate representation of time left
+* `../TME/src/TME_Module_v28.f90:1575:` Figure out if this should be perfect crystal
+* `../TME/src/TME_Module_v28.f90:1576:` Figure out significance of "qr" point
+* `../TME/src/TME_Module_v28.f90:1579:` Test if can just directly store in each atom type's `bes_J_qr`
+* `../TME/src/TME_Module_v28.f90:1630:` Document `pawCorrectionSDK()`
+* `../TME/src/TME_Module_v28.f90:1631:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1728:` Document `pawCorrection()`
+* `../TME/src/TME_Module_v28.f90:1729:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
+* `../TME/src/TME_Module_v28.f90:2092:` Document `writeResults()` @endto
+* `../TME/src/TME_Module_v28.f90:2154:` Document `readUfis()`
+* `../TME/src/TME_Module_v28.f90:2208:` Document `calculateVFiElements()`
+* `../TME/src/TME_Module_v28.f90:2330:` Document `readEigenvalues()`

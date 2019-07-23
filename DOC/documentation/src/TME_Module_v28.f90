@@ -1487,15 +1487,17 @@ contains
       !! Loop index over bands
     integer :: iPW
       !! Loop index over plane waves for a given process
-    integer :: ispin
     integer :: iProj
       !! Loop index over projectors
     integer :: iR
       !! Loop index over radial mesh (up to augmentation sphere)
-    integer :: NI, LMBASE, LM
-    integer :: L, M, ind
     integer :: iAtomType
       !! Loop index over atom types
+    integer :: iIon
+      !! Loop index over ions in system
+    integer :: ispin
+    integer :: LMBASE, LM
+    integer :: L, M, ind
     real(kind = dp) :: q, qDotR, FI, t1, t2
     !
     real(kind = dp) :: JL(0:JMAX)
@@ -1580,13 +1582,13 @@ contains
         !
       enddo
       !
-      do ni = 1, perfectCrystal%nIons 
+      do iIon = 1, perfectCrystal%nIons 
         !
-        qDotR = sum(gvecs(:,iPW)*perfectCrystal%posIon(:,ni))
+        qDotR = sum(gvecs(:,iPW)*perfectCrystal%posIon(:,iIon))
         !
         ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
         !
-        iAtomType = perfectCrystal%atomTypeIndex(ni)
+        iAtomType = perfectCrystal%atomTypeIndex(iIon)
         LM = 0
         do iProj = 1, perfectCrystal%atoms(iAtomType)%numProjs
           L = perfectCrystal%atoms(iAtomType)%projAngMom(iProj)
