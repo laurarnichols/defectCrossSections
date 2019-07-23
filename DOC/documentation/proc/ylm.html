@@ -307,8 +307,7 @@ public subroutine ylm(V_in, LMAX, Y)
         are calculated. In the Condon Shortley convention the
         spherical harmonics are defined as
         <script type="math/tex; mode=display"> Y(l,m) = (-1)^m \sqrt{\frac{1}{\pi}} P_{lm}(\cos{\theta})
-        \rm
-        e^{\rm i m \phi} </script>
+        e^{im\phi} </script>
         where  <script type="math/tex">P_{lm}(\cos{\theta})</script> is the normalized Associated
         Legendre function. Thus,
                      <script type="math/tex; mode=display">  Y(l,-m) = (-1)^m Y^*(l,m) </script>
@@ -323,26 +322,36 @@ public subroutine ylm(V_in, LMAX, Y)
 
 
 <p><h3>Argument Description</h3>
-          * <code>V</code>      - DOUBLE PRECISION vector, dimension 3        (input)
+     <ul>
+          <li> 
+                  <code>V</code>      - DOUBLE PRECISION vector, dimension 3        (input)<br/>
                    Must be given in Cartesian coordinates.
                    Conversion of V to polar coordinates gives the
                    angles <script type="math/tex">\theta</script> and <script type="math/tex">\phi</script> necessary for the calculation
                    of the spherical harmonics.<br>
-          * <code>LMAX</code>   - INTEGER value                               (input)
+          </li>
+          <li>
+                   <code>LMAX</code>   - INTEGER value                               (input)<br/>
                    upper bound of <script type="math/tex">l</script> for which spherical harmonics
-                   will be calculated
-                   constraint:
-                      <code>LMAX &gt;= 0</code><br>
-          * <code>Y</code>      - COMPLEX*16 array, dimension (LMAX+1)<strong>2    (output)
-                   contains the calculated spherical harmonics
-                   Y(1)                   for L .EQ. 0 (M = 0)
-                   Y(2), ..., Y(4)        for L .EQ. 1 (M = -1, 0, 1)
-                   ...
-                   Y(LMAX<em>LMAX+1), ..., Y((LMAX+1)</em>(LMAX+1))
-                                          for L .EQ. LMAX
-                                              (M = -L,...,L)
-                   constraint:
-                      Dimension of Y .GE. (LMAX+1)</strong>2 (not checked)</p>
+                   will be calculated; constraint: <code>LMAX &gt;= 0</code><br>
+          </li>
+          <li>
+                   <code>Y</code>      - COMPLEX<em>16 array, dimension (LMAX+1)</em>*2    (output)<br/>
+                   contains the calculated spherical harmonics</p>
+<div class="codehilite"><pre><span></span>               <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span><span class="ss">)</span>                   <span class="k">for</span> <span class="nv">L</span> .<span class="nv">EQ</span>. <span class="mi">0</span> <span class="ss">(</span><span class="nv">M</span> <span class="o">=</span> <span class="mi">0</span><span class="ss">)</span>
+               <span class="nv">Y</span><span class="ss">(</span><span class="mi">2</span><span class="ss">)</span>, ..., <span class="nv">Y</span><span class="ss">(</span><span class="mi">4</span><span class="ss">)</span>        <span class="k">for</span> <span class="nv">L</span> .<span class="nv">EQ</span>. <span class="mi">1</span> <span class="ss">(</span><span class="nv">M</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>, <span class="mi">0</span>, <span class="mi">1</span><span class="ss">)</span>
+               ...
+               <span class="nv">Y</span><span class="ss">(</span><span class="nv">LMAX</span><span class="o">*</span><span class="nv">LMAX</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>, ..., <span class="nv">Y</span><span class="ss">((</span><span class="nv">LMAX</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span><span class="o">*</span><span class="ss">(</span><span class="nv">LMAX</span><span class="o">+</span><span class="mi">1</span><span class="ss">))</span>
+                                      <span class="k">for</span> <span class="nv">L</span> .<span class="nv">EQ</span>. <span class="nv">LMAX</span>
+                                          <span class="ss">(</span><span class="nv">M</span> <span class="o">=</span> <span class="o">-</span><span class="nv">L</span>,...,<span class="nv">L</span><span class="ss">)</span>
+
+               <span class="nv">constraint</span>:
+                  <span class="nv">Dimension</span> <span class="nv">of</span> <span class="nv">Y</span> .<span class="nv">GE</span>. <span class="ss">(</span><span class="nv">LMAX</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span><span class="o">**</span><span class="mi">2</span> <span class="ss">(</span><span class="nv">not</span> <span class="nv">checked</span><span class="ss">)</span>
+      <span class="o">&lt;/</span><span class="nv">li</span><span class="o">&gt;</span>
+    <span class="o">&lt;/</span><span class="nv">ul</span><span class="o">&gt;</span>
+</pre></div>
+
+
 <p><h3>Used Subroutines (Directly Called)</h3>
            none</p>
 <p><h3>Indirectly Called Subroutines</h3>
@@ -1126,8 +1135,7 @@ public subroutine ylm(V_in, LMAX, Y)
   <span class="c">!!        are calculated. In the Condon Shortley convention the</span>
   <span class="c">!!        spherical harmonics are defined as</span>
   <span class="c">!!        \[ Y(l,m) = (-1)^m \sqrt{\frac{1}{\pi}} P_{lm}(\cos{\theta})</span>
-  <span class="c">!!        \rm</span>
-  <span class="c">!!        e^{\rm i m \phi} \]</span>
+  <span class="c">!!        e^{im\phi} \]</span>
   <span class="c">!!        where  \(P_{lm}(\cos{\theta})\) is the normalized Associated</span>
   <span class="c">!!        Legendre function. Thus,</span>
   <span class="c">!!                     \[  Y(l,-m) = (-1)^m Y^*(l,m) \]</span>
@@ -1142,26 +1150,35 @@ public subroutine ylm(V_in, LMAX, Y)
   <span class="c">!!        CALL YLM(V,4,Y)</span>
   <span class="c">!!</span>
   <span class="c">!!   &lt;h3&gt;Argument Description&lt;/h3&gt;</span>
-  <span class="c">!!          * `V`      - DOUBLE PRECISION vector, dimension 3        (input)</span>
+  <span class="c">!!     &lt;ul&gt;</span>
+  <span class="c">!!          &lt;li&gt; </span>
+  <span class="c">!!                  `V`      - DOUBLE PRECISION vector, dimension 3        (input)&lt;br/&gt;</span>
   <span class="c">!!                   Must be given in Cartesian coordinates.</span>
   <span class="c">!!                   Conversion of V to polar coordinates gives the</span>
   <span class="c">!!                   angles \(\theta\) and \(\phi\) necessary for the calculation</span>
   <span class="c">!!                   of the spherical harmonics.  </span>
-  <span class="c">!!          * `LMAX`   - INTEGER value                               (input)</span>
+  <span class="c">!!          &lt;/li&gt;</span>
+  <span class="c">!!          &lt;li&gt;</span>
+  <span class="c">!!                   `LMAX`   - INTEGER value                               (input)&lt;br/&gt;</span>
   <span class="c">!!                   upper bound of \(l\) for which spherical harmonics</span>
-  <span class="c">!!                   will be calculated</span>
-  <span class="c">!!                   constraint:</span>
-  <span class="c">!!                      `LMAX &gt;= 0`  </span>
-  <span class="c">!!          * `Y`      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)</span>
+  <span class="c">!!                   will be calculated; constraint: `LMAX &gt;= 0`  </span>
+  <span class="c">!!          &lt;/li&gt;</span>
+  <span class="c">!!          &lt;li&gt;</span>
+  <span class="c">!!                   `Y`      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)&lt;br/&gt;</span>
   <span class="c">!!                   contains the calculated spherical harmonics</span>
+  <span class="c">!!</span>
+  <span class="c">!!</span>
   <span class="c">!!                   Y(1)                   for L .EQ. 0 (M = 0)</span>
   <span class="c">!!                   Y(2), ..., Y(4)        for L .EQ. 1 (M = -1, 0, 1)</span>
   <span class="c">!!                   ...</span>
   <span class="c">!!                   Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))</span>
   <span class="c">!!                                          for L .EQ. LMAX</span>
   <span class="c">!!                                              (M = -L,...,L)</span>
+  <span class="c">!!                    </span>
   <span class="c">!!                   constraint:</span>
   <span class="c">!!                      Dimension of Y .GE. (LMAX+1)**2 (not checked)</span>
+  <span class="c">!!          &lt;/li&gt;</span>
+  <span class="c">!!        &lt;/ul&gt;</span>
   <span class="c">!!</span>
   <span class="c">!!   &lt;h3&gt;Used Subroutines (Directly Called)&lt;/h3&gt;</span>
   <span class="c">!!           none</span>

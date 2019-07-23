@@ -1800,8 +1800,7 @@ contains
   !!        are calculated. In the Condon Shortley convention the
   !!        spherical harmonics are defined as
   !!        \[ Y(l,m) = (-1)^m \sqrt{\frac{1}{\pi}} P_{lm}(\cos{\theta})
-  !!        \rm
-  !!        e^{\rm i m \phi} \]
+  !!        e^{im\phi} \]
   !!        where  \(P_{lm}(\cos{\theta})\) is the normalized Associated
   !!        Legendre function. Thus,
   !!                     \[  Y(l,-m) = (-1)^m Y^*(l,m) \]
@@ -1816,26 +1815,35 @@ contains
   !!        CALL YLM(V,4,Y)
   !!
   !!   <h3>Argument Description</h3>
-  !!          * `V`      - DOUBLE PRECISION vector, dimension 3        (input)
+  !!     <ul>
+  !!          <li> 
+  !!                  `V`      - DOUBLE PRECISION vector, dimension 3        (input)<br/>
   !!                   Must be given in Cartesian coordinates.
   !!                   Conversion of V to polar coordinates gives the
   !!                   angles \(\theta\) and \(\phi\) necessary for the calculation
   !!                   of the spherical harmonics.  
-  !!          * `LMAX`   - INTEGER value                               (input)
+  !!          </li>
+  !!          <li>
+  !!                   `LMAX`   - INTEGER value                               (input)<br/>
   !!                   upper bound of \(l\) for which spherical harmonics
-  !!                   will be calculated
-  !!                   constraint:
-  !!                      `LMAX >= 0`  
-  !!          * `Y`      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)
+  !!                   will be calculated; constraint: `LMAX >= 0`  
+  !!          </li>
+  !!          <li>
+  !!                   `Y`      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)<br/>
   !!                   contains the calculated spherical harmonics
+  !!
+  !!
   !!                   Y(1)                   for L .EQ. 0 (M = 0)
   !!                   Y(2), ..., Y(4)        for L .EQ. 1 (M = -1, 0, 1)
   !!                   ...
   !!                   Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))
   !!                                          for L .EQ. LMAX
   !!                                              (M = -L,...,L)
+  !!                    
   !!                   constraint:
   !!                      Dimension of Y .GE. (LMAX+1)**2 (not checked)
+  !!          </li>
+  !!        </ul>
   !!
   !!   <h3>Used Subroutines (Directly Called)</h3>
   !!           none
