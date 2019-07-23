@@ -271,7 +271,7 @@ public subroutine pawCorrectionKPC()
 
 
     
-    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>pawCorrectionKPC()</code> </p></div>
+    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out what this subroutine really does </p></div>
 <p>
 <p><h2>Walkthrough</h2></p>
 <ul>
@@ -343,6 +343,7 @@ public subroutine pawCorrectionKPC()
 <li>Calculate <script type="math/tex">\text{VifQ_aug} = e^{-i\mathbf{G}\cdot\mathbf{r}}
      Y_l^m(\mathbf{G}/|\mathbf{G}|)(-i)^l\text{FI}</script>
 </li>
+<li>Loop over the bands, summing <code>VifQ_aug*cProj</code> to get <code>pawK</code></li>
 </ul>
 </li>
 </ul>
@@ -822,7 +823,7 @@ public subroutine pawCorrectionKPC()
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">pawCorrectionKPC</span><span class="p">()</span>
-    <span class="c">!! @todo Document `pawCorrectionKPC()` @endtodo</span>
+    <span class="c">!! @todo Figure out what this subroutine really does @endtodo</span>
     <span class="c">!!</span>
     <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
     <span class="c">!</span>
@@ -956,6 +957,7 @@ public subroutine pawCorrectionKPC()
         <span class="c">!!         the Bessel function and \(F\) is for a given projector</span>
         <span class="c">!!       * Calculate \(\text{VifQ_aug} = e^{-i\mathbf{G}\cdot\mathbf{r}}</span>
         <span class="c">!!         Y_l^m(\mathbf{G}/|\mathbf{G}|)(-i)^l\text{FI}\)</span>
+        <span class="c">!!       * Loop over the bands, summing `VifQ_aug*cProj` to get `pawK`</span>
         <span class="c">!</span>
         <span class="n">qDotR</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">iPW</span><span class="p">)</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">posIon</span><span class="p">(:,</span><span class="n">iIon</span><span class="p">))</span>
           <span class="c">!! @todo Figure out if this should be `gDotR` @endtodo</span>

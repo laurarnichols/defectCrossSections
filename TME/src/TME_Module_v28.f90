@@ -1235,8 +1235,7 @@ contains
   !
   !
   subroutine projectBeta(ik, betaSystem, projectedSystem)
-    !! Calculate the projection of the solid defect wavefunction
-    !! 
+    !! @todo Figure out what this subroutine really does
     !!
     !! <h2>Walkthrough</h2>
     !!
@@ -1358,6 +1357,7 @@ contains
   !
   subroutine pawCorrectionWfc(system)
     !! Calculates the augmentation part of the transition matrix element
+    !! @todo Figure out what this subroutine really does @endtodo
     !!
     !! <h2>Walkthrough</h2>
     !!
@@ -1475,7 +1475,7 @@ contains
   !
   !
   subroutine pawCorrectionKPC()
-    !! @todo Document `pawCorrectionKPC()` @endtodo
+    !! @todo Figure out what this subroutine really does @endtodo
     !!
     !! <h2>Walkthrough</h2>
     !
@@ -1609,6 +1609,7 @@ contains
         !!         the Bessel function and \(F\) is for a given projector
         !!       * Calculate \(\text{VifQ_aug} = e^{-i\mathbf{G}\cdot\mathbf{r}}
         !!         Y_l^m(\mathbf{G}/|\mathbf{G}|)(-i)^l\text{FI}\)
+        !!       * Loop over the bands, summing `VifQ_aug*cProj` to get `pawK`
         !
         qDotR = sum(gvecs(:,iPW)*perfectCrystal%posIon(:,iIon))
           !! @todo Figure out if this should be `gDotR` @endtodo
