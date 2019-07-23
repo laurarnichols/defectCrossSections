@@ -177,7 +177,7 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../type/atom.html#variable-irc">iRc</a>
+      <a class="list-group-item" href="../type/atom.html#variable-iraugmax">iRAugMax</a>
       
       <a class="list-group-item" href="../type/atom.html#variable-numofatoms">numOfAtoms</a>
       
@@ -267,7 +267,7 @@
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../type/atom.html#variable-irc">iRc</a>
+      <a class="list-group-item" href="../type/atom.html#variable-iraugmax">iRAugMax</a>
       
       <a class="list-group-item" href="../type/atom.html#variable-numofatoms">numOfAtoms</a>
       
@@ -351,12 +351,14 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-irc"></span>integer,</td>
+  <td><span class="anchor" id="variable-iraugmax"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iRc</strong></td><td></td><td></td><td><p>Maximum radius of beta projector (outer radius to integrate);
- for PAW augmentation charge may extend a bit further</p></td>
+  <td><strong>iRAugMax</strong></td><td></td><td></td><td><p>Maximum radius of beta projector (outer radius to integrate);
+ for PAW augmentation charge may extend a bit further; I think this
+ is the max index for the augmentation sphere, so I'm changing the 
+ name; last name was <code>iRc</code></p></td>
   
 </tr>
 
@@ -579,9 +581,11 @@
     <span class="c">!! @todo Consider changing `atom` type to `element` since it holds more than one atom @endtodo</span>
     <span class="c">!</span>
     <span class="c">! Define scalar integers</span>
-    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iRc</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iRAugMax</span>
       <span class="c">!! Maximum radius of beta projector (outer radius to integrate);</span>
-      <span class="c">!! for PAW augmentation charge may extend a bit further</span>
+      <span class="c">!! for PAW augmentation charge may extend a bit further; I think this</span>
+      <span class="c">!! is the max index for the augmentation sphere, so I&#39;m changing the </span>
+      <span class="c">!! name; last name was `iRc`</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">numOfAtoms</span>
       <span class="c">!! Number of atoms of a specific type in the structure</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">numProjs</span>

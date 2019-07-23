@@ -158,9 +158,11 @@ module TMEModule
     !! @todo Consider changing `atom` type to `element` since it holds more than one atom @endtodo
     !
     ! Define scalar integers
-    integer :: iRc
+    integer :: iRAugMax
       !! Maximum radius of beta projector (outer radius to integrate);
-      !! for PAW augmentation charge may extend a bit further
+      !! for PAW augmentation charge may extend a bit further; I think this
+      !! is the max index for the augmentation sphere, so I'm changing the 
+      !! name; last name was `iRc`
     integer :: numOfAtoms
       !! Number of atoms of a specific type in the structure
     integer :: numProjs
@@ -614,8 +616,8 @@ contains
     !
     integer :: i, ik, iType, ni
       !! Loop index
-    integer:: irc
-      !! Local value of iRc for each atom so don't have to keep accessing in loop
+    integer:: iRAugMax
+      !! Local value of `iRAugMax` for each atom so don't have to keep accessing in loop
     integer :: l
       !! Angular momentum of each projector read from input file
     integer :: ind
@@ -794,7 +796,7 @@ contains
       read(50, '(i10)') system%atoms(iType)%lmMax
       !
       read(50, '(a)') textDum
-      read(50, '(2i10)') system%atoms(iType)%nMax, system%atoms(iType)%iRc
+      read(50, '(2i10)') system%atoms(iType)%nMax, system%atoms(iType)%iRAugMax
       !
       allocate ( system%atoms(iType)%r(system%atoms(iType)%nMax), system%atoms(iType)%rab(system%atoms(iType)%nMax) )
       !
@@ -818,9 +820,9 @@ contains
         enddo
       enddo
       !  
-      allocate ( system%atoms(iType)%F( system%atoms(iType)%iRc, system%atoms(iType)%numProjs ) ) !, system%atoms(iType)%numProjs) )
-      allocate ( system%atoms(iType)%F1(system%atoms(iType)%iRc, system%atoms(iType)%numProjs, system%atoms(iType)%numProjs ) )
-      allocate ( system%atoms(iType)%F2(system%atoms(iType)%iRc, system%atoms(iType)%numProjs, system%atoms(iType)%numProjs ) )
+      allocate ( system%atoms(iType)%F( system%atoms(iType)%iRAugMax, system%atoms(iType)%numProjs ) ) !, system%atoms(iType)%numProjs) )
+      allocate ( system%atoms(iType)%F1(system%atoms(iType)%iRAugMax, system%atoms(iType)%numProjs, system%atoms(iType)%numProjs ) )
+      allocate ( system%atoms(iType)%F2(system%atoms(iType)%iRAugMax, system%atoms(iType)%numProjs, system%atoms(iType)%numProjs ) )
       !
       system%atoms(iType)%F = 0.0_dp
       system%atoms(iType)%F1 = 0.0_dp
@@ -831,10 +833,10 @@ contains
       !> @todo Move this behavior to another subroutine for clarity @endtodo
       do j = 1, system%atoms(iType)%numProjs
         !
-        irc = system%atoms(iType)%iRc
+        iRAugMax = system%atoms(iType)%iRAugMax
         !
-        system%atoms(iType)%F(1:irc,j)=(system%atoms(iType)%wae(1:irc,j)-system%atoms(iType)%wps(1:irc,j))* &
-              system%atoms(iType)%r(1:irc)*system%atoms(iType)%rab(1:irc)
+        system%atoms(iType)%F(1:iRAugMax,j)=(system%atoms(iType)%wae(1:iRAugMax,j)-system%atoms(iType)%wps(1:iRAugMax,j))* &
+              system%atoms(iType)%r(1:iRAugMax)*system%atoms(iType)%rab(1:iRAugMax)
         !
         do i = 1, system%atoms(iType)%numProjs
           !> @todo Figure out if differences in PC and SD `F1` calculations are intentional @endtodo
@@ -843,23 +845,23 @@ contains
           !> @todo Figure out if `rab` plays role of \(dr\) within augmentation sphere @endtodo
           if ( system%crystalType == 'PC' ) then
             !
-            system%atoms(iType)%F1(1:irc,i,j) = ( system%atoms(iType)%wps(1:irc,i)*system%atoms(iType)%wae(1:irc,j) - &
-                                                  system%atoms(iType)%wps(1:irc,i)*system%atoms(iType)%wps(1:irc,j))* &
-                                                  system%atoms(iType)%rab(1:irc)
+            system%atoms(iType)%F1(1:iRAugMax,i,j) = (system%atoms(iType)%wps(1:iRAugMax,i)*system%atoms(iType)%wae(1:iRAugMax,j)-&
+                                                  system%atoms(iType)%wps(1:iRAugMax,i)*system%atoms(iType)%wps(1:iRAugMax,j))* &
+                                                  system%atoms(iType)%rab(1:iRAugMax)
             !
           else if ( system%crystalType == 'SD' ) then
             !
-            system%atoms(iType)%F1(1:irc,i,j) = ( system%atoms(iType)%wae(1:irc,i)*system%atoms(iType)%wps(1:irc,j) - &
-                                                  system%atoms(iType)%wps(1:irc,i)*system%atoms(iType)%wps(1:irc,j))* & 
-                                                  system%atoms(iType)%rab(1:irc)
+            system%atoms(iType)%F1(1:iRAugMax,i,j) = (system%atoms(iType)%wae(1:iRAugMax,i)*system%atoms(iType)%wps(1:iRAugMax,j)-&
+                                                  system%atoms(iType)%wps(1:iRAugMax,i)*system%atoms(iType)%wps(1:iRAugMax,j))* & 
+                                                  system%atoms(iType)%rab(1:iRAugMax)
             !
           endif
           !
-          system%atoms(iType)%F2(1:irc,i,j) = ( system%atoms(iType)%wae(1:irc,i)*system%atoms(iType)%wae(1:irc,j) - &
-                                           system%atoms(iType)%wae(1:irc,i)*system%atoms(iType)%wps(1:irc,j) - &
-                                           system%atoms(iType)%wps(1:irc,i)*system%atoms(iType)%wae(1:irc,j) + &
-                                           system%atoms(iType)%wps(1:irc,i)*system%atoms(iType)%wps(1:irc,j))* & 
-                                           system%atoms(iType)%rab(1:irc)
+          system%atoms(iType)%F2(1:iRAugMax,i,j) = ( system%atoms(iType)%wae(1:iRAugMax,i)*system%atoms(iType)%wae(1:iRAugMax,j) - &
+                                           system%atoms(iType)%wae(1:iRAugMax,i)*system%atoms(iType)%wps(1:iRAugMax,j) - &
+                                           system%atoms(iType)%wps(1:iRAugMax,i)*system%atoms(iType)%wae(1:iRAugMax,j) + &
+                                           system%atoms(iType)%wps(1:iRAugMax,i)*system%atoms(iType)%wps(1:iRAugMax,j))* & 
+                                           system%atoms(iType)%rab(1:iRAugMax)
 
         enddo
       enddo
@@ -896,7 +898,7 @@ contains
     !
     do iType = 1, system%numOfTypes
       !
-      allocate ( system%atoms(iType)%bes_J_qr( 0:JMAX, system%atoms(iType)%iRc ) )
+      allocate ( system%atoms(iType)%bes_J_qr( 0:JMAX, system%atoms(iType)%iRAugMax ) )
       system%atoms(iType)%bes_J_qr(:,:) = 0.0_dp
       !
     enddo
@@ -1525,7 +1527,7 @@ contains
       !
       do iT = 1, perfectCrystal%numOfTypes
         !
-        do I = 1, perfectCrystal%atoms(iT)%iRc ! nMax - 1
+        do I = 1, perfectCrystal%atoms(iT)%iRAugMax ! nMax - 1
           !
           JL = 0.0_dp
           call bessel_j(q*solidDefect%atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
@@ -1624,7 +1626,7 @@ contains
       !
       do iT = 1, solidDefect%numOfTypes
         !
-        DO I = 1, solidDefect%atoms(iT)%iRc ! nMax - 1
+        DO I = 1, solidDefect%atoms(iT)%iRAugMax ! nMax - 1
           !
           JL = 0.0_dp
           CALL bessel_j(q*solidDefect%atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point

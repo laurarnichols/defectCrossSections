@@ -793,7 +793,7 @@ public subroutine pawCorrectionKPC()
       <span class="c">!</span>
       <span class="k">do </span><span class="n">iT</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">numOfTypes</span>
         <span class="c">!</span>
-        <span class="k">do </span><span class="n">I</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">iRc</span> <span class="c">! nMax - 1</span>
+        <span class="k">do </span><span class="n">I</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">iRAugMax</span> <span class="c">! nMax - 1</span>
           <span class="c">!</span>
           <span class="n">JL</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
           <span class="k">call </span><span class="n">bessel_j</span><span class="p">(</span><span class="n">q</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">I</span><span class="p">),</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">JL</span><span class="p">)</span> <span class="c">! returns the spherical bessel at qr point</span>
