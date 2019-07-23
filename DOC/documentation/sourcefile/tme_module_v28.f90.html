@@ -2055,13 +2055,13 @@
 <a name="ln-1786"></a>  <span class="c">!! Returns the spherical harmonics for a given argument vector</span>
 <a name="ln-1787"></a>  <span class="c">!! up to the maximum value of \(l\) given</span>
 <a name="ln-1788"></a>  <span class="c">!!</span>
-<a name="ln-1789"></a>  <span class="c">!! lmax   : spherical harmonics are calculated for l = 0 to lmax</span>
-<a name="ln-1790"></a>  <span class="c">!! v      : vector, argument of the spherical harmonics (we calculate</span>
-<a name="ln-1791"></a>  <span class="c">!! Ylm(v/norm(v))</span>
-<a name="ln-1792"></a>  <span class="c">!! y      : array containing Ylm(v) for several l,m</span>
+<a name="ln-1789"></a>  <span class="c">!! `lmax`   : spherical harmonics are calculated for \(l = 0\) to `lmax`&lt;br/&gt;</span>
+<a name="ln-1790"></a>  <span class="c">!! `v`      : vector, argument of the spherical harmonics (we calculate</span>
+<a name="ln-1791"></a>  <span class="c">!! `Ylm(v/norm(v))`)&lt;br/&gt;</span>
+<a name="ln-1792"></a>  <span class="c">!! `y`      : array containing `Ylm(v)` for several \(l,m\)</span>
 <a name="ln-1793"></a>  <span class="c">!!</span>
-<a name="ln-1794"></a>  <span class="c">!! DESCRIPTION:</span>
-<a name="ln-1795"></a>  <span class="c">!!   1.  PURPOSE</span>
+<a name="ln-1794"></a>  <span class="c">!! &lt;h2&gt;Description&lt;/h2&gt;</span>
+<a name="ln-1795"></a>  <span class="c">!!   &lt;h3&gt;Purpose&lt;/h3&gt;</span>
 <a name="ln-1796"></a>  <span class="c">!!        The spherical harmonics (Condon and Shortley convention)</span>
 <a name="ln-1797"></a>  <span class="c">!!          `Y(0,0),Y(1,-1),Y(1,0),Y(1,1),Y(2,-2) ... Y(LMAX,LMAX)`</span>
 <a name="ln-1798"></a>  <span class="c">!!        for vector \(\mathbf{V}\) (given in Cartesian coordinates)</span>
@@ -2075,7 +2075,7 @@
 <a name="ln-1806"></a>  <span class="c">!!        Legendre function. Thus,</span>
 <a name="ln-1807"></a>  <span class="c">!!                     \[  Y(l,-m) = (-1)^m Y^*(l,m) \]</span>
 <a name="ln-1808"></a>  <span class="c">!!</span>
-<a name="ln-1809"></a>  <span class="c">!!   2.  USAGE</span>
+<a name="ln-1809"></a>  <span class="c">!!   &lt;h3&gt;Usage&lt;/h3&gt;</span>
 <a name="ln-1810"></a>  <span class="c">!!        `DOUBLE PRECISION V(3), Y(5*5)`&lt;br/&gt;</span>
 <a name="ln-1811"></a>  <span class="c">!!        `V(1) = ...`&lt;br/&gt;</span>
 <a name="ln-1812"></a>  <span class="c">!!        `V(2) = ...`&lt;br/&gt;</span>

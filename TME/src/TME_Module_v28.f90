@@ -1786,13 +1786,13 @@ contains
   !! Returns the spherical harmonics for a given argument vector
   !! up to the maximum value of \(l\) given
   !!
-  !! lmax   : spherical harmonics are calculated for l = 0 to lmax
-  !! v      : vector, argument of the spherical harmonics (we calculate
-  !! Ylm(v/norm(v))
-  !! y      : array containing Ylm(v) for several l,m
+  !! `lmax`   : spherical harmonics are calculated for \(l = 0\) to `lmax`<br/>
+  !! `v`      : vector, argument of the spherical harmonics (we calculate
+  !! `Ylm(v/norm(v))`)<br/>
+  !! `y`      : array containing `Ylm(v)` for several \(l,m\)
   !!
-  !! DESCRIPTION:
-  !!   1.  PURPOSE
+  !! <h2>Description</h2>
+  !!   <h3>Purpose</h3>
   !!        The spherical harmonics (Condon and Shortley convention)
   !!          `Y(0,0),Y(1,-1),Y(1,0),Y(1,1),Y(2,-2) ... Y(LMAX,LMAX)`
   !!        for vector \(\mathbf{V}\) (given in Cartesian coordinates)
@@ -1806,7 +1806,7 @@ contains
   !!        Legendre function. Thus,
   !!                     \[  Y(l,-m) = (-1)^m Y^*(l,m) \]
   !!
-  !!   2.  USAGE
+  !!   <h3>Usage</h3>
   !!        `DOUBLE PRECISION V(3), Y(5*5)`<br/>
   !!        `V(1) = ...`<br/>
   !!        `V(2) = ...`<br/>
