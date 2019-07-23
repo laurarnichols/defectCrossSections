@@ -1816,7 +1816,6 @@ contains
   !!        CALL YLM(V,4,Y)
   !!
   !!   <h3>Argument Description</h3>
-  !!
   !!          * `V`      - DOUBLE PRECISION vector, dimension 3        (input)
   !!                   Must be given in Cartesian coordinates.
   !!                   Conversion of V to polar coordinates gives the
