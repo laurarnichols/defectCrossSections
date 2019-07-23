@@ -1871,43 +1871,24 @@ contains
   !!              Y(L,L-1) = f(Y(L-1,L-1)) ... Formula 2
   !!              DO M = L-2, 0, -1
   !!                 Y(L,M) = f(Y(L-1,M),Y(L-2,M)) ... Formula 2
-  !!                 Y(L,-M)= (-1)**M*Y(L,M)
+  !!                 Y(L,-M)= (-1)**M*CONJG(Y(L,M))
   !!              ENDDO
   !!           ENDDO
   !!
   !!   <h3>Formulas</h3>
   !!        Starting values:
-  !!        <ul>
-  !!           <li>\(Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\)</li>
-  !!           <li>\(Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\)</li>
-  !!           <li>\(Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\pi}\)</li>
-  !!        </ul>
+  !!          \[Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\]
+  !!          \[Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\]
+  !!          \[Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\pi}\]
   !!        Formula 1:
-  !!        \[Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}\]
+  !!          \[Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}\]
   !!        Formula 2:
-  !!                                  +---------------+  
-  !!                                  |  (2l-1)(2l+1)   
-  !!           Y(l,m) = cos(Theta) -+ | -------------- Y(l-1,m)  -
-  !!                                 \|   (l-m)(l+m)       
-  !!
-  !!                                    +--------------------+  
-  !!                                    |(l-1+m)(l-1-m)(2l+1)
-  !!                              -  -+ |-------------------- Y(l-2,m)
-  !!                                   \|  (2l-3)(l-m)(l+m)                 
-  !!
+  !!          \[Y_l^m = \sqrt{\dfrac{(2l-1)(2l+1)}{(l-m)(l+m)}}\cos\theta Y_{l-1}^m - 
+  !!                    \sqrt{\dfrac{(l-1+m)(l-1-m)(2l+1)}{(2l-3)(l-m)(l+m)}} Y_{l-2}^m\]
   !!        Formula 3: (not used in the algorithm because of the division
   !!                    by sin(Theta) which may be zero)
-  !!
-  !!                                    +--------------+  
-  !!                      cos(Theta)    |  4(m+1)(m+1)   -i(Phi)
-  !!           Y(l,m) = - ---------- -+ | ------------  e       Y(l,m+1) -
-  !!                      sin(Theta)   \| (l+m+1)(l-m)       
-  !!
-  !!                                    +--------------+  
-  !!                                    |(l-m-1)(l+m+2)  -2i(Phi)
-  !!                              -  -+ |-------------- e        Y(l,m+2)
-  !!                                   \| (l-m)(l+m+1)                         
-  !!                                  
+  !!          \[Y_l^m = -\sqrt{\dfrac{4(m+1)(m+1)}{(l+m+1)(l-m)}}\dfrac{\cos\theta}{\sin\theta}e^{i\phi}Y_1^{m+1} -
+  !!                    \sqrt{\dfrac{(l-m-1)(l+m+2)}{(l-m)(l+m+1)}}e^{-2i\phi}Y_l^{m+2}\]
   !!
   ! !REVISION HISTORY:
   !   26. April 1994                                   Version 1.2

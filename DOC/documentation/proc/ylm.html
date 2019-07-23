@@ -371,7 +371,7 @@ public subroutine ylm(V_in, LMAX, Y)
           <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">L</span><span class="o">-</span><span class="mi">1</span><span class="ss">)</span> <span class="o">=</span> <span class="nv">f</span><span class="ss">(</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">L</span><span class="o">-</span><span class="mi">1</span><span class="ss">))</span> ... <span class="nv">Formula</span> <span class="mi">2</span>
           <span class="k">DO</span> <span class="nv">M</span> <span class="o">=</span> <span class="nv">L</span><span class="o">-</span><span class="mi">2</span>, <span class="mi">0</span>, <span class="o">-</span><span class="mi">1</span>
              <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">M</span><span class="ss">)</span> <span class="o">=</span> <span class="nv">f</span><span class="ss">(</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">M</span><span class="ss">)</span>,<span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">2</span>,<span class="nv">M</span><span class="ss">))</span> ... <span class="nv">Formula</span> <span class="mi">2</span>
-             <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="o">-</span><span class="nv">M</span><span class="ss">)</span><span class="o">=</span> <span class="ss">(</span><span class="o">-</span><span class="mi">1</span><span class="ss">)</span><span class="o">**</span><span class="nv">M</span><span class="o">*</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">M</span><span class="ss">)</span>
+             <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="o">-</span><span class="nv">M</span><span class="ss">)</span><span class="o">=</span> <span class="ss">(</span><span class="o">-</span><span class="mi">1</span><span class="ss">)</span><span class="o">**</span><span class="nv">M</span><span class="o">*</span><span class="nv">CONJG</span><span class="ss">(</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">M</span><span class="ss">))</span>
           <span class="nv">ENDDO</span>
        <span class="nv">ENDDO</span>
 </pre></div>
@@ -379,36 +379,19 @@ public subroutine ylm(V_in, LMAX, Y)
 
 <p><h3>Formulas</h3>
         Starting values:
-        <ul>
-           <li><script type="math/tex">Y_0^0 = \sqrt{\dfrac{1}{4\pi}}</script></li>
-           <li><script type="math/tex">Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta</script></li>
-           <li><script type="math/tex">Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\pi}</script></li>
-        </ul>
+          <script type="math/tex; mode=display">Y_0^0 = \sqrt{\dfrac{1}{4\pi}}</script>
+<script type="math/tex; mode=display">Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta</script>
+<script type="math/tex; mode=display">Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\pi}</script>
         Formula 1:
-        <script type="math/tex; mode=display">Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}</script>
+          <script type="math/tex; mode=display">Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}</script>
         Formula 2:
-                                  +---------------+<br>
-                                  |  (2l-1)(2l+1) <br>
-           Y(l,m) = cos(Theta) -+ | -------------- Y(l-1,m)  -
-                                 |   (l-m)(l+m)       </p>
-<div class="codehilite"><pre><span></span>                                <span class="o">+</span><span class="c1">--------------------+  </span>
-                                <span class="o">|</span><span class="p">(</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="o">+</span><span class="n">m</span><span class="p">)(</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="n">m</span><span class="p">)(</span><span class="mi">2</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
-                          <span class="o">-</span>  <span class="o">-+</span> <span class="o">|</span><span class="c1">-------------------- Y(l-2,m)</span>
-                               <span class="err">\</span><span class="o">|</span>  <span class="p">(</span><span class="mi">2</span><span class="n">l</span><span class="o">-</span><span class="mi">3</span><span class="p">)(</span><span class="n">l</span><span class="o">-</span><span class="n">m</span><span class="p">)(</span><span class="n">l</span><span class="o">+</span><span class="n">m</span><span class="p">)</span>
-
-    <span class="n">Formula</span> <span class="mi">3</span><span class="p">:</span> <span class="p">(</span><span class="k">not</span> <span class="n">used</span> <span class="k">in</span> <span class="n">the</span> <span class="n">algorithm</span> <span class="n">because</span> <span class="k">of</span> <span class="n">the</span> <span class="n">division</span>
-                <span class="k">by</span> <span class="n">sin</span><span class="p">(</span><span class="n">Theta</span><span class="p">)</span> <span class="n">which</span> <span class="n">may</span> <span class="n">be</span> <span class="n">zero</span><span class="p">)</span>
-
-                                <span class="o">+</span><span class="c1">--------------+  </span>
-                  <span class="n">cos</span><span class="p">(</span><span class="n">Theta</span><span class="p">)</span>    <span class="o">|</span>  <span class="mi">4</span><span class="p">(</span><span class="n">m</span><span class="o">+</span><span class="mi">1</span><span class="p">)(</span><span class="n">m</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>   <span class="o">-</span><span class="n">i</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
-       <span class="n">Y</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">m</span><span class="p">)</span> <span class="o">=</span> <span class="o">-</span> <span class="c1">---------- -+ | ------------  e       Y(l,m+1) -</span>
-                  <span class="n">sin</span><span class="p">(</span><span class="n">Theta</span><span class="p">)</span>   <span class="err">\</span><span class="o">|</span> <span class="p">(</span><span class="n">l</span><span class="o">+</span><span class="n">m</span><span class="o">+</span><span class="mi">1</span><span class="p">)(</span><span class="n">l</span><span class="o">-</span><span class="n">m</span><span class="p">)</span>
-
-                                <span class="o">+</span><span class="c1">--------------+  </span>
-                                <span class="o">|</span><span class="p">(</span><span class="n">l</span><span class="o">-</span><span class="n">m</span><span class="o">-</span><span class="mi">1</span><span class="p">)(</span><span class="n">l</span><span class="o">+</span><span class="n">m</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>  <span class="o">-</span><span class="mi">2</span><span class="n">i</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
-                          <span class="o">-</span>  <span class="o">-+</span> <span class="o">|</span><span class="c1">-------------- e        Y(l,m+2)</span>
-                               <span class="err">\</span><span class="o">|</span> <span class="p">(</span><span class="n">l</span><span class="o">-</span><span class="n">m</span><span class="p">)(</span><span class="n">l</span><span class="o">+</span><span class="n">m</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
-</pre></div>
+          <script type="math/tex; mode=display">Y_l^m = \sqrt{\dfrac{(2l-1)(2l+1)}{(l-m)(l+m)}}\cos\theta Y_{l-1}^m - 
+                    \sqrt{\dfrac{(l-1+m)(l-1-m)(2l+1)}{(2l-3)(l-m)(l+m)}} Y_{l-2}^m</script>
+        Formula 3: (not used in the algorithm because of the division
+                    by sin(Theta) which may be zero)
+          <script type="math/tex; mode=display">Y_l^m = -\sqrt{\dfrac{4(m+1)(m+1)}{(l+m+1)(l-m)}}\dfrac{\cos\theta}{\sin\theta}e^{i\phi}Y_1^{m+1} -
+                    \sqrt{\dfrac{(l-m-1)(l+m+2)}{(l-m)(l+m+1)}}e^{-2i\phi}Y_l^{m+2}</script>
+</p>
     
 
     <h3>Arguments</h3>
@@ -1180,43 +1163,24 @@ public subroutine ylm(V_in, LMAX, Y)
   <span class="c">!!              Y(L,L-1) = f(Y(L-1,L-1)) ... Formula 2</span>
   <span class="c">!!              DO M = L-2, 0, -1</span>
   <span class="c">!!                 Y(L,M) = f(Y(L-1,M),Y(L-2,M)) ... Formula 2</span>
-  <span class="c">!!                 Y(L,-M)= (-1)**M*Y(L,M)</span>
+  <span class="c">!!                 Y(L,-M)= (-1)**M*CONJG(Y(L,M))</span>
   <span class="c">!!              ENDDO</span>
   <span class="c">!!           ENDDO</span>
   <span class="c">!!</span>
   <span class="c">!!   &lt;h3&gt;Formulas&lt;/h3&gt;</span>
   <span class="c">!!        Starting values:</span>
-  <span class="c">!!        &lt;ul&gt;</span>
-  <span class="c">!!           &lt;li&gt;\(Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\)&lt;/li&gt;</span>
-  <span class="c">!!           &lt;li&gt;\(Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\)&lt;/li&gt;</span>
-  <span class="c">!!           &lt;li&gt;\(Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\pi}\)&lt;/li&gt;</span>
-  <span class="c">!!        &lt;/ul&gt;</span>
+  <span class="c">!!          \[Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\]</span>
+  <span class="c">!!          \[Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\]</span>
+  <span class="c">!!          \[Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\pi}\]</span>
   <span class="c">!!        Formula 1:</span>
-  <span class="c">!!        \[Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}\]</span>
+  <span class="c">!!          \[Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}\]</span>
   <span class="c">!!        Formula 2:</span>
-  <span class="c">!!                                  +---------------+  </span>
-  <span class="c">!!                                  |  (2l-1)(2l+1)   </span>
-  <span class="c">!!           Y(l,m) = cos(Theta) -+ | -------------- Y(l-1,m)  -</span>
-  <span class="c">!!                                 \|   (l-m)(l+m)       </span>
-  <span class="c">!!</span>
-  <span class="c">!!                                    +--------------------+  </span>
-  <span class="c">!!                                    |(l-1+m)(l-1-m)(2l+1)</span>
-  <span class="c">!!                              -  -+ |-------------------- Y(l-2,m)</span>
-  <span class="c">!!                                   \|  (2l-3)(l-m)(l+m)                 </span>
-  <span class="c">!!</span>
+  <span class="c">!!          \[Y_l^m = \sqrt{\dfrac{(2l-1)(2l+1)}{(l-m)(l+m)}}\cos\theta Y_{l-1}^m - </span>
+  <span class="c">!!                    \sqrt{\dfrac{(l-1+m)(l-1-m)(2l+1)}{(2l-3)(l-m)(l+m)}} Y_{l-2}^m\]</span>
   <span class="c">!!        Formula 3: (not used in the algorithm because of the division</span>
   <span class="c">!!                    by sin(Theta) which may be zero)</span>
-  <span class="c">!!</span>
-  <span class="c">!!                                    +--------------+  </span>
-  <span class="c">!!                      cos(Theta)    |  4(m+1)(m+1)   -i(Phi)</span>
-  <span class="c">!!           Y(l,m) = - ---------- -+ | ------------  e       Y(l,m+1) -</span>
-  <span class="c">!!                      sin(Theta)   \| (l+m+1)(l-m)       </span>
-  <span class="c">!!</span>
-  <span class="c">!!                                    +--------------+  </span>
-  <span class="c">!!                                    |(l-m-1)(l+m+2)  -2i(Phi)</span>
-  <span class="c">!!                              -  -+ |-------------- e        Y(l,m+2)</span>
-  <span class="c">!!                                   \| (l-m)(l+m+1)                         </span>
-  <span class="c">!!                                  </span>
+  <span class="c">!!          \[Y_l^m = -\sqrt{\dfrac{4(m+1)(m+1)}{(l+m+1)(l-m)}}\dfrac{\cos\theta}{\sin\theta}e^{i\phi}Y_1^{m+1} -</span>
+  <span class="c">!!                    \sqrt{\dfrac{(l-m-1)(l+m+2)}{(l-m)(l+m+1)}}e^{-2i\phi}Y_l^{m+2}\]</span>
   <span class="c">!!</span>
   <span class="c">! !REVISION HISTORY:</span>
   <span class="c">!   26. April 1994                                   Version 1.2</span>
