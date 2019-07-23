@@ -313,14 +313,17 @@ public subroutine ylm(V_in, LMAX, Y)
         Legendre function. Thus,
                      <script type="math/tex; mode=display">  Y(l,-m) = (-1)^m Y^*(l,m) </script>
 </p>
-<p><h3>Usage</h3>
-        <code>DOUBLE PRECISION V(3), Y(5*5)</code><br/>
-        <code>V(1) = ...</code><br/>
-        <code>V(2) = ...</code><br/>
-        <code>V(3) = ...</code><br/>
-        <code>CALL YLM(V,4,Y)</code><br/></p>
-<div class="codehilite"><pre><span></span>   <span class="nv">ARGUMENT</span><span class="o">-</span><span class="nv">DESCRIPTION</span>
-      <span class="o">*</span> `<span class="nv">V</span>`      <span class="o">-</span> <span class="nv">DOUBLE</span> <span class="nv">PRECISION</span> <span class="nv">vector</span>, <span class="nv">dimension</span> <span class="mi">3</span>        <span class="ss">(</span><span class="nv">input</span><span class="ss">)</span>
+<p><h3>Usage</h3></p>
+<div class="codehilite"><pre><span></span>    <span class="n">DOUBLE</span> <span class="k">PRECISION</span> <span class="n">V</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">Y</span><span class="p">(</span><span class="mi">5</span><span class="o">*</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">V</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="p">...</span>
+    <span class="n">V</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">=</span> <span class="p">...</span>
+    <span class="n">V</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">=</span> <span class="p">...</span>
+    <span class="k">CALL</span> <span class="n">YLM</span><span class="p">(</span><span class="n">V</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="n">Y</span><span class="p">)</span>
+</pre></div>
+
+
+<p><h3>Argument Description</h3></p>
+<div class="codehilite"><pre><span></span>      <span class="o">*</span> `<span class="nv">V</span>`      <span class="o">-</span> <span class="nv">DOUBLE</span> <span class="nv">PRECISION</span> <span class="nv">vector</span>, <span class="nv">dimension</span> <span class="mi">3</span>        <span class="ss">(</span><span class="nv">input</span><span class="ss">)</span>
                <span class="nv">Must</span> <span class="nv">be</span> <span class="nv">given</span> <span class="nv">in</span> <span class="nv">Cartesian</span> <span class="nv">coordinates</span>.
                <span class="nv">Conversion</span> <span class="nv">of</span> <span class="nv">V</span> <span class="nv">to</span> <span class="nv">polar</span> <span class="nv">coordinates</span> <span class="nv">gives</span> <span class="nv">the</span>
                <span class="nv">angles</span> \<span class="ss">(</span>\<span class="nv">theta</span>\<span class="ss">)</span> <span class="nv">and</span> \<span class="ss">(</span>\<span class="nv">phi</span>\<span class="ss">)</span> <span class="nv">necessary</span> <span class="k">for</span> <span class="nv">the</span> <span class="nv">calculation</span>
@@ -1139,13 +1142,16 @@ public subroutine ylm(V_in, LMAX, Y)
   <span class="c">!!                     \[  Y(l,-m) = (-1)^m Y^*(l,m) \]</span>
   <span class="c">!!</span>
   <span class="c">!!   &lt;h3&gt;Usage&lt;/h3&gt;</span>
-  <span class="c">!!        `DOUBLE PRECISION V(3), Y(5*5)`&lt;br/&gt;</span>
-  <span class="c">!!        `V(1) = ...`&lt;br/&gt;</span>
-  <span class="c">!!        `V(2) = ...`&lt;br/&gt;</span>
-  <span class="c">!!        `V(3) = ...`&lt;br/&gt;</span>
-  <span class="c">!!        `CALL YLM(V,4,Y)`&lt;br/&gt;</span>
   <span class="c">!!</span>
-  <span class="c">!!       ARGUMENT-DESCRIPTION</span>
+  <span class="c">!!</span>
+  <span class="c">!!        DOUBLE PRECISION V(3), Y(5*5)</span>
+  <span class="c">!!        V(1) = ...</span>
+  <span class="c">!!        V(2) = ...</span>
+  <span class="c">!!        V(3) = ...</span>
+  <span class="c">!!        CALL YLM(V,4,Y)</span>
+  <span class="c">!!</span>
+  <span class="c">!!   &lt;h3&gt;Argument Description&lt;/h3&gt;</span>
+  <span class="c">!!</span>
   <span class="c">!!          * `V`      - DOUBLE PRECISION vector, dimension 3        (input)</span>
   <span class="c">!!                   Must be given in Cartesian coordinates.</span>
   <span class="c">!!                   Conversion of V to polar coordinates gives the</span>

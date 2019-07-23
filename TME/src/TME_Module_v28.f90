@@ -1807,13 +1807,16 @@ contains
   !!                     \[  Y(l,-m) = (-1)^m Y^*(l,m) \]
   !!
   !!   <h3>Usage</h3>
-  !!        `DOUBLE PRECISION V(3), Y(5*5)`<br/>
-  !!        `V(1) = ...`<br/>
-  !!        `V(2) = ...`<br/>
-  !!        `V(3) = ...`<br/>
-  !!        `CALL YLM(V,4,Y)`<br/>
   !!
-  !!       ARGUMENT-DESCRIPTION
+  !!
+  !!        DOUBLE PRECISION V(3), Y(5*5)
+  !!        V(1) = ...
+  !!        V(2) = ...
+  !!        V(3) = ...
+  !!        CALL YLM(V,4,Y)
+  !!
+  !!   <h3>Argument Description</h3>
+  !!
   !!          * `V`      - DOUBLE PRECISION vector, dimension 3        (input)
   !!                   Must be given in Cartesian coordinates.
   !!                   Conversion of V to polar coordinates gives the
