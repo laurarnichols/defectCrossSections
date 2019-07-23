@@ -1474,12 +1474,18 @@ contains
   !
   subroutine pawCorrectionKPC()
     !! @todo Document `pawCorrectionKPC()` @endtodo
+    !!
+    !! <h2>Walkthrough</h2>
     !
     implicit none
     !
     !integer, intent(in) :: ik
     !
-    integer :: ibi, ibf, ispin, ig
+    integer :: ibi, ibf
+      !! Loop index over bands
+    integer :: ig
+      !! Loop index
+    integer :: ispin
     integer :: LL, I, NI, LMBASE, LM
     integer :: L, M, ind, iT
     real(kind = dp) :: q, qDotR, FI, t1, t2
@@ -1511,7 +1517,7 @@ contains
       v_in(:) = gvecs(:,ig)
       if ( abs(q) > 1.0e-6_dp ) v_in = v_in/q ! i have to determine v_in = q
       Y = cmplx(0.0_dp, 0.0_dp, kind = dp)
-      CALL ylm(v_in, JMAX, Y) ! calculates all the needed spherical harmonics once
+      call ylm(v_in, JMAX, Y) ! calculates all the needed spherical harmonics once
       !
       LMBASE = 0
       !
@@ -1520,7 +1526,7 @@ contains
         DO I = 1, perfectCrystal%atoms(iT)%iRc ! nMax - 1
           !
           JL = 0.0_dp
-          CALL bessel_j(q*solidDefect%atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
+          call bessel_j(q*solidDefect%atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
           perfectCrystal%atoms(iT)%bes_J_qr(:,I) = JL(:)
           !
         ENDDO

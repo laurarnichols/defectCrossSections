@@ -1,7 +1,8 @@
 title: Todo
 author: Laura Nichols
-date: 07/22/2019
+date: 07/23/2019
 
+* Binary file ../TME/src/.TME_Module_v28.f90.swo matches
 * `../TME/src/TME_Main_v9.f90:2:` Finish documentation for main program
 * `../TME/src/TME_Main_v9.f90:46:` Figure out if need to allocate space for arrays so soon
 * `../TME/src/TME_Main_v9.f90:58:` Figure out if SD and PC `numOfGvecs` should be the same
@@ -25,11 +26,11 @@ date: 07/22/2019
 * `../TME/src/TME_Module_v28.f90:1218:` Look into `nSpins` to figure out if it is needed
 * `../TME/src/TME_Module_v28.f90:1410:` Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\)
 * `../TME/src/TME_Module_v28.f90:1476:` Document `pawCorrectionKPC()`
-* `../TME/src/TME_Module_v28.f90:1575:` Document `pawCorrectionSDK()`
-* `../TME/src/TME_Module_v28.f90:1576:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1673:` Document `pawCorrection()`
-* `../TME/src/TME_Module_v28.f90:1674:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
-* `../TME/src/TME_Module_v28.f90:2070:` Document `writeResults()` @endto
-* `../TME/src/TME_Module_v28.f90:2132:` Document `readUfis()`
-* `../TME/src/TME_Module_v28.f90:2186:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2308:` Document `readEigenvalues()`
+* `../TME/src/TME_Module_v28.f90:1581:` Document `pawCorrectionSDK()`
+* `../TME/src/TME_Module_v28.f90:1582:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1679:` Document `pawCorrection()`
+* `../TME/src/TME_Module_v28.f90:1680:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
+* `../TME/src/TME_Module_v28.f90:2076:` Document `writeResults()` @endto
+* `../TME/src/TME_Module_v28.f90:2138:` Document `readUfis()`
+* `../TME/src/TME_Module_v28.f90:2192:` Document `calculateVFiElements()`
+* `../TME/src/TME_Module_v28.f90:2314:` Document `readEigenvalues()`

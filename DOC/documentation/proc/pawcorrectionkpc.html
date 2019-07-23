@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.3% of total for procedures.">58 statements</a>
+    title=" 1.3% of total for procedures.">60 statements</a>
      </li> 
      
      
@@ -181,9 +181,9 @@
       
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ibf%7E3">ibf</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ispin%7E4">ispin</a>
-      
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ig%7E6">ig</a>
+      
+      <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ispin%7E4">ispin</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ll">LL</a>
       
@@ -273,6 +273,7 @@ public subroutine pawCorrectionKPC()
     
     <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>pawCorrectionKPC()</code> </p></div>
 <p>
+<p><h2>Walkthrough</h2></p>
     
 
     <h3>Arguments</h3>
@@ -302,9 +303,9 @@ public subroutine pawCorrectionKPC()
       
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ibf%7E3">ibf</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ispin%7E4">ispin</a>
-      
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ig%7E6">ig</a>
+      
+      <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ispin%7E4">ispin</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ll">LL</a>
       
@@ -404,7 +405,7 @@ public subroutine pawCorrectionKPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ibi</strong></td><td></td><td></td><td></td>
+  <td><strong>ibi</strong></td><td></td><td></td><td><p>Loop index over bands</p></td>
   
 </tr>
 
@@ -418,7 +419,21 @@ public subroutine pawCorrectionKPC()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ibf</strong></td><td></td><td></td><td></td>
+  <td><strong>ibf</strong></td><td></td><td></td><td><p>Loop index over bands</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ig%7E6"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ig</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -433,20 +448,6 @@ public subroutine pawCorrectionKPC()
   <td>public</td>
   <td></td><td>::</td>
   <td><strong>ispin</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-ig%7E6"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>ig</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -741,12 +742,18 @@ public subroutine pawCorrectionKPC()
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">pawCorrectionKPC</span><span class="p">()</span>
     <span class="c">!! @todo Document `pawCorrectionKPC()` @endtodo</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
     <span class="c">!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
     <span class="c">!integer, intent(in) :: ik</span>
     <span class="c">!</span>
-    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">ispin</span><span class="p">,</span> <span class="n">ig</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span>
+      <span class="c">!! Loop index over bands</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ig</span>
+      <span class="c">!! Loop index</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ispin</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">LL</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">NI</span><span class="p">,</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">LM</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">L</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">iT</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">q</span><span class="p">,</span> <span class="n">qDotR</span><span class="p">,</span> <span class="n">FI</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span>
@@ -778,7 +785,7 @@ public subroutine pawCorrectionKPC()
       <span class="n">v_in</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">gvecs</span><span class="p">(:,</span><span class="n">ig</span><span class="p">)</span>
       <span class="k">if</span> <span class="p">(</span> <span class="nb">abs</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.0e-6_dp</span> <span class="p">)</span> <span class="n">v_in</span> <span class="o">=</span> <span class="n">v_in</span><span class="o">/</span><span class="n">q</span> <span class="c">! i have to determine v_in = q</span>
       <span class="n">Y</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
-      <span class="k">CALL </span><span class="n">ylm</span><span class="p">(</span><span class="n">v_in</span><span class="p">,</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span> <span class="c">! calculates all the needed spherical harmonics once</span>
+      <span class="k">call </span><span class="n">ylm</span><span class="p">(</span><span class="n">v_in</span><span class="p">,</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span> <span class="c">! calculates all the needed spherical harmonics once</span>
       <span class="c">!</span>
       <span class="n">LMBASE</span> <span class="o">=</span> <span class="mi">0</span>
       <span class="c">!</span>
@@ -787,7 +794,7 @@ public subroutine pawCorrectionKPC()
         <span class="k">DO </span><span class="n">I</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">iRc</span> <span class="c">! nMax - 1</span>
           <span class="c">!</span>
           <span class="n">JL</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-          <span class="k">CALL </span><span class="n">bessel_j</span><span class="p">(</span><span class="n">q</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">I</span><span class="p">),</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">JL</span><span class="p">)</span> <span class="c">! returns the spherical bessel at qr point</span>
+          <span class="k">call </span><span class="n">bessel_j</span><span class="p">(</span><span class="n">q</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">I</span><span class="p">),</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">JL</span><span class="p">)</span> <span class="c">! returns the spherical bessel at qr point</span>
           <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(:,</span><span class="n">I</span><span class="p">)</span> <span class="o">=</span> <span class="n">JL</span><span class="p">(:)</span>
           <span class="c">!</span>
         <span class="n">ENDDO</span>
