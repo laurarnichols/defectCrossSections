@@ -142,9 +142,7 @@ module TMEModule
   ! Declare matrix/vector complex numbers
   complex(kind = dp), allocatable :: paw_id(:,:)
   complex(kind = dp), allocatable :: paw_fi(:,:)
-  complex(kind = dp), allocatable :: pawKPC(:,:,:)
   complex(kind = dp), allocatable :: pawPsiPC(:,:)
-  complex(kind = dp), allocatable :: pawSDK(:,:,:)
   complex(kind = dp), allocatable :: pawSDPhi(:,:)
   complex(kind = dp), allocatable :: paw_SDKKPC(:,:)
   complex(kind = dp), allocatable :: Ufi(:,:,:)
@@ -237,6 +235,7 @@ module TMEModule
     complex(kind = dp), allocatable :: cProj(:,:,:)
     complex(kind = dp), allocatable :: cCrossProj(:,:,:)
     complex(kind = dp), allocatable :: paw_Wfc(:,:)
+    complex(kind = dp), allocatable :: pawK(:,:,:)
     !
     character(len = 2) crystalType
       !! 'PC' for pristine crystal and 'SD' for solid defect
@@ -1533,7 +1532,7 @@ contains
     call cpu_time(t1)
       !! * Start a timer
     !
-    pawKPC(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    perfectCrystal%pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
       !! * Initialize all values in `pawK` to complex double zero
     !
     do iPW = nPWsI(myid), nPWsF(myid) 
@@ -1640,7 +1639,8 @@ contains
               !
               do ibf = iBandFinit, iBandFfinal
                 !
-                pawKPC(ibf, ibi, iPW) = pawKPC(ibf, ibi, iPW) + VifQ_aug*perfectCrystal%cProj(LM + LMBASE, ibi, ISPIN)
+                perfectCrystal%pawK(ibf, ibi, iPW) = perfectCrystal%pawK(ibf, ibi, iPW) + &
+                                                     VifQ_aug*perfectCrystal%cProj(LM + LMBASE, ibi, ISPIN)
                 !
               enddo
               !
@@ -1653,7 +1653,7 @@ contains
       !
     enddo
     !
-    !pawKPC(:,:,:) = pawKPC(:,:,:)*4.0_dp*pi/sqrt(solidDefect%omega)
+    !perfectCrystal%pawK(:,:,:) = perfectCrystal%pawK(:,:,:)*4.0_dp*pi/sqrt(solidDefect%omega)
     !
     return
     !
@@ -1681,7 +1681,7 @@ contains
     !
     call cpu_time(t1)
     !
-    pawSDK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    solidDefect%pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
     do ig = nPWsI(myid), nPWsF(myid) ! 1, solidDefect%numOfGvecs
       !
@@ -1738,7 +1738,8 @@ contains
               !
               do ibf = iBandFinit, iBandFfinal
                 !
-                pawSDK(ibf, ibi, ig) = pawSDK(ibf, ibi, ig) + VifQ_aug*conjg(solidDefect%cProj(LM + LMBASE, ibf, ISPIN))
+                solidDefect%pawK(ibf, ibi, ig) = solidDefect%pawK(ibf, ibi, ig) + &
+                                                 VifQ_aug*conjg(solidDefect%cProj(LM + LMBASE, ibf, ISPIN))
                 !
               enddo
               !
@@ -1751,7 +1752,7 @@ contains
       !
     enddo
     !
-    !pawSDK(:,:,:) = pawSDK(:,:,:)*4.0_dp*pi/sqrt(solidDefect%omega)
+    !solidDefect%pawK(:,:,:) = solidDefect%pawK(:,:,:)*4.0_dp*pi/sqrt(solidDefect%omega)
     !
     return
     !

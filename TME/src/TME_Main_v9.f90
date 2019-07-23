@@ -275,7 +275,7 @@ program transitionMatrixElements
       call MPI_BCAST(perfectCrystal%cProj, size(perfectCrystal%cProj), MPI_DOUBLE_COMPLEX, root, MPI_COMM_WORLD, ierr)
       call MPI_BCAST(solidDefect%cProj, size(solidDefect%cProj), MPI_DOUBLE_COMPLEX, root, MPI_COMM_WORLD, ierr)
       !
-      allocate ( pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid)) )
+      allocate ( perfectCrystal%pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid)) )
       !
       call pawCorrectionKPC()
       !
@@ -289,7 +289,7 @@ program transitionMatrixElements
         !
       endif
       !
-      allocate ( pawSDK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid) ) )
+      allocate ( solidDefect%pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid) ) )
       !
       call pawCorrectionSDK()
       !
@@ -309,7 +309,7 @@ program transitionMatrixElements
       do ibi = iBandIinit, iBandIfinal
         !
         do ibf = iBandFinit, iBandFfinal   
-          paw_id(ibf,ibi) = sum(pawSDK(ibf,ibi,:)*pawKPC(ibf,ibi,:))
+          paw_id(ibf,ibi) = sum(solidDefect%pawK(ibf,ibi,:)*perfectCrystal%pawK(ibf,ibi,:))
         enddo
         !
       enddo
@@ -351,8 +351,8 @@ program transitionMatrixElements
         !
       endif
       !
-      deallocate ( perfectCrystal%cProj, pawKPC )
-      deallocate ( solidDefect%cProj, pawSDK )
+      deallocate ( perfectCrystal%cProj, perfectCrystal%pawK )
+      deallocate ( solidDefect%cProj, solidDefect%pawK )
       !
     else
       !

@@ -142,48 +142,50 @@
   <div class="row">
     <div class="col-md-9 col-md-push-3" id='text'>
       <ul>
-<li>Binary file ../TME/src/.TME_Module_v28.f90.swo matches</li>
+<li><code>../TME/src/PC.txt:2:</code> Document <code>pawCorrectionKPC()</code></li>
+<li><code>../TME/src/SD.txt:2:</code> Document <code>pawCorrectionSDK()</code></li>
+<li><code>../TME/src/SD.txt:3:</code> Figure out the difference between PC and SD <code>pawCorrection_K</code> and possibly merge</li>
 <li><code>../TME/src/TME_Main_v9.f90:2:</code> Finish documentation for main program</li>
 <li><code>../TME/src/TME_Main_v9.f90:46:</code> Figure out if need to allocate space for arrays so soon</li>
 <li><code>../TME/src/TME_Main_v9.f90:58:</code> Figure out if SD and PC <code>numOfGvecs</code> should be the same</li>
 <li><code>../TME/src/TME_Main_v9.f90:329:</code> Figure out if should be solid defect volume or pristine</li>
 <li><code>../TME/src/TME_Main_v9.f90:330:</code> Are pristine and solid defect volume the same?</li>
 <li><code>../TME/src/TME_Module_v28.f90:34:</code> Change I/O from file to console so that usage matches that of QE</li>
-<li><code>../TME/src/TME_Module_v28.f90:158:</code> Consider changing <code>atom</code> type to <code>element</code> since it holds more than one atom</li>
-<li><code>../TME/src/TME_Module_v28.f90:403:</code> Change <code>checkInitialization()</code> to have arguments to make clear that these variables are getting changed</li>
-<li><code>../TME/src/TME_Module_v28.f90:545:</code> Remove everything with <code>ki</code> and <code>kf</code> because never used</li>
-<li><code>../TME/src/TME_Module_v28.f90:832:</code> Look more into how AE and PS wavefunctions are combined to further understand this</li>
-<li><code>../TME/src/TME_Module_v28.f90:833:</code> Move this behavior to another subroutine for clarity</li>
-<li><code>../TME/src/TME_Module_v28.f90:842:</code> Figure out if differences in PC and SD <code>F1</code> calculations are intentional</li>
-<li><code>../TME/src/TME_Module_v28.f90:843:</code> Figure out if should be <code>(wae_i wae_j - wps_i wps_j)r_{ab}</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:844:</code> Figure out if first term in each should be conjugated for inner product form</li>
-<li><code>../TME/src/TME_Module_v28.f90:845:</code> Figure out if <code>rab</code> plays role of <script type="math/tex">dr</script> within augmentation sphere</li>
-<li><code>../TME/src/TME_Module_v28.f90:884:</code> Figure out if intentional to only use <code>JMAX</code> from SD input</li>
-<li><code>../TME/src/TME_Module_v28.f90:1040:</code> Document <code>calculatePWsOverlap()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1067:</code> Figure out what <code>Ufi</code> is supposed to be</li>
-<li><code>../TME/src/TME_Module_v28.f90:1218:</code> Get actual perfect crystal and solid defect output to test</li>
-<li><code>../TME/src/TME_Module_v28.f90:1219:</code> Figure out if loop should be over <code>solidDefect</code> or <code>perfectCrystal</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1220:</code> Look into <code>nSpins</code> to figure out if it is needed</li>
-<li><code>../TME/src/TME_Module_v28.f90:1238:</code> Figure out what this subroutine really does</li>
-<li><code>../TME/src/TME_Module_v28.f90:1360:</code> Figure out what this subroutine really does</li>
-<li><code>../TME/src/TME_Module_v28.f90:1412:</code> Figure out the significance of <script type="math/tex">l = l^{\prime}</script> and <script type="math/tex">m = m^{\prime}</script>
+<li><code>../TME/src/TME_Module_v28.f90:156:</code> Consider changing <code>atom</code> type to <code>element</code> since it holds more than one atom</li>
+<li><code>../TME/src/TME_Module_v28.f90:402:</code> Change <code>checkInitialization()</code> to have arguments to make clear that these variables are getting changed</li>
+<li><code>../TME/src/TME_Module_v28.f90:544:</code> Remove everything with <code>ki</code> and <code>kf</code> because never used</li>
+<li><code>../TME/src/TME_Module_v28.f90:831:</code> Look more into how AE and PS wavefunctions are combined to further understand this</li>
+<li><code>../TME/src/TME_Module_v28.f90:832:</code> Move this behavior to another subroutine for clarity</li>
+<li><code>../TME/src/TME_Module_v28.f90:841:</code> Figure out if differences in PC and SD <code>F1</code> calculations are intentional</li>
+<li><code>../TME/src/TME_Module_v28.f90:842:</code> Figure out if should be <code>(wae_i wae_j - wps_i wps_j)r_{ab}</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:843:</code> Figure out if first term in each should be conjugated for inner product form</li>
+<li><code>../TME/src/TME_Module_v28.f90:844:</code> Figure out if <code>rab</code> plays role of <script type="math/tex">dr</script> within augmentation sphere</li>
+<li><code>../TME/src/TME_Module_v28.f90:883:</code> Figure out if intentional to only use <code>JMAX</code> from SD input</li>
+<li><code>../TME/src/TME_Module_v28.f90:1039:</code> Document <code>calculatePWsOverlap()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1066:</code> Figure out what <code>Ufi</code> is supposed to be</li>
+<li><code>../TME/src/TME_Module_v28.f90:1217:</code> Get actual perfect crystal and solid defect output to test</li>
+<li><code>../TME/src/TME_Module_v28.f90:1218:</code> Figure out if loop should be over <code>solidDefect</code> or <code>perfectCrystal</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1219:</code> Look into <code>nSpins</code> to figure out if it is needed</li>
+<li><code>../TME/src/TME_Module_v28.f90:1237:</code> Figure out what this subroutine really does</li>
+<li><code>../TME/src/TME_Module_v28.f90:1359:</code> Figure out what this subroutine really does</li>
+<li><code>../TME/src/TME_Module_v28.f90:1411:</code> Figure out the significance of <script type="math/tex">l = l^{\prime}</script> and <script type="math/tex">m = m^{\prime}</script>
 </li>
-<li><code>../TME/src/TME_Module_v28.f90:1478:</code> Figure out what this subroutine really does</li>
-<li><code>../TME/src/TME_Module_v28.f90:1546:</code> Figure out if this output slows things down significantly</li>
-<li><code>../TME/src/TME_Module_v28.f90:1547:</code> Figure out if formula gives accurate representation of time left</li>
-<li><code>../TME/src/TME_Module_v28.f90:1591:</code> Figure out if this should be perfect crystal</li>
-<li><code>../TME/src/TME_Module_v28.f90:1592:</code> Figure out significance of "qr" point</li>
-<li><code>../TME/src/TME_Module_v28.f90:1595:</code> Test if can just directly store in each atom type's <code>bes_J_qr</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1615:</code> Figure out if this should be <code>gDotR</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1618:</code> Figure out why this is called <code>ATOMIC_CENTER</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1477:</code> Figure out what this subroutine really does</li>
+<li><code>../TME/src/TME_Module_v28.f90:1545:</code> Figure out if this output slows things down significantly</li>
+<li><code>../TME/src/TME_Module_v28.f90:1546:</code> Figure out if formula gives accurate representation of time left</li>
+<li><code>../TME/src/TME_Module_v28.f90:1590:</code> Figure out if this should be perfect crystal</li>
+<li><code>../TME/src/TME_Module_v28.f90:1591:</code> Figure out significance of "qr" point</li>
+<li><code>../TME/src/TME_Module_v28.f90:1594:</code> Test if can just directly store in each atom type's <code>bes_J_qr</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1614:</code> Figure out if this should be <code>gDotR</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1617:</code> Figure out why this is called <code>ATOMIC_CENTER</code></li>
 <li><code>../TME/src/TME_Module_v28.f90:1664:</code> Document <code>pawCorrectionSDK()</code></li>
 <li><code>../TME/src/TME_Module_v28.f90:1665:</code> Figure out the difference between PC and SD <code>pawCorrection_K</code> and possibly merge</li>
-<li><code>../TME/src/TME_Module_v28.f90:1762:</code> Document <code>pawCorrection()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1763:</code> Figure out difference between <code>pawCorrection()</code> and the PC <code>pawCorrection</code> functions</li>
-<li><code>../TME/src/TME_Module_v28.f90:2126:</code> Document <code>writeResults()</code> @endto</li>
-<li><code>../TME/src/TME_Module_v28.f90:2188:</code> Document <code>readUfis()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:2242:</code> Document <code>calculateVFiElements()</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:2364:</code> Document <code>readEigenvalues()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1763:</code> Document <code>pawCorrection()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1764:</code> Figure out difference between <code>pawCorrection()</code> and the PC <code>pawCorrection</code> functions</li>
+<li><code>../TME/src/TME_Module_v28.f90:2127:</code> Document <code>writeResults()</code> @endto</li>
+<li><code>../TME/src/TME_Module_v28.f90:2189:</code> Document <code>readUfis()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:2243:</code> Document <code>calculateVFiElements()</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:2365:</code> Document <code>readEigenvalues()</code></li>
 </ul>
     </div>
     

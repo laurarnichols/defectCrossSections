@@ -881,7 +881,7 @@ public subroutine pawCorrectionKPC()
     <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
       <span class="c">!! * Start a timer</span>
     <span class="c">!</span>
-    <span class="n">pawKPC</span><span class="p">(:,:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+    <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">pawK</span><span class="p">(:,:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
       <span class="c">!! * Initialize all values in `pawK` to complex double zero</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">iPW</span> <span class="o">=</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">),</span> <span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> 
@@ -988,7 +988,8 @@ public subroutine pawCorrectionKPC()
               <span class="c">!</span>
               <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
                 <span class="c">!</span>
-                <span class="n">pawKPC</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">iPW</span><span class="p">)</span> <span class="o">=</span> <span class="n">pawKPC</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">iPW</span><span class="p">)</span> <span class="o">+</span> <span class="n">VifQ_aug</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">(</span><span class="n">LM</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">)</span>
+                <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">pawK</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">iPW</span><span class="p">)</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">pawK</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">iPW</span><span class="p">)</span> <span class="o">+</span> <span class="p">&amp;</span>
+                                                     <span class="n">VifQ_aug</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">(</span><span class="n">LM</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">)</span>
                 <span class="c">!</span>
               <span class="n">enddo</span>
               <span class="c">!</span>
@@ -1001,7 +1002,7 @@ public subroutine pawCorrectionKPC()
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
-    <span class="c">!pawKPC(:,:,:) = pawKPC(:,:,:)*4.0_dp*pi/sqrt(solidDefect%omega)</span>
+    <span class="c">!perfectCrystal%pawK(:,:,:) = perfectCrystal%pawK(:,:,:)*4.0_dp*pi/sqrt(solidDefect%omega)</span>
     <span class="c">!</span>
     <span class="k">return</span>
     <span class="c">!</span>
