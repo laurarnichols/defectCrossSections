@@ -1495,17 +1495,33 @@ contains
       !! Loop index over atom types
     integer :: iIon
       !! Loop index over ions in system
+    integer :: l
+      !! Angular momentum quantum number
+    integer :: m
+      !! Magnetic quantum number
     integer :: ispin
-    integer :: LMBASE, LM
-    integer :: L, M, ind
-    real(kind = dp) :: q, qDotR, FI, t1, t2
+    integer :: LMBASE
+    integer :: LM
+    integer :: ind
     !
-    real(kind = dp) :: JL(0:JMAX)
+    real(kind = dp) :: qDotR
+      !! \(\mathbf{G}\cdot\mathbf{r}\)
+    real(kind = dp) :: t1
+      !! Start time
+    real(kind = dp) :: t2
+      !! End time
     real(kind = dp) :: v_in(3)
       !! Unit vector in the direction of \(\mathbf{G}\)
+    real(kind = dp) :: JL(0:JMAX)
+      !! Spherical bessel functions for a point up to `JMAX`
+    real(kind = dp) :: q 
+    real(kind = dp) :: FI 
+    !
     complex(kind = dp) :: Y( (JMAX+1)**2 )
       !! All spherical harmonics up to some max momentum
-    complex(kind = dp) :: VifQ_aug, ATOMIC_CENTER
+    complex(kind = dp) :: ATOMIC_CENTER
+      !! \(e^{-i\mathbf{G}\cdot\mathbf{r}}\)
+    complex(kind = dp) :: VifQ_aug
     !
     ispin = 1
       !! * Set the value of `ispin` to 1
@@ -1599,16 +1615,16 @@ contains
         !
         LM = 0
         do iProj = 1, perfectCrystal%atoms(iAtomType)%numProjs
-          L = perfectCrystal%atoms(iAtomType)%projAngMom(iProj)
-          do M = -L, L
+          l = perfectCrystal%atoms(iAtomType)%projAngMom(iProj)
+          do m = -l, l
             LM = LM + 1 !1st index for CPROJ
             !
             FI = 0.0_dp
             !
-            FI = sum(perfectCrystal%atoms(iAtomType)%bes_J_qr(L,:)*perfectCrystal%atoms(iAtomType)%F(:,iProj)) ! radial part integration F contains rab
+            FI = sum(perfectCrystal%atoms(iAtomType)%bes_J_qr(l,:)*perfectCrystal%atoms(iAtomType)%F(:,iProj)) ! radial part integration F contains rab
             !
-            ind = L*(L + 1) + M + 1 ! index for spherical harmonics
-            VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**L*FI
+            ind = l*(l + 1) + m + 1 ! index for spherical harmonics
+            VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**l*FI
             !
             do ibi = iBandIinit, iBandIfinal
               !
