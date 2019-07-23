@@ -1604,6 +1604,11 @@ contains
         !!    * Calculate \(e^{-i\mathbf{G}\cdot\mathbf{r}}\)
         !!    * Get the index for the atom type
         !!    * Loop over the projectors, finding \(l, m\) for each
+        !!    * For each possible m
+        !!       * Calculate \(\text{FI} = j_l\cdot F\) where \(j_l\) is
+        !!         the Bessel function and \(F\) is for a given projector
+        !!       * Calculate \(\text{VifQ_aug} = e^{-i\mathbf{G}\cdot\mathbf{r}}
+        !!         Y_l^m(\mathbf{G}/|\mathbf{G}|)(-i)^l\text{FI}\)
         !
         qDotR = sum(gvecs(:,iPW)*perfectCrystal%posIon(:,iIon))
           !! @todo Figure out if this should be `gDotR` @endtodo
@@ -1614,9 +1619,13 @@ contains
         iAtomType = perfectCrystal%atomTypeIndex(iIon)
         !
         LM = 0
+        !
         do iProj = 1, perfectCrystal%atoms(iAtomType)%numProjs
+          !
           l = perfectCrystal%atoms(iAtomType)%projAngMom(iProj)
+          !
           do m = -l, l
+            !
             LM = LM + 1 !1st index for CPROJ
             !
             FI = 0.0_dp
