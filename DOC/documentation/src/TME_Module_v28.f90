@@ -1496,8 +1496,11 @@ contains
     integer :: L, M, ind, iT
     real(kind = dp) :: q, qDotR, FI, t1, t2
     !
-    real(kind = dp) :: JL(0:JMAX), v_in(3)
+    real(kind = dp) :: JL(0:JMAX)
+    real(kind = dp) :: v_in(3)
+      !! Unit vector in the direction of \(\mathbf{G}\)
     complex(kind = dp) :: Y( (JMAX+1)**2 )
+      !! All spherical harmonics up to some max momentum
     complex(kind = dp) :: VifQ_aug, ATOMIC_CENTER
     !
     ispin = 1
@@ -1518,19 +1521,35 @@ contains
       !
       if ( myid == root ) then 
         if ( (iPW == nPWsI(myid) + 1000) .or. (mod(iPW, 25000) == 0) .or. (iPW == nPWsF(myid)) ) then
+          !! * If this is the root process, output a status update every 1000 plane waves
+          !!   and every multiple of 25000, giving an estimate of the time remaining at each step
+          !!   @todo Figure out if this output slows things down significantly @endtodo
+          !!   @todo Figure out if formula gives accurate representation of time left @endtodo
+          !
           call cpu_time(t2)
+          !
           write(iostd, '("        Done ", i10, " of", i10, " k-vecs. ETR : ", f10.2, " secs.")') &
                 iPW, nPWsF(myid) - nPWsI(myid) + 1, (t2-t1)*(nPWsF(myid) - nPWsI(myid) + 1 -iPW )/iPW
+          !
           flush(iostd)
+          !
           !call cpu_time(t1)
+          !
         endif
       endif
       !
       q = sqrt(sum(gvecs(:,iPW)*gvecs(:,iPW)))
+        !! * Calculate `q` as \(\sqrt{G\cdot G}\)
+        !!   to get length of \(\mathbf{G}\)
       !
+      !> * Define a unit vector in the direction of \(\mathbf{G}\), 
+      !>   but only divide by the length if it is bigger than 
+      !>   \(1\times10^{-6}\) to avoid dividing by very small numbers
       v_in(:) = gvecs(:,iPW)
-      if ( abs(q) > 1.0e-6_dp ) v_in = v_in/q ! i have to determine v_in = q
+      if ( abs(q) > 1.0e-6_dp ) v_in = v_in/q 
+      !
       Y = cmplx(0.0_dp, 0.0_dp, kind = dp)
+        !! * Initialize the spherical harmonics to complex double zero
       call ylm(v_in, JMAX, Y) ! calculates all the needed spherical harmonics once
       !
       LMBASE = 0
@@ -1764,146 +1783,145 @@ contains
   !
   !
   subroutine ylm(v_in,lmax,y)
-  !
-  ! lmax   : spherical harmonics are calculated for l = 0 to lmax
-  ! v      : vector, argument of the spherical harmonics (we calculate
-  ! Ylm(v/norm(v))
-  ! y      : array containing Ylm(v) for several l,m
-  !
-  ! !DESCRIPTION:
-  !   1.  PURPOSE
-  !        The spherical harmonics (Condon and Shortley convention)
-  !          Y(0,0),Y(1,-1),Y(1,0),Y(1,1),Y(2,-2) ... Y(LMAX,LMAX)
-  !        for vector V (given in Cartesian coordinates)
-  !        are calculated. In the Condon Shortley convention the
-  !        spherical harmonics are defined as
-  !        $$ Y(l,m) = (-1)^m \sqrt{\frac{1}{\pi}} P_{lm}(\cos{\theta})
-  !        \rm
-  !        e^{\rm i m \phi} $$
-  !                        
-  !        where  $P_{lm}(\cos{\theta})$ is the normalized Associated
-  !        Legendre
-  !                  
-  !        function. Thus,
-  !                                             
-  !                     $$  Y(l,-m) = (-1)^m Y^*(l,m) $$
-  !
-  !   2.  USAGE
-  !        DOUBLE PRECISION V(3), Y(5*5)
-  !        V(1) = ...
-  !        V(2) = ...
-  !        V(3) = ...
-  !        CALL YLM(V,4,Y)
-  !
-  !       ARGUMENT-DESCRIPTION
-  !          V      - DOUBLE PRECISION vector, dimension 3        (input)
-  !                   Must be given in Cartesian coordinates.
-  !                   Conversion of V to polar coordinates gives the
-  !                   angles Theta and Phi necessary for the calculation
-  !                   of the spherical harmonics.
-  !          LMAX   - INTEGER value                               (input)
-  !                   upper bound of L for which spherical harmonics
-  !                   will be calculated
-  !                   constraint:
-  !                      LMAX >= 0
-  !          Y      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)
-  !                   contains the calculated spherical harmonics
-  !                   Y(1)                   for L .EQ. 0 (M = 0)
-  !                   Y(2), ..., Y(4)        for L .EQ. 1 (M = -1, 0, 1)
-  !                   ...
-  !                   Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))
-  !                                          for L .EQ. LMAX
-  !                                              (M = -L,...,L)
-  !                   constraint:
-  !                      Dimension of Y .GE. (LMAX+1)**2 (not checked)
-  !        USED SUBROUTINES (DIRECTLY CALLED)
-  !           none
-  !
-  !        INDIRECTLY CALLED SUBROUTINES
-  !           none
-  !
-  !        UTILITY-SUBROUTINES (USE BEFOREHAND OR AFTERWARDS)
-  !           none
-  !
-  !        INPUT/OUTPUT (READ/WRITE)
-  !           none
-  !
-  !        MACHINENDEPENDENT PROGRAMPARTS
-  !           Type COMPLEX*16 is used which does not conform to the
-  !           FORTRAN 77 standard.
-  !           Also the non-standard type conversion function DCMPLX()
-  !           is used which combines two double precision values into
-  !           one double complex value.
-  !
-  !   3.     METHOD
-  !           The basic algorithm used to calculate the spherical
-  !           harmonics for vector V is as follows:
-  !
-  !           Y(0,0)
-  !           Y(1,0)
-  !           Y(1,1)
-  !           Y(1,-1) = -Y(1,1)
-  !           DO L = 2, LMAX
-  !              Y(L,L)   = f(Y(L-1,L-1)) ... Formula 1
-  !              Y(L,L-1) = f(Y(L-1,L-1)) ... Formula 2
-  !              DO M = L-2, 0, -1
-  !                 Y(L,M) = f(Y(L-1,M),Y(L-2,M)) ... Formula 2
-  !                 Y(L,-M)= (-1)**M*Y(L,M)
-  !              ENDDO
-  !           ENDDO
-  !
-  !           In the following the necessary recursion formulas and
-  !           starting values are given:
-  !
-  !        Start:
-  !%                        +------+
-  !%                        |   1     
-  !%           Y(0,0) =  -+ | -----  
-  !%                       \| 4(Pi)  
-  !%
-  !%                                   +------+
-  !%                                   |   3     
-  !%           Y(1,0) =  cos(Theta) -+ | -----  
-  !%                                  \| 4(Pi)  
-  !%
-  !%                                     +------+
-  !%                                     |   3    i(Phi)
-  !%           Y(1,1) =  - sin(Theta) -+ | ----- e
-  !%                                    \| 8(Pi)  
-  !%
-  !%        Formula 1:
-  !%
-  !%           Y(l,l) =
-  !%                           +--------+
-  !%                           | (2l+1)   i(Phi)
-  !%            -sin(Theta) -+ | ------  e       Y(l-1,l-1)
-  !%                          \|   2l  
-  !%
-  !%        Formula 2:
-  !%                                  +---------------+  
-  !%                                  |  (2l-1)(2l+1)   
-  !%           Y(l,m) = cos(Theta) -+ | -------------- Y(l-1,m)  -
-  !%                                 \|   (l-m)(l+m)       
-  !%
-  !%                                    +--------------------+  
-  !%                                    |(l-1+m)(l-1-m)(2l+1)
-  !%                              -  -+ |-------------------- Y(l-2,m)
-  !%                                   \|  (2l-3)(l-m)(l+m)                 
-  !%
-  !%        Formula 3: (not used in the algorithm because of the division
-  !%                    by sin(Theta) which may be zero)
-  !%
-  !%                                    +--------------+  
-  !%                      cos(Theta)    |  4(m+1)(m+1)   -i(Phi)
-  !%           Y(l,m) = - ---------- -+ | ------------  e       Y(l,m+1) -
-  !%                      sin(Theta)   \| (l+m+1)(l-m)       
-  !%
-  !%                                    +--------------+  
-  !%                                    |(l-m-1)(l+m+2)  -2i(Phi)
-  !%                              -  -+ |-------------- e        Y(l,m+2)
-  !%                                   \| (l-m)(l+m+1)                         
-  !%                                  
-  !%
+  !! Returns the spherical harmonics for a given argument vector
+  !! up to the maximum value of \(l\) given
+  !!
+  !! lmax   : spherical harmonics are calculated for l = 0 to lmax
+  !! v      : vector, argument of the spherical harmonics (we calculate
+  !! Ylm(v/norm(v))
+  !! y      : array containing Ylm(v) for several l,m
+  !!
+  !! DESCRIPTION:
+  !!   1.  PURPOSE
+  !!        The spherical harmonics (Condon and Shortley convention)
+  !!          `Y(0,0),Y(1,-1),Y(1,0),Y(1,1),Y(2,-2) ... Y(LMAX,LMAX)`
+  !!        for vector \(\mathbf{V}\) (given in Cartesian coordinates)
+  !!        are calculated. In the Condon Shortley convention the
+  !!        spherical harmonics are defined as
+  !!        \[ Y(l,m) = (-1)^m \sqrt{\frac{1}{\pi}} P_{lm}(\cos{\theta})
+  !!        \rm
+  !!        e^{\rm i m \phi} \]
+  !!                        
+  !!        where  \(P_{lm}(\cos{\theta})\) is the normalized Associated
+  !!        Legendre function. Thus,
+  !!                     \[  Y(l,-m) = (-1)^m Y^*(l,m) \]
+  !!
+  !!   2.  USAGE
+  !!        `DOUBLE PRECISION V(3), Y(5*5)`<br/>
+  !!        `V(1) = ...`<br/>
+  !!        `V(2) = ...`<br/>
+  !!        `V(3) = ...`<br/>
+  !!        `CALL YLM(V,4,Y)`<br/>
+  !!
+  !!       ARGUMENT-DESCRIPTION
+  !!          * `V`      - DOUBLE PRECISION vector, dimension 3        (input)
+  !!                   Must be given in Cartesian coordinates.
+  !!                   Conversion of V to polar coordinates gives the
+  !!                   angles \(\theta\) and \(\phi\) necessary for the calculation
+  !!                   of the spherical harmonics.
+  !!          * `LMAX`   - INTEGER value                               (input)
+  !!                   upper bound of \(l\) for which spherical harmonics
+  !!                   will be calculated
+  !!                   constraint:
+  !!                      `LMAX >= 0`
+  !!          * `Y`      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)
+  !!                   contains the calculated spherical harmonics
+  !!                   Y(1)                   for L .EQ. 0 (M = 0)
+  !!                   Y(2), ..., Y(4)        for L .EQ. 1 (M = -1, 0, 1)
+  !!                   ...
+  !!                   Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))
+  !!                                          for L .EQ. LMAX
+  !!                                              (M = -L,...,L)
+  !!                   constraint:
+  !!                      Dimension of Y .GE. (LMAX+1)**2 (not checked)
+  !!        USED SUBROUTINES (DIRECTLY CALLED)
+  !!           none
+  !!
+  !!        INDIRECTLY CALLED SUBROUTINES
+  !!           none
+  !!
+  !!        UTILITY-SUBROUTINES (USE BEFOREHAND OR AFTERWARDS)
+  !!           none
+  !!
+  !!        INPUT/OUTPUT (READ/WRITE)
+  !!           none
+  !!
+  !!        MACHINENDEPENDENT PROGRAMPARTS
+  !!           Type COMPLEX*16 is used which does not conform to the
+  !!           FORTRAN 77 standard.
+  !!           Also the non-standard type conversion function DCMPLX()
+  !!           is used which combines two double precision values into
+  !!           one double complex value.
+  !!
+  !!   3.     METHOD
+  !!           The basic algorithm used to calculate the spherical
+  !!           harmonics for vector V is as follows:
+  !!
+  !!           Y(0,0)
+  !!           Y(1,0)
+  !!           Y(1,1)
+  !!           Y(1,-1) = -Y(1,1)
+  !!           DO L = 2, LMAX
+  !!              Y(L,L)   = f(Y(L-1,L-1)) ... Formula 1
+  !!              Y(L,L-1) = f(Y(L-1,L-1)) ... Formula 2
+  !!              DO M = L-2, 0, -1
+  !!                 Y(L,M) = f(Y(L-1,M),Y(L-2,M)) ... Formula 2
+  !!                 Y(L,-M)= (-1)**M*Y(L,M)
+  !!              ENDDO
+  !!           ENDDO
+  !!
+  !!           In the following the necessary recursion formulas and
+  !!           starting values are given:
+  !!
+  !!        Start:
+  !!                        +------+
+  !!                        |   1     
+  !!           Y(0,0) =  -+ | -----  
+  !!                       \| 4(Pi)  
+  !!
+  !!                                   +------+
+  !!                                   |   3     
+  !!           Y(1,0) =  cos(Theta) -+ | -----  
+  !!                                  \| 4(Pi)  
+  !!
+  !!                                     +------+
+  !!                                     |   3    i(Phi)
+  !!           Y(1,1) =  - sin(Theta) -+ | ----- e
+  !!                                    \| 8(Pi)  
+  !!
+  !!        Formula 1:
+  !!
+  !!           Y(l,l) =
+  !!                           +--------+
+  !!                           | (2l+1)   i(Phi)
+  !!            -sin(Theta) -+ | ------  e       Y(l-1,l-1)
+  !!                          \|   2l  
+  !!
+  !!        Formula 2:
+  !!                                  +---------------+  
+  !!                                  |  (2l-1)(2l+1)   
+  !!           Y(l,m) = cos(Theta) -+ | -------------- Y(l-1,m)  -
+  !!                                 \|   (l-m)(l+m)       
+  !!
+  !!                                    +--------------------+  
+  !!                                    |(l-1+m)(l-1-m)(2l+1)
+  !!                              -  -+ |-------------------- Y(l-2,m)
+  !!                                   \|  (2l-3)(l-m)(l+m)                 
+  !!
+  !!        Formula 3: (not used in the algorithm because of the division
+  !!                    by sin(Theta) which may be zero)
+  !!
+  !!                                    +--------------+  
+  !!                      cos(Theta)    |  4(m+1)(m+1)   -i(Phi)
+  !!           Y(l,m) = - ---------- -+ | ------------  e       Y(l,m+1) -
+  !!                      sin(Theta)   \| (l+m+1)(l-m)       
+  !!
+  !!                                    +--------------+  
+  !!                                    |(l-m-1)(l+m+2)  -2i(Phi)
+  !!                              -  -+ |-------------- e        Y(l,m+2)
+  !!                                   \| (l-m)(l+m+1)                         
+  !!                                  
+  !!
   ! !REVISION HISTORY:
   !   26. April 1994                                   Version 1.2
   !   Taken 8 1 98 from SRC_lapw2 to SRC_telnes

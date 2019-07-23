@@ -26,11 +26,13 @@ date: 07/23/2019
 * `../TME/src/TME_Module_v28.f90:1220:` Look into `nSpins` to figure out if it is needed
 * `../TME/src/TME_Module_v28.f90:1412:` Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\)
 * `../TME/src/TME_Module_v28.f90:1478:` Document `pawCorrectionKPC()`
-* `../TME/src/TME_Module_v28.f90:1595:` Document `pawCorrectionSDK()`
-* `../TME/src/TME_Module_v28.f90:1596:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1693:` Document `pawCorrection()`
-* `../TME/src/TME_Module_v28.f90:1694:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
-* `../TME/src/TME_Module_v28.f90:2090:` Document `writeResults()` @endto
-* `../TME/src/TME_Module_v28.f90:2152:` Document `readUfis()`
-* `../TME/src/TME_Module_v28.f90:2206:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2328:` Document `readEigenvalues()`
+* `../TME/src/TME_Module_v28.f90:1526:` Figure out if this output slows things down significantly
+* `../TME/src/TME_Module_v28.f90:1527:` Figure out if formula gives accurate representation of time left
+* `../TME/src/TME_Module_v28.f90:1614:` Document `pawCorrectionSDK()`
+* `../TME/src/TME_Module_v28.f90:1615:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1712:` Document `pawCorrection()`
+* `../TME/src/TME_Module_v28.f90:1713:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
+* `../TME/src/TME_Module_v28.f90:2108:` Document `writeResults()` @endto
+* `../TME/src/TME_Module_v28.f90:2170:` Document `readUfis()`
+* `../TME/src/TME_Module_v28.f90:2224:` Document `calculateVFiElements()`
+* `../TME/src/TME_Module_v28.f90:2346:` Document `readEigenvalues()`

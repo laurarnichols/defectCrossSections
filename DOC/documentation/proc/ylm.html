@@ -291,6 +291,152 @@ public subroutine ylm(V_in, LMAX, Y)
 
 
     
+    <p>Returns the spherical harmonics for a given argument vector
+ up to the maximum value of <script type="math/tex">l</script> given</p>
+<p>lmax   : spherical harmonics are calculated for l = 0 to lmax
+ v      : vector, argument of the spherical harmonics (we calculate
+ Ylm(v/norm(v))
+ y      : array containing Ylm(v) for several l,m</p>
+<p>DESCRIPTION:
+   1.  PURPOSE
+        The spherical harmonics (Condon and Shortley convention)
+          <code>Y(0,0),Y(1,-1),Y(1,0),Y(1,1),Y(2,-2) ... Y(LMAX,LMAX)</code>
+        for vector <script type="math/tex">\mathbf{V}</script> (given in Cartesian coordinates)
+        are calculated. In the Condon Shortley convention the
+        spherical harmonics are defined as
+        <script type="math/tex; mode=display"> Y(l,m) = (-1)^m \sqrt{\frac{1}{\pi}} P_{lm}(\cos{\theta})
+        \rm
+        e^{\rm i m \phi} </script>
+</p>
+<div class="codehilite"><pre><span></span>    <span class="k">where</span>  <span class="err">\</span><span class="p">(</span><span class="n">P_</span><span class="err">{</span><span class="n">lm</span><span class="err">}</span><span class="p">(</span><span class="err">\</span><span class="n">cos</span><span class="err">{\</span><span class="n">theta</span><span class="err">}</span><span class="p">)</span><span class="err">\</span><span class="p">)</span> <span class="k">is</span> <span class="n">the</span> <span class="n">normalized</span> <span class="n">Associated</span>
+    <span class="n">Legendre</span> <span class="k">function</span><span class="p">.</span> <span class="n">Thus</span><span class="p">,</span>
+                 <span class="err">\</span><span class="p">[</span>  <span class="n">Y</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="o">-</span><span class="n">m</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">^</span><span class="n">m</span> <span class="n">Y</span><span class="o">^*</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">m</span><span class="p">)</span> <span class="err">\</span><span class="p">]</span>
+</pre></div>
+
+
+<ol>
+<li>
+<p>USAGE
+        <code>DOUBLE PRECISION V(3), Y(5*5)</code><br/>
+        <code>V(1) = ...</code><br/>
+        <code>V(2) = ...</code><br/>
+        <code>V(3) = ...</code><br/>
+        <code>CALL YLM(V,4,Y)</code><br/></p>
+<p>ARGUMENT-DESCRIPTION
+      * <code>V</code>      - DOUBLE PRECISION vector, dimension 3        (input)
+               Must be given in Cartesian coordinates.
+               Conversion of V to polar coordinates gives the
+               angles <script type="math/tex">\theta</script> and <script type="math/tex">\phi</script> necessary for the calculation
+               of the spherical harmonics.
+      * <code>LMAX</code>   - INTEGER value                               (input)
+               upper bound of <script type="math/tex">l</script> for which spherical harmonics
+               will be calculated
+               constraint:
+                  <code>LMAX &gt;= 0</code>
+      * <code>Y</code>      - COMPLEX*16 array, dimension (LMAX+1)<strong>2    (output)
+               contains the calculated spherical harmonics
+               Y(1)                   for L .EQ. 0 (M = 0)
+               Y(2), ..., Y(4)        for L .EQ. 1 (M = -1, 0, 1)
+               ...
+               Y(LMAX<em>LMAX+1), ..., Y((LMAX+1)</em>(LMAX+1))
+                                      for L .EQ. LMAX
+                                          (M = -L,...,L)
+               constraint:
+                  Dimension of Y .GE. (LMAX+1)</strong>2 (not checked)
+    USED SUBROUTINES (DIRECTLY CALLED)
+       none</p>
+<div class="codehilite"><pre><span></span><span class="n">INDIRECTLY</span> <span class="k">CALLED</span> <span class="n">SUBROUTINES</span>
+   <span class="k">none</span>
+
+<span class="n">UTILITY</span><span class="o">-</span><span class="n">SUBROUTINES</span> <span class="p">(</span><span class="n">USE</span> <span class="n">BEFOREHAND</span> <span class="k">OR</span> <span class="n">AFTERWARDS</span><span class="p">)</span>
+   <span class="k">none</span>
+
+<span class="k">INPUT</span><span class="o">/</span><span class="k">OUTPUT</span> <span class="p">(</span><span class="k">READ</span><span class="o">/</span><span class="k">WRITE</span><span class="p">)</span>
+   <span class="k">none</span>
+
+<span class="n">MACHINENDEPENDENT</span> <span class="n">PROGRAMPARTS</span>
+   <span class="k">Type</span> <span class="n">COMPLEX</span><span class="o">*</span><span class="mi">16</span> <span class="k">is</span> <span class="n">used</span> <span class="n">which</span> <span class="n">does</span> <span class="k">not</span> <span class="n">conform</span> <span class="k">to</span> <span class="n">the</span>
+   <span class="k">FORTRAN</span> <span class="mi">77</span> <span class="n">standard</span><span class="p">.</span>
+   <span class="n">Also</span> <span class="n">the</span> <span class="n">non</span><span class="o">-</span><span class="n">standard</span> <span class="k">type</span> <span class="k">conversion</span> <span class="k">function</span> <span class="n">DCMPLX</span><span class="p">()</span>
+   <span class="k">is</span> <span class="n">used</span> <span class="n">which</span> <span class="n">combines</span> <span class="n">two</span> <span class="n">double</span> <span class="k">precision</span> <span class="k">values</span> <span class="k">into</span>
+   <span class="n">one</span> <span class="n">double</span> <span class="n">complex</span> <span class="n">value</span><span class="p">.</span>
+</pre></div>
+
+
+</li>
+<li>
+<p>METHOD
+           The basic algorithm used to calculate the spherical
+           harmonics for vector V is as follows:</p>
+<div class="codehilite"><pre><span></span>   <span class="nv">Y</span><span class="ss">(</span><span class="mi">0</span>,<span class="mi">0</span><span class="ss">)</span>
+   <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">0</span><span class="ss">)</span>
+   <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">1</span><span class="ss">)</span>
+   <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="o">-</span><span class="mi">1</span><span class="ss">)</span> <span class="o">=</span> <span class="o">-</span><span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">1</span><span class="ss">)</span>
+   <span class="k">DO</span> <span class="nv">L</span> <span class="o">=</span> <span class="mi">2</span>, <span class="nv">LMAX</span>
+      <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">L</span><span class="ss">)</span>   <span class="o">=</span> <span class="nv">f</span><span class="ss">(</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">L</span><span class="o">-</span><span class="mi">1</span><span class="ss">))</span> ... <span class="nv">Formula</span> <span class="mi">1</span>
+      <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">L</span><span class="o">-</span><span class="mi">1</span><span class="ss">)</span> <span class="o">=</span> <span class="nv">f</span><span class="ss">(</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">L</span><span class="o">-</span><span class="mi">1</span><span class="ss">))</span> ... <span class="nv">Formula</span> <span class="mi">2</span>
+      <span class="k">DO</span> <span class="nv">M</span> <span class="o">=</span> <span class="nv">L</span><span class="o">-</span><span class="mi">2</span>, <span class="mi">0</span>, <span class="o">-</span><span class="mi">1</span>
+         <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">M</span><span class="ss">)</span> <span class="o">=</span> <span class="nv">f</span><span class="ss">(</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">M</span><span class="ss">)</span>,<span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">2</span>,<span class="nv">M</span><span class="ss">))</span> ... <span class="nv">Formula</span> <span class="mi">2</span>
+         <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="o">-</span><span class="nv">M</span><span class="ss">)</span><span class="o">=</span> <span class="ss">(</span><span class="o">-</span><span class="mi">1</span><span class="ss">)</span><span class="o">**</span><span class="nv">M</span><span class="o">*</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">M</span><span class="ss">)</span>
+      <span class="nv">ENDDO</span>
+   <span class="nv">ENDDO</span>
+
+   <span class="nv">In</span> <span class="nv">the</span> <span class="nv">following</span> <span class="nv">the</span> <span class="nv">necessary</span> <span class="nv">recursion</span> <span class="nv">formulas</span> <span class="nv">and</span>
+   <span class="nv">starting</span> <span class="nv">values</span> <span class="nv">are</span> <span class="nv">given</span>:
+
+<span class="nv">Start</span>:
+                <span class="o">+------+</span>
+                <span class="o">|</span>   <span class="mi">1</span>     
+   <span class="nv">Y</span><span class="ss">(</span><span class="mi">0</span>,<span class="mi">0</span><span class="ss">)</span> <span class="o">=</span>  <span class="o">-+</span> <span class="o">|</span> <span class="o">-----</span>  
+               \<span class="o">|</span> <span class="mi">4</span><span class="ss">(</span><span class="nv">Pi</span><span class="ss">)</span>
+
+                           <span class="o">+------+</span>
+                           <span class="o">|</span>   <span class="mi">3</span>     
+   <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">0</span><span class="ss">)</span> <span class="o">=</span>  <span class="nv">cos</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">-----</span>  
+                          \<span class="o">|</span> <span class="mi">4</span><span class="ss">(</span><span class="nv">Pi</span><span class="ss">)</span>
+
+                             <span class="o">+------+</span>
+                             <span class="o">|</span>   <span class="mi">3</span>    <span class="nv">i</span><span class="ss">(</span><span class="nv">Phi</span><span class="ss">)</span>
+   <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">1</span><span class="ss">)</span> <span class="o">=</span>  <span class="o">-</span> <span class="nv">sin</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">-----</span> <span class="nv">e</span>
+                            \<span class="o">|</span> <span class="mi">8</span><span class="ss">(</span><span class="nv">Pi</span><span class="ss">)</span>
+
+<span class="nv">Formula</span> <span class="mi">1</span>:
+
+   <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">l</span><span class="ss">)</span> <span class="o">=</span>
+                   <span class="o">+--------+</span>
+                   <span class="o">|</span> <span class="ss">(</span><span class="mi">2</span><span class="nv">l</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>   <span class="nv">i</span><span class="ss">(</span><span class="nv">Phi</span><span class="ss">)</span>
+    <span class="o">-</span><span class="nv">sin</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">------</span>  <span class="nv">e</span>       <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">l</span><span class="o">-</span><span class="mi">1</span><span class="ss">)</span>
+                  \<span class="o">|</span>   <span class="mi">2</span><span class="nv">l</span>
+
+<span class="nv">Formula</span> <span class="mi">2</span>:
+                          <span class="o">+---------------+</span>  
+                          <span class="o">|</span>  <span class="ss">(</span><span class="mi">2</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span><span class="ss">)(</span><span class="mi">2</span><span class="nv">l</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>   
+   <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">m</span><span class="ss">)</span> <span class="o">=</span> <span class="nv">cos</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">--------------</span> <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">m</span><span class="ss">)</span>  <span class="o">-</span>
+                         \<span class="o">|</span>   <span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="ss">)(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="ss">)</span>
+
+                            <span class="o">+--------------------+</span>  
+                            <span class="o">|</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span><span class="o">+</span><span class="nv">m</span><span class="ss">)(</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="nv">m</span><span class="ss">)(</span><span class="mi">2</span><span class="nv">l</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>
+                      <span class="o">-</span>  <span class="o">-+</span> <span class="o">|--------------------</span> <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="mi">2</span>,<span class="nv">m</span><span class="ss">)</span>
+                           \<span class="o">|</span>  <span class="ss">(</span><span class="mi">2</span><span class="nv">l</span><span class="o">-</span><span class="mi">3</span><span class="ss">)(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="ss">)(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="ss">)</span>
+
+<span class="nv">Formula</span> <span class="mi">3</span>: <span class="ss">(</span><span class="nv">not</span> <span class="nv">used</span> <span class="nv">in</span> <span class="nv">the</span> <span class="nv">algorithm</span> <span class="nv">because</span> <span class="nv">of</span> <span class="nv">the</span> <span class="nv">division</span>
+            <span class="nv">by</span> <span class="nv">sin</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="nv">which</span> <span class="nv">may</span> <span class="nv">be</span> <span class="nv">zero</span><span class="ss">)</span>
+
+                            <span class="o">+--------------+</span>  
+              <span class="nv">cos</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span>    <span class="o">|</span>  <span class="mi">4</span><span class="ss">(</span><span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)(</span><span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>   <span class="o">-</span><span class="nv">i</span><span class="ss">(</span><span class="nv">Phi</span><span class="ss">)</span>
+   <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">m</span><span class="ss">)</span> <span class="o">=</span> <span class="o">-</span> <span class="o">----------</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">------------</span>  <span class="nv">e</span>       <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span> <span class="o">-</span>
+              <span class="nv">sin</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span>   \<span class="o">|</span> <span class="ss">(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="ss">)</span>
+
+                            <span class="o">+--------------+</span>  
+                            <span class="o">|</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="o">-</span><span class="mi">1</span><span class="ss">)(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="o">+</span><span class="mi">2</span><span class="ss">)</span>  <span class="o">-</span><span class="mi">2</span><span class="nv">i</span><span class="ss">(</span><span class="nv">Phi</span><span class="ss">)</span>
+                      <span class="o">-</span>  <span class="o">-+</span> <span class="o">|--------------</span> <span class="nv">e</span>        <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">m</span><span class="o">+</span><span class="mi">2</span><span class="ss">)</span>
+                           \<span class="o">|</span> <span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="ss">)(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>
+</pre></div>
+
+
+</li>
+</ol>
+    
 
     <h3>Arguments</h3>
     
@@ -973,146 +1119,145 @@ public subroutine ylm(V_in, LMAX, Y)
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">ylm</span><span class="p">(</span><span class="n">v_in</span><span class="p">,</span><span class="n">lmax</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
-  <span class="c">!</span>
-  <span class="c">! lmax   : spherical harmonics are calculated for l = 0 to lmax</span>
-  <span class="c">! v      : vector, argument of the spherical harmonics (we calculate</span>
-  <span class="c">! Ylm(v/norm(v))</span>
-  <span class="c">! y      : array containing Ylm(v) for several l,m</span>
-  <span class="c">!</span>
-  <span class="c">! !DESCRIPTION:</span>
-  <span class="c">!   1.  PURPOSE</span>
-  <span class="c">!        The spherical harmonics (Condon and Shortley convention)</span>
-  <span class="c">!          Y(0,0),Y(1,-1),Y(1,0),Y(1,1),Y(2,-2) ... Y(LMAX,LMAX)</span>
-  <span class="c">!        for vector V (given in Cartesian coordinates)</span>
-  <span class="c">!        are calculated. In the Condon Shortley convention the</span>
-  <span class="c">!        spherical harmonics are defined as</span>
-  <span class="c">!        $$ Y(l,m) = (-1)^m \sqrt{\frac{1}{\pi}} P_{lm}(\cos{\theta})</span>
-  <span class="c">!        \rm</span>
-  <span class="c">!        e^{\rm i m \phi} $$</span>
-  <span class="c">!                        </span>
-  <span class="c">!        where  $P_{lm}(\cos{\theta})$ is the normalized Associated</span>
-  <span class="c">!        Legendre</span>
-  <span class="c">!                  </span>
-  <span class="c">!        function. Thus,</span>
-  <span class="c">!                                             </span>
-  <span class="c">!                     $$  Y(l,-m) = (-1)^m Y^*(l,m) $$</span>
-  <span class="c">!</span>
-  <span class="c">!   2.  USAGE</span>
-  <span class="c">!        DOUBLE PRECISION V(3), Y(5*5)</span>
-  <span class="c">!        V(1) = ...</span>
-  <span class="c">!        V(2) = ...</span>
-  <span class="c">!        V(3) = ...</span>
-  <span class="c">!        CALL YLM(V,4,Y)</span>
-  <span class="c">!</span>
-  <span class="c">!       ARGUMENT-DESCRIPTION</span>
-  <span class="c">!          V      - DOUBLE PRECISION vector, dimension 3        (input)</span>
-  <span class="c">!                   Must be given in Cartesian coordinates.</span>
-  <span class="c">!                   Conversion of V to polar coordinates gives the</span>
-  <span class="c">!                   angles Theta and Phi necessary for the calculation</span>
-  <span class="c">!                   of the spherical harmonics.</span>
-  <span class="c">!          LMAX   - INTEGER value                               (input)</span>
-  <span class="c">!                   upper bound of L for which spherical harmonics</span>
-  <span class="c">!                   will be calculated</span>
-  <span class="c">!                   constraint:</span>
-  <span class="c">!                      LMAX &gt;= 0</span>
-  <span class="c">!          Y      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)</span>
-  <span class="c">!                   contains the calculated spherical harmonics</span>
-  <span class="c">!                   Y(1)                   for L .EQ. 0 (M = 0)</span>
-  <span class="c">!                   Y(2), ..., Y(4)        for L .EQ. 1 (M = -1, 0, 1)</span>
-  <span class="c">!                   ...</span>
-  <span class="c">!                   Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))</span>
-  <span class="c">!                                          for L .EQ. LMAX</span>
-  <span class="c">!                                              (M = -L,...,L)</span>
-  <span class="c">!                   constraint:</span>
-  <span class="c">!                      Dimension of Y .GE. (LMAX+1)**2 (not checked)</span>
-  <span class="c">!        USED SUBROUTINES (DIRECTLY CALLED)</span>
-  <span class="c">!           none</span>
-  <span class="c">!</span>
-  <span class="c">!        INDIRECTLY CALLED SUBROUTINES</span>
-  <span class="c">!           none</span>
-  <span class="c">!</span>
-  <span class="c">!        UTILITY-SUBROUTINES (USE BEFOREHAND OR AFTERWARDS)</span>
-  <span class="c">!           none</span>
-  <span class="c">!</span>
-  <span class="c">!        INPUT/OUTPUT (READ/WRITE)</span>
-  <span class="c">!           none</span>
-  <span class="c">!</span>
-  <span class="c">!        MACHINENDEPENDENT PROGRAMPARTS</span>
-  <span class="c">!           Type COMPLEX*16 is used which does not conform to the</span>
-  <span class="c">!           FORTRAN 77 standard.</span>
-  <span class="c">!           Also the non-standard type conversion function DCMPLX()</span>
-  <span class="c">!           is used which combines two double precision values into</span>
-  <span class="c">!           one double complex value.</span>
-  <span class="c">!</span>
-  <span class="c">!   3.     METHOD</span>
-  <span class="c">!           The basic algorithm used to calculate the spherical</span>
-  <span class="c">!           harmonics for vector V is as follows:</span>
-  <span class="c">!</span>
-  <span class="c">!           Y(0,0)</span>
-  <span class="c">!           Y(1,0)</span>
-  <span class="c">!           Y(1,1)</span>
-  <span class="c">!           Y(1,-1) = -Y(1,1)</span>
-  <span class="c">!           DO L = 2, LMAX</span>
-  <span class="c">!              Y(L,L)   = f(Y(L-1,L-1)) ... Formula 1</span>
-  <span class="c">!              Y(L,L-1) = f(Y(L-1,L-1)) ... Formula 2</span>
-  <span class="c">!              DO M = L-2, 0, -1</span>
-  <span class="c">!                 Y(L,M) = f(Y(L-1,M),Y(L-2,M)) ... Formula 2</span>
-  <span class="c">!                 Y(L,-M)= (-1)**M*Y(L,M)</span>
-  <span class="c">!              ENDDO</span>
-  <span class="c">!           ENDDO</span>
-  <span class="c">!</span>
-  <span class="c">!           In the following the necessary recursion formulas and</span>
-  <span class="c">!           starting values are given:</span>
-  <span class="c">!</span>
-  <span class="c">!        Start:</span>
-  <span class="c">!%                        +------+</span>
-  <span class="c">!%                        |   1     </span>
-  <span class="c">!%           Y(0,0) =  -+ | -----  </span>
-  <span class="c">!%                       \| 4(Pi)  </span>
-  <span class="c">!%</span>
-  <span class="c">!%                                   +------+</span>
-  <span class="c">!%                                   |   3     </span>
-  <span class="c">!%           Y(1,0) =  cos(Theta) -+ | -----  </span>
-  <span class="c">!%                                  \| 4(Pi)  </span>
-  <span class="c">!%</span>
-  <span class="c">!%                                     +------+</span>
-  <span class="c">!%                                     |   3    i(Phi)</span>
-  <span class="c">!%           Y(1,1) =  - sin(Theta) -+ | ----- e</span>
-  <span class="c">!%                                    \| 8(Pi)  </span>
-  <span class="c">!%</span>
-  <span class="c">!%        Formula 1:</span>
-  <span class="c">!%</span>
-  <span class="c">!%           Y(l,l) =</span>
-  <span class="c">!%                           +--------+</span>
-  <span class="c">!%                           | (2l+1)   i(Phi)</span>
-  <span class="c">!%            -sin(Theta) -+ | ------  e       Y(l-1,l-1)</span>
-  <span class="c">!%                          \|   2l  </span>
-  <span class="c">!%</span>
-  <span class="c">!%        Formula 2:</span>
-  <span class="c">!%                                  +---------------+  </span>
-  <span class="c">!%                                  |  (2l-1)(2l+1)   </span>
-  <span class="c">!%           Y(l,m) = cos(Theta) -+ | -------------- Y(l-1,m)  -</span>
-  <span class="c">!%                                 \|   (l-m)(l+m)       </span>
-  <span class="c">!%</span>
-  <span class="c">!%                                    +--------------------+  </span>
-  <span class="c">!%                                    |(l-1+m)(l-1-m)(2l+1)</span>
-  <span class="c">!%                              -  -+ |-------------------- Y(l-2,m)</span>
-  <span class="c">!%                                   \|  (2l-3)(l-m)(l+m)                 </span>
-  <span class="c">!%</span>
-  <span class="c">!%        Formula 3: (not used in the algorithm because of the division</span>
-  <span class="c">!%                    by sin(Theta) which may be zero)</span>
-  <span class="c">!%</span>
-  <span class="c">!%                                    +--------------+  </span>
-  <span class="c">!%                      cos(Theta)    |  4(m+1)(m+1)   -i(Phi)</span>
-  <span class="c">!%           Y(l,m) = - ---------- -+ | ------------  e       Y(l,m+1) -</span>
-  <span class="c">!%                      sin(Theta)   \| (l+m+1)(l-m)       </span>
-  <span class="c">!%</span>
-  <span class="c">!%                                    +--------------+  </span>
-  <span class="c">!%                                    |(l-m-1)(l+m+2)  -2i(Phi)</span>
-  <span class="c">!%                              -  -+ |-------------- e        Y(l,m+2)</span>
-  <span class="c">!%                                   \| (l-m)(l+m+1)                         </span>
-  <span class="c">!%                                  </span>
-  <span class="c">!%</span>
+  <span class="c">!! Returns the spherical harmonics for a given argument vector</span>
+  <span class="c">!! up to the maximum value of \(l\) given</span>
+  <span class="c">!!</span>
+  <span class="c">!! lmax   : spherical harmonics are calculated for l = 0 to lmax</span>
+  <span class="c">!! v      : vector, argument of the spherical harmonics (we calculate</span>
+  <span class="c">!! Ylm(v/norm(v))</span>
+  <span class="c">!! y      : array containing Ylm(v) for several l,m</span>
+  <span class="c">!!</span>
+  <span class="c">!! DESCRIPTION:</span>
+  <span class="c">!!   1.  PURPOSE</span>
+  <span class="c">!!        The spherical harmonics (Condon and Shortley convention)</span>
+  <span class="c">!!          `Y(0,0),Y(1,-1),Y(1,0),Y(1,1),Y(2,-2) ... Y(LMAX,LMAX)`</span>
+  <span class="c">!!        for vector \(\mathbf{V}\) (given in Cartesian coordinates)</span>
+  <span class="c">!!        are calculated. In the Condon Shortley convention the</span>
+  <span class="c">!!        spherical harmonics are defined as</span>
+  <span class="c">!!        \[ Y(l,m) = (-1)^m \sqrt{\frac{1}{\pi}} P_{lm}(\cos{\theta})</span>
+  <span class="c">!!        \rm</span>
+  <span class="c">!!        e^{\rm i m \phi} \]</span>
+  <span class="c">!!                        </span>
+  <span class="c">!!        where  \(P_{lm}(\cos{\theta})\) is the normalized Associated</span>
+  <span class="c">!!        Legendre function. Thus,</span>
+  <span class="c">!!                     \[  Y(l,-m) = (-1)^m Y^*(l,m) \]</span>
+  <span class="c">!!</span>
+  <span class="c">!!   2.  USAGE</span>
+  <span class="c">!!        `DOUBLE PRECISION V(3), Y(5*5)`&lt;br/&gt;</span>
+  <span class="c">!!        `V(1) = ...`&lt;br/&gt;</span>
+  <span class="c">!!        `V(2) = ...`&lt;br/&gt;</span>
+  <span class="c">!!        `V(3) = ...`&lt;br/&gt;</span>
+  <span class="c">!!        `CALL YLM(V,4,Y)`&lt;br/&gt;</span>
+  <span class="c">!!</span>
+  <span class="c">!!       ARGUMENT-DESCRIPTION</span>
+  <span class="c">!!          * `V`      - DOUBLE PRECISION vector, dimension 3        (input)</span>
+  <span class="c">!!                   Must be given in Cartesian coordinates.</span>
+  <span class="c">!!                   Conversion of V to polar coordinates gives the</span>
+  <span class="c">!!                   angles \(\theta\) and \(\phi\) necessary for the calculation</span>
+  <span class="c">!!                   of the spherical harmonics.</span>
+  <span class="c">!!          * `LMAX`   - INTEGER value                               (input)</span>
+  <span class="c">!!                   upper bound of \(l\) for which spherical harmonics</span>
+  <span class="c">!!                   will be calculated</span>
+  <span class="c">!!                   constraint:</span>
+  <span class="c">!!                      `LMAX &gt;= 0`</span>
+  <span class="c">!!          * `Y`      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)</span>
+  <span class="c">!!                   contains the calculated spherical harmonics</span>
+  <span class="c">!!                   Y(1)                   for L .EQ. 0 (M = 0)</span>
+  <span class="c">!!                   Y(2), ..., Y(4)        for L .EQ. 1 (M = -1, 0, 1)</span>
+  <span class="c">!!                   ...</span>
+  <span class="c">!!                   Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))</span>
+  <span class="c">!!                                          for L .EQ. LMAX</span>
+  <span class="c">!!                                              (M = -L,...,L)</span>
+  <span class="c">!!                   constraint:</span>
+  <span class="c">!!                      Dimension of Y .GE. (LMAX+1)**2 (not checked)</span>
+  <span class="c">!!        USED SUBROUTINES (DIRECTLY CALLED)</span>
+  <span class="c">!!           none</span>
+  <span class="c">!!</span>
+  <span class="c">!!        INDIRECTLY CALLED SUBROUTINES</span>
+  <span class="c">!!           none</span>
+  <span class="c">!!</span>
+  <span class="c">!!        UTILITY-SUBROUTINES (USE BEFOREHAND OR AFTERWARDS)</span>
+  <span class="c">!!           none</span>
+  <span class="c">!!</span>
+  <span class="c">!!        INPUT/OUTPUT (READ/WRITE)</span>
+  <span class="c">!!           none</span>
+  <span class="c">!!</span>
+  <span class="c">!!        MACHINENDEPENDENT PROGRAMPARTS</span>
+  <span class="c">!!           Type COMPLEX*16 is used which does not conform to the</span>
+  <span class="c">!!           FORTRAN 77 standard.</span>
+  <span class="c">!!           Also the non-standard type conversion function DCMPLX()</span>
+  <span class="c">!!           is used which combines two double precision values into</span>
+  <span class="c">!!           one double complex value.</span>
+  <span class="c">!!</span>
+  <span class="c">!!   3.     METHOD</span>
+  <span class="c">!!           The basic algorithm used to calculate the spherical</span>
+  <span class="c">!!           harmonics for vector V is as follows:</span>
+  <span class="c">!!</span>
+  <span class="c">!!           Y(0,0)</span>
+  <span class="c">!!           Y(1,0)</span>
+  <span class="c">!!           Y(1,1)</span>
+  <span class="c">!!           Y(1,-1) = -Y(1,1)</span>
+  <span class="c">!!           DO L = 2, LMAX</span>
+  <span class="c">!!              Y(L,L)   = f(Y(L-1,L-1)) ... Formula 1</span>
+  <span class="c">!!              Y(L,L-1) = f(Y(L-1,L-1)) ... Formula 2</span>
+  <span class="c">!!              DO M = L-2, 0, -1</span>
+  <span class="c">!!                 Y(L,M) = f(Y(L-1,M),Y(L-2,M)) ... Formula 2</span>
+  <span class="c">!!                 Y(L,-M)= (-1)**M*Y(L,M)</span>
+  <span class="c">!!              ENDDO</span>
+  <span class="c">!!           ENDDO</span>
+  <span class="c">!!</span>
+  <span class="c">!!           In the following the necessary recursion formulas and</span>
+  <span class="c">!!           starting values are given:</span>
+  <span class="c">!!</span>
+  <span class="c">!!        Start:</span>
+  <span class="c">!!                        +------+</span>
+  <span class="c">!!                        |   1     </span>
+  <span class="c">!!           Y(0,0) =  -+ | -----  </span>
+  <span class="c">!!                       \| 4(Pi)  </span>
+  <span class="c">!!</span>
+  <span class="c">!!                                   +------+</span>
+  <span class="c">!!                                   |   3     </span>
+  <span class="c">!!           Y(1,0) =  cos(Theta) -+ | -----  </span>
+  <span class="c">!!                                  \| 4(Pi)  </span>
+  <span class="c">!!</span>
+  <span class="c">!!                                     +------+</span>
+  <span class="c">!!                                     |   3    i(Phi)</span>
+  <span class="c">!!           Y(1,1) =  - sin(Theta) -+ | ----- e</span>
+  <span class="c">!!                                    \| 8(Pi)  </span>
+  <span class="c">!!</span>
+  <span class="c">!!        Formula 1:</span>
+  <span class="c">!!</span>
+  <span class="c">!!           Y(l,l) =</span>
+  <span class="c">!!                           +--------+</span>
+  <span class="c">!!                           | (2l+1)   i(Phi)</span>
+  <span class="c">!!            -sin(Theta) -+ | ------  e       Y(l-1,l-1)</span>
+  <span class="c">!!                          \|   2l  </span>
+  <span class="c">!!</span>
+  <span class="c">!!        Formula 2:</span>
+  <span class="c">!!                                  +---------------+  </span>
+  <span class="c">!!                                  |  (2l-1)(2l+1)   </span>
+  <span class="c">!!           Y(l,m) = cos(Theta) -+ | -------------- Y(l-1,m)  -</span>
+  <span class="c">!!                                 \|   (l-m)(l+m)       </span>
+  <span class="c">!!</span>
+  <span class="c">!!                                    +--------------------+  </span>
+  <span class="c">!!                                    |(l-1+m)(l-1-m)(2l+1)</span>
+  <span class="c">!!                              -  -+ |-------------------- Y(l-2,m)</span>
+  <span class="c">!!                                   \|  (2l-3)(l-m)(l+m)                 </span>
+  <span class="c">!!</span>
+  <span class="c">!!        Formula 3: (not used in the algorithm because of the division</span>
+  <span class="c">!!                    by sin(Theta) which may be zero)</span>
+  <span class="c">!!</span>
+  <span class="c">!!                                    +--------------+  </span>
+  <span class="c">!!                      cos(Theta)    |  4(m+1)(m+1)   -i(Phi)</span>
+  <span class="c">!!           Y(l,m) = - ---------- -+ | ------------  e       Y(l,m+1) -</span>
+  <span class="c">!!                      sin(Theta)   \| (l+m+1)(l-m)       </span>
+  <span class="c">!!</span>
+  <span class="c">!!                                    +--------------+  </span>
+  <span class="c">!!                                    |(l-m-1)(l+m+2)  -2i(Phi)</span>
+  <span class="c">!!                              -  -+ |-------------- e        Y(l,m+2)</span>
+  <span class="c">!!                                   \| (l-m)(l+m+1)                         </span>
+  <span class="c">!!                                  </span>
+  <span class="c">!!</span>
   <span class="c">! !REVISION HISTORY:</span>
   <span class="c">!   26. April 1994                                   Version 1.2</span>
   <span class="c">!   Taken 8 1 98 from SRC_lapw2 to SRC_telnes</span>
