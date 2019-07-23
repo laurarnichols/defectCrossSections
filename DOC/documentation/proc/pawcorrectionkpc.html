@@ -329,6 +329,21 @@ public subroutine pawCorrectionKPC()
 <p>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Test if can just directly store in each atom type's <code>bes_J_qr</code> </p></div>
 <p>
+<ul>
+<li>For each atom in the system<ul>
+<li>Calculate <script type="math/tex">\mathbf{G}\cdot\mathbf{r}</script>
+</li>
+<li>Calculate <script type="math/tex">e^{-i\mathbf{G}\cdot\mathbf{r}}</script>
+</li>
+<li>Get the index for the atom type</li>
+<li>Loop over the projectors, finding <script type="math/tex">l, m</script> for each</li>
+</ul>
+</li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if this should be <code>gDotR</code> </p></div>
+<p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why this is called <code>ATOMIC_CENTER</code> </p></div>
+<p>
     
 
     <h3>Arguments</h3>
@@ -905,12 +920,20 @@ public subroutine pawCorrectionKPC()
       <span class="n">enddo</span>
       <span class="c">!</span>
       <span class="k">do </span><span class="n">iIon</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nIons</span> 
+        <span class="c">!! * For each atom in the system</span>
+        <span class="c">!!    * Calculate \(\mathbf{G}\cdot\mathbf{r}\)</span>
+        <span class="c">!!    * Calculate \(e^{-i\mathbf{G}\cdot\mathbf{r}}\)</span>
+        <span class="c">!!    * Get the index for the atom type</span>
+        <span class="c">!!    * Loop over the projectors, finding \(l, m\) for each</span>
         <span class="c">!</span>
         <span class="n">qDotR</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">iPW</span><span class="p">)</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">posIon</span><span class="p">(:,</span><span class="n">iIon</span><span class="p">))</span>
+          <span class="c">!! @todo Figure out if this should be `gDotR` @endtodo</span>
         <span class="c">!</span>
         <span class="n">ATOMIC_CENTER</span> <span class="o">=</span> <span class="nb">exp</span><span class="p">(</span> <span class="o">-</span><span class="n">ii</span><span class="o">*</span><span class="nb">cmplx</span><span class="p">(</span><span class="n">qDotR</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="p">)</span>
+          <span class="c">!! @todo Figure out why this is called `ATOMIC_CENTER` @endtodo</span>
         <span class="c">!</span>
         <span class="n">iAtomType</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atomTypeIndex</span><span class="p">(</span><span class="n">iIon</span><span class="p">)</span>
+        <span class="c">!</span>
         <span class="n">LM</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">do </span><span class="n">iProj</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">numProjs</span>
           <span class="n">L</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">iProj</span><span class="p">)</span>

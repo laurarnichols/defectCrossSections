@@ -1583,12 +1583,20 @@ contains
       enddo
       !
       do iIon = 1, perfectCrystal%nIons 
+        !! * For each atom in the system
+        !!    * Calculate \(\mathbf{G}\cdot\mathbf{r}\)
+        !!    * Calculate \(e^{-i\mathbf{G}\cdot\mathbf{r}}\)
+        !!    * Get the index for the atom type
+        !!    * Loop over the projectors, finding \(l, m\) for each
         !
         qDotR = sum(gvecs(:,iPW)*perfectCrystal%posIon(:,iIon))
+          !! @todo Figure out if this should be `gDotR` @endtodo
         !
         ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
+          !! @todo Figure out why this is called `ATOMIC_CENTER` @endtodo
         !
         iAtomType = perfectCrystal%atomTypeIndex(iIon)
+        !
         LM = 0
         do iProj = 1, perfectCrystal%atoms(iAtomType)%numProjs
           L = perfectCrystal%atoms(iAtomType)%projAngMom(iProj)

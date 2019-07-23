@@ -31,11 +31,13 @@ date: 07/23/2019
 * `../TME/src/TME_Module_v28.f90:1575:` Figure out if this should be perfect crystal
 * `../TME/src/TME_Module_v28.f90:1576:` Figure out significance of "qr" point
 * `../TME/src/TME_Module_v28.f90:1579:` Test if can just directly store in each atom type's `bes_J_qr`
-* `../TME/src/TME_Module_v28.f90:1630:` Document `pawCorrectionSDK()`
-* `../TME/src/TME_Module_v28.f90:1631:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1728:` Document `pawCorrection()`
-* `../TME/src/TME_Module_v28.f90:1729:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
-* `../TME/src/TME_Module_v28.f90:2092:` Document `writeResults()` @endto
-* `../TME/src/TME_Module_v28.f90:2154:` Document `readUfis()`
-* `../TME/src/TME_Module_v28.f90:2208:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2330:` Document `readEigenvalues()`
+* `../TME/src/TME_Module_v28.f90:1593:` Figure out if this should be `gDotR`
+* `../TME/src/TME_Module_v28.f90:1596:` Figure out why this is called `ATOMIC_CENTER`
+* `../TME/src/TME_Module_v28.f90:1638:` Document `pawCorrectionSDK()`
+* `../TME/src/TME_Module_v28.f90:1639:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1736:` Document `pawCorrection()`
+* `../TME/src/TME_Module_v28.f90:1737:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
+* `../TME/src/TME_Module_v28.f90:2100:` Document `writeResults()` @endto
+* `../TME/src/TME_Module_v28.f90:2162:` Document `readUfis()`
+* `../TME/src/TME_Module_v28.f90:2216:` Document `calculateVFiElements()`
+* `../TME/src/TME_Module_v28.f90:2338:` Document `readEigenvalues()`
