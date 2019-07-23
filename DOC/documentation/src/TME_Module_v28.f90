@@ -1493,7 +1493,9 @@ contains
     integer :: iR
       !! Loop index over radial mesh (up to augmentation sphere)
     integer :: NI, LMBASE, LM
-    integer :: L, M, ind, iT
+    integer :: L, M, ind
+    integer :: iAtomType
+      !! Loop index over atom types
     real(kind = dp) :: q, qDotR, FI, t1, t2
     !
     real(kind = dp) :: JL(0:JMAX)
@@ -1539,7 +1541,7 @@ contains
       endif
       !
       q = sqrt(sum(gvecs(:,iPW)*gvecs(:,iPW)))
-        !! * Calculate `q` as \(\sqrt{G\cdot G}\)
+        !! * Calculate `q` as \(\sqrt{\mathbf{G}\cdot\mathbf{G}}\)
         !!   to get length of \(\mathbf{G}\)
       !
       !> * Define a unit vector in the direction of \(\mathbf{G}\), 
@@ -1550,19 +1552,20 @@ contains
       !
       Y = cmplx(0.0_dp, 0.0_dp, kind = dp)
         !! * Initialize the spherical harmonics to complex double zero
-      call ylm(v_in, JMAX, Y) ! calculates all the needed spherical harmonics once
+      call ylm(v_in, JMAX, Y) 
         !! * Calculate spherical harmonics with argument `v_in` up to 
         !!   \(Y_{J_{\text{max}}}^{\pm J_{\text{max}}}\)
       !
       LMBASE = 0
+        !! * Initialize the base offset for `cProj`'s first index to zero
       !
-      do iT = 1, perfectCrystal%numOfTypes
+      do iAtomType = 1, perfectCrystal%numOfTypes
         !
-        do iR = 1, perfectCrystal%atoms(iT)%iRAugMax ! nMax - 1
+        do iR = 1, perfectCrystal%atoms(iAtomType)%iRAugMax ! nMax - 1
           !
           JL = 0.0_dp
-          call bessel_j(q*solidDefect%atoms(iT)%r(iR), JMAX, JL) ! returns the spherical bessel at qr point
-          perfectCrystal%atoms(iT)%bes_J_qr(:,iR) = JL(:)
+          call bessel_j(q*solidDefect%atoms(iAtomType)%r(iR), JMAX, JL) ! returns the spherical bessel at qr point
+          perfectCrystal%atoms(iAtomType)%bes_J_qr(:,iR) = JL(:)
           !
         enddo
         !
@@ -1574,16 +1577,16 @@ contains
         !
         ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
         !
-        iT = perfectCrystal%atomTypeIndex(ni)
+        iAtomType = perfectCrystal%atomTypeIndex(ni)
         LM = 0
-        do iProj = 1, perfectCrystal%atoms(iT)%numProjs
-          L = perfectCrystal%atoms(iT)%projAngMom(iProj)
+        do iProj = 1, perfectCrystal%atoms(iAtomType)%numProjs
+          L = perfectCrystal%atoms(iAtomType)%projAngMom(iProj)
           do M = -L, L
             LM = LM + 1 !1st index for CPROJ
             !
             FI = 0.0_dp
             !
-            FI = sum(perfectCrystal%atoms(iT)%bes_J_qr(L,:)*perfectCrystal%atoms(iT)%F(:,iProj)) ! radial part integration F contains rab
+            FI = sum(perfectCrystal%atoms(iAtomType)%bes_J_qr(L,:)*perfectCrystal%atoms(iAtomType)%F(:,iProj)) ! radial part integration F contains rab
             !
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
             VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**L*FI
@@ -1600,7 +1603,7 @@ contains
             !
           ENDDO
         ENDDO
-        LMBASE = LMBASE + perfectCrystal%atoms(iT)%lmMax
+        LMBASE = LMBASE + perfectCrystal%atoms(iAtomType)%lmMax
       ENDDO
       !
     enddo

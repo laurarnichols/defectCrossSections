@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.4% of total for procedures.">63 statements</a>
+    title=" 1.4% of total for procedures.">64 statements</a>
      </li> 
      
      
@@ -201,7 +201,7 @@
       
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ind%7E3">ind</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-it">iT</a>
+      <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-iatomtype%7E2">iAtomType</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-q">q</a>
       
@@ -299,7 +299,7 @@ public subroutine pawCorrectionKPC()
 <p>
 </li>
 <li>
-<p>Calculate <code>q</code> as <script type="math/tex">\sqrt{G\cdot G}</script>
+<p>Calculate <code>q</code> as <script type="math/tex">\sqrt{\mathbf{G}\cdot\mathbf{G}}</script>
    to get length of <script type="math/tex">\mathbf{G}</script>
 </p>
 </li>
@@ -309,8 +309,13 @@ public subroutine pawCorrectionKPC()
    <script type="math/tex">1\times10^{-6}</script> to avoid dividing by very small numbers</p>
 </li>
 <li>Initialize the spherical harmonics to complex double zero</li>
-<li>Calculate spherical harmonics with argument <code>v_in</code> up to 
+<li>
+<p>Calculate spherical harmonics with argument <code>v_in</code> up to 
    <script type="math/tex">Y_{J_{\text{max}}}^{\pm J_{\text{max}}}</script>
+</p>
+</li>
+<li>
+<p>Initialize the base offset for <code>cProj</code>'s first index to zero</p>
 </li>
 </ul>
     
@@ -362,7 +367,7 @@ public subroutine pawCorrectionKPC()
       
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ind%7E3">ind</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-it">iT</a>
+      <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-iatomtype%7E2">iAtomType</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-q">q</a>
       
@@ -608,11 +613,11 @@ public subroutine pawCorrectionKPC()
   
 <tr>
   
-  <td><span class="anchor" id="variable-it"></span>integer,</td>
+  <td><span class="anchor" id="variable-iatomtype%7E2"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iT</strong></td><td></td><td></td><td></td>
+  <td><strong>iAtomType</strong></td><td></td><td></td><td><p>Loop index over atom types</p></td>
   
 </tr>
 
@@ -799,7 +804,9 @@ public subroutine pawCorrectionKPC()
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iR</span>
       <span class="c">!! Loop index over radial mesh (up to augmentation sphere)</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">NI</span><span class="p">,</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">LM</span>
-    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">L</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">iT</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">L</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">ind</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iAtomType</span>
+      <span class="c">!! Loop index over atom types</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">q</span><span class="p">,</span> <span class="n">qDotR</span><span class="p">,</span> <span class="n">FI</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span>
     <span class="c">!</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">JL</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">JMAX</span><span class="p">)</span>
@@ -845,7 +852,7 @@ public subroutine pawCorrectionKPC()
       <span class="n">endif</span>
       <span class="c">!</span>
       <span class="n">q</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">iPW</span><span class="p">)</span><span class="o">*</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">iPW</span><span class="p">)))</span>
-        <span class="c">!! * Calculate `q` as \(\sqrt{G\cdot G}\)</span>
+        <span class="c">!! * Calculate `q` as \(\sqrt{\mathbf{G}\cdot\mathbf{G}}\)</span>
         <span class="c">!!   to get length of \(\mathbf{G}\)</span>
       <span class="c">!</span>
       <span class="c">!&gt; * Define a unit vector in the direction of \(\mathbf{G}\), </span>
@@ -856,19 +863,20 @@ public subroutine pawCorrectionKPC()
       <span class="c">!</span>
       <span class="n">Y</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
         <span class="c">!! * Initialize the spherical harmonics to complex double zero</span>
-      <span class="k">call </span><span class="n">ylm</span><span class="p">(</span><span class="n">v_in</span><span class="p">,</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span> <span class="c">! calculates all the needed spherical harmonics once</span>
+      <span class="k">call </span><span class="n">ylm</span><span class="p">(</span><span class="n">v_in</span><span class="p">,</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span> 
         <span class="c">!! * Calculate spherical harmonics with argument `v_in` up to </span>
         <span class="c">!!   \(Y_{J_{\text{max}}}^{\pm J_{\text{max}}}\)</span>
       <span class="c">!</span>
       <span class="n">LMBASE</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c">!! * Initialize the base offset for `cProj`&#39;s first index to zero</span>
       <span class="c">!</span>
-      <span class="k">do </span><span class="n">iT</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">numOfTypes</span>
+      <span class="k">do </span><span class="n">iAtomType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">numOfTypes</span>
         <span class="c">!</span>
-        <span class="k">do </span><span class="n">iR</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">iRAugMax</span> <span class="c">! nMax - 1</span>
+        <span class="k">do </span><span class="n">iR</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">iRAugMax</span> <span class="c">! nMax - 1</span>
           <span class="c">!</span>
           <span class="n">JL</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-          <span class="k">call </span><span class="n">bessel_j</span><span class="p">(</span><span class="n">q</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">iR</span><span class="p">),</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">JL</span><span class="p">)</span> <span class="c">! returns the spherical bessel at qr point</span>
-          <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(:,</span><span class="n">iR</span><span class="p">)</span> <span class="o">=</span> <span class="n">JL</span><span class="p">(:)</span>
+          <span class="k">call </span><span class="n">bessel_j</span><span class="p">(</span><span class="n">q</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">iR</span><span class="p">),</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">JL</span><span class="p">)</span> <span class="c">! returns the spherical bessel at qr point</span>
+          <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(:,</span><span class="n">iR</span><span class="p">)</span> <span class="o">=</span> <span class="n">JL</span><span class="p">(:)</span>
           <span class="c">!</span>
         <span class="n">enddo</span>
         <span class="c">!</span>
@@ -880,16 +888,16 @@ public subroutine pawCorrectionKPC()
         <span class="c">!</span>
         <span class="n">ATOMIC_CENTER</span> <span class="o">=</span> <span class="nb">exp</span><span class="p">(</span> <span class="o">-</span><span class="n">ii</span><span class="o">*</span><span class="nb">cmplx</span><span class="p">(</span><span class="n">qDotR</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="p">)</span>
         <span class="c">!</span>
-        <span class="n">iT</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atomTypeIndex</span><span class="p">(</span><span class="n">ni</span><span class="p">)</span>
+        <span class="n">iAtomType</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atomTypeIndex</span><span class="p">(</span><span class="n">ni</span><span class="p">)</span>
         <span class="n">LM</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">do </span><span class="n">iProj</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">numProjs</span>
-          <span class="n">L</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">iProj</span><span class="p">)</span>
+        <span class="k">do </span><span class="n">iProj</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">numProjs</span>
+          <span class="n">L</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">projAngMom</span><span class="p">(</span><span class="n">iProj</span><span class="p">)</span>
           <span class="k">do </span><span class="n">M</span> <span class="o">=</span> <span class="o">-</span><span class="n">L</span><span class="p">,</span> <span class="n">L</span>
             <span class="n">LM</span> <span class="o">=</span> <span class="n">LM</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">!1st index for CPROJ</span>
             <span class="c">!</span>
             <span class="n">FI</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
             <span class="c">!</span>
-            <span class="n">FI</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(</span><span class="n">L</span><span class="p">,:)</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">F</span><span class="p">(:,</span><span class="n">iProj</span><span class="p">))</span> <span class="c">! radial part integration F contains rab</span>
+            <span class="n">FI</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(</span><span class="n">L</span><span class="p">,:)</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">F</span><span class="p">(:,</span><span class="n">iProj</span><span class="p">))</span> <span class="c">! radial part integration F contains rab</span>
             <span class="c">!</span>
             <span class="n">ind</span> <span class="o">=</span> <span class="n">L</span><span class="o">*</span><span class="p">(</span><span class="n">L</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">M</span> <span class="o">+</span> <span class="mi">1</span> <span class="c">! index for spherical harmonics</span>
             <span class="n">VifQ_aug</span> <span class="o">=</span> <span class="n">ATOMIC_CENTER</span><span class="o">*</span><span class="n">Y</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="o">-</span><span class="n">II</span><span class="p">)</span><span class="o">**</span><span class="n">L</span><span class="o">*</span><span class="n">FI</span>
@@ -906,7 +914,7 @@ public subroutine pawCorrectionKPC()
             <span class="c">!</span>
           <span class="n">ENDDO</span>
         <span class="n">ENDDO</span>
-        <span class="n">LMBASE</span> <span class="o">=</span> <span class="n">LMBASE</span> <span class="o">+</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iT</span><span class="p">)%</span><span class="n">lmMax</span>
+        <span class="n">LMBASE</span> <span class="o">=</span> <span class="n">LMBASE</span> <span class="o">+</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">lmMax</span>
       <span class="n">ENDDO</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
