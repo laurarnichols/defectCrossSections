@@ -1490,7 +1490,9 @@ contains
     integer :: ispin
     integer :: iProj
       !! Loop index over projectors
-    integer :: I, NI, LMBASE, LM
+    integer :: iR
+      !! Loop index over radial mesh (up to augmentation sphere)
+    integer :: NI, LMBASE, LM
     integer :: L, M, ind, iT
     real(kind = dp) :: q, qDotR, FI, t1, t2
     !
@@ -1527,11 +1529,11 @@ contains
       !
       do iT = 1, perfectCrystal%numOfTypes
         !
-        do I = 1, perfectCrystal%atoms(iT)%iRAugMax ! nMax - 1
+        do iR = 1, perfectCrystal%atoms(iT)%iRAugMax ! nMax - 1
           !
           JL = 0.0_dp
-          call bessel_j(q*solidDefect%atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
-          perfectCrystal%atoms(iT)%bes_J_qr(:,I) = JL(:)
+          call bessel_j(q*solidDefect%atoms(iT)%r(iR), JMAX, JL) ! returns the spherical bessel at qr point
+          perfectCrystal%atoms(iT)%bes_J_qr(:,iR) = JL(:)
           !
         enddo
         !
