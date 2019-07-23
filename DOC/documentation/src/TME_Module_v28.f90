@@ -1817,31 +1817,27 @@ contains
   !!   <h3>Argument Description</h3>
   !!     <ul>
   !!          <li> 
-  !!                  `V`      - DOUBLE PRECISION vector, dimension 3        (input)<br/>
+  !!                  `V`      - `DOUBLE PRECISION` vector, dimension 3        (input)<br/>
   !!                   Must be given in Cartesian coordinates.
   !!                   Conversion of V to polar coordinates gives the
   !!                   angles \(\theta\) and \(\phi\) necessary for the calculation
   !!                   of the spherical harmonics.  
   !!          </li>
   !!          <li>
-  !!                   `LMAX`   - INTEGER value                               (input)<br/>
+  !!                   `LMAX`   - `INTEGER` value                               (input)<br/>
   !!                   upper bound of \(l\) for which spherical harmonics
-  !!                   will be calculated; constraint: `LMAX >= 0`  
+  !!                   will be calculated<br/>
+  !!                   constraint: `LMAX >= 0`  
   !!          </li>
   !!          <li>
-  !!                   `Y`      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)<br/>
-  !!                   contains the calculated spherical harmonics
-  !!
-  !!
-  !!                   Y(1)                   for L .EQ. 0 (M = 0)
-  !!                   Y(2), ..., Y(4)        for L .EQ. 1 (M = -1, 0, 1)
-  !!                   ...
-  !!                   Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))
-  !!                                          for L .EQ. LMAX
-  !!                                              (M = -L,...,L)
-  !!                    
-  !!                   constraint:
-  !!                      Dimension of Y .GE. (LMAX+1)**2 (not checked)
+  !!                   `Y`      - `COMPLEX*16` array, dimension `(LMAX+1)**2`    (output)<br/>
+  !!                   contains the calculated spherical harmonics<br/>
+  !!                   `Y(1)` for \(l=0\) (\(m = 0\))<br/>
+  !!                   `Y(2), ..., Y(4)` for \(l = 1\) (\(m = -1, 0, 1\))<br/>
+  !!                   ...<br/>
+  !!                   `Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))` for \(l = l_{\text{max}}\) 
+  !!                            (\(m = -l,...,l\))<br/>
+  !!                   constraint: Dimension of `Y` \(\geq (l_{\text{max}} + 1)^2\) (not checked)
   !!          </li>
   !!        </ul>
   !!

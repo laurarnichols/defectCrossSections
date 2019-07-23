@@ -324,34 +324,29 @@ public subroutine ylm(V_in, LMAX, Y)
 <p><h3>Argument Description</h3>
      <ul>
           <li> 
-                  <code>V</code>      - DOUBLE PRECISION vector, dimension 3        (input)<br/>
+                  <code>V</code>      - <code>DOUBLE PRECISION</code> vector, dimension 3        (input)<br/>
                    Must be given in Cartesian coordinates.
                    Conversion of V to polar coordinates gives the
                    angles <script type="math/tex">\theta</script> and <script type="math/tex">\phi</script> necessary for the calculation
                    of the spherical harmonics.<br>
           </li>
           <li>
-                   <code>LMAX</code>   - INTEGER value                               (input)<br/>
+                   <code>LMAX</code>   - <code>INTEGER</code> value                               (input)<br/>
                    upper bound of <script type="math/tex">l</script> for which spherical harmonics
-                   will be calculated; constraint: <code>LMAX &gt;= 0</code><br>
+                   will be calculated<br/>
+                   constraint: <code>LMAX &gt;= 0</code><br>
           </li>
           <li>
-                   <code>Y</code>      - COMPLEX<em>16 array, dimension (LMAX+1)</em>*2    (output)<br/>
-                   contains the calculated spherical harmonics</p>
-<div class="codehilite"><pre><span></span>               <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span><span class="ss">)</span>                   <span class="k">for</span> <span class="nv">L</span> .<span class="nv">EQ</span>. <span class="mi">0</span> <span class="ss">(</span><span class="nv">M</span> <span class="o">=</span> <span class="mi">0</span><span class="ss">)</span>
-               <span class="nv">Y</span><span class="ss">(</span><span class="mi">2</span><span class="ss">)</span>, ..., <span class="nv">Y</span><span class="ss">(</span><span class="mi">4</span><span class="ss">)</span>        <span class="k">for</span> <span class="nv">L</span> .<span class="nv">EQ</span>. <span class="mi">1</span> <span class="ss">(</span><span class="nv">M</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>, <span class="mi">0</span>, <span class="mi">1</span><span class="ss">)</span>
-               ...
-               <span class="nv">Y</span><span class="ss">(</span><span class="nv">LMAX</span><span class="o">*</span><span class="nv">LMAX</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>, ..., <span class="nv">Y</span><span class="ss">((</span><span class="nv">LMAX</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span><span class="o">*</span><span class="ss">(</span><span class="nv">LMAX</span><span class="o">+</span><span class="mi">1</span><span class="ss">))</span>
-                                      <span class="k">for</span> <span class="nv">L</span> .<span class="nv">EQ</span>. <span class="nv">LMAX</span>
-                                          <span class="ss">(</span><span class="nv">M</span> <span class="o">=</span> <span class="o">-</span><span class="nv">L</span>,...,<span class="nv">L</span><span class="ss">)</span>
-
-               <span class="nv">constraint</span>:
-                  <span class="nv">Dimension</span> <span class="nv">of</span> <span class="nv">Y</span> .<span class="nv">GE</span>. <span class="ss">(</span><span class="nv">LMAX</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span><span class="o">**</span><span class="mi">2</span> <span class="ss">(</span><span class="nv">not</span> <span class="nv">checked</span><span class="ss">)</span>
-      <span class="o">&lt;/</span><span class="nv">li</span><span class="o">&gt;</span>
-    <span class="o">&lt;/</span><span class="nv">ul</span><span class="o">&gt;</span>
-</pre></div>
-
-
+                   <code>Y</code>      - <code>COMPLEX*16</code> array, dimension <code>(LMAX+1)**2</code>    (output)<br/>
+                   contains the calculated spherical harmonics<br/>
+                   <code>Y(1)</code> for <script type="math/tex">l=0</script> (<script type="math/tex">m = 0</script>)<br/>
+                   <code>Y(2), ..., Y(4)</code> for <script type="math/tex">l = 1</script> (<script type="math/tex">m = -1, 0, 1</script>)<br/>
+                   ...<br/>
+                   <code>Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))</code> for <script type="math/tex">l = l_{\text{max}}</script> 
+                            (<script type="math/tex">m = -l,...,l</script>)<br/>
+                   constraint: Dimension of <code>Y</code> <script type="math/tex">\geq (l_{\text{max}} + 1)^2</script> (not checked)
+          </li>
+        </ul></p>
 <p><h3>Used Subroutines (Directly Called)</h3>
            none</p>
 <p><h3>Indirectly Called Subroutines</h3>
@@ -1152,31 +1147,27 @@ public subroutine ylm(V_in, LMAX, Y)
   <span class="c">!!   &lt;h3&gt;Argument Description&lt;/h3&gt;</span>
   <span class="c">!!     &lt;ul&gt;</span>
   <span class="c">!!          &lt;li&gt; </span>
-  <span class="c">!!                  `V`      - DOUBLE PRECISION vector, dimension 3        (input)&lt;br/&gt;</span>
+  <span class="c">!!                  `V`      - `DOUBLE PRECISION` vector, dimension 3        (input)&lt;br/&gt;</span>
   <span class="c">!!                   Must be given in Cartesian coordinates.</span>
   <span class="c">!!                   Conversion of V to polar coordinates gives the</span>
   <span class="c">!!                   angles \(\theta\) and \(\phi\) necessary for the calculation</span>
   <span class="c">!!                   of the spherical harmonics.  </span>
   <span class="c">!!          &lt;/li&gt;</span>
   <span class="c">!!          &lt;li&gt;</span>
-  <span class="c">!!                   `LMAX`   - INTEGER value                               (input)&lt;br/&gt;</span>
+  <span class="c">!!                   `LMAX`   - `INTEGER` value                               (input)&lt;br/&gt;</span>
   <span class="c">!!                   upper bound of \(l\) for which spherical harmonics</span>
-  <span class="c">!!                   will be calculated; constraint: `LMAX &gt;= 0`  </span>
+  <span class="c">!!                   will be calculated&lt;br/&gt;</span>
+  <span class="c">!!                   constraint: `LMAX &gt;= 0`  </span>
   <span class="c">!!          &lt;/li&gt;</span>
   <span class="c">!!          &lt;li&gt;</span>
-  <span class="c">!!                   `Y`      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)&lt;br/&gt;</span>
-  <span class="c">!!                   contains the calculated spherical harmonics</span>
-  <span class="c">!!</span>
-  <span class="c">!!</span>
-  <span class="c">!!                   Y(1)                   for L .EQ. 0 (M = 0)</span>
-  <span class="c">!!                   Y(2), ..., Y(4)        for L .EQ. 1 (M = -1, 0, 1)</span>
-  <span class="c">!!                   ...</span>
-  <span class="c">!!                   Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))</span>
-  <span class="c">!!                                          for L .EQ. LMAX</span>
-  <span class="c">!!                                              (M = -L,...,L)</span>
-  <span class="c">!!                    </span>
-  <span class="c">!!                   constraint:</span>
-  <span class="c">!!                      Dimension of Y .GE. (LMAX+1)**2 (not checked)</span>
+  <span class="c">!!                   `Y`      - `COMPLEX*16` array, dimension `(LMAX+1)**2`    (output)&lt;br/&gt;</span>
+  <span class="c">!!                   contains the calculated spherical harmonics&lt;br/&gt;</span>
+  <span class="c">!!                   `Y(1)` for \(l=0\) (\(m = 0\))&lt;br/&gt;</span>
+  <span class="c">!!                   `Y(2), ..., Y(4)` for \(l = 1\) (\(m = -1, 0, 1\))&lt;br/&gt;</span>
+  <span class="c">!!                   ...&lt;br/&gt;</span>
+  <span class="c">!!                   `Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))` for \(l = l_{\text{max}}\) </span>
+  <span class="c">!!                            (\(m = -l,...,l\))&lt;br/&gt;</span>
+  <span class="c">!!                   constraint: Dimension of `Y` \(\geq (l_{\text{max}} + 1)^2\) (not checked)</span>
   <span class="c">!!          &lt;/li&gt;</span>
   <span class="c">!!        &lt;/ul&gt;</span>
   <span class="c">!!</span>
