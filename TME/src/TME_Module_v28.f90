@@ -1876,20 +1876,9 @@ contains
   !!           ENDDO
   !!
   !!   <h3>Formulas</h3>
-  !!           In the following the necessary recursion formulas and
-  !!           starting values are given:
-  !!
-  !!        Start:
-  !!           * Y_0^0
-  !!                        +------+
-  !!                        |   1     
-  !!           Y(0,0) =  -+ | -----  
-  !!                       \| 4(Pi)  
-  !!
-  !!                                   +------+
-  !!                                   |   3     
-  !!           Y(1,0) =  cos(Theta) -+ | -----  
-  !!                                  \| 4(Pi)  
+  !!        Starting values:
+  !!           * \(Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\)
+  !!           * \(Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\)
   !!
   !!                                     +------+
   !!                                     |   3    i(Phi)
