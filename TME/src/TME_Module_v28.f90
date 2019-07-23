@@ -1485,8 +1485,8 @@ contains
     !
     integer :: ibi, ibf
       !! Loop index over bands
-    integer :: ig
-      !! Loop index
+    integer :: iPW
+      !! Loop index over plane waves for a given process
     integer :: ispin
     integer :: iProj
       !! Loop index over projectors
@@ -1501,26 +1501,34 @@ contains
     complex(kind = dp) :: VifQ_aug, ATOMIC_CENTER
     !
     ispin = 1
+      !! * Set the value of `ispin` to 1
+      !! @note
+      !! `ispin` never has a value other than one, so I'm not sure
+      !!  what its purpose is
+      !! @endnote
     !
     call cpu_time(t1)
+      !! * Start a timer
     !
     pawKPC(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+      !! * Initialize all values in `pawK` to complex double zero
     !
-    do ig = nPWsI(myid), nPWsF(myid) ! 1, solidDefect%numOfGvecs
+    do iPW = nPWsI(myid), nPWsF(myid) 
+      !! * Loop through the plane waves for a given process
       !
       if ( myid == root ) then 
-        if ( (ig == nPWsI(myid) + 1000) .or. (mod(ig, 25000) == 0) .or. (ig == nPWsF(myid)) ) then
+        if ( (iPW == nPWsI(myid) + 1000) .or. (mod(iPW, 25000) == 0) .or. (iPW == nPWsF(myid)) ) then
           call cpu_time(t2)
           write(iostd, '("        Done ", i10, " of", i10, " k-vecs. ETR : ", f10.2, " secs.")') &
-                ig, nPWsF(myid) - nPWsI(myid) + 1, (t2-t1)*(nPWsF(myid) - nPWsI(myid) + 1 -ig )/ig
+                iPW, nPWsF(myid) - nPWsI(myid) + 1, (t2-t1)*(nPWsF(myid) - nPWsI(myid) + 1 -iPW )/iPW
           flush(iostd)
           !call cpu_time(t1)
         endif
       endif
       !
-      q = sqrt(sum(gvecs(:,ig)*gvecs(:,ig)))
+      q = sqrt(sum(gvecs(:,iPW)*gvecs(:,iPW)))
       !
-      v_in(:) = gvecs(:,ig)
+      v_in(:) = gvecs(:,iPW)
       if ( abs(q) > 1.0e-6_dp ) v_in = v_in/q ! i have to determine v_in = q
       Y = cmplx(0.0_dp, 0.0_dp, kind = dp)
       call ylm(v_in, JMAX, Y) ! calculates all the needed spherical harmonics once
@@ -1541,7 +1549,7 @@ contains
       !
       do ni = 1, perfectCrystal%nIons ! LOOP OVER THE IONS
         !
-        qDotR = sum(gvecs(:,ig)*perfectCrystal%posIon(:,ni))
+        qDotR = sum(gvecs(:,iPW)*perfectCrystal%posIon(:,ni))
         !
         ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
         !
@@ -1563,7 +1571,7 @@ contains
               !
               do ibf = iBandFinit, iBandFfinal
                 !
-                pawKPC(ibf, ibi, ig) = pawKPC(ibf, ibi, ig) + VifQ_aug*perfectCrystal%cProj(LM + LMBASE, ibi, ISPIN)
+                pawKPC(ibf, ibi, iPW) = pawKPC(ibf, ibi, iPW) + VifQ_aug*perfectCrystal%cProj(LM + LMBASE, ibi, ISPIN)
                 !
               enddo
               !

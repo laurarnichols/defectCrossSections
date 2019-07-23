@@ -2,6 +2,7 @@ title: Todo
 author: Laura Nichols
 date: 07/23/2019
 
+* Binary file ../TME/src/.TME_Module_v28.f90.swo matches
 * `../TME/src/TME_Main_v9.f90:2:` Finish documentation for main program
 * `../TME/src/TME_Main_v9.f90:46:` Figure out if need to allocate space for arrays so soon
 * `../TME/src/TME_Main_v9.f90:58:` Figure out if SD and PC `numOfGvecs` should be the same
@@ -25,11 +26,11 @@ date: 07/23/2019
 * `../TME/src/TME_Module_v28.f90:1220:` Look into `nSpins` to figure out if it is needed
 * `../TME/src/TME_Module_v28.f90:1412:` Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\)
 * `../TME/src/TME_Module_v28.f90:1478:` Document `pawCorrectionKPC()`
-* `../TME/src/TME_Module_v28.f90:1587:` Document `pawCorrectionSDK()`
-* `../TME/src/TME_Module_v28.f90:1588:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
-* `../TME/src/TME_Module_v28.f90:1685:` Document `pawCorrection()`
-* `../TME/src/TME_Module_v28.f90:1686:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
-* `../TME/src/TME_Module_v28.f90:2082:` Document `writeResults()` @endto
-* `../TME/src/TME_Module_v28.f90:2144:` Document `readUfis()`
-* `../TME/src/TME_Module_v28.f90:2198:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2320:` Document `readEigenvalues()`
+* `../TME/src/TME_Module_v28.f90:1595:` Document `pawCorrectionSDK()`
+* `../TME/src/TME_Module_v28.f90:1596:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
+* `../TME/src/TME_Module_v28.f90:1693:` Document `pawCorrection()`
+* `../TME/src/TME_Module_v28.f90:1694:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
+* `../TME/src/TME_Module_v28.f90:2090:` Document `writeResults()` @endto
+* `../TME/src/TME_Module_v28.f90:2152:` Document `readUfis()`
+* `../TME/src/TME_Module_v28.f90:2206:` Document `calculateVFiElements()`
+* `../TME/src/TME_Module_v28.f90:2328:` Document `readEigenvalues()`

@@ -181,7 +181,7 @@
       
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ibf%7E3">ibf</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ig%7E6">ig</a>
+      <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ipw">iPW</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ispin%7E4">ispin</a>
       
@@ -274,6 +274,24 @@ public subroutine pawCorrectionKPC()
     <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>pawCorrectionKPC()</code> </p></div>
 <p>
 <p><h2>Walkthrough</h2></p>
+<ul>
+<li>
+<p>Set the value of <code>ispin</code> to 1
+ </p><div class="alert alert-info" role="alert"><h4>Note</h4><p><code>ispin</code> never has a value other than one, so I'm not sure
+  what its purpose is
+ </p></div>
+<p>
+</li>
+<li>
+<p>Start a timer</p>
+</li>
+<li>
+<p>Initialize all values in <code>pawK</code> to complex double zero</p>
+</li>
+<li>
+<p>Loop through the plane waves for a given process</p>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -303,7 +321,7 @@ public subroutine pawCorrectionKPC()
       
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ibf%7E3">ibf</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ig%7E6">ig</a>
+      <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ipw">iPW</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionkpc.html#variable-ispin%7E4">ispin</a>
       
@@ -429,11 +447,11 @@ public subroutine pawCorrectionKPC()
   
 <tr>
   
-  <td><span class="anchor" id="variable-ig%7E6"></span>integer,</td>
+  <td><span class="anchor" id="variable-ipw"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ig</strong></td><td></td><td></td><td><p>Loop index</p></td>
+  <td><strong>iPW</strong></td><td></td><td></td><td><p>Loop index over plane waves for a given process</p></td>
   
 </tr>
 
@@ -751,8 +769,8 @@ public subroutine pawCorrectionKPC()
     <span class="c">!</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span>
       <span class="c">!! Loop index over bands</span>
-    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ig</span>
-      <span class="c">!! Loop index</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iPW</span>
+      <span class="c">!! Loop index over plane waves for a given process</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ispin</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iProj</span>
       <span class="c">!! Loop index over projectors</span>
@@ -767,26 +785,34 @@ public subroutine pawCorrectionKPC()
     <span class="kt">complex</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">VifQ_aug</span><span class="p">,</span> <span class="n">ATOMIC_CENTER</span>
     <span class="c">!</span>
     <span class="n">ispin</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="c">!! * Set the value of `ispin` to 1</span>
+      <span class="c">!! @note</span>
+      <span class="c">!! `ispin` never has a value other than one, so I&#39;m not sure</span>
+      <span class="c">!!  what its purpose is</span>
+      <span class="c">!! @endnote</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+      <span class="c">!! * Start a timer</span>
     <span class="c">!</span>
     <span class="n">pawKPC</span><span class="p">(:,:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
+      <span class="c">!! * Initialize all values in `pawK` to complex double zero</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">),</span> <span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="c">! 1, solidDefect%numOfGvecs</span>
+    <span class="k">do </span><span class="n">iPW</span> <span class="o">=</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">),</span> <span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> 
+      <span class="c">!! * Loop through the plane waves for a given process</span>
       <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then </span>
-<span class="k">        if</span> <span class="p">(</span> <span class="p">(</span><span class="n">ig</span> <span class="o">==</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1000</span><span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span><span class="nb">mod</span><span class="p">(</span><span class="n">ig</span><span class="p">,</span> <span class="mi">25000</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span><span class="n">ig</span> <span class="o">==</span> <span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">))</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">        if</span> <span class="p">(</span> <span class="p">(</span><span class="n">iPW</span> <span class="o">==</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1000</span><span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span><span class="nb">mod</span><span class="p">(</span><span class="n">iPW</span><span class="p">,</span> <span class="mi">25000</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span><span class="n">iPW</span> <span class="o">==</span> <span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">))</span> <span class="p">)</span> <span class="k">then</span>
 <span class="k">          call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
           <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;        Done &quot;, i10, &quot; of&quot;, i10, &quot; k-vecs. ETR : &quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="p">&amp;</span>
-                <span class="n">ig</span><span class="p">,</span> <span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">-</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">t2</span><span class="o">-</span><span class="n">t1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">-</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span><span class="n">ig</span> <span class="p">)</span><span class="o">/</span><span class="n">ig</span>
+                <span class="n">iPW</span><span class="p">,</span> <span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">-</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">t2</span><span class="o">-</span><span class="n">t1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">-</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span><span class="n">iPW</span> <span class="p">)</span><span class="o">/</span><span class="n">iPW</span>
           <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
           <span class="c">!call cpu_time(t1)</span>
         <span class="n">endif</span>
       <span class="n">endif</span>
       <span class="c">!</span>
-      <span class="n">q</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">ig</span><span class="p">)</span><span class="o">*</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">ig</span><span class="p">)))</span>
+      <span class="n">q</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">iPW</span><span class="p">)</span><span class="o">*</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">iPW</span><span class="p">)))</span>
       <span class="c">!</span>
-      <span class="n">v_in</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">gvecs</span><span class="p">(:,</span><span class="n">ig</span><span class="p">)</span>
+      <span class="n">v_in</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">gvecs</span><span class="p">(:,</span><span class="n">iPW</span><span class="p">)</span>
       <span class="k">if</span> <span class="p">(</span> <span class="nb">abs</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1.0e-6_dp</span> <span class="p">)</span> <span class="n">v_in</span> <span class="o">=</span> <span class="n">v_in</span><span class="o">/</span><span class="n">q</span> <span class="c">! i have to determine v_in = q</span>
       <span class="n">Y</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
       <span class="k">call </span><span class="n">ylm</span><span class="p">(</span><span class="n">v_in</span><span class="p">,</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span> <span class="c">! calculates all the needed spherical harmonics once</span>
@@ -807,7 +833,7 @@ public subroutine pawCorrectionKPC()
       <span class="c">!</span>
       <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nIons</span> <span class="c">! LOOP OVER THE IONS</span>
         <span class="c">!</span>
-        <span class="n">qDotR</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">ig</span><span class="p">)</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">posIon</span><span class="p">(:,</span><span class="n">ni</span><span class="p">))</span>
+        <span class="n">qDotR</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">iPW</span><span class="p">)</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">posIon</span><span class="p">(:,</span><span class="n">ni</span><span class="p">))</span>
         <span class="c">!</span>
         <span class="n">ATOMIC_CENTER</span> <span class="o">=</span> <span class="nb">exp</span><span class="p">(</span> <span class="o">-</span><span class="n">ii</span><span class="o">*</span><span class="nb">cmplx</span><span class="p">(</span><span class="n">qDotR</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="p">)</span>
         <span class="c">!</span>
@@ -829,7 +855,7 @@ public subroutine pawCorrectionKPC()
               <span class="c">!</span>
               <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
                 <span class="c">!</span>
-                <span class="n">pawKPC</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ig</span><span class="p">)</span> <span class="o">=</span> <span class="n">pawKPC</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ig</span><span class="p">)</span> <span class="o">+</span> <span class="n">VifQ_aug</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">(</span><span class="n">LM</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">)</span>
+                <span class="n">pawKPC</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">iPW</span><span class="p">)</span> <span class="o">=</span> <span class="n">pawKPC</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">iPW</span><span class="p">)</span> <span class="o">+</span> <span class="n">VifQ_aug</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">(</span><span class="n">LM</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">)</span>
                 <span class="c">!</span>
               <span class="n">enddo</span>
               <span class="c">!</span>
