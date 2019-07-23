@@ -1486,7 +1486,9 @@ contains
     integer :: ig
       !! Loop index
     integer :: ispin
-    integer :: LL, I, NI, LMBASE, LM
+    integer :: iProj
+      !! Loop index over projectors
+    integer :: I, NI, LMBASE, LM
     integer :: L, M, ind, iT
     real(kind = dp) :: q, qDotR, FI, t1, t2
     !
@@ -1523,13 +1525,13 @@ contains
       !
       do iT = 1, perfectCrystal%numOfTypes
         !
-        DO I = 1, perfectCrystal%atoms(iT)%iRc ! nMax - 1
+        do I = 1, perfectCrystal%atoms(iT)%iRc ! nMax - 1
           !
           JL = 0.0_dp
           call bessel_j(q*solidDefect%atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
           perfectCrystal%atoms(iT)%bes_J_qr(:,I) = JL(:)
           !
-        ENDDO
+        enddo
         !
       enddo
       !
@@ -1541,14 +1543,14 @@ contains
         !
         iT = perfectCrystal%atomTypeIndex(ni)
         LM = 0
-        DO LL = 1, perfectCrystal%atoms(iT)%numProjs
-          L = perfectCrystal%atoms(iT)%projAngMom(LL)
-          DO M = -L, L
+        do iProj = 1, perfectCrystal%atoms(iT)%numProjs
+          L = perfectCrystal%atoms(iT)%projAngMom(iProj)
+          do M = -L, L
             LM = LM + 1 !1st index for CPROJ
             !
             FI = 0.0_dp
             !
-            FI = sum(perfectCrystal%atoms(iT)%bes_J_qr(L,:)*perfectCrystal%atoms(iT)%F(:,LL)) ! radial part integration F contains rab
+            FI = sum(perfectCrystal%atoms(iT)%bes_J_qr(L,:)*perfectCrystal%atoms(iT)%F(:,iProj)) ! radial part integration F contains rab
             !
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
             VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**L*FI
