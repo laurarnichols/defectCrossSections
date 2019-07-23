@@ -1789,7 +1789,7 @@ contains
   !! <h2>Description</h2>
   !!   <h3>Purpose</h3>
   !!        The spherical harmonics (Condon and Shortley convention)
-  !!          \(Y_0^0,Y_1^{-1},Y_1^0,Y_1^1,Y_2^{-2} ... Y_{l_{\text{max}}}^{l_{\text{max}}}\)
+  !!          \(Y_0^0,Y_1^{-1},Y_1^0,Y_1^1,Y_2^{-2} ... Y_{l_{\text{max}}}^{\pm l_{\text{max}}}\)
   !!        for vector \(\mathbf{V}\) (given in Cartesian coordinates)
   !!        are calculated. In the Condon Shortley convention the
   !!        spherical harmonics are defined as
