@@ -175,9 +175,9 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../program/transitionmatrixelements.html#variable-t1%7E17">t1</a>
+      <a class="list-group-item" href="../program/transitionmatrixelements.html#variable-t1%7E16">t1</a>
       
-      <a class="list-group-item" href="../program/transitionmatrixelements.html#variable-t2%7E17">t2</a>
+      <a class="list-group-item" href="../program/transitionmatrixelements.html#variable-t2%7E16">t2</a>
       
     </div>
   </div>
@@ -293,9 +293,9 @@
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../program/transitionmatrixelements.html#variable-t1%7E17">t1</a>
+      <a class="list-group-item" href="../program/transitionmatrixelements.html#variable-t1%7E16">t1</a>
       
-      <a class="list-group-item" href="../program/transitionmatrixelements.html#variable-t2%7E17">t2</a>
+      <a class="list-group-item" href="../program/transitionmatrixelements.html#variable-t2%7E16">t2</a>
       
     </div>
   </div>
@@ -353,7 +353,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-t1%7E17"></span>real(kind=dp)</td>
+  <td><span class="anchor" id="variable-t1%7E16"></span>real(kind=dp)</td>
   
   
   <td></td><td>::</td>
@@ -369,7 +369,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-t2%7E17"></span>real(kind=dp)</td>
+  <td><span class="anchor" id="variable-t2%7E16"></span>real(kind=dp)</td>
   
   
   <td></td><td>::</td>
@@ -681,7 +681,7 @@
       <span class="c">!</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">pawK</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">):</span><span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">))</span> <span class="p">)</span>
       <span class="c">!</span>
-      <span class="k">call </span><span class="n">pawCorrectionKPC</span><span class="p">()</span>
+      <span class="k">call </span><span class="n">pawCorrectionK</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">)</span>
       <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
 <span class="k">        call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
@@ -695,7 +695,7 @@
       <span class="c">!</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">pawK</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">):</span><span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="p">)</span> <span class="p">)</span>
       <span class="c">!</span>
-      <span class="k">call </span><span class="n">pawCorrectionSDK</span><span class="p">()</span>
+      <span class="k">call </span><span class="n">pawCorrectionK</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">)</span>
       <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span><span class="p">)</span> <span class="k">then</span>
         <span class="c">!</span>

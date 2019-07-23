@@ -546,7 +546,7 @@
 <a name="ln-277"></a>      <span class="c">!</span>
 <a name="ln-278"></a>      <span class="k">allocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">pawK</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">):</span><span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">))</span> <span class="p">)</span>
 <a name="ln-279"></a>      <span class="c">!</span>
-<a name="ln-280"></a>      <span class="k">call </span><span class="n">pawCorrectionKPC</span><span class="p">()</span>
+<a name="ln-280"></a>      <span class="k">call </span><span class="n">pawCorrectionK</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">)</span>
 <a name="ln-281"></a>      <span class="c">!</span>
 <a name="ln-282"></a>      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
 <a name="ln-283"></a><span class="k">        call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
@@ -560,7 +560,7 @@
 <a name="ln-291"></a>      <span class="c">!</span>
 <a name="ln-292"></a>      <span class="k">allocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">pawK</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">):</span><span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="p">)</span> <span class="p">)</span>
 <a name="ln-293"></a>      <span class="c">!</span>
-<a name="ln-294"></a>      <span class="k">call </span><span class="n">pawCorrectionSDK</span><span class="p">()</span>
+<a name="ln-294"></a>      <span class="k">call </span><span class="n">pawCorrectionK</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">)</span>
 <a name="ln-295"></a>      <span class="c">!</span>
 <a name="ln-296"></a>      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-297"></a>        <span class="c">!</span>

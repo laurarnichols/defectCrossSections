@@ -277,7 +277,7 @@ program transitionMatrixElements
       !
       allocate ( perfectCrystal%pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid)) )
       !
-      call pawCorrectionKPC()
+      call pawCorrectionK(perfectCrystal)
       !
       if ( myid == root ) then
         call cpu_time(t2)
@@ -291,7 +291,7 @@ program transitionMatrixElements
       !
       allocate ( solidDefect%pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid) ) )
       !
-      call pawCorrectionSDK()
+      call pawCorrectionK(solidDefect)
       !
       if ( myid == root) then
         !

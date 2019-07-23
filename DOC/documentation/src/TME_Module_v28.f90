@@ -1473,7 +1473,7 @@ contains
   end subroutine pawCorrectionWfc
   !
   !
-  subroutine pawCorrectionKPC()
+  subroutine pawCorrectionK(system)
     !! @todo Figure out what this subroutine really does @endtodo
     !!
     !! <h2>Walkthrough</h2>
@@ -1522,6 +1522,10 @@ contains
       !! \(e^{-i\mathbf{G}\cdot\mathbf{r}}\)
     complex(kind = dp) :: VifQ_aug
     !
+    TYPE(crystal), intent(inout) :: system
+      !! Holds the structure for the system you are working on
+      !! (either `perfectCrystal` or `solidDefect`)
+    !
     ispin = 1
       !! * Set the value of `ispin` to 1
       !! @note
@@ -1532,7 +1536,7 @@ contains
     call cpu_time(t1)
       !! * Start a timer
     !
-    perfectCrystal%pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    system%pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
       !! * Initialize all values in `pawK` to complex double zero
     !
     do iPW = nPWsI(myid), nPWsF(myid) 
@@ -1576,9 +1580,9 @@ contains
       LMBASE = 0
         !! * Initialize the base offset for `cProj`'s first index to zero
       !
-      do iAtomType = 1, perfectCrystal%numOfTypes
+      do iAtomType = 1, system%numOfTypes
         !
-        do iR = 1, perfectCrystal%atoms(iAtomType)%iRAugMax 
+        do iR = 1, system%atoms(iAtomType)%iRAugMax 
           !! * For each atom type, loop through the r points
           !!   in the augmentation sphere and calculate the 
           !!   spherical Bessel functions from 0 to `JMAX`
@@ -1587,17 +1591,17 @@ contains
           JL = 0.0_dp
           !
           call bessel_j(q*solidDefect%atoms(iAtomType)%r(iR), JMAX, JL) ! returns the spherical bessel at qr point
-            !! @todo Figure out if this should be perfect crystal @endtodo
+            !! @todo Figure out if this should be `system` @endtodo
             !! @todo Figure out significance of "qr" point @endtodo
           !
-          perfectCrystal%atoms(iAtomType)%bes_J_qr(:,iR) = JL(:)
+          system%atoms(iAtomType)%bes_J_qr(:,iR) = JL(:)
             !! @todo Test if can just directly store in each atom type's `bes_J_qr` @endtodo
           !
         enddo
         !
       enddo
       !
-      do iIon = 1, perfectCrystal%nIons 
+      do iIon = 1, system%nIons 
         !! * For each atom in the system
         !!    * Calculate \(\mathbf{G}\cdot\mathbf{r}\)
         !!    * Calculate \(e^{-i\mathbf{G}\cdot\mathbf{r}}\)
@@ -1610,19 +1614,21 @@ contains
         !!         Y_l^m(\mathbf{G}/|\mathbf{G}|)(-i)^l\text{FI}\)
         !!       * Loop over the bands, summing `VifQ_aug*cProj` to get `pawK`
         !
-        qDotR = sum(gvecs(:,iPW)*perfectCrystal%posIon(:,iIon))
+        qDotR = sum(gvecs(:,iPW)*system%posIon(:,iIon))
           !! @todo Figure out if this should be `gDotR` @endtodo
         !
-        ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
+        if ( system%crystalType == 'PC' ) ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
+        if ( system%crystalType == 'SD' ) ATOMIC_CENTER = exp( ii*cmplx(qDotR, 0.0_dp, kind = dp) )
           !! @todo Figure out why this is called `ATOMIC_CENTER` @endtodo
+          !! @todo Figure out why the difference between SD and PC @endtodo
         !
-        iAtomType = perfectCrystal%atomTypeIndex(iIon)
+        iAtomType = system%atomTypeIndex(iIon)
         !
         LM = 0
         !
-        do iProj = 1, perfectCrystal%atoms(iAtomType)%numProjs
+        do iProj = 1, system%atoms(iAtomType)%numProjs
           !
-          l = perfectCrystal%atoms(iAtomType)%projAngMom(iProj)
+          l = system%atoms(iAtomType)%projAngMom(iProj)
           !
           do m = -l, l
             !
@@ -1630,17 +1636,22 @@ contains
             !
             FI = 0.0_dp
             !
-            FI = sum(perfectCrystal%atoms(iAtomType)%bes_J_qr(l,:)*perfectCrystal%atoms(iAtomType)%F(:,iProj)) ! radial part integration F contains rab
+            FI = sum(system%atoms(iAtomType)%bes_J_qr(l,:)*system%atoms(iAtomType)%F(:,iProj)) ! radial part integration F contains rab
             !
             ind = l*(l + 1) + m + 1 ! index for spherical harmonics
-            VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**l*FI
+            if ( system%crystalType == 'PC' ) VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**l*FI
+            if ( system%crystalType == 'SD' ) VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**l*FI
+              !! @todo Figure out why the difference between SD and PC @endtodo
             !
             do ibi = iBandIinit, iBandIfinal
               !
               do ibf = iBandFinit, iBandFfinal
                 !
-                perfectCrystal%pawK(ibf, ibi, iPW) = perfectCrystal%pawK(ibf, ibi, iPW) + &
-                                                     VifQ_aug*perfectCrystal%cProj(LM + LMBASE, ibi, ISPIN)
+                if ( system%crystalType == 'PC' ) system%pawK(ibf, ibi, iPW) = system%pawK(ibf, ibi, iPW) + &
+                                                     VifQ_aug*system%cProj(LM + LMBASE, ibi, ISPIN)
+                if ( system%crystalType == 'SD' ) system%pawK(ibf, ibi, iPW) = system%pawK(ibf, ibi, iPW) + &
+                                                     VifQ_aug*conjg(system%cProj(LM + LMBASE, ibi, ISPIN))
+                  !! @todo Figure out why the difference between SD and PC @endtodo
                 !
               enddo
               !
@@ -1648,115 +1659,16 @@ contains
             !
           ENDDO
         ENDDO
-        LMBASE = LMBASE + perfectCrystal%atoms(iAtomType)%lmMax
+        LMBASE = LMBASE + system%atoms(iAtomType)%lmMax
       ENDDO
       !
     enddo
     !
-    !perfectCrystal%pawK(:,:,:) = perfectCrystal%pawK(:,:,:)*4.0_dp*pi/sqrt(solidDefect%omega)
+    !system%pawK(:,:,:) = system%pawK(:,:,:)*4.0_dp*pi/sqrt(solidDefect%omega)
     !
     return
     !
-  end subroutine pawCorrectionKPC
-  !
-  !
-  subroutine pawCorrectionSDK()
-    !! @todo Document `pawCorrectionSDK()` @endtodo
-    !! @todo Figure out the difference between PC and SD `pawCorrection_K` and possibly merge @endtodo
-    !
-    implicit none
-    !
-    !integer, intent(in) :: ik
-    !
-    integer :: ibi, ibf, ispin, ig
-    integer :: LL, I, NI, LMBASE, LM
-    integer :: L, M, ind, iT
-    real(kind = dp) :: q, qDotR, FI, t1, t2
-    !
-    real(kind = dp) :: JL(0:JMAX), v_in(3)
-    complex(kind = dp) :: Y( (JMAX+1)**2 )
-    complex(kind = dp) :: VifQ_aug, ATOMIC_CENTER
-    !
-    ispin = 1
-    !
-    call cpu_time(t1)
-    !
-    solidDefect%pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    !
-    do ig = nPWsI(myid), nPWsF(myid) ! 1, solidDefect%numOfGvecs
-      !
-      if ( myid == root ) then
-        if ( (ig == nPWsI(myid) + 1000) .or. (mod(ig, 25000) == 0) .or. (ig == nPWsF(myid)) ) then
-          call cpu_time(t2)
-          write(iostd, '("        Done ", i10, " of", i10, " k-vecs. ETR : ", f10.2, " secs.")') &
-                ig, nPWsF(myid) - nPWsI(myid) + 1, (t2-t1)*(nPWsF(myid) - nPWsI(myid) + 1 -ig )/ig
-          flush(iostd)
-          call cpu_time(t1)
-        endif
-      endif
-      q = sqrt(sum(gvecs(:,ig)*gvecs(:,ig)))
-      !
-      v_in(:) = gvecs(:,ig)
-      if ( abs(q) > 1.0e-6_dp ) v_in = v_in/q ! i have to determine v_in = q
-      Y = cmplx(0.0_dp, 0.0_dp, kind = dp)
-      CALL ylm(v_in, JMAX, Y) ! calculates all the needed spherical harmonics once
-      !
-      LMBASE = 0
-      !
-      do iT = 1, solidDefect%numOfTypes
-        !
-        DO I = 1, solidDefect%atoms(iT)%iRAugMax ! nMax - 1
-          !
-          JL = 0.0_dp
-          CALL bessel_j(q*solidDefect%atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
-          solidDefect%atoms(iT)%bes_J_qr(:,I) = JL(:)
-          !
-        ENDDO
-      enddo
-      !
-      do ni = 1, solidDefect%nIons ! LOOP OVER THE IONS
-        !
-        qDotR = sum(gvecs(:,ig)*solidDefect%posIon(:,ni))
-        !
-        ATOMIC_CENTER = exp( ii*cmplx(qDotR, 0.0_dp, kind = dp) )
-        !
-        iT = solidDefect%atomTypeIndex(ni)
-        LM = 0
-        DO LL = 1, solidDefect%atoms(iT)%numProjs
-          L = solidDefect%atoms(iT)%projAngMom(LL)
-          DO M = -L, L
-            LM = LM + 1 !1st index for CPROJ
-            !
-            FI = 0.0_dp
-            !
-            FI = sum(solidDefect%atoms(iT)%bes_J_qr(L,:)*solidDefect%atoms(iT)%F(:,LL)) ! radial part integration F contains rab
-            !
-            ind = L*(L + 1) + M + 1 ! index for spherical harmonics
-            VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**L*FI
-            !
-            do ibi = iBandIinit, iBandIfinal
-              !
-              do ibf = iBandFinit, iBandFfinal
-                !
-                solidDefect%pawK(ibf, ibi, ig) = solidDefect%pawK(ibf, ibi, ig) + &
-                                                 VifQ_aug*conjg(solidDefect%cProj(LM + LMBASE, ibf, ISPIN))
-                !
-              enddo
-              !
-            enddo
-            !
-          ENDDO
-        ENDDO
-        LMBASE = LMBASE + solidDefect%atoms(iT)%lmMax
-      ENDDO
-      !
-    enddo
-    !
-    !solidDefect%pawK(:,:,:) = solidDefect%pawK(:,:,:)*4.0_dp*pi/sqrt(solidDefect%omega)
-    !
-    return
-    !
-  end subroutine pawCorrectionSDK
+  end subroutine pawCorrectionK
   !
   !
   subroutine pawCorrection()
