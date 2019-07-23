@@ -317,7 +317,18 @@ public subroutine pawCorrectionKPC()
 <li>
 <p>Initialize the base offset for <code>cProj</code>'s first index to zero</p>
 </li>
+<li>
+<p>For each atom type, loop through the r points
+   in the augmentation sphere and calculate the 
+   spherical Bessel functions from 0 to <code>JMAX</code>
+   at each point</p>
+</li>
 </ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if this should be perfect crystal </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out significance of "qr" point </p></div>
+<p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Test if can just directly store in each atom type's <code>bes_J_qr</code> </p></div>
+<p>
     
 
     <h3>Arguments</h3>
@@ -872,17 +883,26 @@ public subroutine pawCorrectionKPC()
       <span class="c">!</span>
       <span class="k">do </span><span class="n">iAtomType</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">numOfTypes</span>
         <span class="c">!</span>
-        <span class="k">do </span><span class="n">iR</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">iRAugMax</span> <span class="c">! nMax - 1</span>
+        <span class="k">do </span><span class="n">iR</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">iRAugMax</span> 
+          <span class="c">!! * For each atom type, loop through the r points</span>
+          <span class="c">!!   in the augmentation sphere and calculate the </span>
+          <span class="c">!!   spherical Bessel functions from 0 to `JMAX`</span>
+          <span class="c">!!   at each point</span>
           <span class="c">!</span>
           <span class="n">JL</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+          <span class="c">!</span>
           <span class="k">call </span><span class="n">bessel_j</span><span class="p">(</span><span class="n">q</span><span class="o">*</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">r</span><span class="p">(</span><span class="n">iR</span><span class="p">),</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">JL</span><span class="p">)</span> <span class="c">! returns the spherical bessel at qr point</span>
+            <span class="c">!! @todo Figure out if this should be perfect crystal @endtodo</span>
+            <span class="c">!! @todo Figure out significance of &quot;qr&quot; point @endtodo</span>
+          <span class="c">!</span>
           <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">bes_J_qr</span><span class="p">(:,</span><span class="n">iR</span><span class="p">)</span> <span class="o">=</span> <span class="n">JL</span><span class="p">(:)</span>
+            <span class="c">!! @todo Test if can just directly store in each atom type&#39;s `bes_J_qr` @endtodo</span>
           <span class="c">!</span>
         <span class="n">enddo</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
-      <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nIons</span> <span class="c">! LOOP OVER THE IONS</span>
+      <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nIons</span> 
         <span class="c">!</span>
         <span class="n">qDotR</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">gvecs</span><span class="p">(:,</span><span class="n">iPW</span><span class="p">)</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">posIon</span><span class="p">(:,</span><span class="n">ni</span><span class="p">))</span>
         <span class="c">!</span>

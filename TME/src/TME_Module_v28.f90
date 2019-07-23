@@ -1561,17 +1561,26 @@ contains
       !
       do iAtomType = 1, perfectCrystal%numOfTypes
         !
-        do iR = 1, perfectCrystal%atoms(iAtomType)%iRAugMax ! nMax - 1
+        do iR = 1, perfectCrystal%atoms(iAtomType)%iRAugMax 
+          !! * For each atom type, loop through the r points
+          !!   in the augmentation sphere and calculate the 
+          !!   spherical Bessel functions from 0 to `JMAX`
+          !!   at each point
           !
           JL = 0.0_dp
+          !
           call bessel_j(q*solidDefect%atoms(iAtomType)%r(iR), JMAX, JL) ! returns the spherical bessel at qr point
+            !! @todo Figure out if this should be perfect crystal @endtodo
+            !! @todo Figure out significance of "qr" point @endtodo
+          !
           perfectCrystal%atoms(iAtomType)%bes_J_qr(:,iR) = JL(:)
+            !! @todo Test if can just directly store in each atom type's `bes_J_qr` @endtodo
           !
         enddo
         !
       enddo
       !
-      do ni = 1, perfectCrystal%nIons ! LOOP OVER THE IONS
+      do ni = 1, perfectCrystal%nIons 
         !
         qDotR = sum(gvecs(:,iPW)*perfectCrystal%posIon(:,ni))
         !
