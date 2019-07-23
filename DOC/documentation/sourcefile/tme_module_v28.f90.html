@@ -2055,123 +2055,123 @@
 <a name="ln-1786"></a>  <span class="c">!! Returns the [spherical harmonics](http://mathworld.wolfram.com/SphericalHarmonic.html) </span>
 <a name="ln-1787"></a>  <span class="c">!! for a given argument vector up to the maximum value of \(l\) given</span>
 <a name="ln-1788"></a>  <span class="c">!!</span>
-<a name="ln-1789"></a>  <span class="c">!! `lmax`   : spherical harmonics are calculated for </span>
-<a name="ln-1790"></a>  <span class="c">!!            \(l = 0, 1, ..., l_{\text{max}}\)&lt;br/&gt;</span>
-<a name="ln-1791"></a>  <span class="c">!! `v`      : vector, argument of the spherical harmonics (we calculate</span>
-<a name="ln-1792"></a>  <span class="c">!!            \(Y_l^m(\mathbf{v}/|\mathbf{v}|)\))&lt;br/&gt;</span>
-<a name="ln-1793"></a>  <span class="c">!! `y`      : array containing \(Y_l^m(\mathbf{v})\) for several \(l,m\)</span>
-<a name="ln-1794"></a>  <span class="c">!!</span>
-<a name="ln-1795"></a>  <span class="c">!! &lt;h2&gt;Description&lt;/h2&gt;</span>
-<a name="ln-1796"></a>  <span class="c">!!   &lt;h3&gt;Purpose&lt;/h3&gt;</span>
-<a name="ln-1797"></a>  <span class="c">!!        The spherical harmonics (Condon and Shortley convention)</span>
-<a name="ln-1798"></a>  <span class="c">!!          \(Y_0^0,Y_1^{-1},Y_1^0,Y_1^1,Y_2^{-2} ... Y_{l_{\text{max}}}^{l_{\text{max}}}\)</span>
-<a name="ln-1799"></a>  <span class="c">!!        for vector \(\mathbf{V}\) (given in Cartesian coordinates)</span>
-<a name="ln-1800"></a>  <span class="c">!!        are calculated. In the Condon Shortley convention the</span>
-<a name="ln-1801"></a>  <span class="c">!!        spherical harmonics are defined as</span>
-<a name="ln-1802"></a>  <span class="c">!!        \[ Y_l^m = (-1)^m \sqrt{\frac{1}{\pi}} P_l^m(\cos{\theta})</span>
-<a name="ln-1803"></a>  <span class="c">!!        e^{im\phi} \]</span>
-<a name="ln-1804"></a>  <span class="c">!!        where  \(P_l^m(\cos{\theta})\) is the normalized Associated</span>
-<a name="ln-1805"></a>  <span class="c">!!        Legendre function. Thus,</span>
-<a name="ln-1806"></a>  <span class="c">!!                     \[  Y_l^{-m} = (-1)^m (Y_l^m)^* \]</span>
-<a name="ln-1807"></a>  <span class="c">!!</span>
-<a name="ln-1808"></a>  <span class="c">!!   &lt;h3&gt;Usage&lt;/h3&gt;</span>
-<a name="ln-1809"></a>  <span class="c">!!</span>
+<a name="ln-1789"></a>  <span class="c">!! &lt;h2&gt;Description&lt;/h2&gt;</span>
+<a name="ln-1790"></a>  <span class="c">!!   &lt;h3&gt;Purpose&lt;/h3&gt;</span>
+<a name="ln-1791"></a>  <span class="c">!!        The spherical harmonics (Condon and Shortley convention)</span>
+<a name="ln-1792"></a>  <span class="c">!!          \(Y_0^0,Y_1^{-1},Y_1^0,Y_1^1,Y_2^{-2} ... Y_{l_{\text{max}}}^{l_{\text{max}}}\)</span>
+<a name="ln-1793"></a>  <span class="c">!!        for vector \(\mathbf{V}\) (given in Cartesian coordinates)</span>
+<a name="ln-1794"></a>  <span class="c">!!        are calculated. In the Condon Shortley convention the</span>
+<a name="ln-1795"></a>  <span class="c">!!        spherical harmonics are defined as</span>
+<a name="ln-1796"></a>  <span class="c">!!        \[ Y_l^m = (-1)^m \sqrt{\frac{1}{\pi}} P_l^m(\cos{\theta})</span>
+<a name="ln-1797"></a>  <span class="c">!!        e^{im\phi} \]</span>
+<a name="ln-1798"></a>  <span class="c">!!        where  \(P_l^m(\cos{\theta})\) is the normalized Associated</span>
+<a name="ln-1799"></a>  <span class="c">!!        Legendre function. Thus,</span>
+<a name="ln-1800"></a>  <span class="c">!!                     \[  Y_l^{-m} = (-1)^m (Y_l^m)^* \]</span>
+<a name="ln-1801"></a>  <span class="c">!!</span>
+<a name="ln-1802"></a>  <span class="c">!!   &lt;h3&gt;Usage&lt;/h3&gt;</span>
+<a name="ln-1803"></a>  <span class="c">!!</span>
+<a name="ln-1804"></a>  <span class="c">!!</span>
+<a name="ln-1805"></a>  <span class="c">!!        DOUBLE PRECISION V(3), Y(5*5)</span>
+<a name="ln-1806"></a>  <span class="c">!!        V(1) = ...</span>
+<a name="ln-1807"></a>  <span class="c">!!        V(2) = ...</span>
+<a name="ln-1808"></a>  <span class="c">!!        V(3) = ...</span>
+<a name="ln-1809"></a>  <span class="c">!!        CALL YLM(V,4,Y)</span>
 <a name="ln-1810"></a>  <span class="c">!!</span>
-<a name="ln-1811"></a>  <span class="c">!!        DOUBLE PRECISION V(3), Y(5*5)</span>
-<a name="ln-1812"></a>  <span class="c">!!        V(1) = ...</span>
-<a name="ln-1813"></a>  <span class="c">!!        V(2) = ...</span>
-<a name="ln-1814"></a>  <span class="c">!!        V(3) = ...</span>
-<a name="ln-1815"></a>  <span class="c">!!        CALL YLM(V,4,Y)</span>
-<a name="ln-1816"></a>  <span class="c">!!</span>
-<a name="ln-1817"></a>  <span class="c">!!   &lt;h3&gt;Argument Description&lt;/h3&gt;</span>
-<a name="ln-1818"></a>  <span class="c">!!     &lt;ul&gt;</span>
-<a name="ln-1819"></a>  <span class="c">!!          &lt;li&gt; </span>
-<a name="ln-1820"></a>  <span class="c">!!                  `V`      - `DOUBLE PRECISION` vector, dimension 3        (input)&lt;br/&gt;</span>
-<a name="ln-1821"></a>  <span class="c">!!                   Must be given in Cartesian coordinates.</span>
-<a name="ln-1822"></a>  <span class="c">!!                   Conversion of V to polar coordinates gives the</span>
-<a name="ln-1823"></a>  <span class="c">!!                   angles \(\theta\) and \(\phi\) necessary for the calculation</span>
-<a name="ln-1824"></a>  <span class="c">!!                   of the spherical harmonics.  </span>
+<a name="ln-1811"></a>  <span class="c">!!   &lt;h3&gt;Argument Description&lt;/h3&gt;</span>
+<a name="ln-1812"></a>  <span class="c">!!     &lt;ul&gt;</span>
+<a name="ln-1813"></a>  <span class="c">!!          &lt;li&gt; </span>
+<a name="ln-1814"></a>  <span class="c">!!                  `V`      - `DOUBLE PRECISION` vector, dimension 3        (input)&lt;br/&gt;</span>
+<a name="ln-1815"></a>  <span class="c">!!                   Must be given in Cartesian coordinates.</span>
+<a name="ln-1816"></a>  <span class="c">!!                   Conversion of V to polar coordinates gives the</span>
+<a name="ln-1817"></a>  <span class="c">!!                   angles \(\theta\) and \(\phi\) necessary for the calculation</span>
+<a name="ln-1818"></a>  <span class="c">!!                   of the spherical harmonics.  </span>
+<a name="ln-1819"></a>  <span class="c">!!          &lt;/li&gt;</span>
+<a name="ln-1820"></a>  <span class="c">!!          &lt;li&gt;</span>
+<a name="ln-1821"></a>  <span class="c">!!                   `LMAX`   - `INTEGER` value                               (input)&lt;br/&gt;</span>
+<a name="ln-1822"></a>  <span class="c">!!                   upper bound of \(l\) for which spherical harmonics</span>
+<a name="ln-1823"></a>  <span class="c">!!                   will be calculated&lt;br/&gt;</span>
+<a name="ln-1824"></a>  <span class="c">!!                   constraint: `LMAX &gt;= 0`  </span>
 <a name="ln-1825"></a>  <span class="c">!!          &lt;/li&gt;</span>
 <a name="ln-1826"></a>  <span class="c">!!          &lt;li&gt;</span>
-<a name="ln-1827"></a>  <span class="c">!!                   `LMAX`   - `INTEGER` value                               (input)&lt;br/&gt;</span>
-<a name="ln-1828"></a>  <span class="c">!!                   upper bound of \(l\) for which spherical harmonics</span>
-<a name="ln-1829"></a>  <span class="c">!!                   will be calculated&lt;br/&gt;</span>
-<a name="ln-1830"></a>  <span class="c">!!                   constraint: `LMAX &gt;= 0`  </span>
-<a name="ln-1831"></a>  <span class="c">!!          &lt;/li&gt;</span>
-<a name="ln-1832"></a>  <span class="c">!!          &lt;li&gt;</span>
-<a name="ln-1833"></a>  <span class="c">!!                   `Y`      - `COMPLEX*16` array, dimension `(LMAX+1)**2`    (output)&lt;br/&gt;</span>
-<a name="ln-1834"></a>  <span class="c">!!                   contains the calculated spherical harmonics&lt;br/&gt;</span>
-<a name="ln-1835"></a>  <span class="c">!!                   `Y(1)` for \(l=0\) (\(m = 0\))&lt;br/&gt;</span>
-<a name="ln-1836"></a>  <span class="c">!!                   `Y(2), ..., Y(4)` for \(l = 1\) (\(m = -1, 0, 1\))&lt;br/&gt;</span>
-<a name="ln-1837"></a>  <span class="c">!!                   ...&lt;br/&gt;</span>
-<a name="ln-1838"></a>  <span class="c">!!                   `Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))` for \(l = l_{\text{max}}\) </span>
-<a name="ln-1839"></a>  <span class="c">!!                            (\(m = -l,...,l\))&lt;br/&gt;</span>
-<a name="ln-1840"></a>  <span class="c">!!                   constraint: Dimension of `Y` \(\geq (l_{\text{max}} + 1)^2\) (not checked)</span>
-<a name="ln-1841"></a>  <span class="c">!!          &lt;/li&gt;</span>
-<a name="ln-1842"></a>  <span class="c">!!        &lt;/ul&gt;</span>
+<a name="ln-1827"></a>  <span class="c">!!                   `Y`      - `COMPLEX*16` array, dimension `(LMAX+1)**2`    (output)&lt;br/&gt;</span>
+<a name="ln-1828"></a>  <span class="c">!!                   contains the calculated spherical harmonics&lt;br/&gt;</span>
+<a name="ln-1829"></a>  <span class="c">!!                   `Y(1)` for \(l=0\) (\(m = 0\))&lt;br/&gt;</span>
+<a name="ln-1830"></a>  <span class="c">!!                   `Y(2), ..., Y(4)` for \(l = 1\) (\(m = -1, 0, 1\))&lt;br/&gt;</span>
+<a name="ln-1831"></a>  <span class="c">!!                   ...&lt;br/&gt;</span>
+<a name="ln-1832"></a>  <span class="c">!!                   `Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))` for \(l = l_{\text{max}}\) </span>
+<a name="ln-1833"></a>  <span class="c">!!                            (\(m = -l,...,l\))&lt;br/&gt;</span>
+<a name="ln-1834"></a>  <span class="c">!!                   constraint: Dimension of `Y` \(\geq (l_{\text{max}} + 1)^2\) (not checked)</span>
+<a name="ln-1835"></a>  <span class="c">!!          &lt;/li&gt;</span>
+<a name="ln-1836"></a>  <span class="c">!!        &lt;/ul&gt;</span>
+<a name="ln-1837"></a>  <span class="c">!!</span>
+<a name="ln-1838"></a>  <span class="c">!!   &lt;h3&gt;Used Subroutines (Directly Called)&lt;/h3&gt;</span>
+<a name="ln-1839"></a>  <span class="c">!!           none</span>
+<a name="ln-1840"></a>  <span class="c">!!</span>
+<a name="ln-1841"></a>  <span class="c">!!   &lt;h3&gt;Indirectly Called Subroutines&lt;/h3&gt;</span>
+<a name="ln-1842"></a>  <span class="c">!!           none</span>
 <a name="ln-1843"></a>  <span class="c">!!</span>
-<a name="ln-1844"></a>  <span class="c">!!   &lt;h3&gt;Used Subroutines (Directly Called)&lt;/h3&gt;</span>
+<a name="ln-1844"></a>  <span class="c">!!   &lt;h3&gt;Input/Output (Read/Write)&lt;/h3&gt;</span>
 <a name="ln-1845"></a>  <span class="c">!!           none</span>
 <a name="ln-1846"></a>  <span class="c">!!</span>
-<a name="ln-1847"></a>  <span class="c">!!   &lt;h3&gt;Indirectly Called Subroutines&lt;/h3&gt;</span>
-<a name="ln-1848"></a>  <span class="c">!!           none</span>
-<a name="ln-1849"></a>  <span class="c">!!</span>
-<a name="ln-1850"></a>  <span class="c">!!   &lt;h3&gt;Input/Output (Read/Write)&lt;/h3&gt;</span>
-<a name="ln-1851"></a>  <span class="c">!!           none</span>
-<a name="ln-1852"></a>  <span class="c">!!</span>
-<a name="ln-1853"></a>  <span class="c">!!   &lt;h3&gt;Machine Dependent Program Parts&lt;/h3&gt;</span>
-<a name="ln-1854"></a>  <span class="c">!!           Type `COMPLEX*16` is used which does not conform to the</span>
-<a name="ln-1855"></a>  <span class="c">!!           FORTRAN 77 standard.</span>
-<a name="ln-1856"></a>  <span class="c">!!           Also the non-standard type conversion function `DCMPLX()`</span>
-<a name="ln-1857"></a>  <span class="c">!!           is used which combines two double precision values into</span>
-<a name="ln-1858"></a>  <span class="c">!!           one double complex value.</span>
-<a name="ln-1859"></a>  <span class="c">!!</span>
-<a name="ln-1860"></a>  <span class="c">!!   &lt;h3&gt;Method&lt;/h3&gt;</span>
-<a name="ln-1861"></a>  <span class="c">!!           The basic algorithm used to calculate the spherical</span>
-<a name="ln-1862"></a>  <span class="c">!!           harmonics for vector \(\mathbf{V}\) is as follows:</span>
-<a name="ln-1863"></a>  <span class="c">!!</span>
-<a name="ln-1864"></a>  <span class="c">!!</span>
-<a name="ln-1865"></a>  <span class="c">!!           Y(0,0)</span>
-<a name="ln-1866"></a>  <span class="c">!!           Y(1,0)</span>
-<a name="ln-1867"></a>  <span class="c">!!           Y(1,1)</span>
-<a name="ln-1868"></a>  <span class="c">!!           Y(1,-1) = -Y(1,1)</span>
-<a name="ln-1869"></a>  <span class="c">!!           DO L = 2, LMAX</span>
-<a name="ln-1870"></a>  <span class="c">!!              Y(L,L)   = f(Y(L-1,L-1)) ... Formula 1</span>
-<a name="ln-1871"></a>  <span class="c">!!              Y(L,L-1) = f(Y(L-1,L-1)) ... Formula 2</span>
-<a name="ln-1872"></a>  <span class="c">!!              DO M = L-2, 0, -1</span>
-<a name="ln-1873"></a>  <span class="c">!!                 Y(L,M) = f(Y(L-1,M),Y(L-2,M)) ... Formula 2</span>
-<a name="ln-1874"></a>  <span class="c">!!                 Y(L,-M)= (-1)**M*CONJG(Y(L,M))</span>
-<a name="ln-1875"></a>  <span class="c">!!              ENDDO</span>
-<a name="ln-1876"></a>  <span class="c">!!           ENDDO</span>
-<a name="ln-1877"></a>  <span class="c">!!</span>
-<a name="ln-1878"></a>  <span class="c">!!   &lt;h3&gt;Formulas&lt;/h3&gt;</span>
-<a name="ln-1879"></a>  <span class="c">!!        Starting values:</span>
-<a name="ln-1880"></a>  <span class="c">!!          \[Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\]</span>
-<a name="ln-1881"></a>  <span class="c">!!          \[Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\]</span>
-<a name="ln-1882"></a>  <span class="c">!!          \[Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\pi}\]</span>
-<a name="ln-1883"></a>  <span class="c">!!        Formula 1:</span>
-<a name="ln-1884"></a>  <span class="c">!!          \[Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}\]</span>
-<a name="ln-1885"></a>  <span class="c">!!        Formula 2:</span>
-<a name="ln-1886"></a>  <span class="c">!!          \[Y_l^m = \sqrt{\dfrac{(2l-1)(2l+1)}{(l-m)(l+m)}}\cos\theta Y_{l-1}^m - </span>
-<a name="ln-1887"></a>  <span class="c">!!                    \sqrt{\dfrac{(l-1+m)(l-1-m)(2l+1)}{(2l-3)(l-m)(l+m)}} Y_{l-2}^m\]</span>
-<a name="ln-1888"></a>  <span class="c">!!        Formula 3: (not used in the algorithm because of the division</span>
-<a name="ln-1889"></a>  <span class="c">!!                    by sin(Theta) which may be zero)</span>
-<a name="ln-1890"></a>  <span class="c">!!          \[Y_l^m = -\sqrt{\dfrac{4(m+1)(m+1)}{(l+m+1)(l-m)}}\dfrac{\cos\theta}{\sin\theta}e^{i\phi}Y_1^{m+1} -</span>
-<a name="ln-1891"></a>  <span class="c">!!                    \sqrt{\dfrac{(l-m-1)(l+m+2)}{(l-m)(l+m+1)}}e^{-2i\phi}Y_l^{m+2}\]</span>
-<a name="ln-1892"></a>  <span class="c">!!</span>
-<a name="ln-1893"></a>  <span class="c">! !REVISION HISTORY:</span>
-<a name="ln-1894"></a>  <span class="c">!   26. April 1994                                   Version 1.2</span>
-<a name="ln-1895"></a>  <span class="c">!   Taken 8 1 98 from SRC_lapw2 to SRC_telnes</span>
-<a name="ln-1896"></a>  <span class="c">!   Updated November 2004 (Kevin Jorissen)</span>
-<a name="ln-1897"></a>  <span class="c">!   cosmetics March 2005 (Kevin Jorissen)</span>
-<a name="ln-1898"></a>  <span class="c">!</span>
-<a name="ln-1899"></a>      <span class="k">implicit none</span>
-<a name="ln-1900"></a>  <span class="c">!</span>
-<a name="ln-1901"></a>  <span class="c">!   In/Output :</span>
-<a name="ln-1902"></a>  <span class="c">!</span>
-<a name="ln-1903"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">LMAX</span>
-<a name="ln-1904"></a>      <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">V_in</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-<a name="ln-1905"></a>      <span class="kt">complex</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">Y</span><span class="p">(</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-1847"></a>  <span class="c">!!   &lt;h3&gt;Machine Dependent Program Parts&lt;/h3&gt;</span>
+<a name="ln-1848"></a>  <span class="c">!!           Type `COMPLEX*16` is used which does not conform to the</span>
+<a name="ln-1849"></a>  <span class="c">!!           FORTRAN 77 standard.</span>
+<a name="ln-1850"></a>  <span class="c">!!           Also the non-standard type conversion function `DCMPLX()`</span>
+<a name="ln-1851"></a>  <span class="c">!!           is used which combines two double precision values into</span>
+<a name="ln-1852"></a>  <span class="c">!!           one double complex value.</span>
+<a name="ln-1853"></a>  <span class="c">!!</span>
+<a name="ln-1854"></a>  <span class="c">!!   &lt;h3&gt;Method&lt;/h3&gt;</span>
+<a name="ln-1855"></a>  <span class="c">!!           The basic algorithm used to calculate the spherical</span>
+<a name="ln-1856"></a>  <span class="c">!!           harmonics for vector \(\mathbf{V}\) is as follows:</span>
+<a name="ln-1857"></a>  <span class="c">!!</span>
+<a name="ln-1858"></a>  <span class="c">!!</span>
+<a name="ln-1859"></a>  <span class="c">!!           Y(0,0)</span>
+<a name="ln-1860"></a>  <span class="c">!!           Y(1,0)</span>
+<a name="ln-1861"></a>  <span class="c">!!           Y(1,1)</span>
+<a name="ln-1862"></a>  <span class="c">!!           Y(1,-1) = -Y(1,1)</span>
+<a name="ln-1863"></a>  <span class="c">!!           DO L = 2, LMAX</span>
+<a name="ln-1864"></a>  <span class="c">!!              Y(L,L)   = f(Y(L-1,L-1)) ... Formula 1</span>
+<a name="ln-1865"></a>  <span class="c">!!              Y(L,L-1) = f(Y(L-1,L-1)) ... Formula 2</span>
+<a name="ln-1866"></a>  <span class="c">!!              DO M = L-2, 0, -1</span>
+<a name="ln-1867"></a>  <span class="c">!!                 Y(L,M) = f(Y(L-1,M),Y(L-2,M)) ... Formula 2</span>
+<a name="ln-1868"></a>  <span class="c">!!                 Y(L,-M)= (-1)**M*CONJG(Y(L,M))</span>
+<a name="ln-1869"></a>  <span class="c">!!              ENDDO</span>
+<a name="ln-1870"></a>  <span class="c">!!           ENDDO</span>
+<a name="ln-1871"></a>  <span class="c">!!</span>
+<a name="ln-1872"></a>  <span class="c">!!   &lt;h3&gt;Formulas&lt;/h3&gt;</span>
+<a name="ln-1873"></a>  <span class="c">!!        Starting values:</span>
+<a name="ln-1874"></a>  <span class="c">!!          \[Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\]</span>
+<a name="ln-1875"></a>  <span class="c">!!          \[Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\]</span>
+<a name="ln-1876"></a>  <span class="c">!!          \[Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\phi}\]</span>
+<a name="ln-1877"></a>  <span class="c">!!        Formula 1:</span>
+<a name="ln-1878"></a>  <span class="c">!!          \[Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}\]</span>
+<a name="ln-1879"></a>  <span class="c">!!        Formula 2:</span>
+<a name="ln-1880"></a>  <span class="c">!!          \[Y_l^m = \sqrt{\dfrac{(2l-1)(2l+1)}{(l-m)(l+m)}}\cos\theta Y_{l-1}^m - </span>
+<a name="ln-1881"></a>  <span class="c">!!                    \sqrt{\dfrac{(l-1+m)(l-1-m)(2l+1)}{(2l-3)(l-m)(l+m)}} Y_{l-2}^m\]</span>
+<a name="ln-1882"></a>  <span class="c">!!        Formula 3: (not used in the algorithm because of the division</span>
+<a name="ln-1883"></a>  <span class="c">!!                    by \(\sin\theta\) which may be zero)</span>
+<a name="ln-1884"></a>  <span class="c">!!          \[Y_l^m = -\sqrt{\dfrac{4(m+1)(m+1)}{(l+m+1)(l-m)}}\dfrac{\cos\theta}{\sin\theta}e^{i\phi}Y_1^{m+1} -</span>
+<a name="ln-1885"></a>  <span class="c">!!                    \sqrt{\dfrac{(l-m-1)(l+m+2)}{(l-m)(l+m+1)}}e^{-2i\phi}Y_l^{m+2}\]</span>
+<a name="ln-1886"></a>  <span class="c">!!</span>
+<a name="ln-1887"></a>  <span class="c">! !REVISION HISTORY:</span>
+<a name="ln-1888"></a>  <span class="c">!   26. April 1994                                   Version 1.2</span>
+<a name="ln-1889"></a>  <span class="c">!   Taken 8 1 98 from SRC_lapw2 to SRC_telnes</span>
+<a name="ln-1890"></a>  <span class="c">!   Updated November 2004 (Kevin Jorissen)</span>
+<a name="ln-1891"></a>  <span class="c">!   cosmetics March 2005 (Kevin Jorissen)</span>
+<a name="ln-1892"></a>  <span class="c">!</span>
+<a name="ln-1893"></a>      <span class="k">implicit none</span>
+<a name="ln-1894"></a>  <span class="c">!</span>
+<a name="ln-1895"></a>  <span class="c">!   In/Output :</span>
+<a name="ln-1896"></a>  <span class="c">!</span>
+<a name="ln-1897"></a>      <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">LMAX</span>
+<a name="ln-1898"></a>        <span class="c">!! Spherical harmonics are calculated for </span>
+<a name="ln-1899"></a>        <span class="c">!! \(l = 0, 1, ..., l_{\text{max}}\)</span>
+<a name="ln-1900"></a>      <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">V_in</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<a name="ln-1901"></a>        <span class="c">!! Vector, argument of the spherical harmonics (we calculate</span>
+<a name="ln-1902"></a>        <span class="c">!! \(Y_l^m(\mathbf{v}/|\mathbf{v}|)\))</span>
+<a name="ln-1903"></a>      <span class="kt">complex</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">Y</span><span class="p">(</span><span class="o">*</span><span class="p">)</span>
+<a name="ln-1904"></a>        <span class="c">!! Array containing \(Y_l^m(\mathbf{v})\) for several \(l,m\)</span>
+<a name="ln-1905"></a>  <span class="c">!</span>
 <a name="ln-1906"></a>  <span class="c">!   Local variables :</span>
 <a name="ln-1907"></a>      <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">pi</span> <span class="o">=</span> <span class="mf">3.1415926535897932384626433_dp</span>
 <a name="ln-1908"></a>  <span class="c">!</span>

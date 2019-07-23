@@ -1786,12 +1786,6 @@ contains
   !! Returns the [spherical harmonics](http://mathworld.wolfram.com/SphericalHarmonic.html) 
   !! for a given argument vector up to the maximum value of \(l\) given
   !!
-  !! `lmax`   : spherical harmonics are calculated for 
-  !!            \(l = 0, 1, ..., l_{\text{max}}\)<br/>
-  !! `v`      : vector, argument of the spherical harmonics (we calculate
-  !!            \(Y_l^m(\mathbf{v}/|\mathbf{v}|)\))<br/>
-  !! `y`      : array containing \(Y_l^m(\mathbf{v})\) for several \(l,m\)
-  !!
   !! <h2>Description</h2>
   !!   <h3>Purpose</h3>
   !!        The spherical harmonics (Condon and Shortley convention)
@@ -1879,14 +1873,14 @@ contains
   !!        Starting values:
   !!          \[Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\]
   !!          \[Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\]
-  !!          \[Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\pi}\]
+  !!          \[Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\phi}\]
   !!        Formula 1:
   !!          \[Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}\]
   !!        Formula 2:
   !!          \[Y_l^m = \sqrt{\dfrac{(2l-1)(2l+1)}{(l-m)(l+m)}}\cos\theta Y_{l-1}^m - 
   !!                    \sqrt{\dfrac{(l-1+m)(l-1-m)(2l+1)}{(2l-3)(l-m)(l+m)}} Y_{l-2}^m\]
   !!        Formula 3: (not used in the algorithm because of the division
-  !!                    by sin(Theta) which may be zero)
+  !!                    by \(\sin\theta\) which may be zero)
   !!          \[Y_l^m = -\sqrt{\dfrac{4(m+1)(m+1)}{(l+m+1)(l-m)}}\dfrac{\cos\theta}{\sin\theta}e^{i\phi}Y_1^{m+1} -
   !!                    \sqrt{\dfrac{(l-m-1)(l+m+2)}{(l-m)(l+m+1)}}e^{-2i\phi}Y_l^{m+2}\]
   !!
@@ -1901,8 +1895,14 @@ contains
   !   In/Output :
   !
       integer, intent(in) :: LMAX
+        !! Spherical harmonics are calculated for 
+        !! \(l = 0, 1, ..., l_{\text{max}}\)
       real(kind = dp), intent(in) :: V_in(3)
+        !! Vector, argument of the spherical harmonics (we calculate
+        !! \(Y_l^m(\mathbf{v}/|\mathbf{v}|)\))
       complex(kind = dp), intent(out) :: Y(*)
+        !! Array containing \(Y_l^m(\mathbf{v})\) for several \(l,m\)
+  !
   !   Local variables :
       real(kind = dp), parameter :: pi = 3.1415926535897932384626433_dp
   !

@@ -293,12 +293,6 @@ public subroutine ylm(V_in, LMAX, Y)
     
     <p>Returns the <a href="http://mathworld.wolfram.com/SphericalHarmonic.html">spherical harmonics</a> 
  for a given argument vector up to the maximum value of <script type="math/tex">l</script> given</p>
-<p><code>lmax</code>   : spherical harmonics are calculated for 
-            <script type="math/tex">l = 0, 1, ..., l_{\text{max}}</script><br/>
- <code>v</code>      : vector, argument of the spherical harmonics (we calculate
-            <script type="math/tex">Y_l^m(\mathbf{v}/|\mathbf{v}|)</script>)<br/>
- <code>y</code>      : array containing <script type="math/tex">Y_l^m(\mathbf{v})</script> for several <script type="math/tex">l,m</script>
-</p>
 <p><h2>Description</h2>
    <h3>Purpose</h3>
         The spherical harmonics (Condon and Shortley convention)
@@ -381,14 +375,14 @@ public subroutine ylm(V_in, LMAX, Y)
         Starting values:
           <script type="math/tex; mode=display">Y_0^0 = \sqrt{\dfrac{1}{4\pi}}</script>
 <script type="math/tex; mode=display">Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta</script>
-<script type="math/tex; mode=display">Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\pi}</script>
+<script type="math/tex; mode=display">Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\phi}</script>
         Formula 1:
           <script type="math/tex; mode=display">Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}</script>
         Formula 2:
           <script type="math/tex; mode=display">Y_l^m = \sqrt{\dfrac{(2l-1)(2l+1)}{(l-m)(l+m)}}\cos\theta Y_{l-1}^m - 
                     \sqrt{\dfrac{(l-1+m)(l-1-m)(2l+1)}{(2l-3)(l-m)(l+m)}} Y_{l-2}^m</script>
         Formula 3: (not used in the algorithm because of the division
-                    by sin(Theta) which may be zero)
+                    by <script type="math/tex">\sin\theta</script> which may be zero)
           <script type="math/tex; mode=display">Y_l^m = -\sqrt{\dfrac{4(m+1)(m+1)}{(l+m+1)(l-m)}}\dfrac{\cos\theta}{\sin\theta}e^{i\phi}Y_1^{m+1} -
                     \sqrt{\dfrac{(l-m-1)(l+m+2)}{(l-m)(l+m+1)}}e^{-2i\phi}Y_l^{m+2}</script>
 </p>
@@ -417,7 +411,8 @@ public subroutine ylm(V_in, LMAX, Y)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>V_in</strong>(3)</td><td></td>
+  <td><strong>V_in</strong>(3)</td><td><p>Vector, argument of the spherical harmonics (we calculate
+ <script type="math/tex">Y_l^m(\mathbf{v}/|\mathbf{v}|)</script>)</p></td>
   
 </tr>
 
@@ -432,7 +427,9 @@ public subroutine ylm(V_in, LMAX, Y)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>LMAX</strong></td><td></td>
+  <td><strong>LMAX</strong></td><td><p>Spherical harmonics are calculated for 
+ <script type="math/tex">l = 0, 1, ..., l_{\text{max}}</script>
+</p></td>
   
 </tr>
 
@@ -447,7 +444,8 @@ public subroutine ylm(V_in, LMAX, Y)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>Y</strong>(*)</td><td></td>
+  <td><strong>Y</strong>(*)</td><td><p>Array containing <script type="math/tex">Y_l^m(\mathbf{v})</script> for several <script type="math/tex">l,m</script>
+</p></td>
   
 </tr>
 
@@ -1078,12 +1076,6 @@ public subroutine ylm(V_in, LMAX, Y)
   <span class="c">!! Returns the [spherical harmonics](http://mathworld.wolfram.com/SphericalHarmonic.html) </span>
   <span class="c">!! for a given argument vector up to the maximum value of \(l\) given</span>
   <span class="c">!!</span>
-  <span class="c">!! `lmax`   : spherical harmonics are calculated for </span>
-  <span class="c">!!            \(l = 0, 1, ..., l_{\text{max}}\)&lt;br/&gt;</span>
-  <span class="c">!! `v`      : vector, argument of the spherical harmonics (we calculate</span>
-  <span class="c">!!            \(Y_l^m(\mathbf{v}/|\mathbf{v}|)\))&lt;br/&gt;</span>
-  <span class="c">!! `y`      : array containing \(Y_l^m(\mathbf{v})\) for several \(l,m\)</span>
-  <span class="c">!!</span>
   <span class="c">!! &lt;h2&gt;Description&lt;/h2&gt;</span>
   <span class="c">!!   &lt;h3&gt;Purpose&lt;/h3&gt;</span>
   <span class="c">!!        The spherical harmonics (Condon and Shortley convention)</span>
@@ -1171,14 +1163,14 @@ public subroutine ylm(V_in, LMAX, Y)
   <span class="c">!!        Starting values:</span>
   <span class="c">!!          \[Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\]</span>
   <span class="c">!!          \[Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\]</span>
-  <span class="c">!!          \[Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\pi}\]</span>
+  <span class="c">!!          \[Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\phi}\]</span>
   <span class="c">!!        Formula 1:</span>
   <span class="c">!!          \[Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}\]</span>
   <span class="c">!!        Formula 2:</span>
   <span class="c">!!          \[Y_l^m = \sqrt{\dfrac{(2l-1)(2l+1)}{(l-m)(l+m)}}\cos\theta Y_{l-1}^m - </span>
   <span class="c">!!                    \sqrt{\dfrac{(l-1+m)(l-1-m)(2l+1)}{(2l-3)(l-m)(l+m)}} Y_{l-2}^m\]</span>
   <span class="c">!!        Formula 3: (not used in the algorithm because of the division</span>
-  <span class="c">!!                    by sin(Theta) which may be zero)</span>
+  <span class="c">!!                    by \(\sin\theta\) which may be zero)</span>
   <span class="c">!!          \[Y_l^m = -\sqrt{\dfrac{4(m+1)(m+1)}{(l+m+1)(l-m)}}\dfrac{\cos\theta}{\sin\theta}e^{i\phi}Y_1^{m+1} -</span>
   <span class="c">!!                    \sqrt{\dfrac{(l-m-1)(l+m+2)}{(l-m)(l+m+1)}}e^{-2i\phi}Y_l^{m+2}\]</span>
   <span class="c">!!</span>
@@ -1193,8 +1185,14 @@ public subroutine ylm(V_in, LMAX, Y)
   <span class="c">!   In/Output :</span>
   <span class="c">!</span>
       <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">LMAX</span>
+        <span class="c">!! Spherical harmonics are calculated for </span>
+        <span class="c">!! \(l = 0, 1, ..., l_{\text{max}}\)</span>
       <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">V_in</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="c">!! Vector, argument of the spherical harmonics (we calculate</span>
+        <span class="c">!! \(Y_l^m(\mathbf{v}/|\mathbf{v}|)\))</span>
       <span class="kt">complex</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">Y</span><span class="p">(</span><span class="o">*</span><span class="p">)</span>
+        <span class="c">!! Array containing \(Y_l^m(\mathbf{v})\) for several \(l,m\)</span>
+  <span class="c">!</span>
   <span class="c">!   Local variables :</span>
       <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">pi</span> <span class="o">=</span> <span class="mf">3.1415926535897932384626433_dp</span>
   <span class="c">!</span>

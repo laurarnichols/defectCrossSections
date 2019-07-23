@@ -4274,7 +4274,8 @@ public subroutine <a href='../proc/ylm.html'>ylm</a>(V_in, LMAX, Y)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>V_in</strong>(3)</td><td></td>
+  <td><strong>V_in</strong>(3)</td><td><p>Vector, argument of the spherical harmonics (we calculate
+ <script type="math/tex">Y_l^m(\mathbf{v}/|\mathbf{v}|)</script>)</p></td>
   
 </tr>
 
@@ -4289,7 +4290,9 @@ public subroutine <a href='../proc/ylm.html'>ylm</a>(V_in, LMAX, Y)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>LMAX</strong></td><td></td>
+  <td><strong>LMAX</strong></td><td><p>Spherical harmonics are calculated for 
+ <script type="math/tex">l = 0, 1, ..., l_{\text{max}}</script>
+</p></td>
   
 </tr>
 
@@ -4304,7 +4307,8 @@ public subroutine <a href='../proc/ylm.html'>ylm</a>(V_in, LMAX, Y)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>Y</strong>(*)</td><td></td>
+  <td><strong>Y</strong>(*)</td><td><p>Array containing <script type="math/tex">Y_l^m(\mathbf{v})</script> for several <script type="math/tex">l,m</script>
+</p></td>
   
 </tr>
 
