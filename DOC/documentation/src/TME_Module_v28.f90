@@ -1783,14 +1783,14 @@ contains
   !
   !
   subroutine ylm(v_in,lmax,y)
-  !! Returns the spherical harmonics for a given argument vector
-  !! up to the maximum value of \(l\) given
+  !! Returns the [spherical harmonics](http://mathworld.wolfram.com/SphericalHarmonic.html) 
+  !! for a given argument vector up to the maximum value of \(l\) given
   !!
   !! `lmax`   : spherical harmonics are calculated for 
   !!            \(l = 0, 1, ..., l_{\text{max}}\)<br/>
   !! `v`      : vector, argument of the spherical harmonics (we calculate
-  !!            \(Y_{lm}(\mathbf{v}/|\mathbf{v}|)\))<br/>
-  !! `y`      : array containing \(Y_{lm}(\mathbf{v})\) for several \(l,m\)
+  !!            \(Y_l^m(\mathbf{v}/|\mathbf{v}|)\))<br/>
+  !! `y`      : array containing \(Y_l^m(\mathbf{v})\) for several \(l,m\)
   !!
   !! <h2>Description</h2>
   !!   <h3>Purpose</h3>
@@ -1799,11 +1799,11 @@ contains
   !!        for vector \(\mathbf{V}\) (given in Cartesian coordinates)
   !!        are calculated. In the Condon Shortley convention the
   !!        spherical harmonics are defined as
-  !!        \[ Y(l,m) = (-1)^m \sqrt{\frac{1}{\pi}} P_{lm}(\cos{\theta})
+  !!        \[ Y_l^m = (-1)^m \sqrt{\frac{1}{\pi}} P_l^m(\cos{\theta})
   !!        e^{im\phi} \]
-  !!        where  \(P_{lm}(\cos{\theta})\) is the normalized Associated
+  !!        where  \(P_l^m(\cos{\theta})\) is the normalized Associated
   !!        Legendre function. Thus,
-  !!                     \[  Y(l,-m) = (-1)^m Y^*(l,m) \]
+  !!                     \[  Y_l^{-m} = (-1)^m (Y_l^m)^* \]
   !!
   !!   <h3>Usage</h3>
   !!
@@ -1875,11 +1875,12 @@ contains
   !!              ENDDO
   !!           ENDDO
   !!
-  !!
+  !!   <h3>Formulas</h3>
   !!           In the following the necessary recursion formulas and
   !!           starting values are given:
   !!
   !!        Start:
+  !!           * Y_0^0
   !!                        +------+
   !!                        |   1     
   !!           Y(0,0) =  -+ | -----  
