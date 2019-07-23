@@ -309,6 +309,9 @@ public subroutine pawCorrectionKPC()
    <script type="math/tex">1\times10^{-6}</script> to avoid dividing by very small numbers</p>
 </li>
 <li>Initialize the spherical harmonics to complex double zero</li>
+<li>Calculate spherical harmonics with argument <code>v_in</code> up to 
+   <script type="math/tex">Y_{J_{\text{max}}}^{\pm J_{\text{max}}}</script>
+</li>
 </ul>
     
 
@@ -854,6 +857,8 @@ public subroutine pawCorrectionKPC()
       <span class="n">Y</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span><span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
         <span class="c">!! * Initialize the spherical harmonics to complex double zero</span>
       <span class="k">call </span><span class="n">ylm</span><span class="p">(</span><span class="n">v_in</span><span class="p">,</span> <span class="n">JMAX</span><span class="p">,</span> <span class="n">Y</span><span class="p">)</span> <span class="c">! calculates all the needed spherical harmonics once</span>
+        <span class="c">!! * Calculate spherical harmonics with argument `v_in` up to </span>
+        <span class="c">!!   \(Y_{J_{\text{max}}}^{\pm J_{\text{max}}}\)</span>
       <span class="c">!</span>
       <span class="n">LMBASE</span> <span class="o">=</span> <span class="mi">0</span>
       <span class="c">!</span>

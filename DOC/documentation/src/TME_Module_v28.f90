@@ -1551,6 +1551,8 @@ contains
       Y = cmplx(0.0_dp, 0.0_dp, kind = dp)
         !! * Initialize the spherical harmonics to complex double zero
       call ylm(v_in, JMAX, Y) ! calculates all the needed spherical harmonics once
+        !! * Calculate spherical harmonics with argument `v_in` up to 
+        !!   \(Y_{J_{\text{max}}}^{\pm J_{\text{max}}}\)
       !
       LMBASE = 0
       !
