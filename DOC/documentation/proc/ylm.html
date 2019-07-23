@@ -354,82 +354,79 @@ public subroutine ylm(V_in, LMAX, Y)
 <p><h3>Input/Output (Read/Write)</h3>
            none</p>
 <p><h3>Machine Dependent Program Parts</h3>
-           Type COMPLEX*16 is used which does not conform to the
+           Type <code>COMPLEX*16</code> is used which does not conform to the
            FORTRAN 77 standard.
            Also the non-standard type conversion function <code>DCMPLX()</code>
            is used which combines two double precision values into
            one double complex value.</p>
-<ol>
-<li>METHOD
+<p><h3>Method</h3>
            The basic algorithm used to calculate the spherical
-           harmonics for vector V is as follows:<div class="codehilite"><pre><span></span>   <span class="nv">Y</span><span class="ss">(</span><span class="mi">0</span>,<span class="mi">0</span><span class="ss">)</span>
-   <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">0</span><span class="ss">)</span>
-   <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">1</span><span class="ss">)</span>
-   <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="o">-</span><span class="mi">1</span><span class="ss">)</span> <span class="o">=</span> <span class="o">-</span><span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">1</span><span class="ss">)</span>
-   <span class="k">DO</span> <span class="nv">L</span> <span class="o">=</span> <span class="mi">2</span>, <span class="nv">LMAX</span>
-      <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">L</span><span class="ss">)</span>   <span class="o">=</span> <span class="nv">f</span><span class="ss">(</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">L</span><span class="o">-</span><span class="mi">1</span><span class="ss">))</span> ... <span class="nv">Formula</span> <span class="mi">1</span>
-      <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">L</span><span class="o">-</span><span class="mi">1</span><span class="ss">)</span> <span class="o">=</span> <span class="nv">f</span><span class="ss">(</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">L</span><span class="o">-</span><span class="mi">1</span><span class="ss">))</span> ... <span class="nv">Formula</span> <span class="mi">2</span>
-      <span class="k">DO</span> <span class="nv">M</span> <span class="o">=</span> <span class="nv">L</span><span class="o">-</span><span class="mi">2</span>, <span class="mi">0</span>, <span class="o">-</span><span class="mi">1</span>
-         <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">M</span><span class="ss">)</span> <span class="o">=</span> <span class="nv">f</span><span class="ss">(</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">M</span><span class="ss">)</span>,<span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">2</span>,<span class="nv">M</span><span class="ss">))</span> ... <span class="nv">Formula</span> <span class="mi">2</span>
-         <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="o">-</span><span class="nv">M</span><span class="ss">)</span><span class="o">=</span> <span class="ss">(</span><span class="o">-</span><span class="mi">1</span><span class="ss">)</span><span class="o">**</span><span class="nv">M</span><span class="o">*</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">M</span><span class="ss">)</span>
-      <span class="nv">ENDDO</span>
-   <span class="nv">ENDDO</span>
+           harmonics for vector <script type="math/tex">\mathbf{V}</script> is as follows:</p>
+<div class="codehilite"><pre><span></span>       <span class="nv">Y</span><span class="ss">(</span><span class="mi">0</span>,<span class="mi">0</span><span class="ss">)</span>
+       <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">0</span><span class="ss">)</span>
+       <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">1</span><span class="ss">)</span>
+       <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="o">-</span><span class="mi">1</span><span class="ss">)</span> <span class="o">=</span> <span class="o">-</span><span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">1</span><span class="ss">)</span>
+       <span class="k">DO</span> <span class="nv">L</span> <span class="o">=</span> <span class="mi">2</span>, <span class="nv">LMAX</span>
+          <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">L</span><span class="ss">)</span>   <span class="o">=</span> <span class="nv">f</span><span class="ss">(</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">L</span><span class="o">-</span><span class="mi">1</span><span class="ss">))</span> ... <span class="nv">Formula</span> <span class="mi">1</span>
+          <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">L</span><span class="o">-</span><span class="mi">1</span><span class="ss">)</span> <span class="o">=</span> <span class="nv">f</span><span class="ss">(</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">L</span><span class="o">-</span><span class="mi">1</span><span class="ss">))</span> ... <span class="nv">Formula</span> <span class="mi">2</span>
+          <span class="k">DO</span> <span class="nv">M</span> <span class="o">=</span> <span class="nv">L</span><span class="o">-</span><span class="mi">2</span>, <span class="mi">0</span>, <span class="o">-</span><span class="mi">1</span>
+             <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">M</span><span class="ss">)</span> <span class="o">=</span> <span class="nv">f</span><span class="ss">(</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">M</span><span class="ss">)</span>,<span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span><span class="o">-</span><span class="mi">2</span>,<span class="nv">M</span><span class="ss">))</span> ... <span class="nv">Formula</span> <span class="mi">2</span>
+             <span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="o">-</span><span class="nv">M</span><span class="ss">)</span><span class="o">=</span> <span class="ss">(</span><span class="o">-</span><span class="mi">1</span><span class="ss">)</span><span class="o">**</span><span class="nv">M</span><span class="o">*</span><span class="nv">Y</span><span class="ss">(</span><span class="nv">L</span>,<span class="nv">M</span><span class="ss">)</span>
+          <span class="nv">ENDDO</span>
+       <span class="nv">ENDDO</span>
 
-   <span class="nv">In</span> <span class="nv">the</span> <span class="nv">following</span> <span class="nv">the</span> <span class="nv">necessary</span> <span class="nv">recursion</span> <span class="nv">formulas</span> <span class="nv">and</span>
-   <span class="nv">starting</span> <span class="nv">values</span> <span class="nv">are</span> <span class="nv">given</span>:
 
-<span class="nv">Start</span>:
-                <span class="o">+------+</span>
-                <span class="o">|</span>   <span class="mi">1</span>     
-   <span class="nv">Y</span><span class="ss">(</span><span class="mi">0</span>,<span class="mi">0</span><span class="ss">)</span> <span class="o">=</span>  <span class="o">-+</span> <span class="o">|</span> <span class="o">-----</span>  
-               \<span class="o">|</span> <span class="mi">4</span><span class="ss">(</span><span class="nv">Pi</span><span class="ss">)</span>
+       <span class="nv">In</span> <span class="nv">the</span> <span class="nv">following</span> <span class="nv">the</span> <span class="nv">necessary</span> <span class="nv">recursion</span> <span class="nv">formulas</span> <span class="nv">and</span>
+       <span class="nv">starting</span> <span class="nv">values</span> <span class="nv">are</span> <span class="nv">given</span>:
 
-                           <span class="o">+------+</span>
-                           <span class="o">|</span>   <span class="mi">3</span>     
-   <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">0</span><span class="ss">)</span> <span class="o">=</span>  <span class="nv">cos</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">-----</span>  
-                          \<span class="o">|</span> <span class="mi">4</span><span class="ss">(</span><span class="nv">Pi</span><span class="ss">)</span>
+    <span class="nv">Start</span>:
+                    <span class="o">+------+</span>
+                    <span class="o">|</span>   <span class="mi">1</span>     
+       <span class="nv">Y</span><span class="ss">(</span><span class="mi">0</span>,<span class="mi">0</span><span class="ss">)</span> <span class="o">=</span>  <span class="o">-+</span> <span class="o">|</span> <span class="o">-----</span>  
+                   \<span class="o">|</span> <span class="mi">4</span><span class="ss">(</span><span class="nv">Pi</span><span class="ss">)</span>
 
-                             <span class="o">+------+</span>
-                             <span class="o">|</span>   <span class="mi">3</span>    <span class="nv">i</span><span class="ss">(</span><span class="nv">Phi</span><span class="ss">)</span>
-   <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">1</span><span class="ss">)</span> <span class="o">=</span>  <span class="o">-</span> <span class="nv">sin</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">-----</span> <span class="nv">e</span>
-                            \<span class="o">|</span> <span class="mi">8</span><span class="ss">(</span><span class="nv">Pi</span><span class="ss">)</span>
+                               <span class="o">+------+</span>
+                               <span class="o">|</span>   <span class="mi">3</span>     
+       <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">0</span><span class="ss">)</span> <span class="o">=</span>  <span class="nv">cos</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">-----</span>  
+                              \<span class="o">|</span> <span class="mi">4</span><span class="ss">(</span><span class="nv">Pi</span><span class="ss">)</span>
 
-<span class="nv">Formula</span> <span class="mi">1</span>:
+                                 <span class="o">+------+</span>
+                                 <span class="o">|</span>   <span class="mi">3</span>    <span class="nv">i</span><span class="ss">(</span><span class="nv">Phi</span><span class="ss">)</span>
+       <span class="nv">Y</span><span class="ss">(</span><span class="mi">1</span>,<span class="mi">1</span><span class="ss">)</span> <span class="o">=</span>  <span class="o">-</span> <span class="nv">sin</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">-----</span> <span class="nv">e</span>
+                                \<span class="o">|</span> <span class="mi">8</span><span class="ss">(</span><span class="nv">Pi</span><span class="ss">)</span>
 
-   <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">l</span><span class="ss">)</span> <span class="o">=</span>
-                   <span class="o">+--------+</span>
-                   <span class="o">|</span> <span class="ss">(</span><span class="mi">2</span><span class="nv">l</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>   <span class="nv">i</span><span class="ss">(</span><span class="nv">Phi</span><span class="ss">)</span>
-    <span class="o">-</span><span class="nv">sin</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">------</span>  <span class="nv">e</span>       <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">l</span><span class="o">-</span><span class="mi">1</span><span class="ss">)</span>
-                  \<span class="o">|</span>   <span class="mi">2</span><span class="nv">l</span>
+    <span class="nv">Formula</span> <span class="mi">1</span>:
 
-<span class="nv">Formula</span> <span class="mi">2</span>:
-                          <span class="o">+---------------+</span>  
-                          <span class="o">|</span>  <span class="ss">(</span><span class="mi">2</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span><span class="ss">)(</span><span class="mi">2</span><span class="nv">l</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>   
-   <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">m</span><span class="ss">)</span> <span class="o">=</span> <span class="nv">cos</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">--------------</span> <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">m</span><span class="ss">)</span>  <span class="o">-</span>
-                         \<span class="o">|</span>   <span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="ss">)(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="ss">)</span>
+       <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">l</span><span class="ss">)</span> <span class="o">=</span>
+                       <span class="o">+--------+</span>
+                       <span class="o">|</span> <span class="ss">(</span><span class="mi">2</span><span class="nv">l</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>   <span class="nv">i</span><span class="ss">(</span><span class="nv">Phi</span><span class="ss">)</span>
+        <span class="o">-</span><span class="nv">sin</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">------</span>  <span class="nv">e</span>       <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">l</span><span class="o">-</span><span class="mi">1</span><span class="ss">)</span>
+                      \<span class="o">|</span>   <span class="mi">2</span><span class="nv">l</span>
 
-                            <span class="o">+--------------------+</span>  
-                            <span class="o">|</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span><span class="o">+</span><span class="nv">m</span><span class="ss">)(</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="nv">m</span><span class="ss">)(</span><span class="mi">2</span><span class="nv">l</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>
-                      <span class="o">-</span>  <span class="o">-+</span> <span class="o">|--------------------</span> <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="mi">2</span>,<span class="nv">m</span><span class="ss">)</span>
-                           \<span class="o">|</span>  <span class="ss">(</span><span class="mi">2</span><span class="nv">l</span><span class="o">-</span><span class="mi">3</span><span class="ss">)(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="ss">)(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="ss">)</span>
+    <span class="nv">Formula</span> <span class="mi">2</span>:
+                              <span class="o">+---------------+</span>  
+                              <span class="o">|</span>  <span class="ss">(</span><span class="mi">2</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span><span class="ss">)(</span><span class="mi">2</span><span class="nv">l</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>   
+       <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">m</span><span class="ss">)</span> <span class="o">=</span> <span class="nv">cos</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">--------------</span> <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span>,<span class="nv">m</span><span class="ss">)</span>  <span class="o">-</span>
+                             \<span class="o">|</span>   <span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="ss">)(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="ss">)</span>
 
-<span class="nv">Formula</span> <span class="mi">3</span>: <span class="ss">(</span><span class="nv">not</span> <span class="nv">used</span> <span class="nv">in</span> <span class="nv">the</span> <span class="nv">algorithm</span> <span class="nv">because</span> <span class="nv">of</span> <span class="nv">the</span> <span class="nv">division</span>
-            <span class="nv">by</span> <span class="nv">sin</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="nv">which</span> <span class="nv">may</span> <span class="nv">be</span> <span class="nv">zero</span><span class="ss">)</span>
+                                <span class="o">+--------------------+</span>  
+                                <span class="o">|</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span><span class="o">+</span><span class="nv">m</span><span class="ss">)(</span><span class="nv">l</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="nv">m</span><span class="ss">)(</span><span class="mi">2</span><span class="nv">l</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>
+                          <span class="o">-</span>  <span class="o">-+</span> <span class="o">|--------------------</span> <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="mi">2</span>,<span class="nv">m</span><span class="ss">)</span>
+                               \<span class="o">|</span>  <span class="ss">(</span><span class="mi">2</span><span class="nv">l</span><span class="o">-</span><span class="mi">3</span><span class="ss">)(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="ss">)(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="ss">)</span>
 
-                            <span class="o">+--------------+</span>  
-              <span class="nv">cos</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span>    <span class="o">|</span>  <span class="mi">4</span><span class="ss">(</span><span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)(</span><span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>   <span class="o">-</span><span class="nv">i</span><span class="ss">(</span><span class="nv">Phi</span><span class="ss">)</span>
-   <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">m</span><span class="ss">)</span> <span class="o">=</span> <span class="o">-</span> <span class="o">----------</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">------------</span>  <span class="nv">e</span>       <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span> <span class="o">-</span>
-              <span class="nv">sin</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span>   \<span class="o">|</span> <span class="ss">(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="ss">)</span>
+    <span class="nv">Formula</span> <span class="mi">3</span>: <span class="ss">(</span><span class="nv">not</span> <span class="nv">used</span> <span class="nv">in</span> <span class="nv">the</span> <span class="nv">algorithm</span> <span class="nv">because</span> <span class="nv">of</span> <span class="nv">the</span> <span class="nv">division</span>
+                <span class="nv">by</span> <span class="nv">sin</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span> <span class="nv">which</span> <span class="nv">may</span> <span class="nv">be</span> <span class="nv">zero</span><span class="ss">)</span>
 
-                            <span class="o">+--------------+</span>  
-                            <span class="o">|</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="o">-</span><span class="mi">1</span><span class="ss">)(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="o">+</span><span class="mi">2</span><span class="ss">)</span>  <span class="o">-</span><span class="mi">2</span><span class="nv">i</span><span class="ss">(</span><span class="nv">Phi</span><span class="ss">)</span>
-                      <span class="o">-</span>  <span class="o">-+</span> <span class="o">|--------------</span> <span class="nv">e</span>        <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">m</span><span class="o">+</span><span class="mi">2</span><span class="ss">)</span>
-                           \<span class="o">|</span> <span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="ss">)(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>
+                                <span class="o">+--------------+</span>  
+                  <span class="nv">cos</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span>    <span class="o">|</span>  <span class="mi">4</span><span class="ss">(</span><span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)(</span><span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>   <span class="o">-</span><span class="nv">i</span><span class="ss">(</span><span class="nv">Phi</span><span class="ss">)</span>
+       <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">m</span><span class="ss">)</span> <span class="o">=</span> <span class="o">-</span> <span class="o">----------</span> <span class="o">-+</span> <span class="o">|</span> <span class="o">------------</span>  <span class="nv">e</span>       <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span> <span class="o">-</span>
+                  <span class="nv">sin</span><span class="ss">(</span><span class="nv">Theta</span><span class="ss">)</span>   \<span class="o">|</span> <span class="ss">(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="ss">)</span>
+
+                                <span class="o">+--------------+</span>  
+                                <span class="o">|</span><span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="o">-</span><span class="mi">1</span><span class="ss">)(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="o">+</span><span class="mi">2</span><span class="ss">)</span>  <span class="o">-</span><span class="mi">2</span><span class="nv">i</span><span class="ss">(</span><span class="nv">Phi</span><span class="ss">)</span>
+                          <span class="o">-</span>  <span class="o">-+</span> <span class="o">|--------------</span> <span class="nv">e</span>        <span class="nv">Y</span><span class="ss">(</span><span class="nv">l</span>,<span class="nv">m</span><span class="o">+</span><span class="mi">2</span><span class="ss">)</span>
+                               \<span class="o">|</span> <span class="ss">(</span><span class="nv">l</span><span class="o">-</span><span class="nv">m</span><span class="ss">)(</span><span class="nv">l</span><span class="o">+</span><span class="nv">m</span><span class="o">+</span><span class="mi">1</span><span class="ss">)</span>
 </pre></div>
-
-
-</li>
-</ol>
     
 
     <h3>Arguments</h3>
@@ -1181,15 +1178,15 @@ public subroutine ylm(V_in, LMAX, Y)
   <span class="c">!!           none</span>
   <span class="c">!!</span>
   <span class="c">!!   &lt;h3&gt;Machine Dependent Program Parts&lt;/h3&gt;</span>
-  <span class="c">!!           Type COMPLEX*16 is used which does not conform to the</span>
+  <span class="c">!!           Type `COMPLEX*16` is used which does not conform to the</span>
   <span class="c">!!           FORTRAN 77 standard.</span>
   <span class="c">!!           Also the non-standard type conversion function `DCMPLX()`</span>
   <span class="c">!!           is used which combines two double precision values into</span>
   <span class="c">!!           one double complex value.</span>
   <span class="c">!!</span>
-  <span class="c">!!   3.     METHOD</span>
+  <span class="c">!!   &lt;h3&gt;Method&lt;/h3&gt;</span>
   <span class="c">!!           The basic algorithm used to calculate the spherical</span>
-  <span class="c">!!           harmonics for vector V is as follows:</span>
+  <span class="c">!!           harmonics for vector \(\mathbf{V}\) is as follows:</span>
   <span class="c">!!</span>
   <span class="c">!!</span>
   <span class="c">!!           Y(0,0)</span>
@@ -1204,6 +1201,7 @@ public subroutine ylm(V_in, LMAX, Y)
   <span class="c">!!                 Y(L,-M)= (-1)**M*Y(L,M)</span>
   <span class="c">!!              ENDDO</span>
   <span class="c">!!           ENDDO</span>
+  <span class="c">!!</span>
   <span class="c">!!</span>
   <span class="c">!!           In the following the necessary recursion formulas and</span>
   <span class="c">!!           starting values are given:</span>

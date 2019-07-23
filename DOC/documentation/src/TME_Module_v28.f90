@@ -1851,15 +1851,15 @@ contains
   !!           none
   !!
   !!   <h3>Machine Dependent Program Parts</h3>
-  !!           Type COMPLEX*16 is used which does not conform to the
+  !!           Type `COMPLEX*16` is used which does not conform to the
   !!           FORTRAN 77 standard.
   !!           Also the non-standard type conversion function `DCMPLX()`
   !!           is used which combines two double precision values into
   !!           one double complex value.
   !!
-  !!   3.     METHOD
+  !!   <h3>Method</h3>
   !!           The basic algorithm used to calculate the spherical
-  !!           harmonics for vector V is as follows:
+  !!           harmonics for vector \(\mathbf{V}\) is as follows:
   !!
   !!
   !!           Y(0,0)
@@ -1874,6 +1874,7 @@ contains
   !!                 Y(L,-M)= (-1)**M*Y(L,M)
   !!              ENDDO
   !!           ENDDO
+  !!
   !!
   !!           In the following the necessary recursion formulas and
   !!           starting values are given:
