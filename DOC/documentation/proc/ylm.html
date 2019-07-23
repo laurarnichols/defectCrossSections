@@ -327,12 +327,12 @@ public subroutine ylm(V_in, LMAX, Y)
                    Must be given in Cartesian coordinates.
                    Conversion of V to polar coordinates gives the
                    angles <script type="math/tex">\theta</script> and <script type="math/tex">\phi</script> necessary for the calculation
-                   of the spherical harmonics.
+                   of the spherical harmonics.<br>
           * <code>LMAX</code>   - INTEGER value                               (input)
                    upper bound of <script type="math/tex">l</script> for which spherical harmonics
                    will be calculated
                    constraint:
-                      <code>LMAX &gt;= 0</code>
+                      <code>LMAX &gt;= 0</code><br>
           * <code>Y</code>      - COMPLEX*16 array, dimension (LMAX+1)<strong>2    (output)
                    contains the calculated spherical harmonics
                    Y(1)                   for L .EQ. 0 (M = 0)
@@ -342,27 +342,19 @@ public subroutine ylm(V_in, LMAX, Y)
                                           for L .EQ. LMAX
                                               (M = -L,...,L)
                    constraint:
-                      Dimension of Y .GE. (LMAX+1)</strong>2 (not checked)
-        USED SUBROUTINES (DIRECTLY CALLED)
+                      Dimension of Y .GE. (LMAX+1)</strong>2 (not checked)</p>
+<p><h3>Used Subroutines (Directly Called)</h3>
            none</p>
-<div class="codehilite"><pre><span></span>    <span class="n">INDIRECTLY</span> <span class="k">CALLED</span> <span class="n">SUBROUTINES</span>
-       <span class="k">none</span>
-
-    <span class="n">UTILITY</span><span class="o">-</span><span class="n">SUBROUTINES</span> <span class="p">(</span><span class="n">USE</span> <span class="n">BEFOREHAND</span> <span class="k">OR</span> <span class="n">AFTERWARDS</span><span class="p">)</span>
-       <span class="k">none</span>
-
-    <span class="k">INPUT</span><span class="o">/</span><span class="k">OUTPUT</span> <span class="p">(</span><span class="k">READ</span><span class="o">/</span><span class="k">WRITE</span><span class="p">)</span>
-       <span class="k">none</span>
-
-    <span class="n">MACHINENDEPENDENT</span> <span class="n">PROGRAMPARTS</span>
-       <span class="k">Type</span> <span class="n">COMPLEX</span><span class="o">*</span><span class="mi">16</span> <span class="k">is</span> <span class="n">used</span> <span class="n">which</span> <span class="n">does</span> <span class="k">not</span> <span class="n">conform</span> <span class="k">to</span> <span class="n">the</span>
-       <span class="k">FORTRAN</span> <span class="mi">77</span> <span class="n">standard</span><span class="p">.</span>
-       <span class="n">Also</span> <span class="n">the</span> <span class="n">non</span><span class="o">-</span><span class="n">standard</span> <span class="k">type</span> <span class="k">conversion</span> <span class="k">function</span> <span class="n">DCMPLX</span><span class="p">()</span>
-       <span class="k">is</span> <span class="n">used</span> <span class="n">which</span> <span class="n">combines</span> <span class="n">two</span> <span class="n">double</span> <span class="k">precision</span> <span class="k">values</span> <span class="k">into</span>
-       <span class="n">one</span> <span class="n">double</span> <span class="n">complex</span> <span class="n">value</span><span class="p">.</span>
-</pre></div>
-
-
+<p><h3>Indirectly Called Subroutines</h3>
+           none</p>
+<p><h3>Input/Output (Read/Write)</h3>
+           none</p>
+<p><h3>Machine Dependent Program Parts</h3>
+           Type COMPLEX*16 is used which does not conform to the
+           FORTRAN 77 standard.
+           Also the non-standard type conversion function <code>DCMPLX()</code>
+           is used which combines two double precision values into
+           one double complex value.</p>
 <ol>
 <li>METHOD
            The basic algorithm used to calculate the spherical
@@ -1154,12 +1146,12 @@ public subroutine ylm(V_in, LMAX, Y)
   <span class="c">!!                   Must be given in Cartesian coordinates.</span>
   <span class="c">!!                   Conversion of V to polar coordinates gives the</span>
   <span class="c">!!                   angles \(\theta\) and \(\phi\) necessary for the calculation</span>
-  <span class="c">!!                   of the spherical harmonics.</span>
+  <span class="c">!!                   of the spherical harmonics.  </span>
   <span class="c">!!          * `LMAX`   - INTEGER value                               (input)</span>
   <span class="c">!!                   upper bound of \(l\) for which spherical harmonics</span>
   <span class="c">!!                   will be calculated</span>
   <span class="c">!!                   constraint:</span>
-  <span class="c">!!                      `LMAX &gt;= 0`</span>
+  <span class="c">!!                      `LMAX &gt;= 0`  </span>
   <span class="c">!!          * `Y`      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)</span>
   <span class="c">!!                   contains the calculated spherical harmonics</span>
   <span class="c">!!                   Y(1)                   for L .EQ. 0 (M = 0)</span>
@@ -1170,28 +1162,27 @@ public subroutine ylm(V_in, LMAX, Y)
   <span class="c">!!                                              (M = -L,...,L)</span>
   <span class="c">!!                   constraint:</span>
   <span class="c">!!                      Dimension of Y .GE. (LMAX+1)**2 (not checked)</span>
-  <span class="c">!!        USED SUBROUTINES (DIRECTLY CALLED)</span>
+  <span class="c">!!</span>
+  <span class="c">!!   &lt;h3&gt;Used Subroutines (Directly Called)&lt;/h3&gt;</span>
   <span class="c">!!           none</span>
   <span class="c">!!</span>
-  <span class="c">!!        INDIRECTLY CALLED SUBROUTINES</span>
+  <span class="c">!!   &lt;h3&gt;Indirectly Called Subroutines&lt;/h3&gt;</span>
   <span class="c">!!           none</span>
   <span class="c">!!</span>
-  <span class="c">!!        UTILITY-SUBROUTINES (USE BEFOREHAND OR AFTERWARDS)</span>
+  <span class="c">!!   &lt;h3&gt;Input/Output (Read/Write)&lt;/h3&gt;</span>
   <span class="c">!!           none</span>
   <span class="c">!!</span>
-  <span class="c">!!        INPUT/OUTPUT (READ/WRITE)</span>
-  <span class="c">!!           none</span>
-  <span class="c">!!</span>
-  <span class="c">!!        MACHINENDEPENDENT PROGRAMPARTS</span>
+  <span class="c">!!   &lt;h3&gt;Machine Dependent Program Parts&lt;/h3&gt;</span>
   <span class="c">!!           Type COMPLEX*16 is used which does not conform to the</span>
   <span class="c">!!           FORTRAN 77 standard.</span>
-  <span class="c">!!           Also the non-standard type conversion function DCMPLX()</span>
+  <span class="c">!!           Also the non-standard type conversion function `DCMPLX()`</span>
   <span class="c">!!           is used which combines two double precision values into</span>
   <span class="c">!!           one double complex value.</span>
   <span class="c">!!</span>
   <span class="c">!!   3.     METHOD</span>
   <span class="c">!!           The basic algorithm used to calculate the spherical</span>
   <span class="c">!!           harmonics for vector V is as follows:</span>
+  <span class="c">!!</span>
   <span class="c">!!</span>
   <span class="c">!!           Y(0,0)</span>
   <span class="c">!!           Y(1,0)</span>

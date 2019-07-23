@@ -2,7 +2,7 @@ title: Todo
 author: Laura Nichols
 date: 07/23/2019
 
-* Binary file ../TME/src/.TME_Module_v28.f90.swo matches
+* Binary file ../TME/src/.TME_Module_v28.f90.swp matches
 * `../TME/src/TME_Main_v9.f90:2:` Finish documentation for main program
 * `../TME/src/TME_Main_v9.f90:46:` Figure out if need to allocate space for arrays so soon
 * `../TME/src/TME_Main_v9.f90:58:` Figure out if SD and PC `numOfGvecs` should be the same
@@ -32,7 +32,7 @@ date: 07/23/2019
 * `../TME/src/TME_Module_v28.f90:1615:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
 * `../TME/src/TME_Module_v28.f90:1712:` Document `pawCorrection()`
 * `../TME/src/TME_Module_v28.f90:1713:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
-* `../TME/src/TME_Module_v28.f90:2110:` Document `writeResults()` @endto
-* `../TME/src/TME_Module_v28.f90:2172:` Document `readUfis()`
-* `../TME/src/TME_Module_v28.f90:2226:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2348:` Document `readEigenvalues()`
+* `../TME/src/TME_Module_v28.f90:2109:` Document `writeResults()` @endto
+* `../TME/src/TME_Module_v28.f90:2171:` Document `readUfis()`
+* `../TME/src/TME_Module_v28.f90:2225:` Document `calculateVFiElements()`
+* `../TME/src/TME_Module_v28.f90:2347:` Document `readEigenvalues()`

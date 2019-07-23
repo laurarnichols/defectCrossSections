@@ -1820,12 +1820,12 @@ contains
   !!                   Must be given in Cartesian coordinates.
   !!                   Conversion of V to polar coordinates gives the
   !!                   angles \(\theta\) and \(\phi\) necessary for the calculation
-  !!                   of the spherical harmonics.
+  !!                   of the spherical harmonics.  
   !!          * `LMAX`   - INTEGER value                               (input)
   !!                   upper bound of \(l\) for which spherical harmonics
   !!                   will be calculated
   !!                   constraint:
-  !!                      `LMAX >= 0`
+  !!                      `LMAX >= 0`  
   !!          * `Y`      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)
   !!                   contains the calculated spherical harmonics
   !!                   Y(1)                   for L .EQ. 0 (M = 0)
@@ -1836,28 +1836,27 @@ contains
   !!                                              (M = -L,...,L)
   !!                   constraint:
   !!                      Dimension of Y .GE. (LMAX+1)**2 (not checked)
-  !!        USED SUBROUTINES (DIRECTLY CALLED)
+  !!
+  !!   <h3>Used Subroutines (Directly Called)</h3>
   !!           none
   !!
-  !!        INDIRECTLY CALLED SUBROUTINES
+  !!   <h3>Indirectly Called Subroutines</h3>
   !!           none
   !!
-  !!        UTILITY-SUBROUTINES (USE BEFOREHAND OR AFTERWARDS)
+  !!   <h3>Input/Output (Read/Write)</h3>
   !!           none
   !!
-  !!        INPUT/OUTPUT (READ/WRITE)
-  !!           none
-  !!
-  !!        MACHINENDEPENDENT PROGRAMPARTS
+  !!   <h3>Machine Dependent Program Parts</h3>
   !!           Type COMPLEX*16 is used which does not conform to the
   !!           FORTRAN 77 standard.
-  !!           Also the non-standard type conversion function DCMPLX()
+  !!           Also the non-standard type conversion function `DCMPLX()`
   !!           is used which combines two double precision values into
   !!           one double complex value.
   !!
   !!   3.     METHOD
   !!           The basic algorithm used to calculate the spherical
   !!           harmonics for vector V is as follows:
+  !!
   !!
   !!           Y(0,0)
   !!           Y(1,0)
