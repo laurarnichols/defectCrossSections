@@ -2213,26 +2213,38 @@ contains
   !
   subroutine readEigenvalues(ik)
     !! @todo Document `readEigenvalues()` @endtodo
-    !
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
     integer, intent(in) :: ik
+      !! K point index
     integer :: ib
+      !! Loop index over bands
     !
     character(len = 300) :: iks
+      !! String version of k point index
     !
     call int2str(ik, iks)
+      !! * Convert k point index to string
     !
     open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(iks))
+      !! * Open the solid defect `eigenvalues.ik` file from [[pw_export_for_tme(program)]]
     !
     read(72, * )
     read(72, * )
+      !! * Ignore the first two lines as they are comments
     !
     do ib = 1, iBandIinit - 1
+      !! * Ignore eigenvalues for bands that are before `iBandIinit`
+      !
       read(72, *)
+      !
     enddo
     !
     do ib = iBandIinit, iBandIfinal
+      !! * From `iBandIinit` to `iBandIfinal`
       read(72, '(ES24.15E3)') eigvI(ib)
     enddo
     !
