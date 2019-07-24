@@ -2174,12 +2174,18 @@ contains
   !
   subroutine calculateVfiElements()
     !! @todo Document `calculateVFiElements()` @endtodo
-    !
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
-    integer :: ik, ib, nOfEnergies, iE
+    integer :: ik
+      !! Loop index over k points
+    integer :: ib
+      !! Loop index over bands
+    integer :: nOfEnergies, iE
     !
-    real(kind = dp) :: eMin, eMax, E, av, sd, x, EiMinusEf, A, DHifMin
+    real(kind = dp) :: eMin, eMax, E, av, sd, x, epsilon_if, A, DHifMin
     !
     real(kind = dp), allocatable :: sumWk(:), sAbsVfiOfE2(:), absVfiOfE2(:)
     integer, allocatable :: nKsInEbin(:)
@@ -2187,11 +2193,27 @@ contains
     character (len = 300) :: text
     !
     allocate( DE(iBandIinit:iBandIfinal, perfectCrystal%nKpts), absVfi2(iBandIinit:iBandIfinal, perfectCrystal%nKpts) )
+      !! * Allocate space for `DE` and `absVfi2`
     ! 
     DE(:,:) = 0.0_dp
     absVfi2(:,:) = 0.0_dp 
+      !! * Initialize `DE` and `absVfi2` to double zero
     !
     do ik = 1, perfectCrystal%nKpts
+      !! * For each k point
+      !!    * Read in the initial and final eigenvalues
+      !!    * For each band between `iBandIinit` and `iBandIfinal`
+      !!       * Calculate \(\epsilon_{if} = \epsilon_f - \epsilon_i\)
+      !!         as defined in paper
+      !!       * Calculate 
+      !!         \[|\Delta H_{if}|^2 = \dfrac{|\langle\Phi_f|\Psi_i\rangle|^2 - |\langle\Phi_f|\Psi_i\rangle|^4}
+      !!                                {(1 - 2|\langle\Phi_f|\Psi_i\rangle|^2)^2}\epsilon_{if}\]
+      !!         (A8 in the paper)
+      !!         @note 
+      !!         Only numerator is calculated because the denominator
+      !!         is approximately zero, assuming \(|\langle\Phi_f|\Psi_i\rangle| \ll 1\)
+      !!         @endnote
+      !!       * Calculate `DE`\( = E_i - E_f = \)
       !
       eigvI(:) = 0.0_dp
       eigvF(:) = 0.0_dp
@@ -2200,10 +2222,10 @@ contains
       !
       do ib = iBandIinit, iBandIfinal
         !
-        EiMinusEf = eigvI(ib) - eigvF(iBandFinit)
-        absVfi2(ib,ik) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ik))**2 - abs(Ufi(iBandFinit,ib,ik))**4 )
+        epsilon_if = eigvF(iBandFinit) - eigvI(ib)
+        absVfi2(ib,ik) = epsilon_if**2*( abs(Ufi(iBandFinit,ib,ik))**2 - abs(Ufi(iBandFinit,ib,ik))**4 )
         !
-        DE(ib, ik) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ik))
+        DE(ib, ik) = sqrt(epsilon_if**2 - 4.0_dp*absVfi2(ib,ik))
         !
       enddo
       !

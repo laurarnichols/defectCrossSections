@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.8% of total for procedures.">78 statements</a>
+    title=" 1.8% of total for procedures.">80 statements</a>
      </li> 
      
      
@@ -197,7 +197,7 @@
       
       <a class="list-group-item" href="../proc/calculatevfielements.html#variable-x%7E2">x</a>
       
-      <a class="list-group-item" href="../proc/calculatevfielements.html#variable-eiminusef">EiMinusEf</a>
+      <a class="list-group-item" href="../proc/calculatevfielements.html#variable-epsilon_if">epsilon_if</a>
       
       <a class="list-group-item" href="../proc/calculatevfielements.html#variable-a%7E2">A</a>
       
@@ -263,6 +263,34 @@ public subroutine calculateVfiElements()
     
     <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>calculateVFiElements()</code> </p></div>
 <p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>
+<p>Allocate space for <code>DE</code> and <code>absVfi2</code></p>
+</li>
+<li>
+<p>Initialize <code>DE</code> and <code>absVfi2</code> to double zero</p>
+</li>
+<li>
+<p>For each k point</p>
+<ul>
+<li>Read in the initial and final eigenvalues</li>
+<li>For each band between <code>iBandIinit</code> and <code>iBandIfinal</code></li>
+<li>Calculate <script type="math/tex">\epsilon_{if} = \epsilon_f - \epsilon_i</script>
+     as defined in paper</li>
+<li>Calculate 
+     <script type="math/tex; mode=display">|\Delta H_{if}|^2 = \dfrac{|\langle\Phi_f|\Psi_i\rangle|^2 - |\langle\Phi_f|\Psi_i\rangle|^4}
+                            {(1 - 2|\langle\Phi_f|\Psi_i\rangle|^2)^2}\epsilon_{if}</script>
+     (A8 in the paper)
+     </p><div class="alert alert-info" role="alert"><h4>Note</h4><p>Only numerator is calculated because the denominator
+     is approximately zero, assuming <script type="math/tex">|\langle\Phi_f|\Psi_i\rangle| \ll 1</script>
+     </p></div>
+<p></li>
+<li>Calculate <code>DE</code><script type="math/tex"> = E_i - E_f = </script>
+</li>
+</ul>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -308,7 +336,7 @@ public subroutine calculateVfiElements()
       
       <a class="list-group-item" href="../proc/calculatevfielements.html#variable-x%7E2">x</a>
       
-      <a class="list-group-item" href="../proc/calculatevfielements.html#variable-eiminusef">EiMinusEf</a>
+      <a class="list-group-item" href="../proc/calculatevfielements.html#variable-epsilon_if">epsilon_if</a>
       
       <a class="list-group-item" href="../proc/calculatevfielements.html#variable-a%7E2">A</a>
       
@@ -384,7 +412,7 @@ public subroutine calculateVfiElements()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ik</strong></td><td></td><td></td><td></td>
+  <td><strong>ik</strong></td><td></td><td></td><td><p>Loop index over k points</p></td>
   
 </tr>
 
@@ -398,7 +426,7 @@ public subroutine calculateVfiElements()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ib</strong></td><td></td><td></td><td></td>
+  <td><strong>ib</strong></td><td></td><td></td><td><p>Loop index over bands</p></td>
   
 </tr>
 
@@ -520,11 +548,11 @@ public subroutine calculateVfiElements()
   
 <tr>
   
-  <td><span class="anchor" id="variable-eiminusef"></span>real(kind=dp),</td>
+  <td><span class="anchor" id="variable-epsilon_if"></span>real(kind=dp),</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>EiMinusEf</strong></td><td></td><td></td><td></td>
+  <td><strong>epsilon_if</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -651,12 +679,18 @@ public subroutine calculateVfiElements()
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">calculateVfiElements</span><span class="p">()</span>
     <span class="c">!! @todo Document `calculateVFiElements()` @endtodo</span>
-    <span class="c">!</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
-    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ib</span><span class="p">,</span> <span class="n">nOfEnergies</span><span class="p">,</span> <span class="n">iE</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ik</span>
+      <span class="c">!! Loop index over k points</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ib</span>
+      <span class="c">!! Loop index over bands</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nOfEnergies</span><span class="p">,</span> <span class="n">iE</span>
     <span class="c">!</span>
-    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">eMin</span><span class="p">,</span> <span class="n">eMax</span><span class="p">,</span> <span class="n">E</span><span class="p">,</span> <span class="n">av</span><span class="p">,</span> <span class="n">sd</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">EiMinusEf</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">DHifMin</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">eMin</span><span class="p">,</span> <span class="n">eMax</span><span class="p">,</span> <span class="n">E</span><span class="p">,</span> <span class="n">av</span><span class="p">,</span> <span class="n">sd</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">epsilon_if</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">DHifMin</span>
     <span class="c">!</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">sumWk</span><span class="p">(:),</span> <span class="n">sAbsVfiOfE2</span><span class="p">(:),</span> <span class="n">absVfiOfE2</span><span class="p">(:)</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">nKsInEbin</span><span class="p">(:)</span>
@@ -664,11 +698,27 @@ public subroutine calculateVfiElements()
     <span class="kt">character</span> <span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">text</span>
     <span class="c">!</span>
     <span class="k">allocate</span><span class="p">(</span> <span class="n">DE</span><span class="p">(</span><span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nKpts</span><span class="p">),</span> <span class="n">absVfi2</span><span class="p">(</span><span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nKpts</span><span class="p">)</span> <span class="p">)</span>
+      <span class="c">!! * Allocate space for `DE` and `absVfi2`</span>
     <span class="c">! </span>
     <span class="n">DE</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
     <span class="n">absVfi2</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span> 
+      <span class="c">!! * Initialize `DE` and `absVfi2` to double zero</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nKpts</span>
+      <span class="c">!! * For each k point</span>
+      <span class="c">!!    * Read in the initial and final eigenvalues</span>
+      <span class="c">!!    * For each band between `iBandIinit` and `iBandIfinal`</span>
+      <span class="c">!!       * Calculate \(\epsilon_{if} = \epsilon_f - \epsilon_i\)</span>
+      <span class="c">!!         as defined in paper</span>
+      <span class="c">!!       * Calculate </span>
+      <span class="c">!!         \[|\Delta H_{if}|^2 = \dfrac{|\langle\Phi_f|\Psi_i\rangle|^2 - |\langle\Phi_f|\Psi_i\rangle|^4}</span>
+      <span class="c">!!                                {(1 - 2|\langle\Phi_f|\Psi_i\rangle|^2)^2}\epsilon_{if}\]</span>
+      <span class="c">!!         (A8 in the paper)</span>
+      <span class="c">!!         @note </span>
+      <span class="c">!!         Only numerator is calculated because the denominator</span>
+      <span class="c">!!         is approximately zero, assuming \(|\langle\Phi_f|\Psi_i\rangle| \ll 1\)</span>
+      <span class="c">!!         @endnote</span>
+      <span class="c">!!       * Calculate `DE`\( = E_i - E_f = \)</span>
       <span class="c">!</span>
       <span class="n">eigvI</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
       <span class="n">eigvF</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
@@ -677,10 +727,10 @@ public subroutine calculateVfiElements()
       <span class="c">!</span>
       <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
         <span class="c">!</span>
-        <span class="n">EiMinusEf</span> <span class="o">=</span> <span class="n">eigvI</span><span class="p">(</span><span class="n">ib</span><span class="p">)</span> <span class="o">-</span> <span class="n">eigvF</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">)</span>
-        <span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">EiMinusEf</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Ufi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Ufi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span><span class="o">**</span><span class="mi">4</span> <span class="p">)</span>
+        <span class="n">epsilon_if</span> <span class="o">=</span> <span class="n">eigvF</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">)</span> <span class="o">-</span> <span class="n">eigvI</span><span class="p">(</span><span class="n">ib</span><span class="p">)</span>
+        <span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">epsilon_if</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="p">(</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Ufi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Ufi</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">,</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span><span class="o">**</span><span class="mi">4</span> <span class="p">)</span>
         <span class="c">!</span>
-        <span class="n">DE</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="n">EiMinusEf</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mf">4.0_dp</span><span class="o">*</span><span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span>
+        <span class="n">DE</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="n">epsilon_if</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mf">4.0_dp</span><span class="o">*</span><span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
