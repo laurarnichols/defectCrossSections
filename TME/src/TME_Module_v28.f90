@@ -1440,15 +1440,29 @@ contains
                 !
                 do ibi = iBandIinit, iBandIfinal
                   !
-                  if ( system%crystalType == 'PC' ) cProjIe = system%cProj(LMP + LMBASE, ibi, ISPIN)
-                  if ( system%crystalType == 'SD' ) cProjIe = system%cCrossProj(LMP + LMBASE, ibi, ISPIN)
-                    !! @todo Figure out why the difference between SD and PC @endtodo
+                  !> @todo Figure out why the difference between SD and PC @endtodo
+                  if ( system%crystalType == 'PC' ) then
+                    !
+                    cProjIe = system%cProj(LMP + LMBASE, ibi, ISPIN)
+                    !
+                  else if ( system%crystalType == 'SD' ) then
+                    !
+                    cProjIe = system%cCrossProj(LMP + LMBASE, ibi, ISPIN)
+                    !
+                  endif
                   !
                   do ibf = iBandFinit, iBandFfinal
                     !
-                    if ( system%crystalType == 'PC' ) cProjFe = conjg(system%cCrossProj(LM + LMBASE, ibf, ISPIN))
-                    if ( system%crystalType == 'PC' ) cProjFe = conjg(system%cProj(LM + LMBASE, ibf, ISPIN))
-                      !! @todo Figure out why the difference between SD and PC @endtodo
+                    !> @todo Figure out why the difference between SD and PC @endtodo
+                    if ( system%crystalType == 'PC' ) then
+                      !
+                      cProjFe = conjg(system%cCrossProj(LM + LMBASE, ibf, ISPIN))
+                      !
+                    else if ( system%crystalType == 'SD' ) then
+                      !
+                      cProjFe = conjg(system%cProj(LM + LMBASE, ibf, ISPIN))
+                      !
+                    endif
                     !
                     system%paw_Wfc(ibf, ibi) = system%paw_Wfc(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
                     !
@@ -1619,10 +1633,17 @@ contains
         qDotR = sum(gvecs(:,iPW)*system%posIon(:,iIon))
           !! @todo Figure out if this should be `gDotR` @endtodo
         !
-        if ( system%crystalType == 'PC' ) ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
-        if ( system%crystalType == 'SD' ) ATOMIC_CENTER = exp( ii*cmplx(qDotR, 0.0_dp, kind = dp) )
-          !! @todo Figure out why this is called `ATOMIC_CENTER` @endtodo
-          !! @todo Figure out why the difference between SD and PC @endtodo
+        !> @todo Figure out why this is called `ATOMIC_CENTER` @endtodo
+        !> @todo Figure out why the difference between SD and PC @endtodo
+        if ( system%crystalType == 'PC' ) then
+          !
+          ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
+          !
+        else if ( system%crystalType == 'SD' ) then
+          !
+          ATOMIC_CENTER = exp( ii*cmplx(qDotR, 0.0_dp, kind = dp) )
+          !
+        endif
         !
         iAtomType = system%atomTypeIndex(iIon)
         !
@@ -1641,19 +1662,34 @@ contains
             FI = sum(system%atoms(iAtomType)%bes_J_qr(l,:)*system%atoms(iAtomType)%F(:,iProj)) ! radial part integration F contains rab
             !
             ind = l*(l + 1) + m + 1 ! index for spherical harmonics
-            if ( system%crystalType == 'PC' ) VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**l*FI
-            if ( system%crystalType == 'SD' ) VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**l*FI
-              !! @todo Figure out why the difference between SD and PC @endtodo
+            !
+            !> @todo Figure out why the difference between SD and PC @endtodo
+            if ( system%crystalType == 'PC' ) then
+              !
+              VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**l*FI
+              !
+            else if ( system%crystalType == 'SD' ) then
+              !
+              VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**l*FI
+              !
+            endif
             !
             do ibi = iBandIinit, iBandIfinal
               !
               do ibf = iBandFinit, iBandFfinal
                 !
-                if ( system%crystalType == 'PC' ) system%pawK(ibf, ibi, iPW) = system%pawK(ibf, ibi, iPW) + &
+                !> @todo Figure out why the difference between SD and PC @endtodo
+                if ( system%crystalType == 'PC' ) then
+                  !
+                  system%pawK(ibf, ibi, iPW) = system%pawK(ibf, ibi, iPW) + &
                                                      VifQ_aug*system%cProj(LM + LMBASE, ibi, ISPIN)
-                if ( system%crystalType == 'SD' ) system%pawK(ibf, ibi, iPW) = system%pawK(ibf, ibi, iPW) + &
+                  !
+                else if ( system%crystalType == 'SD' ) then
+                  !
+                  system%pawK(ibf, ibi, iPW) = system%pawK(ibf, ibi, iPW) + &
                                                      VifQ_aug*conjg(system%cProj(LM + LMBASE, ibi, ISPIN))
-                  !! @todo Figure out why the difference between SD and PC @endtodo
+                  !
+                endif
                 !
               enddo
               !
