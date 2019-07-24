@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.8% of total for procedures.">35 statements</a>
+    title=" 0.7% of total for procedures.">32 statements</a>
      </li> 
      
      
@@ -185,7 +185,7 @@
       
       <a class="list-group-item" href="../proc/readufis.html#variable-idum%7E4">iDum</a>
       
-      <a class="list-group-item" href="../proc/readufis.html#variable-i%7E6">i</a>
+      <a class="list-group-item" href="../proc/readufis.html#variable-iel">iEl</a>
       
       <a class="list-group-item" href="../proc/readufis.html#variable-rdum">rDum</a>
       
@@ -196,6 +196,8 @@
       <a class="list-group-item" href="../proc/readufis.html#variable-cufi">cUfi</a>
       
       <a class="list-group-item" href="../proc/readufis.html#variable-uelements%7E3">Uelements</a>
+      
+      <a class="list-group-item" href="../proc/readufis.html#variable-ikstr%7E6">ikstr</a>
       
     </div>
   </div>
@@ -245,8 +247,46 @@ public subroutine readUfis(ik)
 
 
     
-    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>readUfis()</code> </p></div>
-<p>
+    <p>Read in matrix elements for a given k point</p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>
+<p>Start a timer</p>
+</li>
+<li>
+<p>Write out a header to the <code>output</code> file</p>
+</li>
+<li>
+<p>Convert the k point index to a string</p>
+</li>
+<li>
+<p>Determine what the file name should be based on the k point index</p>
+</li>
+<li>
+<p>Open the matrix elements file</p>
+</li>
+<li>
+<p>Ignore the first two lines as they are comments</p>
+</li>
+<li>
+<p>Read in the total number of matrix elements</p>
+</li>
+<li>
+<p>Ignore the next line as it is a comment</p>
+</li>
+<li>
+<p>Read in the indices and value for each
+   matrix element, ignoring the change in
+   eigenvalues and norm squared matrix
+   element</p>
+</li>
+<li>
+<p>Stop timer</p>
+</li>
+<li>
+<p>Write out time to read <code>Ufi</code> to <code>output</code> file</p>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -272,7 +312,7 @@ public subroutine readUfis(ik)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>ik</strong></td><td></td>
+  <td><strong>ik</strong></td><td><p>K point index</p></td>
   
 </tr>
 
@@ -306,7 +346,7 @@ public subroutine readUfis(ik)
       
       <a class="list-group-item" href="../proc/readufis.html#variable-idum%7E4">iDum</a>
       
-      <a class="list-group-item" href="../proc/readufis.html#variable-i%7E6">i</a>
+      <a class="list-group-item" href="../proc/readufis.html#variable-iel">iEl</a>
       
       <a class="list-group-item" href="../proc/readufis.html#variable-rdum">rDum</a>
       
@@ -317,6 +357,8 @@ public subroutine readUfis(ik)
       <a class="list-group-item" href="../proc/readufis.html#variable-cufi">cUfi</a>
       
       <a class="list-group-item" href="../proc/readufis.html#variable-uelements%7E3">Uelements</a>
+      
+      <a class="list-group-item" href="../proc/readufis.html#variable-ikstr%7E6">ikstr</a>
       
     </div>
   </div>
@@ -378,7 +420,7 @@ public subroutine readUfis(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ibi</strong></td><td></td><td></td><td></td>
+  <td><strong>ibi</strong></td><td></td><td></td><td><p>Loop index over bands</p></td>
   
 </tr>
 
@@ -392,7 +434,7 @@ public subroutine readUfis(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ibf</strong></td><td></td><td></td><td></td>
+  <td><strong>ibf</strong></td><td></td><td></td><td><p>Loop index over bands</p></td>
   
 </tr>
 
@@ -406,7 +448,7 @@ public subroutine readUfis(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>totalNumberOfElements</strong></td><td></td><td></td><td></td>
+  <td><strong>totalNumberOfElements</strong></td><td></td><td></td><td><p>Total number of matrix elements</p></td>
   
 </tr>
 
@@ -420,7 +462,7 @@ public subroutine readUfis(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iDum</strong></td><td></td><td></td><td></td>
+  <td><strong>iDum</strong></td><td></td><td></td><td><p>Dummy variable to ignore input</p></td>
   
 </tr>
 
@@ -430,11 +472,11 @@ public subroutine readUfis(ik)
   
 <tr>
   
-  <td><span class="anchor" id="variable-i%7E6"></span>integer,</td>
+  <td><span class="anchor" id="variable-iel"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>i</strong></td><td></td><td></td><td></td>
+  <td><strong>iEl</strong></td><td></td><td></td><td><p>Loop index over matrix elements</p></td>
   
 </tr>
 
@@ -448,7 +490,7 @@ public subroutine readUfis(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>rDum</strong></td><td></td><td></td><td></td>
+  <td><strong>rDum</strong></td><td></td><td></td><td><p>Dummy variable to ignore input</p></td>
   
 </tr>
 
@@ -462,7 +504,7 @@ public subroutine readUfis(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>t1</strong></td><td></td><td></td><td></td>
+  <td><strong>t1</strong></td><td></td><td></td><td><p>Start time</p></td>
   
 </tr>
 
@@ -476,7 +518,7 @@ public subroutine readUfis(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>t2</strong></td><td></td><td></td><td></td>
+  <td><strong>t2</strong></td><td></td><td></td><td><p>End time</p></td>
   
 </tr>
 
@@ -490,7 +532,7 @@ public subroutine readUfis(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>cUfi</strong></td><td></td><td></td><td></td>
+  <td><strong>cUfi</strong></td><td></td><td></td><td><p>Temporarily store value of each matrix element</p></td>
   
 </tr>
 
@@ -504,7 +546,21 @@ public subroutine readUfis(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>Uelements</strong></td><td></td><td></td><td></td>
+  <td><strong>Uelements</strong></td><td></td><td></td><td><p>File name for matrix elements output </p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ikstr%7E6"></span>character(len=300),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ikstr</strong></td><td></td><td></td><td><p>String version of k point index</p></td>
   
 </tr>
 
@@ -532,41 +588,68 @@ public subroutine readUfis(ik)
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readUfis</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
-    <span class="c">!! @todo Document `readUfis()` @endtodo</span>
-    <span class="c">!</span>
+    <span class="c">!! Read in matrix elements for a given k point</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ik</span>
+      <span class="c">!! K point index</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span>
+      <span class="c">!! Loop index over bands</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">totalNumberOfElements</span>
+      <span class="c">!! Total number of matrix elements</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iDum</span>
+      <span class="c">!! Dummy variable to ignore input</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iEl</span>
+      <span class="c">!! Loop index over matrix elements</span>
     <span class="c">!</span>
-    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">totalNumberOfElements</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">i</span>
-    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">rDum</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">rDum</span>
+      <span class="c">!! Dummy variable to ignore input</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t1</span>
+      <span class="c">!! Start time</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t2</span>
+      <span class="c">!! End time</span>
+    <span class="c">!</span>
     <span class="kt">complex</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span><span class="kd">::</span> <span class="n">cUfi</span>
+      <span class="c">!! Temporarily store value of each matrix element</span>
     <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">Uelements</span>
+      <span class="c">!! File name for matrix elements output </span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ikstr</span>
+      <span class="c">!! String version of k point index</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
-    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Reading Ufi(:,:) of k-point: &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">ik</span>
+      <span class="c">!! * Start a timer</span>
     <span class="c">!</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i1,&quot;_kptF_&quot;,i1)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">100</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i2,&quot;_kptF_&quot;,i2)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">1000</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i3,&quot;_kptF_&quot;,i3)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">10000</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i4,&quot;_kptF_&quot;,i4)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
-    <span class="k">else if</span> <span class="p">(</span> <span class="n">ik</span> <span class="o">&lt;</span> <span class="mi">10000</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">      write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,i5,&quot;_kptF_&quot;,i5)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">ik</span>
-    <span class="n">endif</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Reading Ufi(:,:) of k-point: &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">ik</span>
+      <span class="c">!! * Write out a header to the `output` file</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">ikstr</span><span class="p">)</span>
+      <span class="c">!! * Convert the k point index to a string</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,a,&quot;_kptF_&quot;,a)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">ikstr</span><span class="p">),</span> <span class="nb">trim</span><span class="p">(</span><span class="n">ikstr</span><span class="p">)</span>
+      <span class="c">!! * Determine what the file name should be based on the k point index</span>
     <span class="c">!</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">)</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">Uelements</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+      <span class="c">!! * Open the matrix elements file</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> 
     <span class="k">read</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> 
+      <span class="c">!! * Ignore the first two lines as they are comments</span>
+    <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span><span class="s1">&#39;(5i10)&#39;</span><span class="p">)</span> <span class="n">totalNumberOfElements</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iDum</span>
-    <span class="k">read</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> 
+      <span class="c">!! * Read in the total number of matrix elements</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">totalNumberOfElements</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> 
+      <span class="c">!! * Ignore the next line as it is a comment</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">iEl</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">totalNumberOfElements</span>
+      <span class="c">!! * Read in the indices and value for each</span>
+      <span class="c">!!   matrix element, ignoring the change in</span>
+      <span class="c">!!   eigenvalues and norm squared matrix</span>
+      <span class="c">!!   element</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="mi">1001</span><span class="p">)</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">rDum</span><span class="p">,</span> <span class="n">cUfi</span><span class="p">,</span> <span class="n">rDum</span>
       <span class="n">Ufi</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span><span class="n">ibi</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">cUfi</span>
@@ -576,9 +659,13 @@ public subroutine readUfis(ik)
     <span class="k">close</span><span class="p">(</span><span class="mi">17</span><span class="p">)</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+      <span class="c">!! * Stop timer</span>
+    <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Reading Ufi(:,:) done in:                   &quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+      <span class="c">!! * Write out time to read `Ufi` to `output` file</span>
     <span class="c">!</span>
  <span class="mi">1001</span> <span class="k">format</span><span class="p">(</span><span class="mi">2</span><span class="n">i10</span><span class="p">,</span><span class="err">4</span><span class="n">ES24</span><span class="p">.</span><span class="mi">1</span><span class="mf">5E3</span><span class="p">)</span>
+    <span class="c">! Define format to read in matrix elements</span>
     <span class="c">!</span>
     <span class="k">return</span>
     <span class="c">!</span>

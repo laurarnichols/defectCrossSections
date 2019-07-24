@@ -2013,13 +2013,16 @@ contains
     integer :: ibi, ibf
       !! Loop index over bands
     integer :: totalNumberOfElements
+      !! Total number of matrix elements
     real(kind = dp) :: t1
       !! Start time
     real(kind = dp) :: t2
       !! End time
     !
     character(len = 300) :: text
+      !! String to hold long section header
     character(len = 300) :: Uelements
+      !! File name for matrix elements output 
     character(len = 300) :: ikstr
       !! String version of k point index
     !
@@ -2039,7 +2042,7 @@ contains
       !! * Determine what the file name should be based on the k point index
     !
     open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
-      !! * Open the `Uelements` output file
+      !! * Open the matrix elements output file
     !
     write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') solidDefect%omega
       !! * Output cell volume to `Uelements` file
@@ -2068,7 +2071,7 @@ contains
     enddo
     !
     close(17)
-      !! * Close the `Uelements` output file
+      !! * Close the matrix elements output file
     !
     call cpu_time(t2)
       !! * Stop the timer
@@ -2085,41 +2088,68 @@ contains
   !
   !
   subroutine readUfis(ik)
-    !! @todo Document `readUfis()` @endtodo
-    !
+    !! Read in matrix elements for a given k point
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
     integer, intent(in) :: ik
+      !! K point index
+    integer :: ibi, ibf
+      !! Loop index over bands
+    integer :: totalNumberOfElements
+      !! Total number of matrix elements
+    integer :: iDum
+      !! Dummy variable to ignore input
+    integer :: iEl
+      !! Loop index over matrix elements
     !
-    integer :: ibi, ibf, totalNumberOfElements, iDum, i
-    real(kind = dp) :: rDum, t1, t2
+    real(kind = dp) :: rDum
+      !! Dummy variable to ignore input
+    real(kind = dp) :: t1
+      !! Start time
+    real(kind = dp) :: t2
+      !! End time
+    !
     complex(kind = dp):: cUfi
+      !! Temporarily store value of each matrix element
     !
     character(len = 300) :: Uelements
+      !! File name for matrix elements output 
+    character(len = 300) :: ikstr
+      !! String version of k point index
     !
     call cpu_time(t1)
-    write(iostd, '(" Reading Ufi(:,:) of k-point: ", i4)') ik
+      !! * Start a timer
     !
-    if ( ik < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
-    else if ( ik < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
-    else if ( ik < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
-    endif
+    write(iostd, '(" Reading Ufi(:,:) of k-point: ", i4)') ik
+      !! * Write out a header to the `output` file
+    !
+    call int2str(ik, ikstr)
+      !! * Convert the k point index to a string
+    !
+    write(Uelements, '("/TMEs_kptI_",a,"_kptF_",a)') trim(ikstr), trim(ikstr)
+      !! * Determine what the file name should be based on the k point index
     !
     open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
+      !! * Open the matrix elements file
     !
     read(17, *) 
     read(17, *) 
+      !! * Ignore the first two lines as they are comments
+    !
     read(17,'(5i10)') totalNumberOfElements, iDum, iDum, iDum, iDum
-    read(17, *) 
+      !! * Read in the total number of matrix elements
     !
-    do i = 1, totalNumberOfElements
+    read(17, *) 
+      !! * Ignore the next line as it is a comment
+    !
+    do iEl = 1, totalNumberOfElements
+      !! * Read in the indices and value for each
+      !!   matrix element, ignoring the change in
+      !!   eigenvalues and norm squared matrix
+      !!   element
       !
       read(17, 1001) ibf, ibi, rDum, cUfi, rDum
       Ufi(ibf,ibi,ik) = cUfi
@@ -2129,9 +2159,13 @@ contains
     close(17)
     !
     call cpu_time(t2)
+      !! * Stop timer
+    !
     write(iostd, '(" Reading Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
+      !! * Write out time to read `Ufi` to `output` file
     !
  1001 format(2i10,4ES24.15E3)
+    ! Define format to read in matrix elements
     !
     return
     !
