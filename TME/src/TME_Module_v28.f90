@@ -2000,7 +2000,8 @@ contains
   !
   !
   subroutine writeResults(ik)
-    !! @todo Document `writeResults()` @endto
+    !! Write out the \(\langle f|U|i\rangle\) matrix and
+    !! changes in eigenvalues for a given k point
     !!
     !! <h2>Walkthrough</h2>
     !!
