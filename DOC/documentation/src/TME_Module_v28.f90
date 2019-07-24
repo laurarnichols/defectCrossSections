@@ -1020,11 +1020,11 @@ contains
     !
     character(len = 300) :: Uelements
       !! Output file name
-    character(len = 300) :: intString
+    character(len = 300) :: ikstr
       !! String version of integer input `ik`
     !
-    call int2str(ik, intString)
-    write(Uelements, '("/TMEs_kptI_",a,"_kptF_",a)') trim(intString), trim(intString)
+    call int2str(ik, ikstr)
+    write(Uelements, '("/TMEs_kptI_",a,"_kptF_",a)') trim(ikstr), trim(ikstr)
       !! * Determine what the file name should be based on the k point index
     !
     inquire(file = trim(elementsPath)//trim(Uelements), exist = tmes_file_exists)
@@ -1105,17 +1105,17 @@ contains
     complex(kind = dp) :: wfc
       !! Wavefunction
     !
-    character(len = 300) :: iks
+    character(len = 300) :: ikstr
       !! String version of the k point index
     !
     TYPE(crystal), intent(inout) :: system
       !! Holds the structure for the system you are working on
       !! (either `perfectCrystal` or `solidDefect`)
     !
-    call int2str(ik, iks)
+    call int2str(ik, ikstr)
       !! * Convert the k point index to a string
     !
-    open(72, file=trim(system%exportDir)//"/grid."//trim(iks))
+    open(72, file=trim(system%exportDir)//"/grid."//trim(ikstr))
       !! * Open the `grid.ki` file from [[pw_export_for_tme(program)]]
     !
     !> * Ignore the first two lines as they are comments
@@ -1137,7 +1137,7 @@ contains
     close(72)
       !! * Close the `grid.ki` file
     !
-    open(72, file=trim(system%exportDir)//"/wfc."//trim(iks))
+    open(72, file=trim(system%exportDir)//"/wfc."//trim(ikstr))
       !! * Open the `wfc.ki` file from [[pw_export_for_tme(program)]]
     !
     !> Ignore the first two lines because they are comments
@@ -1192,20 +1192,20 @@ contains
     integer :: i, j
       !! Loop index
     !
-    character(len = 300) :: iks
+    character(len = 300) :: ikstr
       !! String version of k point index
     TYPE(crystal), intent(inout) :: system
       !! Holds the structure for the system you are working on
       !! (either `perfectCrystal` or `solidDefect`)
     !
-    call int2str(ik, iks)
+    call int2str(ik, ikstr)
       !! * Convert the k point index to a string
     !
     system%cProj(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
       !! * Initialize `cProj` to all complex double zero
     !
-    open(72, file=trim(system%exportDir)//"/projections."//trim(iks))
-      !! * Open the `projections.iks` file from [[pw_export_for_tme(program)]]
+    open(72, file=trim(system%exportDir)//"/projections."//trim(ikstr))
+      !! * Open the `projections.ik` file from [[pw_export_for_tme(program)]]
     !
     read(72, *)
       !! * Ignore the first line as it is a comment
@@ -1250,7 +1250,7 @@ contains
     integer, allocatable :: pwGind(:)
       !! Indices for the wavefunction of a given k point
     !
-    character(len = 300) :: iks
+    character(len = 300) :: ikstr
       !! String version of the k point index
     !
     TYPE(crystal), intent(inout) :: betaSystem
@@ -1260,12 +1260,12 @@ contains
       !! Holds the structure for the system you are projecting
       !! (either `perfectCrystal` or `solidDefect`)
     !
-    call int2str(ik, iks)
+    call int2str(ik, ikstr)
       !! * Convert the k point index to a string
     !
     ! Reading PC projectors
     !
-    open(72, file=trim(betaSystem%exportDir)//"/grid."//trim(iks))
+    open(72, file=trim(betaSystem%exportDir)//"/grid."//trim(ikstr))
       !! * Open the `grid.ki` file from [[pw_export_for_tme(program)]]
     !
     !> * Ignore the next two lines as they are comments
@@ -1292,7 +1292,7 @@ contains
     betaSystem%beta(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
       !! * Initialize all values of \(|\beta\rangle\) to complex double zero
     !
-    open(73, file=trim(betaSystem%exportDir)//"/projectors."//trim(iks))
+    open(73, file=trim(betaSystem%exportDir)//"/projectors."//trim(ikstr))
       !! * Open the `projectors.ki` file from [[pw_export_for_tme(program)]]
     !
     read(73, *) 
@@ -2019,25 +2019,23 @@ contains
     !
     character(len = 300) :: text
     character(len = 300) :: Uelements
+    character(len = 300) :: ikstr
+      !! String version of k point index
     !
     call cpu_time(t1)
       !! * Start a timer
     !
     call readEigenvalues(ik)
+      !! * Read eigenvalues from [[pw_export_for_tme(program)]]
     !
     write(iostd, '(" Writing Ufi(:,:).")')
+      !! * Write out a header to output file
     !
-    if ( ik < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
-    else if ( ik < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
-    else if ( ik < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
-    endif
+    call int2str(ik, ikstr)
+      !! * Convert the k point index to a string
+    !
+    write(Uelements, '("/TMEs_kptI_",a,"_kptF_",a)') trim(ikstr), trim(ikstr)
+      !! * Determine what the file name should be based on the k point index
     !
     open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
     !
@@ -2259,13 +2257,13 @@ contains
     integer :: ib
       !! Loop index over bands
     !
-    character(len = 300) :: iks
+    character(len = 300) :: ikstr
       !! String version of k point index
     !
-    call int2str(ik, iks)
+    call int2str(ik, ikstr)
       !! * Convert k point index to string
     !
-    open(72, file=trim(perfectCrystal%exportDir)//"/eigenvalues."//trim(iks))
+    open(72, file=trim(perfectCrystal%exportDir)//"/eigenvalues."//trim(ikstr))
       !! * Open the perfectCrystal `eigenvalues.ik` file from [[pw_export_for_tme(program)]]
     !
     read(72, * )
@@ -2289,7 +2287,7 @@ contains
     close(72)
       !! * Close the solid defect `eigenvalues.ik` file
     !
-    open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(iks))
+    open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(ikstr))
       !! * Open the solid defect `eigenvalues.ik` file from [[pw_export_for_tme(program)]]
     !
     read(72, * )
@@ -2409,7 +2407,7 @@ contains
   !
   !---------------------------------------------------------------------------------------------------------------------------------
   subroutine int2str(integ, string)
-    !! Write a give integer to a string, using only as many digits as needed
+    !! Write a given integer to a string, using only as many digits as needed
     !
     implicit none
     integer :: integ

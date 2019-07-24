@@ -179,7 +179,7 @@
       
       <a class="list-group-item" href="../proc/readeigenvalues.html#variable-ib%7E3">ib</a>
       
-      <a class="list-group-item" href="../proc/readeigenvalues.html#variable-iks%7E6">iks</a>
+      <a class="list-group-item" href="../proc/readeigenvalues.html#variable-ikstr%7E6">ikstr</a>
       
     </div>
   </div>
@@ -319,7 +319,7 @@ public subroutine readEigenvalues(ik)
       
       <a class="list-group-item" href="../proc/readeigenvalues.html#variable-ib%7E3">ib</a>
       
-      <a class="list-group-item" href="../proc/readeigenvalues.html#variable-iks%7E6">iks</a>
+      <a class="list-group-item" href="../proc/readeigenvalues.html#variable-ikstr%7E6">ikstr</a>
       
     </div>
   </div>
@@ -391,11 +391,11 @@ public subroutine readEigenvalues(ik)
   
 <tr>
   
-  <td><span class="anchor" id="variable-iks%7E6"></span>character(len=300),</td>
+  <td><span class="anchor" id="variable-ikstr%7E6"></span>character(len=300),</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iks</strong></td><td></td><td></td><td><p>String version of k point index</p></td>
+  <td><strong>ikstr</strong></td><td></td><td></td><td><p>String version of k point index</p></td>
   
 </tr>
 
@@ -434,13 +434,13 @@ public subroutine readEigenvalues(ik)
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ib</span>
       <span class="c">!! Loop index over bands</span>
     <span class="c">!</span>
-    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">iks</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ikstr</span>
       <span class="c">!! String version of k point index</span>
     <span class="c">!</span>
-    <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">iks</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">ikstr</span><span class="p">)</span>
       <span class="c">!! * Convert k point index to string</span>
     <span class="c">!</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">ikstr</span><span class="p">))</span>
       <span class="c">!! * Open the perfectCrystal `eigenvalues.ik` file from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
@@ -464,7 +464,7 @@ public subroutine readEigenvalues(ik)
     <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
       <span class="c">!! * Close the solid defect `eigenvalues.ik` file</span>
     <span class="c">!</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">ikstr</span><span class="p">))</span>
       <span class="c">!! * Open the solid defect `eigenvalues.ik` file from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>

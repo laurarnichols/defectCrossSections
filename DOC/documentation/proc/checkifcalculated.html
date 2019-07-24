@@ -179,7 +179,7 @@
       
       <a class="list-group-item" href="../proc/checkifcalculated.html#variable-uelements">Uelements</a>
       
-      <a class="list-group-item" href="../proc/checkifcalculated.html#variable-intstring">intString</a>
+      <a class="list-group-item" href="../proc/checkifcalculated.html#variable-ikstr">ikstr</a>
       
     </div>
   </div>
@@ -307,7 +307,7 @@ public subroutine checkIfCalculated(ik, tmes_file_exists)
       
       <a class="list-group-item" href="../proc/checkifcalculated.html#variable-uelements">Uelements</a>
       
-      <a class="list-group-item" href="../proc/checkifcalculated.html#variable-intstring">intString</a>
+      <a class="list-group-item" href="../proc/checkifcalculated.html#variable-ikstr">ikstr</a>
       
     </div>
   </div>
@@ -379,11 +379,11 @@ public subroutine checkIfCalculated(ik, tmes_file_exists)
   
 <tr>
   
-  <td><span class="anchor" id="variable-intstring"></span>character(len=300),</td>
+  <td><span class="anchor" id="variable-ikstr"></span>character(len=300),</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>intString</strong></td><td></td><td></td><td><p>String version of integer input <code>ik</code></p></td>
+  <td><strong>ikstr</strong></td><td></td><td></td><td><p>String version of integer input <code>ik</code></p></td>
   
 </tr>
 
@@ -425,11 +425,11 @@ public subroutine checkIfCalculated(ik, tmes_file_exists)
     <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">Uelements</span>
       <span class="c">!! Output file name</span>
-    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">intString</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ikstr</span>
       <span class="c">!! String version of integer input `ik`</span>
     <span class="c">!</span>
-    <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">intString</span><span class="p">)</span>
-    <span class="k">write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,a,&quot;_kptF_&quot;,a)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">intString</span><span class="p">),</span> <span class="nb">trim</span><span class="p">(</span><span class="n">intString</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">ikstr</span><span class="p">)</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">Uelements</span><span class="p">,</span> <span class="s1">&#39;(&quot;/TMEs_kptI_&quot;,a,&quot;_kptF_&quot;,a)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">ikstr</span><span class="p">),</span> <span class="nb">trim</span><span class="p">(</span><span class="n">ikstr</span><span class="p">)</span>
       <span class="c">!! * Determine what the file name should be based on the k point index</span>
     <span class="c">!</span>
     <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">)</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">Uelements</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">tmes_file_exists</span><span class="p">)</span>

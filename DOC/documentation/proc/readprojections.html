@@ -181,7 +181,7 @@
       
       <a class="list-group-item" href="../proc/readprojections.html#variable-j%7E3">j</a>
       
-      <a class="list-group-item" href="../proc/readprojections.html#variable-iks%7E4">iks</a>
+      <a class="list-group-item" href="../proc/readprojections.html#variable-ikstr%7E3">ikstr</a>
       
     </div>
   </div>
@@ -241,7 +241,7 @@ public subroutine readProjections(ik, system)
 <p>Initialize <code>cProj</code> to all complex double zero</p>
 </li>
 <li>
-<p>Open the <code>projections.iks</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
+<p>Open the <code>projections.ik</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
 </li>
 <li>
 <p>Ignore the first line as it is a comment</p>
@@ -323,7 +323,7 @@ public subroutine readProjections(ik, system)
       
       <a class="list-group-item" href="../proc/readprojections.html#variable-j%7E3">j</a>
       
-      <a class="list-group-item" href="../proc/readprojections.html#variable-iks%7E4">iks</a>
+      <a class="list-group-item" href="../proc/readprojections.html#variable-ikstr%7E3">ikstr</a>
       
     </div>
   </div>
@@ -409,11 +409,11 @@ public subroutine readProjections(ik, system)
   
 <tr>
   
-  <td><span class="anchor" id="variable-iks%7E4"></span>character(len=300),</td>
+  <td><span class="anchor" id="variable-ikstr%7E3"></span>character(len=300),</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iks</strong></td><td></td><td></td><td><p>String version of k point index</p></td>
+  <td><strong>ikstr</strong></td><td></td><td></td><td><p>String version of k point index</p></td>
   
 </tr>
 
@@ -453,20 +453,20 @@ public subroutine readProjections(ik, system)
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span>
       <span class="c">!! Loop index</span>
     <span class="c">!</span>
-    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">iks</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ikstr</span>
       <span class="c">!! String version of k point index</span>
     <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="nb">system</span>
       <span class="c">!! Holds the structure for the system you are working on</span>
       <span class="c">!! (either `perfectCrystal` or `solidDefect`)</span>
     <span class="c">!</span>
-    <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">iks</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">ikstr</span><span class="p">)</span>
       <span class="c">!! * Convert the k point index to a string</span>
     <span class="c">!</span>
     <span class="nb">system</span><span class="p">%</span><span class="n">cProj</span><span class="p">(:,:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span> <span class="p">)</span>
       <span class="c">!! * Initialize `cProj` to all complex double zero</span>
     <span class="c">!</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projections.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
-      <span class="c">!! * Open the `projections.iks` file from [[pw_export_for_tme(program)]]</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projections.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">ikstr</span><span class="p">))</span>
+      <span class="c">!! * Open the `projections.ik` file from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
       <span class="c">!! * Ignore the first line as it is a comment</span>

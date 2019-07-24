@@ -187,7 +187,7 @@
       
       <a class="list-group-item" href="../proc/readwfc.html#variable-wfc%7E2">wfc</a>
       
-      <a class="list-group-item" href="../proc/readwfc.html#variable-iks%7E3">iks</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-ikstr%7E2">ikstr</a>
       
     </div>
   </div>
@@ -361,7 +361,7 @@ public subroutine readWfc(ik, system)
       
       <a class="list-group-item" href="../proc/readwfc.html#variable-wfc%7E2">wfc</a>
       
-      <a class="list-group-item" href="../proc/readwfc.html#variable-iks%7E3">iks</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-ikstr%7E2">ikstr</a>
       
     </div>
   </div>
@@ -489,11 +489,11 @@ public subroutine readWfc(ik, system)
   
 <tr>
   
-  <td><span class="anchor" id="variable-iks%7E3"></span>character(len=300),</td>
+  <td><span class="anchor" id="variable-ikstr%7E2"></span>character(len=300),</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iks</strong></td><td></td><td></td><td><p>String version of the k point index</p></td>
+  <td><strong>ikstr</strong></td><td></td><td></td><td><p>String version of the k point index</p></td>
   
 </tr>
 
@@ -543,17 +543,17 @@ public subroutine readWfc(ik, system)
     <span class="kt">complex</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">wfc</span>
       <span class="c">!! Wavefunction</span>
     <span class="c">!</span>
-    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">iks</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ikstr</span>
       <span class="c">!! String version of the k point index</span>
     <span class="c">!</span>
     <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="nb">system</span>
       <span class="c">!! Holds the structure for the system you are working on</span>
       <span class="c">!! (either `perfectCrystal` or `solidDefect`)</span>
     <span class="c">!</span>
-    <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">iks</span><span class="p">)</span>
+    <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">ikstr</span><span class="p">)</span>
       <span class="c">!! * Convert the k point index to a string</span>
     <span class="c">!</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/grid.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/grid.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">ikstr</span><span class="p">))</span>
       <span class="c">!! * Open the `grid.ki` file from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
     <span class="c">!&gt; * Ignore the first two lines as they are comments</span>
@@ -575,7 +575,7 @@ public subroutine readWfc(ik, system)
     <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
       <span class="c">!! * Close the `grid.ki` file</span>
     <span class="c">!</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/wfc.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/wfc.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">ikstr</span><span class="p">))</span>
       <span class="c">!! * Open the `wfc.ki` file from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
     <span class="c">!&gt; Ignore the first two lines because they are comments</span>
