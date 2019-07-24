@@ -251,13 +251,39 @@ public subroutine writeResults(ik)
 <p>Read eigenvalues from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
 </li>
 <li>
-<p>Write out a header to output file</p>
+<p>Write out a header to <code>output</code> file</p>
 </li>
 <li>
 <p>Convert the k point index to a string</p>
 </li>
 <li>
 <p>Determine what the file name should be based on the k point index</p>
+</li>
+<li>
+<p>Open the <code>Uelements</code> output file</p>
+</li>
+<li>
+<p>Output cell volume to <code>Uelements</code> file</p>
+</li>
+<li>
+<p>Calculate the total number of matrix elements</p>
+</li>
+<li>
+<p>Output the total number of elements and band limits</p>
+</li>
+<li>
+<p>Loop through the bands to output the change 
+   in eigenvalues, matrix element, and norm 
+   squared matrix element</p>
+</li>
+<li>
+<p>Close the <code>Uelements</code> output file</p>
+</li>
+<li>
+<p>Stop the timer</p>
+</li>
+<li>
+<p>Write to <code>output</code> file how long it took to write the matrix </p>
 </li>
 </ul>
     
@@ -542,7 +568,7 @@ public subroutine writeResults(ik)
       <span class="c">!! * Read eigenvalues from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Writing Ufi(:,:).&quot;)&#39;</span><span class="p">)</span>
-      <span class="c">!! * Write out a header to output file</span>
+      <span class="c">!! * Write out a header to `output` file</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">ikstr</span><span class="p">)</span>
       <span class="c">!! * Convert the k point index to a string</span>
@@ -551,19 +577,28 @@ public subroutine writeResults(ik)
       <span class="c">!! * Determine what the file name should be based on the k point index</span>
     <span class="c">!</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">)</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">Uelements</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+      <span class="c">!! * Open the `Uelements` output file</span>
     <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Cell volume (a.u.)^3. Format: &#39;&#39;(a51, ES24.15E3)&#39;&#39; &quot;, ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">omega</span>
+      <span class="c">!! * Output cell volume to `Uelements` file</span>
     <span class="c">!</span>
     <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;# Total number of &lt;f|U|i&gt; elements, Initial States (bandI, bandF), Final States (bandI, bandF)&quot;</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span><span class="s1">&#39;(a, &quot; Format : &#39;&#39;(5i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+      <span class="c">! * Output header for next section</span>
     <span class="c">!</span>
     <span class="n">totalNumberOfElements</span> <span class="o">=</span> <span class="p">(</span><span class="n">iBandIfinal</span> <span class="o">-</span> <span class="n">iBandIinit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">iBandFfinal</span> <span class="o">-</span> <span class="n">iBandFinit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="c">!! * Calculate the total number of matrix elements</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span><span class="s1">&#39;(5i10)&#39;</span><span class="p">)</span> <span class="n">totalNumberOfElements</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+      <span class="c">!! * Output the total number of elements and band limits</span>
     <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Final Band, Initial Band, Delta energy, Complex &lt;f|U|i&gt;, |&lt;f|U|i&gt;|^2 Format : &#39;&#39;(2i10,4ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+      <span class="c">! * Output header for next section</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
       <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+        <span class="c">!! * Loop through the bands to output the change </span>
+        <span class="c">!!   in eigenvalues, matrix element, and norm </span>
+        <span class="c">!!   squared matrix element</span>
         <span class="c">!</span>
         <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="mi">1001</span><span class="p">)</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">eigvI</span><span class="p">(</span><span class="n">ibi</span><span class="p">)</span> <span class="o">-</span> <span class="n">eigvF</span><span class="p">(</span><span class="n">ibf</span><span class="p">),</span> <span class="n">Ufi</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span><span class="n">ibi</span><span class="p">,</span><span class="n">ik</span><span class="p">),</span> <span class="nb">abs</span><span class="p">(</span><span class="n">Ufi</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span><span class="n">ibi</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span>
         <span class="c">!    </span>
@@ -571,11 +606,16 @@ public subroutine writeResults(ik)
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">close</span><span class="p">(</span><span class="mi">17</span><span class="p">)</span>
+      <span class="c">!! * Close the `Uelements` output file</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+      <span class="c">!! * Stop the timer</span>
+    <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Writing Ufi(:,:) done in:                   &quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+      <span class="c">!! * Write to `output` file how long it took to write the matrix </span>
     <span class="c">!</span>
  <span class="mi">1001</span> <span class="k">format</span><span class="p">(</span><span class="mi">2</span><span class="n">i10</span><span class="p">,</span><span class="err">4</span><span class="n">ES24</span><span class="p">.</span><span class="mi">1</span><span class="mf">5E3</span><span class="p">)</span>
+    <span class="c">! Define format for writing matrix  </span>
     <span class="c">!</span>
     <span class="k">return</span>
     <span class="c">!</span>

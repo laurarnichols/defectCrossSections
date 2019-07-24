@@ -2029,7 +2029,7 @@ contains
       !! * Read eigenvalues from [[pw_export_for_tme(program)]]
     !
     write(iostd, '(" Writing Ufi(:,:).")')
-      !! * Write out a header to output file
+      !! * Write out a header to `output` file
     !
     call int2str(ik, ikstr)
       !! * Convert the k point index to a string
@@ -2038,19 +2038,28 @@ contains
       !! * Determine what the file name should be based on the k point index
     !
     open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
+      !! * Open the `Uelements` output file
     !
     write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') solidDefect%omega
+      !! * Output cell volume to `Uelements` file
     !
     text = "# Total number of <f|U|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
     write(17,'(a, " Format : ''(5i10)''")') trim(text)
+      ! * Output header for next section
     !
     totalNumberOfElements = (iBandIfinal - iBandIinit + 1)*(iBandFfinal - iBandFinit + 1)
+      !! * Calculate the total number of matrix elements
     write(17,'(5i10)') totalNumberOfElements, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! * Output the total number of elements and band limits
     !
     write(17, '("# Final Band, Initial Band, Delta energy, Complex <f|U|i>, |<f|U|i>|^2 Format : ''(2i10,4ES24.15E3)''")')
+      ! * Output header for next section
     !
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
+        !! * Loop through the bands to output the change 
+        !!   in eigenvalues, matrix element, and norm 
+        !!   squared matrix element
         !
         write(17, 1001) ibf, ibi, eigvI(ibi) - eigvF(ibf), Ufi(ibf,ibi,ik), abs(Ufi(ibf,ibi,ik))**2
         !    
@@ -2058,11 +2067,16 @@ contains
     enddo
     !
     close(17)
+      !! * Close the `Uelements` output file
     !
     call cpu_time(t2)
+      !! * Stop the timer
+    !
     write(iostd, '(" Writing Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
+      !! * Write to `output` file how long it took to write the matrix 
     !
  1001 format(2i10,4ES24.15E3)
+    ! Define format for writing matrix  
     !
     return
     !
