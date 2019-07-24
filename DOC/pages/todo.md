@@ -43,4 +43,3 @@ date: 07/24/2019
 * `../TME/src/TME_Module_v28.f90:2003:` Document `writeResults()` @endto
 * `../TME/src/TME_Module_v28.f90:2075:` Document `readUfis()`
 * `../TME/src/TME_Module_v28.f90:2129:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2270:` Figure out if this should be perfect crystal

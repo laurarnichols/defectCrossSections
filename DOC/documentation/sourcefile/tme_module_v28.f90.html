@@ -2534,174 +2534,173 @@
 <a name="ln-2265"></a>    <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">iks</span><span class="p">)</span>
 <a name="ln-2266"></a>      <span class="c">!! * Convert k point index to string</span>
 <a name="ln-2267"></a>    <span class="c">!</span>
-<a name="ln-2268"></a>    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
-<a name="ln-2269"></a>      <span class="c">!! * Open the solid defect `eigenvalues.ik` file from [[pw_export_for_tme(program)]]</span>
-<a name="ln-2270"></a>      <span class="c">!! @todo Figure out if this should be perfect crystal @endtodo</span>
-<a name="ln-2271"></a>    <span class="c">!</span>
+<a name="ln-2268"></a>    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+<a name="ln-2269"></a>      <span class="c">!! * Open the perfectCrystal `eigenvalues.ik` file from [[pw_export_for_tme(program)]]</span>
+<a name="ln-2270"></a>    <span class="c">!</span>
+<a name="ln-2271"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
 <a name="ln-2272"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
-<a name="ln-2273"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
-<a name="ln-2274"></a>      <span class="c">!! * Ignore the first two lines as they are comments</span>
-<a name="ln-2275"></a>    <span class="c">!</span>
-<a name="ln-2276"></a>    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iBandIinit</span> <span class="o">-</span> <span class="mi">1</span>
-<a name="ln-2277"></a>      <span class="c">!! * Ignore eigenvalues for bands that are before `iBandIinit`</span>
-<a name="ln-2278"></a>      <span class="c">!</span>
-<a name="ln-2279"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-<a name="ln-2280"></a>      <span class="c">!</span>
-<a name="ln-2281"></a>    <span class="n">enddo</span>
-<a name="ln-2282"></a>    <span class="c">!</span>
-<a name="ln-2283"></a>    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
-<a name="ln-2284"></a>      <span class="c">!! * Read in the eigenvalues from `iBandIinit` to `iBandIfinal`</span>
-<a name="ln-2285"></a>      <span class="c">!</span>
-<a name="ln-2286"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">eigvI</span><span class="p">(</span><span class="n">ib</span><span class="p">)</span>
-<a name="ln-2287"></a>      <span class="c">!</span>
-<a name="ln-2288"></a>    <span class="n">enddo</span>
-<a name="ln-2289"></a>    <span class="c">!</span>
-<a name="ln-2290"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
-<a name="ln-2291"></a>      <span class="c">!! * Close the solid defect `eigenvalues.ik` file</span>
-<a name="ln-2292"></a>    <span class="c">!</span>
-<a name="ln-2293"></a>    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
-<a name="ln-2294"></a>      <span class="c">!! * Open the solid defect `eigenvalues.ik` file from [[pw_export_for_tme(program)]]</span>
-<a name="ln-2295"></a>    <span class="c">!</span>
-<a name="ln-2296"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
-<a name="ln-2297"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> 
-<a name="ln-2298"></a>      <span class="c">!! * Ignore the first two lines as they are comments</span>
-<a name="ln-2299"></a>    <span class="c">!</span>
-<a name="ln-2300"></a>    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iBandFinit</span> <span class="o">-</span> <span class="mi">1</span>
-<a name="ln-2301"></a>      <span class="c">!! * Ignore eigenvalues for bands that are before `iBandFinit`</span>
-<a name="ln-2302"></a>      <span class="c">!</span>
-<a name="ln-2303"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-<a name="ln-2304"></a>      <span class="c">!</span>
-<a name="ln-2305"></a>    <span class="n">enddo</span>
-<a name="ln-2306"></a>    <span class="c">!</span>
-<a name="ln-2307"></a>    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
-<a name="ln-2308"></a>      <span class="c">!! * Read in the eigenvalues from `iBandFinit` to `iBandFfinal`</span>
-<a name="ln-2309"></a>      <span class="c">!</span>
-<a name="ln-2310"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">eigvF</span><span class="p">(</span><span class="n">ib</span><span class="p">)</span>
-<a name="ln-2311"></a>      <span class="c">!</span>
-<a name="ln-2312"></a>    <span class="n">enddo</span>
-<a name="ln-2313"></a>    <span class="c">!</span>
-<a name="ln-2314"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
-<a name="ln-2315"></a>      <span class="c">!! * Close the solid defect `eigenvalues.ik` file</span>
-<a name="ln-2316"></a>    <span class="c">!</span>
-<a name="ln-2317"></a>    <span class="k">return</span>
-<a name="ln-2318"></a>    <span class="c">!</span>
-<a name="ln-2319"></a>  <span class="k">end subroutine </span><span class="n">readEigenvalues</span>
+<a name="ln-2273"></a>      <span class="c">!! * Ignore the first two lines as they are comments</span>
+<a name="ln-2274"></a>    <span class="c">!</span>
+<a name="ln-2275"></a>    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iBandIinit</span> <span class="o">-</span> <span class="mi">1</span>
+<a name="ln-2276"></a>      <span class="c">!! * Ignore eigenvalues for bands that are before `iBandIinit`</span>
+<a name="ln-2277"></a>      <span class="c">!</span>
+<a name="ln-2278"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-2279"></a>      <span class="c">!</span>
+<a name="ln-2280"></a>    <span class="n">enddo</span>
+<a name="ln-2281"></a>    <span class="c">!</span>
+<a name="ln-2282"></a>    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+<a name="ln-2283"></a>      <span class="c">!! * Read in the eigenvalues from `iBandIinit` to `iBandIfinal`</span>
+<a name="ln-2284"></a>      <span class="c">!</span>
+<a name="ln-2285"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">eigvI</span><span class="p">(</span><span class="n">ib</span><span class="p">)</span>
+<a name="ln-2286"></a>      <span class="c">!</span>
+<a name="ln-2287"></a>    <span class="n">enddo</span>
+<a name="ln-2288"></a>    <span class="c">!</span>
+<a name="ln-2289"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+<a name="ln-2290"></a>      <span class="c">!! * Close the solid defect `eigenvalues.ik` file</span>
+<a name="ln-2291"></a>    <span class="c">!</span>
+<a name="ln-2292"></a>    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+<a name="ln-2293"></a>      <span class="c">!! * Open the solid defect `eigenvalues.ik` file from [[pw_export_for_tme(program)]]</span>
+<a name="ln-2294"></a>    <span class="c">!</span>
+<a name="ln-2295"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
+<a name="ln-2296"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> 
+<a name="ln-2297"></a>      <span class="c">!! * Ignore the first two lines as they are comments</span>
+<a name="ln-2298"></a>    <span class="c">!</span>
+<a name="ln-2299"></a>    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iBandFinit</span> <span class="o">-</span> <span class="mi">1</span>
+<a name="ln-2300"></a>      <span class="c">!! * Ignore eigenvalues for bands that are before `iBandFinit`</span>
+<a name="ln-2301"></a>      <span class="c">!</span>
+<a name="ln-2302"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-2303"></a>      <span class="c">!</span>
+<a name="ln-2304"></a>    <span class="n">enddo</span>
+<a name="ln-2305"></a>    <span class="c">!</span>
+<a name="ln-2306"></a>    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+<a name="ln-2307"></a>      <span class="c">!! * Read in the eigenvalues from `iBandFinit` to `iBandFfinal`</span>
+<a name="ln-2308"></a>      <span class="c">!</span>
+<a name="ln-2309"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">eigvF</span><span class="p">(</span><span class="n">ib</span><span class="p">)</span>
+<a name="ln-2310"></a>      <span class="c">!</span>
+<a name="ln-2311"></a>    <span class="n">enddo</span>
+<a name="ln-2312"></a>    <span class="c">!</span>
+<a name="ln-2313"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+<a name="ln-2314"></a>      <span class="c">!! * Close the solid defect `eigenvalues.ik` file</span>
+<a name="ln-2315"></a>    <span class="c">!</span>
+<a name="ln-2316"></a>    <span class="k">return</span>
+<a name="ln-2317"></a>    <span class="c">!</span>
+<a name="ln-2318"></a>  <span class="k">end subroutine </span><span class="n">readEigenvalues</span>
+<a name="ln-2319"></a>  <span class="c">!</span>
 <a name="ln-2320"></a>  <span class="c">!</span>
-<a name="ln-2321"></a>  <span class="c">!</span>
-<a name="ln-2322"></a>  <span class="k">subroutine </span><span class="n">finalizeCalculation</span><span class="p">()</span>
-<a name="ln-2323"></a>    <span class="c">!! Stop timer, write out total time taken, and close the output file</span>
-<a name="ln-2324"></a>    <span class="c">!</span>
-<a name="ln-2325"></a>    <span class="k">implicit none</span>
-<a name="ln-2326"></a>    <span class="c">!</span>
-<a name="ln-2327"></a>    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="s1">&#39;(&quot;-----------------------------------------------------------------&quot;)&#39;</span><span class="p">)</span>
-<a name="ln-2328"></a>    <span class="c">!</span>
-<a name="ln-2329"></a>    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">tf</span><span class="p">)</span>
-<a name="ln-2330"></a>    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Total time needed:                         &quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">tf</span><span class="o">-</span><span class="n">t0</span>
-<a name="ln-2331"></a>    <span class="c">!</span>
-<a name="ln-2332"></a>    <span class="k">close</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
-<a name="ln-2333"></a>    <span class="c">!</span>
-<a name="ln-2334"></a>    <span class="k">return</span>
-<a name="ln-2335"></a>    <span class="c">!</span>
-<a name="ln-2336"></a>  <span class="k">end subroutine </span><span class="n">finalizeCalculation</span>
-<a name="ln-2337"></a>  <span class="c">!</span>
-<a name="ln-2338"></a><span class="c">!=====================================================================================================</span>
-<a name="ln-2339"></a><span class="c">! Utility functions that simplify the code and may be used multiple times</span>
-<a name="ln-2340"></a>  <span class="c">!</span>
-<a name="ln-2341"></a>  <span class="c">!---------------------------------------------------------------------------------------------------------------------------------</span>
-<a name="ln-2342"></a>  <span class="k">function </span><span class="n">wasRead</span><span class="p">(</span><span class="n">inputVal</span><span class="p">,</span> <span class="n">variableName</span><span class="p">,</span> <span class="n">usage</span><span class="p">,</span> <span class="n">abortExecution</span><span class="p">)</span> 
-<a name="ln-2343"></a>    <span class="c">!! Determine if an input variable still has the default value.</span>
-<a name="ln-2344"></a>    <span class="c">!! If it does, output an error message and possibly set the program</span>
-<a name="ln-2345"></a>    <span class="c">!! to abort. Not all variables would cause the program to abort,</span>
-<a name="ln-2346"></a>    <span class="c">!! so this program assumes that if you pass in the logical `abortExecution`</span>
-<a name="ln-2347"></a>    <span class="c">!! then the variable is required and causes the program to abort </span>
-<a name="ln-2348"></a>    <span class="c">!! if missing.</span>
-<a name="ln-2349"></a>    <span class="c">!!</span>
-<a name="ln-2350"></a>    <span class="c">!! I could not find a clean way to allow this function to receive</span>
-<a name="ln-2351"></a>    <span class="c">!! different types of variables (integer, real, character, etc.), so</span>
-<a name="ln-2352"></a>    <span class="c">!! I made the argument be an integer so that each type could be sent</span>
-<a name="ln-2353"></a>    <span class="c">!! in a different way. Each case is set up so that the value is tested to</span>
-<a name="ln-2354"></a>    <span class="c">!! see if it is less than zero to determine if the variable still has</span>
-<a name="ln-2355"></a>    <span class="c">!! its default value</span>
-<a name="ln-2356"></a>    <span class="c">!!</span>
-<a name="ln-2357"></a>    <span class="c">!! * For strings, the default value is `&#39;&#39;`, so pass in </span>
-<a name="ln-2358"></a>    <span class="c">!! `LEN(trim(variable))-1` as this should be less than zero if</span>
-<a name="ln-2359"></a>    <span class="c">!! the string still has the default value and greater than or equal </span>
-<a name="ln-2360"></a>    <span class="c">!! to zero otherwise</span>
-<a name="ln-2361"></a>    <span class="c">!! * For integers the default values are less than zero, so just pass as is </span>
-<a name="ln-2362"></a>    <span class="c">!! * Real variables also have a negative default value, so just pass the</span>
-<a name="ln-2363"></a>    <span class="c">!! value cast from real to integer</span>
-<a name="ln-2364"></a>    <span class="c">!!</span>
-<a name="ln-2365"></a>    <span class="k">implicit none</span>
-<a name="ln-2366"></a>    <span class="c">!</span>
-<a name="ln-2367"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">inputVal</span>
-<a name="ln-2368"></a>      <span class="c">!! Value to compare with 0 to see if a variable has been read;</span>
-<a name="ln-2369"></a>    <span class="c">!</span>
-<a name="ln-2370"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=*</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">variableName</span>
-<a name="ln-2371"></a>      <span class="c">!! Name of the variable used in output message</span>
-<a name="ln-2372"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=*</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">usage</span>
-<a name="ln-2373"></a>      <span class="c">!! Example of how the variable can be used</span>
-<a name="ln-2374"></a>    <span class="c">!</span>
-<a name="ln-2375"></a>    <span class="kt">logical</span><span class="p">,</span> <span class="k">optional</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">abortExecution</span>
-<a name="ln-2376"></a>      <span class="c">!! Optional logical for if the program should be aborted </span>
-<a name="ln-2377"></a>    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">wasRead</span>
-<a name="ln-2378"></a>      <span class="c">!! Whether or not the input variable was read from the input file;</span>
-<a name="ln-2379"></a>      <span class="c">!! this is the return value</span>
-<a name="ln-2380"></a>    <span class="c">!</span>
-<a name="ln-2381"></a>    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
-<a name="ln-2382"></a>    <span class="c">!!</span>
-<a name="ln-2383"></a>    <span class="n">wasRead</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a name="ln-2384"></a>      <span class="c">!! * Default return value is true</span>
-<a name="ln-2385"></a>    <span class="c">!</span>
-<a name="ln-2386"></a>    <span class="k">if</span> <span class="p">(</span> <span class="n">inputVal</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
-<a name="ln-2387"></a>      <span class="c">!! * If the input variable still has the default value</span>
-<a name="ln-2388"></a>      <span class="c">!!    * output an error message</span>
-<a name="ln-2389"></a>      <span class="c">!!    * set the program to abort if that variable was sent in</span>
-<a name="ln-2390"></a>      <span class="c">!!    * set the return value to false to indicate that the </span>
-<a name="ln-2391"></a>      <span class="c">!!      variable wasn&#39;t read</span>
-<a name="ln-2392"></a>      <span class="c">!</span>
-<a name="ln-2393"></a>      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-<a name="ln-2394"></a>      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Variable : &quot;&quot;&quot;, a, &quot;&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span> <span class="n">variableName</span>
-<a name="ln-2395"></a>      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; usage : &quot;, a)&#39;</span><span class="p">)</span> <span class="n">usage</span>
-<a name="ln-2396"></a>      <span class="k">if</span><span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">abortExecution</span><span class="p">))</span> <span class="k">then</span>
-<a name="ln-2397"></a>        <span class="c">!</span>
-<a name="ln-2398"></a>        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
-<a name="ln-2399"></a>        <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a name="ln-2400"></a>        <span class="c">!</span>
-<a name="ln-2401"></a>      <span class="n">endif</span> 
-<a name="ln-2402"></a>      <span class="c">!</span>
-<a name="ln-2403"></a>      <span class="n">wasRead</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-2404"></a>      <span class="c">!</span>
-<a name="ln-2405"></a>    <span class="n">endif</span>
-<a name="ln-2406"></a>    <span class="c">!</span>
-<a name="ln-2407"></a>    <span class="k">return</span>
-<a name="ln-2408"></a>    <span class="c">!</span>
-<a name="ln-2409"></a>  <span class="k">end function </span><span class="n">wasRead</span>
-<a name="ln-2410"></a>  <span class="c">!</span>
-<a name="ln-2411"></a>  <span class="c">!---------------------------------------------------------------------------------------------------------------------------------</span>
-<a name="ln-2412"></a>  <span class="k">subroutine </span><span class="n">int2str</span><span class="p">(</span><span class="n">integ</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span>
-<a name="ln-2413"></a>    <span class="c">!! Write a give integer to a string, using only as many digits as needed</span>
-<a name="ln-2414"></a>    <span class="c">!</span>
-<a name="ln-2415"></a>    <span class="k">implicit none</span>
-<a name="ln-2416"></a><span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">integ</span>
-<a name="ln-2417"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">string</span>
-<a name="ln-2418"></a>    <span class="c">!</span>
-<a name="ln-2419"></a>    <span class="k">if</span> <span class="p">(</span> <span class="n">integ</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-2420"></a><span class="k">      write</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;(i1)&#39;</span><span class="p">)</span> <span class="n">integ</span>
-<a name="ln-2421"></a>    <span class="k">else if</span> <span class="p">(</span> <span class="n">integ</span> <span class="o">&lt;</span> <span class="mi">100</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-2422"></a><span class="k">      write</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;(i2)&#39;</span><span class="p">)</span> <span class="n">integ</span>
-<a name="ln-2423"></a>    <span class="k">else if</span> <span class="p">(</span> <span class="n">integ</span> <span class="o">&lt;</span> <span class="mi">1000</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-2424"></a><span class="k">      write</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;(i3)&#39;</span><span class="p">)</span> <span class="n">integ</span>
-<a name="ln-2425"></a>    <span class="k">else if</span> <span class="p">(</span> <span class="n">integ</span> <span class="o">&lt;</span> <span class="mi">10000</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-2426"></a><span class="k">      write</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;(i4)&#39;</span><span class="p">)</span> <span class="n">integ</span>
-<a name="ln-2427"></a>    <span class="n">endif</span>
-<a name="ln-2428"></a>    <span class="c">!</span>
-<a name="ln-2429"></a>    <span class="n">string</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
-<a name="ln-2430"></a>    <span class="c">!</span>
-<a name="ln-2431"></a>    <span class="k">return</span>
-<a name="ln-2432"></a>    <span class="c">!</span>
-<a name="ln-2433"></a>  <span class="k">end subroutine </span><span class="n">int2str</span>
-<a name="ln-2434"></a>  <span class="c">!</span>
-<a name="ln-2435"></a><span class="k">end module </span><span class="n">TMEModule</span>
+<a name="ln-2321"></a>  <span class="k">subroutine </span><span class="n">finalizeCalculation</span><span class="p">()</span>
+<a name="ln-2322"></a>    <span class="c">!! Stop timer, write out total time taken, and close the output file</span>
+<a name="ln-2323"></a>    <span class="c">!</span>
+<a name="ln-2324"></a>    <span class="k">implicit none</span>
+<a name="ln-2325"></a>    <span class="c">!</span>
+<a name="ln-2326"></a>    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="s1">&#39;(&quot;-----------------------------------------------------------------&quot;)&#39;</span><span class="p">)</span>
+<a name="ln-2327"></a>    <span class="c">!</span>
+<a name="ln-2328"></a>    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">tf</span><span class="p">)</span>
+<a name="ln-2329"></a>    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Total time needed:                         &quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">tf</span><span class="o">-</span><span class="n">t0</span>
+<a name="ln-2330"></a>    <span class="c">!</span>
+<a name="ln-2331"></a>    <span class="k">close</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+<a name="ln-2332"></a>    <span class="c">!</span>
+<a name="ln-2333"></a>    <span class="k">return</span>
+<a name="ln-2334"></a>    <span class="c">!</span>
+<a name="ln-2335"></a>  <span class="k">end subroutine </span><span class="n">finalizeCalculation</span>
+<a name="ln-2336"></a>  <span class="c">!</span>
+<a name="ln-2337"></a><span class="c">!=====================================================================================================</span>
+<a name="ln-2338"></a><span class="c">! Utility functions that simplify the code and may be used multiple times</span>
+<a name="ln-2339"></a>  <span class="c">!</span>
+<a name="ln-2340"></a>  <span class="c">!---------------------------------------------------------------------------------------------------------------------------------</span>
+<a name="ln-2341"></a>  <span class="k">function </span><span class="n">wasRead</span><span class="p">(</span><span class="n">inputVal</span><span class="p">,</span> <span class="n">variableName</span><span class="p">,</span> <span class="n">usage</span><span class="p">,</span> <span class="n">abortExecution</span><span class="p">)</span> 
+<a name="ln-2342"></a>    <span class="c">!! Determine if an input variable still has the default value.</span>
+<a name="ln-2343"></a>    <span class="c">!! If it does, output an error message and possibly set the program</span>
+<a name="ln-2344"></a>    <span class="c">!! to abort. Not all variables would cause the program to abort,</span>
+<a name="ln-2345"></a>    <span class="c">!! so this program assumes that if you pass in the logical `abortExecution`</span>
+<a name="ln-2346"></a>    <span class="c">!! then the variable is required and causes the program to abort </span>
+<a name="ln-2347"></a>    <span class="c">!! if missing.</span>
+<a name="ln-2348"></a>    <span class="c">!!</span>
+<a name="ln-2349"></a>    <span class="c">!! I could not find a clean way to allow this function to receive</span>
+<a name="ln-2350"></a>    <span class="c">!! different types of variables (integer, real, character, etc.), so</span>
+<a name="ln-2351"></a>    <span class="c">!! I made the argument be an integer so that each type could be sent</span>
+<a name="ln-2352"></a>    <span class="c">!! in a different way. Each case is set up so that the value is tested to</span>
+<a name="ln-2353"></a>    <span class="c">!! see if it is less than zero to determine if the variable still has</span>
+<a name="ln-2354"></a>    <span class="c">!! its default value</span>
+<a name="ln-2355"></a>    <span class="c">!!</span>
+<a name="ln-2356"></a>    <span class="c">!! * For strings, the default value is `&#39;&#39;`, so pass in </span>
+<a name="ln-2357"></a>    <span class="c">!! `LEN(trim(variable))-1` as this should be less than zero if</span>
+<a name="ln-2358"></a>    <span class="c">!! the string still has the default value and greater than or equal </span>
+<a name="ln-2359"></a>    <span class="c">!! to zero otherwise</span>
+<a name="ln-2360"></a>    <span class="c">!! * For integers the default values are less than zero, so just pass as is </span>
+<a name="ln-2361"></a>    <span class="c">!! * Real variables also have a negative default value, so just pass the</span>
+<a name="ln-2362"></a>    <span class="c">!! value cast from real to integer</span>
+<a name="ln-2363"></a>    <span class="c">!!</span>
+<a name="ln-2364"></a>    <span class="k">implicit none</span>
+<a name="ln-2365"></a>    <span class="c">!</span>
+<a name="ln-2366"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">inputVal</span>
+<a name="ln-2367"></a>      <span class="c">!! Value to compare with 0 to see if a variable has been read;</span>
+<a name="ln-2368"></a>    <span class="c">!</span>
+<a name="ln-2369"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=*</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">variableName</span>
+<a name="ln-2370"></a>      <span class="c">!! Name of the variable used in output message</span>
+<a name="ln-2371"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=*</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">usage</span>
+<a name="ln-2372"></a>      <span class="c">!! Example of how the variable can be used</span>
+<a name="ln-2373"></a>    <span class="c">!</span>
+<a name="ln-2374"></a>    <span class="kt">logical</span><span class="p">,</span> <span class="k">optional</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">abortExecution</span>
+<a name="ln-2375"></a>      <span class="c">!! Optional logical for if the program should be aborted </span>
+<a name="ln-2376"></a>    <span class="kt">logical</span> <span class="kd">::</span> <span class="n">wasRead</span>
+<a name="ln-2377"></a>      <span class="c">!! Whether or not the input variable was read from the input file;</span>
+<a name="ln-2378"></a>      <span class="c">!! this is the return value</span>
+<a name="ln-2379"></a>    <span class="c">!</span>
+<a name="ln-2380"></a>    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+<a name="ln-2381"></a>    <span class="c">!!</span>
+<a name="ln-2382"></a>    <span class="n">wasRead</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-2383"></a>      <span class="c">!! * Default return value is true</span>
+<a name="ln-2384"></a>    <span class="c">!</span>
+<a name="ln-2385"></a>    <span class="k">if</span> <span class="p">(</span> <span class="n">inputVal</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-2386"></a>      <span class="c">!! * If the input variable still has the default value</span>
+<a name="ln-2387"></a>      <span class="c">!!    * output an error message</span>
+<a name="ln-2388"></a>      <span class="c">!!    * set the program to abort if that variable was sent in</span>
+<a name="ln-2389"></a>      <span class="c">!!    * set the return value to false to indicate that the </span>
+<a name="ln-2390"></a>      <span class="c">!!      variable wasn&#39;t read</span>
+<a name="ln-2391"></a>      <span class="c">!</span>
+<a name="ln-2392"></a>      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-2393"></a>      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Variable : &quot;&quot;&quot;, a, &quot;&quot;&quot; is not defined!&quot;)&#39;</span><span class="p">)</span> <span class="n">variableName</span>
+<a name="ln-2394"></a>      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; usage : &quot;, a)&#39;</span><span class="p">)</span> <span class="n">usage</span>
+<a name="ln-2395"></a>      <span class="k">if</span><span class="p">(</span><span class="nb">present</span><span class="p">(</span><span class="n">abortExecution</span><span class="p">))</span> <span class="k">then</span>
+<a name="ln-2396"></a>        <span class="c">!</span>
+<a name="ln-2397"></a>        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
+<a name="ln-2398"></a>        <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-2399"></a>        <span class="c">!</span>
+<a name="ln-2400"></a>      <span class="n">endif</span> 
+<a name="ln-2401"></a>      <span class="c">!</span>
+<a name="ln-2402"></a>      <span class="n">wasRead</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-2403"></a>      <span class="c">!</span>
+<a name="ln-2404"></a>    <span class="n">endif</span>
+<a name="ln-2405"></a>    <span class="c">!</span>
+<a name="ln-2406"></a>    <span class="k">return</span>
+<a name="ln-2407"></a>    <span class="c">!</span>
+<a name="ln-2408"></a>  <span class="k">end function </span><span class="n">wasRead</span>
+<a name="ln-2409"></a>  <span class="c">!</span>
+<a name="ln-2410"></a>  <span class="c">!---------------------------------------------------------------------------------------------------------------------------------</span>
+<a name="ln-2411"></a>  <span class="k">subroutine </span><span class="n">int2str</span><span class="p">(</span><span class="n">integ</span><span class="p">,</span> <span class="n">string</span><span class="p">)</span>
+<a name="ln-2412"></a>    <span class="c">!! Write a give integer to a string, using only as many digits as needed</span>
+<a name="ln-2413"></a>    <span class="c">!</span>
+<a name="ln-2414"></a>    <span class="k">implicit none</span>
+<a name="ln-2415"></a><span class="k">    </span><span class="kt">integer</span> <span class="kd">::</span> <span class="n">integ</span>
+<a name="ln-2416"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">string</span>
+<a name="ln-2417"></a>    <span class="c">!</span>
+<a name="ln-2418"></a>    <span class="k">if</span> <span class="p">(</span> <span class="n">integ</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-2419"></a><span class="k">      write</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;(i1)&#39;</span><span class="p">)</span> <span class="n">integ</span>
+<a name="ln-2420"></a>    <span class="k">else if</span> <span class="p">(</span> <span class="n">integ</span> <span class="o">&lt;</span> <span class="mi">100</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-2421"></a><span class="k">      write</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;(i2)&#39;</span><span class="p">)</span> <span class="n">integ</span>
+<a name="ln-2422"></a>    <span class="k">else if</span> <span class="p">(</span> <span class="n">integ</span> <span class="o">&lt;</span> <span class="mi">1000</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-2423"></a><span class="k">      write</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;(i3)&#39;</span><span class="p">)</span> <span class="n">integ</span>
+<a name="ln-2424"></a>    <span class="k">else if</span> <span class="p">(</span> <span class="n">integ</span> <span class="o">&lt;</span> <span class="mi">10000</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-2425"></a><span class="k">      write</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;(i4)&#39;</span><span class="p">)</span> <span class="n">integ</span>
+<a name="ln-2426"></a>    <span class="n">endif</span>
+<a name="ln-2427"></a>    <span class="c">!</span>
+<a name="ln-2428"></a>    <span class="n">string</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">string</span><span class="p">)</span>
+<a name="ln-2429"></a>    <span class="c">!</span>
+<a name="ln-2430"></a>    <span class="k">return</span>
+<a name="ln-2431"></a>    <span class="c">!</span>
+<a name="ln-2432"></a>  <span class="k">end subroutine </span><span class="n">int2str</span>
+<a name="ln-2433"></a>  <span class="c">!</span>
+<a name="ln-2434"></a><span class="k">end module </span><span class="n">TMEModule</span>
 </pre></div>
 
     </section>

@@ -236,9 +236,7 @@ public subroutine readEigenvalues(ik)
 <p>Convert k point index to string</p>
 </li>
 <li>
-<p>Open the solid defect <code>eigenvalues.ik</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a>
- </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if this should be perfect crystal </p></div>
-<p>
+<p>Open the perfectCrystal <code>eigenvalues.ik</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
 </li>
 <li>
 <p>Ignore the first two lines as they are comments</p>
@@ -442,9 +440,8 @@ public subroutine readEigenvalues(ik)
     <span class="k">call </span><span class="n">int2str</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">iks</span><span class="p">)</span>
       <span class="c">!! * Convert k point index to string</span>
     <span class="c">!</span>
-    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
-      <span class="c">!! * Open the solid defect `eigenvalues.ik` file from [[pw_export_for_tme(program)]]</span>
-      <span class="c">!! @todo Figure out if this should be perfect crystal @endtodo</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">iks</span><span class="p">))</span>
+      <span class="c">!! * Open the perfectCrystal `eigenvalues.ik` file from [[pw_export_for_tme(program)]]</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>

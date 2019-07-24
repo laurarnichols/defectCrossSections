@@ -2265,9 +2265,8 @@ contains
     call int2str(ik, iks)
       !! * Convert k point index to string
     !
-    open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(iks))
-      !! * Open the solid defect `eigenvalues.ik` file from [[pw_export_for_tme(program)]]
-      !! @todo Figure out if this should be perfect crystal @endtodo
+    open(72, file=trim(perfectCrystal%exportDir)//"/eigenvalues."//trim(iks))
+      !! * Open the perfectCrystal `eigenvalues.ik` file from [[pw_export_for_tme(program)]]
     !
     read(72, * )
     read(72, * )
