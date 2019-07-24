@@ -2,7 +2,7 @@ title: Todo
 author: Laura Nichols
 date: 07/24/2019
 
-* Binary file ../TME/src/.TME_Module_v28.f90.swo matches
+* Binary file ../TME/src/.TME_Main_v9.f90.swp matches
 * `../TME/src/TME_Main_v9.f90:2:` Finish documentation for main program
 * `../TME/src/TME_Main_v9.f90:46:` Figure out if need to allocate space for arrays so soon
 * `../TME/src/TME_Main_v9.f90:58:` Figure out if SD and PC `numOfGvecs` should be the same
@@ -43,4 +43,4 @@ date: 07/24/2019
 * `../TME/src/TME_Module_v28.f90:2003:` Document `writeResults()` @endto
 * `../TME/src/TME_Module_v28.f90:2075:` Document `readUfis()`
 * `../TME/src/TME_Module_v28.f90:2129:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2251:` Document `readEigenvalues()`
+* `../TME/src/TME_Module_v28.f90:2270:` Figure out if this should be perfect crystal

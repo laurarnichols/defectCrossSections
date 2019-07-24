@@ -2248,7 +2248,7 @@ contains
   !
   !
   subroutine readEigenvalues(ik)
-    !! @todo Document `readEigenvalues()` @endtodo
+    !! Read in the eigenvalues output from [[pw_export_for_tme(program)]]
     !!
     !! <h2>Walkthrough</h2>
     !!
@@ -2267,6 +2267,7 @@ contains
     !
     open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(iks))
       !! * Open the solid defect `eigenvalues.ik` file from [[pw_export_for_tme(program)]]
+      !! @todo Figure out if this should be perfect crystal @endtodo
     !
     read(72, * )
     read(72, * )
@@ -2280,26 +2281,38 @@ contains
     enddo
     !
     do ib = iBandIinit, iBandIfinal
-      !! * From `iBandIinit` to `iBandIfinal`
+      !! * Read in the eigenvalues from `iBandIinit` to `iBandIfinal`
+      !
       read(72, '(ES24.15E3)') eigvI(ib)
+      !
     enddo
     !
     close(72)
+      !! * Close the solid defect `eigenvalues.ik` file
     !
     open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(iks))
+      !! * Open the solid defect `eigenvalues.ik` file from [[pw_export_for_tme(program)]]
     !
     read(72, * )
     read(72, * ) 
+      !! * Ignore the first two lines as they are comments
     !
     do ib = 1, iBandFinit - 1
+      !! * Ignore eigenvalues for bands that are before `iBandFinit`
+      !
       read(72, *)
+      !
     enddo
     !
     do ib = iBandFinit, iBandFfinal
+      !! * Read in the eigenvalues from `iBandFinit` to `iBandFfinal`
+      !
       read(72, '(ES24.15E3)') eigvF(ib)
+      !
     enddo
     !
     close(72)
+      !! * Close the solid defect `eigenvalues.ik` file
     !
     return
     !
