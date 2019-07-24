@@ -1,10 +1,7 @@
 title: Todo
 author: Laura Nichols
-date: 07/23/2019
+date: 07/24/2019
 
-* `../TME/src/PC.txt:2:` Document `pawCorrectionKPC()`
-* `../TME/src/SD.txt:2:` Document `pawCorrectionSDK()`
-* `../TME/src/SD.txt:3:` Figure out the difference between PC and SD `pawCorrection_K` and possibly merge
 * `../TME/src/TME_Main_v9.f90:2:` Finish documentation for main program
 * `../TME/src/TME_Main_v9.f90:46:` Figure out if need to allocate space for arrays so soon
 * `../TME/src/TME_Main_v9.f90:58:` Figure out if SD and PC `numOfGvecs` should be the same
@@ -29,20 +26,20 @@ date: 07/23/2019
 * `../TME/src/TME_Module_v28.f90:1237:` Figure out what this subroutine really does
 * `../TME/src/TME_Module_v28.f90:1359:` Figure out what this subroutine really does
 * `../TME/src/TME_Module_v28.f90:1411:` Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\)
-* `../TME/src/TME_Module_v28.f90:1477:` Figure out what this subroutine really does
-* `../TME/src/TME_Module_v28.f90:1549:` Figure out if this output slows things down significantly
-* `../TME/src/TME_Module_v28.f90:1550:` Figure out if formula gives accurate representation of time left
-* `../TME/src/TME_Module_v28.f90:1594:` Figure out if this should be `system`
-* `../TME/src/TME_Module_v28.f90:1595:` Figure out significance of "qr" point
-* `../TME/src/TME_Module_v28.f90:1598:` Test if can just directly store in each atom type's `bes_J_qr`
-* `../TME/src/TME_Module_v28.f90:1618:` Figure out if this should be `gDotR`
-* `../TME/src/TME_Module_v28.f90:1622:` Figure out why this is called `ATOMIC_CENTER`
-* `../TME/src/TME_Module_v28.f90:1623:` Figure out why the difference between SD and PC
-* `../TME/src/TME_Module_v28.f90:1644:` Figure out why the difference between SD and PC
-* `../TME/src/TME_Module_v28.f90:1654:` Figure out why the difference between SD and PC
-* `../TME/src/TME_Module_v28.f90:1675:` Document `pawCorrection()`
-* `../TME/src/TME_Module_v28.f90:1676:` Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions
-* `../TME/src/TME_Module_v28.f90:2039:` Document `writeResults()` @endto
-* `../TME/src/TME_Module_v28.f90:2101:` Document `readUfis()`
-* `../TME/src/TME_Module_v28.f90:2155:` Document `calculateVFiElements()`
-* `../TME/src/TME_Module_v28.f90:2277:` Document `readEigenvalues()`
+* `../TME/src/TME_Module_v28.f90:1445:` Figure out why the difference between SD and PC
+* `../TME/src/TME_Module_v28.f90:1451:` Figure out why the difference between SD and PC
+* `../TME/src/TME_Module_v28.f90:1479:` Figure out what this subroutine really does
+* `../TME/src/TME_Module_v28.f90:1551:` Figure out if this output slows things down significantly
+* `../TME/src/TME_Module_v28.f90:1552:` Figure out if formula gives accurate representation of time left
+* `../TME/src/TME_Module_v28.f90:1596:` Figure out if this should be `system`
+* `../TME/src/TME_Module_v28.f90:1597:` Figure out significance of "qr" point
+* `../TME/src/TME_Module_v28.f90:1600:` Test if can just directly store in each atom type's `bes_J_qr`
+* `../TME/src/TME_Module_v28.f90:1620:` Figure out if this should be `gDotR`
+* `../TME/src/TME_Module_v28.f90:1624:` Figure out why this is called `ATOMIC_CENTER`
+* `../TME/src/TME_Module_v28.f90:1625:` Figure out why the difference between SD and PC
+* `../TME/src/TME_Module_v28.f90:1646:` Figure out why the difference between SD and PC
+* `../TME/src/TME_Module_v28.f90:1656:` Figure out why the difference between SD and PC
+* `../TME/src/TME_Module_v28.f90:1967:` Document `writeResults()` @endto
+* `../TME/src/TME_Module_v28.f90:2029:` Document `readUfis()`
+* `../TME/src/TME_Module_v28.f90:2083:` Document `calculateVFiElements()`
+* `../TME/src/TME_Module_v28.f90:2205:` Document `readEigenvalues()`

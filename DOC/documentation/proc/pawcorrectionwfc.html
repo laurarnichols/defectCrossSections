@@ -291,6 +291,10 @@ public subroutine pawCorrectionWfc(system)
 </ul>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out the significance of <script type="math/tex">l = l^{\prime}</script> and <script type="math/tex">m = m^{\prime}</script> </p></div>
 <p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why the difference between SD and PC </p></div>
+<p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why the difference between SD and PC </p></div>
+<p>
     
 
     <h3>Arguments</h3>
@@ -776,11 +780,13 @@ public subroutine pawCorrectionWfc(system)
                   <span class="c">!</span>
                   <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="n">cProjIe</span> <span class="o">=</span> <span class="nb">system</span><span class="p">%</span><span class="n">cProj</span><span class="p">(</span><span class="n">LMP</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">)</span>
                   <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;SD&#39;</span> <span class="p">)</span> <span class="n">cProjIe</span> <span class="o">=</span> <span class="nb">system</span><span class="p">%</span><span class="n">cCrossProj</span><span class="p">(</span><span class="n">LMP</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">)</span>
+                    <span class="c">!! @todo Figure out why the difference between SD and PC @endtodo</span>
                   <span class="c">!</span>
                   <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
                     <span class="c">!</span>
                     <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="n">cProjFe</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">cCrossProj</span><span class="p">(</span><span class="n">LM</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">))</span>
                     <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="n">cProjFe</span> <span class="o">=</span> <span class="nb">conjg</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">cProj</span><span class="p">(</span><span class="n">LM</span> <span class="o">+</span> <span class="n">LMBASE</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">ISPIN</span><span class="p">))</span>
+                      <span class="c">!! @todo Figure out why the difference between SD and PC @endtodo</span>
                     <span class="c">!</span>
                     <span class="nb">system</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">)</span> <span class="o">=</span> <span class="nb">system</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">)</span> <span class="o">+</span> <span class="n">cProjFe</span><span class="o">*</span><span class="n">atomicOverlap</span><span class="o">*</span><span class="n">cProjIe</span>
                     <span class="c">!</span>

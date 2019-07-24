@@ -1442,11 +1442,13 @@ contains
                   !
                   if ( system%crystalType == 'PC' ) cProjIe = system%cProj(LMP + LMBASE, ibi, ISPIN)
                   if ( system%crystalType == 'SD' ) cProjIe = system%cCrossProj(LMP + LMBASE, ibi, ISPIN)
+                    !! @todo Figure out why the difference between SD and PC @endtodo
                   !
                   do ibf = iBandFinit, iBandFfinal
                     !
                     if ( system%crystalType == 'PC' ) cProjFe = conjg(system%cCrossProj(LM + LMBASE, ibf, ISPIN))
                     if ( system%crystalType == 'PC' ) cProjFe = conjg(system%cProj(LM + LMBASE, ibf, ISPIN))
+                      !! @todo Figure out why the difference between SD and PC @endtodo
                     !
                     system%paw_Wfc(ibf, ibi) = system%paw_Wfc(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
                     !
@@ -1669,80 +1671,6 @@ contains
     return
     !
   end subroutine pawCorrectionK
-  !
-  !
-  subroutine pawCorrection()
-    !! @todo Document `pawCorrection()` @endtodo
-    !! @todo Figure out difference between `pawCorrection()` and the PC `pawCorrection` functions @endtodo
-    !
-    ! calculates the augmentation part of the transition matrix element
-    !
-    implicit none
-    integer :: ibi, ibf, niPC, ispin 
-    integer :: LL, LLP, LMBASE, LM, LMP
-    integer :: L, M, LP, MP, iT
-    real(kind = dp) :: atomicOverlap
-    !
-    !real(kind = dp), allocatable :: Qij(:,:)
-    !
-    complex(kind = dp) :: cProjIe, cProjFe
-    !
-    ispin = 1
-    !
-    !open(52, file=trim(perfectCrystal%exportDir)//"/Qij")
-    !read(52,*)
-    !allocate ( Qij (8,8) )
-    !do LL = 1, 8
-    !  do LLP = 1, 8
-    !    read(52,'(3i3,ES24.15E3)') LMBASE, LMBASE, LMBASE, Qij(LL, LLP)
-    !  enddo
-    !enddo
-    !close(52)
-    !
-    paw_fi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    !
-    LMBASE = 0
-    !
-    do niPC = 1, perfectCrystal%nIons ! LOOP OVER THE IONS
-      !
-      iT = perfectCrystal%atomTypeIndex(niPC)
-      LM = 0
-      DO LL = 1, perfectCrystal%atoms(iT)%numProjs
-        L = perfectCrystal%atoms(iT)%projAngMom(LL)
-        DO M = -L, L
-          LM = LM + 1 !1st index for CPROJ
-          !
-          LMP = 0
-          DO LLP = 1, perfectCrystal%atoms(iT)%numProjs
-            LP = perfectCrystal%atoms(iT)%projAngMom(LLP)
-            DO MP = -LP, LP
-              LMP = LMP + 1 ! 2nd index for CPROJ
-              !
-              atomicOverlap = 0.0_dp
-              if ( (L == LP).and.(M == MP) ) atomicOverlap = sum(perfectCrystal%atoms(iT)%F2(:,LL,LLP))
-              !
-              do ibi = iBandIinit, iBandIfinal
-                cProjIe = perfectCrystal%cProj(LMP + LMBASE, ibi, ISPIN)
-                !
-                do ibf = iBandFinit, iBandFfinal
-                  cProjFe = conjg(perfectCrystal%cProj(LM + LMBASE, ibf, ISPIN))
-                  !
-                  paw_fi(ibf, ibi) = paw_fi(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
-                  !
-                enddo
-                !
-              enddo
-              !
-            ENDDO
-          ENDDO
-        ENDDO
-      ENDDO
-      LMBASE = LMBASE + perfectCrystal%atoms(iT)%lmMax
-    ENDDO
-    !
-    return
-    !
-  end subroutine pawCorrection
   !
   !
   subroutine ylm(v_in,lmax,y)
