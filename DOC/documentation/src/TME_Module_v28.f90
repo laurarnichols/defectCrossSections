@@ -1965,17 +1965,27 @@ contains
   !
   subroutine writeResults(ik)
     !! @todo Document `writeResults()` @endto
-    !
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
     integer, intent(in) :: ik
+      !! K point index
     !
-    integer :: ibi, ibf, totalNumberOfElements
-    real(kind = dp) :: t1, t2
+    integer :: ibi, ibf
+      !! Loop index over bands
+    integer :: totalNumberOfElements
+    real(kind = dp) :: t1
+      !! Start time
+    real(kind = dp) :: t2
+      !! End time
     !
-    character(len = 300) :: text, Uelements
+    character(len = 300) :: text
+    character(len = 300) :: Uelements
     !
     call cpu_time(t1)
+      !! * Start a timer
     !
     call readEigenvalues(ik)
     !

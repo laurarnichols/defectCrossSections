@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.9% of total for procedures.">38 statements</a>
+    title=" 0.9% of total for procedures.">41 statements</a>
      </li> 
      
      
@@ -240,6 +240,10 @@ public subroutine writeResults(ik)
 
     
     <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>writeResults()</code> @endto</p></div>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>Start a timer</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -265,7 +269,7 @@ public subroutine writeResults(ik)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>ik</strong></td><td></td>
+  <td><strong>ik</strong></td><td><p>K point index</p></td>
   
 </tr>
 
@@ -365,7 +369,7 @@ public subroutine writeResults(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ibi</strong></td><td></td><td></td><td></td>
+  <td><strong>ibi</strong></td><td></td><td></td><td><p>Loop index over bands</p></td>
   
 </tr>
 
@@ -379,7 +383,7 @@ public subroutine writeResults(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>ibf</strong></td><td></td><td></td><td></td>
+  <td><strong>ibf</strong></td><td></td><td></td><td><p>Loop index over bands</p></td>
   
 </tr>
 
@@ -407,7 +411,7 @@ public subroutine writeResults(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>t1</strong></td><td></td><td></td><td></td>
+  <td><strong>t1</strong></td><td></td><td></td><td><p>Start time</p></td>
   
 </tr>
 
@@ -421,7 +425,7 @@ public subroutine writeResults(ik)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>t2</strong></td><td></td><td></td><td></td>
+  <td><strong>t2</strong></td><td></td><td></td><td><p>End time</p></td>
   
 </tr>
 
@@ -478,17 +482,27 @@ public subroutine writeResults(ik)
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">writeResults</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
     <span class="c">!! @todo Document `writeResults()` @endto</span>
-    <span class="c">!</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ik</span>
+      <span class="c">!! K point index</span>
     <span class="c">!</span>
-    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span><span class="p">,</span> <span class="n">totalNumberOfElements</span>
-    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ibf</span>
+      <span class="c">!! Loop index over bands</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">totalNumberOfElements</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t1</span>
+      <span class="c">!! Start time</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t2</span>
+      <span class="c">!! End time</span>
     <span class="c">!</span>
-    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">text</span><span class="p">,</span> <span class="n">Uelements</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">text</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">Uelements</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+      <span class="c">!! * Start a timer</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="n">readEigenvalues</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
     <span class="c">!</span>
