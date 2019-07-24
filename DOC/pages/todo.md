@@ -2,7 +2,6 @@ title: Todo
 author: Laura Nichols
 date: 07/24/2019
 
-* Binary file ../TME/src/.TME_Main_v9.f90.swp matches
 * `../TME/src/TME_Main_v9.f90:2:` Finish documentation for main program
 * `../TME/src/TME_Main_v9.f90:46:` Figure out if need to allocate space for arrays so soon
 * `../TME/src/TME_Main_v9.f90:58:` Figure out if SD and PC `numOfGvecs` should be the same
@@ -40,4 +39,9 @@ date: 07/24/2019
 * `../TME/src/TME_Module_v28.f90:1637:` Figure out why the difference between SD and PC
 * `../TME/src/TME_Module_v28.f90:1666:` Figure out why the difference between SD and PC
 * `../TME/src/TME_Module_v28.f90:1681:` Figure out why the difference between SD and PC
-* `../TME/src/TME_Module_v28.f90:2176:` Document `calculateVFiElements()`
+* `../TME/src/TME_Module_v28.f90:2176:` Figure out what the purpose of this function is. For plotting?
+* `../TME/src/TME_Module_v28.f90:2263:` Figure out why `DHifMin` is needed
+* `../TME/src/TME_Module_v28.f90:2264:` Figure out why used difference rather than `==
+* `../TME/src/TME_Module_v28.f90:2269:` Figure out why this test is here. All of these should be positive, right?
+* `../TME/src/TME_Module_v28.f90:2323:` Figure out where unit 12 file is opened and what it is
+* `../TME/src/TME_Module_v28.f90:2358:` Figure out why use `eMin + iE*eBin` rather than `DE`

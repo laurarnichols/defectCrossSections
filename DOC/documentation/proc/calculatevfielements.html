@@ -261,7 +261,7 @@ public subroutine calculateVfiElements()
 
 
     
-    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>calculateVFiElements()</code> </p></div>
+    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out what the purpose of this function is. For plotting? </p></div>
 <p>
 <p><h2>Walkthrough</h2></p>
 <ul>
@@ -281,15 +281,110 @@ public subroutine calculateVfiElements()
 <li>Calculate 
      <script type="math/tex; mode=display">|\Delta H_{if}|^2 = \dfrac{|\langle\Phi_f|\Psi_i\rangle|^2 - |\langle\Phi_f|\Psi_i\rangle|^4}
                             {(1 - 2|\langle\Phi_f|\Psi_i\rangle|^2)^2}\epsilon_{if}</script>
-     (A8 in the paper)
+     (A8 in paper)
      </p><div class="alert alert-info" role="alert"><h4>Note</h4><p>Only numerator is calculated because the denominator
      is approximately zero, assuming <script type="math/tex">|\langle\Phi_f|\Psi_i\rangle| \ll 1</script>
      </p></div>
 <p></li>
-<li>Calculate <code>DE</code><script type="math/tex"> = E_i - E_f = </script>
+<li>Calculate <code>DE</code><script type="math/tex"> = E_i - E_f = \sqrt{\epsilon_{if}^2 + 4|\Delta H_{if}|^2}</script>
 </li>
 </ul>
 </li>
+<li>
+<p>Find the max and min of <code>DE</code></p>
+</li>
+<li>
+<p>Use the min and max values to calculate how many
+   energy bins result between the energies using
+   a bin size of <code>eBin</code></p>
+</li>
+<li>
+<p>Allocate space for <code>absVfiOfE2</code>, <code>nKsInEbin</code>, and <code>sumWk</code></p>
+</li>
+<li>
+<p>Initialize all to double zero</p>
+</li>
+<li>
+<p>For each k point and band</p>
+<ul>
+<li>Store <code>absVfi2</code> (<script type="math/tex">|\Delta H_{if}|^2</script>) if have min <code>DE</code></li>
+<li>Find the "index" of the particular <code>DE</code></li>
+<li>If <script type="math/tex">|\Delta H_{if}|^2 > 0</script> for given k point, add the 
+  value to a cumulative sum, weighted by the k point weight <code>wk</code>,
+  and keep track of the total weight and number of k points in
+  each bin</li>
+</ul>
+</li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why <code>DHifMin</code> is needed </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why used difference rather than `==</p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why this test is here. All of these should be positive, right? </p></div>
+<p>
+<p></p><div class="alert alert-info" role="alert"><h4>Note</h4><p>I think <code>absVfiOfE2</code> is the sum of the numerators weighted by k point </p></div>
+<p>
+<ul>
+<li>
+<p>Allocate space for <code>sAbsVfiOfE2</code></p>
+</li>
+<li>
+<p>Initialize to zero</p>
+</li>
+<li>
+<p>Open <code>VfisVsEofKpt</code> file</p>
+</li>
+<li>
+<p>Output file header</p>
+</li>
+<li>
+<p>Output section header</p>
+</li>
+<li>
+<p>For each k point and band, </p>
+<ul>
+<li>Figure out the "index" for <code>DE</code></li>
+<li>Calculate <script type="math/tex">|\Delta H_{if}|^2</script> average over k points</li>
+<li>Store <script type="math/tex">|\Delta H_{if}|^2</script> for a given k point and band</li>
+<li>Write out the energy shifted by half a bin, <script type="math/tex">|\Delta H_{if}|^2</script>,
+  and the k point index to <code>VfisVsEofKpt</code></li>
+<li>Write out unshifted energy, <script type="math/tex">|\Delta H_{if}|^2</script>, and the k point
+  index to some other file??</li>
+<li>Calculate the standard deviation of <script type="math/tex">|\Delta H_{if}|^2</script>
+</li>
+</ul>
+</li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out where unit 12 file is opened and what it is </p></div>
+<p>
+<ul>
+<li>
+<p>Close <code>VfisVsEofKpt</code> file</p>
+</li>
+<li>
+<p>Open <code>VfisVsE</code> file</p>
+</li>
+<li>
+<p>Output file header</p>
+</li>
+<li>
+<p>Output cell volumn, min <code>DE</code>, <script type="math/tex">|\Delta H_{if}|^2</script> at min <code>DE</code>, and bin size</p>
+</li>
+<li>
+<p>Output section header</p>
+</li>
+<li>
+<p>For each energy </p>
+<ul>
+<li>Calculate the average and standard deviation
+  of <script type="math/tex">|\Delta H_{if}|^2</script>
+</li>
+<li>Output the energy, average, and standard deviation</li>
+</ul>
+</li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why use <code>eMin + iE*eBin</code> rather than <code>DE</code> </p></div>
+<p>
+<ul>
+<li>Close <code>VfisVsE</code> file</li>
 </ul>
     
 
@@ -678,7 +773,7 @@ public subroutine calculateVfiElements()
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">calculateVfiElements</span><span class="p">()</span>
-    <span class="c">!! @todo Document `calculateVFiElements()` @endtodo</span>
+    <span class="c">!! @todo Figure out what the purpose of this function is. For plotting? @endtodo</span>
     <span class="c">!!</span>
     <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
     <span class="c">!!</span>
@@ -713,12 +808,12 @@ public subroutine calculateVfiElements()
       <span class="c">!!       * Calculate </span>
       <span class="c">!!         \[|\Delta H_{if}|^2 = \dfrac{|\langle\Phi_f|\Psi_i\rangle|^2 - |\langle\Phi_f|\Psi_i\rangle|^4}</span>
       <span class="c">!!                                {(1 - 2|\langle\Phi_f|\Psi_i\rangle|^2)^2}\epsilon_{if}\]</span>
-      <span class="c">!!         (A8 in the paper)</span>
+      <span class="c">!!         (A8 in paper)</span>
       <span class="c">!!         @note </span>
       <span class="c">!!         Only numerator is calculated because the denominator</span>
       <span class="c">!!         is approximately zero, assuming \(|\langle\Phi_f|\Psi_i\rangle| \ll 1\)</span>
       <span class="c">!!         @endnote</span>
-      <span class="c">!!       * Calculate `DE`\( = E_i - E_f = \)</span>
+      <span class="c">!!       * Calculate `DE`\( = E_i - E_f = \sqrt{\epsilon_{if}^2 + 4|\Delta H_{if}|^2}\)</span>
       <span class="c">!</span>
       <span class="n">eigvI</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
       <span class="n">eigvF</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
@@ -738,25 +833,48 @@ public subroutine calculateVfiElements()
     <span class="c">!</span>
     <span class="n">eMin</span> <span class="o">=</span> <span class="nb">minval</span><span class="p">(</span> <span class="n">DE</span><span class="p">(:,:)</span> <span class="p">)</span>
     <span class="n">eMax</span> <span class="o">=</span> <span class="nb">maxval</span><span class="p">(</span> <span class="n">DE</span><span class="p">(:,:)</span> <span class="p">)</span>
+      <span class="c">!! * Find the max and min of `DE`</span>
     <span class="c">!</span>
     <span class="n">nOfEnergies</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">eMax</span><span class="o">-</span><span class="n">eMin</span><span class="p">)</span><span class="o">/</span><span class="n">eBin</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="c">!! * Use the min and max values to calculate how many</span>
+      <span class="c">!!   energy bins result between the energies using</span>
+      <span class="c">!!   a bin size of `eBin`</span>
     <span class="c">!</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">absVfiOfE2</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">nOfEnergies</span><span class="p">),</span> <span class="n">nKsInEbin</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">nOfEnergies</span><span class="p">),</span> <span class="n">sumWk</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">nOfEnergies</span><span class="p">)</span> <span class="p">)</span>
+      <span class="c">!! * Allocate space for `absVfiOfE2`, `nKsInEbin`, and `sumWk`</span>
     <span class="c">!</span>
     <span class="n">absVfiOfE2</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
     <span class="n">nKsInEbin</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">sumWk</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="c">!! * Initialize all to double zero</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nKpts</span>
       <span class="c">!</span>
       <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+        <span class="c">!! * For each k point and band</span>
+        <span class="c">!!    * Store `absVfi2` (\(|\Delta H_{if}|^2\)) if have min `DE`</span>
+        <span class="c">!!    * Find the &quot;index&quot; of the particular `DE`</span>
+        <span class="c">!!    * If \(|\Delta H_{if}|^2 &gt; 0\) for given k point, add the </span>
+        <span class="c">!!      value to a cumulative sum, weighted by the k point weight `wk`,</span>
+        <span class="c">!!      and keep track of the total weight and number of k points in</span>
+        <span class="c">!!      each bin</span>
         <span class="c">!</span>
         <span class="k">if</span> <span class="p">(</span> <span class="nb">abs</span><span class="p">(</span> <span class="n">eMin</span> <span class="o">-</span> <span class="n">DE</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">1.0e-3_dp</span> <span class="p">)</span> <span class="n">DHifMin</span> <span class="o">=</span> <span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span>
+          <span class="c">!! @todo Figure out why `DHifMin` is needed @endtodo</span>
+          <span class="c">!! @todo Figure out why used difference rather than `==</span>
+        <span class="c">!</span>
         <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">DE</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span><span class="o">-</span><span class="n">eMin</span><span class="p">)</span><span class="o">/</span><span class="n">eBin</span><span class="p">)</span>
+        <span class="c">!</span>
         <span class="k">if</span> <span class="p">(</span> <span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.0_dp</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">          </span><span class="n">absVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">=</span> <span class="n">absVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">+</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span><span class="o">*</span><span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span>
+          <span class="c">!! @todo Figure out why this test is here. All of these should be positive, right? @endtodo</span>
+          <span class="c">!</span>
+          <span class="n">absVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">=</span> <span class="n">absVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">+</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span><span class="o">*</span><span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span>
+            <span class="c">!! @note I think `absVfiOfE2` is the sum of the numerators weighted by k point @endnote</span>
+          <span class="c">!</span>
           <span class="n">sumWk</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">=</span> <span class="n">sumWk</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">+</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+          <span class="c">!</span>
           <span class="n">nKsInEbin</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">=</span> <span class="n">nKsInEbin</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+          <span class="c">!</span>
         <span class="k">else</span>
 <span class="k">          write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;lalala&#39;</span><span class="p">,</span> <span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span>
         <span class="n">endif</span>
@@ -766,25 +884,45 @@ public subroutine calculateVfiElements()
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">sAbsVfiOfE2</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">nOfEnergies</span><span class="p">)</span> <span class="p">)</span>
+      <span class="c">!! * Allocate space for `sAbsVfiOfE2`</span>
     <span class="c">!</span>
     <span class="n">sAbsVfiOfE2</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="c">!! * Initialize to zero</span>
     <span class="c">!</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">VfisOutput</span><span class="p">)</span><span class="o">//</span><span class="s1">&#39;ofKpt&#39;</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+      <span class="c">!! * Open `VfisVsEofKpt` file</span>
     <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="s1">&#39;(&quot;# |&lt;f|V|i&gt;|^2 versus energy for all the k-points.&quot;)&#39;</span><span class="p">)</span>
+      <span class="c">!! * Output file header</span>
+    <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Energy (eV) shifted by half eBin, |&lt;f|V|i&gt;|^2 (Hartree)^2,&quot;)&#39;</span><span class="p">)</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="s1">&#39;(a, &quot; k-point index. Format : &#39;&#39;(2ES24.15E3,i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+      <span class="c">!! * Output section header</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nKpts</span>
       <span class="c">!</span>
       <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+        <span class="c">!! * For each k point and band, </span>
+        <span class="c">!!    * Figure out the &quot;index&quot; for `DE`</span>
+        <span class="c">!!    * Calculate \(|\Delta H_{if}|^2\) average over k points</span>
+        <span class="c">!!    * Store \(|\Delta H_{if}|^2\) for a given k point and band</span>
+        <span class="c">!!    * Write out the energy shifted by half a bin, \(|\Delta H_{if}|^2\),</span>
+        <span class="c">!!      and the k point index to `VfisVsEofKpt`</span>
+        <span class="c">!!    * Write out unshifted energy, \(|\Delta H_{if}|^2\), and the k point</span>
+        <span class="c">!!      index to some other file??</span>
+        <span class="c">!!    * Calculate the standard deviation of \(|\Delta H_{if}|^2\)</span>
         <span class="c">!</span>
         <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">DE</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">-</span><span class="n">eMin</span><span class="p">)</span><span class="o">/</span><span class="n">eBin</span><span class="p">)</span>
+        <span class="c">!</span>
         <span class="n">av</span> <span class="o">=</span> <span class="n">absVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">sumWk</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>
+        <span class="c">!</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
+        <span class="c">!</span>
         <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3,i10)&#39;</span><span class="p">)</span> <span class="p">(</span><span class="n">eMin</span> <span class="o">+</span> <span class="p">(</span><span class="n">iE</span><span class="o">+</span><span class="mf">0.5_dp</span><span class="p">)</span><span class="o">*</span><span class="n">eBin</span><span class="p">)</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">ik</span>
         <span class="k">write</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3,i10)&#39;</span><span class="p">)</span> <span class="n">DE</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">absVfi2</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="n">ik</span><span class="p">),</span> <span class="n">ik</span>
+          <span class="c">!! @todo Figure out where unit 12 file is opened and what it is @endtodo</span>
         <span class="c">!write(11, &#39;(2ES24.15E3,i10)&#39;) (eMin + iE*eBin + eBin/2.0_dp), x, ik</span>
+        <span class="c">!</span>
         <span class="n">sAbsVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">=</span> <span class="n">sAbsVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">+</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">av</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">sumWk</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
@@ -792,29 +930,51 @@ public subroutine calculateVfiElements()
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">close</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span>
+      <span class="c">!! * Close `VfisVsEofKpt` file</span>
     <span class="c">!</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">VfisOutput</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+      <span class="c">!! * Open `VfisVsE` file</span>
     <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Averaged |&lt;f|V|i&gt;|^2 over K-points versus energy.&quot;)&#39;</span><span class="p">)</span>
+      <span class="c">!! * Output file header</span>
+    <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;(&quot;#                 Cell volume : &quot;, ES24.15E3, &quot; (a.u.)^3,   Format : &#39;&#39;(ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">omega</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;(&quot;#   Minimun transition energy : &quot;, ES24.15E3, &quot; (Hartree),  Format : &#39;&#39;(ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">eMin</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;(&quot;# |DHif|^2 at minimum Tr. En. : &quot;, ES24.15E3, &quot; (Hartree^2),Format : &#39;&#39;(ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">DHifMin</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;(&quot;#                  Energy bin : &quot;, ES24.15E3, &quot; (Hartree),  Format : &#39;&#39;(ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">eBin</span>
+      <span class="c">!! * Output cell volumn, min `DE`, \(|\Delta H_{if}|^2\) at min `DE`, and bin size</span>
+    <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Energy (Hartree), averaged |&lt;f|V|i&gt;|^2 over K-points (Hartree)^2,&quot;)&#39;</span><span class="p">)</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span> <span class="s1">&#39;(a, &quot; standard deviation (Hartree)^2. Format : &#39;&#39;(3ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+      <span class="c">!! * Output section header</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nOfEnergies</span>
+      <span class="c">!! * For each energy </span>
+      <span class="c">!!    * Calculate the average and standard deviation</span>
+      <span class="c">!!      of \(|\Delta H_{if}|^2\)</span>
+      <span class="c">!!    * Output the energy, average, and standard deviation</span>
+      <span class="c">!</span>
       <span class="n">E</span> <span class="o">=</span> <span class="n">iE</span><span class="o">*</span><span class="n">eBin</span>
+        <span class="c">!! @todo Figure out why use `eMin + iE*eBin` rather than `DE` @endtodo</span>
+      <span class="c">!</span>
       <span class="n">av</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="c">!</span>
       <span class="n">sd</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span><span class="n">nKsInEbin</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="k">then</span>
-<span class="k">        </span><span class="n">av</span> <span class="o">=</span> <span class="n">absVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">sumWk</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>
+        <span class="c">!</span>
+        <span class="n">av</span> <span class="o">=</span> <span class="n">absVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">sumWk</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>
+        <span class="c">!</span>
         <span class="n">sd</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="n">sAbsVfiOfE2</span><span class="p">(</span><span class="n">iE</span><span class="p">))</span>
+        <span class="c">!</span>
       <span class="n">endif</span>
+      <span class="c">!</span>
       <span class="k">write</span><span class="p">(</span><span class="mi">63</span><span class="p">,</span><span class="s1">&#39;(3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">eMin</span> <span class="o">+</span> <span class="n">E</span><span class="p">,</span> <span class="n">av</span><span class="p">,</span> <span class="n">sd</span>
+      <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">close</span><span class="p">(</span><span class="mi">63</span><span class="p">)</span>
+      <span class="c">!! * Close `VfisVsE` file</span>
     <span class="c">!</span>
     <span class="k">return</span>
     <span class="c">!</span>

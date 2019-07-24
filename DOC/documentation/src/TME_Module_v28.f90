@@ -2173,7 +2173,7 @@ contains
   !
   !
   subroutine calculateVfiElements()
-    !! @todo Document `calculateVFiElements()` @endtodo
+    !! @todo Figure out what the purpose of this function is. For plotting? @endtodo
     !!
     !! <h2>Walkthrough</h2>
     !!
@@ -2208,12 +2208,12 @@ contains
       !!       * Calculate 
       !!         \[|\Delta H_{if}|^2 = \dfrac{|\langle\Phi_f|\Psi_i\rangle|^2 - |\langle\Phi_f|\Psi_i\rangle|^4}
       !!                                {(1 - 2|\langle\Phi_f|\Psi_i\rangle|^2)^2}\epsilon_{if}\]
-      !!         (A8 in the paper)
+      !!         (A8 in paper)
       !!         @note 
       !!         Only numerator is calculated because the denominator
       !!         is approximately zero, assuming \(|\langle\Phi_f|\Psi_i\rangle| \ll 1\)
       !!         @endnote
-      !!       * Calculate `DE`\( = E_i - E_f = \)
+      !!       * Calculate `DE`\( = E_i - E_f = \sqrt{\epsilon_{if}^2 + 4|\Delta H_{if}|^2}\)
       !
       eigvI(:) = 0.0_dp
       eigvF(:) = 0.0_dp
@@ -2233,25 +2233,48 @@ contains
     !
     eMin = minval( DE(:,:) )
     eMax = maxval( DE(:,:) )
+      !! * Find the max and min of `DE`
     !
     nOfEnergies = int((eMax-eMin)/eBin) + 1
+      !! * Use the min and max values to calculate how many
+      !!   energy bins result between the energies using
+      !!   a bin size of `eBin`
     !
     allocate ( absVfiOfE2(0:nOfEnergies), nKsInEbin(0:nOfEnergies), sumWk(0:nOfEnergies) )
+      !! * Allocate space for `absVfiOfE2`, `nKsInEbin`, and `sumWk`
     !
     absVfiOfE2(:) = 0.0_dp
     nKsInEbin(:) = 0
     sumWk(:) = 0.0_dp
+      !! * Initialize all to double zero
     !
     do ik = 1, perfectCrystal%nKpts
       !
       do ib = iBandIinit, iBandIfinal
+        !! * For each k point and band
+        !!    * Store `absVfi2` (\(|\Delta H_{if}|^2\)) if have min `DE`
+        !!    * Find the "index" of the particular `DE`
+        !!    * If \(|\Delta H_{if}|^2 > 0\) for given k point, add the 
+        !!      value to a cumulative sum, weighted by the k point weight `wk`,
+        !!      and keep track of the total weight and number of k points in
+        !!      each bin
         !
         if ( abs( eMin - DE(ib,ik)) < 1.0e-3_dp ) DHifMin = absVfi2(ib, ik)
+          !! @todo Figure out why `DHifMin` is needed @endtodo
+          !! @todo Figure out why used difference rather than `==
+        !
         iE = int((DE(ib, ik)-eMin)/eBin)
+        !
         if ( absVfi2(ib, ik) > 0.0_dp ) then
+          !! @todo Figure out why this test is here. All of these should be positive, right? @endtodo
+          !
           absVfiOfE2(iE) = absVfiOfE2(iE) + perfectCrystal%wk(ik)*absVfi2(ib, ik)
+            !! @note I think `absVfiOfE2` is the sum of the numerators weighted by k point @endnote
+          !
           sumWk(iE) = sumWk(iE) + perfectCrystal%wk(ik)
+          !
           nKsInEbin(iE) = nKsInEbin(iE) + 1
+          !
         else
           write(iostd,*) 'lalala', absVfi2(ib, ik)
         endif
@@ -2261,25 +2284,45 @@ contains
     enddo
     !
     allocate ( sAbsVfiOfE2(0:nOfEnergies) )
+      !! * Allocate space for `sAbsVfiOfE2`
     !
     sAbsVfiOfE2 = 0.0_dp
+      !! * Initialize to zero
     !
     open(11, file=trim(VfisOutput)//'ofKpt', status='unknown')
+      !! * Open `VfisVsEofKpt` file
     !
     write(11, '("# |<f|V|i>|^2 versus energy for all the k-points.")')
+      !! * Output file header
+    !
     write(text, '("# Energy (eV) shifted by half eBin, |<f|V|i>|^2 (Hartree)^2,")')
     write(11, '(a, " k-point index. Format : ''(2ES24.15E3,i10)''")') trim(text)
+      !! * Output section header
     !
     do ik = 1, perfectCrystal%nKpts
       !
       do ib = iBandIinit, iBandIfinal
+        !! * For each k point and band, 
+        !!    * Figure out the "index" for `DE`
+        !!    * Calculate \(|\Delta H_{if}|^2\) average over k points
+        !!    * Store \(|\Delta H_{if}|^2\) for a given k point and band
+        !!    * Write out the energy shifted by half a bin, \(|\Delta H_{if}|^2\),
+        !!      and the k point index to `VfisVsEofKpt`
+        !!    * Write out unshifted energy, \(|\Delta H_{if}|^2\), and the k point
+        !!      index to some other file??
+        !!    * Calculate the standard deviation of \(|\Delta H_{if}|^2\)
         !
         iE = int((DE(ib,ik)-eMin)/eBin)
+        !
         av = absVfiOfE2(iE)/sumWk(iE)
+        !
         x = absVfi2(ib,ik)
+        !
         write(11, '(2ES24.15E3,i10)') (eMin + (iE+0.5_dp)*eBin)*HartreeToEv, x, ik
         write(12, '(2ES24.15E3,i10)') DE(ib,ik)*HartreeToEv, absVfi2(ib, ik), ik
+          !! @todo Figure out where unit 12 file is opened and what it is @endtodo
         !write(11, '(2ES24.15E3,i10)') (eMin + iE*eBin + eBin/2.0_dp), x, ik
+        !
         sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + perfectCrystal%wk(ik)*(x - av)**2/sumWk(iE)
         !
       enddo
@@ -2287,29 +2330,51 @@ contains
     enddo
     !
     close(11)
+      !! * Close `VfisVsEofKpt` file
     !
     open(63, file=trim(VfisOutput), status='unknown')
+      !! * Open `VfisVsE` file
     !
     write(63, '("# Averaged |<f|V|i>|^2 over K-points versus energy.")')
+      !! * Output file header
+    !
     write(63, '("#                 Cell volume : ", ES24.15E3, " (a.u.)^3,   Format : ''(ES24.15E3)''")') solidDefect%omega
     write(63, '("#   Minimun transition energy : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eMin
     write(63, '("# |DHif|^2 at minimum Tr. En. : ", ES24.15E3, " (Hartree^2),Format : ''(ES24.15E3)''")') DHifMin
     write(63, '("#                  Energy bin : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eBin
+      !! * Output cell volumn, min `DE`, \(|\Delta H_{if}|^2\) at min `DE`, and bin size
+    !
     write(text, '("# Energy (Hartree), averaged |<f|V|i>|^2 over K-points (Hartree)^2,")')
     write(63, '(a, " standard deviation (Hartree)^2. Format : ''(3ES24.15E3)''")') trim(text)
+      !! * Output section header
     !
     do iE = 0, nOfEnergies
+      !! * For each energy 
+      !!    * Calculate the average and standard deviation
+      !!      of \(|\Delta H_{if}|^2\)
+      !!    * Output the energy, average, and standard deviation
+      !
       E = iE*eBin
+        !! @todo Figure out why use `eMin + iE*eBin` rather than `DE` @endtodo
+      !
       av = 0.0_dp
+      !
       sd = 0.0_dp
+      !
       if (nKsInEbin(iE) > 0) then
+        !
         av = absVfiOfE2(iE)/sumWk(iE)
+        !
         sd = sqrt(sAbsVfiOfE2(iE))
+        !
       endif
+      !
       write(63,'(3ES24.15E3)') eMin + E, av, sd
+      !
     enddo
     !
     close(63)
+      !! * Close `VfisVsE` file
     !
     return
     !
