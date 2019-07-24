@@ -18,20 +18,26 @@ TME
 
 ## Inputs
 * `TME_Input.in`
-	* `exportDirSD` (string) -- directs the program to the output directory from `Export` program
-	* `exportDirPC` (string) -- directs the program to the output directory from `Export` program
-	* `elementsPath` (string) -- path to store outputs
-	* `iBandIinit` (integer) -- initial state initial band
-	* `iBandIfinal` (integer) -- initial state final band
-	* `iBandFinit` (integer) -- final state initial band
-	* `iBandFfinal` (integer) -- final state final band
+	* `exportDirSD` (string) -- directs the program to the output directory for the solid defect crystal (from `Export` program)
+	* `exportDirPC` (string) -- directs the program to the output directory for the perfect crystal (from `Export` program)
+	* `elementsPath` (string) -- path to store outputs (matrix elements)
+	* `iBandIinit` (integer) -- initial state (perfect crystal) initial band
+	* `iBandIfinal` (integer) -- initial state (perfect crystal) final band
+	* `iBandFinit` (integer) -- final state (solid defect) initial band
+	* `iBandFfinal` (integer) -- final state (solid defect) final band
 	* `ki` (integer) -- initial k-point
 	* `kf` (integer) -- final k-point
 	_Note: if `ki` and `kf` are not set, all k-points will be calculated_
 
-	* `calculateVfis` (boolean) -- set to true if there is an incoming electron that will be captured in the system
-	* `eBin` (real) -- ?? in eV
+	* `calculateVfis` (boolean) -- set to true if there is an incoming electron that will be captured in the system (_Note: The whole function is outputting energy differences and values for Delta H_if as if for plotting, so I'm not sure what that has to do with an incoming electron_)
+	* `eBin` (real) -- size of energy bin used in `calculateVfiElements`
 	
 _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of the file. They represent a namelist and fortran will not recognize the group of variables without this specific format_
 
-* `exportDirSD`/`exportDirPC` directories
+* `exportDirSD`/`exportDirPC` -- See `Export` program
+
+## Outputs 
+
+* `output` -- gives status update along the way along with times taken at some steps
+* `TMEs_kptI_*_kptF_*` -- matrix elements for a given k point
+* `VfisVsEofKpt`/`VfisVsE` -- energy differences and values for Delta H_if as if for plotting; I'm not really sure what the purpose of this is
