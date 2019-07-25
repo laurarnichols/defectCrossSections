@@ -1,7 +1,8 @@
 title: Todo
 author: Laura Nichols
-date: 07/24/2019
+date: 07/25/2019
 
+* Binary file ../TME/src/.TME_Main_v9.f90.swp matches
 * `../TME/src/TME_Main_v9.f90:2:` Finish documentation for main program
 * `../TME/src/TME_Main_v9.f90:46:` Figure out if need to allocate space for arrays so soon
 * `../TME/src/TME_Main_v9.f90:58:` Figure out if SD and PC `numOfGvecs` should be the same
@@ -18,30 +19,28 @@ date: 07/24/2019
 * `../TME/src/TME_Module_v28.f90:843:` Figure out if first term in each should be conjugated for inner product form
 * `../TME/src/TME_Module_v28.f90:844:` Figure out if `rab` plays role of \(dr\) within augmentation sphere
 * `../TME/src/TME_Module_v28.f90:883:` Figure out if intentional to only use `JMAX` from SD input
-* `../TME/src/TME_Module_v28.f90:1039:` Document `calculatePWsOverlap()`
-* `../TME/src/TME_Module_v28.f90:1066:` Figure out what `Ufi` is supposed to be
-* `../TME/src/TME_Module_v28.f90:1217:` Get actual perfect crystal and solid defect output to test
-* `../TME/src/TME_Module_v28.f90:1218:` Figure out if loop should be over `solidDefect` or `perfectCrystal`
-* `../TME/src/TME_Module_v28.f90:1219:` Look into `nSpins` to figure out if it is needed
-* `../TME/src/TME_Module_v28.f90:1237:` Figure out what this subroutine really does
-* `../TME/src/TME_Module_v28.f90:1359:` Figure out what this subroutine really does
-* `../TME/src/TME_Module_v28.f90:1411:` Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\)
-* `../TME/src/TME_Module_v28.f90:1443:` Figure out why the difference between SD and PC
-* `../TME/src/TME_Module_v28.f90:1456:` Figure out why the difference between SD and PC
-* `../TME/src/TME_Module_v28.f90:1493:` Figure out what this subroutine really does
-* `../TME/src/TME_Module_v28.f90:1565:` Figure out if this output slows things down significantly
-* `../TME/src/TME_Module_v28.f90:1566:` Figure out if formula gives accurate representation of time left
-* `../TME/src/TME_Module_v28.f90:1610:` Figure out if this should be `system`
-* `../TME/src/TME_Module_v28.f90:1611:` Figure out significance of "qr" point
-* `../TME/src/TME_Module_v28.f90:1614:` Test if can just directly store in each atom type's `bes_J_qr`
-* `../TME/src/TME_Module_v28.f90:1634:` Figure out if this should be `gDotR`
-* `../TME/src/TME_Module_v28.f90:1636:` Figure out why this is called `ATOMIC_CENTER`
-* `../TME/src/TME_Module_v28.f90:1637:` Figure out why the difference between SD and PC
-* `../TME/src/TME_Module_v28.f90:1666:` Figure out why the difference between SD and PC
-* `../TME/src/TME_Module_v28.f90:1681:` Figure out why the difference between SD and PC
-* `../TME/src/TME_Module_v28.f90:2176:` Figure out what the purpose of this function is. For plotting?
-* `../TME/src/TME_Module_v28.f90:2263:` Figure out why `DHifMin` is needed
-* `../TME/src/TME_Module_v28.f90:2264:` Figure out why used difference rather than `==
-* `../TME/src/TME_Module_v28.f90:2269:` Figure out why this test is here. All of these should be positive, right?
-* `../TME/src/TME_Module_v28.f90:2323:` Figure out where unit 12 file is opened and what it is
-* `../TME/src/TME_Module_v28.f90:2358:` Figure out why use `eMin + iE*eBin` rather than `DE`
+* `../TME/src/TME_Module_v28.f90:1213:` Get actual perfect crystal and solid defect output to test
+* `../TME/src/TME_Module_v28.f90:1214:` Figure out if loop should be over `solidDefect` or `perfectCrystal`
+* `../TME/src/TME_Module_v28.f90:1215:` Look into `nSpins` to figure out if it is needed
+* `../TME/src/TME_Module_v28.f90:1233:` Figure out what this subroutine really does
+* `../TME/src/TME_Module_v28.f90:1355:` Figure out what this subroutine really does
+* `../TME/src/TME_Module_v28.f90:1407:` Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\)
+* `../TME/src/TME_Module_v28.f90:1439:` Figure out why the difference between SD and PC
+* `../TME/src/TME_Module_v28.f90:1452:` Figure out why the difference between SD and PC
+* `../TME/src/TME_Module_v28.f90:1489:` Figure out what this subroutine really does
+* `../TME/src/TME_Module_v28.f90:1561:` Figure out if this output slows things down significantly
+* `../TME/src/TME_Module_v28.f90:1562:` Figure out if formula gives accurate representation of time left
+* `../TME/src/TME_Module_v28.f90:1606:` Figure out if this should be `system`
+* `../TME/src/TME_Module_v28.f90:1607:` Figure out significance of "qr" point
+* `../TME/src/TME_Module_v28.f90:1610:` Test if can just directly store in each atom type's `bes_J_qr`
+* `../TME/src/TME_Module_v28.f90:1630:` Figure out if this should be `gDotR`
+* `../TME/src/TME_Module_v28.f90:1632:` Figure out why this is called `ATOMIC_CENTER`
+* `../TME/src/TME_Module_v28.f90:1633:` Figure out why the difference between SD and PC
+* `../TME/src/TME_Module_v28.f90:1662:` Figure out why the difference between SD and PC
+* `../TME/src/TME_Module_v28.f90:1677:` Figure out why the difference between SD and PC
+* `../TME/src/TME_Module_v28.f90:2172:` Figure out what the purpose of this function is. For plotting?
+* `../TME/src/TME_Module_v28.f90:2259:` Figure out why `DHifMin` is needed
+* `../TME/src/TME_Module_v28.f90:2260:` Figure out why used difference rather than `==
+* `../TME/src/TME_Module_v28.f90:2265:` Figure out why this test is here. All of these should be positive, right?
+* `../TME/src/TME_Module_v28.f90:2319:` Figure out where unit 12 file is opened and what it is
+* `../TME/src/TME_Module_v28.f90:2354:` Figure out why use `eMin + iE*eBin` rather than `DE`

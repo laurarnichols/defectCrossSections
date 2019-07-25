@@ -229,8 +229,9 @@ public subroutine calculatePWsOverlap(ik)
 
 
     
-    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Document <code>calculatePWsOverlap()</code> </p></div>
-<p>
+    <p>Read the wavefunctions and calculate the overlap
+ <script type="math/tex">\langle\Phi_f|\Psi_i\rangle</script>
+</p>
 <p><h2>Walkthrough</h2></p>
 <ul>
 <li>
@@ -245,13 +246,11 @@ public subroutine calculatePWsOverlap(ik)
 <li>
 <p>For each initial band, calculate <script type="math/tex">\sum \phi_f^*\psi_i</script> (overlap??) with each final band</p>
 </li>
+<li>
+<p>Calculate <script type="math/tex">\langle\Phi_f|\Psi_i\rangle</script>
+</p>
+</li>
 </ul>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out what <code>Ufi</code> is supposed to be </p></div>
-<p><div class="alert alert-info" role="alert"><h4>Note</h4><p><code>Ufi</code> may be representing the overlap (<script type="math/tex">\langle\tilde{\Psi}|\tilde{\Phi}\rangle</script>). 
- But if that is the case, why is <script type="math/tex">\Phi</script> the one that has the complex conjugate? And why
- is there no integral?
- </p></div>
-<p>
     
 
     <h3>Arguments</h3>
@@ -409,7 +408,8 @@ public subroutine calculatePWsOverlap(ik)
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">calculatePWsOverlap</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
-    <span class="c">!! @todo Document `calculatePWsOverlap()` @endtodo</span>
+    <span class="c">!! Read the wavefunctions and calculate the overlap</span>
+    <span class="c">!! \(\langle\Phi_f|\Psi_i\rangle\)</span>
     <span class="c">!!</span>
     <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
     <span class="c">!!</span>
@@ -436,12 +436,7 @@ public subroutine calculatePWsOverlap(ik)
         <span class="c">!! * For each initial band, calculate \(\sum \phi_f^*\psi_i\) (overlap??) with each final band</span>
         <span class="c">!!</span>
         <span class="n">Ufi</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span> <span class="n">ibi</span><span class="p">,</span> <span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">conjg</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">wfc</span><span class="p">(:,</span><span class="n">ibf</span><span class="p">))</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wfc</span><span class="p">(:,</span><span class="n">ibi</span><span class="p">))</span>
-          <span class="c">!! @todo Figure out what `Ufi` is supposed to be @endtodo</span>
-          <span class="c">!! @note </span>
-          <span class="c">!! `Ufi` may be representing the overlap (\(\langle\tilde{\Psi}|\tilde{\Phi}\rangle\)). </span>
-          <span class="c">!! But if that is the case, why is \(\Phi\) the one that has the complex conjugate? And why</span>
-          <span class="c">!! is there no integral?</span>
-          <span class="c">!! @endnote</span>
+          <span class="c">!! * Calculate \(\langle\Phi_f|\Psi_i\rangle\)</span>
           <span class="c">!!</span>
         <span class="c">!if ( ibi == ibf ) write(iostd,&#39;(2i4,3ES24.15E3)&#39;) ibf, ibi, Ufi(ibf, ibi, ik), abs(Ufi(ibf, ibi, ik))**2</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
