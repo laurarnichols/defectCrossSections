@@ -10,8 +10,10 @@ program transitionMatrixElements
   !
   implicit none
   !
-  real(kind = dp) :: t1, t2
-    !! * Declare start and end times
+  real(kind = dp) :: t1
+    !! Start time used in various timers
+  real(kind = dp) :: t2
+    !! End time used in various timers
   !
   call MPI_INIT(ierr)
     !! * Initialize MPI environment

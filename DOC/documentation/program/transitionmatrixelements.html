@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="18.5% of total for programs.">203 statements</a>
+    title="18.6% of total for programs.">204 statements</a>
      </li> 
      
      
@@ -454,9 +454,7 @@
   
   
   <td></td><td>::</td>
-  <td><strong>t1</strong></td><td></td><td></td><td><ul>
-<li>Declare start and end times</li>
-</ul></td>
+  <td><strong>t1</strong></td><td></td><td></td><td><p>Start time used in various timers</p></td>
   
 </tr>
 
@@ -470,9 +468,7 @@
   
   
   <td></td><td>::</td>
-  <td><strong>t2</strong></td><td></td><td></td><td><ul>
-<li>Declare start and end times</li>
-</ul></td>
+  <td><strong>t2</strong></td><td></td><td></td><td><p>End time used in various timers</p></td>
   
 </tr>
 
@@ -511,8 +507,10 @@
   <span class="c">!</span>
   <span class="k">implicit none</span>
   <span class="c">!</span>
-  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span>
-    <span class="c">!! * Declare start and end times</span>
+  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t1</span>
+    <span class="c">!! Start time used in various timers</span>
+  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">t2</span>
+    <span class="c">!! End time used in various timers</span>
   <span class="c">!</span>
   <span class="k">call </span><span class="n">MPI_INIT</span><span class="p">(</span><span class="n">ierr</span><span class="p">)</span>
     <span class="c">!! * Initialize MPI environment</span>
