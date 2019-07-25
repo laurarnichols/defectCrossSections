@@ -171,8 +171,82 @@ program transitionMatrixElements
   !--------------------------------------------------------------------------------------------------------
   !
   do ik = 1, perfectCrystal%nKpts
+    !! * For each k point
+    !!    * If I'm root, check if the matrix elements have already 
+    !!      been calculated and send the result to all other processes
+    !!    * If the matrix elements haven't already been 
+    !!      calculated
+    !!       * Allocate space for the projections `cProj`
+    !!       * If I'm root
+    !!          * Start a timer and output that starting to
+    !!            calculate overlap
+    !!          * Allocate space for the wavefunctions
+    !!          * Read wavefunctions and calculate 
+    !!            `U_fi`\(= \langle\Phi_f|\Psi_i\rangle\)
+    !!          * Stop timer and output how long calculating overlap 
+    !!            took
+    !!          * Output that starting projector augmented wave 
+    !!            portion
+    !!          * Start a timer and report that doing PAW for 
+    !!            perfect crystal
+    !!          * Read \(\langle\beta_{\Psi}|\Psi\rangle\)
+    !!            from [[pw_export_for_tme(program)]]
+    !!          * Allocate space for cross projection
+    !!            \(\langle\beta_{\Psi}|\Phi\rangle\)
+    !!          * Calculate cross projection of \(|\Phi\rangle\)
+    !!          * Deallocate space for solid defect wavefunction
+    !!          * Calculate the 2nd and 3rd terms in C3 from paper
+    !!          * Deallocate space for the cross projection of 
+    !!            \(|\Phi\rangle\)
+    !!          * Stop timer and output that finished PAW for perfect
+    !!            crystal
+    !!          * Start timer and output that started PAW for solid 
+    !!            defect
+    !!          * Read \(\langle\beta_{\Phi}|\Phi\rangle\) from 
+    !!            [[pw_export_for_tme(program)]]
+    !!          * Allocate space for cross projection 
+    !!            \(\langle\beta_{\Phi}|\Psi\rangle\)
+    !!          * Calculate cross projection of \(|\Psi\rangle\)
+    !!          * Deallocate space for the perfect crystal wavefunction
+    !!          * Calculate the 4th and 5th terms in C3 from paper
+    !!          * Deallocate space for the cross projection of 
+    !!            \(|\Psi\rangle\)
+    !!          * Stop timer and output that finished PAW for solid 
+    !!            defect
+    !!          * Start a timer and output that started k projections 
+    !!            for perfect crystal
+    !!       * Send projectors to all other processes
+    !!       * Allocate space for k projections for perfect crystal
+    !!       * Calculate k projections for perfect crystal
+    !!       * If I'm root
+    !!          * Stop timer and output that done with k projection for 
+    !!            perfect crystal
+    !!          * Start timer and output that started k projection for 
+    !!            solid defect
+    !!       * Allocate space for k projections for solid defect
+    !!       * Calculate k projections for solid defect
+    !!       * If I'm root
+    !!          * Stop timer and output that done with k projection for 
+    !!            solid defect
+    !!          * Start timer and output that combining k projections
+    !!       * For each initial and final band, sum the product of the 
+    !!         k projections of the solid defect and perfect crystal 
+    !!         to get the last term in equation C3 in the paper
+    !!       * Allocate space for `paw_SDKKPC` if root and sum 
+    !!         individual sums from processes into a single total
+    !!       * If I'm root
+    !!          * Stop timer and output that done with summing k
+    !!            projections
+    !!          * Add PAW corrections to initially calculated overlap
+    !!          * Output transition matrix elements for a given k point
+    !!       * Deallocate space for the projections
+    !!    * If the transition matrix elements for this k point have 
+    !!      already been calculated and I'm root, read in the existing
+    !!      output file
     !
     if ( myid == root ) then
+      ! If I'm root, check if the matrix elements have
+      ! already been calculated
       !
       tmes_file_exists = .false.
       call checkIfCalculated(ik,tmes_file_exists)
@@ -180,13 +254,17 @@ program transitionMatrixElements
     endif
     !
     call MPI_BCAST(tmes_file_exists, 1, MPI_LOGICAL, root, MPI_COMM_WORLD, ierr)
+      ! Send the result to all other processes
     !
     if ( .not.tmes_file_exists ) then
+      ! If the matrix elements haven't already been calculated
       !
       allocate ( perfectCrystal%cProj(perfectCrystal%nProjs, solidDefect%nBands, solidDefect%nSpins) )
       allocate ( solidDefect%cProj(solidDefect%nProjs, solidDefect%nBands, solidDefect%nSpins) )
+        ! Allocate space for the projections `cProj`
       !
       if ( myid == root ) then
+        ! If I'm root
         !
         write(iostd, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4)') ik, perfectCrystal%nKpts
         flush(iostd)
@@ -195,57 +273,84 @@ program transitionMatrixElements
         write(iostd, '("    Plane waves part begun.")')
         write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> begun.")')
         call cpu_time(t1)
+          ! Start a timer and output that starting to calculate overlap
+        !
         allocate( perfectCrystal%wfc (solidDefect%numOfPWs, iBandIinit:iBandIfinal), &
                   solidDefect%wfc (solidDefect%numOfPWs, iBandFinit:iBandFfinal ) )
+          ! Allocate space for the wavefunctions
         !
         call calculatePWsOverlap(ik)
+          ! Read wavefunctions and calculate `U_fi`\(= \langle\Phi_f|\Psi_i\rangle\)
         !
         call cpu_time(t2)
         write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> done in", f10.2, " secs.")') t2-t1
-        flush(iostd)
-        !
         write(iostd, '("    Plane waves part done in", f10.2, " secs.")') t2-t1
+          ! Stop timer and output how long calculating overlap took
+        !
+        flush(iostd)
         write(iostd, *)
         write(iostd, '("    PAW part begun.")')
+          ! Output that starting projector augmented wave portion
         !
-        call cpu_time(t1)
         write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> begun.")')
         flush(iostd)
+        call cpu_time(t1)
+          ! Start a timer and report that doing PAW for perfect crystal
         !
         call readProjections(ik, perfectCrystal)
+          ! Read \(\langle\beta_{\Psi}|\Psi\rangle\) from [[pw_export_for_tme(program)]]
         !
         allocate ( perfectCrystal%cCrossProj(perfectCrystal%nProjs, solidDefect%nBands, solidDefect%nSpins) )
+          ! Allocate space for cross projection \(\langle\beta_{\Psi}|\Phi\rangle\)
+        !
         call projectBeta(ik, perfectCrystal, solidDefect)
+          ! Calculate cross projection of \(|\Phi\rangle\)
         !
         deallocate ( solidDefect%wfc )
+          ! Deallocate space for solid defect wavefunction
         !
         call pawCorrectionWfc(perfectCrystal)
+          ! Calculate the 2nd and 3rd terms in C3 from paper
         !
         deallocate ( perfectCrystal%cCrossProj )
+          ! Deallocate space for the cross projection of \(|\Phi\rangle\)
         !
         call cpu_time(t2)
         write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> done in", f10.2, " secs.")') t2-t1
-        call cpu_time(t1)
+          ! Stop timer and output that finished PAW for perfect crystal
+        !
         write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> begun.")')
         flush(iostd)
+        call cpu_time(t1)
+          ! Start timer and output that started PAW for solid defect
         !
         call readProjections(ik, solidDefect)
+          ! Read \(\langle\beta_{\Phi}|\Phi\rangle\) from [[pw_export_for_tme(program)]]
         !
         allocate ( solidDefect%cCrossProj(solidDefect%nProjs, solidDefect%nBands, solidDefect%nSpins) )
+          ! Allocate space for cross projection \(\langle\beta_{\Phi}|\Psi\rangle\)
+        !
         call projectBeta(ik, solidDefect, perfectCrystal)
+          ! Calculate cross projection of \(|\Psi\rangle\)
         !
         deallocate ( perfectCrystal%wfc )
+          ! Deallocate space for the perfect crystal wavefunction
         !
         call pawCorrectionWfc(solidDefect)
+          ! Calculate the 4th and 5th terms in C3 from paper
+        !
         deallocate ( solidDefect%cCrossProj )
+          ! Deallocate space for the cross projection of \(|\Psi\rangle\)
         !
         call cpu_time(t2)
         write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> done in", f10.2, " secs.")') t2-t1
         flush(iostd)
+          ! Stop timer and output that finished PAW for solid defect
         !
-        call cpu_time(t1)
         write(iostd, '("      <\\vec{k}|PAW_PC> begun.")')
         flush(iostd)
+        call cpu_time(t1)
+          ! Start a timer and output that started k projections for perfect crystal
         !
         !do ibi = iBandIinit, iBandIfinal
         !  !
@@ -274,33 +379,45 @@ program transitionMatrixElements
       !
       call MPI_BCAST(perfectCrystal%cProj, size(perfectCrystal%cProj), MPI_DOUBLE_COMPLEX, root, MPI_COMM_WORLD, ierr)
       call MPI_BCAST(solidDefect%cProj, size(solidDefect%cProj), MPI_DOUBLE_COMPLEX, root, MPI_COMM_WORLD, ierr)
+        ! Send projectors to all other processes
       !
       allocate ( perfectCrystal%pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid)) )
+        ! Allocate space for k projections for perfect crystal
       !
       call pawCorrectionK(perfectCrystal)
+        ! Calculate k projections for perfect crystal
       !
       if ( myid == root ) then
+        ! If I'm root
+        !
         call cpu_time(t2)
         write(iostd, '("      <\\vec{k}|PAW_PC> done in", f10.2, " secs.")') t2-t1
+          ! Stop timer and output that done with k projection for perfect crystal
         !
-        call cpu_time(t1)
         write(iostd, '("      <PAW_SD|\\vec{k}> begun.")')
         flush(iostd)
+        call cpu_time(t1)
+          ! Start timer and output that started k projection for solid defect  
         !
       endif
       !
       allocate ( solidDefect%pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid) ) )
+        ! Allocate space for k projections for solid defect
       !
       call pawCorrectionK(solidDefect)
+        ! Calculate k projections for solid defect
       !
       if ( myid == root) then
+        ! If I'm root
         !
         call cpu_time(t2)
         write(iostd, '("      <PAW_SD|\\vec{k}> done in", f10.2, " secs.")') t2-t1
+          ! Stop timer and output that done with k projection for solid defect
         !
-        call cpu_time(t1)
         write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> begun.")')
         flush(iostd)
+        call cpu_time(t1)
+          ! Start timer and output that combining k projections
         !
       endif
       !
@@ -309,27 +426,35 @@ program transitionMatrixElements
       do ibi = iBandIinit, iBandIfinal
         !
         do ibf = iBandFinit, iBandFfinal   
+          ! For each initial and final band, sum the product of the k projections
+          ! of the solid defect and perfect crystal to get the last term in 
+          ! equation C3 in the paper
+          !
           paw_id(ibf,ibi) = sum(solidDefect%pawK(ibf,ibi,:)*perfectCrystal%pawK(ibf,ibi,:))
+          !
         enddo
         !
       enddo
       !
       if ( myid == root ) paw_SDKKPC(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
-      !
       CALL MPI_REDUCE(paw_id, paw_SDKKPC, size(paw_id), MPI_DOUBLE_COMPLEX, MPI_SUM, root, MPI_COMM_WORLD, ierr)
+        ! Allocate space for `paw_SDKKPC` if root and sum individual sums from 
+        ! processes into a single total
       !
       if ( myid == root ) then
+        ! If I'm root
         !
         call cpu_time(t2)
         write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> done in", f10.2, " secs.")') t2-t1
         flush(iostd)
+          ! Stop timer and output that done with summing k projections
         !
         Ufi(:,:,ik) = Ufi(:,:,ik) + solidDefect%paw_Wfc(:,:) + perfectCrystal%paw_Wfc(:,:) + &
                       paw_SDKKPC(:,:)*16.0_dp*pi*pi/solidDefect%omega
-          !! @todo Figure out if should be solid defect volume or pristine @endtodo
-          !! @todo Are pristine and solid defect volume the same? @endtodo
+          ! Add PAW corrections to initially calculated overlap
         !
         call writeResults(ik)
+          ! Output transition matrix elements for a given k point
         !
         !write(iostd,*)'--------------------------------------------------------------------------------------------'
         !
@@ -353,8 +478,11 @@ program transitionMatrixElements
       !
       deallocate ( perfectCrystal%cProj, perfectCrystal%pawK )
       deallocate ( solidDefect%cProj, solidDefect%pawK )
+        ! Deallocate space for the projections
       !
     else
+      ! If the transition matrix elements for this k point have already been 
+      ! calculated and I'm root, read in the existing output file
       !
       if ( myid == root ) call readUfis(ik)
       ! 
@@ -367,15 +495,15 @@ program transitionMatrixElements
     if ( allocated ( perfectCrystal%paw_Wfc ) ) deallocate ( perfectCrystal%paw_Wfc )
     if ( allocated ( solidDefect%paw_Wfc ) ) deallocate ( solidDefect%paw_Wfc )
   endif
+    !! * Deallocate space for the PAW corrections
   !
-  ! Calculating Vfi
   !
   if ( myid == root ) then
+  !! * If my ID is root, calculate `VfiElements` if needed and finalize
+  !!   calculation
     !
     if (calculateVfis ) call calculateVfiElements()
     !
-    ! Finalize Calculation
-    ! 
     call finalizeCalculation()
     !
   endif

@@ -275,9 +275,87 @@
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if SD and PC <code>numOfGvecs</code> should be the same </p></div>
 <p>
 <p>Broadcast variables from root process to all other processes, allocating space as needed
- </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if should be solid defect volume or pristine </p></div>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Are pristine and solid defect volume the same? </p></div>
-<p>
+ * For each k point
+    * If I'm root, check if the matrix elements have already 
+      been calculated and send the result to all other processes
+    * If the matrix elements haven't already been 
+      calculated
+       * Allocate space for the projections <code>cProj</code>
+       * If I'm root
+          * Start a timer and output that starting to
+            calculate overlap
+          * Allocate space for the wavefunctions
+          * Read wavefunctions and calculate 
+            <code>U_fi</code><script type="math/tex">= \langle\Phi_f|\Psi_i\rangle</script>
+          * Stop timer and output how long calculating overlap 
+            took
+          * Output that starting projector augmented wave 
+            portion
+          * Start a timer and report that doing PAW for 
+            perfect crystal
+          * Read <script type="math/tex">\langle\beta_{\Psi}|\Psi\rangle</script>
+            from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a>
+          * Allocate space for cross projection
+            <script type="math/tex">\langle\beta_{\Psi}|\Phi\rangle</script>
+          * Calculate cross projection of <script type="math/tex">|\Phi\rangle</script>
+          * Deallocate space for solid defect wavefunction
+          * Calculate the 2nd and 3rd terms in C3 from paper
+          * Deallocate space for the cross projection of 
+            <script type="math/tex">|\Phi\rangle</script>
+          * Stop timer and output that finished PAW for perfect
+            crystal
+          * Start timer and output that started PAW for solid 
+            defect
+          * Read <script type="math/tex">\langle\beta_{\Phi}|\Phi\rangle</script> from 
+            <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a>
+          * Allocate space for cross projection 
+            <script type="math/tex">\langle\beta_{\Phi}|\Psi\rangle</script>
+          * Calculate cross projection of <script type="math/tex">|\Psi\rangle</script>
+          * Deallocate space for the perfect crystal wavefunction
+          * Calculate the 4th and 5th terms in C3 from paper
+          * Deallocate space for the cross projection of 
+            <script type="math/tex">|\Psi\rangle</script>
+          * Stop timer and output that finished PAW for solid 
+            defect
+          * Start a timer and output that started k projections 
+            for perfect crystal
+       * Send projectors to all other processes
+       * Allocate space for k projections for perfect crystal
+       * Calculate k projections for perfect crystal
+       * If I'm root
+          * Stop timer and output that done with k projection for 
+            perfect crystal
+          * Start timer and output that started k projection for 
+            solid defect
+       * Allocate space for k projections for solid defect
+       * Calculate k projections for solid defect
+       * If I'm root
+          * Stop timer and output that done with k projection for 
+            solid defect
+          * Start timer and output that combining k projections
+       * For each initial and final band, sum the product of the 
+         k projections of the solid defect and perfect crystal 
+         to get the last term in equation C3 in the paper
+       * Allocate space for <code>paw_SDKKPC</code> if root and sum 
+         individual sums from processes into a single total
+       * If I'm root
+          * Stop timer and output that done with summing k
+            projections
+          * Add PAW corrections to initially calculated overlap
+          * Output transition matrix elements for a given k point
+       * Deallocate space for the projections
+    * If the transition matrix elements for this k point have 
+      already been calculated and I'm root, read in the existing
+      output file</p>
+<ul>
+<li>
+<p>Deallocate space for the PAW corrections</p>
+</li>
+<li>
+<p>If my ID is root, calculate <code>VfiElements</code> if needed and finalize
+   calculation</p>
+</li>
+</ul>
     
     <br>
 
@@ -575,8 +653,82 @@
   <span class="c">!--------------------------------------------------------------------------------------------------------</span>
   <span class="c">!</span>
   <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nKpts</span>
+    <span class="c">!! * For each k point</span>
+    <span class="c">!!    * If I&#39;m root, check if the matrix elements have already </span>
+    <span class="c">!!      been calculated and send the result to all other processes</span>
+    <span class="c">!!    * If the matrix elements haven&#39;t already been </span>
+    <span class="c">!!      calculated</span>
+    <span class="c">!!       * Allocate space for the projections `cProj`</span>
+    <span class="c">!!       * If I&#39;m root</span>
+    <span class="c">!!          * Start a timer and output that starting to</span>
+    <span class="c">!!            calculate overlap</span>
+    <span class="c">!!          * Allocate space for the wavefunctions</span>
+    <span class="c">!!          * Read wavefunctions and calculate </span>
+    <span class="c">!!            `U_fi`\(= \langle\Phi_f|\Psi_i\rangle\)</span>
+    <span class="c">!!          * Stop timer and output how long calculating overlap </span>
+    <span class="c">!!            took</span>
+    <span class="c">!!          * Output that starting projector augmented wave </span>
+    <span class="c">!!            portion</span>
+    <span class="c">!!          * Start a timer and report that doing PAW for </span>
+    <span class="c">!!            perfect crystal</span>
+    <span class="c">!!          * Read \(\langle\beta_{\Psi}|\Psi\rangle\)</span>
+    <span class="c">!!            from [[pw_export_for_tme(program)]]</span>
+    <span class="c">!!          * Allocate space for cross projection</span>
+    <span class="c">!!            \(\langle\beta_{\Psi}|\Phi\rangle\)</span>
+    <span class="c">!!          * Calculate cross projection of \(|\Phi\rangle\)</span>
+    <span class="c">!!          * Deallocate space for solid defect wavefunction</span>
+    <span class="c">!!          * Calculate the 2nd and 3rd terms in C3 from paper</span>
+    <span class="c">!!          * Deallocate space for the cross projection of </span>
+    <span class="c">!!            \(|\Phi\rangle\)</span>
+    <span class="c">!!          * Stop timer and output that finished PAW for perfect</span>
+    <span class="c">!!            crystal</span>
+    <span class="c">!!          * Start timer and output that started PAW for solid </span>
+    <span class="c">!!            defect</span>
+    <span class="c">!!          * Read \(\langle\beta_{\Phi}|\Phi\rangle\) from </span>
+    <span class="c">!!            [[pw_export_for_tme(program)]]</span>
+    <span class="c">!!          * Allocate space for cross projection </span>
+    <span class="c">!!            \(\langle\beta_{\Phi}|\Psi\rangle\)</span>
+    <span class="c">!!          * Calculate cross projection of \(|\Psi\rangle\)</span>
+    <span class="c">!!          * Deallocate space for the perfect crystal wavefunction</span>
+    <span class="c">!!          * Calculate the 4th and 5th terms in C3 from paper</span>
+    <span class="c">!!          * Deallocate space for the cross projection of </span>
+    <span class="c">!!            \(|\Psi\rangle\)</span>
+    <span class="c">!!          * Stop timer and output that finished PAW for solid </span>
+    <span class="c">!!            defect</span>
+    <span class="c">!!          * Start a timer and output that started k projections </span>
+    <span class="c">!!            for perfect crystal</span>
+    <span class="c">!!       * Send projectors to all other processes</span>
+    <span class="c">!!       * Allocate space for k projections for perfect crystal</span>
+    <span class="c">!!       * Calculate k projections for perfect crystal</span>
+    <span class="c">!!       * If I&#39;m root</span>
+    <span class="c">!!          * Stop timer and output that done with k projection for </span>
+    <span class="c">!!            perfect crystal</span>
+    <span class="c">!!          * Start timer and output that started k projection for </span>
+    <span class="c">!!            solid defect</span>
+    <span class="c">!!       * Allocate space for k projections for solid defect</span>
+    <span class="c">!!       * Calculate k projections for solid defect</span>
+    <span class="c">!!       * If I&#39;m root</span>
+    <span class="c">!!          * Stop timer and output that done with k projection for </span>
+    <span class="c">!!            solid defect</span>
+    <span class="c">!!          * Start timer and output that combining k projections</span>
+    <span class="c">!!       * For each initial and final band, sum the product of the </span>
+    <span class="c">!!         k projections of the solid defect and perfect crystal </span>
+    <span class="c">!!         to get the last term in equation C3 in the paper</span>
+    <span class="c">!!       * Allocate space for `paw_SDKKPC` if root and sum </span>
+    <span class="c">!!         individual sums from processes into a single total</span>
+    <span class="c">!!       * If I&#39;m root</span>
+    <span class="c">!!          * Stop timer and output that done with summing k</span>
+    <span class="c">!!            projections</span>
+    <span class="c">!!          * Add PAW corrections to initially calculated overlap</span>
+    <span class="c">!!          * Output transition matrix elements for a given k point</span>
+    <span class="c">!!       * Deallocate space for the projections</span>
+    <span class="c">!!    * If the transition matrix elements for this k point have </span>
+    <span class="c">!!      already been calculated and I&#39;m root, read in the existing</span>
+    <span class="c">!!      output file</span>
     <span class="c">!</span>
     <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">! If I&#39;m root, check if the matrix elements have</span>
+      <span class="c">! already been calculated</span>
       <span class="c">!</span>
       <span class="n">tmes_file_exists</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
       <span class="k">call </span><span class="n">checkIfCalculated</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span><span class="n">tmes_file_exists</span><span class="p">)</span>
@@ -584,13 +736,17 @@
     <span class="n">endif</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">tmes_file_exists</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_LOGICAL</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+      <span class="c">! Send the result to all other processes</span>
     <span class="c">!</span>
     <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span><span class="n">tmes_file_exists</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">! If the matrix elements haven&#39;t already been calculated</span>
       <span class="c">!</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">cProj</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
+        <span class="c">! Allocate space for the projections `cProj`</span>
       <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">! If I&#39;m root</span>
         <span class="c">!</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Starting Ufi(:,:) calculation for k-point&quot;, i4, &quot; of&quot;, i4)&#39;</span><span class="p">)</span> <span class="n">ik</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nKpts</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
@@ -599,57 +755,84 @@
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;    Plane waves part begun.&quot;)&#39;</span><span class="p">)</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\tilde{Psi}_f|\\tilde{Phi}_i&gt; begun.&quot;)&#39;</span><span class="p">)</span>
         <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+          <span class="c">! Start a timer and output that starting to calculate overlap</span>
+        <span class="c">!</span>
         <span class="k">allocate</span><span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wfc</span> <span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">numOfPWs</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">),</span> <span class="p">&amp;</span>
                   <span class="n">solidDefect</span><span class="p">%</span><span class="n">wfc</span> <span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">numOfPWs</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span> <span class="p">)</span> <span class="p">)</span>
+          <span class="c">! Allocate space for the wavefunctions</span>
         <span class="c">!</span>
         <span class="k">call </span><span class="n">calculatePWsOverlap</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+          <span class="c">! Read wavefunctions and calculate `U_fi`\(= \langle\Phi_f|\Psi_i\rangle\)</span>
         <span class="c">!</span>
         <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\tilde{Psi}_f|\\tilde{Phi}_i&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
-        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
-        <span class="c">!</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;    Plane waves part done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+          <span class="c">! Stop timer and output how long calculating overlap took</span>
+        <span class="c">!</span>
+        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;    PAW part begun.&quot;)&#39;</span><span class="p">)</span>
+          <span class="c">! Output that starting projector augmented wave portion</span>
         <span class="c">!</span>
-        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\tilde{Psi}_f|PAW_PC&gt; begun.&quot;)&#39;</span><span class="p">)</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+          <span class="c">! Start a timer and report that doing PAW for perfect crystal</span>
         <span class="c">!</span>
         <span class="k">call </span><span class="n">readProjections</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">)</span>
+          <span class="c">! Read \(\langle\beta_{\Psi}|\Psi\rangle\) from [[pw_export_for_tme(program)]]</span>
         <span class="c">!</span>
         <span class="k">allocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cCrossProj</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
+          <span class="c">! Allocate space for cross projection \(\langle\beta_{\Psi}|\Phi\rangle\)</span>
+        <span class="c">!</span>
         <span class="k">call </span><span class="n">projectBeta</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">)</span>
+          <span class="c">! Calculate cross projection of \(|\Phi\rangle\)</span>
         <span class="c">!</span>
         <span class="k">deallocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">wfc</span> <span class="p">)</span>
+          <span class="c">! Deallocate space for solid defect wavefunction</span>
         <span class="c">!</span>
         <span class="k">call </span><span class="n">pawCorrectionWfc</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">)</span>
+          <span class="c">! Calculate the 2nd and 3rd terms in C3 from paper</span>
         <span class="c">!</span>
         <span class="k">deallocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cCrossProj</span> <span class="p">)</span>
+          <span class="c">! Deallocate space for the cross projection of \(|\Phi\rangle\)</span>
         <span class="c">!</span>
         <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\tilde{Psi}_f|PAW_PC&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
-        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+          <span class="c">! Stop timer and output that finished PAW for perfect crystal</span>
+        <span class="c">!</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;PAW_SD|\\tilde{Phi}_i&gt; begun.&quot;)&#39;</span><span class="p">)</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+          <span class="c">! Start timer and output that started PAW for solid defect</span>
         <span class="c">!</span>
         <span class="k">call </span><span class="n">readProjections</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">)</span>
+          <span class="c">! Read \(\langle\beta_{\Phi}|\Phi\rangle\) from [[pw_export_for_tme(program)]]</span>
         <span class="c">!</span>
         <span class="k">allocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">cCrossProj</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">nProjs</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nBands</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">nSpins</span><span class="p">)</span> <span class="p">)</span>
+          <span class="c">! Allocate space for cross projection \(\langle\beta_{\Phi}|\Psi\rangle\)</span>
+        <span class="c">!</span>
         <span class="k">call </span><span class="n">projectBeta</span><span class="p">(</span><span class="n">ik</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">)</span>
+          <span class="c">! Calculate cross projection of \(|\Psi\rangle\)</span>
         <span class="c">!</span>
         <span class="k">deallocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">wfc</span> <span class="p">)</span>
+          <span class="c">! Deallocate space for the perfect crystal wavefunction</span>
         <span class="c">!</span>
         <span class="k">call </span><span class="n">pawCorrectionWfc</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">)</span>
+          <span class="c">! Calculate the 4th and 5th terms in C3 from paper</span>
+        <span class="c">!</span>
         <span class="k">deallocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">cCrossProj</span> <span class="p">)</span>
+          <span class="c">! Deallocate space for the cross projection of \(|\Psi\rangle\)</span>
         <span class="c">!</span>
         <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;PAW_SD|\\tilde{Phi}_i&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+          <span class="c">! Stop timer and output that finished PAW for solid defect</span>
         <span class="c">!</span>
-        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\vec{k}|PAW_PC&gt; begun.&quot;)&#39;</span><span class="p">)</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+          <span class="c">! Start a timer and output that started k projections for perfect crystal</span>
         <span class="c">!</span>
         <span class="c">!do ibi = iBandIinit, iBandIfinal</span>
         <span class="c">!  !</span>
@@ -678,33 +861,45 @@
       <span class="c">!</span>
       <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">),</span> <span class="n">MPI_DOUBLE_COMPLEX</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
       <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">cProj</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">cProj</span><span class="p">),</span> <span class="n">MPI_DOUBLE_COMPLEX</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+        <span class="c">! Send projectors to all other processes</span>
       <span class="c">!</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">pawK</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">):</span><span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">))</span> <span class="p">)</span>
+        <span class="c">! Allocate space for k projections for perfect crystal</span>
       <span class="c">!</span>
       <span class="k">call </span><span class="n">pawCorrectionK</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">)</span>
+        <span class="c">! Calculate k projections for perfect crystal</span>
       <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">        call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
-        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\vec{k}|PAW_PC&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+        <span class="c">! If I&#39;m root</span>
         <span class="c">!</span>
-        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
+        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;\\vec{k}|PAW_PC&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+          <span class="c">! Stop timer and output that done with k projection for perfect crystal</span>
+        <span class="c">!</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;PAW_SD|\\vec{k}&gt; begun.&quot;)&#39;</span><span class="p">)</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+          <span class="c">! Start timer and output that started k projection for solid defect  </span>
         <span class="c">!</span>
       <span class="n">endif</span>
       <span class="c">!</span>
       <span class="k">allocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">pawK</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">:</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">:</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">nPWsI</span><span class="p">(</span><span class="n">myid</span><span class="p">):</span><span class="n">nPWsF</span><span class="p">(</span><span class="n">myid</span><span class="p">)</span> <span class="p">)</span> <span class="p">)</span>
+        <span class="c">! Allocate space for k projections for solid defect</span>
       <span class="c">!</span>
       <span class="k">call </span><span class="n">pawCorrectionK</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">)</span>
+        <span class="c">! Calculate k projections for solid defect</span>
       <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span><span class="p">)</span> <span class="k">then</span>
+        <span class="c">! If I&#39;m root</span>
         <span class="c">!</span>
         <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      &lt;PAW_SD|\\vec{k}&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
+          <span class="c">! Stop timer and output that done with k projection for solid defect</span>
         <span class="c">!</span>
-        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      \\sum_k &lt;PAW_SD|\\vec{k}&gt;&lt;\\vec{k}|PAW_PC&gt; begun.&quot;)&#39;</span><span class="p">)</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+        <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t1</span><span class="p">)</span>
+          <span class="c">! Start timer and output that combining k projections</span>
         <span class="c">!</span>
       <span class="n">endif</span>
       <span class="c">!</span>
@@ -713,27 +908,35 @@
       <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
         <span class="c">!</span>
         <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>   
+          <span class="c">! For each initial and final band, sum the product of the k projections</span>
+          <span class="c">! of the solid defect and perfect crystal to get the last term in </span>
+          <span class="c">! equation C3 in the paper</span>
+          <span class="c">!</span>
           <span class="n">paw_id</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span><span class="n">ibi</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">pawK</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span><span class="n">ibi</span><span class="p">,:)</span><span class="o">*</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">pawK</span><span class="p">(</span><span class="n">ibf</span><span class="p">,</span><span class="n">ibi</span><span class="p">,:))</span>
+          <span class="c">!</span>
         <span class="n">enddo</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
       <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="n">paw_SDKKPC</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span> <span class="p">)</span>
-      <span class="c">!</span>
       <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">paw_id</span><span class="p">,</span> <span class="n">paw_SDKKPC</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">paw_id</span><span class="p">),</span> <span class="n">MPI_DOUBLE_COMPLEX</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+        <span class="c">! Allocate space for `paw_SDKKPC` if root and sum individual sums from </span>
+        <span class="c">! processes into a single total</span>
       <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">! If I&#39;m root</span>
         <span class="c">!</span>
         <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">t2</span><span class="p">)</span>
         <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;      \\sum_k &lt;PAW_SD|\\vec{k}&gt;&lt;\\vec{k}|PAW_PC&gt; done in&quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">t2</span><span class="o">-</span><span class="n">t1</span>
         <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+          <span class="c">! Stop timer and output that done with summing k projections</span>
         <span class="c">!</span>
         <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">=</span> <span class="n">Ufi</span><span class="p">(:,:,</span><span class="n">ik</span><span class="p">)</span> <span class="o">+</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(:,:)</span> <span class="o">+</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">paw_Wfc</span><span class="p">(:,:)</span> <span class="o">+</span> <span class="p">&amp;</span>
                       <span class="n">paw_SDKKPC</span><span class="p">(:,:)</span><span class="o">*</span><span class="mi">1</span><span class="mf">6.0_dp</span><span class="o">*</span><span class="n">pi</span><span class="o">*</span><span class="n">pi</span><span class="o">/</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">omega</span>
-          <span class="c">!! @todo Figure out if should be solid defect volume or pristine @endtodo</span>
-          <span class="c">!! @todo Are pristine and solid defect volume the same? @endtodo</span>
+          <span class="c">! Add PAW corrections to initially calculated overlap</span>
         <span class="c">!</span>
         <span class="k">call </span><span class="n">writeResults</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+          <span class="c">! Output transition matrix elements for a given k point</span>
         <span class="c">!</span>
         <span class="c">!write(iostd,*)&#39;--------------------------------------------------------------------------------------------&#39;</span>
         <span class="c">!</span>
@@ -757,8 +960,11 @@
       <span class="c">!</span>
       <span class="k">deallocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">cProj</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">pawK</span> <span class="p">)</span>
       <span class="k">deallocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">cProj</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">pawK</span> <span class="p">)</span>
+        <span class="c">! Deallocate space for the projections</span>
       <span class="c">!</span>
     <span class="k">else</span>
+      <span class="c">! If the transition matrix elements for this k point have already been </span>
+      <span class="c">! calculated and I&#39;m root, read in the existing output file</span>
       <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">call </span><span class="n">readUfis</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
       <span class="c">! </span>
@@ -771,15 +977,15 @@
 <span class="k">    if</span> <span class="p">(</span> <span class="nb">allocated</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">paw_Wfc</span> <span class="p">)</span> <span class="p">)</span> <span class="k">deallocate</span> <span class="p">(</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">paw_Wfc</span> <span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span> <span class="nb">allocated</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">paw_Wfc</span> <span class="p">)</span> <span class="p">)</span> <span class="k">deallocate</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">paw_Wfc</span> <span class="p">)</span>
   <span class="n">endif</span>
+    <span class="c">!! * Deallocate space for the PAW corrections</span>
   <span class="c">!</span>
-  <span class="c">! Calculating Vfi</span>
   <span class="c">!</span>
   <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+  <span class="c">!! * If my ID is root, calculate `VfiElements` if needed and finalize</span>
+  <span class="c">!!   calculation</span>
     <span class="c">!</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">calculateVfis</span> <span class="p">)</span> <span class="k">call </span><span class="n">calculateVfiElements</span><span class="p">()</span>
     <span class="c">!</span>
-    <span class="c">! Finalize Calculation</span>
-    <span class="c">! </span>
     <span class="k">call </span><span class="n">finalizeCalculation</span><span class="p">()</span>
     <span class="c">!</span>
   <span class="n">endif</span>
