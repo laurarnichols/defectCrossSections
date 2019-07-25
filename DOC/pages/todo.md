@@ -3,7 +3,7 @@ author: Laura Nichols
 date: 07/25/2019
 
 * Binary file ../TME/src/.TME_Main_v9.f90.swo matches
-* `../TME/src/TME_Main_v9.f90:2:` Finish documentation for main program
+* `../TME/src/TME_Main_v9.f90:2:` Add detailed math derivation and summary for main program
 * `../TME/src/TME_Main_v9.f90:46:` Figure out if need to allocate space for arrays so soon
 * `../TME/src/TME_Main_v9.f90:58:` Figure out if SD and PC `numOfGvecs` should be the same
 * `../TME/src/TME_Module_v28.f90:34:` Change I/O from file to console so that usage matches that of QE

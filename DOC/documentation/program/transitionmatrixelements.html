@@ -240,7 +240,7 @@
     </div>
     
 
-    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Finish documentation for main program </p></div>
+    <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Add detailed math derivation and summary for main program </p></div>
 <p>
 <p><h2>Walkthrough</h2></p>
 <ul>
@@ -274,80 +274,99 @@
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if need to allocate space for arrays so soon </p></div>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if SD and PC <code>numOfGvecs</code> should be the same </p></div>
 <p>
-<p>Broadcast variables from root process to all other processes, allocating space as needed
- * For each k point
-    * If I'm root, check if the matrix elements have already 
-      been calculated and send the result to all other processes
-    * If the matrix elements haven't already been 
-      calculated
-       * Allocate space for the projections <code>cProj</code>
-       * If I'm root
-          * Start a timer and output that starting to
-            calculate overlap
-          * Allocate space for the wavefunctions
-          * Read wavefunctions and calculate 
-            <code>U_fi</code><script type="math/tex">= \langle\Phi_f|\Psi_i\rangle</script>
-          * Stop timer and output how long calculating overlap 
-            took
-          * Output that starting projector augmented wave 
-            portion
-          * Start a timer and report that doing PAW for 
-            perfect crystal
-          * Read <script type="math/tex">\langle\beta_{\Psi}|\Psi\rangle</script>
-            from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a>
-          * Allocate space for cross projection
-            <script type="math/tex">\langle\beta_{\Psi}|\Phi\rangle</script>
-          * Calculate cross projection of <script type="math/tex">|\Phi\rangle</script>
-          * Deallocate space for solid defect wavefunction
-          * Calculate the 2nd and 3rd terms in C3 from paper
-          * Deallocate space for the cross projection of 
-            <script type="math/tex">|\Phi\rangle</script>
-          * Stop timer and output that finished PAW for perfect
-            crystal
-          * Start timer and output that started PAW for solid 
-            defect
-          * Read <script type="math/tex">\langle\beta_{\Phi}|\Phi\rangle</script> from 
-            <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a>
-          * Allocate space for cross projection 
-            <script type="math/tex">\langle\beta_{\Phi}|\Psi\rangle</script>
-          * Calculate cross projection of <script type="math/tex">|\Psi\rangle</script>
-          * Deallocate space for the perfect crystal wavefunction
-          * Calculate the 4th and 5th terms in C3 from paper
-          * Deallocate space for the cross projection of 
-            <script type="math/tex">|\Psi\rangle</script>
-          * Stop timer and output that finished PAW for solid 
-            defect
-          * Start a timer and output that started k projections 
-            for perfect crystal
-       * Send projectors to all other processes
-       * Allocate space for k projections for perfect crystal
-       * Calculate k projections for perfect crystal
-       * If I'm root
-          * Stop timer and output that done with k projection for 
-            perfect crystal
-          * Start timer and output that started k projection for 
-            solid defect
-       * Allocate space for k projections for solid defect
-       * Calculate k projections for solid defect
-       * If I'm root
-          * Stop timer and output that done with k projection for 
-            solid defect
-          * Start timer and output that combining k projections
-       * For each initial and final band, sum the product of the 
-         k projections of the solid defect and perfect crystal 
-         to get the last term in equation C3 in the paper
-       * Allocate space for <code>paw_SDKKPC</code> if root and sum 
-         individual sums from processes into a single total
-       * If I'm root
-          * Stop timer and output that done with summing k
-            projections
-          * Add PAW corrections to initially calculated overlap
-          * Output transition matrix elements for a given k point
-       * Deallocate space for the projections
-    * If the transition matrix elements for this k point have 
-      already been calculated and I'm root, read in the existing
-      output file</p>
 <ul>
+<li>Broadcast variables from root process to all other processes, allocating space as needed</li>
+<li>
+<p>For each k point</p>
+<ul>
+<li>If I'm root, check if the matrix elements have already 
+  been calculated and send the result to all other processes</li>
+<li>If the matrix elements haven't already been 
+  calculated</li>
+<li>Allocate space for the projections <code>cProj</code></li>
+<li>If I'm root<ul>
+<li>Start a timer and output that starting to
+    calculate overlap</li>
+<li>Allocate space for the wavefunctions</li>
+<li>Read wavefunctions and calculate 
+    <code>U_fi</code><script type="math/tex">= \langle\Phi_f|\Psi_i\rangle</script>
+</li>
+<li>Stop timer and output how long calculating overlap 
+    took</li>
+<li>Output that starting projector augmented wave 
+    portion</li>
+<li>Start a timer and report that doing PAW for 
+    perfect crystal</li>
+<li>Read <script type="math/tex">\langle\beta_{\Psi}|\Psi\rangle</script>
+    from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></li>
+<li>Allocate space for cross projection
+    <script type="math/tex">\langle\beta_{\Psi}|\Phi\rangle</script>
+</li>
+<li>Calculate cross projection of <script type="math/tex">|\Phi\rangle</script>
+</li>
+<li>Deallocate space for solid defect wavefunction</li>
+<li>Calculate the 2nd and 3rd terms in C3 from paper</li>
+<li>Deallocate space for the cross projection of 
+    <script type="math/tex">|\Phi\rangle</script>
+</li>
+<li>Stop timer and output that finished PAW for perfect
+    crystal</li>
+<li>Start timer and output that started PAW for solid 
+    defect</li>
+<li>Read <script type="math/tex">\langle\beta_{\Phi}|\Phi\rangle</script> from 
+    <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></li>
+<li>Allocate space for cross projection 
+    <script type="math/tex">\langle\beta_{\Phi}|\Psi\rangle</script>
+</li>
+<li>Calculate cross projection of <script type="math/tex">|\Psi\rangle</script>
+</li>
+<li>Deallocate space for the perfect crystal wavefunction</li>
+<li>Calculate the 4th and 5th terms in C3 from paper</li>
+<li>Deallocate space for the cross projection of 
+    <script type="math/tex">|\Psi\rangle</script>
+</li>
+<li>Stop timer and output that finished PAW for solid 
+    defect</li>
+<li>Start a timer and output that started k projections 
+    for perfect crystal</li>
+</ul>
+</li>
+<li>Send projectors to all other processes</li>
+<li>Allocate space for k projections for perfect crystal</li>
+<li>Calculate k projections for perfect crystal</li>
+<li>If I'm root<ul>
+<li>Stop timer and output that done with k projection for 
+    perfect crystal</li>
+<li>Start timer and output that started k projection for 
+    solid defect</li>
+</ul>
+</li>
+<li>Allocate space for k projections for solid defect</li>
+<li>Calculate k projections for solid defect</li>
+<li>If I'm root<ul>
+<li>Stop timer and output that done with k projection for 
+    solid defect</li>
+<li>Start timer and output that combining k projections</li>
+</ul>
+</li>
+<li>For each initial and final band, sum the product of the 
+     k projections of the solid defect and perfect crystal 
+     to get the last term in equation C3 in the paper</li>
+<li>Allocate space for <code>paw_SDKKPC</code> if root and sum 
+     individual sums from processes into a single total</li>
+<li>If I'm root<ul>
+<li>Stop timer and output that done with summing k
+    projections</li>
+<li>Add PAW corrections to initially calculated overlap</li>
+<li>Output transition matrix elements for a given k point</li>
+</ul>
+</li>
+<li>Deallocate space for the projections</li>
+<li>If the transition matrix elements for this k point have 
+  already been calculated and I'm root, read in the existing
+  output file</li>
+</ul>
+</li>
 <li>
 <p>Deallocate space for the PAW corrections</p>
 </li>
@@ -481,7 +500,7 @@
     <section>
     <h2 id="src">Source Code</h2>
     <div class="highlight"><pre><span></span><span class="k">program </span><span class="n">transitionMatrixElements</span>
-  <span class="c">!! @todo Finish documentation for main program @endtodo</span>
+  <span class="c">!! @todo Add detailed math derivation and summary for main program @endtodo</span>
   <span class="c">!!</span>
   <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
   <span class="c">!!</span>
@@ -550,7 +569,7 @@
   <span class="n">endif</span>
   <span class="c">!</span>
   <span class="c">!--------------------------------------------------------------------------------------------------------</span>
-  <span class="c">!&gt; Broadcast variables from root process to all other processes, allocating space as needed</span>
+  <span class="c">!&gt; * Broadcast variables from root process to all other processes, allocating space as needed</span>
   <span class="c">!</span>
   <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iBandIinit</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
   <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>

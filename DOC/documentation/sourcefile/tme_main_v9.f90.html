@@ -268,7 +268,7 @@
     <section>
       <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="hl"><pre><span></span><a name="ln-1"></a><span class="k">program </span><span class="n">transitionMatrixElements</span>
-<a name="ln-2"></a>  <span class="c">!! @todo Finish documentation for main program @endtodo</span>
+<a name="ln-2"></a>  <span class="c">!! @todo Add detailed math derivation and summary for main program @endtodo</span>
 <a name="ln-3"></a>  <span class="c">!!</span>
 <a name="ln-4"></a>  <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
 <a name="ln-5"></a>  <span class="c">!!</span>
@@ -337,7 +337,7 @@
 <a name="ln-68"></a>  <span class="n">endif</span>
 <a name="ln-69"></a>  <span class="c">!</span>
 <a name="ln-70"></a>  <span class="c">!--------------------------------------------------------------------------------------------------------</span>
-<a name="ln-71"></a>  <span class="c">!&gt; Broadcast variables from root process to all other processes, allocating space as needed</span>
+<a name="ln-71"></a>  <span class="c">!&gt; * Broadcast variables from root process to all other processes, allocating space as needed</span>
 <a name="ln-72"></a>  <span class="c">!</span>
 <a name="ln-73"></a>  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iBandIinit</span><span class="p">,</span>  <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
 <a name="ln-74"></a>  <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>

@@ -1,5 +1,5 @@
 program transitionMatrixElements
-  !! @todo Finish documentation for main program @endtodo
+  !! @todo Add detailed math derivation and summary for main program @endtodo
   !!
   !! <h2>Walkthrough</h2>
   !!
@@ -68,7 +68,7 @@ program transitionMatrixElements
   endif
   !
   !--------------------------------------------------------------------------------------------------------
-  !> Broadcast variables from root process to all other processes, allocating space as needed
+  !> * Broadcast variables from root process to all other processes, allocating space as needed
   !
   call MPI_BCAST(iBandIinit,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
