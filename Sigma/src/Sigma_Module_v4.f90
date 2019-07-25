@@ -6,26 +6,42 @@ module sigma_module
   integer, parameter :: dp    = selected_real_kind(15, 307)
   integer, parameter :: int32 = selected_int_kind(5)
   integer, parameter :: iostd = 16
-  !
-  real(kind = dp), parameter :: maxEnergy = 10.0_dp
   integer,         parameter :: nOfEnergyBins = 5040
   !
+  !
+  real(kind = dp), parameter ::         abCM = 0.529177219217e-8_dp
+  real(kind = dp), parameter :: eVToHartree  = 1.0_dp/27.21138386_dp
+  real(kind = dp), parameter :: HartreeToEv  = 27.21138386_dp
+  real(kind = dp), parameter ::    maxEnergy = 10.0_dp
   real(kind = dp), parameter ::           pi = 3.1415926535897932_dp
   real(kind = dp), parameter ::        twopi = 2.0_dp*pi
-  real(kind = dp), parameter ::         abCM = 0.529177219217e-8_dp
-  real(kind = dp), parameter :: HartreeToEv  = 27.21138386_dp
-  real(kind = dp), parameter :: eVToHartree  = 1.0_dp/27.21138386_dp
-  !
-  integer(kind = int32) :: ios
-  integer :: nEnergies, m, numOfVfis
-  !
-  real(kind = dp) :: volume, de, eifMin, DHifMin
-  !
-  real(kind = dp), allocatable :: E(:), Vfis(:), lsfVsE(:), lsfVsEbyPhonon(:), energy(:), lsf(:)
-  real(kind = dp), allocatable :: sigma(:), sigmaByPhonon(:), lorentz(:), lorentzByPhonon(:)
   !
   character(len = 11), parameter :: output = 'sigmaStatus'
-  character(len = 256) :: VfisInput, LSFinput, crossSectionOutput
+  !
+  integer(kind = int32) :: ios
+  integer :: m
+  integer :: nEnergies
+  integer :: numOfVfis
+  !
+  real(kind = dp) :: volume
+  real(kind = dp) :: de
+  real(kind = dp) :: eifMin
+  real(kind = dp) :: DHifMin
+  !
+  real(kind = dp), allocatable :: E(:)
+  real(kind = dp), allocatable :: energy(:)
+  real(kind = dp), allocatable :: lorentz(:)
+  real(kind = dp), allocatable :: lorentzByPhonon(:)
+  real(kind = dp), allocatable :: lsf(:)
+  real(kind = dp), allocatable :: lsfVsE(:)
+  real(kind = dp), allocatable :: lsfVsEbyPhonon(:)
+  real(kind = dp), allocatable :: sigma(:)
+  real(kind = dp), allocatable :: sigmaByPhonon(:)
+  real(kind = dp), allocatable :: Vfis(:)
+  !
+  character(len = 256) :: VfisInput
+  character(len = 256) :: LSFinput
+  character(len = 256) :: crossSectionOutput
   !
   logical :: file_exists
   !
@@ -36,30 +52,41 @@ contains
   !
   !
   subroutine readInputs()
-    !
+    !! Read input parameters and read LSF and TME output
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
-    ! Check if an output file exists. If it does, delete it.
-    !
+    !> * Check if an output file exists; if it does, delete it
     inquire(file = output, exist = file_exists)
+    !
     if ( file_exists ) then
+      !
       open (unit = 11, file = output, status = "old")
+      !
       close(unit = 11, status = "delete")
+      !
     endif
     !
-    ! Open new output file.
-    !
     open (iostd, file = output, status='new')
+      !! * Open new output file
     !
     call initialize()
+      !! * Set default values of input parameters
     !
     READ (5, elphscat, iostat = ios)
+      !! * Read in input parameters
     !
     call checkInputAndUpdateParameters()
+      !! * Check if input parameters were updated
+      !!   and do some basic checks
     !
     call readLSF()
+      !! * Read the LSF output
     !
     call readVfis()
+      !! * Read the TME output
     !
     return
     !
