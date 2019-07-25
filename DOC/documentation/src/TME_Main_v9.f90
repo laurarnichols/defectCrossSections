@@ -176,7 +176,7 @@ program transitionMatrixElements
     !!      been calculated and send the result to all other processes
     !!    * If the matrix elements haven't already been 
     !!      calculated
-    !!       * Allocate space for the projections `cProj`
+    !!    * Allocate space for the projections `cProj`
     !!       * If I'm root
     !!          * Start a timer and output that starting to
     !!            calculate overlap
