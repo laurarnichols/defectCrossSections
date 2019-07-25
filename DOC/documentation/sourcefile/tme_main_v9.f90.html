@@ -445,70 +445,70 @@
 <a name="ln-176"></a>    <span class="c">!!      been calculated and send the result to all other processes</span>
 <a name="ln-177"></a>    <span class="c">!!    * If the matrix elements haven&#39;t already been </span>
 <a name="ln-178"></a>    <span class="c">!!      calculated</span>
-<a name="ln-179"></a>    <span class="c">!!    * Allocate space for the projections `cProj`</span>
-<a name="ln-180"></a>    <span class="c">!!       * If I&#39;m root</span>
-<a name="ln-181"></a>    <span class="c">!!          * Start a timer and output that starting to</span>
-<a name="ln-182"></a>    <span class="c">!!            calculate overlap</span>
-<a name="ln-183"></a>    <span class="c">!!          * Allocate space for the wavefunctions</span>
-<a name="ln-184"></a>    <span class="c">!!          * Read wavefunctions and calculate </span>
-<a name="ln-185"></a>    <span class="c">!!            `U_fi`\(= \langle\Phi_f|\Psi_i\rangle\)</span>
-<a name="ln-186"></a>    <span class="c">!!          * Stop timer and output how long calculating overlap </span>
-<a name="ln-187"></a>    <span class="c">!!            took</span>
-<a name="ln-188"></a>    <span class="c">!!          * Output that starting projector augmented wave </span>
-<a name="ln-189"></a>    <span class="c">!!            portion</span>
-<a name="ln-190"></a>    <span class="c">!!          * Start a timer and report that doing PAW for </span>
-<a name="ln-191"></a>    <span class="c">!!            perfect crystal</span>
-<a name="ln-192"></a>    <span class="c">!!          * Read \(\langle\beta_{\Psi}|\Psi\rangle\)</span>
-<a name="ln-193"></a>    <span class="c">!!            from [[pw_export_for_tme(program)]]</span>
-<a name="ln-194"></a>    <span class="c">!!          * Allocate space for cross projection</span>
-<a name="ln-195"></a>    <span class="c">!!            \(\langle\beta_{\Psi}|\Phi\rangle\)</span>
-<a name="ln-196"></a>    <span class="c">!!          * Calculate cross projection of \(|\Phi\rangle\)</span>
-<a name="ln-197"></a>    <span class="c">!!          * Deallocate space for solid defect wavefunction</span>
-<a name="ln-198"></a>    <span class="c">!!          * Calculate the 2nd and 3rd terms in C3 from paper</span>
-<a name="ln-199"></a>    <span class="c">!!          * Deallocate space for the cross projection of </span>
-<a name="ln-200"></a>    <span class="c">!!            \(|\Phi\rangle\)</span>
-<a name="ln-201"></a>    <span class="c">!!          * Stop timer and output that finished PAW for perfect</span>
-<a name="ln-202"></a>    <span class="c">!!            crystal</span>
-<a name="ln-203"></a>    <span class="c">!!          * Start timer and output that started PAW for solid </span>
-<a name="ln-204"></a>    <span class="c">!!            defect</span>
-<a name="ln-205"></a>    <span class="c">!!          * Read \(\langle\beta_{\Phi}|\Phi\rangle\) from </span>
-<a name="ln-206"></a>    <span class="c">!!            [[pw_export_for_tme(program)]]</span>
-<a name="ln-207"></a>    <span class="c">!!          * Allocate space for cross projection </span>
-<a name="ln-208"></a>    <span class="c">!!            \(\langle\beta_{\Phi}|\Psi\rangle\)</span>
-<a name="ln-209"></a>    <span class="c">!!          * Calculate cross projection of \(|\Psi\rangle\)</span>
-<a name="ln-210"></a>    <span class="c">!!          * Deallocate space for the perfect crystal wavefunction</span>
-<a name="ln-211"></a>    <span class="c">!!          * Calculate the 4th and 5th terms in C3 from paper</span>
-<a name="ln-212"></a>    <span class="c">!!          * Deallocate space for the cross projection of </span>
-<a name="ln-213"></a>    <span class="c">!!            \(|\Psi\rangle\)</span>
-<a name="ln-214"></a>    <span class="c">!!          * Stop timer and output that finished PAW for solid </span>
-<a name="ln-215"></a>    <span class="c">!!            defect</span>
-<a name="ln-216"></a>    <span class="c">!!          * Start a timer and output that started k projections </span>
-<a name="ln-217"></a>    <span class="c">!!            for perfect crystal</span>
-<a name="ln-218"></a>    <span class="c">!!       * Send projectors to all other processes</span>
-<a name="ln-219"></a>    <span class="c">!!       * Allocate space for k projections for perfect crystal</span>
-<a name="ln-220"></a>    <span class="c">!!       * Calculate k projections for perfect crystal</span>
-<a name="ln-221"></a>    <span class="c">!!       * If I&#39;m root</span>
-<a name="ln-222"></a>    <span class="c">!!          * Stop timer and output that done with k projection for </span>
-<a name="ln-223"></a>    <span class="c">!!            perfect crystal</span>
-<a name="ln-224"></a>    <span class="c">!!          * Start timer and output that started k projection for </span>
-<a name="ln-225"></a>    <span class="c">!!            solid defect</span>
-<a name="ln-226"></a>    <span class="c">!!       * Allocate space for k projections for solid defect</span>
-<a name="ln-227"></a>    <span class="c">!!       * Calculate k projections for solid defect</span>
-<a name="ln-228"></a>    <span class="c">!!       * If I&#39;m root</span>
-<a name="ln-229"></a>    <span class="c">!!          * Stop timer and output that done with k projection for </span>
-<a name="ln-230"></a>    <span class="c">!!            solid defect</span>
-<a name="ln-231"></a>    <span class="c">!!          * Start timer and output that combining k projections</span>
-<a name="ln-232"></a>    <span class="c">!!       * For each initial and final band, sum the product of the </span>
-<a name="ln-233"></a>    <span class="c">!!         k projections of the solid defect and perfect crystal </span>
-<a name="ln-234"></a>    <span class="c">!!         to get the last term in equation C3 in the paper</span>
-<a name="ln-235"></a>    <span class="c">!!       * Allocate space for `paw_SDKKPC` if root and sum </span>
-<a name="ln-236"></a>    <span class="c">!!         individual sums from processes into a single total</span>
-<a name="ln-237"></a>    <span class="c">!!       * If I&#39;m root</span>
-<a name="ln-238"></a>    <span class="c">!!          * Stop timer and output that done with summing k</span>
-<a name="ln-239"></a>    <span class="c">!!            projections</span>
-<a name="ln-240"></a>    <span class="c">!!          * Add PAW corrections to initially calculated overlap</span>
-<a name="ln-241"></a>    <span class="c">!!          * Output transition matrix elements for a given k point</span>
-<a name="ln-242"></a>    <span class="c">!!       * Deallocate space for the projections</span>
+<a name="ln-179"></a>    <span class="c">!!        * Allocate space for the projections `cProj`</span>
+<a name="ln-180"></a>    <span class="c">!!        * If I&#39;m root</span>
+<a name="ln-181"></a>    <span class="c">!!           * Start a timer and output that starting to</span>
+<a name="ln-182"></a>    <span class="c">!!             calculate overlap</span>
+<a name="ln-183"></a>    <span class="c">!!           * Allocate space for the wavefunctions</span>
+<a name="ln-184"></a>    <span class="c">!!           * Read wavefunctions and calculate </span>
+<a name="ln-185"></a>    <span class="c">!!             `U_fi`\(= \langle\Phi_f|\Psi_i\rangle\)</span>
+<a name="ln-186"></a>    <span class="c">!!           * Stop timer and output how long calculating overlap </span>
+<a name="ln-187"></a>    <span class="c">!!             took</span>
+<a name="ln-188"></a>    <span class="c">!!           * Output that starting projector augmented wave </span>
+<a name="ln-189"></a>    <span class="c">!!             portion</span>
+<a name="ln-190"></a>    <span class="c">!!           * Start a timer and report that doing PAW for </span>
+<a name="ln-191"></a>    <span class="c">!!             perfect crystal</span>
+<a name="ln-192"></a>    <span class="c">!!           * Read \(\langle\beta_{\Psi}|\Psi\rangle\)</span>
+<a name="ln-193"></a>    <span class="c">!!             from [[pw_export_for_tme(program)]]</span>
+<a name="ln-194"></a>    <span class="c">!!           * Allocate space for cross projection</span>
+<a name="ln-195"></a>    <span class="c">!!             \(\langle\beta_{\Psi}|\Phi\rangle\)</span>
+<a name="ln-196"></a>    <span class="c">!!           * Calculate cross projection of \(|\Phi\rangle\)</span>
+<a name="ln-197"></a>    <span class="c">!!           * Deallocate space for solid defect wavefunction</span>
+<a name="ln-198"></a>    <span class="c">!!           * Calculate the 2nd and 3rd terms in C3 from paper</span>
+<a name="ln-199"></a>    <span class="c">!!           * Deallocate space for the cross projection of </span>
+<a name="ln-200"></a>    <span class="c">!!             \(|\Phi\rangle\)</span>
+<a name="ln-201"></a>    <span class="c">!!           * Stop timer and output that finished PAW for perfect</span>
+<a name="ln-202"></a>    <span class="c">!!             crystal</span>
+<a name="ln-203"></a>    <span class="c">!!           * Start timer and output that started PAW for solid </span>
+<a name="ln-204"></a>    <span class="c">!!             defect</span>
+<a name="ln-205"></a>    <span class="c">!!           * Read \(\langle\beta_{\Phi}|\Phi\rangle\) from </span>
+<a name="ln-206"></a>    <span class="c">!!             [[pw_export_for_tme(program)]]</span>
+<a name="ln-207"></a>    <span class="c">!!           * Allocate space for cross projection </span>
+<a name="ln-208"></a>    <span class="c">!!             \(\langle\beta_{\Phi}|\Psi\rangle\)</span>
+<a name="ln-209"></a>    <span class="c">!!           * Calculate cross projection of \(|\Psi\rangle\)</span>
+<a name="ln-210"></a>    <span class="c">!!           * Deallocate space for the perfect crystal wavefunction</span>
+<a name="ln-211"></a>    <span class="c">!!           * Calculate the 4th and 5th terms in C3 from paper</span>
+<a name="ln-212"></a>    <span class="c">!!           * Deallocate space for the cross projection of </span>
+<a name="ln-213"></a>    <span class="c">!!             \(|\Psi\rangle\)</span>
+<a name="ln-214"></a>    <span class="c">!!           * Stop timer and output that finished PAW for solid </span>
+<a name="ln-215"></a>    <span class="c">!!             defect</span>
+<a name="ln-216"></a>    <span class="c">!!           * Start a timer and output that started k projections </span>
+<a name="ln-217"></a>    <span class="c">!!             for perfect crystal</span>
+<a name="ln-218"></a>    <span class="c">!!        * Send projectors to all other processes</span>
+<a name="ln-219"></a>    <span class="c">!!        * Allocate space for k projections for perfect crystal</span>
+<a name="ln-220"></a>    <span class="c">!!        * Calculate k projections for perfect crystal</span>
+<a name="ln-221"></a>    <span class="c">!!        * If I&#39;m root</span>
+<a name="ln-222"></a>    <span class="c">!!           * Stop timer and output that done with k projection for </span>
+<a name="ln-223"></a>    <span class="c">!!             perfect crystal</span>
+<a name="ln-224"></a>    <span class="c">!!           * Start timer and output that started k projection for </span>
+<a name="ln-225"></a>    <span class="c">!!             solid defect</span>
+<a name="ln-226"></a>    <span class="c">!!        * Allocate space for k projections for solid defect</span>
+<a name="ln-227"></a>    <span class="c">!!        * Calculate k projections for solid defect</span>
+<a name="ln-228"></a>    <span class="c">!!        * If I&#39;m root</span>
+<a name="ln-229"></a>    <span class="c">!!           * Stop timer and output that done with k projection for </span>
+<a name="ln-230"></a>    <span class="c">!!             solid defect</span>
+<a name="ln-231"></a>    <span class="c">!!           * Start timer and output that combining k projections</span>
+<a name="ln-232"></a>    <span class="c">!!        * For each initial and final band, sum the product of the </span>
+<a name="ln-233"></a>    <span class="c">!!          k projections of the solid defect and perfect crystal </span>
+<a name="ln-234"></a>    <span class="c">!!          to get the last term in equation C3 in the paper</span>
+<a name="ln-235"></a>    <span class="c">!!        * Allocate space for `paw_SDKKPC` if root and sum </span>
+<a name="ln-236"></a>    <span class="c">!!          individual sums from processes into a single total</span>
+<a name="ln-237"></a>    <span class="c">!!        * If I&#39;m root</span>
+<a name="ln-238"></a>    <span class="c">!!           * Stop timer and output that done with summing k</span>
+<a name="ln-239"></a>    <span class="c">! !            projections</span>
+<a name="ln-240"></a>    <span class="c">!!           * Add PAW corrections to initially calculated overlap</span>
+<a name="ln-241"></a>    <span class="c">!!           * Output transition matrix elements for a given k point</span>
+<a name="ln-242"></a>    <span class="c">!!        * Deallocate space for the projections</span>
 <a name="ln-243"></a>    <span class="c">!!    * If the transition matrix elements for this k point have </span>
 <a name="ln-244"></a>    <span class="c">!!      already been calculated and I&#39;m root, read in the existing</span>
 <a name="ln-245"></a>    <span class="c">!!      output file</span>
