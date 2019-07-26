@@ -318,24 +318,36 @@ contains
     !allocate( sigma(-nEnergies:nEnergies), sigmaByPhonon(-nEnergies:nEnergies) )
     !
     iE = int(eifMin/de) + 1
+      !! * Calculate the index for the min energy
+    !
     write(6,*) eifMin, eifMin*HartreeToEv, iE
+      !! * Output the min energy in Hartree and eV as well as energy index
+      !! @todo Figure out where this file is opened @endtodo
+    !
     sigma0 = twoPi*abCM**2*volume*DHifMin*lsfVsE(iE)/sqrt(2.0_dp*E(iE))
+      !! * Calculate min energy \(\sigma\)
     !
     !do iE = 1, numOfVfis ! -nEnergies, nEnergies - 1
     !  if ( (E(iE) < eifMin).and.(E(iE+1) > eifMin) ) sigma0 = twoPi*abCM**2*volume*DHifMin*lsfVsE(iE)/sqrt(2.0_dp*E(iE))
     !enddo
     !
     write(6,*) eifMin*HartreeToEv, sigma0
+      !! * Output the minimum energy and the cross section at that energy
     !
     sigma(:) = 0.0_dp
     !
     do iE = 0, numOfVfis ! -nEnergies, nEnergies
+      !! * Calculate \[\sigma(E) = \dfrac{2\pi*\text{abCM}^2*\Omega}{\hbar v_g}|M_e^{BO}|^2|_{if}\]
+      !
       vg = 1.0_dp
+      !
       if ( energy(iE) > 0.0_dp ) vg = sqrt(2.0_dp*energy(iE))
+      !
       !write(6,*) iE, energy(iE), vg, Vfis(iE), lsf(iE)
       sigma(iE)         = twoPi*abCM**2*volume*Vfis(iE)*lsf(iE)/vg
       !sigma(iE)         = twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg
       !sigmaByPhonon(iE) = twoPi*abCM**2*volume*Vfis(iE)*lsfVsEbyPhonon(iE)/vg
+      !
     enddo
     !
     return

@@ -231,6 +231,28 @@ public subroutine calculateSigma()
 
 
     
+    <ul>
+<li>
+<p>Calculate the index for the min energy</p>
+</li>
+<li>
+<p>Output the min energy in Hartree and eV as well as energy index
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out where this file is opened </p></div>
+<p>
+</li>
+<li>
+<p>Calculate min energy <script type="math/tex">\sigma</script>
+</p>
+</li>
+<li>
+<p>Output the minimum energy and the cross section at that energy</p>
+</li>
+<li>
+<p>Calculate <script type="math/tex; mode=display">\sigma(E) = \dfrac{2\pi*\text{abCM}^2*\Omega}{\hbar v_g}|M_e^{BO}|^2|_{if}</script>
+</p>
+</li>
+</ul>
+    
 
     <h3>Arguments</h3>
     
@@ -387,24 +409,36 @@ public subroutine calculateSigma()
     <span class="c">!allocate( sigma(-nEnergies:nEnergies), sigmaByPhonon(-nEnergies:nEnergies) )</span>
     <span class="c">!</span>
     <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">eifMin</span><span class="o">/</span><span class="n">de</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="c">!! * Calculate the index for the min energy</span>
+    <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">eifMin</span><span class="p">,</span> <span class="n">eifMin</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">iE</span>
+      <span class="c">!! * Output the min energy in Hartree and eV as well as energy index</span>
+      <span class="c">!! @todo Figure out where this file is opened @endtodo</span>
+    <span class="c">!</span>
     <span class="n">sigma0</span> <span class="o">=</span> <span class="n">twoPi</span><span class="o">*</span><span class="n">abCM</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">volume</span><span class="o">*</span><span class="n">DHifMin</span><span class="o">*</span><span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="nb">sqrt</span><span class="p">(</span><span class="mf">2.0_dp</span><span class="o">*</span><span class="n">E</span><span class="p">(</span><span class="n">iE</span><span class="p">))</span>
+      <span class="c">!! * Calculate min energy \(\sigma\)</span>
     <span class="c">!</span>
     <span class="c">!do iE = 1, numOfVfis ! -nEnergies, nEnergies - 1</span>
     <span class="c">!  if ( (E(iE) &lt; eifMin).and.(E(iE+1) &gt; eifMin) ) sigma0 = twoPi*abCM**2*volume*DHifMin*lsfVsE(iE)/sqrt(2.0_dp*E(iE))</span>
     <span class="c">!enddo</span>
     <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">eifMin</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">sigma0</span>
+      <span class="c">!! * Output the minimum energy and the cross section at that energy</span>
     <span class="c">!</span>
     <span class="n">sigma</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">numOfVfis</span> <span class="c">! -nEnergies, nEnergies</span>
+      <span class="c">!! * Calculate \[\sigma(E) = \dfrac{2\pi*\text{abCM}^2*\Omega}{\hbar v_g}|M_e^{BO}|^2|_{if}\]</span>
+      <span class="c">!</span>
       <span class="n">vg</span> <span class="o">=</span> <span class="mf">1.0_dp</span>
+      <span class="c">!</span>
       <span class="k">if</span> <span class="p">(</span> <span class="n">energy</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.0_dp</span> <span class="p">)</span> <span class="n">vg</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="mf">2.0_dp</span><span class="o">*</span><span class="n">energy</span><span class="p">(</span><span class="n">iE</span><span class="p">))</span>
+      <span class="c">!</span>
       <span class="c">!write(6,*) iE, energy(iE), vg, Vfis(iE), lsf(iE)</span>
       <span class="n">sigma</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>         <span class="o">=</span> <span class="n">twoPi</span><span class="o">*</span><span class="n">abCM</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">volume</span><span class="o">*</span><span class="n">Vfis</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">*</span><span class="n">lsf</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">vg</span>
       <span class="c">!sigma(iE)         = twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg</span>
       <span class="c">!sigmaByPhonon(iE) = twoPi*abCM**2*volume*Vfis(iE)*lsfVsEbyPhonon(iE)/vg</span>
+      <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">return</span>

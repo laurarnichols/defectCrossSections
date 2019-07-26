@@ -2,11 +2,12 @@ title: Todo
 author: Laura Nichols
 date: 07/26/2019
 
+* Binary file ../Sigma/src/.Sigma_Module_v4.f90.swo matches
 * `../Sigma/src/Sigma_Module_v4.f90:176:` Merge these dummy characters
 * `../Sigma/src/Sigma_Module_v4.f90:224:` Merge dummy variables
 * `../Sigma/src/Sigma_Module_v4.f90:288:` Figure out where this file is opened
 * `../Sigma/src/Sigma_Module_v4.f90:299:` Figure out where this file is opened
-* Binary file ../TME/src/.TME_Module_v28.f90.swp matches
+* `../Sigma/src/Sigma_Module_v4.f90:325:` Figure out where this file is opened
 * `../TME/src/TME_Main_v9.f90:2:` Add detailed math derivation and summary for main program
 * `../TME/src/TME_Main_v9.f90:48:` Figure out if need to allocate space for arrays so soon
 * `../TME/src/TME_Main_v9.f90:60:` Figure out if SD and PC `numOfGvecs` should be the same
