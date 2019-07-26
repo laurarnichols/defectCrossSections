@@ -268,20 +268,23 @@
     <section>
       <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="hl"><pre><span></span><a name="ln-1"></a><span class="k">program </span><span class="n">crossSection</span>
-<a name="ln-2"></a>  <span class="c">!</span>
-<a name="ln-3"></a>  <span class="k">use </span><span class="n">sigma_module</span>
+<a name="ln-2"></a>  <span class="c">!! Combine the results of TME and LSF</span>
+<a name="ln-3"></a>  <span class="c">!! into the cross section</span>
 <a name="ln-4"></a>  <span class="c">!</span>
-<a name="ln-5"></a>  <span class="k">implicit none</span>
+<a name="ln-5"></a>  <span class="k">use </span><span class="n">sigma_module</span>
 <a name="ln-6"></a>  <span class="c">!</span>
-<a name="ln-7"></a>  <span class="c">! Reading input, initializing and checking all variables of the calculation.</span>
+<a name="ln-7"></a>  <span class="k">implicit none</span>
 <a name="ln-8"></a>  <span class="c">!</span>
 <a name="ln-9"></a>  <span class="k">call </span><span class="n">readInputs</span><span class="p">()</span>
-<a name="ln-10"></a>  <span class="c">!</span>
-<a name="ln-11"></a>  <span class="k">call </span><span class="n">calculateSigma</span><span class="p">()</span>
-<a name="ln-12"></a>  <span class="c">!</span>
-<a name="ln-13"></a>  <span class="k">call </span><span class="n">writeSigma</span><span class="p">()</span>
+<a name="ln-10"></a>    <span class="c">!! * Read input, initializing and checking all variables of the calculation</span>
+<a name="ln-11"></a>  <span class="c">!</span>
+<a name="ln-12"></a>  <span class="k">call </span><span class="n">calculateSigma</span><span class="p">()</span>
+<a name="ln-13"></a>    <span class="c">!! * Calculate \(\sigma(E)\)</span>
 <a name="ln-14"></a>  <span class="c">!</span>
-<a name="ln-15"></a><span class="k">end program </span><span class="n">crossSection</span>
+<a name="ln-15"></a>  <span class="k">call </span><span class="n">writeSigma</span><span class="p">()</span>
+<a name="ln-16"></a>    <span class="c">!! * Output \(\sigma(E)\)</span>
+<a name="ln-17"></a>  <span class="c">!</span>
+<a name="ln-18"></a><span class="k">end program </span><span class="n">crossSection</span>
 </pre></div>
 
     </section>
