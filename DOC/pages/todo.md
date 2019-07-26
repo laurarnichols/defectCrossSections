@@ -1,6 +1,6 @@
 title: Todo
 author: Laura Nichols
-date: 07/25/2019
+date: 07/26/2019
 
 * `../TME/src/TME_Main_v9.f90:2:` Add detailed math derivation and summary for main program
 * `../TME/src/TME_Main_v9.f90:48:` Figure out if need to allocate space for arrays so soon
