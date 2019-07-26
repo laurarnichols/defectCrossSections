@@ -110,6 +110,8 @@ contains
   !
   !
   subroutine checkInputAndUpdateParameters()
+    !! Check that the input variables don't still have their default
+    !! values. If the input files are not defined, end the program.
     !
     implicit none
     !
