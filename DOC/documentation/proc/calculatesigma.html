@@ -242,7 +242,8 @@ public subroutine calculateSigma()
 </li>
 <li>
 <p>Calculate min energy <script type="math/tex">\sigma</script>
-</p>
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out what <code>abCM</code> is </p></div>
+<p>
 </li>
 <li>
 <p>Output the minimum energy and the cross section at that energy</p>
@@ -417,6 +418,7 @@ public subroutine calculateSigma()
     <span class="c">!</span>
     <span class="n">sigma0</span> <span class="o">=</span> <span class="n">twoPi</span><span class="o">*</span><span class="n">abCM</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">volume</span><span class="o">*</span><span class="n">DHifMin</span><span class="o">*</span><span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="nb">sqrt</span><span class="p">(</span><span class="mf">2.0_dp</span><span class="o">*</span><span class="n">E</span><span class="p">(</span><span class="n">iE</span><span class="p">))</span>
       <span class="c">!! * Calculate min energy \(\sigma\)</span>
+      <span class="c">!! @todo Figure out what `abCM` is @endtodo</span>
     <span class="c">!</span>
     <span class="c">!do iE = 1, numOfVfis ! -nEnergies, nEnergies - 1</span>
     <span class="c">!  if ( (E(iE) &lt; eifMin).and.(E(iE+1) &gt; eifMin) ) sigma0 = twoPi*abCM**2*volume*DHifMin*lsfVsE(iE)/sqrt(2.0_dp*E(iE))</span>

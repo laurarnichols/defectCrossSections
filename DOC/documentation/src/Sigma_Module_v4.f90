@@ -326,6 +326,7 @@ contains
     !
     sigma0 = twoPi*abCM**2*volume*DHifMin*lsfVsE(iE)/sqrt(2.0_dp*E(iE))
       !! * Calculate min energy \(\sigma\)
+      !! @todo Figure out what `abCM` is @endtodo
     !
     !do iE = 1, numOfVfis ! -nEnergies, nEnergies - 1
     !  if ( (E(iE) < eifMin).and.(E(iE+1) > eifMin) ) sigma0 = twoPi*abCM**2*volume*DHifMin*lsfVsE(iE)/sqrt(2.0_dp*E(iE))
@@ -356,6 +357,7 @@ contains
   !
   !
   subroutine writeSigma()
+    !! Write the energy and \(\sigma(E)\)
     !
     implicit none
     !
