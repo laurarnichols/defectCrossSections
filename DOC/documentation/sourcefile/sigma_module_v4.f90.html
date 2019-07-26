@@ -432,158 +432,167 @@
 <a name="ln-163"></a>  <span class="c">!</span>
 <a name="ln-164"></a>  <span class="c">!</span>
 <a name="ln-165"></a>  <span class="k">subroutine </span><span class="n">readLSF</span><span class="p">()</span>
-<a name="ln-166"></a>    <span class="c">!</span>
-<a name="ln-167"></a>    <span class="k">implicit none</span>
-<a name="ln-168"></a>    <span class="c">!</span>
-<a name="ln-169"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC1</span>
-<a name="ln-170"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">8</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC8</span>
-<a name="ln-171"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">9</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC9</span>
-<a name="ln-172"></a>    <span class="c">!</span>
-<a name="ln-173"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ee</span>
-<a name="ln-174"></a>    <span class="c">!</span>
-<a name="ln-175"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iE</span>
+<a name="ln-166"></a>    <span class="c">!! Read LSF output</span>
+<a name="ln-167"></a>    <span class="c">!!</span>
+<a name="ln-168"></a>    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+<a name="ln-169"></a>    <span class="c">!!</span>
+<a name="ln-170"></a>    <span class="k">implicit none</span>
+<a name="ln-171"></a>    <span class="c">!</span>
+<a name="ln-172"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC1</span>
+<a name="ln-173"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">8</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC8</span>
+<a name="ln-174"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">9</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC9</span>
+<a name="ln-175"></a>      <span class="c">!! @todo Merge these dummy characters @endtodo</span>
 <a name="ln-176"></a>    <span class="c">!</span>
-<a name="ln-177"></a>    <span class="k">open</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">LSFinput</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">)</span>
-<a name="ln-178"></a>    <span class="c">!</span>
-<a name="ln-179"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;(a1, i10, a9, i5, a8)&#39;</span><span class="p">)</span> <span class="n">dummyC1</span><span class="p">,</span> <span class="n">nEnergies</span><span class="p">,</span> <span class="n">dummyC9</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">dummyC8</span>
-<a name="ln-180"></a>    <span class="c">!</span>
-<a name="ln-181"></a>    <span class="k">allocate</span> <span class="p">(</span> <span class="n">E</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">),</span> <span class="n">lsfVsE</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">),</span> <span class="n">lsfVsEbyPhonon</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">)</span> <span class="p">)</span>
+<a name="ln-177"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ee</span>
+<a name="ln-178"></a>      <span class="c">!! Energy in eV</span>
+<a name="ln-179"></a>    <span class="c">!</span>
+<a name="ln-180"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iE</span>
+<a name="ln-181"></a>      <span class="c">!! Loop index over energies</span>
 <a name="ln-182"></a>    <span class="c">!</span>
-<a name="ln-183"></a>    <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="o">-</span><span class="n">nEnergies</span><span class="p">,</span> <span class="n">nEnergies</span>
-<a name="ln-184"></a>      <span class="c">!</span>
-<a name="ln-185"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;(F16.8,2E18.6e3)&#39;</span><span class="p">)</span> <span class="n">ee</span><span class="p">,</span> <span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE</span><span class="p">),</span> <span class="n">lsfVsEbyPhonon</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>
-<a name="ln-186"></a>      <span class="n">E</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">=</span> <span class="n">ee</span><span class="o">*</span><span class="n">eVToHartree</span>
-<a name="ln-187"></a>      <span class="c">!</span>
-<a name="ln-188"></a>    <span class="n">enddo</span>
-<a name="ln-189"></a>    <span class="c">!</span>
-<a name="ln-190"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<a name="ln-191"></a>    <span class="c">!</span>
-<a name="ln-192"></a>  <span class="k">end subroutine </span><span class="n">readLSF</span>
-<a name="ln-193"></a>  <span class="c">!</span>
-<a name="ln-194"></a>  <span class="c">!</span>
-<a name="ln-195"></a>  <span class="k">subroutine </span><span class="n">readVfis</span><span class="p">()</span>
-<a name="ln-196"></a>    <span class="c">!</span>
-<a name="ln-197"></a>    <span class="k">implicit none</span>
+<a name="ln-183"></a>    <span class="k">open</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">LSFinput</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">)</span>
+<a name="ln-184"></a>      <span class="c">!! * Open the LSF output file</span>
+<a name="ln-185"></a>    <span class="c">!</span>
+<a name="ln-186"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;(a1, i10, a9, i5, a8)&#39;</span><span class="p">)</span> <span class="n">dummyC1</span><span class="p">,</span> <span class="n">nEnergies</span><span class="p">,</span> <span class="n">dummyC9</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">dummyC8</span>
+<a name="ln-187"></a>      <span class="c">!! * Read in the number of energies and ??</span>
+<a name="ln-188"></a>    <span class="c">!</span>
+<a name="ln-189"></a>    <span class="k">allocate</span> <span class="p">(</span> <span class="n">E</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">),</span> <span class="n">lsfVsE</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">),</span> <span class="n">lsfVsEbyPhonon</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">)</span> <span class="p">)</span>
+<a name="ln-190"></a>    <span class="c">!</span>
+<a name="ln-191"></a>    <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="o">-</span><span class="n">nEnergies</span><span class="p">,</span> <span class="n">nEnergies</span>
+<a name="ln-192"></a>      <span class="c">!! * For each energy, read in the energy value as well as `lsfVsE` and `lsfVsEbyPhonon`</span>
+<a name="ln-193"></a>      <span class="c">!</span>
+<a name="ln-194"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="s1">&#39;(F16.8,2E18.6e3)&#39;</span><span class="p">)</span> <span class="n">ee</span><span class="p">,</span> <span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE</span><span class="p">),</span> <span class="n">lsfVsEbyPhonon</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>
+<a name="ln-195"></a>      <span class="n">E</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">=</span> <span class="n">ee</span><span class="o">*</span><span class="n">eVToHartree</span>
+<a name="ln-196"></a>      <span class="c">!</span>
+<a name="ln-197"></a>    <span class="n">enddo</span>
 <a name="ln-198"></a>    <span class="c">!</span>
-<a name="ln-199"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">iE0</span><span class="p">,</span> <span class="n">iE</span>
-<a name="ln-200"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyD1</span><span class="p">,</span> <span class="n">dummyD2</span><span class="p">,</span> <span class="n">Ee</span><span class="p">,</span> <span class="n">VfiOfE</span><span class="p">,</span> <span class="n">VfiOfE0</span><span class="p">,</span> <span class="n">eBin</span>
-<a name="ln-201"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span>  <span class="mi">1</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC1</span>
-<a name="ln-202"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">32</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC32</span>
-<a name="ln-203"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">35</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC35</span>
-<a name="ln-204"></a>    <span class="c">!</span>
-<a name="ln-205"></a>    <span class="k">open</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">VfisInput</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s2">&quot;old&quot;</span><span class="p">)</span>
-<a name="ln-206"></a>    <span class="c">!</span>
-<a name="ln-207"></a>    <span class="c">!read(1, &#39;(a1, i10, a9, f15.4, a16)&#39;) dummyC1, nEVfi, dummyC9, volume, dummyC16</span>
-<a name="ln-208"></a>    <span class="c">!</span>
-<a name="ln-209"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
-<a name="ln-210"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(a32, ES24.15E3, a35)&#39;</span><span class="p">)</span> <span class="n">dummyC32</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">dummyC35</span>
-<a name="ln-211"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(a32, ES24.15E3, a35)&#39;</span><span class="p">)</span> <span class="n">dummyC32</span><span class="p">,</span> <span class="n">eifMin</span><span class="p">,</span> <span class="n">dummyC35</span>
-<a name="ln-212"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(a32, ES24.15E3, a35)&#39;</span><span class="p">)</span> <span class="n">dummyC32</span><span class="p">,</span> <span class="n">DHifMin</span><span class="p">,</span> <span class="n">dummyC35</span>
-<a name="ln-213"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(a32, ES24.15E3, a35)&#39;</span><span class="p">)</span> <span class="n">dummyC32</span><span class="p">,</span> <span class="n">eBin</span><span class="p">,</span> <span class="n">dummyC35</span>
-<a name="ln-214"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-199"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a name="ln-200"></a>    <span class="c">!</span>
+<a name="ln-201"></a>  <span class="k">end subroutine </span><span class="n">readLSF</span>
+<a name="ln-202"></a>  <span class="c">!</span>
+<a name="ln-203"></a>  <span class="c">!</span>
+<a name="ln-204"></a>  <span class="k">subroutine </span><span class="n">readVfis</span><span class="p">()</span>
+<a name="ln-205"></a>    <span class="c">!</span>
+<a name="ln-206"></a>    <span class="k">implicit none</span>
+<a name="ln-207"></a>    <span class="c">!</span>
+<a name="ln-208"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">iE0</span><span class="p">,</span> <span class="n">iE</span>
+<a name="ln-209"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyD1</span><span class="p">,</span> <span class="n">dummyD2</span><span class="p">,</span> <span class="n">Ee</span><span class="p">,</span> <span class="n">VfiOfE</span><span class="p">,</span> <span class="n">VfiOfE0</span><span class="p">,</span> <span class="n">eBin</span>
+<a name="ln-210"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span>  <span class="mi">1</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC1</span>
+<a name="ln-211"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">32</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC32</span>
+<a name="ln-212"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">35</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC35</span>
+<a name="ln-213"></a>    <span class="c">!</span>
+<a name="ln-214"></a>    <span class="k">open</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">VfisInput</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s2">&quot;old&quot;</span><span class="p">)</span>
 <a name="ln-215"></a>    <span class="c">!</span>
-<a name="ln-216"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">numOfVfis</span>
+<a name="ln-216"></a>    <span class="c">!read(1, &#39;(a1, i10, a9, f15.4, a16)&#39;) dummyC1, nEVfi, dummyC9, volume, dummyC16</span>
 <a name="ln-217"></a>    <span class="c">!</span>
-<a name="ln-218"></a>    <span class="k">allocate</span> <span class="p">(</span> <span class="n">Vfis</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numOfVfis</span><span class="p">),</span> <span class="n">energy</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numOfVfis</span><span class="p">),</span> <span class="n">lsf</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numOfVfis</span><span class="p">)</span> <span class="p">)</span>
-<a name="ln-219"></a>    <span class="c">!</span>
-<a name="ln-220"></a>    <span class="n">Vfis</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-<a name="ln-221"></a>    <span class="n">energy</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-<a name="ln-222"></a>    <span class="n">lsf</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-<a name="ln-223"></a>    <span class="c">!</span>
-<a name="ln-224"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(3ES24.15E3)&#39;</span> <span class="p">)</span> <span class="n">Ee</span><span class="p">,</span> <span class="n">VfiOfE0</span><span class="p">,</span> <span class="n">dummyD1</span>
-<a name="ln-225"></a>    <span class="c">!</span>
-<a name="ln-226"></a>    <span class="n">Vfis</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">VfiOfE0</span>
-<a name="ln-227"></a>    <span class="n">energy</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">Ee</span>
+<a name="ln-218"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-219"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(a32, ES24.15E3, a35)&#39;</span><span class="p">)</span> <span class="n">dummyC32</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">dummyC35</span>
+<a name="ln-220"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(a32, ES24.15E3, a35)&#39;</span><span class="p">)</span> <span class="n">dummyC32</span><span class="p">,</span> <span class="n">eifMin</span><span class="p">,</span> <span class="n">dummyC35</span>
+<a name="ln-221"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(a32, ES24.15E3, a35)&#39;</span><span class="p">)</span> <span class="n">dummyC32</span><span class="p">,</span> <span class="n">DHifMin</span><span class="p">,</span> <span class="n">dummyC35</span>
+<a name="ln-222"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(a32, ES24.15E3, a35)&#39;</span><span class="p">)</span> <span class="n">dummyC32</span><span class="p">,</span> <span class="n">eBin</span><span class="p">,</span> <span class="n">dummyC35</span>
+<a name="ln-223"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+<a name="ln-224"></a>    <span class="c">!</span>
+<a name="ln-225"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">numOfVfis</span>
+<a name="ln-226"></a>    <span class="c">!</span>
+<a name="ln-227"></a>    <span class="k">allocate</span> <span class="p">(</span> <span class="n">Vfis</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numOfVfis</span><span class="p">),</span> <span class="n">energy</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numOfVfis</span><span class="p">),</span> <span class="n">lsf</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numOfVfis</span><span class="p">)</span> <span class="p">)</span>
 <a name="ln-228"></a>    <span class="c">!</span>
-<a name="ln-229"></a>    <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Ee</span><span class="o">/</span><span class="n">de</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-<a name="ln-230"></a>    <span class="c">!</span>
-<a name="ln-231"></a>    <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">numOfVfis</span>
-<a name="ln-232"></a>      <span class="c">!</span>
-<a name="ln-233"></a>      <span class="n">iE0</span> <span class="o">=</span> <span class="n">iE</span> <span class="c">! int(energy(i-1)/deltaE) + 1 !  iE</span>
-<a name="ln-234"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">Ee</span><span class="p">,</span> <span class="n">VfiOfE</span><span class="p">,</span> <span class="n">dummyD2</span>
-<a name="ln-235"></a>      <span class="n">energy</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">Ee</span>
-<a name="ln-236"></a>      <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Ee</span><span class="o">/</span><span class="n">de</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-<a name="ln-237"></a>      <span class="c">!Vfis(iE0:iE) = VfiOfE0</span>
-<a name="ln-238"></a>      <span class="n">Vfis</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">VfiOfE</span>
-<a name="ln-239"></a>      <span class="c">!VfiOfE0 = VfiOfE</span>
-<a name="ln-240"></a>      <span class="n">lsf</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE0</span><span class="p">:</span><span class="n">iE</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">iE</span><span class="o">-</span><span class="n">iE0</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
-<a name="ln-241"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">26</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">E</span><span class="p">(</span><span class="n">iE0</span><span class="p">),</span> <span class="n">Ee</span><span class="p">,</span> <span class="n">lsf</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="c">! sum(lsfVsE(iE0:iE))/(iE-iE0+1)</span>
-<a name="ln-242"></a>      <span class="c">!</span>
-<a name="ln-243"></a>    <span class="n">enddo</span>
-<a name="ln-244"></a>    <span class="c">!</span>
-<a name="ln-245"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-<a name="ln-246"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">26</span><span class="p">)</span>
-<a name="ln-247"></a>    <span class="c">!</span>
-<a name="ln-248"></a>    <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">numOfVfis</span> <span class="c">! -nEnergies, nEnergies</span>
-<a name="ln-249"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">44</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">energy</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">Vfis</span><span class="p">(</span><span class="n">iE</span><span class="p">),</span> <span class="n">lsf</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>
-<a name="ln-250"></a>    <span class="n">enddo</span>
-<a name="ln-251"></a>    <span class="c">!</span>
-<a name="ln-252"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">44</span><span class="p">)</span>
+<a name="ln-229"></a>    <span class="n">Vfis</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+<a name="ln-230"></a>    <span class="n">energy</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+<a name="ln-231"></a>    <span class="n">lsf</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+<a name="ln-232"></a>    <span class="c">!</span>
+<a name="ln-233"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(3ES24.15E3)&#39;</span> <span class="p">)</span> <span class="n">Ee</span><span class="p">,</span> <span class="n">VfiOfE0</span><span class="p">,</span> <span class="n">dummyD1</span>
+<a name="ln-234"></a>    <span class="c">!</span>
+<a name="ln-235"></a>    <span class="n">Vfis</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">VfiOfE0</span>
+<a name="ln-236"></a>    <span class="n">energy</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">Ee</span>
+<a name="ln-237"></a>    <span class="c">!</span>
+<a name="ln-238"></a>    <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Ee</span><span class="o">/</span><span class="n">de</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-239"></a>    <span class="c">!</span>
+<a name="ln-240"></a>    <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">numOfVfis</span>
+<a name="ln-241"></a>      <span class="c">!</span>
+<a name="ln-242"></a>      <span class="n">iE0</span> <span class="o">=</span> <span class="n">iE</span> <span class="c">! int(energy(i-1)/deltaE) + 1 !  iE</span>
+<a name="ln-243"></a>      <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">Ee</span><span class="p">,</span> <span class="n">VfiOfE</span><span class="p">,</span> <span class="n">dummyD2</span>
+<a name="ln-244"></a>      <span class="n">energy</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">Ee</span>
+<a name="ln-245"></a>      <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Ee</span><span class="o">/</span><span class="n">de</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-246"></a>      <span class="c">!Vfis(iE0:iE) = VfiOfE0</span>
+<a name="ln-247"></a>      <span class="n">Vfis</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">VfiOfE</span>
+<a name="ln-248"></a>      <span class="c">!VfiOfE0 = VfiOfE</span>
+<a name="ln-249"></a>      <span class="n">lsf</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE0</span><span class="p">:</span><span class="n">iE</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">iE</span><span class="o">-</span><span class="n">iE0</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<a name="ln-250"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">26</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">E</span><span class="p">(</span><span class="n">iE0</span><span class="p">),</span> <span class="n">Ee</span><span class="p">,</span> <span class="n">lsf</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="c">! sum(lsfVsE(iE0:iE))/(iE-iE0+1)</span>
+<a name="ln-251"></a>      <span class="c">!</span>
+<a name="ln-252"></a>    <span class="n">enddo</span>
 <a name="ln-253"></a>    <span class="c">!</span>
-<a name="ln-254"></a>    <span class="k">return</span>
-<a name="ln-255"></a>    <span class="c">!</span>
-<a name="ln-256"></a>  <span class="k">end subroutine </span><span class="n">readVfis</span>
-<a name="ln-257"></a>  <span class="c">!</span>
-<a name="ln-258"></a>  <span class="c">!</span>
-<a name="ln-259"></a>  <span class="k">subroutine </span><span class="n">calculateSigma</span><span class="p">()</span>
+<a name="ln-254"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<a name="ln-255"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">26</span><span class="p">)</span>
+<a name="ln-256"></a>    <span class="c">!</span>
+<a name="ln-257"></a>    <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">numOfVfis</span> <span class="c">! -nEnergies, nEnergies</span>
+<a name="ln-258"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">44</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">energy</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">Vfis</span><span class="p">(</span><span class="n">iE</span><span class="p">),</span> <span class="n">lsf</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>
+<a name="ln-259"></a>    <span class="n">enddo</span>
 <a name="ln-260"></a>    <span class="c">!</span>
-<a name="ln-261"></a>    <span class="k">implicit none</span>
+<a name="ln-261"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">44</span><span class="p">)</span>
 <a name="ln-262"></a>    <span class="c">!</span>
-<a name="ln-263"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iE</span>
-<a name="ln-264"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">vg</span><span class="p">,</span> <span class="n">sigma0</span>
-<a name="ln-265"></a>    <span class="c">!</span>
-<a name="ln-266"></a>    <span class="k">allocate</span><span class="p">(</span> <span class="n">sigma</span><span class="p">(</span><span class="n">numOfVfis</span><span class="p">)</span> <span class="p">)</span> <span class="c">! , sigmaByPhonon(-nEnergies:nEnergies) )</span>
-<a name="ln-267"></a>    <span class="c">!allocate( sigma(-nEnergies:nEnergies), sigmaByPhonon(-nEnergies:nEnergies) )</span>
-<a name="ln-268"></a>    <span class="c">!</span>
-<a name="ln-269"></a>    <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">eifMin</span><span class="o">/</span><span class="n">de</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-<a name="ln-270"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">eifMin</span><span class="p">,</span> <span class="n">eifMin</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">iE</span>
-<a name="ln-271"></a>    <span class="n">sigma0</span> <span class="o">=</span> <span class="n">twoPi</span><span class="o">*</span><span class="n">abCM</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">volume</span><span class="o">*</span><span class="n">DHifMin</span><span class="o">*</span><span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="nb">sqrt</span><span class="p">(</span><span class="mf">2.0_dp</span><span class="o">*</span><span class="n">E</span><span class="p">(</span><span class="n">iE</span><span class="p">))</span>
-<a name="ln-272"></a>    <span class="c">!</span>
-<a name="ln-273"></a>    <span class="c">!do iE = 1, numOfVfis ! -nEnergies, nEnergies - 1</span>
-<a name="ln-274"></a>    <span class="c">!  if ( (E(iE) &lt; eifMin).and.(E(iE+1) &gt; eifMin) ) sigma0 = twoPi*abCM**2*volume*DHifMin*lsfVsE(iE)/sqrt(2.0_dp*E(iE))</span>
-<a name="ln-275"></a>    <span class="c">!enddo</span>
-<a name="ln-276"></a>    <span class="c">!</span>
-<a name="ln-277"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">eifMin</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">sigma0</span>
-<a name="ln-278"></a>    <span class="c">!</span>
-<a name="ln-279"></a>    <span class="n">sigma</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-<a name="ln-280"></a>    <span class="c">!</span>
-<a name="ln-281"></a>    <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">numOfVfis</span> <span class="c">! -nEnergies, nEnergies</span>
-<a name="ln-282"></a>      <span class="n">vg</span> <span class="o">=</span> <span class="mf">1.0_dp</span>
-<a name="ln-283"></a>      <span class="k">if</span> <span class="p">(</span> <span class="n">energy</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.0_dp</span> <span class="p">)</span> <span class="n">vg</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="mf">2.0_dp</span><span class="o">*</span><span class="n">energy</span><span class="p">(</span><span class="n">iE</span><span class="p">))</span>
-<a name="ln-284"></a>      <span class="c">!write(6,*) iE, energy(iE), vg, Vfis(iE), lsf(iE)</span>
-<a name="ln-285"></a>      <span class="n">sigma</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>         <span class="o">=</span> <span class="n">twoPi</span><span class="o">*</span><span class="n">abCM</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">volume</span><span class="o">*</span><span class="n">Vfis</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">*</span><span class="n">lsf</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">vg</span>
-<a name="ln-286"></a>      <span class="c">!sigma(iE)         = twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg</span>
-<a name="ln-287"></a>      <span class="c">!sigmaByPhonon(iE) = twoPi*abCM**2*volume*Vfis(iE)*lsfVsEbyPhonon(iE)/vg</span>
-<a name="ln-288"></a>    <span class="n">enddo</span>
+<a name="ln-263"></a>    <span class="k">return</span>
+<a name="ln-264"></a>    <span class="c">!</span>
+<a name="ln-265"></a>  <span class="k">end subroutine </span><span class="n">readVfis</span>
+<a name="ln-266"></a>  <span class="c">!</span>
+<a name="ln-267"></a>  <span class="c">!</span>
+<a name="ln-268"></a>  <span class="k">subroutine </span><span class="n">calculateSigma</span><span class="p">()</span>
+<a name="ln-269"></a>    <span class="c">!</span>
+<a name="ln-270"></a>    <span class="k">implicit none</span>
+<a name="ln-271"></a>    <span class="c">!</span>
+<a name="ln-272"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iE</span>
+<a name="ln-273"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">vg</span><span class="p">,</span> <span class="n">sigma0</span>
+<a name="ln-274"></a>    <span class="c">!</span>
+<a name="ln-275"></a>    <span class="k">allocate</span><span class="p">(</span> <span class="n">sigma</span><span class="p">(</span><span class="n">numOfVfis</span><span class="p">)</span> <span class="p">)</span> <span class="c">! , sigmaByPhonon(-nEnergies:nEnergies) )</span>
+<a name="ln-276"></a>    <span class="c">!allocate( sigma(-nEnergies:nEnergies), sigmaByPhonon(-nEnergies:nEnergies) )</span>
+<a name="ln-277"></a>    <span class="c">!</span>
+<a name="ln-278"></a>    <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">eifMin</span><span class="o">/</span><span class="n">de</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-279"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">eifMin</span><span class="p">,</span> <span class="n">eifMin</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">iE</span>
+<a name="ln-280"></a>    <span class="n">sigma0</span> <span class="o">=</span> <span class="n">twoPi</span><span class="o">*</span><span class="n">abCM</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">volume</span><span class="o">*</span><span class="n">DHifMin</span><span class="o">*</span><span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="nb">sqrt</span><span class="p">(</span><span class="mf">2.0_dp</span><span class="o">*</span><span class="n">E</span><span class="p">(</span><span class="n">iE</span><span class="p">))</span>
+<a name="ln-281"></a>    <span class="c">!</span>
+<a name="ln-282"></a>    <span class="c">!do iE = 1, numOfVfis ! -nEnergies, nEnergies - 1</span>
+<a name="ln-283"></a>    <span class="c">!  if ( (E(iE) &lt; eifMin).and.(E(iE+1) &gt; eifMin) ) sigma0 = twoPi*abCM**2*volume*DHifMin*lsfVsE(iE)/sqrt(2.0_dp*E(iE))</span>
+<a name="ln-284"></a>    <span class="c">!enddo</span>
+<a name="ln-285"></a>    <span class="c">!</span>
+<a name="ln-286"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">eifMin</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">sigma0</span>
+<a name="ln-287"></a>    <span class="c">!</span>
+<a name="ln-288"></a>    <span class="n">sigma</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
 <a name="ln-289"></a>    <span class="c">!</span>
-<a name="ln-290"></a>    <span class="k">return</span>
-<a name="ln-291"></a>    <span class="c">!</span>
-<a name="ln-292"></a>  <span class="k">end subroutine </span><span class="n">calculateSigma</span>
-<a name="ln-293"></a>  <span class="c">!</span>
-<a name="ln-294"></a>  <span class="c">!</span>
-<a name="ln-295"></a>  <span class="k">subroutine </span><span class="n">writeSigma</span><span class="p">()</span>
-<a name="ln-296"></a>    <span class="c">!</span>
-<a name="ln-297"></a>    <span class="k">implicit none</span>
+<a name="ln-290"></a>    <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">numOfVfis</span> <span class="c">! -nEnergies, nEnergies</span>
+<a name="ln-291"></a>      <span class="n">vg</span> <span class="o">=</span> <span class="mf">1.0_dp</span>
+<a name="ln-292"></a>      <span class="k">if</span> <span class="p">(</span> <span class="n">energy</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.0_dp</span> <span class="p">)</span> <span class="n">vg</span> <span class="o">=</span> <span class="nb">sqrt</span><span class="p">(</span><span class="mf">2.0_dp</span><span class="o">*</span><span class="n">energy</span><span class="p">(</span><span class="n">iE</span><span class="p">))</span>
+<a name="ln-293"></a>      <span class="c">!write(6,*) iE, energy(iE), vg, Vfis(iE), lsf(iE)</span>
+<a name="ln-294"></a>      <span class="n">sigma</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>         <span class="o">=</span> <span class="n">twoPi</span><span class="o">*</span><span class="n">abCM</span><span class="o">**</span><span class="mi">2</span><span class="o">*</span><span class="n">volume</span><span class="o">*</span><span class="n">Vfis</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">*</span><span class="n">lsf</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">vg</span>
+<a name="ln-295"></a>      <span class="c">!sigma(iE)         = twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg</span>
+<a name="ln-296"></a>      <span class="c">!sigmaByPhonon(iE) = twoPi*abCM**2*volume*Vfis(iE)*lsfVsEbyPhonon(iE)/vg</span>
+<a name="ln-297"></a>    <span class="n">enddo</span>
 <a name="ln-298"></a>    <span class="c">!</span>
-<a name="ln-299"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iE</span>
+<a name="ln-299"></a>    <span class="k">return</span>
 <a name="ln-300"></a>    <span class="c">!</span>
-<a name="ln-301"></a>    <span class="k">open</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">crossSectionOutput</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
-<a name="ln-302"></a>    <span class="c">!</span>
-<a name="ln-303"></a>    <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">numOfVfis</span> <span class="c">! -nEnergies, nEnergies</span>
-<a name="ln-304"></a>      <span class="c">!</span>
-<a name="ln-305"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">energy</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">sigma</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="c">!, sigmaByPhonon(iE)</span>
-<a name="ln-306"></a>      <span class="c">!write(2,*) E(iE), sigma(iE), sigmaByPhonon(iE)</span>
-<a name="ln-307"></a>      <span class="c">!</span>
-<a name="ln-308"></a>    <span class="n">enddo</span>
+<a name="ln-301"></a>  <span class="k">end subroutine </span><span class="n">calculateSigma</span>
+<a name="ln-302"></a>  <span class="c">!</span>
+<a name="ln-303"></a>  <span class="c">!</span>
+<a name="ln-304"></a>  <span class="k">subroutine </span><span class="n">writeSigma</span><span class="p">()</span>
+<a name="ln-305"></a>    <span class="c">!</span>
+<a name="ln-306"></a>    <span class="k">implicit none</span>
+<a name="ln-307"></a>    <span class="c">!</span>
+<a name="ln-308"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iE</span>
 <a name="ln-309"></a>    <span class="c">!</span>
-<a name="ln-310"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<a name="ln-310"></a>    <span class="k">open</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">crossSectionOutput</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
 <a name="ln-311"></a>    <span class="c">!</span>
-<a name="ln-312"></a>    <span class="k">return</span>
-<a name="ln-313"></a>    <span class="c">!</span>
-<a name="ln-314"></a>  <span class="k">end subroutine </span><span class="n">writeSigma</span>
-<a name="ln-315"></a>  <span class="c">!</span>
-<a name="ln-316"></a>  <span class="c">!</span>
-<a name="ln-317"></a><span class="k">end module </span><span class="n">sigma_module</span>
+<a name="ln-312"></a>    <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">numOfVfis</span> <span class="c">! -nEnergies, nEnergies</span>
+<a name="ln-313"></a>      <span class="c">!</span>
+<a name="ln-314"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">energy</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">sigma</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="c">!, sigmaByPhonon(iE)</span>
+<a name="ln-315"></a>      <span class="c">!write(2,*) E(iE), sigma(iE), sigmaByPhonon(iE)</span>
+<a name="ln-316"></a>      <span class="c">!</span>
+<a name="ln-317"></a>    <span class="n">enddo</span>
+<a name="ln-318"></a>    <span class="c">!</span>
+<a name="ln-319"></a>    <span class="k">close</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<a name="ln-320"></a>    <span class="c">!</span>
+<a name="ln-321"></a>    <span class="k">return</span>
+<a name="ln-322"></a>    <span class="c">!</span>
+<a name="ln-323"></a>  <span class="k">end subroutine </span><span class="n">writeSigma</span>
+<a name="ln-324"></a>  <span class="c">!</span>
+<a name="ln-325"></a>  <span class="c">!</span>
+<a name="ln-326"></a><span class="k">end module </span><span class="n">sigma_module</span>
 </pre></div>
 
     </section>

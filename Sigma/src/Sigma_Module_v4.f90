@@ -164,24 +164,33 @@ contains
   !
   !
   subroutine readLSF()
-    !
+    !! Read LSF output
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
     character(len = 1) :: dummyC1
     character(len = 8) :: dummyC8
     character(len = 9) :: dummyC9
+      !! @todo Merge these dummy characters @endtodo
     !
     real(kind = dp) :: ee
+      !! Energy in eV
     !
     integer :: iE
+      !! Loop index over energies
     !
     open(1, file=trim(LSFinput), status='old')
+      !! * Open the LSF output file
     !
     read(1,'(a1, i10, a9, i5, a8)') dummyC1, nEnergies, dummyC9, m, dummyC8
+      !! * Read in the number of energies and ??
     !
     allocate ( E(-nEnergies:nEnergies), lsfVsE(-nEnergies:nEnergies), lsfVsEbyPhonon(-nEnergies:nEnergies) )
     !
     do iE = -nEnergies, nEnergies
+      !! * For each energy, read in the energy value as well as `lsfVsE` and `lsfVsEbyPhonon`
       !
       read(1,'(F16.8,2E18.6e3)') ee, lsfVsE(iE), lsfVsEbyPhonon(iE)
       E(iE) = ee*eVToHartree
