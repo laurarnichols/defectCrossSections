@@ -203,7 +203,17 @@ contains
   !
   !
   subroutine readVfis()
-    !
+    !! Read TME output, get `Vfis` and `lsf` using the same index,
+    !! and output the results to two output files
+    !!
+    !! @note
+    !! This subroutine does not line up with what is output from the TME program,
+    !! so I'm not 100% sure where the input is coming from or what it's supposed
+    !! to be
+    !! @endnote
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
     integer :: i, iE0, iE
@@ -211,19 +221,32 @@ contains
     character(len =  1) :: dummyC1
     character(len = 32) :: dummyC32
     character(len = 35) :: dummyC35
+      !! @todo Merge dummy variables @endtodo
     !
     open(1, file=trim(VfisInput), status="old")
     !
     !read(1, '(a1, i10, a9, f15.4, a16)') dummyC1, nEVfi, dummyC9, volume, dummyC16
     !
     read(1, *)
+      !! * Ignore the first line as it is a comment
+    !
     read(1, '(a32, ES24.15E3, a35)') dummyC32, volume, dummyC35
+      !! * Read cell volume
+    !
     read(1, '(a32, ES24.15E3, a35)') dummyC32, eifMin, dummyC35
+      !! * Read minimum transition energy
+    !
     read(1, '(a32, ES24.15E3, a35)') dummyC32, DHifMin, dummyC35
+      !! * Read \(|\Delta H_{if}|^2\) at min transition energy
+    !
     read(1, '(a32, ES24.15E3, a35)') dummyC32, eBin, dummyC35
-    read(1, *)
+      !! * Read energy bin size
+    !
+    read(1, *) 
+      !! * Ignore the next line as it is a comment
     !
     read(1, '(i10)') numOfVfis
+      !! * Read in `nOfEnergies`? 
     !
     allocate ( Vfis(0:numOfVfis), energy(0:numOfVfis), lsf(0:numOfVfis) )
     !
@@ -232,23 +255,37 @@ contains
     lsf(:) = 0.0_dp
     !
     read(1, '(3ES24.15E3)' ) Ee, VfiOfE0, dummyD1
-    !
     Vfis(1) = VfiOfE0
     energy(1) = Ee
+      !! * Read in the initial values of energy and `Vfis`
     !
     iE = int(Ee/de) + 1
+      !! * Calculate the energy index
     !
     do i = 2, numOfVfis
+      !! * For each energy
+      !!    * Read in energy and `VFiOfE`
+      !!    * Calculate the indices needed to get `VFis`
+      !!      and `lsfVsE` using the same index
+      !!    * Average `lsf` over those indices and store 
+      !!      in a single index matching that of `Vfis`
       !
       iE0 = iE ! int(energy(i-1)/deltaE) + 1 !  iE
+      !
       read(1, '(3ES24.15E3)') Ee, VfiOfE, dummyD2
+      !
       energy(i) = Ee
+      !
       iE = int(Ee/de) + 1
+      !
       !Vfis(iE0:iE) = VfiOfE0
       Vfis(i) = VfiOfE
       !VfiOfE0 = VfiOfE
+      !
       lsf(i-1) = sum(lsfVsE(iE0:iE))/(iE-iE0+1)
+      !
       write(26,*) E(iE0), Ee, lsf(i) ! sum(lsfVsE(iE0:iE))/(iE-iE0+1)
+        !! @todo Figure out where this file is opened @endtodo
       !
     enddo
     !
@@ -256,7 +293,11 @@ contains
     close(26)
     !
     do iE = 0, numOfVfis ! -nEnergies, nEnergies
+      !! * For each energy, output the energy in eV, `Vfis` and `lsf`
+      !
       write(44,*) energy(iE)*HartreeToEv, Vfis(iE), lsf(iE)
+        !! @todo Figure out where this file is opened @endtodo
+        !
     enddo
     !
     close(44)

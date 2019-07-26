@@ -249,6 +249,61 @@ public subroutine readVfis()
 
 
     
+    <p>Read TME output, get <code>Vfis</code> and <code>lsf</code> using the same index,
+ and output the results to two output files</p>
+<p></p><div class="alert alert-info" role="alert"><h4>Note</h4><p>This subroutine does not line up with what is output from the TME program,
+ so I'm not 100% sure where the input is coming from or what it's supposed
+ to be
+ </p></div>
+<p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>
+<p>Ignore the first line as it is a comment</p>
+</li>
+<li>
+<p>Read cell volume</p>
+</li>
+<li>
+<p>Read minimum transition energy</p>
+</li>
+<li>
+<p>Read <script type="math/tex">|\Delta H_{if}|^2</script> at min transition energy</p>
+</li>
+<li>
+<p>Read energy bin size</p>
+</li>
+<li>
+<p>Ignore the next line as it is a comment</p>
+</li>
+<li>
+<p>Read in <code>nOfEnergies</code>? </p>
+</li>
+<li>
+<p>Read in the initial values of energy and <code>Vfis</code></p>
+</li>
+<li>
+<p>Calculate the energy index</p>
+</li>
+<li>
+<p>For each energy</p>
+<ul>
+<li>Read in energy and <code>VFiOfE</code></li>
+<li>Calculate the indices needed to get <code>VFis</code>
+  and <code>lsfVsE</code> using the same index</li>
+<li>Average <code>lsf</code> over those indices and store 
+  in a single index matching that of <code>Vfis</code></li>
+</ul>
+</li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out where this file is opened </p></div>
+<p>
+<ul>
+<li>For each energy, output the energy in eV, <code>Vfis</code> and <code>lsf</code></li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out where this file is opened </p></div>
+<p>
+    
 
     <h3>Arguments</h3>
     
@@ -511,7 +566,8 @@ public subroutine readVfis()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>dummyC35</strong></td><td></td><td></td><td></td>
+  <td><strong>dummyC35</strong></td><td></td><td></td><td><p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Merge dummy variables </p></div>
+<p></td>
   
 </tr>
 
@@ -539,7 +595,17 @@ public subroutine readVfis()
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readVfis</span><span class="p">()</span>
-    <span class="c">!</span>
+    <span class="c">!! Read TME output, get `Vfis` and `lsf` using the same index,</span>
+    <span class="c">!! and output the results to two output files</span>
+    <span class="c">!!</span>
+    <span class="c">!! @note</span>
+    <span class="c">!! This subroutine does not line up with what is output from the TME program,</span>
+    <span class="c">!! so I&#39;m not 100% sure where the input is coming from or what it&#39;s supposed</span>
+    <span class="c">!! to be</span>
+    <span class="c">!! @endnote</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">iE0</span><span class="p">,</span> <span class="n">iE</span>
@@ -547,19 +613,32 @@ public subroutine readVfis()
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span>  <span class="mi">1</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC1</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">32</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC32</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">35</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyC35</span>
+      <span class="c">!! @todo Merge dummy variables @endtodo</span>
     <span class="c">!</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">VfisInput</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s2">&quot;old&quot;</span><span class="p">)</span>
     <span class="c">!</span>
     <span class="c">!read(1, &#39;(a1, i10, a9, f15.4, a16)&#39;) dummyC1, nEVfi, dummyC9, volume, dummyC16</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+      <span class="c">!! * Ignore the first line as it is a comment</span>
+    <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(a32, ES24.15E3, a35)&#39;</span><span class="p">)</span> <span class="n">dummyC32</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">dummyC35</span>
+      <span class="c">!! * Read cell volume</span>
+    <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(a32, ES24.15E3, a35)&#39;</span><span class="p">)</span> <span class="n">dummyC32</span><span class="p">,</span> <span class="n">eifMin</span><span class="p">,</span> <span class="n">dummyC35</span>
+      <span class="c">!! * Read minimum transition energy</span>
+    <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(a32, ES24.15E3, a35)&#39;</span><span class="p">)</span> <span class="n">dummyC32</span><span class="p">,</span> <span class="n">DHifMin</span><span class="p">,</span> <span class="n">dummyC35</span>
+      <span class="c">!! * Read \(|\Delta H_{if}|^2\) at min transition energy</span>
+    <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(a32, ES24.15E3, a35)&#39;</span><span class="p">)</span> <span class="n">dummyC32</span><span class="p">,</span> <span class="n">eBin</span><span class="p">,</span> <span class="n">dummyC35</span>
-    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
+      <span class="c">!! * Read energy bin size</span>
+    <span class="c">!</span>
+    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span> 
+      <span class="c">!! * Ignore the next line as it is a comment</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(i10)&#39;</span><span class="p">)</span> <span class="n">numOfVfis</span>
+      <span class="c">!! * Read in `nOfEnergies`? </span>
     <span class="c">!</span>
     <span class="k">allocate</span> <span class="p">(</span> <span class="n">Vfis</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numOfVfis</span><span class="p">),</span> <span class="n">energy</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numOfVfis</span><span class="p">),</span> <span class="n">lsf</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numOfVfis</span><span class="p">)</span> <span class="p">)</span>
     <span class="c">!</span>
@@ -568,23 +647,37 @@ public subroutine readVfis()
     <span class="n">lsf</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
     <span class="c">!</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(3ES24.15E3)&#39;</span> <span class="p">)</span> <span class="n">Ee</span><span class="p">,</span> <span class="n">VfiOfE0</span><span class="p">,</span> <span class="n">dummyD1</span>
-    <span class="c">!</span>
     <span class="n">Vfis</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">VfiOfE0</span>
     <span class="n">energy</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">Ee</span>
+      <span class="c">!! * Read in the initial values of energy and `Vfis`</span>
     <span class="c">!</span>
     <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Ee</span><span class="o">/</span><span class="n">de</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="c">!! * Calculate the energy index</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">numOfVfis</span>
+      <span class="c">!! * For each energy</span>
+      <span class="c">!!    * Read in energy and `VFiOfE`</span>
+      <span class="c">!!    * Calculate the indices needed to get `VFis`</span>
+      <span class="c">!!      and `lsfVsE` using the same index</span>
+      <span class="c">!!    * Average `lsf` over those indices and store </span>
+      <span class="c">!!      in a single index matching that of `Vfis`</span>
       <span class="c">!</span>
       <span class="n">iE0</span> <span class="o">=</span> <span class="n">iE</span> <span class="c">! int(energy(i-1)/deltaE) + 1 !  iE</span>
+      <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;(3ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">Ee</span><span class="p">,</span> <span class="n">VfiOfE</span><span class="p">,</span> <span class="n">dummyD2</span>
+      <span class="c">!</span>
       <span class="n">energy</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">Ee</span>
+      <span class="c">!</span>
       <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Ee</span><span class="o">/</span><span class="n">de</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="c">!</span>
       <span class="c">!Vfis(iE0:iE) = VfiOfE0</span>
       <span class="n">Vfis</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">VfiOfE</span>
       <span class="c">!VfiOfE0 = VfiOfE</span>
+      <span class="c">!</span>
       <span class="n">lsf</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE0</span><span class="p">:</span><span class="n">iE</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">iE</span><span class="o">-</span><span class="n">iE0</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+      <span class="c">!</span>
       <span class="k">write</span><span class="p">(</span><span class="mi">26</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">E</span><span class="p">(</span><span class="n">iE0</span><span class="p">),</span> <span class="n">Ee</span><span class="p">,</span> <span class="n">lsf</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="c">! sum(lsfVsE(iE0:iE))/(iE-iE0+1)</span>
+        <span class="c">!! @todo Figure out where this file is opened @endtodo</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
@@ -592,7 +685,11 @@ public subroutine readVfis()
     <span class="k">close</span><span class="p">(</span><span class="mi">26</span><span class="p">)</span>
     <span class="c">!</span>
     <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">numOfVfis</span> <span class="c">! -nEnergies, nEnergies</span>
+      <span class="c">!! * For each energy, output the energy in eV, `Vfis` and `lsf`</span>
+      <span class="c">!</span>
       <span class="k">write</span><span class="p">(</span><span class="mi">44</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">energy</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">Vfis</span><span class="p">(</span><span class="n">iE</span><span class="p">),</span> <span class="n">lsf</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span>
+        <span class="c">!! @todo Figure out where this file is opened @endtodo</span>
+        <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">close</span><span class="p">(</span><span class="mi">44</span><span class="p">)</span>
