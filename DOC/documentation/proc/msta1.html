@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.5% of total for procedures.">23 statements</a>
+    title=" 0.7% of total for procedures.">30 statements</a>
      </li> 
      
      
@@ -177,14 +177,6 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/msta1.html#variable-a0">a0</a>
-      
-      <a class="list-group-item" href="../proc/msta1.html#variable-f">f</a>
-      
-      <a class="list-group-item" href="../proc/msta1.html#variable-f0">f0</a>
-      
-      <a class="list-group-item" href="../proc/msta1.html#variable-f1">f1</a>
-      
       <a class="list-group-item" href="../proc/msta1.html#variable-it">it</a>
       
       <a class="list-group-item" href="../proc/msta1.html#variable-n0">n0</a>
@@ -192,6 +184,14 @@
       <a class="list-group-item" href="../proc/msta1.html#variable-n1">n1</a>
       
       <a class="list-group-item" href="../proc/msta1.html#variable-nn">nn</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-a0">a0</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-f">f</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-f0">f0</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-f1">f1</a>
       
     </div>
   </div>
@@ -233,6 +233,14 @@ public function msta1(x, mp) result(fn_val)
 
 
     
+    <p>Determine the starting point for backward 
+ recurrence such that the magnitude of 
+ <script type="math/tex">J_n(x)</script> at that point is about 
+ <script type="math/tex">10^{-\text{mp}}</script>
+</p>
+<p>If the magnitude of the difference between 
+ <code>nn</code> and <code>n1</code> becomes less than 1, exit</p>
+    
 
     <h3>Arguments</h3>
     
@@ -257,7 +265,8 @@ public function msta1(x, mp) result(fn_val)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>x</strong></td><td></td>
+  <td><strong>x</strong></td><td><p>Argument of <script type="math/tex">J_n(x)</script>
+</p></td>
   
 </tr>
 
@@ -272,7 +281,7 @@ public function msta1(x, mp) result(fn_val)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>mp</strong></td><td></td>
+  <td><strong>mp</strong></td><td><p>Magnitude</p></td>
   
 </tr>
 
@@ -288,7 +297,7 @@ public function msta1(x, mp) result(fn_val)
     
    <h3>Return Value <small><span class="anchor" id="variable-fn_val"></span>integer
   </small></h3>
-    
+    <p>Starting point</p>
     
     
     
@@ -307,14 +316,6 @@ public function msta1(x, mp) result(fn_val)
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/msta1.html#variable-a0">a0</a>
-      
-      <a class="list-group-item" href="../proc/msta1.html#variable-f">f</a>
-      
-      <a class="list-group-item" href="../proc/msta1.html#variable-f0">f0</a>
-      
-      <a class="list-group-item" href="../proc/msta1.html#variable-f1">f1</a>
-      
       <a class="list-group-item" href="../proc/msta1.html#variable-it">it</a>
       
       <a class="list-group-item" href="../proc/msta1.html#variable-n0">n0</a>
@@ -322,6 +323,14 @@ public function msta1(x, mp) result(fn_val)
       <a class="list-group-item" href="../proc/msta1.html#variable-n1">n1</a>
       
       <a class="list-group-item" href="../proc/msta1.html#variable-nn">nn</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-a0">a0</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-f">f</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-f0">f0</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-f1">f1</a>
       
     </div>
   </div>
@@ -364,62 +373,6 @@ public function msta1(x, mp) result(fn_val)
 
 
 <tbody>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-a0"></span>real(kind=dp),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>a0</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-f"></span>real(kind=dp),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>f</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-f0"></span>real(kind=dp),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>f0</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-f1"></span>real(kind=dp),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>f1</strong></td><td></td><td></td><td></td>
-  
-</tr>
 
   
   
@@ -474,6 +427,62 @@ public function msta1(x, mp) result(fn_val)
   <td>public</td>
   <td></td><td>::</td>
   <td><strong>nn</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-a0"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>a0</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>f</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f0"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>f0</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f1"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>f1</strong></td><td></td><td></td><td></td>
   
 </tr>
 

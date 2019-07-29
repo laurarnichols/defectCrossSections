@@ -829,32 +829,49 @@ contains
   !
   !
   FUNCTION msta1(x, mp) RESULT(fn_val) 
+    !! Determine the starting point for backward 
+    !! recurrence such that the magnitude of 
+    !! \(J_n(x)\) at that point is about 
+    !! \(10^{-\text{mp}}\) 
+    !!
+    implicit none
     !
-    !       =================================================== 
-    !       Purpose: Determine the starting point for backward 
-    !                recurrence such that the magnitude of 
-    !                Jn(x) at that point is about 10^(-MP) 
-    !       Input :  x     --- Argument of Jn(x) 
-    !                MP    --- Value of magnitude 
-    !       Output:  MSTA1 --- Starting point 
-    !       =================================================== 
+    integer, intent(in) :: mp 
+      !! Magnitude
+    integer :: fn_val 
+      !! Starting point
+    INTEGER    :: it
+    INTEGER    :: n0
+    INTEGER    :: n1
+    INTEGER    :: nn 
     ! 
-    REAL (dp), INTENT(IN)  :: x 
-    INTEGER, INTENT(IN)    :: mp 
-    INTEGER                :: fn_val 
-    ! 
-    REAL (dp)  :: a0, f, f0, f1 
-    INTEGER    :: it, n0, n1, nn 
+    real(kind = dp), intent(in) :: x 
+      !! Argument of \(J_n(x)\)
+    real(kind = dp) :: a0
+    real(kind = dp) :: f
+    real(kind = dp) :: f0
+    real(kind = dp) :: f1 
     ! 
     a0 = ABS(x) 
+    !
     n0 = INT(1.1*a0) + 1 
+    !
     f0 = envj(n0,a0) - mp 
+    !
     n1 = n0 + 5 
+    !
     f1 = envj(n1,a0) - mp 
+    !
     DO  it = 1, 20 
+      !
       nn = n1 - int((n1-n0)/(1.0_dp - f0/f1))
+      !
       f = envj(nn,a0) - mp 
+      !
       IF (ABS(nn-n1) < 1) EXIT 
+        !! If the magnitude of the difference between 
+        !! `nn` and `n1` becomes less than 1, exit
+      !
       n0 = n1 
       f0 = f1 
       n1 = nn 
