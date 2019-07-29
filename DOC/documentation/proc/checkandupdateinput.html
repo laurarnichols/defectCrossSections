@@ -219,6 +219,15 @@ public subroutine checkAndUpdateInput()
 
 
     
+    <p>Check that the input variables don't still have their default
+ values. The program will abort here if:
+ * <code>equilibriumAtomicPositions</code> is not defined
+ * <code>phononsInput</code> is not defined
+ * <code>temperature</code> is not defined
+ * <code>modeI</code> or <code>modeF</code> is not defined
+ * <code>modeF &lt; modeI</code>
+ * <code>maxDisplacement</code> is not defined</p>
+    
 
     <h3>Arguments</h3>
     

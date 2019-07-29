@@ -128,6 +128,14 @@ contains
   !
   !
   subroutine checkAndUpdateInput()
+    !! Check that the input variables don't still have their default
+    !! values. The program will abort here if:
+    !! * `equilibriumAtomicPositions` is not defined
+    !! * `phononsInput` is not defined
+    !! * `temperature` is not defined
+    !! * `modeI` or `modeF` is not defined
+    !! * `modeF < modeI`
+    !! * `maxDisplacement` is not defined
     !
     implicit none
     !

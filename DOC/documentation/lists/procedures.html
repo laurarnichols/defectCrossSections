@@ -147,7 +147,14 @@ All Procedures &ndash; Carrier Cross Sections
 			 
 			   <tr><td><a href='../proc/calculatevfielements.html'>calculateVfiElements</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p></p><a href="../proc/calculatevfielements.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
-			   <tr><td><a href='../proc/checkandupdateinput.html'>checkAndUpdateInput</a></td><td><a href='../module/mjmodule.html'>MjModule</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/checkandupdateinput.html'>checkAndUpdateInput</a></td><td><a href='../module/mjmodule.html'>MjModule</a></td><td>Subroutine</td><td><p>Check that the input variables don't still have their default
+ values. The program will abort here if:
+ * <code>equilibriumAtomicPositions</code> is not defined
+ * <code>phononsInput</code> is not defined
+ * <code>temperature</code> is not defined
+ * <code>modeI</code> or <code>modeF</code> is not defined
+ * <code>modeF &lt; modeI</code>
+ * <code>maxDisplacement</code> is not defined</p></td></tr>
 			 
 			   <tr><td><a href='../proc/checkandupdateinput%7E2.html'>checkAndUpdateInput</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
