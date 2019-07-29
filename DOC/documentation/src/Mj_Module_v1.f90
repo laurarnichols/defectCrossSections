@@ -348,15 +348,20 @@ contains
   !
   !
   subroutine computeGeneralizedDisplacements()
-    !!
+    !! Calculate the generalized displacements
+    !! by dotting the phonon displacements with 
+    !! the atom displacements
     !!
     !! <h2>Walkthrough</h2>
     !!
     implicit none
     !
     integer :: iAtom
+      !! Loop index over atoms
     integer :: iMode
+      !! Loop index over phonon modes
     integer :: iq
+      !! Loop index over q points
     !
     allocate( genCoord(nModes) )
     !
@@ -367,6 +372,9 @@ contains
         genCoord(iMode) = 0.0_dp
         !
         do iAtom = 1, nAtoms
+          !! * For each q point, mode, and atom combination, calculate
+          !!   the generalized displacement as 
+          !!   \[\sum_{\text{mode}} \sqrt{1823m}\mathbf{\Delta r}_{\text{phonon}}\cdot\mathbf{\Delta r}_{\text{atom}}\]
           !
           genCoord(iMode) = genCoord(iMode) + sqrt(1822.88833218_dp*atomM(iAtom))*sum(phonD(:,iAtom,iMode,iq)*atomD(:,iAtom))
           !

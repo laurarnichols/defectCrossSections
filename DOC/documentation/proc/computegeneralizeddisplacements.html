@@ -223,7 +223,16 @@ public subroutine computeGeneralizedDisplacements()
 
 
     
-    <p><h2>Walkthrough</h2></p>
+    <p>Calculate the generalized displacements
+ by dotting the phonon displacements with 
+ the atom displacements</p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>For each q point, mode, and atom combination, calculate
+   the generalized displacement as 
+   <script type="math/tex; mode=display">\sum_{\text{mode}} \sqrt{1823m}\mathbf{\Delta r}_{\text{phonon}}\cdot\mathbf{\Delta r}_{\text{atom}}</script>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -307,7 +316,7 @@ public subroutine computeGeneralizedDisplacements()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iAtom</strong></td><td></td><td></td><td></td>
+  <td><strong>iAtom</strong></td><td></td><td></td><td><p>Loop index over atoms</p></td>
   
 </tr>
 
@@ -321,7 +330,7 @@ public subroutine computeGeneralizedDisplacements()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iMode</strong></td><td></td><td></td><td></td>
+  <td><strong>iMode</strong></td><td></td><td></td><td><p>Loop index over phonon modes</p></td>
   
 </tr>
 
@@ -335,7 +344,7 @@ public subroutine computeGeneralizedDisplacements()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iq</strong></td><td></td><td></td><td></td>
+  <td><strong>iq</strong></td><td></td><td></td><td><p>Loop index over q points</p></td>
   
 </tr>
 
