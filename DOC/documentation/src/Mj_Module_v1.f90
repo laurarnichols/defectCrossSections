@@ -308,22 +308,32 @@ contains
   !
   !
   subroutine readAtomicPositions()
+    !! Read in the element and equilibrium position for 
+    !! each atom
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     !
     implicit none
     !
     integer :: iAtom
     !
     open(1, file=trim(equilibriumAtomicPositions), status="old")
+      !! * Open the `equilibriumAtomicPositions` file
     !
     allocate( elements(nAtoms), atomPosition(3,nAtoms) )
     !
     atomPosition(:,:) = 0.0_dp
     !
     do iAtom = 1, nAtoms
+      !! * For each atom, read in the element and equilibrium position
+      !
       read(1,*) elements(iAtom), atomPosition(1,iAtom), atomPosition(2,iAtom), atomPosition(3,iAtom)
+      !
     enddo
     !
     close(1)
+      !! * Close the `equilibriumAtomicPositions` file
     !
     return
     !
