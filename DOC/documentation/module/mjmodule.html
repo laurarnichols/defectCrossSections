@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="12.8% of total for modules and submodules.">564 statements</a>
+    title="11.3% of total for modules and submodules.">486 statements</a>
      </li> 
      
      
@@ -191,7 +191,7 @@
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-hartreetoev%7E2">HartreeToEv</a>
       
-      <a class="list-group-item" href="../module/mjmodule.html#variable-pi%7E9">pi</a>
+      <a class="list-group-item" href="../module/mjmodule.html#variable-pi%7E8">pi</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-thztohartree">THzToHartree</a>
       
@@ -265,7 +265,7 @@
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-wby2kt">wby2kT</a>
       
-      <a class="list-group-item" href="../module/mjmodule.html#variable-x%7E18">x</a>
+      <a class="list-group-item" href="../module/mjmodule.html#variable-x%7E17">x</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-elements">elements</a>
       
@@ -329,8 +329,6 @@
       <a class="list-group-item" href="../module/mjmodule.html#proc-exportqeinput">exportQEInput</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#proc-iknb">iknb</a>
-      
-      <a class="list-group-item" href="../module/mjmodule.html#proc-iknb2">iknb2</a>
       
     </div>
   </div>
@@ -410,7 +408,7 @@
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-hartreetoev%7E2">HartreeToEv</a>
       
-      <a class="list-group-item" href="../module/mjmodule.html#variable-pi%7E9">pi</a>
+      <a class="list-group-item" href="../module/mjmodule.html#variable-pi%7E8">pi</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-thztohartree">THzToHartree</a>
       
@@ -484,7 +482,7 @@
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-wby2kt">wby2kT</a>
       
-      <a class="list-group-item" href="../module/mjmodule.html#variable-x%7E18">x</a>
+      <a class="list-group-item" href="../module/mjmodule.html#variable-x%7E17">x</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-elements">elements</a>
       
@@ -548,8 +546,6 @@
       <a class="list-group-item" href="../module/mjmodule.html#proc-exportqeinput">exportQEInput</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#proc-iknb">iknb</a>
-      
-      <a class="list-group-item" href="../module/mjmodule.html#proc-iknb2">iknb2</a>
       
     </div>
   </div>
@@ -700,7 +696,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-pi%7E9"></span>real(kind=dp),</td>
+  <td><span class="anchor" id="variable-pi%7E8"></span>real(kind=dp),</td>
   
   <td>public,</td>
   <td>parameter</td><td>::</td>
@@ -1218,7 +1214,7 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-x%7E18"></span>real(kind=dp),</td>
+  <td><span class="anchor" id="variable-x%7E17"></span>real(kind=dp),</td>
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
@@ -1829,6 +1825,26 @@ public subroutine <a href='../proc/iknb.html'>iknb</a>(n, x, nm, bi)
   <div class="panel-body">
        
     
+
+
+
+
+
+  <dl class="dl-horizontal">
+    
+    <dt>Author</dt><dd>Shanjie Zhang, Jianming Jin</dd>
+    
+    
+    <dt>Date</dt><dd>17 July 2012</dd>
+    
+    
+    
+    
+  </dl>
+
+
+
+<p><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong>*</strong>72</p><a href="../proc/iknb.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -1854,7 +1870,8 @@ public subroutine <a href='../proc/iknb.html'>iknb</a>(n, x, nm, bi)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>n</strong></td><td></td>
+  <td><strong>n</strong></td><td><p>Order of <script type="math/tex">I_n(x)</script> and <script type="math/tex">K_n(x)</script>
+</p></td>
   
 </tr>
 
@@ -1869,7 +1886,7 @@ public subroutine <a href='../proc/iknb.html'>iknb</a>(n, x, nm, bi)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>x</strong></td><td></td>
+  <td><strong>x</strong></td><td><p>The argument</p></td>
   
 </tr>
 
@@ -1879,12 +1896,12 @@ public subroutine <a href='../proc/iknb.html'>iknb</a>(n, x, nm, bi)
   
 <tr>
   
-  <td><span class="anchor" ></span>integer</td>
-  <td></td>
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(inout)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>nm</strong></td><td></td>
+  <td><strong>nm</strong></td><td><p>The highest order computed</p></td>
   
 </tr>
 
@@ -1899,148 +1916,9 @@ public subroutine <a href='../proc/iknb.html'>iknb</a>(n, x, nm, bi)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>bi</strong>(0:n)</td><td></td>
-  
-</tr>
-
-</tbody>
-</table>
-
-      
-    
-    
-
-  </div>
-  </div>
-
-    
-    
-  <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-iknb2"></span><h3>
-public subroutine <a href='../proc/iknb2.html'>iknb2</a>(n, x, nm, bi, di, bk, dk)
-    
-    
-   
-</h3></div>
-  <div class="panel-body">
-       
-    
-    
-    <h4>Arguments</h4>
-    
-      
-      
-<table class="table table-striped varlist">
-<thead><tr><th>Type</th>
-<th>Intent</th><th>Optional</th>
-<th>Attributes</th><th></th><th>Name</th><th></th></thead>
-
-
-
-<tbody>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>n</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real(kind=dp),</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>x</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>nm</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real(kind=dp),</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>bi</strong>(0:n)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real(kind=dp),</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>di</strong>(0:n)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real(kind=dp),</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>bk</strong>(0:n)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real(kind=dp),</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>dk</strong>(0:n)</td><td></td>
+  <td><strong>bi</strong>(0:n)</td><td><p>
+<script type="math/tex">I_n(x)</script>
+</p></td>
   
 </tr>
 

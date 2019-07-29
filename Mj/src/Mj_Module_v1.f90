@@ -688,235 +688,144 @@ contains
   !
   !
   subroutine iknb ( n, x, nm, bi) !, di, bk, dk )
-!
-! Modified : when x < 10^(-15) return the limiting value for small argument [ I_n(x) ~ (x/2)^n Gamma(n+1) ]
-! 
-!c*********************************************************************72
-!c
-!cc IKNB compute Bessel function In(x) and Kn(x).
-!c
-!c  Discussion:
-!c
-!c    Compute modified Bessel functions In(x) and Kn(x),
-!c    and their derivatives.
-!c
-!c  Licensing:
-!c
-!c    This routine is copyrighted by Shanjie Zhang and Jianming Jin.  However, 
-!c    they give permission to incorporate this routine into a user program 
-!c    provided that the copyright is acknowledged.
-!c
-!c  Modified:
-!c
-!c    17 July 2012
-!c
-!c  Author:
-!c
-!c    Shanjie Zhang, Jianming Jin
-!c
-!c  Reference:
-!c
-!c    Shanjie Zhang, Jianming Jin,
-!c    Computation of Special Functions,
-!c    Wiley, 1996,
-!c    ISBN: 0-471-11963-6,
-!c    LC: QA351.C45.
-!c
-!c  Parameters:
-!c
-!c    Input, integer N, the order of In(x) and Kn(x).
-!c
-!c    Input, double precision X, the argument.
-!c
-!c    Output, integer NM, the highest order computed.
-!c
-!c    Output, double precision BI(0:N), DI(0:N), BK(0:N), DK(0:N),
-!c    the values of In(x), In'(x), Kn(x), Kn'(x).
-!c
-      implicit none
-
-      integer, intent(in) :: n
-
-!      double precision :: a0
-      double precision :: bi(0:n)
-!      double precision :: bkl
-      double precision :: bs
-      double precision :: el
-      double precision :: f
-      double precision :: f0
-      double precision :: f1
-!      double precision :: g
-!      double precision :: g0
-!      double precision :: g1
-      integer :: k
-!      integer :: k0
-!      integer :: l
-      integer :: m, ik
-!      integer :: msta1
-!      integer :: msta2
-      integer :: nm
-      double precision :: pi
+    !! author: Shanjie Zhang, Jianming Jin
+    !! date: 17 July 2012
+    !
+    ! Modified : when x < 10^(-15) return the limiting value for small argument [ I_n(x) ~ (x/2)^n Gamma(n+1) ]
+    ! 
+    !*********************************************************************72
+    !
+    !! IKNB compute Bessel function In(x) and Kn(x).
+    !!
+    !!  <h2>Discussion</h2>
+    !!
+    !!    Compute modified Bessel functions In(x) and Kn(x),
+    !!    and their derivatives.
+    !!
+    !!  <h2>Licensing</h2>
+    !!
+    !!    This routine is copyrighted by Shanjie Zhang and Jianming Jin.  However, 
+    !!    they give permission to incorporate this routine into a user program 
+    !!    provided that the copyright is acknowledged.
+    !!
+    !!
+    !!  <h2>Reference</h2>
+    !!
+    !!    Shanjie Zhang, Jianming Jin,
+    !!    Computation of Special Functions,
+    !!    Wiley, 1996,
+    !!    ISBN: 0-471-11963-6,
+    !!    LC: QA351.C45.
+    !!
+    !c  Parameters:
+    !c
+    !c
+    !c    Input, double precision X, the argument.
+    !c
+    !c    Output, integer NM, the highest order computed.
+    !c
+    !c    Output, double precision BI(0:N), DI(0:N), BK(0:N), DK(0:N),
+    !c    the values of In(x), In'(x), Kn(x), Kn'(x).
+    !c
+    implicit none
+    integer, intent(in) :: n
+      !! Order of \(I_n(x)\) and \(K_n(x)\)
+!    double precision :: a0
+    double precision :: bi(0:n)
+      !! \(I_n(x)\)
+!    double precision :: bkl
+    double precision :: bs
+    double precision :: el
+    double precision :: f
+    double precision :: f0
+    double precision :: f1
+!    double precision :: g
+!    double precision :: g0
+!    double precision :: g1
+    integer :: k
+!    integer :: k0
+!    integer :: l
+    integer :: m
+    integer :: ik
+!    integer :: msta1
+!    integer :: msta2
+    integer, intent(inout) :: nm
+      !! The highest order computed
+    double precision :: pi
 !      double precision :: r
-      double precision :: s0
-      double precision :: sk0
+    double precision :: s0
+    double precision :: sk0
 !      double precision :: vt
-      double precision :: x, ifact
-
-      pi = 3.141592653589793D+00
-      el = 0.5772156649015329D+00
-      nm = n
-
-      if ( x .le. 1.0D-15 ) then
-        do k = 0, n
-          ifact = 1.0_dp
-          do ik = 2, k
-            ifact = ifact*ik
-          enddo
-          bi(k) = (0.5_dp*x)**k/ifact
-        end do
-        return
-      end if
-
-      if ( n .eq. 0 ) then
-        nm = 1
-      end if
-
-      m = msta1 ( x, 200 )
-      if ( m .lt. nm ) then
-        nm = m
-      else
-        m = msta2 ( x, nm, 15 )
-      end if
-
-      bs = 0.0D+00
-      sk0 = 0.0D+00
-      f0 = 0.0D+00
-      f1 = 1.0D-100
-      do k = m, 0, -1
-        f = 2.0D+00 * ( k + 1.0D+00 ) / x * f1 + f0
-        if ( k .le. nm ) then
-          bi(k) = f
-        end if
-        if ( k .ne. 0 .and. k .eq. 2 * int ( k / 2 ) ) then
-          sk0 = sk0 + 4.0D+00 * f / k
-        end if
-        bs = bs + 2.0D+00 * f
-        f0 = f1
-        f1 = f
-      end do
-
-      s0 = exp ( x ) / ( bs - f )
-      do k = 0, nm
-        bi(k) = s0 * bi(k)
-      end do
-
+    double precision :: x
+      !! The argument
+    double precision :: ifact
+    !
+    pi = 3.141592653589793D+00
+    el = 0.5772156649015329D+00
+    nm = n
+    !
+    if ( x .le. 1.0D-15 ) then
+      !! * If \(x < 10^{-15}\), use the limiting value for  a small argument 
+      !!   \[I_n(x) \approx \left(\dfrac{x}{2}\right)^2\Gamma(n+1)\]
+      !!   where \(\Gamma(n+1) = n!\) to calculate multiple orders of the 
+      !!   modified Bessel function (up to \(n\)) for a single value of \(x\)
+      !
+      do k = 0, n
+        ! For each order
+        !
+        ifact = 1.0_dp
+        !
+        do ik = 2, k
+          ! Calculate the factorial
+          !
+          ifact = ifact*ik
+          !
+        enddo
+        !
+        bi(k) = (0.5_dp*x)**k/ifact
+          ! Calculate \(I_n(x)\)
+        !
+      enddo
+      !
       return
-      end SUBROUTINE iknb
-  !
-  !
+      !
+    endif
+    !
+    if ( n .eq. 0 ) then
+      nm = 1
+    end if
+    !
+    m = msta1 ( x, 200 )
+    if ( m .lt. nm ) then
+      nm = m
+    else
+      m = msta2 ( x, nm, 15 )
+    end if
 
-  SUBROUTINE iknb2(n,x,nm,bi,di,bk,dk) 
-    !
-    !    ============================================================ 
-    !    Purpose: Compute modified Bessel functions In(x) and Kn(x), 
-    !             and their derivatives 
-    !    Input:   x --- Argument of In(x) and Kn(x) ( 0 ó x ó 700 ) 
-    !             n --- Order of In(x) and Kn(x) 
-    !    Output:  BI(n) --- In(x) 
-    !             DI(n) --- In'(x) 
-    !             BK(n) --- Kn(x) 
-    !             DK(n) --- Kn'(x) 
-    !             NM --- Highest order computed 
-    !    Routines called: 
-    !             MSTA1 and MSTA2 for computing the starting point 
-    !             for backward recurrence 
-    !    =========================================================== 
-    !   
-    INTEGER, INTENT(IN)     :: n 
-    REAL (dp), INTENT(IN)   :: x 
-    INTEGER, INTENT(OUT)    :: nm 
-    REAL (dp), INTENT(OUT)  :: bi(0:n) 
-    REAL (dp), INTENT(OUT)  :: di(0:n) 
-    REAL (dp), INTENT(OUT)  :: bk(0:n) 
-    REAL (dp), INTENT(OUT)  :: dk(0:n) 
-    ! 
-    REAL (dp), PARAMETER  :: pi = 3.141592653589793_dp, el = 0.5772156649015329_dp 
-    REAL (dp)  :: a0, bkl, bs, f, f0, f1, g, g0, g1, r, s0, sk0, vt 
-    INTEGER    :: k, k0, l, m 
-    ! 
-    nm = n 
-    IF (x <= 1.0D-50) THEN 
-      DO  k = 0, n 
-        bi(k) = 0.0D0 
-        di(k) = 0.0D0 
-        bk(k) = 1.0D+300 
-        dk(k) = -1.0D+300 
-      END DO 
-      bi(0) = 1.0D0 
-      di(1) = 0.5D0 
-      RETURN 
-    END IF 
-    IF (n == 0) nm = 1 
-    m = msta1(x, 200)
-    IF (m < nm) THEN 
-      nm = m 
-    ELSE 
-      m = msta2(x, nm, 15)
-    END IF 
-    !write(6,*)'mmmmmmmmm', m
-    bs = 0.0D0 
-    sk0 = 0.0D0 
-    f0 = 0.0D0 
-    f1 = 1.0D-100 
-    DO  k = m, 0, -1 
-      f = 2*(k+1)/x*f1 + f0 
-      IF (k <= nm) bi(k) = f 
-      IF (k /= 0 .AND. k == 2*INT(k/2)) sk0 = sk0 + 4.0D0 * f / k 
-      bs = bs + 2.0D0 * f 
-      f0 = f1 
-      f1 = f 
-    END DO 
-    !s0 = EXP(x) / (bs-f) 
-    !write(6,*) f, f1
-    s0 = EXP(x) / (bs-f1) 
-    bi(0:nm) = s0 * bi(0:nm) 
-    IF (x <= 8.0D0) THEN 
-      bk(0) = -(LOG(0.5D0*x)+el) * bi(0) + s0 * sk0 
-      bk(1) = (1.0D0/x-bi(1)*bk(0)) / bi(0) 
-    ELSE 
-      a0 = SQRT(pi/(2.0D0*x)) * EXP(-x) 
-      k0 = 16 
-      IF (x >= 25.0) k0 = 10 
-      IF (x >= 80.0) k0 = 8 
-      IF (x >= 200.0) k0 = 6 
-      DO  l = 0, 1 
-        bkl = 1.0D0 
-        vt = 4 * l 
-        r = 1.0D0 
-        DO  k = 1, k0 
-          r = 0.125D0 * r * (vt - (2*k-1)**2) / (k*x) 
-          bkl = bkl + r 
-        END DO 
-        bk(l) = a0 * bkl 
-      END DO 
-    END IF 
-    g0 = bk(0) 
-    g1 = bk(1) 
-    DO  k = 2, nm 
-      g = 2*(k-1)/x*g1 + g0 
-      bk(k) = g 
-      g0 = g1 
-      g1 = g 
-    END DO 
-    di(0) = bi(1) 
-    dk(0) = -bk(1) 
-    DO  k = 1, nm 
-      di(k) = bi(k-1) - k / x * bi(k) 
-      dk(k) = -bk(k-1) - k / x * bk(k) 
-    END DO 
-    RETURN 
-    !
-  END SUBROUTINE iknb2 
+    bs = 0.0D+00
+    sk0 = 0.0D+00
+    f0 = 0.0D+00
+    f1 = 1.0D-100
+    do k = m, 0, -1
+      f = 2.0D+00 * ( k + 1.0D+00 ) / x * f1 + f0
+      if ( k .le. nm ) then
+        bi(k) = f
+      end if
+      if ( k .ne. 0 .and. k .eq. 2 * int ( k / 2 ) ) then
+        sk0 = sk0 + 4.0D+00 * f / k
+      end if
+      bs = bs + 2.0D+00 * f
+     f0 = f1
+     f1 = f
+    end do
+
+    s0 = exp ( x ) / ( bs - f )
+    do k = 0, nm
+      bi(k) = s0 * bi(k)
+    end do
+
+    return
+  end subroutine iknb
   !
   !
   FUNCTION msta1(x, mp) RESULT(fn_val) 
