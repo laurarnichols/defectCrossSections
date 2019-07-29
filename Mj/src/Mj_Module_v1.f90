@@ -834,115 +834,144 @@ contains
     !! \(J_n(x)\) at that point is about 
     !! \(10^{-\text{mp}}\) 
     !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
     integer, intent(in) :: mp 
       !! Magnitude
     integer :: fn_val 
       !! Starting point
-    INTEGER    :: it
-    INTEGER    :: n0
-    INTEGER    :: n1
-    INTEGER    :: nn 
+    integer :: it
+      !! Loop index
+    integer    :: n0, n1, nn
+      !! Order of Bessel function
     ! 
     real(kind = dp), intent(in) :: x 
       !! Argument of \(J_n(x)\)
     real(kind = dp) :: a0
-    real(kind = dp) :: f
-    real(kind = dp) :: f0
-    real(kind = dp) :: f1 
+      !! \(|x|\)
+    real(kind = dp) :: f, f0, f1
+      !! \(-\log(J_n(x)) - \text{mp}\)
     ! 
-    a0 = ABS(x) 
+    a0 = abs(x) 
     !
-    n0 = INT(1.1*a0) + 1 
+    n0 = int(1.1*a0) + 1 
     !
     f0 = envj(n0,a0) - mp 
+      !! * Get initial guess for \(f = -log(J_{n_0}(a_0)) - \text{mp}\)
     !
     n1 = n0 + 5 
     !
     f1 = envj(n1,a0) - mp 
+      !! * Get next guess for \(f\)
     !
-    DO  it = 1, 20 
+    do  it = 1, 20 
+      !! * Recursively minimize \(f\)
       !
       nn = n1 - int((n1-n0)/(1.0_dp - f0/f1))
       !
       f = envj(nn,a0) - mp 
       !
-      IF (ABS(nn-n1) < 1) EXIT 
-        !! If the magnitude of the difference between 
-        !! `nn` and `n1` becomes less than 1, exit
+      if (abs(nn-n1) < 1) exit 
       !
       n0 = n1 
+      !
       f0 = f1 
+      !
       n1 = nn 
+      !
       f1 = f 
-    END DO 
+      !
+    enddo 
     ! 
     fn_val = nn 
     !
-    RETURN
+    return
     !
-  END FUNCTION msta1 
+  end function msta1 
   !
   ! 
-  FUNCTION msta2(x, n, mp) RESULT(fn_val) 
+  function msta2(x, n, mp) result(fn_val) 
+    !! Determine the starting point for backward 
+    !! recurrence such that all \(J_n(x)\) has mp
+    !! significant digits 
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+    implicit none
     !
-    !       =================================================== 
-    !       Purpose: Determine the starting point for backward 
-    !                recurrence such that all Jn(x) has MP 
-    !                significant digits 
-    !       Input :  x  --- Argument of Jn(x) 
-    !                n  --- Order of Jn(x) 
-    !                MP --- Significant digit 
-    !       Output:  MSTA2 --- Starting point 
-    !       =================================================== 
-    !
-    REAL (dp), INTENT(IN)  :: x 
-    INTEGER, INTENT(IN)    :: n 
-    INTEGER, INTENT(IN)    :: mp 
-    INTEGER                :: fn_val 
+    integer, intent(in) :: n 
+      !! Order of \(J_n(x)\)
+    integer, intent(in) :: mp 
+      !! Significant digit
+    integer :: fn_val 
+      !! Starting point
+    integer :: it, n0, n1, nn 
     ! 
-    REAL (dp)  :: a0, ejn, f, f0, f1, hmp, obj 
-    INTEGER    :: it, n0, n1, nn 
+    real(kind = dp), intent(in) :: x 
+      !! Argument of \(J_n(x)\)
+    real(kind = dp) :: a0, ejn, f, f0, f1, hmp, obj 
     ! 
     a0 = ABS(x) 
+    ! 
     hmp = 0.5_dp * mp 
+    ! 
     ejn = envj(n, a0) 
-    IF (ejn <= hmp) THEN 
+    ! 
+    if (ejn <= hmp) then
+      ! 
       obj = mp 
-      n0 = INT(1.1*a0) 
-    ELSE 
+      ! 
+      n0 = int(1.1*a0) 
+      ! 
+    else
+      ! 
       obj = hmp + ejn 
+      ! 
       n0 = n 
-    END IF 
-    !!!!!!!!
+      ! 
+    endif 
+    !
     if ( n0 < 1 ) n0 = 1
-    !!!!!!!!
+    !
     f0 = envj(n0,a0) - obj 
+    !
     n1 = n0 + 5 
+    !
     f1 = envj(n1,a0) - obj 
     !
-    DO  it = 1, 20 
+    do  it = 1, 20 
+      !
       nn = n1 - int((n1-n0)/(1.0_dp - f0/f1))
+      !
       f = envj(nn, a0) - obj 
-      IF (ABS(nn-n1) < 1) EXIT 
+      !
+      if (abs(nn-n1) < 1) exit
+      !
       n0 = n1 
+      !
       f0 = f1 
+      !
       n1 = nn 
+      !
       f1 = f 
-    END DO 
+      !
+    enddo
     !
     fn_val = nn + 10 
     !
-    RETURN
+    return
     ! 
-  END FUNCTION msta2 
+  end function msta2 
   !
   ! 
   function envj(n, x) result(fn_val) 
     !! Estimates \(-\log(J_n(x))\) from the estimate
     !! \[J_n(x) \approx \dfrac{1}{\sqrt{2\pi n}}\left(\dfrac{ex}{2n}\right)^n\]
     ! 
+    implicit none
+    !
     integer, intent(in) :: n 
       !! Order of Bessel function
     real(kind = dp), intent(in) :: x 

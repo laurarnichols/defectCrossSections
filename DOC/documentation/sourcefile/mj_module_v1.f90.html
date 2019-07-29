@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 9.1% of total for source files.">493 statements</a>
+    title=" 9.1% of total for source files.">491 statements</a>
      </li> 
      
      
@@ -1102,131 +1102,160 @@
 <a name="ln-833"></a>    <span class="c">!! \(J_n(x)\) at that point is about </span>
 <a name="ln-834"></a>    <span class="c">!! \(10^{-\text{mp}}\) </span>
 <a name="ln-835"></a>    <span class="c">!!</span>
-<a name="ln-836"></a>    <span class="k">implicit none</span>
-<a name="ln-837"></a>    <span class="c">!</span>
-<a name="ln-838"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">mp</span> 
-<a name="ln-839"></a>      <span class="c">!! Magnitude</span>
-<a name="ln-840"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">fn_val</span> 
-<a name="ln-841"></a>      <span class="c">!! Starting point</span>
-<a name="ln-842"></a>    <span class="kt">INTEGER</span>    <span class="kd">::</span> <span class="n">it</span>
-<a name="ln-843"></a>    <span class="kt">INTEGER</span>    <span class="kd">::</span> <span class="n">n0</span>
-<a name="ln-844"></a>    <span class="kt">INTEGER</span>    <span class="kd">::</span> <span class="n">n1</span>
-<a name="ln-845"></a>    <span class="kt">INTEGER</span>    <span class="kd">::</span> <span class="n">nn</span> 
-<a name="ln-846"></a>    <span class="c">! </span>
-<a name="ln-847"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">x</span> 
-<a name="ln-848"></a>      <span class="c">!! Argument of \(J_n(x)\)</span>
-<a name="ln-849"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">a0</span>
-<a name="ln-850"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">f</span>
-<a name="ln-851"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">f0</span>
-<a name="ln-852"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">f1</span> 
-<a name="ln-853"></a>    <span class="c">! </span>
-<a name="ln-854"></a>    <span class="n">a0</span> <span class="o">=</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> 
-<a name="ln-855"></a>    <span class="c">!</span>
-<a name="ln-856"></a>    <span class="n">n0</span> <span class="o">=</span> <span class="nb">INT</span><span class="p">(</span><span class="mf">1.1</span><span class="o">*</span><span class="n">a0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> 
+<a name="ln-836"></a>    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+<a name="ln-837"></a>    <span class="c">!!</span>
+<a name="ln-838"></a>    <span class="k">implicit none</span>
+<a name="ln-839"></a>    <span class="c">!</span>
+<a name="ln-840"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">mp</span> 
+<a name="ln-841"></a>      <span class="c">!! Magnitude</span>
+<a name="ln-842"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">fn_val</span> 
+<a name="ln-843"></a>      <span class="c">!! Starting point</span>
+<a name="ln-844"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">it</span>
+<a name="ln-845"></a>      <span class="c">!! Loop index</span>
+<a name="ln-846"></a>    <span class="kt">integer</span>    <span class="kd">::</span> <span class="n">n0</span><span class="p">,</span> <span class="n">n1</span><span class="p">,</span> <span class="n">nn</span>
+<a name="ln-847"></a>      <span class="c">!! Order of Bessel function</span>
+<a name="ln-848"></a>    <span class="c">! </span>
+<a name="ln-849"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">x</span> 
+<a name="ln-850"></a>      <span class="c">!! Argument of \(J_n(x)\)</span>
+<a name="ln-851"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">a0</span>
+<a name="ln-852"></a>      <span class="c">!! \(|x|\)</span>
+<a name="ln-853"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">f</span><span class="p">,</span> <span class="n">f0</span><span class="p">,</span> <span class="n">f1</span>
+<a name="ln-854"></a>      <span class="c">!! \(-\log(J_n(x)) - \text{mp}\)</span>
+<a name="ln-855"></a>    <span class="c">! </span>
+<a name="ln-856"></a>    <span class="n">a0</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> 
 <a name="ln-857"></a>    <span class="c">!</span>
-<a name="ln-858"></a>    <span class="n">f0</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n0</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">mp</span> 
+<a name="ln-858"></a>    <span class="n">n0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">1.1</span><span class="o">*</span><span class="n">a0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> 
 <a name="ln-859"></a>    <span class="c">!</span>
-<a name="ln-860"></a>    <span class="n">n1</span> <span class="o">=</span> <span class="n">n0</span> <span class="o">+</span> <span class="mi">5</span> 
-<a name="ln-861"></a>    <span class="c">!</span>
-<a name="ln-862"></a>    <span class="n">f1</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n1</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">mp</span> 
-<a name="ln-863"></a>    <span class="c">!</span>
-<a name="ln-864"></a>    <span class="k">DO  </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">20</span> 
-<a name="ln-865"></a>      <span class="c">!</span>
-<a name="ln-866"></a>      <span class="n">nn</span> <span class="o">=</span> <span class="n">n1</span> <span class="o">-</span> <span class="nb">int</span><span class="p">((</span><span class="n">n1</span><span class="o">-</span><span class="n">n0</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0_dp</span> <span class="o">-</span> <span class="n">f0</span><span class="o">/</span><span class="n">f1</span><span class="p">))</span>
-<a name="ln-867"></a>      <span class="c">!</span>
-<a name="ln-868"></a>      <span class="n">f</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">mp</span> 
-<a name="ln-869"></a>      <span class="c">!</span>
-<a name="ln-870"></a>      <span class="k">IF</span> <span class="p">(</span><span class="nb">ABS</span><span class="p">(</span><span class="n">nn</span><span class="o">-</span><span class="n">n1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">)</span> <span class="k">EXIT</span> 
-<a name="ln-871"></a>        <span class="c">!! If the magnitude of the difference between </span>
-<a name="ln-872"></a>        <span class="c">!! `nn` and `n1` becomes less than 1, exit</span>
-<a name="ln-873"></a>      <span class="c">!</span>
-<a name="ln-874"></a>      <span class="n">n0</span> <span class="o">=</span> <span class="n">n1</span> 
-<a name="ln-875"></a>      <span class="n">f0</span> <span class="o">=</span> <span class="n">f1</span> 
-<a name="ln-876"></a>      <span class="n">n1</span> <span class="o">=</span> <span class="n">nn</span> 
-<a name="ln-877"></a>      <span class="n">f1</span> <span class="o">=</span> <span class="n">f</span> 
-<a name="ln-878"></a>    <span class="k">END DO</span> 
-<a name="ln-879"></a>    <span class="c">! </span>
-<a name="ln-880"></a>    <span class="n">fn_val</span> <span class="o">=</span> <span class="n">nn</span> 
-<a name="ln-881"></a>    <span class="c">!</span>
-<a name="ln-882"></a>    <span class="k">RETURN</span>
-<a name="ln-883"></a>    <span class="c">!</span>
-<a name="ln-884"></a>  <span class="k">END FUNCTION </span><span class="n">msta1</span> 
-<a name="ln-885"></a>  <span class="c">!</span>
-<a name="ln-886"></a>  <span class="c">! </span>
-<a name="ln-887"></a>  <span class="k">FUNCTION </span><span class="n">msta2</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">mp</span><span class="p">)</span> <span class="k">RESULT</span><span class="p">(</span><span class="n">fn_val</span><span class="p">)</span> 
+<a name="ln-860"></a>    <span class="n">f0</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n0</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">mp</span> 
+<a name="ln-861"></a>      <span class="c">!! * Get initial guess for \(f = -log(J_{n_0}(a_0)) - \text{mp}\)</span>
+<a name="ln-862"></a>    <span class="c">!</span>
+<a name="ln-863"></a>    <span class="n">n1</span> <span class="o">=</span> <span class="n">n0</span> <span class="o">+</span> <span class="mi">5</span> 
+<a name="ln-864"></a>    <span class="c">!</span>
+<a name="ln-865"></a>    <span class="n">f1</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n1</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">mp</span> 
+<a name="ln-866"></a>      <span class="c">!! * Get next guess for \(f\)</span>
+<a name="ln-867"></a>    <span class="c">!</span>
+<a name="ln-868"></a>    <span class="k">do  </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">20</span> 
+<a name="ln-869"></a>      <span class="c">!! * Recursively minimize \(f\)</span>
+<a name="ln-870"></a>      <span class="c">!</span>
+<a name="ln-871"></a>      <span class="n">nn</span> <span class="o">=</span> <span class="n">n1</span> <span class="o">-</span> <span class="nb">int</span><span class="p">((</span><span class="n">n1</span><span class="o">-</span><span class="n">n0</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0_dp</span> <span class="o">-</span> <span class="n">f0</span><span class="o">/</span><span class="n">f1</span><span class="p">))</span>
+<a name="ln-872"></a>      <span class="c">!</span>
+<a name="ln-873"></a>      <span class="n">f</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">mp</span> 
+<a name="ln-874"></a>      <span class="c">!</span>
+<a name="ln-875"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">nn</span><span class="o">-</span><span class="n">n1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">)</span> <span class="k">exit</span> 
+<a name="ln-876"></a>      <span class="c">!</span>
+<a name="ln-877"></a>      <span class="n">n0</span> <span class="o">=</span> <span class="n">n1</span> 
+<a name="ln-878"></a>      <span class="c">!</span>
+<a name="ln-879"></a>      <span class="n">f0</span> <span class="o">=</span> <span class="n">f1</span> 
+<a name="ln-880"></a>      <span class="c">!</span>
+<a name="ln-881"></a>      <span class="n">n1</span> <span class="o">=</span> <span class="n">nn</span> 
+<a name="ln-882"></a>      <span class="c">!</span>
+<a name="ln-883"></a>      <span class="n">f1</span> <span class="o">=</span> <span class="n">f</span> 
+<a name="ln-884"></a>      <span class="c">!</span>
+<a name="ln-885"></a>    <span class="n">enddo</span> 
+<a name="ln-886"></a>    <span class="c">! </span>
+<a name="ln-887"></a>    <span class="n">fn_val</span> <span class="o">=</span> <span class="n">nn</span> 
 <a name="ln-888"></a>    <span class="c">!</span>
-<a name="ln-889"></a>    <span class="c">!       =================================================== </span>
-<a name="ln-890"></a>    <span class="c">!       Purpose: Determine the starting point for backward </span>
-<a name="ln-891"></a>    <span class="c">!                recurrence such that all Jn(x) has MP </span>
-<a name="ln-892"></a>    <span class="c">!                significant digits </span>
-<a name="ln-893"></a>    <span class="c">!       Input :  x  --- Argument of Jn(x) </span>
-<a name="ln-894"></a>    <span class="c">!                n  --- Order of Jn(x) </span>
-<a name="ln-895"></a>    <span class="c">!                MP --- Significant digit </span>
-<a name="ln-896"></a>    <span class="c">!       Output:  MSTA2 --- Starting point </span>
-<a name="ln-897"></a>    <span class="c">!       =================================================== </span>
-<a name="ln-898"></a>    <span class="c">!</span>
-<a name="ln-899"></a>    <span class="kt">REAL</span> <span class="p">(</span><span class="n">dp</span><span class="p">),</span> <span class="k">INTENT</span><span class="p">(</span><span class="n">IN</span><span class="p">)</span>  <span class="kd">::</span> <span class="n">x</span> 
-<a name="ln-900"></a>    <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">INTENT</span><span class="p">(</span><span class="n">IN</span><span class="p">)</span>    <span class="kd">::</span> <span class="n">n</span> 
-<a name="ln-901"></a>    <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">INTENT</span><span class="p">(</span><span class="n">IN</span><span class="p">)</span>    <span class="kd">::</span> <span class="n">mp</span> 
-<a name="ln-902"></a>    <span class="kt">INTEGER</span>                <span class="kd">::</span> <span class="n">fn_val</span> 
-<a name="ln-903"></a>    <span class="c">! </span>
-<a name="ln-904"></a>    <span class="kt">REAL</span> <span class="p">(</span><span class="n">dp</span><span class="p">)</span>  <span class="kd">::</span> <span class="n">a0</span><span class="p">,</span> <span class="n">ejn</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">f0</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">hmp</span><span class="p">,</span> <span class="n">obj</span> 
-<a name="ln-905"></a>    <span class="kt">INTEGER</span>    <span class="kd">::</span> <span class="n">it</span><span class="p">,</span> <span class="n">n0</span><span class="p">,</span> <span class="n">n1</span><span class="p">,</span> <span class="n">nn</span> 
-<a name="ln-906"></a>    <span class="c">! </span>
-<a name="ln-907"></a>    <span class="n">a0</span> <span class="o">=</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> 
-<a name="ln-908"></a>    <span class="n">hmp</span> <span class="o">=</span> <span class="mf">0.5_dp</span> <span class="o">*</span> <span class="n">mp</span> 
-<a name="ln-909"></a>    <span class="n">ejn</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span> 
-<a name="ln-910"></a>    <span class="k">IF</span> <span class="p">(</span><span class="n">ejn</span> <span class="o">&lt;=</span> <span class="n">hmp</span><span class="p">)</span> <span class="k">THEN </span>
-<a name="ln-911"></a><span class="k">      </span><span class="n">obj</span> <span class="o">=</span> <span class="n">mp</span> 
-<a name="ln-912"></a>      <span class="n">n0</span> <span class="o">=</span> <span class="nb">INT</span><span class="p">(</span><span class="mf">1.1</span><span class="o">*</span><span class="n">a0</span><span class="p">)</span> 
-<a name="ln-913"></a>    <span class="k">ELSE </span>
-<a name="ln-914"></a><span class="k">      </span><span class="n">obj</span> <span class="o">=</span> <span class="n">hmp</span> <span class="o">+</span> <span class="n">ejn</span> 
-<a name="ln-915"></a>      <span class="n">n0</span> <span class="o">=</span> <span class="n">n</span> 
-<a name="ln-916"></a>    <span class="k">END IF</span> 
-<a name="ln-917"></a>    <span class="c">!!!!!!!!</span>
-<a name="ln-918"></a>    <span class="k">if</span> <span class="p">(</span> <span class="n">n0</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="p">)</span> <span class="n">n0</span> <span class="o">=</span> <span class="mi">1</span>
-<a name="ln-919"></a>    <span class="c">!!!!!!!!</span>
-<a name="ln-920"></a>    <span class="n">f0</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n0</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">obj</span> 
-<a name="ln-921"></a>    <span class="n">n1</span> <span class="o">=</span> <span class="n">n0</span> <span class="o">+</span> <span class="mi">5</span> 
-<a name="ln-922"></a>    <span class="n">f1</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n1</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">obj</span> 
-<a name="ln-923"></a>    <span class="c">!</span>
-<a name="ln-924"></a>    <span class="k">DO  </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">20</span> 
-<a name="ln-925"></a>      <span class="n">nn</span> <span class="o">=</span> <span class="n">n1</span> <span class="o">-</span> <span class="nb">int</span><span class="p">((</span><span class="n">n1</span><span class="o">-</span><span class="n">n0</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0_dp</span> <span class="o">-</span> <span class="n">f0</span><span class="o">/</span><span class="n">f1</span><span class="p">))</span>
-<a name="ln-926"></a>      <span class="n">f</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">obj</span> 
-<a name="ln-927"></a>      <span class="k">IF</span> <span class="p">(</span><span class="nb">ABS</span><span class="p">(</span><span class="n">nn</span><span class="o">-</span><span class="n">n1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">)</span> <span class="k">EXIT </span>
-<a name="ln-928"></a><span class="k">      </span><span class="n">n0</span> <span class="o">=</span> <span class="n">n1</span> 
-<a name="ln-929"></a>      <span class="n">f0</span> <span class="o">=</span> <span class="n">f1</span> 
-<a name="ln-930"></a>      <span class="n">n1</span> <span class="o">=</span> <span class="n">nn</span> 
-<a name="ln-931"></a>      <span class="n">f1</span> <span class="o">=</span> <span class="n">f</span> 
-<a name="ln-932"></a>    <span class="k">END DO</span> 
-<a name="ln-933"></a>    <span class="c">!</span>
-<a name="ln-934"></a>    <span class="n">fn_val</span> <span class="o">=</span> <span class="n">nn</span> <span class="o">+</span> <span class="mi">10</span> 
-<a name="ln-935"></a>    <span class="c">!</span>
-<a name="ln-936"></a>    <span class="k">RETURN</span>
-<a name="ln-937"></a>    <span class="c">! </span>
-<a name="ln-938"></a>  <span class="k">END FUNCTION </span><span class="n">msta2</span> 
-<a name="ln-939"></a>  <span class="c">!</span>
-<a name="ln-940"></a>  <span class="c">! </span>
-<a name="ln-941"></a>  <span class="k">function </span><span class="n">envj</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">result</span><span class="p">(</span><span class="n">fn_val</span><span class="p">)</span> 
-<a name="ln-942"></a>    <span class="c">!! Estimates \(-\log(J_n(x))\) from the estimate</span>
-<a name="ln-943"></a>    <span class="c">!! \[J_n(x) \approx \dfrac{1}{\sqrt{2\pi n}}\left(\dfrac{ex}{2n}\right)^n\]</span>
-<a name="ln-944"></a>    <span class="c">! </span>
-<a name="ln-945"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">n</span> 
-<a name="ln-946"></a>      <span class="c">!! Order of Bessel function</span>
-<a name="ln-947"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">x</span> 
-<a name="ln-948"></a>      <span class="c">!! Argument</span>
-<a name="ln-949"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">fn_val</span> 
-<a name="ln-950"></a>      <span class="c">!! \(-\log(J_n(x))\)</span>
-<a name="ln-951"></a>    <span class="c">!</span>
-<a name="ln-952"></a>    <span class="n">fn_val</span> <span class="o">=</span> <span class="mf">0.5_dp</span> <span class="o">*</span> <span class="n">LOG10</span><span class="p">(</span><span class="mf">6.28_dp</span><span class="o">*</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span> <span class="o">*</span> <span class="n">LOG10</span><span class="p">(</span><span class="mf">1.36_dp</span><span class="o">*</span><span class="n">x</span><span class="o">/</span><span class="n">n</span><span class="p">)</span> 
-<a name="ln-953"></a>      <span class="c">! \(6.28 = 2\pi\) and \(1.36 = e/2\)</span>
-<a name="ln-954"></a>    <span class="c">!</span>
-<a name="ln-955"></a>    <span class="k">RETURN</span> 
-<a name="ln-956"></a>    <span class="c">!</span>
-<a name="ln-957"></a>  <span class="k">END FUNCTION </span><span class="n">envj</span> 
-<a name="ln-958"></a>  <span class="c">!</span>
-<a name="ln-959"></a>  <span class="c">!</span>
-<a name="ln-960"></a><span class="k">end module </span><span class="n">MjModule</span>
+<a name="ln-889"></a>    <span class="k">return</span>
+<a name="ln-890"></a>    <span class="c">!</span>
+<a name="ln-891"></a>  <span class="k">end function </span><span class="n">msta1</span> 
+<a name="ln-892"></a>  <span class="c">!</span>
+<a name="ln-893"></a>  <span class="c">! </span>
+<a name="ln-894"></a>  <span class="k">function </span><span class="n">msta2</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">mp</span><span class="p">)</span> <span class="k">result</span><span class="p">(</span><span class="n">fn_val</span><span class="p">)</span> 
+<a name="ln-895"></a>    <span class="c">!! Determine the starting point for backward </span>
+<a name="ln-896"></a>    <span class="c">!! recurrence such that all \(J_n(x)\) has mp</span>
+<a name="ln-897"></a>    <span class="c">!! significant digits </span>
+<a name="ln-898"></a>    <span class="c">!!</span>
+<a name="ln-899"></a>    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+<a name="ln-900"></a>    <span class="c">!!</span>
+<a name="ln-901"></a>    <span class="k">implicit none</span>
+<a name="ln-902"></a>    <span class="c">!</span>
+<a name="ln-903"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">n</span> 
+<a name="ln-904"></a>      <span class="c">!! Order of \(J_n(x)\)</span>
+<a name="ln-905"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">mp</span> 
+<a name="ln-906"></a>      <span class="c">!! Significant digit</span>
+<a name="ln-907"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">fn_val</span> 
+<a name="ln-908"></a>      <span class="c">!! Starting point</span>
+<a name="ln-909"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">it</span><span class="p">,</span> <span class="n">n0</span><span class="p">,</span> <span class="n">n1</span><span class="p">,</span> <span class="n">nn</span> 
+<a name="ln-910"></a>    <span class="c">! </span>
+<a name="ln-911"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">x</span> 
+<a name="ln-912"></a>      <span class="c">!! Argument of \(J_n(x)\)</span>
+<a name="ln-913"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">a0</span><span class="p">,</span> <span class="n">ejn</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">f0</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">hmp</span><span class="p">,</span> <span class="n">obj</span> 
+<a name="ln-914"></a>    <span class="c">! </span>
+<a name="ln-915"></a>    <span class="n">a0</span> <span class="o">=</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> 
+<a name="ln-916"></a>    <span class="c">! </span>
+<a name="ln-917"></a>    <span class="n">hmp</span> <span class="o">=</span> <span class="mf">0.5_dp</span> <span class="o">*</span> <span class="n">mp</span> 
+<a name="ln-918"></a>    <span class="c">! </span>
+<a name="ln-919"></a>    <span class="n">ejn</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span> 
+<a name="ln-920"></a>    <span class="c">! </span>
+<a name="ln-921"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">ejn</span> <span class="o">&lt;=</span> <span class="n">hmp</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-922"></a>      <span class="c">! </span>
+<a name="ln-923"></a>      <span class="n">obj</span> <span class="o">=</span> <span class="n">mp</span> 
+<a name="ln-924"></a>      <span class="c">! </span>
+<a name="ln-925"></a>      <span class="n">n0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">1.1</span><span class="o">*</span><span class="n">a0</span><span class="p">)</span> 
+<a name="ln-926"></a>      <span class="c">! </span>
+<a name="ln-927"></a>    <span class="k">else</span>
+<a name="ln-928"></a>      <span class="c">! </span>
+<a name="ln-929"></a>      <span class="n">obj</span> <span class="o">=</span> <span class="n">hmp</span> <span class="o">+</span> <span class="n">ejn</span> 
+<a name="ln-930"></a>      <span class="c">! </span>
+<a name="ln-931"></a>      <span class="n">n0</span> <span class="o">=</span> <span class="n">n</span> 
+<a name="ln-932"></a>      <span class="c">! </span>
+<a name="ln-933"></a>    <span class="n">endif</span> 
+<a name="ln-934"></a>    <span class="c">!</span>
+<a name="ln-935"></a>    <span class="k">if</span> <span class="p">(</span> <span class="n">n0</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="p">)</span> <span class="n">n0</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-936"></a>    <span class="c">!</span>
+<a name="ln-937"></a>    <span class="n">f0</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n0</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">obj</span> 
+<a name="ln-938"></a>    <span class="c">!</span>
+<a name="ln-939"></a>    <span class="n">n1</span> <span class="o">=</span> <span class="n">n0</span> <span class="o">+</span> <span class="mi">5</span> 
+<a name="ln-940"></a>    <span class="c">!</span>
+<a name="ln-941"></a>    <span class="n">f1</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n1</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">obj</span> 
+<a name="ln-942"></a>    <span class="c">!</span>
+<a name="ln-943"></a>    <span class="k">do  </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">20</span> 
+<a name="ln-944"></a>      <span class="c">!</span>
+<a name="ln-945"></a>      <span class="n">nn</span> <span class="o">=</span> <span class="n">n1</span> <span class="o">-</span> <span class="nb">int</span><span class="p">((</span><span class="n">n1</span><span class="o">-</span><span class="n">n0</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0_dp</span> <span class="o">-</span> <span class="n">f0</span><span class="o">/</span><span class="n">f1</span><span class="p">))</span>
+<a name="ln-946"></a>      <span class="c">!</span>
+<a name="ln-947"></a>      <span class="n">f</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">obj</span> 
+<a name="ln-948"></a>      <span class="c">!</span>
+<a name="ln-949"></a>      <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">nn</span><span class="o">-</span><span class="n">n1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">)</span> <span class="k">exit</span>
+<a name="ln-950"></a>      <span class="c">!</span>
+<a name="ln-951"></a>      <span class="n">n0</span> <span class="o">=</span> <span class="n">n1</span> 
+<a name="ln-952"></a>      <span class="c">!</span>
+<a name="ln-953"></a>      <span class="n">f0</span> <span class="o">=</span> <span class="n">f1</span> 
+<a name="ln-954"></a>      <span class="c">!</span>
+<a name="ln-955"></a>      <span class="n">n1</span> <span class="o">=</span> <span class="n">nn</span> 
+<a name="ln-956"></a>      <span class="c">!</span>
+<a name="ln-957"></a>      <span class="n">f1</span> <span class="o">=</span> <span class="n">f</span> 
+<a name="ln-958"></a>      <span class="c">!</span>
+<a name="ln-959"></a>    <span class="n">enddo</span>
+<a name="ln-960"></a>    <span class="c">!</span>
+<a name="ln-961"></a>    <span class="n">fn_val</span> <span class="o">=</span> <span class="n">nn</span> <span class="o">+</span> <span class="mi">10</span> 
+<a name="ln-962"></a>    <span class="c">!</span>
+<a name="ln-963"></a>    <span class="k">return</span>
+<a name="ln-964"></a>    <span class="c">! </span>
+<a name="ln-965"></a>  <span class="k">end function </span><span class="n">msta2</span> 
+<a name="ln-966"></a>  <span class="c">!</span>
+<a name="ln-967"></a>  <span class="c">! </span>
+<a name="ln-968"></a>  <span class="k">function </span><span class="n">envj</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">result</span><span class="p">(</span><span class="n">fn_val</span><span class="p">)</span> 
+<a name="ln-969"></a>    <span class="c">!! Estimates \(-\log(J_n(x))\) from the estimate</span>
+<a name="ln-970"></a>    <span class="c">!! \[J_n(x) \approx \dfrac{1}{\sqrt{2\pi n}}\left(\dfrac{ex}{2n}\right)^n\]</span>
+<a name="ln-971"></a>    <span class="c">! </span>
+<a name="ln-972"></a>    <span class="k">implicit none</span>
+<a name="ln-973"></a>    <span class="c">!</span>
+<a name="ln-974"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">n</span> 
+<a name="ln-975"></a>      <span class="c">!! Order of Bessel function</span>
+<a name="ln-976"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">x</span> 
+<a name="ln-977"></a>      <span class="c">!! Argument</span>
+<a name="ln-978"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">fn_val</span> 
+<a name="ln-979"></a>      <span class="c">!! \(-\log(J_n(x))\)</span>
+<a name="ln-980"></a>    <span class="c">!</span>
+<a name="ln-981"></a>    <span class="n">fn_val</span> <span class="o">=</span> <span class="mf">0.5_dp</span> <span class="o">*</span> <span class="n">LOG10</span><span class="p">(</span><span class="mf">6.28_dp</span><span class="o">*</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span> <span class="o">*</span> <span class="n">LOG10</span><span class="p">(</span><span class="mf">1.36_dp</span><span class="o">*</span><span class="n">x</span><span class="o">/</span><span class="n">n</span><span class="p">)</span> 
+<a name="ln-982"></a>      <span class="c">! \(6.28 = 2\pi\) and \(1.36 = e/2\)</span>
+<a name="ln-983"></a>    <span class="c">!</span>
+<a name="ln-984"></a>    <span class="k">RETURN</span> 
+<a name="ln-985"></a>    <span class="c">!</span>
+<a name="ln-986"></a>  <span class="k">END FUNCTION </span><span class="n">envj</span> 
+<a name="ln-987"></a>  <span class="c">!</span>
+<a name="ln-988"></a>  <span class="c">!</span>
+<a name="ln-989"></a><span class="k">end module </span><span class="n">MjModule</span>
 </pre></div>
 
     </section>

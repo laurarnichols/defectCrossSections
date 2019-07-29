@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.7% of total for procedures.">30 statements</a>
+    title=" 0.6% of total for procedures.">26 statements</a>
      </li> 
      
      
@@ -238,8 +238,21 @@ public function msta1(x, mp) result(fn_val)
  <script type="math/tex">J_n(x)</script> at that point is about 
  <script type="math/tex">10^{-\text{mp}}</script>
 </p>
-<p>If the magnitude of the difference between 
- <code>nn</code> and <code>n1</code> becomes less than 1, exit</p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>
+<p>Get initial guess for <script type="math/tex">f = -log(J_{n_0}(a_0)) - \text{mp}</script>
+</p>
+</li>
+<li>
+<p>Get next guess for <script type="math/tex">f</script>
+</p>
+</li>
+<li>
+<p>Recursively minimize <script type="math/tex">f</script>
+</p>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -384,7 +397,7 @@ public function msta1(x, mp) result(fn_val)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>it</strong></td><td></td><td></td><td></td>
+  <td><strong>it</strong></td><td></td><td></td><td><p>Loop index</p></td>
   
 </tr>
 
@@ -398,7 +411,7 @@ public function msta1(x, mp) result(fn_val)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>n0</strong></td><td></td><td></td><td></td>
+  <td><strong>n0</strong></td><td></td><td></td><td><p>Order of Bessel function</p></td>
   
 </tr>
 
@@ -412,7 +425,7 @@ public function msta1(x, mp) result(fn_val)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>n1</strong></td><td></td><td></td><td></td>
+  <td><strong>n1</strong></td><td></td><td></td><td><p>Order of Bessel function</p></td>
   
 </tr>
 
@@ -426,7 +439,7 @@ public function msta1(x, mp) result(fn_val)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>nn</strong></td><td></td><td></td><td></td>
+  <td><strong>nn</strong></td><td></td><td></td><td><p>Order of Bessel function</p></td>
   
 </tr>
 
@@ -440,7 +453,9 @@ public function msta1(x, mp) result(fn_val)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>a0</strong></td><td></td><td></td><td></td>
+  <td><strong>a0</strong></td><td></td><td></td><td><p>
+<script type="math/tex">|x|</script>
+</p></td>
   
 </tr>
 
@@ -454,7 +469,9 @@ public function msta1(x, mp) result(fn_val)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>f</strong></td><td></td><td></td><td></td>
+  <td><strong>f</strong></td><td></td><td></td><td><p>
+<script type="math/tex">-\log(J_n(x)) - \text{mp}</script>
+</p></td>
   
 </tr>
 
@@ -468,7 +485,9 @@ public function msta1(x, mp) result(fn_val)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>f0</strong></td><td></td><td></td><td></td>
+  <td><strong>f0</strong></td><td></td><td></td><td><p>
+<script type="math/tex">-\log(J_n(x)) - \text{mp}</script>
+</p></td>
   
 </tr>
 
@@ -482,7 +501,9 @@ public function msta1(x, mp) result(fn_val)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>f1</strong></td><td></td><td></td><td></td>
+  <td><strong>f1</strong></td><td></td><td></td><td><p>
+<script type="math/tex">-\log(J_n(x)) - \text{mp}</script>
+</p></td>
   
 </tr>
 
