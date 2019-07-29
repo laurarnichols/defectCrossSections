@@ -2,6 +2,7 @@ title: Todo
 author: Laura Nichols
 date: 07/29/2019
 
+* `../Mj/src/Mj_Module_v1.f90:470:` Change this to a more efficient algorithm 
 * `../Sigma/src/Sigma_Module_v4.f90:176:` Merge these dummy characters
 * `../Sigma/src/Sigma_Module_v4.f90:224:` Merge dummy variables
 * `../Sigma/src/Sigma_Module_v4.f90:288:` Figure out where this file is opened

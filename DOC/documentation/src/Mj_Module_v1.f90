@@ -464,6 +464,10 @@ contains
   !
   !
   subroutine arrangeLargerToSmaller()
+    !! Sort `s2L` based on descending order
+    !! of `x`
+    !!
+    !! @todo Change this to a more efficient algorithm @endtodo
     !
     implicit none
     !
@@ -476,8 +480,7 @@ contains
     allocate( temp(nModes) )
     !
     temp(:) = 0.0_dp
-    temp(:) = x(:) ! exp(wby2kT(:) - Sj(:)*coth(:))*besOrderNofModeM(1,:)
-      ! x(:)
+    temp(:) = x(:)
     !
     do iMode = 1, nModes
       !
