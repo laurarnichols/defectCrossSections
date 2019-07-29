@@ -8,35 +8,58 @@ module MjModule
   integer, parameter :: int64 = selected_int_kind(15)
   integer, parameter :: iostd = 16, un = 3
   !
-  real(kind = dp), parameter ::           pi = 3.1415926535897932_dp
-  real(kind = dp), parameter ::        twopi = 2.0_dp*pi
   real(kind = dp), parameter ::         abCM = 0.529177219217e-8_dp
-  real(kind = dp), parameter :: THzToHartree = 1.0_dp/6579.683920729_dp
-  real(kind = dp), parameter :: HartreeToEv  = 27.21138386_dp
   real(kind = dp), parameter :: eVToHartree  = 1.0_dp/27.21138386_dp
+  real(kind = dp), parameter :: HartreeToEv  = 27.21138386_dp
+  real(kind = dp), parameter ::           pi = 3.1415926535897932_dp
+  real(kind = dp), parameter :: THzToHartree = 1.0_dp/6579.683920729_dp
+  real(kind = dp), parameter ::        twopi = 2.0_dp*pi
   !
-  integer :: nAtoms, nOfqPoints, nModes
+  character(len = 6), parameter :: output = 'status'
+  !
   !
   integer :: ios
+  integer :: modeF
+  integer :: modeI
+  integer :: nAtoms
+  integer :: nModes
+  integer :: nOfqPoints
+  integer :: qPoint
   !
-  real(kind = dp) :: ti, tf, t1, t2
-  real(kind = dp) :: temperature, kT
+  real(kind = dp) :: kT
+  real(kind = dp) :: maxDisplacement
+  real(kind = dp) :: t1
+  real(kind = dp) :: t2
+  real(kind = dp) :: temperature
+  real(kind = dp) :: tf
+  real(kind = dp) :: ti
+  !
+  character(len = 256) :: equilibriumAtomicPositions
+  character(len = 256) :: newAtomicPositions
+  character(len = 256) :: phononsInput
+  character(len = 256) :: QEInput
+  !
+  logical :: file_exists
+  logical :: readQEInput
+  !
   !
   integer, allocatable :: s2L(:)
   !
-  real(kind = dp), allocatable :: atomD(:,:), atomM(:), phonQ(:,:), phonF(:), genCoord(:)
-  real(kind = dp), allocatable :: atomPosition(:,:), newAtomicPosition(:,:)
-  real(kind = dp), allocatable :: wby2kT(:), phonD(:,:,:,:), x(:), Sj(:), coth(:), besOrderNofModeM(:,:)
-  !
-  real(kind = dp) ::  maxDisplacement
-  !
-  integer :: modeI, modeF, qPoint
+  real(kind = dp), allocatable :: atomD(:,:)
+  real(kind = dp), allocatable :: atomM(:)
+  real(kind = dp), allocatable :: atomPosition(:,:)
+  real(kind = dp), allocatable :: besOrderNofModeM(:,:)
+  real(kind = dp), allocatable :: coth(:)
+  real(kind = dp), allocatable :: genCoord(:)
+  real(kind = dp), allocatable :: newAtomicPosition(:,:)
+  real(kind = dp), allocatable :: phonD(:,:,:,:)
+  real(kind = dp), allocatable :: phonF(:)
+  real(kind = dp), allocatable :: phonQ(:,:)
+  real(kind = dp), allocatable :: Sj(:)
+  real(kind = dp), allocatable :: wby2kT(:)
+  real(kind = dp), allocatable :: x(:)
   !
   character(len = 2), allocatable :: elements(:)
-  character(len = 6), parameter :: output = 'status'
-  character(len = 256) :: phononsInput, equilibriumAtomicPositions, newAtomicPositions, QEInput
-  !
-  logical :: file_exists, readQEInput
   !
   namelist /MjInput/ QEInput, phononsInput, temperature, equilibriumAtomicPositions, modeI, modeF, qPoint, maxDisplacement
   !
@@ -45,30 +68,41 @@ contains
   !
   !
   subroutine readInputs()
-    !
+    !! Read input parameters and read phonon output
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
-    ! Check if file output exists. If it does, delete it.
-    !
+    !> * Check if file output exists; if it does, delete it
     inquire(file = output, exist = file_exists)
+    !
     if ( file_exists ) then
+      !
       open (unit = 11, file = output, status = "old")
+      !
       close(unit = 11, status = "delete")
+      !
     endif
     !
-    ! Open new output file.
-    !
     open (iostd, file = output, status='new')
+      !! * Open new output file
     !
     call initialize()
+      !! * Set default values of input parameters
     !
     READ (5, MjInput, iostat = ios)
+      !! * Read input parameters
     !
     call checkAndUpdateInput()
+      !! * Check if input parameters were updated 
+      !!   and do some basic checks
     !
     call readPhonons()
+      !! * Read the phonons output from QE or VASP
     !
     call readAtomicPositions()
+      !! * Read the equilibrium atomic positions
     !
     return
     !

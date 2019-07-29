@@ -1,8 +1,7 @@
 title: Todo
 author: Laura Nichols
-date: 07/26/2019
+date: 07/29/2019
 
-* Binary file ../Sigma/src/.Sigma_Module_v4.f90.swo matches
 * `../Sigma/src/Sigma_Module_v4.f90:176:` Merge these dummy characters
 * `../Sigma/src/Sigma_Module_v4.f90:224:` Merge dummy variables
 * `../Sigma/src/Sigma_Module_v4.f90:288:` Figure out where this file is opened
