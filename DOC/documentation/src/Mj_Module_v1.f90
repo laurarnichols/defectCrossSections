@@ -212,25 +212,37 @@ contains
   !
   !
   subroutine readPhonons()
-    !
+    !!
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
-    integer :: iAtom, iMode, iq
-    real(kind = dp) :: dummyD, freqInTHz
+    integer :: iAtom
+    integer :: iMode
+    integer :: iq
+    !
+    real(kind = dp) :: dummyD
+    real(kind = dp) :: freqInTHz
     !
     CHARACTER :: dummyC
     !
     open(1, file=trim(phononsInput), status="old")
+      !! * Open `phononsInput` file
     !
     read(1,*) nOfqPoints, nAtoms
+      !! * Read in the number of q points and number of atoms
     !
     write(iostd, '(" Number of atoms : ", i5)') nAtoms
     write(iostd, '(" Number of q-Points : ", i5)') nOfqPoints
     flush(iostd)
+      !! * Write the number of atoms and q points to the output file
     !
     nModes = 3*nAtoms - 3
+      !! * Calculate the number of phonon modes
     !
     read (1,*)
+      !! * Ignore the next line as it is blank
     !
     allocate( atomD(3,nAtoms), atomM(nAtoms) )
     !
@@ -238,10 +250,15 @@ contains
     atomM = 0.0_dp
     !
     do iAtom = 1, nAtoms
+      !! * For each atom, read in the displacement (either pristine-defect 
+      !!   or defect-pristine) and the atom mass
+      !
       read(1,*) atomD(1,iAtom), atomD(2,iAtom), atomD(3,iAtom), atomM(iAtom)
+      !
     enddo
     !
     read(1,*)
+      !! * Ignore the next line as it is blank
     !
     allocate( phonQ(3,nOfqPoints), phonF(nModes), phonD(3,nAtoms,nModes,nOfqPoints) )
     !
@@ -250,6 +267,12 @@ contains
     phonD = 0.0_dp
     !
     do iq = 1, nOfqPoints
+      !! * For each q point
+      !!    * Read in the coordinates in \(q\)-space
+      !!    * For each phonon mode
+      !!      * Read in the phonon frequency in THz
+      !!      * Convert the frequency to Hartree
+      !!      * Read in the atom displacements
       !
       read (1,*) dummyC, dummyC, dummyC, phonQ(1,iq), phonQ(2,iq), phonQ(3,iq), dummyC
       !
@@ -273,6 +296,7 @@ contains
     enddo
     !
     close(1)
+      !! * Close `phononsInput` file
     !
     flush(iostd)
     !

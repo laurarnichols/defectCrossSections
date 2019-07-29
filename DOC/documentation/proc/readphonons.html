@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.9% of total for procedures.">39 statements</a>
+    title=" 1.0% of total for procedures.">42 statements</a>
      </li> 
      
      
@@ -228,6 +228,45 @@ public subroutine readPhonons()
   
 
 
+    
+    <p><h2>Walkthrough</h2></p>
+<ul>
+<li>
+<p>Open <code>phononsInput</code> file</p>
+</li>
+<li>
+<p>Read in the number of q points and number of atoms</p>
+</li>
+<li>
+<p>Write the number of atoms and q points to the output file</p>
+</li>
+<li>
+<p>Calculate the number of phonon modes</p>
+</li>
+<li>
+<p>Ignore the next line as it is blank</p>
+</li>
+<li>
+<p>For each atom, read in the displacement (either pristine-defect 
+   or defect-pristine) and the atom mass</p>
+</li>
+<li>
+<p>Ignore the next line as it is blank</p>
+</li>
+<li>
+<p>For each q point</p>
+<ul>
+<li>Read in the coordinates in <script type="math/tex">q</script>-space</li>
+<li>For each phonon mode</li>
+<li>Read in the phonon frequency in THz</li>
+<li>Convert the frequency to Hartree</li>
+<li>Read in the atom displacements</li>
+</ul>
+</li>
+<li>
+<p>Close <code>phononsInput</code> file</p>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>
