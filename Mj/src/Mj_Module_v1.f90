@@ -212,7 +212,9 @@ contains
   !
   !
   subroutine readPhonons()
-    !!
+    !! Read the number of atoms and q points and
+    !! get the phonon information like frequency 
+    !! and displacements
     !!
     !! <h2>Walkthrough</h2>
     !!
