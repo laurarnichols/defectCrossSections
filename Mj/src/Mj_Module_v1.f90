@@ -110,6 +110,7 @@ contains
   !
   !
   subroutine initialize()
+    !! Set default values for input parameters
     !
     implicit none
     !
