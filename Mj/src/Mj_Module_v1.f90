@@ -717,19 +717,22 @@ contains
     !!    ISBN: 0-471-11963-6,
     !!    LC: QA351.C45.
     !!
-    !c  Parameters:
-    !c
-    !c
-    !c    Input, double precision X, the argument.
-    !c
-    !c    Output, integer NM, the highest order computed.
-    !c
-    !c    Output, double precision BI(0:N), DI(0:N), BK(0:N), DK(0:N),
-    !c    the values of In(x), In'(x), Kn(x), Kn'(x).
-    !c
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
+    !
     integer, intent(in) :: n
       !! Order of \(I_n(x)\) and \(K_n(x)\)
+    integer, intent(inout) :: nm
+      !! The highest order computed
+    integer :: ik
+    integer :: k
+!    integer :: k0
+!    integer :: l
+    integer :: m
+!    integer :: msta1
+!    integer :: msta2
+    !
 !    double precision :: a0
     double precision :: bi(0:n)
       !! \(I_n(x)\)
@@ -737,28 +740,19 @@ contains
     double precision :: bs
     double precision :: el
     double precision :: f
+    double precision :: fact
     double precision :: f0
     double precision :: f1
 !    double precision :: g
 !    double precision :: g0
 !    double precision :: g1
-    integer :: k
-!    integer :: k0
-!    integer :: l
-    integer :: m
-    integer :: ik
-!    integer :: msta1
-!    integer :: msta2
-    integer, intent(inout) :: nm
-      !! The highest order computed
     double precision :: pi
-!      double precision :: r
+!    double precision :: r
     double precision :: s0
     double precision :: sk0
-!      double precision :: vt
+!    double precision :: vt
     double precision :: x
       !! The argument
-    double precision :: ifact
     !
     pi = 3.141592653589793D+00
     el = 0.5772156649015329D+00
@@ -773,16 +767,16 @@ contains
       do k = 0, n
         ! For each order
         !
-        ifact = 1.0_dp
+        fact = 1.0_dp
         !
         do ik = 2, k
           ! Calculate the factorial
           !
-          ifact = ifact*ik
+          fact = fact*ik
           !
         enddo
         !
-        bi(k) = (0.5_dp*x)**k/ifact
+        bi(k) = (0.5_dp*x)**k/fact
           ! Calculate \(I_n(x)\)
         !
       enddo
@@ -792,38 +786,66 @@ contains
     endif
     !
     if ( n .eq. 0 ) then
+      !
       nm = 1
+      !
     end if
     !
     m = msta1 ( x, 200 )
+      !! * Otherwise, get the starting order \(m\) such
+      !!   that \(J_n(x)\approx10^{-200}\)
+    !
     if ( m .lt. nm ) then
+      !! * If \(m\) is less than the max order to be 
+      !!   calculated, set the max to \(m\)
+      !
       nm = m
+      !
     else
+      !! * Otherwise, set \(m\) to the starting order such
+      !!   that all \(J_{nm}(x)\) have 15 significant digits
+      !
       m = msta2 ( x, nm, 15 )
+      !
     end if
-
+    !
     bs = 0.0D+00
     sk0 = 0.0D+00
     f0 = 0.0D+00
     f1 = 1.0D-100
+    !
     do k = m, 0, -1
+    !
       f = 2.0D+00 * ( k + 1.0D+00 ) / x * f1 + f0
+      !
       if ( k .le. nm ) then
+        !
         bi(k) = f
+        !
       end if
+      !
       if ( k .ne. 0 .and. k .eq. 2 * int ( k / 2 ) ) then
+        !
         sk0 = sk0 + 4.0D+00 * f / k
+        !
       end if
+      !
       bs = bs + 2.0D+00 * f
-     f0 = f1
-     f1 = f
-    end do
-
+      !
+      f0 = f1
+      !
+      f1 = f
+      !
+    enddo
+    !
     s0 = exp ( x ) / ( bs - f )
+    !
     do k = 0, nm
+      !
       bi(k) = s0 * bi(k)
+      !
     end do
-
+    !
     return
   end subroutine iknb
   !

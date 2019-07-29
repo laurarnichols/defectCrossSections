@@ -181,29 +181,29 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
+      <a class="list-group-item" href="../proc/iknb.html#variable-ik%7E13">ik</a>
+      
+      <a class="list-group-item" href="../proc/iknb.html#variable-k%7E2">k</a>
+      
+      <a class="list-group-item" href="../proc/iknb.html#variable-m%7E3">m</a>
+      
       <a class="list-group-item" href="../proc/iknb.html#variable-bs">bs</a>
       
       <a class="list-group-item" href="../proc/iknb.html#variable-el">el</a>
       
       <a class="list-group-item" href="../proc/iknb.html#variable-f%7E3">f</a>
       
+      <a class="list-group-item" href="../proc/iknb.html#variable-fact">fact</a>
+      
       <a class="list-group-item" href="../proc/iknb.html#variable-f0%7E3">f0</a>
       
       <a class="list-group-item" href="../proc/iknb.html#variable-f1%7E3">f1</a>
-      
-      <a class="list-group-item" href="../proc/iknb.html#variable-k%7E2">k</a>
-      
-      <a class="list-group-item" href="../proc/iknb.html#variable-m%7E3">m</a>
-      
-      <a class="list-group-item" href="../proc/iknb.html#variable-ik%7E13">ik</a>
       
       <a class="list-group-item" href="../proc/iknb.html#variable-pi%7E2">pi</a>
       
       <a class="list-group-item" href="../proc/iknb.html#variable-s0">s0</a>
       
       <a class="list-group-item" href="../proc/iknb.html#variable-sk0">sk0</a>
-      
-      <a class="list-group-item" href="../proc/iknb.html#variable-ifact">ifact</a>
       
     </div>
   </div>
@@ -269,11 +269,28 @@ public subroutine iknb(n, x, nm, bi)
 </pre></div>
 
 
+<p><h2>Walkthrough</h2></p>
 <ul>
-<li>If <script type="math/tex">x < 10^{-15}</script>, use the limiting value for  a small argument 
+<li>
+<p>If <script type="math/tex">x < 10^{-15}</script>, use the limiting value for  a small argument 
    <script type="math/tex; mode=display">I_n(x) \approx \left(\dfrac{x}{2}\right)^2\Gamma(n+1)</script>
    where <script type="math/tex">\Gamma(n+1) = n!</script> to calculate multiple orders of the 
    modified Bessel function (up to <script type="math/tex">n</script>) for a single value of <script type="math/tex">x</script>
+</p>
+</li>
+<li>
+<p>Otherwise, get the starting order <script type="math/tex">m</script> such
+   that <script type="math/tex">J_n(x)\approx10^{-200}</script>
+</p>
+</li>
+<li>
+<p>If <script type="math/tex">m</script> is less than the max order to be 
+   calculated, set the max to <script type="math/tex">m</script>
+</p>
+</li>
+<li>
+<p>Otherwise, set <script type="math/tex">m</script> to the starting order such
+   that all <script type="math/tex">J_{nm}(x)</script> have 15 significant digits</p>
 </li>
 </ul>
     
@@ -375,29 +392,29 @@ public subroutine iknb(n, x, nm, bi)
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
+      <a class="list-group-item" href="../proc/iknb.html#variable-ik%7E13">ik</a>
+      
+      <a class="list-group-item" href="../proc/iknb.html#variable-k%7E2">k</a>
+      
+      <a class="list-group-item" href="../proc/iknb.html#variable-m%7E3">m</a>
+      
       <a class="list-group-item" href="../proc/iknb.html#variable-bs">bs</a>
       
       <a class="list-group-item" href="../proc/iknb.html#variable-el">el</a>
       
       <a class="list-group-item" href="../proc/iknb.html#variable-f%7E3">f</a>
       
+      <a class="list-group-item" href="../proc/iknb.html#variable-fact">fact</a>
+      
       <a class="list-group-item" href="../proc/iknb.html#variable-f0%7E3">f0</a>
       
       <a class="list-group-item" href="../proc/iknb.html#variable-f1%7E3">f1</a>
-      
-      <a class="list-group-item" href="../proc/iknb.html#variable-k%7E2">k</a>
-      
-      <a class="list-group-item" href="../proc/iknb.html#variable-m%7E3">m</a>
-      
-      <a class="list-group-item" href="../proc/iknb.html#variable-ik%7E13">ik</a>
       
       <a class="list-group-item" href="../proc/iknb.html#variable-pi%7E2">pi</a>
       
       <a class="list-group-item" href="../proc/iknb.html#variable-s0">s0</a>
       
       <a class="list-group-item" href="../proc/iknb.html#variable-sk0">sk0</a>
-      
-      <a class="list-group-item" href="../proc/iknb.html#variable-ifact">ifact</a>
       
     </div>
   </div>
@@ -447,6 +464,48 @@ public subroutine iknb(n, x, nm, bi)
   
 <tr>
   
+  <td><span class="anchor" id="variable-ik%7E13"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ik</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-k%7E2"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>k</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-m%7E3"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>m</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-bs"></span>double precision,</td>
   
   <td>public</td>
@@ -489,6 +548,20 @@ public subroutine iknb(n, x, nm, bi)
   
 <tr>
   
+  <td><span class="anchor" id="variable-fact"></span>double precision,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>fact</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-f0%7E3"></span>double precision,</td>
   
   <td>public</td>
@@ -508,48 +581,6 @@ public subroutine iknb(n, x, nm, bi)
   <td>public</td>
   <td></td><td>::</td>
   <td><strong>f1</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-k%7E2"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>k</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-m%7E3"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>m</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-ik%7E13"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>ik</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -592,20 +623,6 @@ public subroutine iknb(n, x, nm, bi)
   <td>public</td>
   <td></td><td>::</td>
   <td><strong>sk0</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-ifact"></span>double precision,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>ifact</strong></td><td></td><td></td><td></td>
   
 </tr>
 
