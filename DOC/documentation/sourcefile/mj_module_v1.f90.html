@@ -1207,20 +1207,26 @@
 <a name="ln-938"></a>  <span class="k">END FUNCTION </span><span class="n">msta2</span> 
 <a name="ln-939"></a>  <span class="c">!</span>
 <a name="ln-940"></a>  <span class="c">! </span>
-<a name="ln-941"></a>  <span class="k">FUNCTION </span><span class="n">envj</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">RESULT</span><span class="p">(</span><span class="n">fn_val</span><span class="p">)</span> 
-<a name="ln-942"></a>    <span class="c">! </span>
-<a name="ln-943"></a>    <span class="kt">INTEGER</span><span class="p">,</span> <span class="k">INTENT</span><span class="p">(</span><span class="n">IN</span><span class="p">)</span>    <span class="kd">::</span> <span class="n">n</span> 
-<a name="ln-944"></a>    <span class="kt">REAL</span> <span class="p">(</span><span class="n">dp</span><span class="p">),</span> <span class="k">INTENT</span><span class="p">(</span><span class="n">IN</span><span class="p">)</span>  <span class="kd">::</span> <span class="n">x</span> 
-<a name="ln-945"></a>    <span class="kt">REAL</span> <span class="p">(</span><span class="n">dp</span><span class="p">)</span>              <span class="kd">::</span> <span class="n">fn_val</span> 
-<a name="ln-946"></a>    <span class="c">!</span>
-<a name="ln-947"></a>    <span class="n">fn_val</span> <span class="o">=</span> <span class="mf">0.5_dp</span> <span class="o">*</span> <span class="n">LOG10</span><span class="p">(</span><span class="mf">6.28_dp</span><span class="o">*</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span> <span class="o">*</span> <span class="n">LOG10</span><span class="p">(</span><span class="mf">1.36_dp</span><span class="o">*</span><span class="n">x</span><span class="o">/</span><span class="n">n</span><span class="p">)</span> 
-<a name="ln-948"></a>    <span class="c">!</span>
-<a name="ln-949"></a>    <span class="k">RETURN</span> 
-<a name="ln-950"></a>    <span class="c">!</span>
-<a name="ln-951"></a>  <span class="k">END FUNCTION </span><span class="n">envj</span> 
-<a name="ln-952"></a>  <span class="c">!</span>
-<a name="ln-953"></a>  <span class="c">!</span>
-<a name="ln-954"></a><span class="k">end module </span><span class="n">MjModule</span>
+<a name="ln-941"></a>  <span class="k">function </span><span class="n">envj</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">result</span><span class="p">(</span><span class="n">fn_val</span><span class="p">)</span> 
+<a name="ln-942"></a>    <span class="c">!! Estimates \(-\log(J_n(x))\) from the estimate</span>
+<a name="ln-943"></a>    <span class="c">!! \[J_n(x) \approx \dfrac{1}{\sqrt{2\pi n}}\left(\dfrac{ex}{2n}\right)^n\]</span>
+<a name="ln-944"></a>    <span class="c">! </span>
+<a name="ln-945"></a>    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">n</span> 
+<a name="ln-946"></a>      <span class="c">!! Order of Bessel function</span>
+<a name="ln-947"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">x</span> 
+<a name="ln-948"></a>      <span class="c">!! Argument</span>
+<a name="ln-949"></a>    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">fn_val</span> 
+<a name="ln-950"></a>      <span class="c">!! \(-\log(J_n(x))\)</span>
+<a name="ln-951"></a>    <span class="c">!</span>
+<a name="ln-952"></a>    <span class="n">fn_val</span> <span class="o">=</span> <span class="mf">0.5_dp</span> <span class="o">*</span> <span class="n">LOG10</span><span class="p">(</span><span class="mf">6.28_dp</span><span class="o">*</span><span class="n">n</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span> <span class="o">*</span> <span class="n">LOG10</span><span class="p">(</span><span class="mf">1.36_dp</span><span class="o">*</span><span class="n">x</span><span class="o">/</span><span class="n">n</span><span class="p">)</span> 
+<a name="ln-953"></a>      <span class="c">! \(6.28 = 2\pi\) and \(1.36 = e/2\)</span>
+<a name="ln-954"></a>    <span class="c">!</span>
+<a name="ln-955"></a>    <span class="k">RETURN</span> 
+<a name="ln-956"></a>    <span class="c">!</span>
+<a name="ln-957"></a>  <span class="k">END FUNCTION </span><span class="n">envj</span> 
+<a name="ln-958"></a>  <span class="c">!</span>
+<a name="ln-959"></a>  <span class="c">!</span>
+<a name="ln-960"></a><span class="k">end module </span><span class="n">MjModule</span>
 </pre></div>
 
     </section>

@@ -939,13 +939,19 @@ contains
   END FUNCTION msta2 
   !
   ! 
-  FUNCTION envj(n, x) RESULT(fn_val) 
+  function envj(n, x) result(fn_val) 
+    !! Estimates \(-\log(J_n(x))\) from the estimate
+    !! \[J_n(x) \approx \dfrac{1}{\sqrt{2\pi n}}\left(\dfrac{ex}{2n}\right)^n\]
     ! 
-    INTEGER, INTENT(IN)    :: n 
-    REAL (dp), INTENT(IN)  :: x 
-    REAL (dp)              :: fn_val 
+    integer, intent(in) :: n 
+      !! Order of Bessel function
+    real(kind = dp), intent(in) :: x 
+      !! Argument
+    real(kind = dp) :: fn_val 
+      !! \(-\log(J_n(x))\)
     !
     fn_val = 0.5_dp * LOG10(6.28_dp*n) - n * LOG10(1.36_dp*x/n) 
+      ! \(6.28 = 2\pi\) and \(1.36 = e/2\)
     !
     RETURN 
     !
