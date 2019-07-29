@@ -221,13 +221,19 @@ contains
     implicit none
     !
     integer :: iAtom
+      !! Loop index over atoms
     integer :: iMode
+      !! Loop index over phonon modes
     integer :: iq
+      !! Loop index over q points
     !
     real(kind = dp) :: dummyD
-    real(kind = dp) :: freqInTHz
+      !! Dummy variable to ignore input
+    real(kind = dp) :: freqInTHz 
+      !! Input frequency in THz
     !
-    CHARACTER :: dummyC
+    character :: dummyC
+      !! Dummy variable to ignore input
     !
     open(1, file=trim(phononsInput), status="old")
       !! * Open `phononsInput` file
@@ -317,6 +323,7 @@ contains
     implicit none
     !
     integer :: iAtom
+      !! Loop index over atoms
     !
     open(1, file=trim(equilibriumAtomicPositions), status="old")
       !! * Open the `equilibriumAtomicPositions` file
@@ -341,10 +348,15 @@ contains
   !
   !
   subroutine computeGeneralizedDisplacements()
-    !
+    !!
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
-    integer :: iq, iMode, iAtom
+    integer :: iAtom
+    integer :: iMode
+    integer :: iq
     !
     allocate( genCoord(nModes) )
     !
