@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="11.4% of total for modules and submodules.">491 statements</a>
+    title="11.8% of total for modules and submodules.">513 statements</a>
      </li> 
      
      
@@ -295,6 +295,8 @@
       
       <a class="list-group-item" href="../module/mjmodule.html#proc-envj">envj</a>
       
+      <a class="list-group-item" href="../module/mjmodule.html#proc-wasread%7E2">wasRead</a>
+      
     </div>
   </div>
 </div>
@@ -329,6 +331,8 @@
       <a class="list-group-item" href="../module/mjmodule.html#proc-exportqeinput">exportQEInput</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#proc-iknb">iknb</a>
+      
+      <a class="list-group-item" href="../module/mjmodule.html#proc-int2str%7E2">int2str</a>
       
     </div>
   </div>
@@ -512,6 +516,8 @@
       
       <a class="list-group-item" href="../module/mjmodule.html#proc-envj">envj</a>
       
+      <a class="list-group-item" href="../module/mjmodule.html#proc-wasread%7E2">wasRead</a>
+      
     </div>
   </div>
 </div>
@@ -546,6 +552,8 @@
       <a class="list-group-item" href="../module/mjmodule.html#proc-exportqeinput">exportQEInput</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#proc-iknb">iknb</a>
+      
+      <a class="list-group-item" href="../module/mjmodule.html#proc-int2str%7E2">int2str</a>
       
     </div>
   </div>
@@ -1532,6 +1540,125 @@ public function <a href='../proc/envj.html'>envj</a>(n, x) result(fn_val)
   </div>
 
     
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-wasread%7E2"></span><h3>
+public function <a href='../proc/wasread%7E2.html'>wasRead</a>(inputVal, variableName, usage, abortExecution)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>Determine if an input variable still has the default value.
+ If it does, output an error message and possibly set the program
+ to abort. Not all variables would cause the program to abort,
+ so this program assumes that if you pass in the logical <code>abortExecution</code>
+ then the variable is required and causes the program to abort 
+ if missing.</p><a href="../proc/wasread%7E2.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>inputVal</strong></td><td><p>Value to compare with 0 to see if a variable has been read;</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>variableName</strong></td><td><p>Name of the variable used in output message</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=*),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>usage</strong></td><td><p>Example of how the variable can be used</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>logical,</td>
+  <td>intent(inout),</td>
+  <td>optional</td>
+  
+  <td></td><td>::</td>
+  <td><strong>abortExecution</strong></td><td><p>Optional logical for if the program should be aborted </p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  
+  
+  
+  
+     <h4>Return Value <small>logical
+  </small></h4>
+  <p>Whether or not the input variable was read from the input file;
+ this is the return value</p><a href="None" class="pull-right"><emph>Read more&hellip;</emph></a>
+    
+
+  </div>
+  </div>
+
+    
     </section>
     <br>
     
@@ -1840,6 +1967,14 @@ public subroutine <a href='../proc/exportqeinput.html'>exportQEInput</a>()
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>If the folder for this mode doesn't exist, create it</p>
     
     <h4>Arguments</h4>
     
@@ -1956,6 +2091,80 @@ public subroutine <a href='../proc/iknb.html'>iknb</a>(n, x, nm, bi)
   <td><strong>bi</strong>(0:n)</td><td><p>
 <script type="math/tex">I_n(x)</script>
 </p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
+    
+    
+
+  </div>
+  </div>
+
+    
+    
+  <div class="panel panel-default">
+  <div class="panel-heading codesum"><span class="anchor" id="proc-int2str%7E2"></span><h3>
+public subroutine <a href='../proc/int2str%7E2.html'>int2str</a>(integ, string)
+    
+    
+   
+</h3></div>
+  <div class="panel-body">
+       
+    
+
+
+
+
+
+
+
+<p>Write a given integer to a string, using only as many digits as needed</p>
+    
+    <h4>Arguments</h4>
+    
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>integer</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>integ</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=300)</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>string</strong></td><td></td>
   
 </tr>
 

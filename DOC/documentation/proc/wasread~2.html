@@ -10,7 +10,7 @@
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>initialize &ndash; Carrier Cross Sections</title>
+    <title>wasRead &ndash; Carrier Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -114,8 +114,8 @@
     
   
   <div class="row">
-    <h1>initialize
-      <small>Subroutine</small>
+    <h1>wasRead
+      <small>Function</small>
     
     </h1>
     
@@ -132,24 +132,24 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.2% of total for procedures.">10 statements</a>
+    title=" 0.5% of total for procedures.">20 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/LSF_zeroth_Module_v35.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/Mj_Module_v1.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/lsf_zeroth_module_v35.f90.html'>LSF_zeroth_Module_v35.f90</a></li>
+     <li><a href='../sourcefile/mj_module_v1.f90.html'>Mj_Module_v1.f90</a></li>
     
-     <li><a href='../module/lsf%7E2.html'>lsf</a></li>
+     <li><a href='../module/mjmodule.html'>MjModule</a></li>
     
   
-     <li class="active">initialize</li>
+     <li class="active">wasRead</li>
   </ol>
 </div>
 </div>
@@ -199,7 +199,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine initialize()
+public function wasRead(inputVal, variableName, usage, abortExecution)
     
     
    
@@ -209,12 +209,130 @@ public subroutine initialize()
 
 
     
+    <p>Determine if an input variable still has the default value.
+ If it does, output an error message and possibly set the program
+ to abort. Not all variables would cause the program to abort,
+ so this program assumes that if you pass in the logical <code>abortExecution</code>
+ then the variable is required and causes the program to abort 
+ if missing.</p>
+<p>I could not find a clean way to allow this function to receive
+ different types of variables (integer, real, character, etc.), so
+ I made the argument be an integer so that each type could be sent
+ in a different way. Each case is set up so that the value is tested to
+ see if it is less than zero to determine if the variable still has
+ its default value</p>
+<ul>
+<li>For strings, the default value is <code>''</code>, so pass in 
+ <code>LEN(trim(variable))-1</code> as this should be less than zero if
+ the string still has the default value and greater than or equal 
+ to zero otherwise</li>
+<li>For integers the default values are less than zero, so just pass as is </li>
+<li>
+<p>Real variables also have a negative default value, so just pass the
+ value cast from real to integer</p>
+</li>
+<li>
+<p>Default return value is true</p>
+</li>
+<li>
+<p>If the input variable still has the default value</p>
+<ul>
+<li>output an error message</li>
+<li>set the program to abort if that variable was sent in</li>
+<li>set the return value to false to indicate that the 
+  variable wasn't read</li>
+</ul>
+</li>
+</ul>
+    
 
     <h3>Arguments</h3>
     
-    <em>None</em>
-    <br>
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-inputval%7E2"></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>inputVal</strong></td><td><p>Value to compare with 0 to see if a variable has been read;</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-variablename%7E2"></span>character(len=*),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>variableName</strong></td><td><p>Name of the variable used in output message</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-usage%7E2"></span>character(len=*),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>usage</strong></td><td><p>Example of how the variable can be used</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-abortexecution%7E3"></span>logical,</td>
+  <td>intent(inout),</td>
+  <td>optional</td>
+  
+  <td></td><td>::</td>
+  <td><strong>abortExecution</strong></td><td><p>Optional logical for if the program should be aborted </p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
     
+    
+    
+    
+    
+    
+    
+   <h3>Return Value <small><span class="anchor" id="variable-wasread%7E2"></span>logical
+  </small></h3>
+    <p>Whether or not the input variable was read from the input file;
+ this is the return value</p>
+<p><h2>Walkthrough</h2></p>
     
     
     

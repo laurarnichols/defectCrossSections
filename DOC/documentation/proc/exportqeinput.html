@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.1% of total for procedures.">48 statements</a>
+    title=" 0.8% of total for procedures.">34 statements</a>
      </li> 
      
      
@@ -189,6 +189,8 @@
       
       <a class="list-group-item" href="../proc/exportqeinput.html#variable-mkdir">mkDir</a>
       
+      <a class="list-group-item" href="../proc/exportqeinput.html#variable-s2lstr">s2LStr</a>
+      
     </div>
   </div>
 </div>
@@ -229,6 +231,8 @@ public subroutine exportQEInput()
 
 
     
+    <p>If the folder for this mode doesn't exist, create it</p>
+    
 
     <h3>Arguments</h3>
     
@@ -264,6 +268,8 @@ public subroutine exportQEInput()
       <a class="list-group-item" href="../proc/exportqeinput.html#variable-modefolder">modeFolder</a>
       
       <a class="list-group-item" href="../proc/exportqeinput.html#variable-mkdir">mkDir</a>
+      
+      <a class="list-group-item" href="../proc/exportqeinput.html#variable-s2lstr">s2LStr</a>
       
     </div>
   </div>
@@ -317,7 +323,7 @@ public subroutine exportQEInput()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iAtom</strong></td><td></td><td></td><td></td>
+  <td><strong>iAtom</strong></td><td></td><td></td><td><p>Loop index over atoms</p></td>
   
 </tr>
 
@@ -331,7 +337,7 @@ public subroutine exportQEInput()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iMode</strong></td><td></td><td></td><td></td>
+  <td><strong>iMode</strong></td><td></td><td></td><td><p>Loop index over phonon modes</p></td>
   
 </tr>
 
@@ -388,6 +394,20 @@ public subroutine exportQEInput()
   <td>public</td>
   <td></td><td>::</td>
   <td><strong>mkDir</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-s2lstr"></span>character(len=256),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>s2LStr</strong></td><td></td><td></td><td></td>
   
 </tr>
 

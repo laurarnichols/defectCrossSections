@@ -10,7 +10,7 @@
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>initialize &ndash; Carrier Cross Sections</title>
+    <title>int2str &ndash; Carrier Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -114,7 +114,7 @@
     
   
   <div class="row">
-    <h1>initialize
+    <h1>int2str
       <small>Subroutine</small>
     
     </h1>
@@ -132,24 +132,24 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.2% of total for procedures.">10 statements</a>
+    title=" 0.4% of total for procedures.">16 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/LSF_zeroth_Module_v35.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/Mj_Module_v1.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/lsf_zeroth_module_v35.f90.html'>LSF_zeroth_Module_v35.f90</a></li>
+     <li><a href='../sourcefile/mj_module_v1.f90.html'>Mj_Module_v1.f90</a></li>
     
-     <li><a href='../module/lsf%7E2.html'>lsf</a></li>
+     <li><a href='../module/mjmodule.html'>MjModule</a></li>
     
   
-     <li class="active">initialize</li>
+     <li class="active">int2str</li>
   </ol>
 </div>
 </div>
@@ -199,7 +199,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine initialize()
+public subroutine int2str(integ, string)
     
     
    
@@ -209,11 +209,54 @@ public subroutine initialize()
 
 
     
+    <p>Write a given integer to a string, using only as many digits as needed</p>
+    
 
     <h3>Arguments</h3>
     
-    <em>None</em>
-    <br>
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-integ%7E2"></span>integer</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>integ</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-string%7E2"></span>character(len=300)</td>
+  <td></td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>string</strong></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
     
     
     

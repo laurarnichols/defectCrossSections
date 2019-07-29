@@ -584,25 +584,25 @@ contains
   !
   subroutine exportQEInput()
     !
-    integer :: iAtom, iMode
-    character(len = 256) :: line, fn, modeFolder, mkDir
+    integer :: iAtom
+      !! Loop index over atoms
+    integer :: iMode
+      !! Loop index over phonon modes
+    character(len = 256) :: line, fn, modeFolder, mkDir, s2LStr
     !
     do iMode = modeI, modeF
       !
-      if ( s2L(iMode) < 10 ) then
-        write(modeFolder, '("mode_", i1)') s2L(iMode)
-      else if ( s2L(iMode) < 100 ) then
-        write(modeFolder, '("mode_", i2)') s2L(iMode)
-      else if ( s2L(iMode) < 1000 ) then
-        write(modeFolder, '("mode_", i3)') s2L(iMode)
-      else if ( s2L(iMode) < 10000 ) then
-        write(modeFolder, '("mode_", i4)') s2L(iMode)
-      endif
+      call int2str(s2L(iMode), s2LStr)
       !
+      write(modeFolder, '("mode_", a)') trim(s2LStr)
+      !
+      !> If the folder for this mode doesn't exist, create it
       inquire(file= trim(modeFolder), exist = file_exists)
       if ( .not.file_exists ) then
+        !
         write(mkDir, '("mkdir -p ", a)') trim(modeFolder)
         call system(mkDir)
+        !
       endif
       !
       fn = trim(QEInput)
@@ -610,15 +610,7 @@ contains
       !
       write(iostd, '(" Writing new QE input file for mode :", i10)') s2L(iMode)
       !
-      if ( s2L(iMode) < 10 ) then
-        write(fn, '(a, "_mode", i1, ".in")') trim(fn), s2L(iMode)
-      else if ( s2L(iMode) < 100 ) then
-        write(fn, '(a, "_mode", i2, ".in")') trim(fn), s2L(iMode)
-      else if ( s2L(iMode) < 1000 ) then
-        write(fn, '(a, "_mode", i3, ".in")') trim(fn), s2L(iMode)
-      else if ( s2L(iMode) < 10000 ) then
-        write(fn, '(a, "_mode", i4, ".in")') trim(fn), s2L(iMode)
-      endif
+      write(fn, '(a, "_mode", a, ".in")') trim(fn), trim(s2LStr)
       !
       fn = trim(modeFolder)//"/"//trim(fn)
       !
@@ -1011,5 +1003,102 @@ contains
     !
   END FUNCTION envj 
   !
+  !
+!=====================================================================================================
+! Utility functions that simplify the code and may be used multiple times
+  !
+  !---------------------------------------------------------------------------------------------------------------------------------
+  function wasRead(inputVal, variableName, usage, abortExecution) 
+    !! Determine if an input variable still has the default value.
+    !! If it does, output an error message and possibly set the program
+    !! to abort. Not all variables would cause the program to abort,
+    !! so this program assumes that if you pass in the logical `abortExecution`
+    !! then the variable is required and causes the program to abort 
+    !! if missing.
+    !!
+    !! I could not find a clean way to allow this function to receive
+    !! different types of variables (integer, real, character, etc.), so
+    !! I made the argument be an integer so that each type could be sent
+    !! in a different way. Each case is set up so that the value is tested to
+    !! see if it is less than zero to determine if the variable still has
+    !! its default value
+    !!
+    !! * For strings, the default value is `''`, so pass in 
+    !! `LEN(trim(variable))-1` as this should be less than zero if
+    !! the string still has the default value and greater than or equal 
+    !! to zero otherwise
+    !! * For integers the default values are less than zero, so just pass as is 
+    !! * Real variables also have a negative default value, so just pass the
+    !! value cast from real to integer
+    !!
+    implicit none
+    !
+    integer, intent(in) :: inputVal
+      !! Value to compare with 0 to see if a variable has been read;
+    !
+    character(len=*), intent(in) :: variableName
+      !! Name of the variable used in output message
+    character(len=*), intent(in) :: usage
+      !! Example of how the variable can be used
+    !
+    logical, optional, intent(inout) :: abortExecution
+      !! Optional logical for if the program should be aborted 
+    logical :: wasRead
+      !! Whether or not the input variable was read from the input file;
+      !! this is the return value
+    !
+    !! <h2>Walkthrough</h2>
+    !!
+    wasRead = .true.
+      !! * Default return value is true
+    !
+    if ( inputVal < 0) then
+      !! * If the input variable still has the default value
+      !!    * output an error message
+      !!    * set the program to abort if that variable was sent in
+      !!    * set the return value to false to indicate that the 
+      !!      variable wasn't read
+      !
+      write(iostd, *)
+      write(iostd, '(" Variable : """, a, """ is not defined!")') variableName
+      write(iostd, '(" usage : ", a)') usage
+      if(present(abortExecution)) then
+        !
+        write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+        abortExecution = .true.
+        !
+      endif 
+      !
+      wasRead = .false.
+      !
+    endif
+    !
+    return
+    !
+  end function wasRead
+  !
+  !---------------------------------------------------------------------------------------------------------------------------------
+  subroutine int2str(integ, string)
+    !! Write a given integer to a string, using only as many digits as needed
+    !
+    implicit none
+    integer :: integ
+    character(len = 300) :: string
+    !
+    if ( integ < 10 ) then
+      write(string, '(i1)') integ
+    else if ( integ < 100 ) then
+      write(string, '(i2)') integ
+    else if ( integ < 1000 ) then
+      write(string, '(i3)') integ
+    else if ( integ < 10000 ) then
+      write(string, '(i4)') integ
+    endif
+    !
+    string = trim(string)
+    !
+    return
+    !
+  end subroutine int2str
   !
 end module MjModule
