@@ -132,21 +132,21 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.3% of total for procedures.">15 statements</a>
+    title=" 0.5% of total for procedures.">23 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/Sigma_Module_v4.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/LSF_zeroth_Module_v35.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/sigma_module_v4.f90.html'>Sigma_Module_v4.f90</a></li>
+     <li><a href='../sourcefile/lsf_zeroth_module_v35.f90.html'>LSF_zeroth_Module_v35.f90</a></li>
     
-     <li><a href='../module/sigma_module.html'>sigma_module</a></li>
+     <li><a href='../module/lsf%7E2.html'>lsf</a></li>
     
   
      <li class="active">readInputs</li>
@@ -190,13 +190,7 @@
 
 
 
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
-  <div class="list-group">
-    <a class="list-group-item" href="../proc/readinputs%7E2.html#src">readInputs</a>
-  </div>
-</div>
-
+<em>None</em>
 
 
 </div>
@@ -215,12 +209,10 @@ public subroutine readInputs()
 
 
     
-    <p>Read input parameters and read LSF and TME output</p>
+    <p>Read input parameters and read phonon output</p>
 <p><h2>Walkthrough</h2></p>
 <ul>
-<li>
-<p>Check if an output file exists; if it does, delete it</p>
-</li>
+<li>Check if output file exists; if it does delete it</li>
 <li>
 <p>Open new output file</p>
 </li>
@@ -228,17 +220,13 @@ public subroutine readInputs()
 <p>Set default values of input parameters</p>
 </li>
 <li>
-<p>Read in input parameters</p>
+<p>Read input parameters</p>
 </li>
 <li>
-<p>Check if input parameters were updated
-   and do some basic checks</p>
+<p>Check if input parameters were updated and do some basic checks</p>
 </li>
 <li>
-<p>Read the LSF output</p>
-</li>
-<li>
-<p>Read the TME output</p>
+<p>Read the phonons output from QE or VASP</p>
 </li>
 </ul>
     
@@ -279,13 +267,7 @@ public subroutine readInputs()
 
 
 
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
-  <div class="list-group">
-    <a class="list-group-item" href="../proc/readinputs%7E2.html#src">readInputs</a>
-  </div>
-</div>
-
+<em>None</em>
 
 
     </section>
@@ -308,53 +290,6 @@ public subroutine readInputs()
 
     
     
-    
-    <section>
-    <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readInputs</span><span class="p">()</span>
-    <span class="c">!! Read input parameters and read LSF and TME output</span>
-    <span class="c">!!</span>
-    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
-    <span class="c">!!</span>
-    <span class="k">implicit none</span>
-    <span class="c">!</span>
-    <span class="c">!&gt; * Check if an output file exists; if it does, delete it</span>
-    <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
-    <span class="c">!</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>
-      <span class="c">!</span>
-      <span class="k">open</span> <span class="p">(</span><span class="n">unit</span> <span class="o">=</span> <span class="mi">11</span><span class="p">,</span> <span class="k">file</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;old&quot;</span><span class="p">)</span>
-      <span class="c">!</span>
-      <span class="k">close</span><span class="p">(</span><span class="n">unit</span> <span class="o">=</span> <span class="mi">11</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;delete&quot;</span><span class="p">)</span>
-      <span class="c">!</span>
-    <span class="n">endif</span>
-    <span class="c">!</span>
-    <span class="k">open</span> <span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="k">file</span> <span class="o">=</span> <span class="n">output</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;new&#39;</span><span class="p">)</span>
-      <span class="c">!! * Open new output file</span>
-    <span class="c">!</span>
-    <span class="k">call </span><span class="n">initialize</span><span class="p">()</span>
-      <span class="c">!! * Set default values of input parameters</span>
-    <span class="c">!</span>
-    <span class="k">READ</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">elphscat</span><span class="p">,</span> <span class="n">iostat</span> <span class="o">=</span> <span class="n">ios</span><span class="p">)</span>
-      <span class="c">!! * Read in input parameters</span>
-    <span class="c">!</span>
-    <span class="k">call </span><span class="n">checkInputAndUpdateParameters</span><span class="p">()</span>
-      <span class="c">!! * Check if input parameters were updated</span>
-      <span class="c">!!   and do some basic checks</span>
-    <span class="c">!</span>
-    <span class="k">call </span><span class="n">readLSF</span><span class="p">()</span>
-      <span class="c">!! * Read the LSF output</span>
-    <span class="c">!</span>
-    <span class="k">call </span><span class="n">readVfis</span><span class="p">()</span>
-      <span class="c">!! * Read the TME output</span>
-    <span class="c">!</span>
-    <span class="k">return</span>
-    <span class="c">!</span>
-  <span class="k">end subroutine </span><span class="n">readInputs</span>
-</pre></div>
-
-    </section>
-    <br>
     
     
     </div>

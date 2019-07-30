@@ -7,37 +7,93 @@ module lsf
   integer, parameter :: int32 = selected_int_kind(5)
   integer, parameter :: int64 = selected_int_kind(15)
   integer, parameter :: iostd = 16, un = 3
+  integer, parameter :: un = 3
   integer, parameter :: root = 0
   !
-  real(kind = dp), parameter ::           pi = 3.1415926535897932_dp
-  real(kind = dp), parameter ::        twopi = 2.0_dp*pi
   real(kind = dp), parameter ::         abCM = 0.529177219217e-8_dp
-  real(kind = dp), parameter :: THzToHartree = 1.0_dp/6579.683920729_dp
-  real(kind = dp), parameter :: HartreeToEv  = 27.21138386_dp
   real(kind = dp), parameter :: eVToHartree  = 1.0_dp/27.21138386_dp
-  !
-  integer(kind = int32) :: myid, numprocs, ios, istat, ierr
-  integer :: iMode, l, m, nMC, nProcMax
-  integer :: iMint, iMmod, i, printsteps, iE, ni, mi
-  integer :: nAtoms, nOfqPoints, nModes, minimumNumberOfPhonons, maximumNumberOfPhonons, nEnergies
-  !
-  real(kind = dp) :: ti, tf, t1, t2
-  real(kind = dp) :: weight, times, de, E ! , vg
-  real(kind = dp) :: temperature, maxEnergy, deltaE, kT ! , volume
-  !
-  integer, allocatable :: iModeIs(:), iModeFs(:)
-  integer, allocatable :: pj(:), pj0s(:,:), pms(:,:), s2L(:)
-  integer, allocatable :: iEbinsByBands(:), iEbinsByPhonons(:)
-  !
-  real(kind = dp), allocatable :: atomD(:,:), atomM(:), phonQ(:,:), phonF(:), genCoord(:)!, Vfis(:)
-  real(kind = dp), allocatable :: wby2kT(:), phonD(:,:,:,:), x(:), Sj(:), coth(:), besOrderNofModeM(:,:)
-  real(kind = dp), allocatable :: lsfVsEbyBands(:), lsfVsE(:), lsfVsEbyPhonons(:), lsfbyPhononsPerProc(:)
+  real(kind = dp), parameter :: HartreeToEv  = 27.21138386_dp
+  real(kind = dp), parameter ::           pi = 3.1415926535897932_dp
+  real(kind = dp), parameter :: THzToHartree = 1.0_dp/6579.683920729_dp
+  real(kind = dp), parameter ::        twopi = 2.0_dp*pi
   !
   character(len = 6), parameter :: output = 'status'
-!  character(len = 256) :: VfisInput, PhononsInput, crossSectionOutput, fn, continueLSFfromFile
-  character(len = 256) :: phononsInputFormat, phononsInput, fn, continueLSFfromFile
+  !
+  !
+  integer(kind = int32) :: ierr
+  integer(kind = int32) :: ios
+  integer(kind = int32) :: istat
+  integer(kind = int32) :: myid
+  integer(kind = int32) :: numprocs
+  integer :: i
+  integer :: iE
+  integer :: iMint
+  integer :: iMmod
+  integer :: iMode
+  integer :: l
+  integer :: m
+  integer :: maximumNumberOfPhonons
+  integer :: mi
+  integer :: minimumNumberOfPhonons
+  integer :: nAtoms
+  integer :: nEnergies
+  integer :: ni
+  integer :: nMC
+  integer :: nModes
+  integer :: nOfqPoints
+  integer :: nProcMax
+  integer :: printsteps
+  !
+  real(kind = dp) :: de
+  real(kind = dp) :: deltaE
+  real(kind = dp) :: E 
+  real(kind = dp) :: kT
+  real(kind = dp) :: maxEnergy
+  real(kind = dp) :: t1
+  real(kind = dp) :: t2
+  real(kind = dp) :: tf
+  real(kind = dp) :: ti
+  real(kind = dp) :: temperature
+  real(kind = dp) :: times
+  !real(kind = dp) :: vg
+  !real(kind = dp) :: volume
+  real(kind = dp) :: weight
+  !
+  !character(len = 256) :: continueLSFfromFile
+  !character(len = 256) :: crossSectionOutput
+  character(len = 256) :: fn
+  character(len = 256) :: phononsInputFormat
+  character(len = 256) :: phononsInput
+  !character(len = 256) :: VfisInput
   !
   logical :: file_exists
+  !
+  !
+  integer, allocatable :: iEbinsByBands(:)
+  integer, allocatable :: iEbinsByPhonons(:)
+  integer, allocatable :: iModeFs(:)
+  integer, allocatable :: iModeIs(:)
+  integer, allocatable :: pj(:)
+  integer, allocatable :: pj0s(:,:)
+  integer, allocatable :: pms(:,:)
+  integer, allocatable :: s2L(:)
+  !
+  real(kind = dp), allocatable :: atomD(:,:)
+  real(kind = dp), allocatable :: atomM(:)
+  real(kind = dp), allocatable :: besOrderNofModeM(:,:)
+  real(kind = dp), allocatable :: coth(:)
+  real(kind = dp), allocatable :: genCoord(:)
+  real(kind = dp), allocatable :: lsfbyPhononsPerProc(:)
+  real(kind = dp), allocatable :: lsfVsE(:)
+  real(kind = dp), allocatable :: lsfVsEbyBands(:)
+  real(kind = dp), allocatable :: lsfVsEbyPhonons(:)
+  real(kind = dp), allocatable :: phonD(:,:,:,:)
+  real(kind = dp), allocatable :: phonF(:)
+  real(kind = dp), allocatable :: phonQ(:,:)
+  real(kind = dp), allocatable :: Sj(:)
+  !real(kind = dp), allocatable :: Vfis(:)
+  real(kind = dp), allocatable :: wby2kT(:)
+  real(kind = dp), allocatable :: x(:)
   !
 !  namelist /elphscat/ VfisInput, PhononsInput, temperature, maxEnergy, continueLSFfromFile, volume, &
   namelist /lsfInput/ phononsInput, phononsInputFormat, temperature, &
@@ -48,36 +104,47 @@ contains
   !
   !
   subroutine readInputs()
-    !
+    !! Read input parameters and read phonon output
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
-    ! Check if file output exists. If it does, delete it.
-    !
+    !> * Check if output file exists; if it does delete it
     inquire(file = output, exist = file_exists)
     if ( file_exists ) then
       open (unit = 11, file = output, status = "old")
       close(unit = 11, status = "delete")
     endif
     !
-    ! Open new output file.
-    !
     open (iostd, file = output, status='new')
+      !! * Open new output file
     !
     call initialize()
+      !! * Set default values of input parameters
     !
     READ (5, lsfInput, iostat = ios)
+      !! * Read input parameters
     !
     call checkAndUpdateInput()
+      !! * Check if input parameters were updated and do some basic checks
     !
+    !> * Read the phonons output from QE or VASP
     if ( trim(phononsInputFormat) == 'VASP' ) then
+      !
       call readPhononsVASP()
+      !
     else if ( trim(phononsInputFormat) == 'QE' ) then
+      !
       call readPhononsQE()
+      !
     else 
+      !
       write(iostd, '(" Unknown phonons input format : ", (a) )') trim(phononsInputFormat)
       write(iostd, '(" Phonons input format implemened are : ''VASP'' and ''QE''")')
       write(iostd, '(" Program stops!")')
       stop
+      !
     endif
     !
 !    call readVfis()
@@ -128,10 +195,11 @@ contains
   !
   !
   subroutine initialize()
+    !! Set default values for input parameters
     !
     implicit none
     !
-!    VfisInput = ''
+    !VfisInput = ''
     phononsInput = ''
     phononsInputFormat = ''
     temperature = -1.0_dp
