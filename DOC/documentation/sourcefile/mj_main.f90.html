@@ -268,30 +268,49 @@
     <section>
       <h2><span class="anchor" id="src"></span>Source Code</h2>
     <div class="hl"><pre><span></span><a name="ln-1"></a><span class="k">program </span><span class="n">MjME</span>
-<a name="ln-2"></a>  <span class="c">!</span>
-<a name="ln-3"></a>  <span class="k">use </span><span class="n">MjModule</span>
-<a name="ln-4"></a>  <span class="c">!</span>
-<a name="ln-5"></a>  <span class="k">implicit none</span>
-<a name="ln-6"></a>  <span class="c">!</span>
-<a name="ln-7"></a>  <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">ti</span><span class="p">)</span>
-<a name="ln-8"></a>  <span class="c">!</span>
-<a name="ln-9"></a>  <span class="c">! Reading input, initializing and checking all variables of the calculation.</span>
-<a name="ln-10"></a>  <span class="c">!</span>
-<a name="ln-11"></a>  <span class="k">call </span><span class="n">readInputs</span><span class="p">()</span>
-<a name="ln-12"></a>  <span class="c">!</span>
-<a name="ln-13"></a>  <span class="k">call </span><span class="n">computeGeneralizedDisplacements</span><span class="p">()</span>
+<a name="ln-2"></a>  <span class="c">!! Calculate some of the main variables in equations </span>
+<a name="ln-3"></a>  <span class="c">!! 42 and 43, calculate new displacements of atoms,</span>
+<a name="ln-4"></a>  <span class="c">!! and generate new QE input based on the new positions</span>
+<a name="ln-5"></a>  <span class="c">!!</span>
+<a name="ln-6"></a>  <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+<a name="ln-7"></a>  <span class="c">!!</span>
+<a name="ln-8"></a>  <span class="k">use </span><span class="n">MjModule</span>
+<a name="ln-9"></a>  <span class="c">!</span>
+<a name="ln-10"></a>  <span class="k">implicit none</span>
+<a name="ln-11"></a>  <span class="c">!</span>
+<a name="ln-12"></a>  <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">ti</span><span class="p">)</span>
+<a name="ln-13"></a>    <span class="c">!! @todo Make sure that there is an end timer @endtodo</span>
 <a name="ln-14"></a>  <span class="c">!</span>
-<a name="ln-15"></a>  <span class="k">call </span><span class="n">computeVariables</span><span class="p">()</span>
-<a name="ln-16"></a>  <span class="c">!</span>
-<a name="ln-17"></a>  <span class="k">call </span><span class="n">displaceAtoms</span><span class="p">()</span>
-<a name="ln-18"></a>  <span class="c">!</span>
-<a name="ln-19"></a>  <span class="k">if</span> <span class="p">(</span> <span class="n">readQEInput</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-20"></a><span class="k">    call </span><span class="n">exportQEInput</span><span class="p">()</span>
-<a name="ln-21"></a>  <span class="k">else</span>
-<a name="ln-22"></a><span class="k">    call </span><span class="n">writeNewAtomicPositions</span><span class="p">()</span>
-<a name="ln-23"></a>  <span class="n">endif</span>
-<a name="ln-24"></a>  <span class="c">!</span>
-<a name="ln-25"></a><span class="k">end program </span><span class="n">MjME</span>
+<a name="ln-15"></a>  <span class="k">call </span><span class="n">readInputs</span><span class="p">()</span>
+<a name="ln-16"></a>    <span class="c">!! * Initialize variables, read input, and check that </span>
+<a name="ln-17"></a>    <span class="c">!!   all required variables were read and have values </span>
+<a name="ln-18"></a>    <span class="c">!!   that make sense</span>
+<a name="ln-19"></a>  <span class="c">!</span>
+<a name="ln-20"></a>  <span class="k">call </span><span class="n">computeGeneralizedDisplacements</span><span class="p">()</span>
+<a name="ln-21"></a>    <span class="c">!! * Calculate \delta q_j^2</span>
+<a name="ln-22"></a>  <span class="c">!</span>
+<a name="ln-23"></a>  <span class="k">call </span><span class="n">computeVariables</span><span class="p">()</span>
+<a name="ln-24"></a>    <span class="c">!! * Compute main parts of equations 42 and 43 in paper</span>
+<a name="ln-25"></a>    <span class="c">!!   to make whole formula more manageable</span>
+<a name="ln-26"></a>  <span class="c">!</span>
+<a name="ln-27"></a>  <span class="k">call </span><span class="n">displaceAtoms</span><span class="p">()</span>
+<a name="ln-28"></a>    <span class="c">!! * Calculate new positions of atoms for each mode </span>
+<a name="ln-29"></a>    <span class="c">!!   based on `maxDisplacement` and `phonD`</span>
+<a name="ln-30"></a>  <span class="c">!</span>
+<a name="ln-31"></a>  <span class="c">!&gt; * If a base QE input was read, then export the new QE </span>
+<a name="ln-32"></a>  <span class="c">!&gt;   input files with the new postions</span>
+<a name="ln-33"></a>  <span class="c">!&gt; * Otherwise, just write out the positions</span>
+<a name="ln-34"></a>  <span class="k">if</span> <span class="p">(</span> <span class="n">readQEInput</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-35"></a>    <span class="c">!</span>
+<a name="ln-36"></a>    <span class="k">call </span><span class="n">exportQEInput</span><span class="p">()</span>
+<a name="ln-37"></a>    <span class="c">!</span>
+<a name="ln-38"></a>  <span class="k">else</span>
+<a name="ln-39"></a>    <span class="c">!</span>
+<a name="ln-40"></a>    <span class="k">call </span><span class="n">writeNewAtomicPositions</span><span class="p">()</span>
+<a name="ln-41"></a>    <span class="c">!</span>
+<a name="ln-42"></a>  <span class="n">endif</span>
+<a name="ln-43"></a>  <span class="c">!</span>
+<a name="ln-44"></a><span class="k">end program </span><span class="n">MjME</span>
 </pre></div>
 
     </section>

@@ -2,6 +2,7 @@ title: Todo
 author: Laura Nichols
 date: 07/30/2019
 
+* `../Mj/src/Mj_Main.f90:13:` Make sure that there is an end timer
 * `../Mj/src/Mj_Module_v1.f90:29:` Make sure default value is set for `qPoint` 
 * `../Mj/src/Mj_Module_v1.f90:426:` Figure out why there is no \(N\) in this equation in the code 
 * `../Mj/src/Mj_Module_v1.f90:436:` Figure out if this needs to be another variable 

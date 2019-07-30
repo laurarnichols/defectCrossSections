@@ -224,9 +224,37 @@
     </div>
     
 
+    <p>Calculate some of the main variables in equations 
+ 42 and 43, calculate new displacements of atoms,
+ and generate new QE input based on the new positions</p>
+<p><h2>Walkthrough</h2></p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Make sure that there is an end timer </p></div>
+<p>
+<ul>
+<li>
+<p>Initialize variables, read input, and check that 
+   all required variables were read and have values 
+   that make sense</p>
+</li>
+<li>
+<p>Calculate \delta q_j^2</p>
+</li>
+<li>
+<p>Compute main parts of equations 42 and 43 in paper
+   to make whole formula more manageable</p>
+</li>
+<li>
+<p>Calculate new positions of atoms for each mode 
+   based on <code>maxDisplacement</code> and <code>phonD</code></p>
+</li>
+<li>
+<p>If a base QE input was read, then export the new QE 
+   input files with the new postions</p>
+</li>
+<li>Otherwise, just write out the positions</li>
+</ul>
     
-    
-    
+    <br>
 
      <section class="visible-xs visible-sm hidden-md">
        
@@ -286,27 +314,46 @@
     <section>
     <h2 id="src">Source Code</h2>
     <div class="highlight"><pre><span></span><span class="k">program </span><span class="n">MjME</span>
-  <span class="c">!</span>
+  <span class="c">!! Calculate some of the main variables in equations </span>
+  <span class="c">!! 42 and 43, calculate new displacements of atoms,</span>
+  <span class="c">!! and generate new QE input based on the new positions</span>
+  <span class="c">!!</span>
+  <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+  <span class="c">!!</span>
   <span class="k">use </span><span class="n">MjModule</span>
   <span class="c">!</span>
   <span class="k">implicit none</span>
   <span class="c">!</span>
   <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">ti</span><span class="p">)</span>
-  <span class="c">!</span>
-  <span class="c">! Reading input, initializing and checking all variables of the calculation.</span>
+    <span class="c">!! @todo Make sure that there is an end timer @endtodo</span>
   <span class="c">!</span>
   <span class="k">call </span><span class="n">readInputs</span><span class="p">()</span>
+    <span class="c">!! * Initialize variables, read input, and check that </span>
+    <span class="c">!!   all required variables were read and have values </span>
+    <span class="c">!!   that make sense</span>
   <span class="c">!</span>
   <span class="k">call </span><span class="n">computeGeneralizedDisplacements</span><span class="p">()</span>
+    <span class="c">!! * Calculate \delta q_j^2</span>
   <span class="c">!</span>
   <span class="k">call </span><span class="n">computeVariables</span><span class="p">()</span>
+    <span class="c">!! * Compute main parts of equations 42 and 43 in paper</span>
+    <span class="c">!!   to make whole formula more manageable</span>
   <span class="c">!</span>
   <span class="k">call </span><span class="n">displaceAtoms</span><span class="p">()</span>
+    <span class="c">!! * Calculate new positions of atoms for each mode </span>
+    <span class="c">!!   based on `maxDisplacement` and `phonD`</span>
   <span class="c">!</span>
+  <span class="c">!&gt; * If a base QE input was read, then export the new QE </span>
+  <span class="c">!&gt;   input files with the new postions</span>
+  <span class="c">!&gt; * Otherwise, just write out the positions</span>
   <span class="k">if</span> <span class="p">(</span> <span class="n">readQEInput</span> <span class="p">)</span> <span class="k">then</span>
-<span class="k">    call </span><span class="n">exportQEInput</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">exportQEInput</span><span class="p">()</span>
+    <span class="c">!</span>
   <span class="k">else</span>
-<span class="k">    call </span><span class="n">writeNewAtomicPositions</span><span class="p">()</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">writeNewAtomicPositions</span><span class="p">()</span>
+    <span class="c">!</span>
   <span class="n">endif</span>
   <span class="c">!</span>
 <span class="k">end program </span><span class="n">MjME</span>
