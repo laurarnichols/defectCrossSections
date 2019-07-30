@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.9% of total for procedures.">40 statements</a>
+    title=" 1.0% of total for procedures.">42 statements</a>
      </li> 
      
      
@@ -185,7 +185,11 @@
       
       <a class="list-group-item" href="../proc/computevariables.html#variable-nm">nm</a>
       
+      <a class="list-group-item" href="../proc/computevariables.html#variable-__unnamed__"></a>
+      
       <a class="list-group-item" href="../proc/computevariables.html#variable-nb">nb</a>
+      
+      <a class="list-group-item" href="../proc/computevariables.html#variable-imode%7E4">iMode</a>
       
       <a class="list-group-item" href="../proc/computevariables.html#variable-bi">bi</a>
       
@@ -235,6 +239,68 @@ public subroutine computeVariables()
 
 
     
+    <p>Calculate biggest portions of equations 42 and 43 to make
+ entire equation more manageable</p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>
+<p>Calculate 
+   <script type="math/tex; mode=display">S_j = \dfrac{\omega_j}{2\hbar}N\delta q_j^2</script> 
+   where <script type="math/tex">\omega_i\rightarrow</script>
+<code>phonF(j)</code>, 
+   <script type="math/tex">\delta q_j\rightarrow</script>
+<code>genCoord(j)</code>, and <script type="math/tex">N</script>
+   is the number of atoms per supercell
+ </p><div class="alert alert-info" role="alert"><h4>Note</h4><p>This is equation 44 in the paper </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why there is no <script type="math/tex">N</script> in this equation in the code </p></div>
+<p>
+</li>
+<li>
+<p>Calculate <script type="math/tex">\hbar\omega_j/2kT</script> that is the argument 
+   to hyperbolic trig functions
+ </p><div class="alert alert-info" role="alert"><h4>Note</h4><p>This is mainly from equations 42 and 43 in the paper </p></div>
+<p>
+</li>
+<li>
+<p>Calculate <script type="math/tex">\coth(\hbar\omega_j/2kT)</script> 
+ </p><div class="alert alert-info" role="alert"><h4>Note</h4><p>This is in equation 42 in the paper </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if this needs to be another variable </p></div>
+<p>
+</li>
+<li>
+<p>Calculate the argument to the modified Bessel functions
+   <script type="math/tex; mode=display">\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}</script>
+</p>
+</li>
+<li>
+<p>Create an array of the indices that will be rearranged</p>
+</li>
+<li>
+<p>Rearrange the indices based on ordering the arguments (<code>x</code>)
+   largest to smallest</p>
+</li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Frequency should actually be in eV/<script type="math/tex">\hbar</script>. Check that that's the case. </p></div>
+<p>
+<ul>
+<li>Write out the index, <script type="math/tex">\omega_j</script> in eV, <script type="math/tex">\delta q_j</script>, <script type="math/tex">\delta q_j^2</script>, 
+   and <script type="math/tex">S_j/\sinh(\hbar\omega_j/2kT)</script> for each phonon mode </li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why this is assigned to another variable </p></div>
+<p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if still need <code>di</code>, <code>bk</code>, and <code>dk</code> </p></div>
+<p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if need to have this in loop. Why change <code>nm</code> in <code>iknb</code>? </p></div>
+<p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if should send <code>nm</code> as it is immediately modified and not used here </p></div>
+<p>
+<ul>
+<li>Store the modified Bessel function for each mode and order
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Possibly change <code>besOrderNofModeM</code> to <code>modBesOrderNofModeM</code> </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why this loop is here. Can not just pass <code>besOrderNofModeM(:,j)</code> </p></div>
+<p></li>
+</ul>
+    
 
     <h3>Arguments</h3>
     
@@ -267,7 +333,11 @@ public subroutine computeVariables()
       
       <a class="list-group-item" href="../proc/computevariables.html#variable-nm">nm</a>
       
+      <a class="list-group-item" href="../proc/computevariables.html#variable-__unnamed__"></a>
+      
       <a class="list-group-item" href="../proc/computevariables.html#variable-nb">nb</a>
+      
+      <a class="list-group-item" href="../proc/computevariables.html#variable-imode%7E4">iMode</a>
       
       <a class="list-group-item" href="../proc/computevariables.html#variable-bi">bi</a>
       
@@ -381,11 +451,39 @@ public subroutine computeVariables()
   
 <tr>
   
+  <td><span class="anchor" id="variable-__unnamed__"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong></strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-nb"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>nb</strong></td><td></td><td></td><td></td>
+  <td><strong>nb</strong></td><td></td><td></td><td><p>Final phonon mode</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-imode%7E4"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>iMode</strong></td><td></td><td></td><td><p>Loop index over phonon modes</p></td>
   
 </tr>
 

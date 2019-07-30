@@ -122,7 +122,7 @@
         <li><i class="fa fa-pencil"></i> Laura Nichols</li>
          
          
-        <li><i class="fa fa-calendar-o"></i> 07/29/2019</li>
+        <li><i class="fa fa-calendar-o"></i> 07/30/2019</li>
          
 <!--
         
@@ -142,7 +142,16 @@
   <div class="row">
     <div class="col-md-9 col-md-push-3" id='text'>
       <ul>
-<li><code>../Mj/src/Mj_Module_v1.f90:470:</code> Change this to a more efficient algorithm </li>
+<li><code>../Mj/src/Mj_Module_v1.f90:424:</code> Figure out why there is no <script type="math/tex">N</script> in this equation in the code </li>
+<li><code>../Mj/src/Mj_Module_v1.f90:434:</code> Figure out if this needs to be another variable </li>
+<li><code>../Mj/src/Mj_Module_v1.f90:457:</code> Frequency should actually be in eV/<script type="math/tex">\hbar</script>. Check that that's the case. </li>
+<li><code>../Mj/src/Mj_Module_v1.f90:473:</code> Figure out why this is assigned to another variable </li>
+<li><code>../Mj/src/Mj_Module_v1.f90:478:</code> Figure out if still need <code>di</code>, <code>bk</code>, and <code>dk</code> </li>
+<li><code>../Mj/src/Mj_Module_v1.f90:485:</code> Figure out if need to have this in loop. Why change <code>nm</code> in <code>iknb</code>? </li>
+<li><code>../Mj/src/Mj_Module_v1.f90:488:</code> Figure out if should send <code>nm</code> as it is immediately modified and not used here </li>
+<li><code>../Mj/src/Mj_Module_v1.f90:492:</code> Possibly change <code>besOrderNofModeM</code> to <code>modBesOrderNofModeM</code> </li>
+<li><code>../Mj/src/Mj_Module_v1.f90:493: Figure out why this loop is here. Can not just pass</code>besOrderNofModeM(:<code>,j)</code> </li>
+<li><code>../Mj/src/Mj_Module_v1.f90:512:</code> Change this to a more efficient algorithm </li>
 <li><code>../Sigma/src/Sigma_Module_v4.f90:176:</code> Merge these dummy characters</li>
 <li><code>../Sigma/src/Sigma_Module_v4.f90:224:</code> Merge dummy variables</li>
 <li><code>../Sigma/src/Sigma_Module_v4.f90:288:</code> Figure out where this file is opened</li>

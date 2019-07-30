@@ -392,10 +392,18 @@ contains
   !
   !
   subroutine computeVariables()
-    !
+    !! Calculate biggest portions of equations 42 and 43 to make
+    !! entire equation more manageable
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
-    integer :: i, j, iMode, nm, nb
+    integer :: i, j, iMode, nm, 
+    integer :: nb
+      !! Final phonon mode
+    integer :: iMode
+      !! Loop index over phonon modes
     !
     real(kind = dp), allocatable :: bi(:), di(:), bk(:), dk(:)
     !
@@ -407,24 +415,50 @@ contains
     wby2kT = 0.0_dp
     !
     Sj(:) = 0.5_dp*phonF(:)*genCoord(:)*genCoord(:)
+      !! * Calculate 
+      !!   \[S_j = \dfrac{\omega_j}{2\hbar}N\delta q_j^2\] 
+      !!   where \(\omega_i\rightarrow\)`phonF(j)`, 
+      !!   \(\delta q_j\rightarrow\)`genCoord(j)`, and \(N\)
+      !!   is the number of atoms per supercell
+      !! @note This is equation 44 in the paper @endnote
+      !! @todo Figure out why there is no \(N\) in this equation in the code @endtodo
+    !
     wby2kT(:) = phonF(:)/(2.0_dp*kT)
+      !! * Calculate \(\hbar\omega_j/2kT\) that is the argument 
+      !!   to hyperbolic trig functions
+      !! @note This is mainly from equations 42 and 43 in the paper @endnote
+    !
     coth(:) = cosh(wby2kT(:))/sinh(wby2kT(:))
+      !! * Calculate \(\coth(\hbar\omega_j/2kT)\) 
+      !! @note This is in equation 42 in the paper @endnote
+      !! @todo Figure out if this needs to be another variable @endtodo
+    !
     x(:) = Sj(:)/sinh(wby2kT(:))
+      !! * Calculate the argument to the modified Bessel functions
+      !!   \[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\]
     !
     allocate( s2L(nModes) )
     s2L(:) = 0
     !
     do iMode = 1, nModes
+      !! * Create an array of the indices that will be rearranged
+      !
       s2L(iMode) = iMode
+      !
     enddo
     !
     call arrangeLargerToSmaller()
+      !! * Rearrange the indices based on ordering the arguments (`x`)
+      !!   largest to smallest
     !
     open(11, file='modes', status='unknown')
     !
     write(11, '("#Mode, frequency (eV),        genCoord(Mode),     genCoord(Mode)^2,  Sj/sinh(wby2kT)")')
+      !! @todo Frequency should actually be in eV/\(\hbar\). Check that that's the case. @endtodo
     !
     do iMode = 1, nModes
+      !! * Write out the index, \(\omega_j\) in eV, \(\delta q_j\), \(\delta q_j^2\), 
+      !!   and \(S_j/\sinh(\hbar\omega_j/2kT)\) for each phonon mode 
       !
     write(11,'(i4,1x,4E20.10E3)') s2L(iMode), phonF(s2L(iMode))*1.0e3_dp*HartreeToEv, & 
                                      genCoord(s2L(iMode)), genCoord(s2L(iMode))**2, x(s2L(iMode))
@@ -436,19 +470,27 @@ contains
     deallocate( genCoord )
     !
     nb = modeF
+      !! @todo Figure out why this is assigned to another variable @endtodo
     !
     allocate( besOrderNofModeM(0:nb + 1, nModes) )
     allocate( bi(0:nb + 1), di(0:nb + 1) )
     allocate( bk(0:nb + 1), dk(0:nb + 1) )
+      !! @todo Figure out if still need `di`, `bk`, and `dk` @endtodo
     !
     do j = 1, nModes
       !
       bi(:) = 0.0_dp
       !
       nm = nb + 1
+        !! @todo Figure out if need to have this in loop. Why change `nm` in `iknb`? @endtodo
+      !
       call iknb(nb + 1, x(j), nm, bi) ! , di, bk, dk)
+        !! @todo Figure out if should send `nm` as it is immediately modified and not used here @endtodo
       !
       do i = 0, nb + 1
+        !! * Store the modified Bessel function for each mode and order
+        !! @todo Possibly change `besOrderNofModeM` to `modBesOrderNofModeM` @endtodo
+        !! @todo Figure out why this loop is here. Can not just pass `besOrderNofModeM(:,j)` @endtodo
         !
         besOrderNofModeM(i,j) = bi(i)
         !
