@@ -14,7 +14,7 @@ date: 07/30/2019
 * `../Mj/src/Mj_Module_v1.f90:495: Figure out why this loop is here. Can not just pass `besOrderNofModeM(:`,j)` 
 * `../Mj/src/Mj_Module_v1.f90:514:` Change this to a more efficient algorithm 
 * `../Mj/src/Mj_Module_v1.f90:578:` Figure out if expect `modeI` and `modeF` to represent index of magnitude of argument `x` 
-* `../Mj/src/Mj_Module_v1.f90:682:` Make this loop more clear 
+* `../Mj/src/Mj_Module_v1.f90:684:` Make this loop more clear 
 * `../Sigma/src/Sigma_Module_v4.f90:176:` Merge these dummy characters
 * `../Sigma/src/Sigma_Module_v4.f90:224:` Merge dummy variables
 * `../Sigma/src/Sigma_Module_v4.f90:288:` Figure out where this file is opened

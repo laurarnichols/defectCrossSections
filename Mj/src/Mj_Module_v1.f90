@@ -596,25 +596,27 @@ contains
   !
   !
   subroutine writeNewAtomicPositions()
+    !! Write `newAtomicPosition`s for each mode
     !
     implicit none
     !
     integer :: iAtom, iMode
     !
+    character(len = 256) :: s2LStr
+    !
     do iMode = modeI, modeF
       !
       write(iostd, '(" Writing new atomic positions for mode :", i10)') s2L(iMode)
       !
-      if ( s2L(iMode) < 10 ) then
-        write(newAtomicPositions, '("newPositionsForMode", i1)') s2L(iMode)
-      else if ( s2L(iMode) < 100 ) then
-        write(newAtomicPositions, '("newPositionsForMode", i2)') s2L(iMode)
-      else if ( s2L(iMode) < 1000 ) then
-        write(newAtomicPositions, '("newPositionsForMode", i3)') s2L(iMode)
-      else if ( s2L(iMode) < 10000 ) then
-        write(newAtomicPositions, '("newPositionsForMode", i4)') s2L(iMode)
+      if ( s2L(iMode) < 10000 ) then
+        call int2str(s2L(iMode), s2LStr)
+        !
+        write(newAtomicPositions, '("newPositionForMode", a)') trim(s2LStr)
+        !
       else
+        !
         newAtomicPositions = 'newPositions'
+        !
       endif
       !
       open(21, file=trim(newAtomicPositions), status='unknown')
