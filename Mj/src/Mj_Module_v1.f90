@@ -25,6 +25,8 @@ module MjModule
   integer :: nModes
   integer :: nOfqPoints
   integer :: qPoint
+    !! Read in from input file, but no default value set
+    !! @todo Make sure default value is set for `qPoint` @endtodo
   !
   real(kind = dp) :: kT
   real(kind = dp) :: maxDisplacement
@@ -552,7 +554,11 @@ contains
   !
   !
   subroutine displaceAtoms()
-    !
+    !! For each mode, generate random displacements for the atoms
+    !! based on the parameters `maxDisplacement` and `phonD`
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
     integer :: istat, iAtom, iMode, iRand
@@ -565,8 +571,11 @@ contains
     write(iostd, *)
     !
     do iMode = modeI, modeF
+      !! * For each mode, generate random displacements for the atoms 
+      !!   based on the parameters `maxDisplacement` and `phonD`
       !
       write(iostd, '(" Calculating new atomic positions for mode :", i10)') s2L(iMode)
+        !! @todo Figure out if expect `modeI` and `modeF` to represent index of magnitude of argument `x` @endtodo
       !
       do iAtom = 1, nAtoms
         !
