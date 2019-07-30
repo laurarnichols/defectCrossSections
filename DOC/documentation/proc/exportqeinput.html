@@ -231,7 +231,19 @@ public subroutine exportQEInput()
 
 
     
-    <p>If the folder for this mode doesn't exist, create it</p>
+    <p>Create QE input files for all different modes
+ by copying all of the <code>QEInput</code> except the 
+ <code>newAtomicPosition</code>s for each mode</p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>For each mode between <code>modeI</code> and <code>modeF</code></li>
+<li>If the folder for this mode doesn't already 
+     exist, make it</li>
+<li>Copy the <code>QEInput</code> file into the new folder, 
+     changing the positions to be the <code>newAtomicPosition</code></li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Make this loop more clear </p></div>
+<p>
     
 
     <h3>Arguments</h3>

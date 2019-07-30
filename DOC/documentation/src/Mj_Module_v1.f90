@@ -634,7 +634,12 @@ contains
   !
   !
   subroutine exportQEInput()
-    !
+    !! Create QE input files for all different modes
+    !! by copying all of the `QEInput` except the 
+    !! `newAtomicPosition`s for each mode
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     integer :: iAtom
       !! Loop index over atoms
     integer :: iMode
@@ -642,12 +647,16 @@ contains
     character(len = 256) :: line, fn, modeFolder, mkDir, s2LStr
     !
     do iMode = modeI, modeF
+      !! * For each mode between `modeI` and `modeF`
+      !!   * If the folder for this mode doesn't already 
+      !!     exist, make it
+      !!   * Copy the `QEInput` file into the new folder, 
+      !!     changing the positions to be the `newAtomicPosition`
       !
       call int2str(s2L(iMode), s2LStr)
       !
       write(modeFolder, '("mode_", a)') trim(s2LStr)
       !
-      !> If the folder for this mode doesn't exist, create it
       inquire(file= trim(modeFolder), exist = file_exists)
       if ( .not.file_exists ) then
         !
@@ -670,14 +679,24 @@ contains
       open(1, file=trim(QEInput), status="old")
       !
       do 
+        !! @todo Make this loop more clear @endtodo
+        !
         read(1,'(a)', END = 100) line
+        !
         write(2,'(a)') trim(line)
+        !
         if ( INDEX(line, 'ATOMIC_POSITIONS') /= 0 ) then
+          !
           do iAtom = 1, nAtoms
+            !
             read(1,'(a)') line
+            !
             write(2,*) elements(iAtom), newAtomicPosition(:,iAtom)
+            !
           enddo
+          !
         endif
+        !
       enddo
 100   continue
       !
