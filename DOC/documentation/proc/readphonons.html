@@ -132,21 +132,21 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.0% of total for procedures.">43 statements</a>
+    title=" 1.0% of total for procedures.">44 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/Mj_Module_v1.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/LSF_linear_Module_v1.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/mj_module_v1.f90.html'>Mj_Module_v1.f90</a></li>
+     <li><a href='../sourcefile/lsf_linear_module_v1.f90.html'>LSF_linear_Module_v1.f90</a></li>
     
-     <li><a href='../module/mjmodule.html'>MjModule</a></li>
+     <li><a href='../module/lsf%7E2.html'>lsf</a></li>
     
   
      <li class="active">readPhonons</li>
@@ -177,17 +177,17 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-iatom">iAtom</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-iatom%7E9">iAtom</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-imode">iMode</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-imode%7E11">iMode</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-iq">iq</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-iq%7E5">iq</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-dummyd">dummyD</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-dummyd%7E5">dummyD</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-freqinthz">freqInTHz</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-freqinthz%7E3">freqInTHz</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-dummyc">dummyC</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-dummyc%7E3">dummyC</a>
       
     </div>
   </div>
@@ -229,48 +229,6 @@ public subroutine readPhonons()
 
 
     
-    <p>Read the number of atoms and q points and
- get the phonon information like frequency 
- and displacements</p>
-<p><h2>Walkthrough</h2></p>
-<ul>
-<li>
-<p>Open <code>phononsInput</code> file</p>
-</li>
-<li>
-<p>Read in the number of q points and number of atoms</p>
-</li>
-<li>
-<p>Calculate the number of phonon modes</p>
-</li>
-<li>
-<p>Write the number of atoms, q points, and modes to the output file</p>
-</li>
-<li>
-<p>Ignore the next line as it is blank</p>
-</li>
-<li>
-<p>For each atom, read in the displacement (either pristine-defect 
-   or defect-pristine) and the atom mass</p>
-</li>
-<li>
-<p>Ignore the next line as it is blank</p>
-</li>
-<li>
-<p>For each q point</p>
-<ul>
-<li>Read in the coordinates in <script type="math/tex">q</script>-space</li>
-<li>For each phonon mode</li>
-<li>Read in the phonon frequency in THz</li>
-<li>Convert the frequency to Hartree</li>
-<li>Read in the atom displacements</li>
-</ul>
-</li>
-<li>
-<p>Close <code>phononsInput</code> file</p>
-</li>
-</ul>
-    
 
     <h3>Arguments</h3>
     
@@ -295,17 +253,17 @@ public subroutine readPhonons()
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-iatom">iAtom</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-iatom%7E9">iAtom</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-imode">iMode</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-imode%7E11">iMode</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-iq">iq</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-iq%7E5">iq</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-dummyd">dummyD</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-dummyd%7E5">dummyD</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-freqinthz">freqInTHz</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-freqinthz%7E3">freqInTHz</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-dummyc">dummyC</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-dummyc%7E3">dummyC</a>
       
     </div>
   </div>
@@ -355,11 +313,11 @@ public subroutine readPhonons()
   
 <tr>
   
-  <td><span class="anchor" id="variable-iatom"></span>integer,</td>
+  <td><span class="anchor" id="variable-iatom%7E9"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iAtom</strong></td><td></td><td></td><td><p>Loop index over atoms</p></td>
+  <td><strong>iAtom</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -369,11 +327,11 @@ public subroutine readPhonons()
   
 <tr>
   
-  <td><span class="anchor" id="variable-imode"></span>integer,</td>
+  <td><span class="anchor" id="variable-imode%7E11"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iMode</strong></td><td></td><td></td><td><p>Loop index over phonon modes</p></td>
+  <td><strong>iMode</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -383,11 +341,11 @@ public subroutine readPhonons()
   
 <tr>
   
-  <td><span class="anchor" id="variable-iq"></span>integer,</td>
+  <td><span class="anchor" id="variable-iq%7E5"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iq</strong></td><td></td><td></td><td><p>Loop index over q points</p></td>
+  <td><strong>iq</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -397,11 +355,11 @@ public subroutine readPhonons()
   
 <tr>
   
-  <td><span class="anchor" id="variable-dummyd"></span>real(kind=dp),</td>
+  <td><span class="anchor" id="variable-dummyd%7E5"></span>real(kind=dp),</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>dummyD</strong></td><td></td><td></td><td><p>Dummy variable to ignore input</p></td>
+  <td><strong>dummyD</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -411,11 +369,11 @@ public subroutine readPhonons()
   
 <tr>
   
-  <td><span class="anchor" id="variable-freqinthz"></span>real(kind=dp),</td>
+  <td><span class="anchor" id="variable-freqinthz%7E3"></span>real(kind=dp),</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>freqInTHz</strong></td><td></td><td></td><td><p>Input frequency in THz</p></td>
+  <td><strong>freqInTHz</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -425,11 +383,11 @@ public subroutine readPhonons()
   
 <tr>
   
-  <td><span class="anchor" id="variable-dummyc"></span>character,</td>
+  <td><span class="anchor" id="variable-dummyc%7E3"></span>character,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>dummyC</strong></td><td></td><td></td><td><p>Dummy variable to ignore input</p></td>
+  <td><strong>dummyC</strong></td><td></td><td></td><td></td>
   
 </tr>
 

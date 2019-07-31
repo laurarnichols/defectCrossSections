@@ -61,6 +61,7 @@ LSF_srcPath    = LSF/src
 LSF0_srcPath   = $(LSF_srcPath)/zerothOrder
 LSF1_srcPath   = $(LSF_srcPath)/linearTerms
 Sigma_srcPath  = Sigma/src
+CommonModules_srcPath  = CommonModules
 
 bin = './bin'
 
@@ -80,10 +81,19 @@ initialize :
 	echo "LSF0_srcPath = " $(PWD)/$(LSF0_srcPath) >> make.sys ; \
 	echo "LSF1_srcPath = " $(PWD)/$(LSF1_srcPath) >> make.sys ; \
 	echo "Sigma_srcPath = " $(PWD)/$(Sigma_srcPath) >> make.sys ; \
+	echo "CommonModules_srcPath = " $(PWD)/$(CommonModules_srcPath) >> make.sys ; \
 	echo "" >> make.sys ; \
 	echo "f90    = "$(f90) >> make.sys ; \
 	echo "mpif90 = "$(mpif90) >> make.sys ; \
-	echo "" >> make.sys
+	echo "" >> make.sys ; \
+  echo "# ar command and flags - for most architectures: AR = ar, ARFLAGS = ruv" >> make.sys ; \
+  echo "" >> make.sys ; \
+  echo "AR = ar" >> make.sys ; \
+  echo "ARFLAGS = ruv" >> make.sys ; \
+  echo "" >> make.sys ; \
+  echo "# ranlib command" >> make.sys ; \
+  echo "" >> make.sys ; \
+  echo "RANLIB = ranlib" >> make.sys
 #
 	@if test ! -d $(bin) ; then \
 		mkdir $(bin) ; \

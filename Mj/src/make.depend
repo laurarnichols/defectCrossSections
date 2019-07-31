@@ -1,0 +1,2 @@
+Mj_Module_v1.o : ../../CommonModules/miscUtilities.o
+Mj_Module_v1.o : ../../CommonModules/readInputFiles.o

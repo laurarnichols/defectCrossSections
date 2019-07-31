@@ -1,12 +1,17 @@
 
 -include ../../make.sys
 
-Mj_OBJS = Mj_Module_v1.o Mj_Main.o 
+# location of needed modules
+MODFLAGS = -I../../CommonModules -I.
+
+Mj_OBJS = Mj_Module_v1.o Mj_Main.o
+
+CommonMods = $(CommonModules_srcPath)/commonmodules.a
 
 all : Mj.x
 	
-Mj.x : utilityMods $(Mj_OBJS)
-	$(mpif90) -o Mj.x ../../utilities/miscUtilities.o $(Mj_OBJS)
+Mj.x : mods $(CommonMods) $(Mj_OBJS)
+	$(mpif90) $(LDFLAGS) $(MODFLAGS) -o $@ $(Mj_OBJS) $(CommonMods)
 	- ( cd $(Home_Path)/bin ; ln -fs $(Mj_srcPath)/$@ . )
 
 	@echo "" ; \
@@ -15,13 +20,12 @@ Mj.x : utilityMods $(Mj_OBJS)
 	echo "" ; \
 	echo "" ;
 
+mods :
+	cd ../../CommonModules ; \
+	make
+
 %.o : %.f90
-	$(mpif90) -O3 -c $<
-
-utilityMods :
-
-	@cd $(utilities_srcPath) ; \
-	$(mpif90) -O3 -c miscUtilities.f90 ; \
+	$(mpif90) $(MODFLAGS) -O3 -c $<
 
 clean :
 
@@ -31,3 +35,4 @@ clean :
 	echo "Cleaning module 'Mj' done !" ; \
 	echo "" ; \
 
+include make.depend
