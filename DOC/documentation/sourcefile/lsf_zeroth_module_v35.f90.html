@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="23.5% of total for source files.">1288 statements</a>
+    title="23.5% of total for source files.">1289 statements</a>
      </li> 
      
      
@@ -274,7 +274,7 @@
 <a name="ln-5"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">dp</span>    <span class="o">=</span> <span class="nb">selected_real_kind</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">307</span><span class="p">)</span>
 <a name="ln-6"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">int32</span> <span class="o">=</span> <span class="nb">selected_int_kind</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
 <a name="ln-7"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">int64</span> <span class="o">=</span> <span class="nb">selected_int_kind</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
-<a name="ln-8"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">iostd</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span> <span class="n">un</span> <span class="o">=</span> <span class="mi">3</span>
+<a name="ln-8"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">iostd</span> <span class="o">=</span> <span class="mi">16</span>
 <a name="ln-9"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">un</span> <span class="o">=</span> <span class="mi">3</span>
 <a name="ln-10"></a>  <span class="kt">integer</span><span class="p">,</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">root</span> <span class="o">=</span> <span class="mi">0</span>
 <a name="ln-11"></a>  <span class="c">!</span>
@@ -327,7 +327,7 @@
 <a name="ln-58"></a>  <span class="c">!real(kind = dp) :: volume</span>
 <a name="ln-59"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">weight</span>
 <a name="ln-60"></a>  <span class="c">!</span>
-<a name="ln-61"></a>  <span class="c">!character(len = 256) :: continueLSFfromFile</span>
+<a name="ln-61"></a>  <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">256</span><span class="p">)</span> <span class="kd">::</span> <span class="n">continueLSFfromFile</span>
 <a name="ln-62"></a>  <span class="c">!character(len = 256) :: crossSectionOutput</span>
 <a name="ln-63"></a>  <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">256</span><span class="p">)</span> <span class="kd">::</span> <span class="n">fn</span>
 <a name="ln-64"></a>  <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">256</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phononsInputFormat</span>
@@ -437,7 +437,7 @@
 <a name="ln-168"></a>    <span class="n">minimumNumberOfPhonons</span> <span class="o">=</span> <span class="mi">1</span>
 <a name="ln-169"></a>    <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
 <a name="ln-170"></a>    <span class="c">!</span>
-<a name="ln-171"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">continueLSFfromFile</span> <span class="o">/=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">then</span>
+<a name="ln-171"></a>    <span class="k">if</span> <span class="p">(</span><span class="nb">trim</span><span class="p">(</span><span class="n">continueLSFfromFile</span><span class="p">)</span> <span class="o">/=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">then</span>
 <a name="ln-172"></a>      <span class="c">!</span>
 <a name="ln-173"></a>      <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span> <span class="nb">trim</span><span class="p">(</span><span class="n">continueLSFfromFile</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
 <a name="ln-174"></a>      <span class="k">if</span> <span class="p">(</span> <span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>

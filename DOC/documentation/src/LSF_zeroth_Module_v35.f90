@@ -6,7 +6,7 @@ module lsf
   integer, parameter :: dp    = selected_real_kind(15, 307)
   integer, parameter :: int32 = selected_int_kind(5)
   integer, parameter :: int64 = selected_int_kind(15)
-  integer, parameter :: iostd = 16, un = 3
+  integer, parameter :: iostd = 16
   integer, parameter :: un = 3
   integer, parameter :: root = 0
   !
@@ -59,7 +59,7 @@ module lsf
   !real(kind = dp) :: volume
   real(kind = dp) :: weight
   !
-  !character(len = 256) :: continueLSFfromFile
+  character(len = 256) :: continueLSFfromFile
   !character(len = 256) :: crossSectionOutput
   character(len = 256) :: fn
   character(len = 256) :: phononsInputFormat
@@ -169,7 +169,7 @@ contains
     minimumNumberOfPhonons = 1
     lsfVsE(:) = 0.0_dp
     !
-    if (continueLSFfromFile /= '') then
+    if (trim(continueLSFfromFile) /= '') then
       !
       inquire(file = trim(continueLSFfromFile), exist = file_exists)
       if ( file_exists ) then
