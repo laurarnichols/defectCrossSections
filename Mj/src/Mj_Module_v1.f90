@@ -243,13 +243,13 @@ contains
     read(1,*) nOfqPoints, nAtoms
       !! * Read in the number of q points and number of atoms
     !
-    write(iostd, '(" Number of atoms : ", i5)') nAtoms
-    write(iostd, '(" Number of q-Points : ", i5)') nOfqPoints
-    flush(iostd)
-      !! * Write the number of atoms and q points to the output file
-    !
     nModes = 3*nAtoms - 3
       !! * Calculate the number of phonon modes
+    write(iostd, '(" Number of atoms : ", i5)') nAtoms
+    write(iostd, '(" Number of q-Points : ", i5)') nOfqPoints
+    write(iostd, '(" Number of modes : ", i5)') nModes
+    flush(iostd)
+      !! * Write the number of atoms, q points, and modes to the output file
     !
     read (1,*)
       !! * Ignore the next line as it is blank
@@ -401,7 +401,7 @@ contains
     !!
     implicit none
     !
-    integer :: i, j, iMode, nm, 
+    integer :: i, j, nm
     integer :: nb
       !! Final phonon mode
     integer :: iMode
@@ -602,7 +602,7 @@ contains
     !
     integer :: iAtom, iMode
     !
-    character(len = 256) :: s2LStr
+    character(len = 300) :: s2LStr
     !
     do iMode = modeI, modeF
       !
@@ -646,7 +646,7 @@ contains
       !! Loop index over atoms
     integer :: iMode
       !! Loop index over phonon modes
-    character(len = 256) :: line, fn, modeFolder, mkDir, s2LStr
+    character(len = 300) :: line, fn, modeFolder, mkDir, s2LStr
     !
     do iMode = modeI, modeF
       !! * For each mode between `modeI` and `modeF`

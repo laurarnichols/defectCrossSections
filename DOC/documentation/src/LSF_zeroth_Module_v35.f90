@@ -316,6 +316,7 @@ contains
     write(iostd, '(" Number of atoms : ", i5)') nAtoms
     write(iostd, '(" Number of q-Points : ", i5)') nOfqPoints
     write(iostd, '(" Number of modes : ", i5)') nModes
+      !! This version also writes out number of modes
     flush(iostd)
     !
     read (1,*)

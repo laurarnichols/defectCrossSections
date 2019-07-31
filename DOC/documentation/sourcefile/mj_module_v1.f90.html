@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 9.3% of total for source files.">511 statements</a>
+    title=" 9.3% of total for source files.">512 statements</a>
      </li> 
      
      
@@ -511,13 +511,13 @@
 <a name="ln-242"></a>    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">nOfqPoints</span><span class="p">,</span> <span class="n">nAtoms</span>
 <a name="ln-243"></a>      <span class="c">!! * Read in the number of q points and number of atoms</span>
 <a name="ln-244"></a>    <span class="c">!</span>
-<a name="ln-245"></a>    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Number of atoms : &quot;, i5)&#39;</span><span class="p">)</span> <span class="n">nAtoms</span>
-<a name="ln-246"></a>    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Number of q-Points : &quot;, i5)&#39;</span><span class="p">)</span> <span class="n">nOfqPoints</span>
-<a name="ln-247"></a>    <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
-<a name="ln-248"></a>      <span class="c">!! * Write the number of atoms and q points to the output file</span>
-<a name="ln-249"></a>    <span class="c">!</span>
-<a name="ln-250"></a>    <span class="n">nModes</span> <span class="o">=</span> <span class="mi">3</span><span class="o">*</span><span class="n">nAtoms</span> <span class="o">-</span> <span class="mi">3</span>
-<a name="ln-251"></a>      <span class="c">!! * Calculate the number of phonon modes</span>
+<a name="ln-245"></a>    <span class="n">nModes</span> <span class="o">=</span> <span class="mi">3</span><span class="o">*</span><span class="n">nAtoms</span> <span class="o">-</span> <span class="mi">3</span>
+<a name="ln-246"></a>      <span class="c">!! * Calculate the number of phonon modes</span>
+<a name="ln-247"></a>    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Number of atoms : &quot;, i5)&#39;</span><span class="p">)</span> <span class="n">nAtoms</span>
+<a name="ln-248"></a>    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Number of q-Points : &quot;, i5)&#39;</span><span class="p">)</span> <span class="n">nOfqPoints</span>
+<a name="ln-249"></a>    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Number of modes : &quot;, i5)&#39;</span><span class="p">)</span> <span class="n">nModes</span>
+<a name="ln-250"></a>    <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+<a name="ln-251"></a>      <span class="c">!! * Write the number of atoms, q points, and modes to the output file</span>
 <a name="ln-252"></a>    <span class="c">!</span>
 <a name="ln-253"></a>    <span class="k">read</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
 <a name="ln-254"></a>      <span class="c">!! * Ignore the next line as it is blank</span>
@@ -669,7 +669,7 @@
 <a name="ln-400"></a>    <span class="c">!!</span>
 <a name="ln-401"></a>    <span class="k">implicit none</span>
 <a name="ln-402"></a>    <span class="c">!</span>
-<a name="ln-403"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">iMode</span><span class="p">,</span> <span class="n">nm</span><span class="p">,</span> 
+<a name="ln-403"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">nm</span>
 <a name="ln-404"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nb</span>
 <a name="ln-405"></a>      <span class="c">!! Final phonon mode</span>
 <a name="ln-406"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iMode</span>
@@ -870,7 +870,7 @@
 <a name="ln-601"></a>    <span class="c">!</span>
 <a name="ln-602"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iAtom</span><span class="p">,</span> <span class="n">iMode</span>
 <a name="ln-603"></a>    <span class="c">!</span>
-<a name="ln-604"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">256</span><span class="p">)</span> <span class="kd">::</span> <span class="n">s2LStr</span>
+<a name="ln-604"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">s2LStr</span>
 <a name="ln-605"></a>    <span class="c">!</span>
 <a name="ln-606"></a>    <span class="k">do </span><span class="n">iMode</span> <span class="o">=</span> <span class="n">modeI</span><span class="p">,</span> <span class="n">modeF</span>
 <a name="ln-607"></a>      <span class="c">!</span>
@@ -914,7 +914,7 @@
 <a name="ln-645"></a>      <span class="c">!! Loop index over atoms</span>
 <a name="ln-646"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iMode</span>
 <a name="ln-647"></a>      <span class="c">!! Loop index over phonon modes</span>
-<a name="ln-648"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">256</span><span class="p">)</span> <span class="kd">::</span> <span class="n">line</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">modeFolder</span><span class="p">,</span> <span class="n">mkDir</span><span class="p">,</span> <span class="n">s2LStr</span>
+<a name="ln-648"></a>    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">300</span><span class="p">)</span> <span class="kd">::</span> <span class="n">line</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">modeFolder</span><span class="p">,</span> <span class="n">mkDir</span><span class="p">,</span> <span class="n">s2LStr</span>
 <a name="ln-649"></a>    <span class="c">!</span>
 <a name="ln-650"></a>    <span class="k">do </span><span class="n">iMode</span> <span class="o">=</span> <span class="n">modeI</span><span class="p">,</span> <span class="n">modeF</span>
 <a name="ln-651"></a>      <span class="c">!! * For each mode between `modeI` and `modeF`</span>
