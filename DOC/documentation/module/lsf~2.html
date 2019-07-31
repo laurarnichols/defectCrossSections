@@ -372,7 +372,7 @@
       
       <a class="list-group-item" href="../module/lsf%7E2.html#proc-initialize%7E2">initialize</a>
       
-      <a class="list-group-item" href="../module/lsf%7E2.html#proc-checkandupdateinput%7E2">checkAndUpdateInput</a>
+      <a class="list-group-item" href="../module/lsf%7E2.html#proc-checkandupdateinput">checkAndUpdateInput</a>
       
       <a class="list-group-item" href="../module/lsf%7E2.html#proc-readphononsvasp">readPhononsVASP</a>
       
@@ -653,7 +653,7 @@
       
       <a class="list-group-item" href="../module/lsf%7E2.html#proc-initialize%7E2">initialize</a>
       
-      <a class="list-group-item" href="../module/lsf%7E2.html#proc-checkandupdateinput%7E2">checkAndUpdateInput</a>
+      <a class="list-group-item" href="../module/lsf%7E2.html#proc-checkandupdateinput">checkAndUpdateInput</a>
       
       <a class="list-group-item" href="../module/lsf%7E2.html#proc-readphononsvasp">readPhononsVASP</a>
       
@@ -2212,8 +2212,8 @@ public subroutine <a href='../proc/initialize%7E2.html'>initialize</a>()
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-checkandupdateinput%7E2"></span><h3>
-public subroutine <a href='../proc/checkandupdateinput%7E2.html'>checkAndUpdateInput</a>()
+  <div class="panel-heading codesum"><span class="anchor" id="proc-checkandupdateinput"></span><h3>
+public subroutine <a href='../proc/checkandupdateinput.html'>checkAndUpdateInput</a>()
     
     
    
@@ -2221,6 +2221,22 @@ public subroutine <a href='../proc/checkandupdateinput%7E2.html'>checkAndUpdateI
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p>Check that the input variables don't still have their default
+ values. The program will abort here if:
+   * <code>phononsInput</code> is undefined
+   * <code>phononsInputFormat</code> is undefined
+   * <code>temperature</code> is undefined
+   * <code>maximumNumberOfPhonons</code> is undefined
+   * number of Monte Carlo steps (<code>nMc</code>) is not
+     set and <code>maximumNumberOfPhonons</code> is greater
+     than 4</p><a href="../proc/checkandupdateinput.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     

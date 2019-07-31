@@ -213,6 +213,18 @@ contains
   !
   !
   subroutine checkAndUpdateInput()
+    !! Check that the input variables don't still have their default
+    !! values. The program will abort here if:
+    !!   * `phononsInput` is undefined
+    !!   * `phononsInputFormat` is undefined
+    !!   * `temperature` is undefined
+    !!   * `maximumNumberOfPhonons` is undefined
+    !!   * number of Monte Carlo steps (`nMc`) is not
+    !!     set and `maximumNumberOfPhonons` is greater
+    !!     than 4
+    !!
+    !! This subroutine also sets `maxEnergy` and `nEnergies`
+    !! and calculates `kT` and `deltaE`.
     !
     implicit none
     !
