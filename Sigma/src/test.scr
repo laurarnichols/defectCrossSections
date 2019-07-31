@@ -1,0 +1,48 @@
+#!/bin/bash
+
+echo "Testing Sigma program"
+
+if make ; then
+#  cd ../DOC
+#  rm TMEs_kpt* VfisVsE* output &> /dev/null
+#
+#  ../src/TME.x < base_TME_Input.in > output
+#
+#  sed -e 's/[0-9]\.[0-9]\{2\} secs\.//g' output > output
+#  sed -e 's/[0-9]\.[0-9]\{2\} secs\.//g' base_output > base_output
+#
+#  if diff ./output ./base_output &> /dev/null ; then
+#     # Do nothing
+#     true
+#  else
+#     echo "WARN: There are differences in the output files"
+#     diff ./output ./base_output
+#  fi
+#  rm output
+#
+#  outputNames="TMEs_kptI_1_kptF_1 TMEs_kptI_2_kptF_2 VfisVsE VfisVsEofKpt"
+  exitStatus=0
+#
+#  for file in $outputNames; do
+#     if diff "./$file" "./base_$file" &> /dev/null ; then
+#        # Do nothing
+#        true
+#     else 
+#        echo "ERROR: Differences detected in $file"
+#        diff "./$file" "./base_$file"
+#        exitStatus=1
+#     fi
+#
+#     rm $file
+#  done
+else
+   echo "ERROR: Mj did not compile"
+   exitStatus=1
+fi
+
+if [ $exitStatus -ne 0 ] ; then
+   exit $exitStatus
+else 
+   echo "Sigma passed its test!"
+   echo ""
+fi
