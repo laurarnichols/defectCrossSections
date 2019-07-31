@@ -36,7 +36,7 @@ if make ; then
 #     rm $file
 #  done
 else
-   echo "ERROR: Mj did not compile"
+   echo "ERROR: Sigma did not compile"
    exitStatus=1
 fi
 
