@@ -598,6 +598,8 @@ contains
   subroutine writeNewAtomicPositions()
     !! Write `newAtomicPosition`s for each mode
     !
+    use miscUtilities
+    !
     implicit none
     !
     integer :: iAtom, iMode
@@ -642,6 +644,10 @@ contains
     !!
     !! <h2>Walkthrough</h2>
     !!
+    use miscUtilities
+    !
+    implicit none
+    !
     integer :: iAtom
       !! Loop index over atoms
     integer :: iMode
@@ -1148,29 +1154,5 @@ contains
     return
     !
   end function wasRead
-  !
-  !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine int2str(integ, string)
-    !! Write a given integer to a string, using only as many digits as needed
-    !
-    implicit none
-    integer :: integ
-    character(len = 300) :: string
-    !
-    if ( integ < 10 ) then
-      write(string, '(i1)') integ
-    else if ( integ < 100 ) then
-      write(string, '(i2)') integ
-    else if ( integ < 1000 ) then
-      write(string, '(i3)') integ
-    else if ( integ < 10000 ) then
-      write(string, '(i4)') integ
-    endif
-    !
-    string = trim(string)
-    !
-    return
-    !
-  end subroutine int2str
   !
 end module MjModule

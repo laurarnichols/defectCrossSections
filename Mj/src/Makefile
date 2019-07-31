@@ -1,12 +1,12 @@
 
 -include ../../make.sys
 
-Mj_OBJS = Mj_Module_v1.o Mj_Main.o
+Mj_OBJS = Mj_Module_v1.o Mj_Main.o 
 
 all : Mj.x
 	
-Mj.x : $(Mj_OBJS)
-	$(mpif90) -o Mj.x $(Mj_OBJS)
+Mj.x : utilityMods $(Mj_OBJS)
+	$(mpif90) -o Mj.x ../../utilities/miscUtilities.o $(Mj_OBJS)
 	- ( cd $(Home_Path)/bin ; ln -fs $(Mj_srcPath)/$@ . )
 
 	@echo "" ; \
@@ -17,6 +17,11 @@ Mj.x : $(Mj_OBJS)
 
 %.o : %.f90
 	$(mpif90) -O3 -c $<
+
+utilityMods :
+
+	@cd $(utilities_srcPath) ; \
+	$(mpif90) -O3 -c miscUtilities.f90 ; \
 
 clean :
 
