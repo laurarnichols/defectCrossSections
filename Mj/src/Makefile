@@ -2,7 +2,7 @@
 -include ../../make.sys
 
 # location of needed modules
-MODFLAGS = -I../../CommonModules -I.
+MODFLAGS = -I$(CommonModules_srcPath) -I.
 
 Mj_OBJS = Mj_Module_v1.o Mj_Main.o
 
@@ -21,7 +21,7 @@ Mj.x : mods $(CommonMods) $(Mj_OBJS)
 	echo "" ;
 
 mods :
-	cd ../../CommonModules ; \
+	cd $(CommonModules_srcPath) ; \
 	make
 
 %.o : %.f90

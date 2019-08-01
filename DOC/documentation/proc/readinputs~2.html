@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.5% of total for procedures.">23 statements</a>
+    title=" 0.6% of total for procedures.">24 statements</a>
      </li> 
      
      
@@ -146,7 +146,7 @@
     
      <li><a href='../sourcefile/lsf_zeroth_module_v35.f90.html'>LSF_zeroth_Module_v35.f90</a></li>
     
-     <li><a href='../module/lsf.html'>lsf</a></li>
+     <li><a href='../module/lsf%7E2.html'>lsf</a></li>
     
   
      <li class="active">readInputs</li>
@@ -206,13 +206,38 @@ public subroutine readInputs()
 </h2>
     
   
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Uses</h3>
+      </div>
+      <ul class="list-group">
+      
+      <li class="list-group-item">
+  <ul class="list-inline">
+    
+    <li>readInputFiles</li>
+    
+  </ul>
+      </li>
+      
+      
+      
+      </ul>
+    </div>
+    
 
 
     
     <p>Read input parameters and read phonon output</p>
 <p><h2>Walkthrough</h2></p>
 <ul>
-<li>Check if output file exists; if it does delete it</li>
+<li>
+<p>Include <code>readInputFiles</code> module for reading 
+ phonons input</p>
+</li>
+<li>
+<p>Check if output file exists; if it does delete it</p>
+</li>
 <li>
 <p>Open new output file</p>
 </li>

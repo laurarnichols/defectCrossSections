@@ -108,6 +108,10 @@ contains
     !!
     !! <h2>Walkthrough</h2>
     !!
+    use readInputFiles
+      !! * Include `readInputFiles` module for reading 
+      !! phonons input
+    !
     implicit none
     !
     !> * Check if output file exists; if it does delete it
@@ -132,7 +136,7 @@ contains
     !> * Read the phonons output from QE or VASP
     if ( trim(phononsInputFormat) == 'VASP' ) then
       !
-      call readPhononsVASP()
+      call readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, atomM, phonQ, phonF, phonD)
       !
     else if ( trim(phononsInputFormat) == 'QE' ) then
       !
@@ -295,79 +299,6 @@ contains
     return
     !
   end subroutine checkAndUpdateInput
-  !
-  !
-  subroutine readPhononsVASP()
-    !
-    implicit none
-    !
-    integer :: iAtom, iMode, iq
-    real(kind = dp) :: dummyD, freqInTHz
-    !
-    CHARACTER :: dummyC
-    !
-    !write(6,*) trim(phononsInput)
-    open(1, file=trim(phononsInput), status="old")
-    !
-    read(1,*) nOfqPoints, nAtoms
-    !
-    nModes = 3*nAtoms - 3
-    !
-    write(iostd, '(" Number of atoms : ", i5)') nAtoms
-    write(iostd, '(" Number of q-Points : ", i5)') nOfqPoints
-    write(iostd, '(" Number of modes : ", i5)') nModes
-      !! This version also writes out number of modes
-    flush(iostd)
-    !
-    read (1,*)
-    !
-    allocate( atomD(3,nAtoms), atomM(nAtoms) )
-    !
-    atomD = 0.0_dp
-    atomM = 0.0_dp
-    !
-    do iAtom = 1, nAtoms
-      read(1,*) atomD(1,iAtom), atomD(2,iAtom), atomD(3,iAtom), atomM(iAtom)
-    enddo
-    !
-    read(1,*)
-    !
-    allocate( phonQ(3,nOfqPoints), phonF(nModes), phonD(3,nAtoms,nModes,nOfqPoints) )
-    !
-    phonQ = 0.0_dp
-    phonF = 0.0_dp
-    phonD = 0.0_dp
-    !
-    do iq = 1, nOfqPoints
-      !
-      read (1,*) dummyC, dummyC, dummyC, phonQ(1,iq), phonQ(2,iq), phonQ(3,iq), dummyC
-      !
-      do iMode = 1, nModes
-        !
-        read(1,*)
-        !
-        read(1,*) freqInTHz, dummyC, dummyD, dummyC, dummyD, dummyC, dummyD, dummyC
-        phonF(iMode) = dble(freqInTHz)*THzToHartree 
-        !
-        read(1,*) dummyC, dummyC, dummyC, dummyC, dummyC, dummyC
-        !
-        do iAtom = 1, nAtoms
-          !
-          read (1,*) dummyD, dummyD, dummyD, phonD(1,iAtom,iMode,iq), phonD(2,iAtom,iMode,iq), phonD(3,iAtom,iMode,iq)
-          !
-        enddo
-        !
-      enddo
-      !
-    enddo
-    !
-    close(1)
-    !
-    flush(iostd)
-    !
-    return
-    !
-  end subroutine readPhononsVASP
   !
   !
   subroutine readPhononsQE()

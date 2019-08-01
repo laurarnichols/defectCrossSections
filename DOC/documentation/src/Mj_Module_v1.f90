@@ -23,7 +23,9 @@ module MjModule
   integer :: modeF
   integer :: modeI
   integer :: nAtoms
+    !! Number of atoms
   integer :: nModes
+    !! Number of phonon modes
   integer :: nOfqPoints
   integer :: qPoint
     !! Read in from input file, but no default value set

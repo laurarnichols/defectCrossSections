@@ -1,21 +1,21 @@
 title: Todo
 author: Laura Nichols
-date: 07/31/2019
+date: 08/01/2019
 
 * `../Mj/src/Mj_Main.f90:13:` Make sure that there is an end timer
-* `../Mj/src/Mj_Module_v1.f90:30:` Make sure default value is set for `qPoint` 
-* `../Mj/src/Mj_Module_v1.f90:326:` Figure out why there is no \(N\) in this equation in the code 
-* `../Mj/src/Mj_Module_v1.f90:336:` Figure out if this needs to be another variable 
-* `../Mj/src/Mj_Module_v1.f90:359:` Frequency should actually be in eV/\(\hbar\). Check that that's the case. 
-* `../Mj/src/Mj_Module_v1.f90:375:` Figure out why this is assigned to another variable 
-* `../Mj/src/Mj_Module_v1.f90:380:` Figure out if still need `di`, `bk`, and `dk` 
-* `../Mj/src/Mj_Module_v1.f90:387:` Figure out if need to have this in loop. Why change `nm` in `iknb`? 
-* `../Mj/src/Mj_Module_v1.f90:390:` Figure out if should send `nm` as it is immediately modified and not used here 
-* `../Mj/src/Mj_Module_v1.f90:394:` Possibly change `besOrderNofModeM` to `modBesOrderNofModeM` 
-* `../Mj/src/Mj_Module_v1.f90:395: Figure out why this loop is here. Can not just pass `besOrderNofModeM(:`,j)` 
-* `../Mj/src/Mj_Module_v1.f90:414:` Change this to a more efficient algorithm 
-* `../Mj/src/Mj_Module_v1.f90:478:` Figure out if expect `modeI` and `modeF` to represent index of magnitude of argument `x` 
-* `../Mj/src/Mj_Module_v1.f90:590:` Make this loop more clear 
+* `../Mj/src/Mj_Module_v1.f90:32:` Make sure default value is set for `qPoint` 
+* `../Mj/src/Mj_Module_v1.f90:328:` Figure out why there is no \(N\) in this equation in the code 
+* `../Mj/src/Mj_Module_v1.f90:338:` Figure out if this needs to be another variable 
+* `../Mj/src/Mj_Module_v1.f90:361:` Frequency should actually be in eV/\(\hbar\). Check that that's the case. 
+* `../Mj/src/Mj_Module_v1.f90:377:` Figure out why this is assigned to another variable 
+* `../Mj/src/Mj_Module_v1.f90:382:` Figure out if still need `di`, `bk`, and `dk` 
+* `../Mj/src/Mj_Module_v1.f90:389:` Figure out if need to have this in loop. Why change `nm` in `iknb`? 
+* `../Mj/src/Mj_Module_v1.f90:392:` Figure out if should send `nm` as it is immediately modified and not used here 
+* `../Mj/src/Mj_Module_v1.f90:396:` Possibly change `besOrderNofModeM` to `modBesOrderNofModeM` 
+* `../Mj/src/Mj_Module_v1.f90:397: Figure out why this loop is here. Can not just pass `besOrderNofModeM(:`,j)` 
+* `../Mj/src/Mj_Module_v1.f90:416:` Change this to a more efficient algorithm 
+* `../Mj/src/Mj_Module_v1.f90:480:` Figure out if expect `modeI` and `modeF` to represent index of magnitude of argument `x` 
+* `../Mj/src/Mj_Module_v1.f90:592:` Make this loop more clear 
 * `../Sigma/src/Sigma_Module_v4.f90:176:` Merge these dummy characters
 * `../Sigma/src/Sigma_Module_v4.f90:224:` Merge dummy variables
 * `../Sigma/src/Sigma_Module_v4.f90:288:` Figure out where this file is opened
