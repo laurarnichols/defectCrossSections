@@ -51,11 +51,9 @@ module miscUtilities
     !
     real(kind = dp), intent(in) :: x(nModes)
       !! Argument to modified Bessel function
-    real(kind = dp), allocatable :: temp(:)
+    real(kind = dp) :: temp(nModes)
     real(kind = dp) :: tmpr
     integer :: tmpi
-    !
-    allocate( temp(nModes) )
     !
     temp(:) = 0.0_dp
     temp(:) = x(:)
@@ -79,8 +77,6 @@ module miscUtilities
       enddo
       !
     enddo
-    !
-    deallocate ( temp )
     !
     return
     !
