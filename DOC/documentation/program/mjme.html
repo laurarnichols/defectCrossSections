@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.3% of total for programs.">14 statements</a>
+    title=" 1.5% of total for programs.">17 statements</a>
      </li> 
      
      
@@ -215,6 +215,8 @@
     
     <li><a href='../module/mjmodule.html'>MjModule</a></li>
     
+    <li>generalComputations</li>
+    
   </ul>
       </li>
       
@@ -228,6 +230,8 @@
  42 and 43, calculate new displacements of atoms,
  and generate new QE input based on the new positions</p>
 <p><h2>Walkthrough</h2></p>
+<p>Include the <code>generalComputations</code> module          <br>
+ for call to <code>computeGeneralizedDisplacements</code></p>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Make sure that there is an end timer </p></div>
 <p>
 <ul>
@@ -321,6 +325,9 @@
   <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
   <span class="c">!!</span>
   <span class="k">use </span><span class="n">MjModule</span>
+  <span class="k">use </span><span class="n">generalComputations</span>
+    <span class="c">!! Include the `generalComputations` module            </span>
+    <span class="c">!! for call to `computeGeneralizedDisplacements`</span>
   <span class="c">!</span>
   <span class="k">implicit none</span>
   <span class="c">!</span>
@@ -332,8 +339,12 @@
     <span class="c">!!   all required variables were read and have values </span>
     <span class="c">!!   that make sense</span>
   <span class="c">!</span>
-  <span class="k">call </span><span class="n">computeGeneralizedDisplacements</span><span class="p">()</span>
+  <span class="k">allocate</span><span class="p">(</span> <span class="n">genCoord</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">computeGeneralizedDisplacements</span><span class="p">(</span><span class="n">nOfqPoints</span><span class="p">,</span> <span class="n">nModes</span><span class="p">,</span> <span class="n">genCoord</span><span class="p">,</span> <span class="n">nAtoms</span><span class="p">,</span> <span class="n">atomM</span><span class="p">,</span> <span class="n">phonD</span><span class="p">,</span> <span class="n">atomD</span><span class="p">)</span>
     <span class="c">!! * Calculate \delta q_j^2</span>
+  <span class="c">!</span>
+  <span class="k">deallocate</span><span class="p">(</span> <span class="n">atomM</span><span class="p">,</span> <span class="n">atomD</span> <span class="p">)</span>
   <span class="c">!</span>
   <span class="k">call </span><span class="n">computeVariables</span><span class="p">()</span>
     <span class="c">!! * Compute main parts of equations 42 and 43 in paper</span>

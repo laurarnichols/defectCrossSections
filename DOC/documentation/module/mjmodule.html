@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="10.2% of total for modules and submodules.">435 statements</a>
+    title=" 9.9% of total for modules and submodules.">416 statements</a>
      </li> 
      
      
@@ -175,13 +175,9 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../module/mjmodule.html#variable-dp%7E2">dp</a>
-      
       <a class="list-group-item" href="../module/mjmodule.html#variable-int32">int32</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-int64">int64</a>
-      
-      <a class="list-group-item" href="../module/mjmodule.html#variable-iostd%7E2">iostd</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-un">un</a>
       
@@ -192,8 +188,6 @@
       <a class="list-group-item" href="../module/mjmodule.html#variable-hartreetoev%7E2">HartreeToEv</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-pi%7E8">pi</a>
-      
-      <a class="list-group-item" href="../module/mjmodule.html#variable-thztohartree">THzToHartree</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-twopi">twopi</a>
       
@@ -316,8 +310,6 @@
       
       <a class="list-group-item" href="../module/mjmodule.html#proc-readatomicpositions">readAtomicPositions</a>
       
-      <a class="list-group-item" href="../module/mjmodule.html#proc-computegeneralizeddisplacements">computeGeneralizedDisplacements</a>
-      
       <a class="list-group-item" href="../module/mjmodule.html#proc-computevariables">computeVariables</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#proc-displaceatoms">displaceAtoms</a>
@@ -369,9 +361,28 @@
 <span class="o">!</span><span class="nv">enddo</span>
 <span class="o">!</span>
 </pre></div>
-      
+      <br>
     
   
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Uses</h3>
+      </div>
+      <ul class="list-group">
+      
+      <li class="list-group-item">
+  <ul class="list-inline">
+    
+    <li>constants</li>
+    
+  </ul>
+      </li>
+      
+      
+      
+      </ul>
+    </div>
+    
 
     
     
@@ -390,13 +401,9 @@
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../module/mjmodule.html#variable-dp%7E2">dp</a>
-      
       <a class="list-group-item" href="../module/mjmodule.html#variable-int32">int32</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-int64">int64</a>
-      
-      <a class="list-group-item" href="../module/mjmodule.html#variable-iostd%7E2">iostd</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-un">un</a>
       
@@ -407,8 +414,6 @@
       <a class="list-group-item" href="../module/mjmodule.html#variable-hartreetoev%7E2">HartreeToEv</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-pi%7E8">pi</a>
-      
-      <a class="list-group-item" href="../module/mjmodule.html#variable-thztohartree">THzToHartree</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#variable-twopi">twopi</a>
       
@@ -531,8 +536,6 @@
       
       <a class="list-group-item" href="../module/mjmodule.html#proc-readatomicpositions">readAtomicPositions</a>
       
-      <a class="list-group-item" href="../module/mjmodule.html#proc-computegeneralizeddisplacements">computeGeneralizedDisplacements</a>
-      
       <a class="list-group-item" href="../module/mjmodule.html#proc-computevariables">computeVariables</a>
       
       <a class="list-group-item" href="../module/mjmodule.html#proc-displaceatoms">displaceAtoms</a>
@@ -580,20 +583,6 @@
   
 <tr>
   
-  <td><span class="anchor" id="variable-dp%7E2"></span>integer,</td>
-  
-  <td>public,</td>
-  <td>parameter</td><td>::</td>
-  <td><strong>dp</strong></td><td> =</td><td>selected_real_kind(15, 307)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
   <td><span class="anchor" id="variable-int32"></span>integer,</td>
   
   <td>public,</td>
@@ -613,20 +602,6 @@
   <td>public,</td>
   <td>parameter</td><td>::</td>
   <td><strong>int64</strong></td><td> =</td><td>selected_int_kind(15)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-iostd%7E2"></span>integer,</td>
-  
-  <td>public,</td>
-  <td>parameter</td><td>::</td>
-  <td><strong>iostd</strong></td><td> =</td><td>16</td><td></td>
   
 </tr>
 
@@ -697,20 +672,6 @@
   <td>public,</td>
   <td>parameter</td><td>::</td>
   <td><strong>pi</strong></td><td> =</td><td>3.1415926535897932_dp</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-thztohartree"></span>real(kind=dp),</td>
-  
-  <td>public,</td>
-  <td>parameter</td><td>::</td>
-  <td><strong>THzToHartree</strong></td><td> =</td><td>1.0_dp/6579.683920729_dp</td><td></td>
   
 </tr>
 
@@ -1774,38 +1735,6 @@ public subroutine <a href='../proc/readatomicpositions.html'>readAtomicPositions
 
 <p>Read in the element and equilibrium position for 
  each atom</p><a href="../proc/readatomicpositions.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-    <h4>Arguments</h4>
-    
-      <em>None</em>
-    
-    
-
-  </div>
-  </div>
-
-    
-    
-  <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-computegeneralizeddisplacements"></span><h3>
-public subroutine <a href='../proc/computegeneralizeddisplacements.html'>computeGeneralizedDisplacements</a>()
-    
-    
-   
-</h3></div>
-  <div class="panel-body">
-       
-    
-
-
-
-
-
-
-
-<p>Calculate the generalized displacements
- by dotting the phonon displacements with 
- the atom displacements</p><a href="../proc/computegeneralizeddisplacements.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     

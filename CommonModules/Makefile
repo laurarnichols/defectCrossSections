@@ -5,7 +5,7 @@ include ../make.sys
 #location of needed modules
 MODFLAGS = -I.
 
-MODULES = miscUtilities.o readInputFiles.o
+MODULES = constants.o miscUtilities.o readInputFiles.o generalComputations.o
 
 all : commonmodules.a
 

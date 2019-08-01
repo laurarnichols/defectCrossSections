@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="20.4% of total for programs.">224 statements</a>
+    title="20.5% of total for programs.">227 statements</a>
      </li> 
      
      
@@ -231,7 +231,9 @@
     
     <li><a href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm">mpi</a></li>
     
-    <li><a href='../module/lsf%7E2.html'>lsf</a></li>
+    <li><a href='../module/lsf.html'>lsf</a></li>
+    
+    <li>generalComputations</li>
     
   </ul>
       </li>
@@ -242,9 +244,10 @@
     </div>
     
 
+    <p>Include the <code>generalComputations</code> module
+ for call to <code>computeGeneralizedDisplacements</code></p>
     
-    
-    
+    <br>
 
      <section class="visible-xs visible-sm hidden-md">
        
@@ -384,6 +387,9 @@
   <span class="c">! Pull in modules</span>
   <span class="k">use </span><span class="n">mpi</span>
   <span class="k">use </span><span class="n">lsf</span>
+  <span class="k">use </span><span class="n">generalComputations</span>
+    <span class="c">!! Include the `generalComputations` module</span>
+    <span class="c">!! for call to `computeGeneralizedDisplacements`</span>
   <span class="c">!</span>
   <span class="k">implicit none</span>
   <span class="c">!</span>
@@ -406,7 +412,11 @@
     <span class="c">! Read input, check all variables needed and initialize the calculation.</span>
     <span class="k">call </span><span class="n">readInputs</span><span class="p">()</span>
     <span class="c">!</span>
-    <span class="k">call </span><span class="n">computeGeneralizedDisplacements</span><span class="p">()</span>
+    <span class="k">allocate</span><span class="p">(</span> <span class="n">genCoord</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">computeGeneralizedDisplacements</span><span class="p">(</span><span class="n">nOfqPoints</span><span class="p">,</span> <span class="n">nModes</span><span class="p">,</span> <span class="n">genCoord</span><span class="p">,</span> <span class="n">nAtoms</span><span class="p">,</span> <span class="n">atomM</span><span class="p">,</span> <span class="n">phonD</span><span class="p">,</span> <span class="n">atomD</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">deallocate</span><span class="p">(</span> <span class="n">atomM</span><span class="p">,</span> <span class="n">phonD</span><span class="p">,</span> <span class="n">atomD</span> <span class="p">)</span>
     <span class="c">!</span>
     <span class="k">call </span><span class="n">computeVariables</span><span class="p">()</span>
     <span class="c">!</span>

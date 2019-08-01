@@ -1,1 +1,3 @@
+LSF_zeroth_Module_v35.o : $(CommonModules_srcPath)/constants.o
 LSF_zeroth_Module_v35.o : $(CommonModules_srcPath)/readInputFiles.o
+LSF_zeroth_Main.o : $(CommonModules_srcPath)/generalComputations.o

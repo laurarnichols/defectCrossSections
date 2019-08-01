@@ -3,6 +3,9 @@ program lineShapeFunction
   ! Pull in modules
   use mpi
   use lsf
+  use generalComputations
+    !! Include the `generalComputations` module
+    !! for call to `computeGeneralizedDisplacements`
   !
   implicit none
   !
@@ -25,7 +28,11 @@ program lineShapeFunction
     ! Read input, check all variables needed and initialize the calculation.
     call readInputs()
     !
-    call computeGeneralizedDisplacements()
+    allocate( genCoord(nModes) )
+    !
+    call computeGeneralizedDisplacements(nOfqPoints, nModes, genCoord, nAtoms, atomM, phonD, atomD)
+    !
+    deallocate( atomM, phonD, atomD )
     !
     call computeVariables()
     !

@@ -132,21 +132,21 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.4% of total for procedures.">17 statements</a>
+    title=" 0.4% of total for procedures.">15 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/Mj_Module_v1.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/LSF_linear_Module_v1.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/mj_module_v1.f90.html'>Mj_Module_v1.f90</a></li>
+     <li><a href='../sourcefile/lsf_linear_module_v1.f90.html'>LSF_linear_Module_v1.f90</a></li>
     
-     <li><a href='../module/mjmodule.html'>MjModule</a></li>
+     <li><a href='../module/lsf%7E2.html'>lsf</a></li>
     
   
      <li class="active">computeGeneralizedDisplacements</li>
@@ -177,11 +177,11 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iatom%7E2">iAtom</a>
+      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iq%7E3">iq</a>
       
-      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-imode">iMode</a>
+      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-imode%7E7">iMode</a>
       
-      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iq">iq</a>
+      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iatom%7E7">iAtom</a>
       
     </div>
   </div>
@@ -223,17 +223,6 @@ public subroutine computeGeneralizedDisplacements()
 
 
     
-    <p>Calculate the generalized displacements
- by dotting the phonon displacements with 
- the atom displacements</p>
-<p><h2>Walkthrough</h2></p>
-<ul>
-<li>For each q point, mode, and atom combination, calculate
-   the generalized displacement as 
-   <script type="math/tex; mode=display">\sum_{\text{mode}} \sqrt{1823m}\mathbf{\Delta r}_{\text{phonon}}\cdot\mathbf{\Delta r}_{\text{atom}}</script>
-</li>
-</ul>
-    
 
     <h3>Arguments</h3>
     
@@ -258,11 +247,11 @@ public subroutine computeGeneralizedDisplacements()
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iatom%7E2">iAtom</a>
+      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iq%7E3">iq</a>
       
-      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-imode">iMode</a>
+      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-imode%7E7">iMode</a>
       
-      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iq">iq</a>
+      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iatom%7E7">iAtom</a>
       
     </div>
   </div>
@@ -312,11 +301,11 @@ public subroutine computeGeneralizedDisplacements()
   
 <tr>
   
-  <td><span class="anchor" id="variable-iatom%7E2"></span>integer,</td>
+  <td><span class="anchor" id="variable-iq%7E3"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iAtom</strong></td><td></td><td></td><td><p>Loop index over atoms</p></td>
+  <td><strong>iq</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -326,11 +315,11 @@ public subroutine computeGeneralizedDisplacements()
   
 <tr>
   
-  <td><span class="anchor" id="variable-imode"></span>integer,</td>
+  <td><span class="anchor" id="variable-imode%7E7"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iMode</strong></td><td></td><td></td><td><p>Loop index over phonon modes</p></td>
+  <td><strong>iMode</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -340,11 +329,11 @@ public subroutine computeGeneralizedDisplacements()
   
 <tr>
   
-  <td><span class="anchor" id="variable-iq"></span>integer,</td>
+  <td><span class="anchor" id="variable-iatom%7E7"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iq</strong></td><td></td><td></td><td><p>Loop index over q points</p></td>
+  <td><strong>iAtom</strong></td><td></td><td></td><td></td>
   
 </tr>
 

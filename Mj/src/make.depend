@@ -1,2 +1,4 @@
+Mj_Module_v1.o : $(CommonModules_srcPath)/constants.o
 Mj_Module_v1.o : $(CommonModules_srcPath)/miscUtilities.o
 Mj_Module_v1.o : $(CommonModules_srcPath)/readInputFiles.o
+Mj_Main.o : $(CommonModules_srcPath)/generalComputations.o

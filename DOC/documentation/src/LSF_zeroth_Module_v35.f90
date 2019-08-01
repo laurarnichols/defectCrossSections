@@ -1,12 +1,12 @@
 
 module lsf
   !
+  use constants
+  !
   implicit none
   !
-  integer, parameter :: dp    = selected_real_kind(15, 307)
   integer, parameter :: int32 = selected_int_kind(5)
   integer, parameter :: int64 = selected_int_kind(15)
-  integer, parameter :: iostd = 16
   integer, parameter :: un = 3
   integer, parameter :: root = 0
   !
@@ -14,7 +14,6 @@ module lsf
   real(kind = dp), parameter :: eVToHartree  = 1.0_dp/27.21138386_dp
   real(kind = dp), parameter :: HartreeToEv  = 27.21138386_dp
   real(kind = dp), parameter ::           pi = 3.1415926535897932_dp
-  real(kind = dp), parameter :: THzToHartree = 1.0_dp/6579.683920729_dp
   real(kind = dp), parameter ::        twopi = 2.0_dp*pi
   !
   character(len = 6), parameter :: output = 'status'
@@ -367,47 +366,6 @@ contains
     return
     !
   end subroutine readPhononsQE
-  !
-  !
-  subroutine computeGeneralizedDisplacements()
-    !
-    implicit none
-    !
-    integer :: iq, iMode, iAtom
-    !
-    allocate( genCoord(nModes) )
-    !
-    do iq = 1, nOfqPoints
-      !
-      do iMode = 1, nModes
-        !
-        genCoord(iMode) = 0.0_dp
-        !
-        do iAtom = 1, nAtoms
-          !
-          genCoord(iMode) = genCoord(iMode) + sqrt(1822.88833218_dp*atomM(iAtom))*sum(phonD(:,iAtom,iMode,iq)*atomD(:,iAtom))
-          !
-        enddo
-        !
-      enddo
-      !
-    enddo
-    !
-    open(11, file='generalizedDisplacements', status='unknown')
-    !
-    write(11, '("#Mode, frequency (eV),        genCoord(Mode),     genCoord(Mode)^2")')
-    !
-    do iMode = 1, nModes
-     write(11, '(i4,1x,3E20.10E3)') iMode, phonF(iMode)*1.0e3_dp*HartreeToEv, genCoord(iMode), genCoord(iMode)*genCoord(iMode)
-    enddo
-    !
-    close(11)
-    !
-    deallocate( atomM, phonD, atomD )
-    !
-    return
-    !
-  end subroutine computeGeneralizedDisplacements
   !
   !
   subroutine computeVariables()

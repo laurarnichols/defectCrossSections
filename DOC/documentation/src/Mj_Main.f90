@@ -6,6 +6,9 @@ program MjME
   !! <h2>Walkthrough</h2>
   !!
   use MjModule
+  use generalComputations
+    !! Include the `generalComputations` module            
+    !! for call to `computeGeneralizedDisplacements`
   !
   implicit none
   !
@@ -17,8 +20,12 @@ program MjME
     !!   all required variables were read and have values 
     !!   that make sense
   !
-  call computeGeneralizedDisplacements()
+  allocate( genCoord(nModes) )
+  !
+  call computeGeneralizedDisplacements(nOfqPoints, nModes, genCoord, nAtoms, atomM, phonD, atomD)
     !! * Calculate \delta q_j^2
+  !
+  deallocate( atomM, atomD )
   !
   call computeVariables()
     !! * Compute main parts of equations 42 and 43 in paper

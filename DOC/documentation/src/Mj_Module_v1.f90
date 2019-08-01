@@ -1,19 +1,18 @@
 
 module MjModule
   !
+  use constants
+  !
   implicit none
   !
-  integer, parameter :: dp    = selected_real_kind(15, 307)
   integer, parameter :: int32 = selected_int_kind(5)
   integer, parameter :: int64 = selected_int_kind(15)
-  integer, parameter :: iostd = 16
   integer, parameter :: un = 3
   !
   real(kind = dp), parameter ::         abCM = 0.529177219217e-8_dp
   real(kind = dp), parameter :: eVToHartree  = 1.0_dp/27.21138386_dp
   real(kind = dp), parameter :: HartreeToEv  = 27.21138386_dp
   real(kind = dp), parameter ::           pi = 3.1415926535897932_dp
-  real(kind = dp), parameter :: THzToHartree = 1.0_dp/6579.683920729_dp
   real(kind = dp), parameter ::        twopi = 2.0_dp*pi
   !
   character(len = 6), parameter :: output = 'status'
@@ -249,50 +248,6 @@ contains
     return
     !
   end subroutine readAtomicPositions
-  !
-  !
-  subroutine computeGeneralizedDisplacements()
-    !! Calculate the generalized displacements
-    !! by dotting the phonon displacements with 
-    !! the atom displacements
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    implicit none
-    !
-    integer :: iAtom
-      !! Loop index over atoms
-    integer :: iMode
-      !! Loop index over phonon modes
-    integer :: iq
-      !! Loop index over q points
-    !
-    allocate( genCoord(nModes) )
-    !
-    do iq = 1, nOfqPoints
-      !
-      do iMode = 1, nModes
-        !
-        genCoord(iMode) = 0.0_dp
-        !
-        do iAtom = 1, nAtoms
-          !! * For each q point, mode, and atom combination, calculate
-          !!   the generalized displacement as 
-          !!   \[\sum_{\text{mode}} \sqrt{1823m}\mathbf{\Delta r}_{\text{phonon}}\cdot\mathbf{\Delta r}_{\text{atom}}\]
-          !
-          genCoord(iMode) = genCoord(iMode) + sqrt(1822.88833218_dp*atomM(iAtom))*sum(phonD(:,iAtom,iMode,iq)*atomD(:,iAtom))
-          !
-        enddo
-        !
-      enddo
-      !
-    enddo
-    !
-    deallocate( atomM, atomD )
-    !
-    return
-    !
-  end subroutine computeGeneralizedDisplacements
   !
   !
   subroutine computeVariables()

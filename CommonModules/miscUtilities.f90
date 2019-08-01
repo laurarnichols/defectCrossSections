@@ -1,9 +1,8 @@
 module miscUtilities
   !
-  implicit none
+  use constants
   !
-  integer, parameter :: dp    = selected_real_kind(15, 307)
-    !! Used to make reals double precision
+  implicit none
   !
   contains
   !
