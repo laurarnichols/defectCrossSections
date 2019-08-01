@@ -301,6 +301,10 @@ contains
     !!
     !! <h2>Walkthrough</h2>
     !!
+    use miscUtilities
+      !! Include `miscUtilities` module for call to
+      !! `arrangeLargerToSmaller`
+    !
     implicit none
     !
     integer :: i, j, nm
@@ -351,7 +355,7 @@ contains
       !
     enddo
     !
-    call arrangeLargerToSmaller()
+    call arrangeLargerToSmaller(nModes, x, s2L)
       !! * Rearrange the indices based on ordering the arguments (`x`)
       !!   largest to smallest
     !
@@ -407,52 +411,6 @@ contains
     return
     !
   end subroutine computeVariables
-  !
-  !
-  subroutine arrangeLargerToSmaller()
-    !! Sort `s2L` based on descending order
-    !! of `x`
-    !!
-    !! @todo Change this to a more efficient algorithm @endtodo
-    !
-    implicit none
-    !
-    integer :: i, iMode
-    !
-    real(kind = dp), allocatable :: temp(:)
-    real(kind = dp) :: tmpr
-    integer :: tmpi
-    !
-    allocate( temp(nModes) )
-    !
-    temp(:) = 0.0_dp
-    temp(:) = x(:)
-    !
-    do iMode = 1, nModes
-      !
-      do i = 1, nModes-1
-        !
-        if ( temp(i) < temp(i+1) ) then 
-          !
-          tmpi = s2L(i)
-          s2L(i) = s2L(i+1)
-          s2L(i+1) = tmpi
-          !
-          tmpr = temp(i)
-          temp(i) = temp(i+1)
-          temp(i+1) = tmpr
-          !
-        endif
-        !
-      enddo
-      !
-    enddo
-    !
-    deallocate ( temp )
-    !
-    return
-    !
-  end subroutine arrangeLargerToSmaller
   !
   !
   subroutine displaceAtoms()

@@ -412,6 +412,9 @@ contains
   !
   subroutine computeVariables()
     !
+    use miscUtilities
+      !! Include `miscUtilities` module for call to
+      !! `arrangeLargerToSmaller`
     implicit none
     !
     integer :: i, j, nm, nb
@@ -437,7 +440,7 @@ contains
       s2L(iMode) = iMode
     enddo
     !
-    call arrangeLargerToSmaller()
+    call arrangeLargerToSmaller(nModes, x, s2L)
     !
     open(11, file='modes', status='unknown')
     !
@@ -454,7 +457,7 @@ contains
     !
     deallocate( genCoord )
     !
-    !  call arrangeLargerToSmaller()
+    !  call arrangeLargerToSmaller(nModes, x, s2L)
     !
     nb = maximumNumberOfPhonons
     allocate( besOrderNofModeM(0:nb + 1, nModes) )
@@ -481,66 +484,6 @@ contains
     return
     !
   end subroutine computeVariables
-  !
-  !
-  subroutine arrangeLargerToSmaller()
-    !
-    implicit none
-    !
-    integer :: i, iMode
-    !
-    real(kind = dp), allocatable :: temp(:)
-    real(kind = dp) :: tmpr
-    integer :: tmpi
-    !
-    allocate( temp(nModes) )
-    !
-    temp(:) = 0.0_dp
-    temp(:) = x(:)
-    !
-    do iMode = 1, nModes
-      !
-      do i = 1, nModes-1
-        !
-        if ( temp(i) < temp(i+1) ) then ! exp(wby2kT(i))*bessi(1,x(i)) < exp(wby2kT(i+1))*bessi(1,x(i+1)) ) then
-                                        ! if ( exp(wby2kT(i))*bessi(1,x(i)) < exp(wby2kT(i+1))*bessi(1,x(i+1)) ) then
-          !
-          tmpi = s2L(i)
-          s2L(i) = s2L(i+1)
-          s2L(i+1) = tmpi
-          !
-          tmpr = temp(i)
-          temp(i) = temp(i+1)
-          temp(i+1) = tmpr
-          !
-!
-!          tmp = x(i)
-!          x(i) = x(i+1)
-!          x(i+1) = tmp
-!          !
-!          tmp = coth(i)
-!          coth(i) = coth(i+1)
-!          coth(i+1) = tmp
-!          !
-!          tmp = wby2kT(i)
-!          wby2kT(i) = wby2kT(i+1)
-!          wby2kT(i+1) = tmp
-!          !
-!          tmp = phonF(i)
-!          phonF(i) = phonF(i+1)
-!          phonF(i+1) = tmp
-!          !
-        endif
-        !
-      enddo
-      !
-    enddo
-    !
-    deallocate ( temp )
-    !
-    return
-    !
-  end subroutine arrangeLargerToSmaller
   !
   !  
 !  subroutine readVfis()
