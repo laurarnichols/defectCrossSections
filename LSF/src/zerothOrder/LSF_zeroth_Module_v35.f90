@@ -152,6 +152,10 @@ contains
   !
   !
   subroutine initializeLSF()
+    !! Allocate and initialize `lsfVsE` and 
+    !! `minimumNumberOfPhonons`. If a file was
+    !! given to continue from, read in both 
+    !! variables from the file.
     !
     implicit none
     !
@@ -176,14 +180,20 @@ contains
         read(11,'(a1, i10, a9, i5, a8)') dummyC1, dummyI, dummyC9, minimumNumberOfPhonons, dummyC8
         ! 
         minimumNumberOfPhonons = minimumNumberOfPhonons + 1
+          !! @todo Figure out why increase `minimumNumberOfPhonons` by 1
+        !
         write(iostd, '(" Minimum number of phonons : ", i5)') minimumNumberOfPhonons
         !
         do iE = -nEnergies, nEnergies
+          !
           read(11,*) dummyD, lsfVsE(iE)
+          !
         enddo
+        !
         close(11)
         !
       endif
+      !
     endif
     !
     return

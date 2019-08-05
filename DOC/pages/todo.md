@@ -2,6 +2,7 @@ title: Todo
 author: Laura Nichols
 date: 08/05/2019
 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:183:` Figure out why increase `minimumNumberOfPhonons` by 1
 * `../Mj/src/Mj_Main.f90:17:` Make sure that there is an end timer
 * `../Mj/src/Mj_Module_v1.f90:25:` Make sure default value is set for `qPoint` 
 * `../Mj/src/Mj_Module_v1.f90:269:` Figure out if expect `modeI` and `modeF` to represent index of magnitude of argument `x` 
