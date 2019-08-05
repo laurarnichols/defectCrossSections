@@ -8,6 +8,7 @@ src_dir:../Mj/src
 src_dir:../LSF/src/zerothOrder
 src_dir:../LSF/src/linearTerms
 src_dir:../Sigma/src
+src_dir:../CommonModule
 output_dir:./documentation
 media_dir:./media
 source: true
