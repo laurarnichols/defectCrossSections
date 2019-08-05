@@ -485,9 +485,9 @@ contains
     !!       \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right}
     !!       D(\omega_j)\right}\]
     !! This function calculates 
-    !! \[\sum_{p_j}\left{\left(\Pi_{j=1}^{M}F_j\right) 
-    !!   \sum_{j=1}^M\left{p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
-    !!   \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right}\right}\]
+    !! \[\sum_{p_j}\left[\left(\Pi_{j=1}^{M}F_j\right) 
+    !!   \sum_{j=1}^M\left(p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
+    !!   \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right)\right]\]
     !! The \(F_j\) terms are calculated based on (42) from the paper
     !! \[F_j = \exp\left[\dfrac{p_j\hbar\omega_j}{2kT} - 
     !!   S_j\coth\left(\dfrac{\hbar\omega_j}{2kT}\right)\right]
