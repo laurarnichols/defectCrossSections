@@ -233,22 +233,57 @@ public subroutine lsfOfConfigurationPj()
 
 
     
-    <p><h2>Walkthrough</h2></p>
+    <p><h2>Background</h2></p>
+<p>The line shape function is defined in the paper as 
+ <script type="math/tex; mode=display">F = \dfrac{1}{\Omega_k}\sum_{\{p_j\}}\left{\left(\Pi_{j=1}^{M}F_j\right)
+       \sum_{j=1}^M\left{p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
+       \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right}
+       D(\omega_j)\right}</script>
+ This function calculates 
+ <script type="math/tex; mode=display">\sum_{\{p_j\}}\left{\left(\Pi_{j=1}^{M}F_j\right) 
+   \sum_{j=1}^M\left{p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
+   \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right}\right}</script>
+ The <script type="math/tex">F_j</script> terms are calculated based on (42) from the paper
+ <script type="math/tex; mode=display">F_j = \exp\left[\dfrac{p_j\hbar\omega_j}{2kT} - 
+   S_j\coth\left(\dfrac{\hbar\omega_j}{2kT}\right)\right]
+   I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]</script>
+</p>
+<p><h2>Walkthrough</h2></p>
 <ul>
 <li>For each phonon mode<ul>
 <li>Get the modified Bessel function <script type="math/tex">I_{p_j}</script>
 </li>
-<li>If the number of additional phonons <script type="math/tex">p_j</script> is 0</li>
-<li>If <script type="math/tex">I_{p_j} > 10^{-15}</script>
+<li>If the number of additional phonons <script type="math/tex">p_j > 0</script>
+  and <script type="math/tex">I_{p_j} > 10^{-15}</script>, <script type="math/tex">F_j = 0</script>
+</li>
+<li>Otherwise, calculate <script type="math/tex">F_j</script> from (42)</li>
+<li>Multiply <script type="math/tex">F_j</script> on running product to get <script type="math/tex">\Pi_{j=1}^{M}F_j</script>
+</li>
+<li>Calculate <script type="math/tex">I_{p_j+1}(x)I_{p_j}(x)</script>
+</li>
+<li>Add results to running total to get innermost sum in (43) in paper
+  (see Background for details)</li>
+</ul>
+</li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change this to merge if statements </p></div>
+<p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why don't just exit here because will be multiplying by 0 </p></div>
+<p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Redo <code>besRatio</code> if statement to be more clear that it is if/else </p></div>
+<p>
 <ul>
 <li>
-<script type="math/tex">F_j = \exp\left[\dfrac{p_j\hbar\omega_j}{2kT} - 
-      S_j\coth\left(\dfrac{\hbar\omega_j}{2kT}\right)\right]
-      I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]</script>
+<p>Calculate the energy gained by the extra phonons</p>
 </li>
-</ul>
+<li>
+<p>Calculate the energy index</p>
 </li>
-</ul>
+<li>
+<p>Increment <code>iEbinsByBands</code></p>
+</li>
+<li>
+<p>Combine terms to get the middle portion of (43) in the paper (see Background for details)</p>
 </li>
 </ul>
     

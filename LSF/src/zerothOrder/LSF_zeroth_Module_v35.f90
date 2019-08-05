@@ -477,6 +477,22 @@ contains
   subroutine lsfOfConfigurationPj()
     !!
     !!
+    !! <h2>Background</h2>
+    !! 
+    !! The line shape function is defined in the paper as 
+    !! \[F = \dfrac{1}{\Omega_k}\sum_{\{p_j\}}\left{\left(\Pi_{j=1}^{M}F_j\right)
+    !!       \sum_{j=1}^M\left{p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
+    !!       \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right}
+    !!       D(\omega_j)\right}\]
+    !! This function calculates 
+    !! \[\sum_{\{p_j\}}\left{\left(\Pi_{j=1}^{M}F_j\right) 
+    !!   \sum_{j=1}^M\left{p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
+    !!   \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right}\right}\]
+    !! The \(F_j\) terms are calculated based on (42) from the paper
+    !! \[F_j = \exp\left[\dfrac{p_j\hbar\omega_j}{2kT} - 
+    !!   S_j\coth\left(\dfrac{\hbar\omega_j}{2kT}\right)\right]
+    !!   I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]\]
+    !!
     !! <h2>Walkthrough</h2>
     !!
     implicit none
@@ -490,16 +506,23 @@ contains
     do j = 1, nModes
       !! * For each phonon mode
       !!    * Get the modified Bessel function \(I_{p_j}\)
-      !!    * If the number of additional phonons \(p_j\) is 0
-      !!       * If \(I_{p_j} > 10^{-15}\)
-      !!          * \(F_j = \exp\left[\dfrac{p_j\hbar\omega_j}{2kT} - 
-      !!              S_j\coth\left(\dfrac{\hbar\omega_j}{2kT}\right)\right]
-      !!              I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]\)
+      !!    * If the number of additional phonons \(p_j > 0\)
+      !!      and \(I_{p_j} > 10^{-15}\), \(F_j = 0\)
+      !!    * Otherwise, calculate \(F_j\) from (42)
+      !!    * Multiply \(F_j\) on running product to get \(\Pi_{j=1}^{M}F_j\)
+      !!    * Calculate \(I_{p_j+1}(x)I_{p_j}(x)\)
+      !!    * Add results to running total to get innermost sum in (43) in paper
+      !!      (see Background for details)
       !
       Fj = 1.0_dp
       !
       besPj = besOrderNofModeM(abs(pj(j)), j)
       !
+      !> @todo Change this to merge if statements @endtodo
+      !if ( pj(j) > 0 .and. besPj > 1.0e-15_dp ) then
+      !  !
+      !  Fj = 0.0_dp
+      !  !
       if ( pj(j) > 0 ) then
         !
         if ( besPj > 1.0e-15_dp ) then 
@@ -509,6 +532,7 @@ contains
         else 
           !
           Fj = 0.0_dp
+            !! @todo Figure out why don't just exit here because will be multiplying by 0 @endtodo
           !
         endif
         !
@@ -521,12 +545,23 @@ contains
       prodFj = prodFj * Fj
       !
       besRatio = 0.5_dp*x(j)/(abs(pj(j))+1)
+        ! Small argument approximation:
+        ! \[I_{p_j}(x) \approx (x/2)^{p_j}/\Gamma(p_j+1)\]
+        ! which means 
+        ! \[I_{p_j+1}(x)/I_{p_j}(x) \approx \dfrac{(x/2)^{p_j+1}}{(x/2)^{p_j}}\dfrac{\Gamma(p_j+1)}{\Gamma(p_j+2)}
+        !   = x/2\dfrac{p_j!}{(p_j+1)!} = x/2(n+1)\]
+      !
       if  ( besPj > 1.0e-15_dp ) besRatio = besOrderNofModeM(abs(pj(j))+1, j)/besPj
+        !! @todo Redo `besRatio` if statement to be more clear that it is if/else @endtodo
+      !
       sumOverj = sumOverj + (abs(pj(j)) + x(j)*besRatio)
       !
     enddo
     !
     E = sum(pj(:)*phonF(:))
+      !! * Calculate the energy gained by the extra phonons
+    !
+    !> * Calculate the energy index
     iE = 0
     if ( abs(E) > 1.0e-6_dp*evToHartree ) then
       iE = int(abs(E)/deltaE) + 1
@@ -534,7 +569,10 @@ contains
     endif
     !
     iEbinsByBands(iE) = iEbinsByBands(iE) + 1
+      !! * Increment `iEbinsByBands`
+    !
     lsfVsEbyBands(iE) = lsfVsEbyBands(iE) + prodFj*sumOverj
+      !! * Combine terms to get the middle portion of (43) in the paper (see Background for details)
     !
     return
     !
