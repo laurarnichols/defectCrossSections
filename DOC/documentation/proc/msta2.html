@@ -132,21 +132,21 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.9% of total for procedures.">33 statements</a>
+    title=" 0.8% of total for procedures.">34 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/LSF_linear_Module_v1.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/generalComputations.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/lsf_linear_module_v1.f90.html'>LSF_linear_Module_v1.f90</a></li>
+     <li><a href='../sourcefile/generalcomputations.f90.html'>generalComputations.f90</a></li>
     
-     <li><a href='../module/lsf.html'>lsf</a></li>
+     <li><a href='../module/generalcomputations.html'>generalComputations</a></li>
     
   
      <li class="active">msta2</li>
@@ -177,27 +177,27 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-a0%7E2">a0</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-it%7E4">it</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-ejn">ejn</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-n0%7E4">n0</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-f%7E2">f</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-n1%7E4">n1</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-f0%7E2">f0</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-nn%7E4">nn</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-f1%7E2">f1</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-a0%7E5">a0</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-hmp">hmp</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-ejn%7E2">ejn</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-obj">obj</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-f%7E6">f</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-it%7E2">it</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-f0%7E6">f0</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-n0%7E2">n0</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-f1%7E6">f1</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-n1%7E2">n1</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-hmp%7E2">hmp</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-nn%7E2">nn</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-obj%7E2">obj</a>
       
     </div>
   </div>
@@ -222,6 +222,14 @@
 
 
 
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/msta2.html#src">msta2</a>
+  </div>
+</div>
+
+
 
 </div>
 
@@ -239,8 +247,10 @@ public function msta2(x, n, mp) result(fn_val)
 
 
     
-    <p>!!!!!!
-!!!!!!</p>
+    <p>Determine the starting point for backward 
+ recurrence such that all <script type="math/tex">J_n(x)</script> has mp
+ significant digits </p>
+<p><h2>Walkthrough</h2></p>
     
 
     <h3>Arguments</h3>
@@ -261,12 +271,13 @@ public function msta2(x, n, mp) result(fn_val)
   
 <tr>
   
-  <td><span class="anchor" id="variable-x%7E4"></span>real(kind=dp),</td>
+  <td><span class="anchor" id="variable-x%7E9"></span>real(kind=dp),</td>
   <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>x</strong></td><td></td>
+  <td><strong>x</strong></td><td><p>Argument of <script type="math/tex">J_n(x)</script>
+</p></td>
   
 </tr>
 
@@ -276,12 +287,13 @@ public function msta2(x, n, mp) result(fn_val)
   
 <tr>
   
-  <td><span class="anchor" id="variable-n%7E3"></span>integer,</td>
+  <td><span class="anchor" id="variable-n%7E9"></span>integer,</td>
   <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>n</strong></td><td></td>
+  <td><strong>n</strong></td><td><p>Order of <script type="math/tex">J_n(x)</script>
+</p></td>
   
 </tr>
 
@@ -291,12 +303,12 @@ public function msta2(x, n, mp) result(fn_val)
   
 <tr>
   
-  <td><span class="anchor" id="variable-mp%7E2"></span>integer,</td>
+  <td><span class="anchor" id="variable-mp%7E4"></span>integer,</td>
   <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>mp</strong></td><td></td>
+  <td><strong>mp</strong></td><td><p>Significant digit</p></td>
   
 </tr>
 
@@ -310,9 +322,9 @@ public function msta2(x, n, mp) result(fn_val)
     
     
     
-   <h3>Return Value <small><span class="anchor" id="variable-fn_val%7E2"></span>integer
+   <h3>Return Value <small><span class="anchor" id="variable-fn_val%7E5"></span>integer
   </small></h3>
-    
+    <p>Starting point</p>
     
     
     
@@ -331,27 +343,27 @@ public function msta2(x, n, mp) result(fn_val)
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-a0%7E2">a0</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-it%7E4">it</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-ejn">ejn</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-n0%7E4">n0</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-f%7E2">f</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-n1%7E4">n1</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-f0%7E2">f0</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-nn%7E4">nn</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-f1%7E2">f1</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-a0%7E5">a0</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-hmp">hmp</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-ejn%7E2">ejn</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-obj">obj</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-f%7E6">f</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-it%7E2">it</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-f0%7E6">f0</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-n0%7E2">n0</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-f1%7E6">f1</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-n1%7E2">n1</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-hmp%7E2">hmp</a>
       
-      <a class="list-group-item" href="../proc/msta2.html#variable-nn%7E2">nn</a>
+      <a class="list-group-item" href="../proc/msta2.html#variable-obj%7E2">obj</a>
       
     </div>
   </div>
@@ -374,6 +386,14 @@ public function msta2(x, n, mp) result(fn_val)
 
 
 
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/msta2.html#src">msta2</a>
+  </div>
+</div>
 
 
 
@@ -401,105 +421,7 @@ public function msta2(x, n, mp) result(fn_val)
   
 <tr>
   
-  <td><span class="anchor" id="variable-a0%7E2"></span>real(kind=dp),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>a0</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-ejn"></span>real(kind=dp),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>ejn</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-f%7E2"></span>real(kind=dp),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>f</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-f0%7E2"></span>real(kind=dp),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>f0</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-f1%7E2"></span>real(kind=dp),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>f1</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-hmp"></span>real(kind=dp),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>hmp</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-obj"></span>real(kind=dp),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>obj</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-it%7E2"></span>integer,</td>
+  <td><span class="anchor" id="variable-it%7E4"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -513,7 +435,7 @@ public function msta2(x, n, mp) result(fn_val)
   
 <tr>
   
-  <td><span class="anchor" id="variable-n0%7E2"></span>integer,</td>
+  <td><span class="anchor" id="variable-n0%7E4"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -527,7 +449,7 @@ public function msta2(x, n, mp) result(fn_val)
   
 <tr>
   
-  <td><span class="anchor" id="variable-n1%7E2"></span>integer,</td>
+  <td><span class="anchor" id="variable-n1%7E4"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -541,11 +463,109 @@ public function msta2(x, n, mp) result(fn_val)
   
 <tr>
   
-  <td><span class="anchor" id="variable-nn%7E2"></span>integer,</td>
+  <td><span class="anchor" id="variable-nn%7E4"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
   <td><strong>nn</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-a0%7E5"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>a0</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-ejn%7E2"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>ejn</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f%7E6"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>f</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f0%7E6"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>f0</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f1%7E6"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>f1</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-hmp%7E2"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>hmp</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-obj%7E2"></span>real(kind=dp),</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>obj</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -569,6 +589,85 @@ public function msta2(x, n, mp) result(fn_val)
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">function </span><span class="n">msta2</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">mp</span><span class="p">)</span> <span class="k">result</span><span class="p">(</span><span class="n">fn_val</span><span class="p">)</span> 
+    <span class="c">!! Determine the starting point for backward </span>
+    <span class="c">!! recurrence such that all \(J_n(x)\) has mp</span>
+    <span class="c">!! significant digits </span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">n</span> 
+      <span class="c">!! Order of \(J_n(x)\)</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">mp</span> 
+      <span class="c">!! Significant digit</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">fn_val</span> 
+      <span class="c">!! Starting point</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">it</span><span class="p">,</span> <span class="n">n0</span><span class="p">,</span> <span class="n">n1</span><span class="p">,</span> <span class="n">nn</span> 
+    <span class="c">! </span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">x</span> 
+      <span class="c">!! Argument of \(J_n(x)\)</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">a0</span><span class="p">,</span> <span class="n">ejn</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">f0</span><span class="p">,</span> <span class="n">f1</span><span class="p">,</span> <span class="n">hmp</span><span class="p">,</span> <span class="n">obj</span> 
+    <span class="c">! </span>
+    <span class="n">a0</span> <span class="o">=</span> <span class="nb">ABS</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> 
+    <span class="c">! </span>
+    <span class="n">hmp</span> <span class="o">=</span> <span class="mf">0.5_dp</span> <span class="o">*</span> <span class="n">mp</span> 
+    <span class="c">! </span>
+    <span class="n">ejn</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span> 
+    <span class="c">! </span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">ejn</span> <span class="o">&lt;=</span> <span class="n">hmp</span><span class="p">)</span> <span class="k">then</span>
+      <span class="c">! </span>
+      <span class="n">obj</span> <span class="o">=</span> <span class="n">mp</span> 
+      <span class="c">! </span>
+      <span class="n">n0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">1.1</span><span class="o">*</span><span class="n">a0</span><span class="p">)</span> 
+      <span class="c">! </span>
+    <span class="k">else</span>
+      <span class="c">! </span>
+      <span class="n">obj</span> <span class="o">=</span> <span class="n">hmp</span> <span class="o">+</span> <span class="n">ejn</span> 
+      <span class="c">! </span>
+      <span class="n">n0</span> <span class="o">=</span> <span class="n">n</span> 
+      <span class="c">! </span>
+    <span class="n">endif</span> 
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">n0</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="p">)</span> <span class="n">n0</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="c">!</span>
+    <span class="n">f0</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n0</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">obj</span> 
+    <span class="c">!</span>
+    <span class="n">n1</span> <span class="o">=</span> <span class="n">n0</span> <span class="o">+</span> <span class="mi">5</span> 
+    <span class="c">!</span>
+    <span class="n">f1</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n1</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">obj</span> 
+    <span class="c">!</span>
+    <span class="k">do  </span><span class="n">it</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">20</span> 
+      <span class="c">!</span>
+      <span class="n">nn</span> <span class="o">=</span> <span class="n">n1</span> <span class="o">-</span> <span class="nb">int</span><span class="p">((</span><span class="n">n1</span><span class="o">-</span><span class="n">n0</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0_dp</span> <span class="o">-</span> <span class="n">f0</span><span class="o">/</span><span class="n">f1</span><span class="p">))</span>
+      <span class="c">!</span>
+      <span class="n">f</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">obj</span> 
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">nn</span><span class="o">-</span><span class="n">n1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">)</span> <span class="k">exit</span>
+      <span class="c">!</span>
+      <span class="n">n0</span> <span class="o">=</span> <span class="n">n1</span> 
+      <span class="c">!</span>
+      <span class="n">f0</span> <span class="o">=</span> <span class="n">f1</span> 
+      <span class="c">!</span>
+      <span class="n">n1</span> <span class="o">=</span> <span class="n">nn</span> 
+      <span class="c">!</span>
+      <span class="n">f1</span> <span class="o">=</span> <span class="n">f</span> 
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="n">fn_val</span> <span class="o">=</span> <span class="n">nn</span> <span class="o">+</span> <span class="mi">10</span> 
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">! </span>
+  <span class="k">end function </span><span class="n">msta2</span> 
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

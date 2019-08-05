@@ -124,6 +124,10 @@
 <div class="well well-sm">
   <ul class="list-inline" style="margin-bottom:0px;display:inline">
      
+     <li><i class="fa fa-pencil"></i> Shanjie Zhang, Jianming Jin</li>
+     
+     
+    <li><i class="fa fa-calendar-o"></i> 17 July 2012</li>
      
      
      
@@ -132,21 +136,21 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.6% of total for procedures.">60 statements</a>
+    title=" 1.5% of total for procedures.">62 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/LSF_linear_Module_v1.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/generalComputations.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/lsf_linear_module_v1.f90.html'>LSF_linear_Module_v1.f90</a></li>
+     <li><a href='../sourcefile/generalcomputations.f90.html'>generalComputations.f90</a></li>
     
-     <li><a href='../module/lsf.html'>lsf</a></li>
+     <li><a href='../module/generalcomputations.html'>generalComputations</a></li>
     
   
      <li class="active">iknb</li>
@@ -177,29 +181,29 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-bs">bs</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-ik%7E14">ik</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-el">el</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-k%7E4">k</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-f%7E3">f</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-m%7E17">m</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-f0%7E3">f0</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-bs%7E3">bs</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-f1%7E3">f1</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-el%7E3">el</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-k%7E2">k</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-f%7E7">f</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-m%7E15">m</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-fact">fact</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-ik%7E13">ik</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-f0%7E7">f0</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-pi%7E2">pi</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-f1%7E7">f1</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-s0">s0</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-pi%7E4">pi</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-sk0">sk0</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-s0%7E3">s0</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-ifact">ifact</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-sk0%7E3">sk0</a>
       
     </div>
   </div>
@@ -224,6 +228,14 @@
 
 
 
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/iknb.html#src">iknb</a>
+  </div>
+</div>
+
+
 
 </div>
 
@@ -240,6 +252,55 @@ public subroutine iknb(n, x, nm, bi)
   
 
 
+    
+    <p><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong>*</strong>72</p>
+<p>IKNB compute Bessel function In(x) and Kn(x).</p>
+<p><h2>Discussion</h2></p>
+<div class="codehilite"><pre><span></span><span class="n">Compute</span> <span class="n">modified</span> <span class="n">Bessel</span> <span class="n">functions</span> <span class="k">In</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">and</span> <span class="n">Kn</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
+<span class="k">and</span> <span class="n">their</span> <span class="n">derivatives</span><span class="p">.</span>
+</pre></div>
+
+
+<p><h2>Licensing</h2></p>
+<div class="codehilite"><pre><span></span><span class="n">This</span> <span class="k">routine</span> <span class="k">is</span> <span class="n">copyrighted</span> <span class="k">by</span> <span class="n">Shanjie</span> <span class="n">Zhang</span> <span class="k">and</span> <span class="n">Jianming</span> <span class="n">Jin</span><span class="p">.</span>  <span class="n">However</span><span class="p">,</span> 
+<span class="n">they</span> <span class="n">give</span> <span class="n">permission</span> <span class="k">to</span> <span class="n">incorporate</span> <span class="n">this</span> <span class="k">routine</span> <span class="k">into</span> <span class="n">a</span> <span class="k">user</span> <span class="n">program</span> 
+<span class="n">provided</span> <span class="n">that</span> <span class="n">the</span> <span class="n">copyright</span> <span class="k">is</span> <span class="n">acknowledged</span><span class="p">.</span>
+</pre></div>
+
+
+<p><h2>Reference</h2></p>
+<div class="codehilite"><pre><span></span><span class="n">Shanjie</span> <span class="n">Zhang</span><span class="p">,</span> <span class="n">Jianming</span> <span class="n">Jin</span><span class="p">,</span>
+<span class="n">Computation</span> <span class="k">of</span> <span class="n">Special</span> <span class="n">Functions</span><span class="p">,</span>
+<span class="n">Wiley</span><span class="p">,</span> <span class="mi">1996</span><span class="p">,</span>
+<span class="n">ISBN</span><span class="p">:</span> <span class="mi">0</span><span class="o">-</span><span class="mi">471</span><span class="o">-</span><span class="mi">11963</span><span class="o">-</span><span class="mi">6</span><span class="p">,</span>
+<span class="n">LC</span><span class="p">:</span> <span class="n">QA351</span><span class="p">.</span><span class="n">C45</span><span class="p">.</span>
+</pre></div>
+
+
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>
+<p>If <script type="math/tex">x < 10^{-15}</script>, use the limiting value for  a small argument 
+   <script type="math/tex; mode=display">I_n(x) \approx \left(\dfrac{x}{2}\right)^2\Gamma(n+1)</script>
+   where <script type="math/tex">\Gamma(n+1) = n!</script> to calculate multiple orders of the 
+   modified Bessel function (up to <script type="math/tex">n</script>) for a single value of <script type="math/tex">x</script>
+</p>
+</li>
+<li>
+<p>Otherwise, get the starting order <script type="math/tex">m</script> such
+   that <script type="math/tex">J_n(x)\approx10^{-200}</script>
+</p>
+</li>
+<li>
+<p>If <script type="math/tex">m</script> is less than the max order to be 
+   calculated, set the max to <script type="math/tex">m</script>
+</p>
+</li>
+<li>
+<p>Otherwise, set <script type="math/tex">m</script> to the starting order such
+   that all <script type="math/tex">J_{nm}(x)</script> have 15 significant digits</p>
+</li>
+</ul>
     
 
     <h3>Arguments</h3>
@@ -260,12 +321,13 @@ public subroutine iknb(n, x, nm, bi)
   
 <tr>
   
-  <td><span class="anchor" id="variable-n%7E7"></span>integer,</td>
+  <td><span class="anchor" id="variable-n%7E11"></span>integer,</td>
   <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>n</strong></td><td></td>
+  <td><strong>n</strong></td><td><p>Order of <script type="math/tex">I_n(x)</script> and <script type="math/tex">K_n(x)</script>
+</p></td>
   
 </tr>
 
@@ -275,12 +337,12 @@ public subroutine iknb(n, x, nm, bi)
   
 <tr>
   
-  <td><span class="anchor" id="variable-x%7E6"></span>double precision</td>
+  <td><span class="anchor" id="variable-x%7E12"></span>double precision</td>
   <td></td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>x</strong></td><td></td>
+  <td><strong>x</strong></td><td><p>The argument</p></td>
   
 </tr>
 
@@ -290,12 +352,12 @@ public subroutine iknb(n, x, nm, bi)
   
 <tr>
   
-  <td><span class="anchor" id="variable-nm%7E2"></span>integer</td>
-  <td></td>
+  <td><span class="anchor" id="variable-nm%7E5"></span>integer,</td>
+  <td>intent(inout)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>nm</strong></td><td></td>
+  <td><strong>nm</strong></td><td><p>The highest order computed</p></td>
   
 </tr>
 
@@ -305,12 +367,14 @@ public subroutine iknb(n, x, nm, bi)
   
 <tr>
   
-  <td><span class="anchor" id="variable-bi%7E2"></span>double precision</td>
+  <td><span class="anchor" id="variable-bi%7E5"></span>double precision</td>
   <td></td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>bi</strong>(0:n)</td><td></td>
+  <td><strong>bi</strong>(0:n)</td><td><p>
+<script type="math/tex">I_n(x)</script>
+</p></td>
   
 </tr>
 
@@ -336,29 +400,29 @@ public subroutine iknb(n, x, nm, bi)
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-bs">bs</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-ik%7E14">ik</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-el">el</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-k%7E4">k</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-f%7E3">f</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-m%7E17">m</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-f0%7E3">f0</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-bs%7E3">bs</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-f1%7E3">f1</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-el%7E3">el</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-k%7E2">k</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-f%7E7">f</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-m%7E15">m</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-fact">fact</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-ik%7E13">ik</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-f0%7E7">f0</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-pi%7E2">pi</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-f1%7E7">f1</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-s0">s0</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-pi%7E4">pi</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-sk0">sk0</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-s0%7E3">s0</a>
       
-      <a class="list-group-item" href="../proc/iknb.html#variable-ifact">ifact</a>
+      <a class="list-group-item" href="../proc/iknb.html#variable-sk0%7E3">sk0</a>
       
     </div>
   </div>
@@ -381,6 +445,14 @@ public subroutine iknb(n, x, nm, bi)
 
 
 
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/iknb.html#src">iknb</a>
+  </div>
+</div>
 
 
 
@@ -408,105 +480,7 @@ public subroutine iknb(n, x, nm, bi)
   
 <tr>
   
-  <td><span class="anchor" id="variable-bs"></span>double precision,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>bs</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-el"></span>double precision,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>el</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-f%7E3"></span>double precision,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>f</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-f0%7E3"></span>double precision,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>f0</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-f1%7E3"></span>double precision,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>f1</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-k%7E2"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>k</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-m%7E15"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>m</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-ik%7E13"></span>integer,</td>
+  <td><span class="anchor" id="variable-ik%7E14"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -520,7 +494,119 @@ public subroutine iknb(n, x, nm, bi)
   
 <tr>
   
-  <td><span class="anchor" id="variable-pi%7E2"></span>double precision,</td>
+  <td><span class="anchor" id="variable-k%7E4"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>k</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-m%7E17"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>m</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-bs%7E3"></span>double precision,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>bs</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-el%7E3"></span>double precision,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>el</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f%7E7"></span>double precision,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>f</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-fact"></span>double precision,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>fact</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f0%7E7"></span>double precision,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>f0</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-f1%7E7"></span>double precision,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>f1</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-pi%7E4"></span>double precision,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -534,7 +620,7 @@ public subroutine iknb(n, x, nm, bi)
   
 <tr>
   
-  <td><span class="anchor" id="variable-s0"></span>double precision,</td>
+  <td><span class="anchor" id="variable-s0%7E3"></span>double precision,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -548,25 +634,11 @@ public subroutine iknb(n, x, nm, bi)
   
 <tr>
   
-  <td><span class="anchor" id="variable-sk0"></span>double precision,</td>
+  <td><span class="anchor" id="variable-sk0%7E3"></span>double precision,</td>
   
   <td>public</td>
   <td></td><td>::</td>
   <td><strong>sk0</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-ifact"></span>double precision,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>ifact</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -590,6 +662,174 @@ public subroutine iknb(n, x, nm, bi)
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">iknb</span> <span class="p">(</span> <span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">nm</span><span class="p">,</span> <span class="n">bi</span><span class="p">)</span> <span class="c">!, di, bk, dk )</span>
+    <span class="c">!! author: Shanjie Zhang, Jianming Jin</span>
+    <span class="c">!! date: 17 July 2012</span>
+    <span class="c">!</span>
+    <span class="c">! Modified : when x &lt; 10^(-15) return the limiting value for small argument [ I_n(x) ~ (x/2)^n Gamma(n+1) ]</span>
+    <span class="c">! </span>
+    <span class="c">!*********************************************************************72</span>
+    <span class="c">!</span>
+    <span class="c">!! IKNB compute Bessel function In(x) and Kn(x).</span>
+    <span class="c">!!</span>
+    <span class="c">!!  &lt;h2&gt;Discussion&lt;/h2&gt;</span>
+    <span class="c">!!</span>
+    <span class="c">!!    Compute modified Bessel functions In(x) and Kn(x),</span>
+    <span class="c">!!    and their derivatives.</span>
+    <span class="c">!!</span>
+    <span class="c">!!  &lt;h2&gt;Licensing&lt;/h2&gt;</span>
+    <span class="c">!!</span>
+    <span class="c">!!    This routine is copyrighted by Shanjie Zhang and Jianming Jin.  However, </span>
+    <span class="c">!!    they give permission to incorporate this routine into a user program </span>
+    <span class="c">!!    provided that the copyright is acknowledged.</span>
+    <span class="c">!!</span>
+    <span class="c">!!</span>
+    <span class="c">!!  &lt;h2&gt;Reference&lt;/h2&gt;</span>
+    <span class="c">!!</span>
+    <span class="c">!!    Shanjie Zhang, Jianming Jin,</span>
+    <span class="c">!!    Computation of Special Functions,</span>
+    <span class="c">!!    Wiley, 1996,</span>
+    <span class="c">!!    ISBN: 0-471-11963-6,</span>
+    <span class="c">!!    LC: QA351.C45.</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">n</span>
+      <span class="c">!! Order of \(I_n(x)\) and \(K_n(x)\)</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nm</span>
+      <span class="c">!! The highest order computed</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ik</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">k</span>
+<span class="c">!    integer :: k0</span>
+<span class="c">!    integer :: l</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">m</span>
+<span class="c">!    integer :: msta1</span>
+<span class="c">!    integer :: msta2</span>
+    <span class="c">!</span>
+<span class="c">!    double precision :: a0</span>
+    <span class="kt">double precision</span> <span class="kd">::</span> <span class="n">bi</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">n</span><span class="p">)</span>
+      <span class="c">!! \(I_n(x)\)</span>
+<span class="c">!    double precision :: bkl</span>
+    <span class="kt">double precision</span> <span class="kd">::</span> <span class="n">bs</span>
+    <span class="kt">double precision</span> <span class="kd">::</span> <span class="n">el</span>
+    <span class="kt">double precision</span> <span class="kd">::</span> <span class="n">f</span>
+    <span class="kt">double precision</span> <span class="kd">::</span> <span class="n">fact</span>
+    <span class="kt">double precision</span> <span class="kd">::</span> <span class="n">f0</span>
+    <span class="kt">double precision</span> <span class="kd">::</span> <span class="n">f1</span>
+<span class="c">!    double precision :: g</span>
+<span class="c">!    double precision :: g0</span>
+<span class="c">!    double precision :: g1</span>
+    <span class="kt">double precision</span> <span class="kd">::</span> <span class="n">pi</span>
+<span class="c">!    double precision :: r</span>
+    <span class="kt">double precision</span> <span class="kd">::</span> <span class="n">s0</span>
+    <span class="kt">double precision</span> <span class="kd">::</span> <span class="n">sk0</span>
+<span class="c">!    double precision :: vt</span>
+    <span class="kt">double precision</span> <span class="kd">::</span> <span class="n">x</span>
+      <span class="c">!! The argument</span>
+    <span class="c">!</span>
+    <span class="n">pi</span> <span class="o">=</span> <span class="mf">3.141592653589793D+00</span>
+    <span class="n">el</span> <span class="o">=</span> <span class="mf">0.5772156649015329D+00</span>
+    <span class="n">nm</span> <span class="o">=</span> <span class="n">n</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">x</span> <span class="p">.</span><span class="n">le</span><span class="p">.</span> <span class="mf">1.0D-15</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!! * If \(x &lt; 10^{-15}\), use the limiting value for  a small argument </span>
+      <span class="c">!!   \[I_n(x) \approx \left(\dfrac{x}{2}\right)^2\Gamma(n+1)\]</span>
+      <span class="c">!!   where \(\Gamma(n+1) = n!\) to calculate multiple orders of the </span>
+      <span class="c">!!   modified Bessel function (up to \(n\)) for a single value of \(x\)</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">n</span>
+        <span class="c">! For each order</span>
+        <span class="c">!</span>
+        <span class="n">fact</span> <span class="o">=</span> <span class="mf">1.0_dp</span>
+        <span class="c">!</span>
+        <span class="k">do </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">k</span>
+          <span class="c">! Calculate the factorial</span>
+          <span class="c">!</span>
+          <span class="n">fact</span> <span class="o">=</span> <span class="n">fact</span><span class="o">*</span><span class="n">ik</span>
+          <span class="c">!</span>
+        <span class="n">enddo</span>
+        <span class="c">!</span>
+        <span class="n">bi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.5_dp</span><span class="o">*</span><span class="n">x</span><span class="p">)</span><span class="o">**</span><span class="n">k</span><span class="o">/</span><span class="n">fact</span>
+          <span class="c">! Calculate \(I_n(x)\)</span>
+        <span class="c">!</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+      <span class="k">return</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">n</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mi">0</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!</span>
+      <span class="n">nm</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="c">!</span>
+    <span class="k">end if</span>
+    <span class="c">!</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">msta1</span> <span class="p">(</span> <span class="n">x</span><span class="p">,</span> <span class="mi">200</span> <span class="p">)</span>
+      <span class="c">!! * Otherwise, get the starting order \(m\) such</span>
+      <span class="c">!!   that \(J_n(x)\approx10^{-200}\)</span>
+    <span class="c">!</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">m</span> <span class="p">.</span><span class="n">lt</span><span class="p">.</span> <span class="n">nm</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!! * If \(m\) is less than the max order to be </span>
+      <span class="c">!!   calculated, set the max to \(m\)</span>
+      <span class="c">!</span>
+      <span class="n">nm</span> <span class="o">=</span> <span class="n">m</span>
+      <span class="c">!</span>
+    <span class="k">else</span>
+      <span class="c">!! * Otherwise, set \(m\) to the starting order such</span>
+      <span class="c">!!   that all \(J_{nm}(x)\) have 15 significant digits</span>
+      <span class="c">!</span>
+      <span class="n">m</span> <span class="o">=</span> <span class="n">msta2</span> <span class="p">(</span> <span class="n">x</span><span class="p">,</span> <span class="n">nm</span><span class="p">,</span> <span class="mi">15</span> <span class="p">)</span>
+      <span class="c">!</span>
+    <span class="k">end if</span>
+    <span class="c">!</span>
+    <span class="n">bs</span> <span class="o">=</span> <span class="mf">0.0D+00</span>
+    <span class="n">sk0</span> <span class="o">=</span> <span class="mf">0.0D+00</span>
+    <span class="n">f0</span> <span class="o">=</span> <span class="mf">0.0D+00</span>
+    <span class="n">f1</span> <span class="o">=</span> <span class="mf">1.0D-100</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">k</span> <span class="o">=</span> <span class="n">m</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="c">!</span>
+      <span class="n">f</span> <span class="o">=</span> <span class="mf">2.0D+00</span> <span class="o">*</span> <span class="p">(</span> <span class="n">k</span> <span class="o">+</span> <span class="mf">1.0D+00</span> <span class="p">)</span> <span class="o">/</span> <span class="n">x</span> <span class="o">*</span> <span class="n">f1</span> <span class="o">+</span> <span class="n">f0</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">k</span> <span class="p">.</span><span class="n">le</span><span class="p">.</span> <span class="n">nm</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">!</span>
+        <span class="n">bi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="c">!</span>
+      <span class="k">end if</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span> <span class="n">k</span> <span class="p">.</span><span class="n">ne</span><span class="p">.</span> <span class="mi">0</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">k</span> <span class="p">.</span><span class="n">eq</span><span class="p">.</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">int</span> <span class="p">(</span> <span class="n">k</span> <span class="o">/</span> <span class="mi">2</span> <span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+        <span class="c">!</span>
+        <span class="n">sk0</span> <span class="o">=</span> <span class="n">sk0</span> <span class="o">+</span> <span class="mf">4.0D+00</span> <span class="o">*</span> <span class="n">f</span> <span class="o">/</span> <span class="n">k</span>
+        <span class="c">!</span>
+      <span class="k">end if</span>
+      <span class="c">!</span>
+      <span class="n">bs</span> <span class="o">=</span> <span class="n">bs</span> <span class="o">+</span> <span class="mf">2.0D+00</span> <span class="o">*</span> <span class="n">f</span>
+      <span class="c">!</span>
+      <span class="n">f0</span> <span class="o">=</span> <span class="n">f1</span>
+      <span class="c">!</span>
+      <span class="n">f1</span> <span class="o">=</span> <span class="n">f</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="n">s0</span> <span class="o">=</span> <span class="nb">exp</span> <span class="p">(</span> <span class="n">x</span> <span class="p">)</span> <span class="o">/</span> <span class="p">(</span> <span class="n">bs</span> <span class="o">-</span> <span class="n">f</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nm</span>
+      <span class="c">!</span>
+      <span class="n">bi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">s0</span> <span class="o">*</span> <span class="n">bi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+      <span class="c">!</span>
+    <span class="k">end do</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+<span class="k">  end subroutine </span><span class="n">iknb</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

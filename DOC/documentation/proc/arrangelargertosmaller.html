@@ -132,21 +132,21 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.0% of total for procedures.">36 statements</a>
+    title=" 0.6% of total for procedures.">25 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/LSF_linear_Module_v1.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/miscUtilities.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/lsf_linear_module_v1.f90.html'>LSF_linear_Module_v1.f90</a></li>
+     <li><a href='../sourcefile/miscutilities.f90.html'>miscUtilities.f90</a></li>
     
-     <li><a href='../module/lsf.html'>lsf</a></li>
+     <li><a href='../module/miscutilities.html'>miscUtilities</a></li>
     
   
      <li class="active">arrangeLargerToSmaller</li>
@@ -177,15 +177,15 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-i%7E11">i</a>
+      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-i%7E19">i</a>
       
-      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-imode%7E7">iMode</a>
+      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-imode%7E10">iMode</a>
       
-      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-temp">temp</a>
+      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-temp%7E2">temp</a>
       
-      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-tmpr">tmpr</a>
+      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-tmpr%7E2">tmpr</a>
       
-      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-tmpi">tmpi</a>
+      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-tmpi%7E2">tmpi</a>
       
     </div>
   </div>
@@ -210,6 +210,14 @@
 
 
 
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/arrangelargertosmaller.html#src">arrangeLargerToSmaller</a>
+  </div>
+</div>
+
+
 
 </div>
 
@@ -217,7 +225,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine arrangeLargerToSmaller()
+public subroutine arrangeLargerToSmaller(nModes, x, s2L)
     
     
    
@@ -227,11 +235,75 @@ public subroutine arrangeLargerToSmaller()
 
 
     
+    <p>Sort <code>s2L</code> based on descending order
+ of <code>x</code></p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Change this to a more efficient algorithm </p></div>
+<p>
+    
 
     <h3>Arguments</h3>
     
-    <em>None</em>
-    <br>
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nmodes%7E3"></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>nModes</strong></td><td><p>Number of phonon modes</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-x%7E13"></span>real(kind=dp),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>x</strong>(nModes)</td><td><p>Argument to modified Bessel function</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-s2l%7E2"></span>integer,</td>
+  <td>intent(inout)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>s2L</strong>(nModes)</td><td><p>Indexes phonon information that come in
+ in order (1, 2, 3, ...) and are rearranged
+ here so that they are the indices in order
+ of the magnitude of the argument <code>x</code></p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
     
     
     
@@ -251,15 +323,15 @@ public subroutine arrangeLargerToSmaller()
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-i%7E11">i</a>
+      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-i%7E19">i</a>
       
-      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-imode%7E7">iMode</a>
+      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-imode%7E10">iMode</a>
       
-      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-temp">temp</a>
+      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-temp%7E2">temp</a>
       
-      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-tmpr">tmpr</a>
+      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-tmpr%7E2">tmpr</a>
       
-      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-tmpi">tmpi</a>
+      <a class="list-group-item" href="../proc/arrangelargertosmaller.html#variable-tmpi%7E2">tmpi</a>
       
     </div>
   </div>
@@ -282,6 +354,14 @@ public subroutine arrangeLargerToSmaller()
 
 
 
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/arrangelargertosmaller.html#src">arrangeLargerToSmaller</a>
+  </div>
+</div>
 
 
 
@@ -309,7 +389,7 @@ public subroutine arrangeLargerToSmaller()
   
 <tr>
   
-  <td><span class="anchor" id="variable-i%7E11"></span>integer,</td>
+  <td><span class="anchor" id="variable-i%7E19"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -323,7 +403,7 @@ public subroutine arrangeLargerToSmaller()
   
 <tr>
   
-  <td><span class="anchor" id="variable-imode%7E7"></span>integer,</td>
+  <td><span class="anchor" id="variable-imode%7E10"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -337,11 +417,11 @@ public subroutine arrangeLargerToSmaller()
   
 <tr>
   
-  <td><span class="anchor" id="variable-temp"></span>real(kind=dp),</td>
+  <td><span class="anchor" id="variable-temp%7E2"></span>real(kind=dp),</td>
   
-  <td>public,</td>
-  <td>allocatable</td><td>::</td>
-  <td><strong>temp</strong>(:)</td><td></td><td></td><td></td>
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>temp</strong>(nModes)</td><td></td><td></td><td></td>
   
 </tr>
 
@@ -351,7 +431,7 @@ public subroutine arrangeLargerToSmaller()
   
 <tr>
   
-  <td><span class="anchor" id="variable-tmpr"></span>real(kind=dp),</td>
+  <td><span class="anchor" id="variable-tmpr%7E2"></span>real(kind=dp),</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -365,7 +445,7 @@ public subroutine arrangeLargerToSmaller()
   
 <tr>
   
-  <td><span class="anchor" id="variable-tmpi"></span>integer,</td>
+  <td><span class="anchor" id="variable-tmpi%7E2"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -393,6 +473,62 @@ public subroutine arrangeLargerToSmaller()
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">arrangeLargerToSmaller</span><span class="p">(</span><span class="n">nModes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">s2L</span><span class="p">)</span>
+    <span class="c">!! Sort `s2L` based on descending order</span>
+    <span class="c">!! of `x`</span>
+    <span class="c">!!</span>
+    <span class="c">!! @todo Change this to a more efficient algorithm @endtodo</span>
+    <span class="c">!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nModes</span>
+      <span class="c">!! Number of phonon modes</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">s2L</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span>
+      <span class="c">!! Indexes phonon information that come in</span>
+      <span class="c">!! in order (1, 2, 3, ...) and are rearranged</span>
+      <span class="c">!! here so that they are the indices in order</span>
+      <span class="c">!! of the magnitude of the argument `x`</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">iMode</span>
+    <span class="c">!</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">x</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span>
+      <span class="c">!! Argument to modified Bessel function</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">temp</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">tmpr</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">tmpi</span>
+    <span class="c">!</span>
+    <span class="n">temp</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+    <span class="n">temp</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">x</span><span class="p">(:)</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">iMode</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nModes</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nModes</span><span class="o">-</span><span class="mi">1</span>
+        <span class="c">!</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">temp</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">temp</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+          <span class="c">!</span>
+          <span class="n">tmpi</span> <span class="o">=</span> <span class="n">s2L</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+          <span class="n">s2L</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">s2L</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+          <span class="n">s2L</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">tmpi</span>
+          <span class="c">!</span>
+          <span class="n">tmpr</span> <span class="o">=</span> <span class="n">temp</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+          <span class="n">temp</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">temp</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+          <span class="n">temp</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">tmpr</span>
+          <span class="c">!</span>
+        <span class="n">endif</span>
+        <span class="c">!</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">arrangeLargerToSmaller</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

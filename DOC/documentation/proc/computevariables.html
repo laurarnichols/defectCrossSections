@@ -132,21 +132,21 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.1% of total for procedures.">40 statements</a>
+    title=" 1.2% of total for procedures.">50 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/LSF_linear_Module_v1.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/generalComputations.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/lsf_linear_module_v1.f90.html'>LSF_linear_Module_v1.f90</a></li>
+     <li><a href='../sourcefile/generalcomputations.f90.html'>generalComputations.f90</a></li>
     
-     <li><a href='../module/lsf.html'>lsf</a></li>
+     <li><a href='../module/generalcomputations.html'>generalComputations</a></li>
     
   
      <li class="active">computeVariables</li>
@@ -177,21 +177,17 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-i%7E10">i</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-i%7E18">i</a>
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-j%7E9">j</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-j%7E14">j</a>
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-nm">nm</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-nm%7E4">nm</a>
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-nb">nb</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-nb%7E2">nb</a>
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-bi">bi</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-imode%7E9">iMode</a>
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-di">di</a>
-      
-      <a class="list-group-item" href="../proc/computevariables.html#variable-bk">bk</a>
-      
-      <a class="list-group-item" href="../proc/computevariables.html#variable-dk">dk</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-bi%7E4">bi</a>
       
     </div>
   </div>
@@ -216,6 +212,14 @@
 
 
 
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/computevariables.html#src">computeVariables</a>
+  </div>
+</div>
+
+
 
 </div>
 
@@ -223,21 +227,284 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine computeVariables()
+public subroutine computeVariables(x, Sj, coth, wby2kT, phonF, genCoord, kT, s2L, nModes, maximumNumberOfPhonons, besOrderNofModeM)
     
     
    
 </h2>
     
   
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Uses</h3>
+      </div>
+      <ul class="list-group">
+      
+      <li class="list-group-item">
+  <ul class="list-inline">
+    
+    <li><a href='../module/miscutilities.html'>miscUtilities</a></li>
+    
+  </ul>
+      </li>
+      
+      
+      
+      </ul>
+    </div>
+    
 
 
+    
+    <p>Calculate biggest portions of equations 42 and 43 to make
+ entire equation more manageable</p>
+<p><h2>Walkthrough</h2></p>
+<p>Include <code>miscUtilities</code> module for call to
+ <code>arrangeLargerToSmaller</code></p>
+<ul>
+<li>
+<p>Calculate 
+   <script type="math/tex; mode=display">S_j = \dfrac{\omega_j}{2\hbar}N\delta q_j^2</script> 
+   where <script type="math/tex">\omega_i\rightarrow</script>
+<code>phonF(j)</code>, 
+   <script type="math/tex">\delta q_j\rightarrow</script>
+<code>genCoord(j)</code>, and <script type="math/tex">N</script>
+   is the number of atoms per supercell
+ </p><div class="alert alert-info" role="alert"><h4>Note</h4><p>This is equation 44 in the paper </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why there is no <script type="math/tex">N</script> in this equation in the code </p></div>
+<p>
+</li>
+<li>
+<p>Calculate <script type="math/tex">\hbar\omega_j/2kT</script> that is the argument 
+   to hyperbolic trig functions
+ </p><div class="alert alert-info" role="alert"><h4>Note</h4><p>This is mainly from equations 42 and 43 in the paper </p></div>
+<p>
+</li>
+<li>
+<p>Calculate <script type="math/tex">\coth(\hbar\omega_j/2kT)</script> 
+ </p><div class="alert alert-info" role="alert"><h4>Note</h4><p>This is in equation 42 in the paper </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if this needs to be another variable </p></div>
+<p>
+</li>
+<li>
+<p>Calculate the argument to the modified Bessel functions
+   <script type="math/tex; mode=display">\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}</script>
+</p>
+</li>
+<li>
+<p>Create an array of the indices that will be rearranged</p>
+</li>
+<li>
+<p>Rearrange the indices based on ordering the arguments (<code>x</code>)
+   largest to smallest</p>
+</li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Frequency should actually be in eV/<script type="math/tex">\hbar</script>. Check that that's the case. </p></div>
+<p>
+<ul>
+<li>Write out the index, <script type="math/tex">\omega_j</script> in eV, <script type="math/tex">\delta q_j</script>, <script type="math/tex">\delta q_j^2</script>, 
+   and <script type="math/tex">S_j/\sinh(\hbar\omega_j/2kT)</script> for each phonon mode </li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why this is assigned to another variable </p></div>
+<p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if still need <code>di</code>, <code>bk</code>, and <code>dk</code> </p></div>
+<p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if need to have this in loop. Why change <code>nm</code> in <code>iknb</code>? </p></div>
+<p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if should send <code>nm</code> as it is immediately modified and not used here </p></div>
+<p>
+<ul>
+<li>Store the modified Bessel function for each mode and order
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Possibly change <code>besOrderNofModeM</code> to <code>modBesOrderNofModeM</code> </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why this loop is here. Can not just pass <code>besOrderNofModeM(:,j)</code> </p></div>
+<p></li>
+</ul>
     
 
     <h3>Arguments</h3>
     
-    <em>None</em>
-    <br>
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-x%7E11"></span>real(kind=dp),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>x</strong>(nModes)</td><td><p>Argument to modified Bessel function</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-sj"></span>real(kind=dp),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>Sj</strong>(nModes)</td><td><p>
+<script type="math/tex">S_j</script> in equation 44 in paper</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-coth"></span>real(kind=dp),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>coth</strong>(nModes)</td><td><p>Hyperbolic cotangent</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-wby2kt"></span>real(kind=dp),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>wby2kT</strong>(nModes)</td><td><p>
+<script type="math/tex">\omega/2kT</script>
+</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-phonf"></span>real(kind=dp),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>phonF</strong>(nModes)</td><td><p>Phonon frequencies in Hartree</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-gencoord%7E2"></span>real(kind=dp),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>genCoord</strong>(nModes)</td><td><p>Generalized coordinates <script type="math/tex">\delta q_j</script>
+</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-kt"></span>real(kind=dp),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>kT</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-s2l"></span>integer,</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>s2L</strong>(nModes)</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nmodes%7E2"></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>nModes</strong></td><td><p>Number of phonon modes</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-maximumnumberofphonons"></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>maximumNumberOfPhonons</strong></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-besordernofmodem"></span>real(kind=dp),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>besOrderNofModeM</strong>(0:maximumNumberOfPhonons+1,nModes)</td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
     
     
     
@@ -257,21 +524,17 @@ public subroutine computeVariables()
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-i%7E10">i</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-i%7E18">i</a>
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-j%7E9">j</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-j%7E14">j</a>
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-nm">nm</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-nm%7E4">nm</a>
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-nb">nb</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-nb%7E2">nb</a>
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-bi">bi</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-imode%7E9">iMode</a>
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-di">di</a>
-      
-      <a class="list-group-item" href="../proc/computevariables.html#variable-bk">bk</a>
-      
-      <a class="list-group-item" href="../proc/computevariables.html#variable-dk">dk</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-bi%7E4">bi</a>
       
     </div>
   </div>
@@ -294,6 +557,14 @@ public subroutine computeVariables()
 
 
 
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/computevariables.html#src">computeVariables</a>
+  </div>
+</div>
 
 
 
@@ -321,7 +592,7 @@ public subroutine computeVariables()
   
 <tr>
   
-  <td><span class="anchor" id="variable-i%7E10"></span>integer,</td>
+  <td><span class="anchor" id="variable-i%7E18"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -335,7 +606,7 @@ public subroutine computeVariables()
   
 <tr>
   
-  <td><span class="anchor" id="variable-j%7E9"></span>integer,</td>
+  <td><span class="anchor" id="variable-j%7E14"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -349,7 +620,7 @@ public subroutine computeVariables()
   
 <tr>
   
-  <td><span class="anchor" id="variable-nm"></span>integer,</td>
+  <td><span class="anchor" id="variable-nm%7E4"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -363,11 +634,11 @@ public subroutine computeVariables()
   
 <tr>
   
-  <td><span class="anchor" id="variable-nb"></span>integer,</td>
+  <td><span class="anchor" id="variable-nb%7E2"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>nb</strong></td><td></td><td></td><td></td>
+  <td><strong>nb</strong></td><td></td><td></td><td><p>Final phonon mode</p></td>
   
 </tr>
 
@@ -377,53 +648,25 @@ public subroutine computeVariables()
   
 <tr>
   
-  <td><span class="anchor" id="variable-bi"></span>real(kind=dp),</td>
+  <td><span class="anchor" id="variable-imode%7E9"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>iMode</strong></td><td></td><td></td><td><p>Loop index over phonon modes</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-bi%7E4"></span>real(kind=dp),</td>
   
   <td>public,</td>
   <td>allocatable</td><td>::</td>
   <td><strong>bi</strong>(:)</td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-di"></span>real(kind=dp),</td>
-  
-  <td>public,</td>
-  <td>allocatable</td><td>::</td>
-  <td><strong>di</strong>(:)</td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-bk"></span>real(kind=dp),</td>
-  
-  <td>public,</td>
-  <td>allocatable</td><td>::</td>
-  <td><strong>bk</strong>(:)</td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-dk"></span>real(kind=dp),</td>
-  
-  <td>public,</td>
-  <td>allocatable</td><td>::</td>
-  <td><strong>dk</strong>(:)</td><td></td><td></td><td></td>
   
 </tr>
 
@@ -447,6 +690,142 @@ public subroutine computeVariables()
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">computeVariables</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Sj</span><span class="p">,</span> <span class="n">coth</span><span class="p">,</span> <span class="n">wby2kT</span><span class="p">,</span> <span class="n">phonF</span><span class="p">,</span> <span class="n">genCoord</span><span class="p">,</span> <span class="n">kT</span><span class="p">,</span> <span class="n">s2L</span><span class="p">,</span> <span class="n">nModes</span><span class="p">,</span> <span class="n">maximumNumberOfPhonons</span><span class="p">,</span> <span class="n">besOrderNofModeM</span><span class="p">)</span>
+    <span class="c">!! Calculate biggest portions of equations 42 and 43 to make</span>
+    <span class="c">!! entire equation more manageable</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
+    <span class="k">use </span><span class="n">miscUtilities</span>
+      <span class="c">!! Include `miscUtilities` module for call to</span>
+      <span class="c">!! `arrangeLargerToSmaller`</span>
+    <span class="c">!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">maximumNumberOfPhonons</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nModes</span>
+      <span class="c">!! Number of phonon modes</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">s2L</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">nm</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">nb</span>
+      <span class="c">!! Final phonon mode</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iMode</span>
+      <span class="c">!! Loop index over phonon modes</span>
+    <span class="c">!</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">besOrderNofModeM</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">maximumNumberOfPhonons</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">nModes</span><span class="p">)</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">coth</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span>
+      <span class="c">!! Hyperbolic cotangent</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">genCoord</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span>
+      <span class="c">!! Generalized coordinates \(\delta q_j\)</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">kT</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phonF</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span>
+      <span class="c">!! Phonon frequencies in Hartree</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">Sj</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span>
+      <span class="c">!! \(S_j\) in equation 44 in paper</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">wby2kT</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span>
+      <span class="c">!! \(\omega/2kT\)</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">x</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span>
+      <span class="c">!! Argument to modified Bessel function</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span> <span class="kd">::</span> <span class="n">bi</span><span class="p">(:)</span>
+    <span class="c">!</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+    <span class="n">Sj</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+    <span class="n">coth</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+    <span class="n">wby2kT</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+    <span class="c">!</span>
+    <span class="n">Sj</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.5_dp</span><span class="o">*</span><span class="n">phonF</span><span class="p">(:)</span><span class="o">*</span><span class="n">genCoord</span><span class="p">(:)</span><span class="o">*</span><span class="n">genCoord</span><span class="p">(:)</span>
+      <span class="c">!! * Calculate </span>
+      <span class="c">!!   \[S_j = \dfrac{\omega_j}{2\hbar}N\delta q_j^2\] </span>
+      <span class="c">!!   where \(\omega_i\rightarrow\)`phonF(j)`, </span>
+      <span class="c">!!   \(\delta q_j\rightarrow\)`genCoord(j)`, and \(N\)</span>
+      <span class="c">!!   is the number of atoms per supercell</span>
+      <span class="c">!! @note This is equation 44 in the paper @endnote</span>
+      <span class="c">!! @todo Figure out why there is no \(N\) in this equation in the code @endtodo</span>
+    <span class="c">!</span>
+    <span class="n">wby2kT</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">phonF</span><span class="p">(:)</span><span class="o">/</span><span class="p">(</span><span class="mf">2.0_dp</span><span class="o">*</span><span class="n">kT</span><span class="p">)</span>
+      <span class="c">!! * Calculate \(\hbar\omega_j/2kT\) that is the argument </span>
+      <span class="c">!!   to hyperbolic trig functions</span>
+      <span class="c">!! @note This is mainly from equations 42 and 43 in the paper @endnote</span>
+    <span class="c">!</span>
+    <span class="n">coth</span><span class="p">(:)</span> <span class="o">=</span> <span class="nb">cosh</span><span class="p">(</span><span class="n">wby2kT</span><span class="p">(:))</span><span class="o">/</span><span class="nb">sinh</span><span class="p">(</span><span class="n">wby2kT</span><span class="p">(:))</span>
+      <span class="c">!! * Calculate \(\coth(\hbar\omega_j/2kT)\) </span>
+      <span class="c">!! @note This is in equation 42 in the paper @endnote</span>
+      <span class="c">!! @todo Figure out if this needs to be another variable @endtodo</span>
+    <span class="c">!</span>
+    <span class="n">x</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">Sj</span><span class="p">(:)</span><span class="o">/</span><span class="nb">sinh</span><span class="p">(</span><span class="n">wby2kT</span><span class="p">(:))</span>
+      <span class="c">!! * Calculate the argument to the modified Bessel functions</span>
+      <span class="c">!!   \[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\]</span>
+    <span class="c">!</span>
+    <span class="n">s2L</span><span class="p">(:)</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">iMode</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nModes</span>
+      <span class="c">!! * Create an array of the indices that will be rearranged</span>
+      <span class="c">!</span>
+      <span class="n">s2L</span><span class="p">(</span><span class="n">iMode</span><span class="p">)</span> <span class="o">=</span> <span class="n">iMode</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">call </span><span class="n">arrangeLargerToSmaller</span><span class="p">(</span><span class="n">nModes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">s2L</span><span class="p">)</span>
+      <span class="c">!! * Rearrange the indices based on ordering the arguments (`x`)</span>
+      <span class="c">!!   largest to smallest</span>
+    <span class="c">!</span>
+    <span class="k">open</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="s1">&#39;modes&#39;</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="s1">&#39;(&quot;#Mode, frequency (eV),        genCoord(Mode),     genCoord(Mode)^2,  Sj/sinh(wby2kT)&quot;)&#39;</span><span class="p">)</span>
+      <span class="c">!! @todo Frequency should actually be in eV/\(\hbar\). Check that that&#39;s the case. @endtodo</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">iMode</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nModes</span>
+      <span class="c">!! * Write out the index, \(\omega_j\) in eV, \(\delta q_j\), \(\delta q_j^2\), </span>
+      <span class="c">!!   and \(S_j/\sinh(\hbar\omega_j/2kT)\) for each phonon mode </span>
+      <span class="c">!</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="s1">&#39;(i4,1x,4E20.10E3)&#39;</span><span class="p">)</span> <span class="n">s2L</span><span class="p">(</span><span class="n">iMode</span><span class="p">),</span> <span class="n">phonF</span><span class="p">(</span><span class="n">s2L</span><span class="p">(</span><span class="n">iMode</span><span class="p">))</span><span class="o">*</span><span class="mf">1.0e3_dp</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="p">&amp;</span> 
+                                     <span class="n">genCoord</span><span class="p">(</span><span class="n">s2L</span><span class="p">(</span><span class="n">iMode</span><span class="p">)),</span> <span class="n">genCoord</span><span class="p">(</span><span class="n">s2L</span><span class="p">(</span><span class="n">iMode</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">x</span><span class="p">(</span><span class="n">s2L</span><span class="p">(</span><span class="n">iMode</span><span class="p">))</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">close</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span>
+    <span class="c">!</span>
+    <span class="n">nb</span> <span class="o">=</span> <span class="n">maximumNumberOfPhonons</span>
+      <span class="c">!! @todo Figure out why this is assigned to another variable @endtodo</span>
+    <span class="c">!</span>
+    <span class="k">allocate</span><span class="p">(</span> <span class="n">bi</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">nb</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
+      <span class="c">!! @todo Figure out if still need `di`, `bk`, and `dk` @endtodo</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nModes</span>
+      <span class="c">!</span>
+      <span class="n">bi</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+      <span class="c">!</span>
+      <span class="n">nm</span> <span class="o">=</span> <span class="n">nb</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="c">!! @todo Figure out if need to have this in loop. Why change `nm` in `iknb`? @endtodo</span>
+      <span class="c">!</span>
+      <span class="k">call </span><span class="n">iknb</span><span class="p">(</span><span class="n">nb</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">(</span><span class="n">j</span><span class="p">),</span> <span class="n">nm</span><span class="p">,</span> <span class="n">bi</span><span class="p">)</span>
+        <span class="c">!! @todo Figure out if should send `nm` as it is immediately modified and not used here @endtodo</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nb</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="c">!! * Store the modified Bessel function for each mode and order</span>
+        <span class="c">!! @todo Possibly change `besOrderNofModeM` to `modBesOrderNofModeM` @endtodo</span>
+        <span class="c">!! @todo Figure out why this loop is here. Can not just pass `besOrderNofModeM(:,j)` @endtodo</span>
+        <span class="c">!</span>
+        <span class="n">besOrderNofModeM</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span> <span class="o">=</span> <span class="n">bi</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="c">!</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+      <span class="c">!write(6,*) j, x(j) !, (besOrderNofModeM(i,j), i = 0, 5) ! nb + 1) !, phonF(j)</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">deallocate</span><span class="p">(</span> <span class="n">bi</span> <span class="p">)</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">computeVariables</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

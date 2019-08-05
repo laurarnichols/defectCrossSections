@@ -132,21 +132,21 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.4% of total for procedures.">15 statements</a>
+    title=" 0.5% of total for procedures.">22 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/LSF_linear_Module_v1.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/generalComputations.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/lsf_linear_module_v1.f90.html'>LSF_linear_Module_v1.f90</a></li>
+     <li><a href='../sourcefile/generalcomputations.f90.html'>generalComputations.f90</a></li>
     
-     <li><a href='../module/lsf.html'>lsf</a></li>
+     <li><a href='../module/generalcomputations.html'>generalComputations</a></li>
     
   
      <li class="active">computeGeneralizedDisplacements</li>
@@ -177,11 +177,11 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iq%7E3">iq</a>
+      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iatom%7E8">iAtom</a>
       
-      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-imode%7E6">iMode</a>
+      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-imode%7E8">iMode</a>
       
-      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iatom%7E7">iAtom</a>
+      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iq%7E4">iq</a>
       
     </div>
   </div>
@@ -206,6 +206,14 @@
 
 
 
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#src">computeGeneralizedDisplacements</a>
+  </div>
+</div>
+
+
 
 </div>
 
@@ -213,7 +221,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine computeGeneralizedDisplacements()
+public subroutine computeGeneralizedDisplacements(nOfqPoints, nModes, genCoord, nAtoms, atomM, phonD, atomD)
     
     
    
@@ -223,11 +231,139 @@ public subroutine computeGeneralizedDisplacements()
 
 
     
+    <p>Calculate the generalized displacements
+ by dotting the phonon displacements with
+ the atom displacements</p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>For each q point, mode, and atom combination, calculate
+   the generalized displacement as
+   <script type="math/tex; mode=display">\sum_{\text{mode}} \sqrt{1823m}\mathbf{\Delta r}_{\text{phonon}}\cdot\mathbf{\Delta r}_{\text{atom}}</script>
+</li>
+</ul>
+    
 
     <h3>Arguments</h3>
     
-    <em>None</em>
-    <br>
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nofqpoints"></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>nOfqPoints</strong></td><td><p>Number of q points</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nmodes"></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>nModes</strong></td><td><p>Number of phonon modes</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-gencoord"></span>real(kind=dp),</td>
+  <td>intent(out)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>genCoord</strong>(nModes)</td><td><p>Generalized coordinates <script type="math/tex">\delta q_j</script>
+</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-natoms"></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>nAtoms</strong></td><td><p>Number of atoms in system</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-atomm"></span>real(kind=dp),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>atomM</strong>(nAtoms)</td><td><p>Atom masses</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-phond"></span>real(kind=dp),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>phonD</strong>(3,nAtoms,nModes,nOfqPoints)</td><td><p>Phonon displacements</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-atomd"></span>real(kind=dp),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>atomD</strong>(3,nAtoms)</td><td><p>Equilibrium displacements in defect versus pristine</p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
     
     
     
@@ -247,11 +383,11 @@ public subroutine computeGeneralizedDisplacements()
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iq%7E3">iq</a>
+      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iatom%7E8">iAtom</a>
       
-      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-imode%7E6">iMode</a>
+      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-imode%7E8">iMode</a>
       
-      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iatom%7E7">iAtom</a>
+      <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#variable-iq%7E4">iq</a>
       
     </div>
   </div>
@@ -274,6 +410,14 @@ public subroutine computeGeneralizedDisplacements()
 
 
 
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/computegeneralizeddisplacements.html#src">computeGeneralizedDisplacements</a>
+  </div>
+</div>
 
 
 
@@ -301,11 +445,11 @@ public subroutine computeGeneralizedDisplacements()
   
 <tr>
   
-  <td><span class="anchor" id="variable-iq%7E3"></span>integer,</td>
+  <td><span class="anchor" id="variable-iatom%7E8"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iq</strong></td><td></td><td></td><td></td>
+  <td><strong>iAtom</strong></td><td></td><td></td><td><p>Loop index over atoms</p></td>
   
 </tr>
 
@@ -315,11 +459,11 @@ public subroutine computeGeneralizedDisplacements()
   
 <tr>
   
-  <td><span class="anchor" id="variable-imode%7E6"></span>integer,</td>
+  <td><span class="anchor" id="variable-imode%7E8"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iMode</strong></td><td></td><td></td><td></td>
+  <td><strong>iMode</strong></td><td></td><td></td><td><p>Loop index over phonon modes</p></td>
   
 </tr>
 
@@ -329,11 +473,11 @@ public subroutine computeGeneralizedDisplacements()
   
 <tr>
   
-  <td><span class="anchor" id="variable-iatom%7E7"></span>integer,</td>
+  <td><span class="anchor" id="variable-iq%7E4"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iAtom</strong></td><td></td><td></td><td></td>
+  <td><strong>iq</strong></td><td></td><td></td><td><p>Loop index over q points</p></td>
   
 </tr>
 
@@ -357,6 +501,66 @@ public subroutine computeGeneralizedDisplacements()
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">computeGeneralizedDisplacements</span><span class="p">(</span><span class="n">nOfqPoints</span><span class="p">,</span> <span class="n">nModes</span><span class="p">,</span> <span class="n">genCoord</span><span class="p">,</span> <span class="n">nAtoms</span><span class="p">,</span> <span class="n">atomM</span><span class="p">,</span> <span class="n">phonD</span><span class="p">,</span> <span class="n">atomD</span><span class="p">)</span>
+    <span class="c">!! Calculate the generalized displacements</span>
+    <span class="c">!! by dotting the phonon displacements with</span>
+    <span class="c">!! the atom displacements</span>
+    <span class="c">!!</span>
+    <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
+    <span class="c">!!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nAtoms</span>
+      <span class="c">!! Number of atoms in system</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nModes</span>
+      <span class="c">!! Number of phonon modes</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nOfqPoints</span>
+      <span class="c">!! Number of q points</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iAtom</span>
+      <span class="c">!! Loop index over atoms</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iMode</span>
+      <span class="c">!! Loop index over phonon modes</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iq</span>
+      <span class="c">!! Loop index over q points</span>
+    <span class="c">!</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">atomD</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nAtoms</span><span class="p">)</span>
+      <span class="c">!! Equilibrium displacements in defect versus pristine</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">atomM</span><span class="p">(</span><span class="n">nAtoms</span><span class="p">)</span>
+      <span class="c">!! Atom masses</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">genCoord</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span>
+      <span class="c">!! Generalized coordinates \(\delta q_j\)</span>
+    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phonD</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nAtoms</span><span class="p">,</span><span class="n">nModes</span><span class="p">,</span><span class="n">nOfqPoints</span><span class="p">)</span>
+      <span class="c">!! Phonon displacements</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">iq</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nOfqPoints</span>
+      <span class="c">!</span>
+      <span class="k">do </span><span class="n">iMode</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nModes</span>
+        <span class="c">!</span>
+        <span class="n">genCoord</span><span class="p">(</span><span class="n">iMode</span><span class="p">)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+        <span class="c">!</span>
+        <span class="k">do </span><span class="n">iAtom</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nAtoms</span>
+          <span class="c">!! * For each q point, mode, and atom combination, calculate</span>
+          <span class="c">!!   the generalized displacement as</span>
+          <span class="c">!!   \[\sum_{\text{mode}} \sqrt{1823m}\mathbf{\Delta r}_{\text{phonon}}\cdot\mathbf{\Delta r}_{\text{atom}}\]</span>
+          <span class="c">!</span>
+          <span class="n">genCoord</span><span class="p">(</span><span class="n">iMode</span><span class="p">)</span> <span class="o">=</span> <span class="n">genCoord</span><span class="p">(</span><span class="n">iMode</span><span class="p">)</span> <span class="o">+</span> <span class="nb">sqrt</span><span class="p">(</span><span class="mi">182</span><span class="mf">2.88833218_dp</span><span class="o">*</span><span class="n">atomM</span><span class="p">(</span><span class="n">iAtom</span><span class="p">))</span><span class="o">*</span><span class="nb">sum</span><span class="p">(</span><span class="n">phonD</span><span class="p">(:,</span><span class="n">iAtom</span><span class="p">,</span><span class="n">iMode</span><span class="p">,</span><span class="n">iq</span><span class="p">)</span><span class="o">*</span><span class="n">atomD</span><span class="p">(:,</span><span class="n">iAtom</span><span class="p">))</span>
+          <span class="c">!</span>
+        <span class="n">enddo</span>
+        <span class="c">!</span>
+      <span class="n">enddo</span>
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+    <span class="k">return</span>
+    <span class="c">!</span>
+  <span class="k">end subroutine </span><span class="n">computeGeneralizedDisplacements</span>                                                                                                                              
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

@@ -121,7 +121,10 @@ All Procedures &ndash; Carrier Cross Sections
 			 <thead><tr><th>Procedure</th><th>Location</th><th>Procedure Type</th><th>Description</th></tr></thead>
 			 <tbody>
 			 
-			   <tr><td><a href='../proc/arrangelargertosmaller.html'>arrangeLargerToSmaller</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/arrangelargertosmaller%7E2.html'>arrangeLargerToSmaller</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
+			 
+			   <tr><td><a href='../proc/arrangelargertosmaller.html'>arrangeLargerToSmaller</a></td><td><a href='../module/miscutilities.html'>miscUtilities</a></td><td>Subroutine</td><td><p>Sort <code>s2L</code> based on descending order
+ of <code>x</code></p><a href="../proc/arrangelargertosmaller.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/bessel_j.html'>bessel_j</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Generates the 
  <a href="http://mathworld.wolfram.com/SphericalBesselFunctionoftheFirstKind.html">spherical bessel function of the first kind</a>
@@ -173,9 +176,16 @@ All Procedures &ndash; Carrier Cross Sections
 			   <tr><td><a href='../proc/checkinputandupdateparameters.html'>checkInputAndUpdateParameters</a></td><td><a href='../module/sigma_module.html'>sigma_module</a></td><td>Subroutine</td><td><p>Check that the input variables don't still have their default
  values. If the input files are not defined, end the program.</p></td></tr>
 			 
-			   <tr><td><a href='../proc/computegeneralizeddisplacements.html'>computeGeneralizedDisplacements</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/computegeneralizeddisplacements%7E2.html'>computeGeneralizedDisplacements</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
-			   <tr><td><a href='../proc/computevariables.html'>computeVariables</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/computegeneralizeddisplacements.html'>computeGeneralizedDisplacements</a></td><td><a href='../module/generalcomputations.html'>generalComputations</a></td><td>Subroutine</td><td><p>Calculate the generalized displacements
+ by dotting the phonon displacements with
+ the atom displacements</p><a href="../proc/computegeneralizeddisplacements.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
+			 
+			   <tr><td><a href='../proc/computevariables%7E2.html'>computeVariables</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
+			 
+			   <tr><td><a href='../proc/computevariables.html'>computeVariables</a></td><td><a href='../module/generalcomputations.html'>generalComputations</a></td><td>Subroutine</td><td><p>Calculate biggest portions of equations 42 and 43 to make
+ entire equation more manageable</p><a href="../proc/computevariables.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/decimaltoother.html'>decimalToOther</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
@@ -192,13 +202,19 @@ All Procedures &ndash; Carrier Cross Sections
 			 
 			   <tr><td><a href='../proc/envj.html'>envj</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Function</td><td></td></tr>
 			 
+			   <tr><td><a href='../proc/envj%7E2.html'>envj</a></td><td><a href='../module/generalcomputations.html'>generalComputations</a></td><td>Function</td><td><p>Estimates <script type="math/tex">-\log(J_n(x))</script> from the estimate
+ <script type="math/tex; mode=display">J_n(x) \approx \dfrac{1}{\sqrt{2\pi n}}\left(\dfrac{ex}{2n}\right)^n</script>
+</p></td></tr>
+			 
 			   <tr><td><a href='../proc/exportqeinput.html'>exportQEInput</a></td><td><a href='../module/mjmodule.html'>MjModule</a></td><td>Subroutine</td><td><p>Create QE input files for all different modes
  by copying all of the <code>QEInput</code> except the 
  <code>newAtomicPosition</code>s for each mode</p><a href="../proc/exportqeinput.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/finalizecalculation.html'>finalizeCalculation</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Stop timer, write out total time taken, and close the output file</p></td></tr>
 			 
-			   <tr><td><a href='../proc/iknb.html'>iknb</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/iknb%7E2.html'>iknb</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
+			 
+			   <tr><td><a href='../proc/iknb.html'>iknb</a></td><td><a href='../module/generalcomputations.html'>generalComputations</a></td><td>Subroutine</td><td><p><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong>*</strong>72</p><a href="../proc/iknb.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/iknb2.html'>iknb2</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
@@ -224,6 +240,8 @@ All Procedures &ndash; Carrier Cross Sections
 			   <tr><td><a href='../proc/initializelsf%7E2.html'>initializeLSF</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
 			   <tr><td><a href='../proc/int2str.html'>int2str</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Write a given integer to a string, using only as many digits as needed</p></td></tr>
+			 
+			   <tr><td><a href='../proc/int2str%7E2.html'>int2str</a></td><td><a href='../module/miscutilities.html'>miscUtilities</a></td><td>Subroutine</td><td><p>Write a given integer to a string, using only as many digits as needed</p></td></tr>
 			 
 			   <tr><td><a href='../proc/lcg.html'>lcg</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Function</td><td></td></tr>
 			 
@@ -253,10 +271,20 @@ All Procedures &ndash; Carrier Cross Sections
 			 
 			   <tr><td><a href='../proc/lsfwithmphonons%7E2.html'>lsfWithMphonons</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
-			   <tr><td><a href='../proc/msta1.html'>msta1</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Function</td><td></td></tr>
+			   <tr><td><a href='../proc/msta1%7E2.html'>msta1</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Function</td><td></td></tr>
 			 
-			   <tr><td><a href='../proc/msta2.html'>msta2</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Function</td><td><p>!!!!!!
+			   <tr><td><a href='../proc/msta1.html'>msta1</a></td><td><a href='../module/generalcomputations.html'>generalComputations</a></td><td>Function</td><td><p>Determine the starting point for backward 
+ recurrence such that the magnitude of 
+ <script type="math/tex">J_n(x)</script> at that point is about 
+ <script type="math/tex">10^{-\text{mp}}</script>
+</p><a href="../proc/msta1.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
+			 
+			   <tr><td><a href='../proc/msta2%7E2.html'>msta2</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Function</td><td><p>!!!!!!
 !!!!!!</p></td></tr>
+			 
+			   <tr><td><a href='../proc/msta2.html'>msta2</a></td><td><a href='../module/generalcomputations.html'>generalComputations</a></td><td>Function</td><td><p>Determine the starting point for backward 
+ recurrence such that all <script type="math/tex">J_n(x)</script> has mp
+ significant digits </p><a href="../proc/msta2.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/parallelisfsby3.html'>parallelIsFsBy3</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
@@ -293,7 +321,11 @@ All Procedures &ndash; Carrier Cross Sections
 			 
 			   <tr><td><a href='../proc/readmjs.html'>readMjs</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
-			   <tr><td><a href='../proc/readphonons.html'>readPhonons</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/readphonons%7E2.html'>readPhonons</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
+			 
+			   <tr><td><a href='../proc/readphonons.html'>readPhonons</a></td><td><a href='../module/readinputfiles.html'>readInputFiles</a></td><td>Subroutine</td><td><p>Read the number of atoms and q points and
+ get the phonon information like frequency 
+ and displacements</p><a href="../proc/readphonons.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/readphononsqe.html'>readPhononsQE</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
