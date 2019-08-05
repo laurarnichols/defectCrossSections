@@ -480,13 +480,12 @@ contains
     !! <h2>Background</h2>
     !! 
     !! The line shape function is defined in the paper as 
-    !! \[F = \dfrac{1}{\Omega_k}\sum_{\{p_j\}}\left{1\right}\]
-    !! \[\left(\Pi_{j=1}^{M}F_j\right)
+    !! \[F = \dfrac{1}{\Omega_k}\sum_{p_j}\left{\left(\Pi_{j=1}^{M}F_j\right)
     !!       \sum_{j=1}^M\left{p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
     !!       \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right}
-    !!       D(\omega_j)\]
+    !!       D(\omega_j)\right}\]
     !! This function calculates 
-    !! \[\sum_{\{p_j\}}\left{\left(\Pi_{j=1}^{M}F_j\right) 
+    !! \[\sum_{p_j}\left{\left(\Pi_{j=1}^{M}F_j\right) 
     !!   \sum_{j=1}^M\left{p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
     !!   \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right}\right}\]
     !! The \(F_j\) terms are calculated based on (42) from the paper
