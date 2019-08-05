@@ -475,7 +475,10 @@ contains
   !
   !
   subroutine lsfOfConfigurationPj()
-    !
+    !!
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
     integer :: iE, j
@@ -485,18 +488,36 @@ contains
     prodFj = 1.0_dp
     sumOverj = 0.0_dp
     do j = 1, nModes
+      !! * For each phonon mode
+      !!    * Get the modified Bessel function \(I_{p_j}\)
+      !!    * If the number of additional phonons \(p_j\) is 0
+      !!       * If \(I_{p_j} > 10^{-15}\)
+      !!          * \(F_j = \exp\left[\dfrac{p_j\hbar\omega_j}{2kT} - 
+      !!              S_j\coth\left(\dfrac{\hbar\omega_j}{2kT}\right)\right]
+      !!              I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]\)
       !
       Fj = 1.0_dp
+      !
       besPj = besOrderNofModeM(abs(pj(j)), j)
+      !
       if ( pj(j) > 0 ) then
+        !
         if ( besPj > 1.0e-15_dp ) then 
+          !
           Fj = exp(pj(j)*wby2kT(j) - Sj(j)*coth(j))*besPj
+          !
         else 
+          !
           Fj = 0.0_dp
+          !
         endif
+        !
       else
+        !
         Fj = exp(pj(j)*wby2kT(j) - Sj(j)*coth(j))*besPj
+        !
       endif
+      !
       prodFj = prodFj * Fj
       !
       besRatio = 0.5_dp*x(j)/(abs(pj(j))+1)
@@ -1169,6 +1190,7 @@ contains
     implicit none
     !
     integer, intent(in) :: m
+      !! Number of phonons
     !
     integer :: iMode1, pm1
     !

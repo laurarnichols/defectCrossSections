@@ -233,6 +233,25 @@ public subroutine lsfOfConfigurationPj()
 
 
     
+    <p><h2>Walkthrough</h2></p>
+<ul>
+<li>For each phonon mode<ul>
+<li>Get the modified Bessel function <script type="math/tex">I_{p_j}</script>
+</li>
+<li>If the number of additional phonons <script type="math/tex">p_j</script> is 0</li>
+<li>If <script type="math/tex">I_{p_j} > 10^{-15}</script>
+<ul>
+<li>
+<script type="math/tex">F_j = \exp\left[\dfrac{p_j\hbar\omega_j}{2kT} - 
+      S_j\coth\left(\dfrac{\hbar\omega_j}{2kT}\right)\right]
+      I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]</script>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+    
 
     <h3>Arguments</h3>
     
