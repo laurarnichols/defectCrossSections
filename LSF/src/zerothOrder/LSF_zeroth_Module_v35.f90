@@ -1265,6 +1265,12 @@ contains
   !
   !
   subroutine lsfMbyTwoBands(m)
+    !! Calculate the line shape function for 
+    !! various sets \(\{p_j\}\) where all \(p_j\)
+    !! are zero except two that have values
+    !! ??
+    !!
+    !! @todo Figure out how came up with limits @endtodo
     !
     implicit none
     !
