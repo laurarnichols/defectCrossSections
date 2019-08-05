@@ -1,20 +1,11 @@
 title: Todo
 author: Laura Nichols
-date: 08/01/2019
+date: 08/05/2019
 
-* `../Mj/src/Mj_Main.f90:16:` Make sure that there is an end timer
-* `../Mj/src/Mj_Module_v1.f90:31:` Make sure default value is set for `qPoint` 
-* `../Mj/src/Mj_Module_v1.f90:287:` Figure out why there is no \(N\) in this equation in the code 
-* `../Mj/src/Mj_Module_v1.f90:297:` Figure out if this needs to be another variable 
-* `../Mj/src/Mj_Module_v1.f90:320:` Frequency should actually be in eV/\(\hbar\). Check that that's the case. 
-* `../Mj/src/Mj_Module_v1.f90:336:` Figure out why this is assigned to another variable 
-* `../Mj/src/Mj_Module_v1.f90:341:` Figure out if still need `di`, `bk`, and `dk` 
-* `../Mj/src/Mj_Module_v1.f90:348:` Figure out if need to have this in loop. Why change `nm` in `iknb`? 
-* `../Mj/src/Mj_Module_v1.f90:351:` Figure out if should send `nm` as it is immediately modified and not used here 
-* `../Mj/src/Mj_Module_v1.f90:355:` Possibly change `besOrderNofModeM` to `modBesOrderNofModeM` 
-* `../Mj/src/Mj_Module_v1.f90:356: Figure out why this loop is here. Can not just pass `besOrderNofModeM(:`,j)` 
-* `../Mj/src/Mj_Module_v1.f90:393:` Figure out if expect `modeI` and `modeF` to represent index of magnitude of argument `x` 
-* `../Mj/src/Mj_Module_v1.f90:505:` Make this loop more clear 
+* `../Mj/src/Mj_Main.f90:17:` Make sure that there is an end timer
+* `../Mj/src/Mj_Module_v1.f90:25:` Make sure default value is set for `qPoint` 
+* `../Mj/src/Mj_Module_v1.f90:269:` Figure out if expect `modeI` and `modeF` to represent index of magnitude of argument `x` 
+* `../Mj/src/Mj_Module_v1.f90:381:` Make this loop more clear 
 * `../Sigma/src/Sigma_Module_v4.f90:176:` Merge these dummy characters
 * `../Sigma/src/Sigma_Module_v4.f90:224:` Merge dummy variables
 * `../Sigma/src/Sigma_Module_v4.f90:288:` Figure out where this file is opened

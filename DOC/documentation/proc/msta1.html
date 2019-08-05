@@ -132,21 +132,21 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.6% of total for procedures.">26 statements</a>
+    title=" 0.6% of total for procedures.">23 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/Mj_Module_v1.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/LSF_linear_Module_v1.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/mj_module_v1.f90.html'>Mj_Module_v1.f90</a></li>
+     <li><a href='../sourcefile/lsf_linear_module_v1.f90.html'>LSF_linear_Module_v1.f90</a></li>
     
-     <li><a href='../module/mjmodule.html'>MjModule</a></li>
+     <li><a href='../module/lsf.html'>lsf</a></li>
     
   
      <li class="active">msta1</li>
@@ -177,14 +177,6 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/msta1.html#variable-it">it</a>
-      
-      <a class="list-group-item" href="../proc/msta1.html#variable-n0">n0</a>
-      
-      <a class="list-group-item" href="../proc/msta1.html#variable-n1">n1</a>
-      
-      <a class="list-group-item" href="../proc/msta1.html#variable-nn">nn</a>
-      
       <a class="list-group-item" href="../proc/msta1.html#variable-a0">a0</a>
       
       <a class="list-group-item" href="../proc/msta1.html#variable-f">f</a>
@@ -192,6 +184,14 @@
       <a class="list-group-item" href="../proc/msta1.html#variable-f0">f0</a>
       
       <a class="list-group-item" href="../proc/msta1.html#variable-f1">f1</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-it">it</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-n0">n0</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-n1">n1</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-nn">nn</a>
       
     </div>
   </div>
@@ -233,27 +233,6 @@ public function msta1(x, mp) result(fn_val)
 
 
     
-    <p>Determine the starting point for backward 
- recurrence such that the magnitude of 
- <script type="math/tex">J_n(x)</script> at that point is about 
- <script type="math/tex">10^{-\text{mp}}</script>
-</p>
-<p><h2>Walkthrough</h2></p>
-<ul>
-<li>
-<p>Get initial guess for <script type="math/tex">f = -log(J_{n_0}(a_0)) - \text{mp}</script>
-</p>
-</li>
-<li>
-<p>Get next guess for <script type="math/tex">f</script>
-</p>
-</li>
-<li>
-<p>Recursively minimize <script type="math/tex">f</script>
-</p>
-</li>
-</ul>
-    
 
     <h3>Arguments</h3>
     
@@ -278,8 +257,7 @@ public function msta1(x, mp) result(fn_val)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>x</strong></td><td><p>Argument of <script type="math/tex">J_n(x)</script>
-</p></td>
+  <td><strong>x</strong></td><td></td>
   
 </tr>
 
@@ -294,7 +272,7 @@ public function msta1(x, mp) result(fn_val)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>mp</strong></td><td><p>Magnitude</p></td>
+  <td><strong>mp</strong></td><td></td>
   
 </tr>
 
@@ -310,7 +288,7 @@ public function msta1(x, mp) result(fn_val)
     
    <h3>Return Value <small><span class="anchor" id="variable-fn_val"></span>integer
   </small></h3>
-    <p>Starting point</p>
+    
     
     
     
@@ -329,14 +307,6 @@ public function msta1(x, mp) result(fn_val)
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/msta1.html#variable-it">it</a>
-      
-      <a class="list-group-item" href="../proc/msta1.html#variable-n0">n0</a>
-      
-      <a class="list-group-item" href="../proc/msta1.html#variable-n1">n1</a>
-      
-      <a class="list-group-item" href="../proc/msta1.html#variable-nn">nn</a>
-      
       <a class="list-group-item" href="../proc/msta1.html#variable-a0">a0</a>
       
       <a class="list-group-item" href="../proc/msta1.html#variable-f">f</a>
@@ -344,6 +314,14 @@ public function msta1(x, mp) result(fn_val)
       <a class="list-group-item" href="../proc/msta1.html#variable-f0">f0</a>
       
       <a class="list-group-item" href="../proc/msta1.html#variable-f1">f1</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-it">it</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-n0">n0</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-n1">n1</a>
+      
+      <a class="list-group-item" href="../proc/msta1.html#variable-nn">nn</a>
       
     </div>
   </div>
@@ -393,69 +371,11 @@ public function msta1(x, mp) result(fn_val)
   
 <tr>
   
-  <td><span class="anchor" id="variable-it"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>it</strong></td><td></td><td></td><td><p>Loop index</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-n0"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>n0</strong></td><td></td><td></td><td><p>Order of Bessel function</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-n1"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>n1</strong></td><td></td><td></td><td><p>Order of Bessel function</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-nn"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>nn</strong></td><td></td><td></td><td><p>Order of Bessel function</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
   <td><span class="anchor" id="variable-a0"></span>real(kind=dp),</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>a0</strong></td><td></td><td></td><td><p>
-<script type="math/tex">|x|</script>
-</p></td>
+  <td><strong>a0</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -469,9 +389,7 @@ public function msta1(x, mp) result(fn_val)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>f</strong></td><td></td><td></td><td><p>
-<script type="math/tex">-\log(J_n(x)) - \text{mp}</script>
-</p></td>
+  <td><strong>f</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -485,9 +403,7 @@ public function msta1(x, mp) result(fn_val)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>f0</strong></td><td></td><td></td><td><p>
-<script type="math/tex">-\log(J_n(x)) - \text{mp}</script>
-</p></td>
+  <td><strong>f0</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -501,9 +417,63 @@ public function msta1(x, mp) result(fn_val)
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>f1</strong></td><td></td><td></td><td><p>
-<script type="math/tex">-\log(J_n(x)) - \text{mp}</script>
-</p></td>
+  <td><strong>f1</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-it"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>it</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-n0"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>n0</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-n1"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>n1</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-nn"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>nn</strong></td><td></td><td></td><td></td>
   
 </tr>
 

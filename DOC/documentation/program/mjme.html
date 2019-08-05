@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.5% of total for programs.">17 statements</a>
+    title=" 1.8% of total for programs.">20 statements</a>
      </li> 
      
      
@@ -231,7 +231,8 @@
  and generate new QE input based on the new positions</p>
 <p><h2>Walkthrough</h2></p>
 <p>Include the <code>generalComputations</code> module          <br>
- for call to <code>computeGeneralizedDisplacements</code></p>
+ for call to <code>computeGeneralizedDisplacements</code>
+ and <code>computeVariables</code></p>
 <p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Make sure that there is an end timer </p></div>
 <p>
 <ul>
@@ -241,7 +242,8 @@
    that make sense</p>
 </li>
 <li>
-<p>Calculate \delta q_j^2</p>
+<p>Calculate <script type="math/tex">\delta q_j</script>
+</p>
 </li>
 <li>
 <p>Compute main parts of equations 42 and 43 in paper
@@ -328,6 +330,7 @@
   <span class="k">use </span><span class="n">generalComputations</span>
     <span class="c">!! Include the `generalComputations` module            </span>
     <span class="c">!! for call to `computeGeneralizedDisplacements`</span>
+    <span class="c">!! and `computeVariables`</span>
   <span class="c">!</span>
   <span class="k">implicit none</span>
   <span class="c">!</span>
@@ -342,13 +345,19 @@
   <span class="k">allocate</span><span class="p">(</span> <span class="n">genCoord</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span> <span class="p">)</span>
   <span class="c">!</span>
   <span class="k">call </span><span class="n">computeGeneralizedDisplacements</span><span class="p">(</span><span class="n">nOfqPoints</span><span class="p">,</span> <span class="n">nModes</span><span class="p">,</span> <span class="n">genCoord</span><span class="p">,</span> <span class="n">nAtoms</span><span class="p">,</span> <span class="n">atomM</span><span class="p">,</span> <span class="n">phonD</span><span class="p">,</span> <span class="n">atomD</span><span class="p">)</span>
-    <span class="c">!! * Calculate \delta q_j^2</span>
+    <span class="c">!! * Calculate \(\delta q_j\)</span>
   <span class="c">!</span>
   <span class="k">deallocate</span><span class="p">(</span> <span class="n">atomM</span><span class="p">,</span> <span class="n">atomD</span> <span class="p">)</span>
   <span class="c">!</span>
-  <span class="k">call </span><span class="n">computeVariables</span><span class="p">()</span>
+  <span class="k">allocate</span><span class="p">(</span> <span class="n">x</span><span class="p">(</span><span class="n">nModes</span><span class="p">),</span> <span class="n">Sj</span><span class="p">(</span><span class="n">nModes</span><span class="p">),</span> <span class="n">coth</span><span class="p">(</span><span class="n">nModes</span><span class="p">),</span> <span class="n">wby2kT</span><span class="p">(</span><span class="n">nModes</span><span class="p">),</span> <span class="n">s2L</span><span class="p">(</span><span class="n">nModes</span><span class="p">)</span> <span class="p">)</span>
+  <span class="k">allocate</span><span class="p">(</span> <span class="n">besOrderNofModeM</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">modeF</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nModes</span><span class="p">)</span> <span class="p">)</span>
+  <span class="c">!</span>
+  <span class="k">call </span><span class="n">computeVariables</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Sj</span><span class="p">,</span> <span class="n">coth</span><span class="p">,</span> <span class="n">wby2kT</span><span class="p">,</span> <span class="n">phonF</span><span class="p">,</span> <span class="n">genCoord</span><span class="p">,</span> <span class="n">kT</span><span class="p">,</span> <span class="n">s2L</span><span class="p">,</span> <span class="n">nModes</span><span class="p">,</span> <span class="n">modeF</span><span class="p">,</span> <span class="p">&amp;</span>
+                        <span class="n">besOrderNofModeM</span><span class="p">)</span>
     <span class="c">!! * Compute main parts of equations 42 and 43 in paper</span>
     <span class="c">!!   to make whole formula more manageable</span>
+  <span class="c">!</span>
+  <span class="k">deallocate</span><span class="p">(</span> <span class="n">genCoord</span> <span class="p">)</span>
   <span class="c">!</span>
   <span class="k">call </span><span class="n">displaceAtoms</span><span class="p">()</span>
     <span class="c">!! * Calculate new positions of atoms for each mode </span>

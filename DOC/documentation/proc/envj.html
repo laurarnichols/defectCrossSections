@@ -132,21 +132,21 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.2% of total for procedures.">8 statements</a>
+    title=" 0.2% of total for procedures.">7 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/Mj_Module_v1.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/LSF_linear_Module_v1.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/mj_module_v1.f90.html'>Mj_Module_v1.f90</a></li>
+     <li><a href='../sourcefile/lsf_linear_module_v1.f90.html'>LSF_linear_Module_v1.f90</a></li>
     
-     <li><a href='../module/mjmodule.html'>MjModule</a></li>
+     <li><a href='../module/lsf.html'>lsf</a></li>
     
   
      <li class="active">envj</li>
@@ -209,10 +209,6 @@ public function envj(n, x) result(fn_val)
 
 
     
-    <p>Estimates <script type="math/tex">-\log(J_n(x))</script> from the estimate
- <script type="math/tex; mode=display">J_n(x) \approx \dfrac{1}{\sqrt{2\pi n}}\left(\dfrac{ex}{2n}\right)^n</script>
-</p>
-    
 
     <h3>Arguments</h3>
     
@@ -232,12 +228,12 @@ public function envj(n, x) result(fn_val)
   
 <tr>
   
-  <td><span class="anchor" id="variable-n%7E2"></span>integer,</td>
+  <td><span class="anchor" id="variable-n%7E4"></span>integer,</td>
   <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>n</strong></td><td><p>Order of Bessel function</p></td>
+  <td><strong>n</strong></td><td></td>
   
 </tr>
 
@@ -252,7 +248,7 @@ public function envj(n, x) result(fn_val)
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>x</strong></td><td><p>Argument</p></td>
+  <td><strong>x</strong></td><td></td>
   
 </tr>
 
@@ -268,9 +264,7 @@ public function envj(n, x) result(fn_val)
     
    <h3>Return Value <small><span class="anchor" id="variable-fn_val%7E3"></span>real(kind=dp)
   </small></h3>
-    <p>
-<script type="math/tex">-\log(J_n(x))</script>
-</p>
+    
     
     
     

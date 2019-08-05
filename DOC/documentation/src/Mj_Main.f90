@@ -9,6 +9,7 @@ program MjME
   use generalComputations
     !! Include the `generalComputations` module            
     !! for call to `computeGeneralizedDisplacements`
+    !! and `computeVariables`
   !
   implicit none
   !
@@ -23,13 +24,19 @@ program MjME
   allocate( genCoord(nModes) )
   !
   call computeGeneralizedDisplacements(nOfqPoints, nModes, genCoord, nAtoms, atomM, phonD, atomD)
-    !! * Calculate \delta q_j^2
+    !! * Calculate \(\delta q_j\)
   !
   deallocate( atomM, atomD )
   !
-  call computeVariables()
+  allocate( x(nModes), Sj(nModes), coth(nModes), wby2kT(nModes), s2L(nModes) )
+  allocate( besOrderNofModeM(0:modeF + 1, nModes) )
+  !
+  call computeVariables(x, Sj, coth, wby2kT, phonF, genCoord, kT, s2L, nModes, modeF, &
+                        besOrderNofModeM)
     !! * Compute main parts of equations 42 and 43 in paper
     !!   to make whole formula more manageable
+  !
+  deallocate( genCoord )
   !
   call displaceAtoms()
     !! * Calculate new positions of atoms for each mode 

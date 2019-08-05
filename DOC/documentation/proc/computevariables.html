@@ -132,21 +132,21 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.0% of total for procedures.">43 statements</a>
+    title=" 1.1% of total for procedures.">40 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/Mj_Module_v1.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/LSF_linear_Module_v1.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/mj_module_v1.f90.html'>Mj_Module_v1.f90</a></li>
+     <li><a href='../sourcefile/lsf_linear_module_v1.f90.html'>LSF_linear_Module_v1.f90</a></li>
     
-     <li><a href='../module/mjmodule.html'>MjModule</a></li>
+     <li><a href='../module/lsf.html'>lsf</a></li>
     
   
      <li class="active">computeVariables</li>
@@ -177,15 +177,13 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-i%7E6">i</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-i%7E10">i</a>
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-j%7E5">j</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-j%7E9">j</a>
       
       <a class="list-group-item" href="../proc/computevariables.html#variable-nm">nm</a>
       
       <a class="list-group-item" href="../proc/computevariables.html#variable-nb">nb</a>
-      
-      <a class="list-group-item" href="../proc/computevariables.html#variable-imode">iMode</a>
       
       <a class="list-group-item" href="../proc/computevariables.html#variable-bi">bi</a>
       
@@ -232,91 +230,8 @@ public subroutine computeVariables()
 </h2>
     
   
-    <div class="panel panel-default">
-      <div class="panel-heading">
-  <h3 class="panel-title">Uses</h3>
-      </div>
-      <ul class="list-group">
-      
-      <li class="list-group-item">
-  <ul class="list-inline">
-    
-    <li>miscUtilities</li>
-    
-  </ul>
-      </li>
-      
-      
-      
-      </ul>
-    </div>
-    
 
 
-    
-    <p>Calculate biggest portions of equations 42 and 43 to make
- entire equation more manageable</p>
-<p><h2>Walkthrough</h2></p>
-<p>Include <code>miscUtilities</code> module for call to
- <code>arrangeLargerToSmaller</code></p>
-<ul>
-<li>
-<p>Calculate 
-   <script type="math/tex; mode=display">S_j = \dfrac{\omega_j}{2\hbar}N\delta q_j^2</script> 
-   where <script type="math/tex">\omega_i\rightarrow</script>
-<code>phonF(j)</code>, 
-   <script type="math/tex">\delta q_j\rightarrow</script>
-<code>genCoord(j)</code>, and <script type="math/tex">N</script>
-   is the number of atoms per supercell
- </p><div class="alert alert-info" role="alert"><h4>Note</h4><p>This is equation 44 in the paper </p></div>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why there is no <script type="math/tex">N</script> in this equation in the code </p></div>
-<p>
-</li>
-<li>
-<p>Calculate <script type="math/tex">\hbar\omega_j/2kT</script> that is the argument 
-   to hyperbolic trig functions
- </p><div class="alert alert-info" role="alert"><h4>Note</h4><p>This is mainly from equations 42 and 43 in the paper </p></div>
-<p>
-</li>
-<li>
-<p>Calculate <script type="math/tex">\coth(\hbar\omega_j/2kT)</script> 
- </p><div class="alert alert-info" role="alert"><h4>Note</h4><p>This is in equation 42 in the paper </p></div>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if this needs to be another variable </p></div>
-<p>
-</li>
-<li>
-<p>Calculate the argument to the modified Bessel functions
-   <script type="math/tex; mode=display">\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}</script>
-</p>
-</li>
-<li>
-<p>Create an array of the indices that will be rearranged</p>
-</li>
-<li>
-<p>Rearrange the indices based on ordering the arguments (<code>x</code>)
-   largest to smallest</p>
-</li>
-</ul>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Frequency should actually be in eV/<script type="math/tex">\hbar</script>. Check that that's the case. </p></div>
-<p>
-<ul>
-<li>Write out the index, <script type="math/tex">\omega_j</script> in eV, <script type="math/tex">\delta q_j</script>, <script type="math/tex">\delta q_j^2</script>, 
-   and <script type="math/tex">S_j/\sinh(\hbar\omega_j/2kT)</script> for each phonon mode </li>
-</ul>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why this is assigned to another variable </p></div>
-<p>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if still need <code>di</code>, <code>bk</code>, and <code>dk</code> </p></div>
-<p>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if need to have this in loop. Why change <code>nm</code> in <code>iknb</code>? </p></div>
-<p>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if should send <code>nm</code> as it is immediately modified and not used here </p></div>
-<p>
-<ul>
-<li>Store the modified Bessel function for each mode and order
- </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Possibly change <code>besOrderNofModeM</code> to <code>modBesOrderNofModeM</code> </p></div>
-<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out why this loop is here. Can not just pass <code>besOrderNofModeM(:,j)</code> </p></div>
-<p></li>
-</ul>
     
 
     <h3>Arguments</h3>
@@ -342,15 +257,13 @@ public subroutine computeVariables()
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-i%7E6">i</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-i%7E10">i</a>
       
-      <a class="list-group-item" href="../proc/computevariables.html#variable-j%7E5">j</a>
+      <a class="list-group-item" href="../proc/computevariables.html#variable-j%7E9">j</a>
       
       <a class="list-group-item" href="../proc/computevariables.html#variable-nm">nm</a>
       
       <a class="list-group-item" href="../proc/computevariables.html#variable-nb">nb</a>
-      
-      <a class="list-group-item" href="../proc/computevariables.html#variable-imode">iMode</a>
       
       <a class="list-group-item" href="../proc/computevariables.html#variable-bi">bi</a>
       
@@ -408,7 +321,7 @@ public subroutine computeVariables()
   
 <tr>
   
-  <td><span class="anchor" id="variable-i%7E6"></span>integer,</td>
+  <td><span class="anchor" id="variable-i%7E10"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -422,7 +335,7 @@ public subroutine computeVariables()
   
 <tr>
   
-  <td><span class="anchor" id="variable-j%7E5"></span>integer,</td>
+  <td><span class="anchor" id="variable-j%7E9"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -454,21 +367,7 @@ public subroutine computeVariables()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>nb</strong></td><td></td><td></td><td><p>Final phonon mode</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-imode"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>iMode</strong></td><td></td><td></td><td><p>Loop index over phonon modes</p></td>
+  <td><strong>nb</strong></td><td></td><td></td><td></td>
   
 </tr>
 
