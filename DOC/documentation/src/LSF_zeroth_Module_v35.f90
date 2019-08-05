@@ -480,12 +480,12 @@ contains
     !! <h2>Background</h2>
     !! 
     !! The line shape function is defined in the paper as 
-    !! \[F = \dfrac{1}{\Omega_k}\sum_{p_j}\left{\left(\Pi_{j=1}^{M}F_j\right)
-    !!       \sum_{j=1}^M\left{p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
-    !!       \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right}
-    !!       D(\omega_j)\right}\]
+    !! \[F = \dfrac{1}{\Omega_k}\sum_{p_j}\left[\left(\prod_{j=1}^{M}F_j\right)
+    !!       \sum_{j=1}^M\left(p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
+    !!       \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right)
+    !!       D(\omega_j)\right]\]
     !! This function calculates 
-    !! \[\sum_{p_j}\left[\left(\Pi_{j=1}^{M}F_j\right) 
+    !! \[\sum_{p_j}\left[\left(\prod_{j=1}^{M}F_j\right) 
     !!   \sum_{j=1}^M\left(p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
     !!   \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right)\right]\]
     !! The \(F_j\) terms are calculated based on (42) from the paper
@@ -509,7 +509,7 @@ contains
       !!    * If the number of additional phonons \(p_j > 0\)
       !!      and \(I_{p_j} > 10^{-15}\), \(F_j = 0\)
       !!    * Otherwise, calculate \(F_j\) from (42)
-      !!    * Multiply \(F_j\) on running product to get \(\Pi_{j=1}^{M}F_j\)
+      !!    * Multiply \(F_j\) on running product to get \(\prod_{j=1}^{M}F_j\)
       !!    * Calculate \(I_{p_j+1}(x)I_{p_j}(x)\)
       !!    * Add results to running total to get innermost sum in (43) in paper
       !!      (see Background for details)

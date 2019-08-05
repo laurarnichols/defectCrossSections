@@ -235,12 +235,12 @@ public subroutine lsfOfConfigurationPj()
     
     <p><h2>Background</h2></p>
 <p>The line shape function is defined in the paper as 
- <script type="math/tex; mode=display">F = \dfrac{1}{\Omega_k}\sum_{p_j}\left{\left(\Pi_{j=1}^{M}F_j\right)
-       \sum_{j=1}^M\left{p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
-       \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right}
-       D(\omega_j)\right}</script>
+ <script type="math/tex; mode=display">F = \dfrac{1}{\Omega_k}\sum_{p_j}\left[\left(\prod_{j=1}^{M}F_j\right)
+       \sum_{j=1}^M\left(p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
+       \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right)
+       D(\omega_j)\right]</script>
  This function calculates 
- <script type="math/tex; mode=display">\sum_{p_j}\left[\left(\Pi_{j=1}^{M}F_j\right) 
+ <script type="math/tex; mode=display">\sum_{p_j}\left[\left(\prod_{j=1}^{M}F_j\right) 
    \sum_{j=1}^M\left(p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
    \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right)\right]</script>
  The <script type="math/tex">F_j</script> terms are calculated based on (42) from the paper
@@ -257,7 +257,7 @@ public subroutine lsfOfConfigurationPj()
   and <script type="math/tex">I_{p_j} > 10^{-15}</script>, <script type="math/tex">F_j = 0</script>
 </li>
 <li>Otherwise, calculate <script type="math/tex">F_j</script> from (42)</li>
-<li>Multiply <script type="math/tex">F_j</script> on running product to get <script type="math/tex">\Pi_{j=1}^{M}F_j</script>
+<li>Multiply <script type="math/tex">F_j</script> on running product to get <script type="math/tex">\prod_{j=1}^{M}F_j</script>
 </li>
 <li>Calculate <script type="math/tex">I_{p_j+1}(x)I_{p_j}(x)</script>
 </li>

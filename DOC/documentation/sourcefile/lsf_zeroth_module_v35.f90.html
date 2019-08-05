@@ -748,12 +748,12 @@
 <a name="ln-479"></a>    <span class="c">!! &lt;h2&gt;Background&lt;/h2&gt;</span>
 <a name="ln-480"></a>    <span class="c">!! </span>
 <a name="ln-481"></a>    <span class="c">!! The line shape function is defined in the paper as </span>
-<a name="ln-482"></a>    <span class="c">!! \[F = \dfrac{1}{\Omega_k}\sum_{p_j}\left{\left(\Pi_{j=1}^{M}F_j\right)</span>
-<a name="ln-483"></a>    <span class="c">!!       \sum_{j=1}^M\left{p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}</span>
-<a name="ln-484"></a>    <span class="c">!!       \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right}</span>
-<a name="ln-485"></a>    <span class="c">!!       D(\omega_j)\right}\]</span>
+<a name="ln-482"></a>    <span class="c">!! \[F = \dfrac{1}{\Omega_k}\sum_{p_j}\left[\left(\prod_{j=1}^{M}F_j\right)</span>
+<a name="ln-483"></a>    <span class="c">!!       \sum_{j=1}^M\left(p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}</span>
+<a name="ln-484"></a>    <span class="c">!!       \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right)</span>
+<a name="ln-485"></a>    <span class="c">!!       D(\omega_j)\right]\]</span>
 <a name="ln-486"></a>    <span class="c">!! This function calculates </span>
-<a name="ln-487"></a>    <span class="c">!! \[\sum_{p_j}\left[\left(\Pi_{j=1}^{M}F_j\right) </span>
+<a name="ln-487"></a>    <span class="c">!! \[\sum_{p_j}\left[\left(\prod_{j=1}^{M}F_j\right) </span>
 <a name="ln-488"></a>    <span class="c">!!   \sum_{j=1}^M\left(p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}</span>
 <a name="ln-489"></a>    <span class="c">!!   \dfrac{I_{p_j+1}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}{I_{p_j}\left[\dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}\right]}\right)\right]\]</span>
 <a name="ln-490"></a>    <span class="c">!! The \(F_j\) terms are calculated based on (42) from the paper</span>
@@ -777,7 +777,7 @@
 <a name="ln-508"></a>      <span class="c">!!    * If the number of additional phonons \(p_j &gt; 0\)</span>
 <a name="ln-509"></a>      <span class="c">!!      and \(I_{p_j} &gt; 10^{-15}\), \(F_j = 0\)</span>
 <a name="ln-510"></a>      <span class="c">!!    * Otherwise, calculate \(F_j\) from (42)</span>
-<a name="ln-511"></a>      <span class="c">!!    * Multiply \(F_j\) on running product to get \(\Pi_{j=1}^{M}F_j\)</span>
+<a name="ln-511"></a>      <span class="c">!!    * Multiply \(F_j\) on running product to get \(\prod_{j=1}^{M}F_j\)</span>
 <a name="ln-512"></a>      <span class="c">!!    * Calculate \(I_{p_j+1}(x)I_{p_j}(x)\)</span>
 <a name="ln-513"></a>      <span class="c">!!    * Add results to running total to get innermost sum in (43) in paper</span>
 <a name="ln-514"></a>      <span class="c">!!      (see Background for details)</span>
