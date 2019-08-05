@@ -1224,11 +1224,15 @@ contains
   end subroutine calculateDE
   ! 
   !
-  subroutine lsfMbyOneBand(m)
+  subroutine lsfMbyOneBand(M)
+    !! Calculate the line shape function for 
+    !! various sets \(\{p_j\}\) where all \(p_j\)
+    !! are zero except one that has values
+    !! \(-M, 0, M, 2M\) 
     !
     implicit none
     !
-    integer, intent(in) :: m
+    integer, intent(in) :: M
       !! Number of phonons
     !
     integer :: iMode1, pm1
@@ -1239,7 +1243,7 @@ contains
     !
     do iMode1 = 1, nModes
       !
-      do pm1 = -m, m, 2*m
+      do pm1 = -M, M, 2*M
         !
         pj(:) = 0
         pj(iMode1) = pm1

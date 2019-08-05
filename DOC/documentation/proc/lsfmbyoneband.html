@@ -215,7 +215,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine lsfMbyOneBand(m)
+public subroutine lsfMbyOneBand(M)
     
     
    
@@ -224,6 +224,12 @@ public subroutine lsfMbyOneBand(m)
   
 
 
+    
+    <p>Calculate the line shape function for 
+ various sets <script type="math/tex">\{p_j\}</script> where all <script type="math/tex">p_j</script>
+ are zero except one that has values
+ <script type="math/tex">-M, 0, M, 2M</script>
+</p>
     
 
     <h3>Arguments</h3>
@@ -244,12 +250,12 @@ public subroutine lsfMbyOneBand(m)
   
 <tr>
   
-  <td><span class="anchor" id="variable-m%7E6"></span>integer,</td>
+  <td><span class="anchor" id="variable-m%7E2"></span>integer,</td>
   <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>m</strong></td><td><p>Number of phonons</p></td>
+  <td><strong>M</strong></td><td><p>Number of phonons</p></td>
   
 </tr>
 
