@@ -475,7 +475,8 @@ contains
   !
   !
   subroutine lsfOfConfigurationPj()
-    !!
+    !! Calculate a portion of the line shape function \(F\)
+    !! for a given set \(\{p_j\}\)
     !!
     !! <h2>Background</h2>
     !! 
@@ -569,7 +570,7 @@ contains
     endif
     !
     iEbinsByBands(iE) = iEbinsByBands(iE) + 1
-      !! * Increment `iEbinsByBands`
+      !! * Increment the number of energies in the calculated bin
     !
     lsfVsEbyBands(iE) = lsfVsEbyBands(iE) + prodFj*sumOverj
       !! * Combine terms to get the middle portion of (43) in the paper (see Background for details)

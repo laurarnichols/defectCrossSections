@@ -233,7 +233,10 @@ public subroutine lsfOfConfigurationPj()
 
 
     
-    <p><h2>Background</h2></p>
+    <p>Calculate a portion of the line shape function <script type="math/tex">F</script>
+ for a given set <script type="math/tex">\{p_j\}</script>
+</p>
+<p><h2>Background</h2></p>
 <p>The line shape function is defined in the paper as 
  <script type="math/tex; mode=display">F = \dfrac{1}{\Omega_k}\sum_{p_j}\left[\left(\prod_{j=1}^{M}F_j\right)
        \sum_{j=1}^M\left(p_j + \dfrac{S_j}{\sinh(\hbar\omega_j/2kT)}
@@ -280,7 +283,7 @@ public subroutine lsfOfConfigurationPj()
 <p>Calculate the energy index</p>
 </li>
 <li>
-<p>Increment <code>iEbinsByBands</code></p>
+<p>Increment the number of energies in the calculated bin</p>
 </li>
 <li>
 <p>Combine terms to get the middle portion of (43) in the paper (see Background for details)</p>
