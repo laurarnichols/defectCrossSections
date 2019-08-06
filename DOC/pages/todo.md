@@ -7,14 +7,17 @@ date: 08/06/2019
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:536:` Figure out why don't just exit here because will be multiplying by 0 
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:556:` Redo `besRatio` if statement to be more clear that it is if/else 
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:602:` Send slice instead of using `other` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:612:` Write a recursive function to replace explicit loops 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:613:` Fix typo in `distrubute` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:614:` Change `l` to `nBands` and `m` to `nPhonons` or something similar 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1157:` Figure out why array is reversed 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1364:` Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)`
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1519:` Merge this with `parallelIsFsBy4` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1529:` Write a binomialCoefficient function 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1556:` Change this to use available states instead of totalStates 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:615:` Figure out if there is a better way in general to do this 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:616:` Write a recursive function to replace explicit loops 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:617:` Fix typo in `distrubute` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:618:` Change `l` to `nBands` and `m` to `kPhonons` or something similar 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:659:` Add a condition to exit inner loop if `i1 + i2 + i3 > m` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:668:` Add a condition to exit inner loop if `i > size of pj0s` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1163:` Figure out why array is reversed 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1370:` Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)`
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1525:` Merge this with `parallelIsFsBy4` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1535:` Write a binomialCoefficient function 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1562:` Change this to use available states instead of totalStates 
 * `../Mj/src/Mj_Main.f90:17:` Make sure that there is an end timer
 * `../Mj/src/Mj_Module_v1.f90:25:` Make sure default value is set for `qPoint` 
 * `../Mj/src/Mj_Module_v1.f90:269:` Figure out if expect `modeI` and `modeF` to represent index of magnitude of argument `x` 

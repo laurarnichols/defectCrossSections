@@ -147,14 +147,17 @@
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:536:</code> Figure out why don't just exit here because will be multiplying by 0 </li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:556:</code> Redo <code>besRatio</code> if statement to be more clear that it is if/else </li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:602:</code> Send slice instead of using <code>other</code> </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:612:</code> Write a recursive function to replace explicit loops </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:613:</code> Fix typo in <code>distrubute</code> </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:614:</code> Change <code>l</code> to <code>nBands</code> and <code>m</code> to <code>nPhonons</code> or something similar </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1157:</code> Figure out why array is reversed </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1364:</code> Replace this with <code>binomialCoefficient(kPhonons-1, kPhonons-nBands)</code></li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1519:</code> Merge this with <code>parallelIsFsBy4</code> </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1529:</code> Write a binomialCoefficient function </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1556:</code> Change this to use available states instead of totalStates </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:615:</code> Figure out if there is a better way in general to do this </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:616:</code> Write a recursive function to replace explicit loops </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:617:</code> Fix typo in <code>distrubute</code> </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:618:</code> Change <code>l</code> to <code>nBands</code> and <code>m</code> to <code>kPhonons</code> or something similar </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:659:</code> Add a condition to exit inner loop if <code>i1 + i2 + i3 &gt; m</code> </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:668:</code> Add a condition to exit inner loop if <code>i &gt; size of pj0s</code> </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1163:</code> Figure out why array is reversed </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1370:</code> Replace this with <code>binomialCoefficient(kPhonons-1, kPhonons-nBands)</code></li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1525:</code> Merge this with <code>parallelIsFsBy4</code> </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1535:</code> Write a binomialCoefficient function </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1562:</code> Change this to use available states instead of totalStates </li>
 <li><code>../Mj/src/Mj_Main.f90:17:</code> Make sure that there is an end timer</li>
 <li><code>../Mj/src/Mj_Module_v1.f90:25:</code> Make sure default value is set for <code>qPoint</code> </li>
 <li><code>../Mj/src/Mj_Module_v1.f90:269:</code> Figure out if expect <code>modeI</code> and <code>modeF</code> to represent index of magnitude of argument <code>x</code> </li>

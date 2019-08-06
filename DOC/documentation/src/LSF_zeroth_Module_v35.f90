@@ -609,9 +609,13 @@ contains
   !
   !
   subroutine distrubutePhononsInBands(m, l)
+    !! Generate all possible ways to distribute `m` phonons in `l` bands
+    !! such that each band has at least one phonon (only plus no minuses)
+    !!
+    !! @todo Figure out if there is a better way in general to do this @endtodo
     !! @todo Write a recursive function to replace explicit loops @endtodo
     !! @todo Fix typo in `distrubute` @endtodo
-    !! @todo Change `l` to `nBands` and `m` to `nPhonons` or something similar @endtodo
+    !! @todo Change `l` to `nBands` and `m` to `kPhonons` or something similar @endtodo
     !
     implicit none
     !
@@ -620,7 +624,7 @@ contains
     integer :: i, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12
     !
     if ( l == 1 ) then
-      !! * If there's only one band, all phonons go in the band
+      ! If there's only one band, all phonons go in the band
       !
       pj0s(1,1) = m
       !
@@ -632,8 +636,8 @@ contains
       enddo
       !
     else if ( l == m ) then
-      !! * If there are the same number of bands and phonons, 
-      !!   one phonon goes in each band
+      ! If there are the same number of bands and phonons, 
+      ! one phonon goes in each band
       !
       pj0s(1,:) = 1
       !
@@ -652,6 +656,7 @@ contains
       do i1 = 1, m - (l - 1)
         do i2 = 1, m - (l - 1)
           do i3 = 1, m - (l - 1)
+            !! @todo Add a condition to exit inner loop if `i1 + i2 + i3 > m` @endtodo
             !
             if ( i1 + i2 + i3 == m ) then
               !
@@ -660,6 +665,7 @@ contains
               pj0s(i, 3) = i3
               !
               i = i + 1
+                !! @todo Add a condition to exit inner loop if `i > size of pj0s` @endtodo
               !
             endif
             !
