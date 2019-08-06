@@ -1,12 +1,16 @@
 title: Todo
 author: Laura Nichols
-date: 08/05/2019
+date: 08/06/2019
 
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:183:` Figure out why increase `minimumNumberOfPhonons` by 1
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:522:` Change this to merge if statements 
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:536:` Figure out why don't just exit here because will be multiplying by 0 
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:556:` Redo `besRatio` if statement to be more clear that it is if/else 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1273:` Figure out how came up with limits 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:607:` Write a recursive function to replace explicit loops 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1274:` Figure out how came up with limits 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1485:` Merge this will `parallelIsFsBy4` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1495:` Write a binomialCoefficient function 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1522:` Change this to use available states instead of totalStates 
 * `../Mj/src/Mj_Main.f90:17:` Make sure that there is an end timer
 * `../Mj/src/Mj_Module_v1.f90:25:` Make sure default value is set for `qPoint` 
 * `../Mj/src/Mj_Module_v1.f90:269:` Figure out if expect `modeI` and `modeF` to represent index of magnitude of argument `x` 

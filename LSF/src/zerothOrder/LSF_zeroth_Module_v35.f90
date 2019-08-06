@@ -604,6 +604,7 @@ contains
   !
   !
   subroutine distrubutePhononsInBands(m, l)
+    !! @todo Write a recursive function to replace explicit loops @endtodo
     !
     implicit none
     !
@@ -1472,6 +1473,16 @@ contains
   !
   !
   subroutine parallelIsFsBy3()
+    !! Figure out what mode each process should start (`iModeIs`)
+    !! and finish on (`iModeFs`) so that the resulting states are 
+    !! balanced between the processes
+    !!
+    !! @note 
+    !! If the number of processors is greater than the number of 
+    !! modes, only `nModes-2` processes will actually be used
+    !! @endnote
+    !!
+    !! @todo Merge this will `parallelIsFsBy4` @endtodo
     !
     implicit none
     !
@@ -1480,6 +1491,8 @@ contains
     !
     totalStates = nModes/6.0_dp
     totalStates = totalStates*(nModes-1)*(nModes-2)
+      ! totalStates = binomialCoefficient(nModes, nPhonons)
+      !! @todo Write a binomialCoefficient function @endtodo
     !
     !write(iostd, *) 'totalStates', totalStates
     if ( nModes > numprocs ) then
@@ -1494,15 +1507,19 @@ contains
       do while ( (iState > 1) .and. (nProcMax - iproc > 1) )
         !
         states = real(iState-1, dp)*real(iState-2, dp)/2.0_dp
+          ! states = binomialCoefficient(iState-1, nPhonons-1)
         parTotal = parTotal + states
         parTotal2 = parTotal + real(iState-2, dp)*real(iState-3, dp)/2.0_dp 
+          ! parTotal2 = parTotal + binomialCoefficient(iState-2, nPhonons-1)
         !
         averageStatesPerProc = totalStates/(nProcMax - iproc) - 0.01_dp
         if ( ( parTotal > averageStatesPerProc ) .or. ( parTotal2 > averageStatesPerProc ) ) then
           iModeFs(iproc) = nModes - iState + 1
+          iModeIs(iproc+1) = nModes - iState + 2
+          !
           iproc = iproc + 1
-          iModeIs(iproc) = nModes - iState + 2
           totalStates = totalStates - parTotal
+            !! @todo Change this to use available states instead of totalStates @endtodo
           parTotal = 0
         endif
         !
