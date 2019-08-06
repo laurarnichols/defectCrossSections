@@ -6,13 +6,13 @@ date: 08/06/2019
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:522:` Change this to merge if statements 
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:536:` Figure out why don't just exit here because will be multiplying by 0 
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:556:` Redo `besRatio` if statement to be more clear that it is if/else 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:598:` Send slice instead of using `other` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:608:` Write a recursive function to replace explicit loops 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1148:` Figure out why array is reversed 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1280:` Figure out how came up with limits 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1491:` Merge this with `parallelIsFsBy4` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1501:` Write a binomialCoefficient function 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1528:` Change this to use available states instead of totalStates 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:602:` Send slice instead of using `other` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:612:` Write a recursive function to replace explicit loops 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1152:` Figure out why array is reversed 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1284:` Figure out how came up with limits 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1495:` Merge this with `parallelIsFsBy4` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1505:` Write a binomialCoefficient function 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1532:` Change this to use available states instead of totalStates 
 * `../Mj/src/Mj_Main.f90:17:` Make sure that there is an end timer
 * `../Mj/src/Mj_Module_v1.f90:25:` Make sure default value is set for `qPoint` 
 * `../Mj/src/Mj_Module_v1.f90:269:` Figure out if expect `modeI` and `modeF` to represent index of magnitude of argument `x` 

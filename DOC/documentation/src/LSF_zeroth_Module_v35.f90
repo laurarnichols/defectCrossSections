@@ -581,20 +581,24 @@ contains
   !
   !
   subroutine calculatePlusMinusStates(l)
+    !! Get all of the possible binary numbers with
+    !! \(l\) digits and store them in `pms`.
+    !!
+    !! @note The binary numbers are reversed before stored, but I don't know why. @endnote
     !
     implicit none
     !
     integer, intent(in) :: l
     !
-    integer :: iDes, other(0:l-1)
+    integer :: iDec, other(0:l-1)
     !
-    do iDes = 0, 2**l - 1
+    do iDec = 0, 2**l - 1
       !
       other(:) = 0
       !
-      call decimalToOther(iDes, l, 2, other)
+      call decimalToOther(iDec, l, 2, other)
       !
-      pms(iDes,:) = other(:)
+      pms(iDec,:) = other(:)
         !! @todo Send slice instead of using `other` @endtodo
       !
     enddo
