@@ -595,6 +595,7 @@ contains
       call decimalToOther(iDes, l, 2, other)
       !
       pms(iDes,:) = other(:)
+        !! @todo Send slice instead of using `other` @endtodo
       !
     enddo
     !
@@ -1140,6 +1141,11 @@ contains
   !
   !
   subroutine decimalToOther(iDec, n, iBase, other)
+    !! Convert an input number in base 10 to an
+    !! \(n\) digit number in base `iBase`. The number
+    !! is returned in the length `n` vector `other`.
+    !!
+    !! @todo Figure out why array is reversed @endtodo
     !
     implicit none
     !
