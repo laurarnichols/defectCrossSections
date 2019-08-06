@@ -2348,7 +2348,7 @@ public subroutine <a href='../proc/lsfmbyoneband.html'>lsfMbyOneBand</a>(M)
 <p>Calculate the line shape function for 
  various sets <script type="math/tex">\{p_j\}</script> where all <script type="math/tex">p_j</script>
  are zero except one that has values
- <script type="math/tex">-M, 0, M, 2M</script>
+ <script type="math/tex">-M, M</script>
 </p>
     
     <h4>Arguments</h4>
@@ -2411,7 +2411,8 @@ public subroutine <a href='../proc/lsfmbytwobands.html'>lsfMbyTwoBands</a>(m)
 <p>Calculate the line shape function for 
  various sets <script type="math/tex">\{p_j\}</script> where all <script type="math/tex">p_j</script>
  are zero except two that have values
- ??</p><a href="../proc/lsfmbytwobands.html" class="pull-right"><emph>Read more&hellip;</emph></a>
+ such that the total number of phonons (plus or minus) in
+ the two bands is 3</p>
     
     <h4>Arguments</h4>
     
@@ -2463,6 +2464,26 @@ public subroutine <a href='../proc/lsfmbythreebands.html'>lsfMbyThreeBands</a>(m
   <div class="panel-body">
        
     
+
+
+
+
+
+
+
+<p><h2>Background</h2>
+ The number of ways to put <code>nPhonons</code> in <code>nBands</code> so that
+ all bands have at least one phonon is the same as first putting
+ a phonon in each band, then counting how many ways you can 
+ distribute the rest of the phonons. In other words, since the 
+ number of ways to distribute <script type="math/tex">k</script> phonons into <script type="math/tex">n</script> bands
+ (empty or not) is
+ <script type="math/tex; mode=display">{n+k-1\choose k}</script>
+ and each of our <script type="math/tex">n</script> bands needs at least one phonon, we just 
+ replace the available phonons to distribute <script type="math/tex">k</script> with <script type="math/tex">k-n</script>
+ to get 
+ <script type="math/tex; mode=display">{n+(k-n)-1\choose (k-n)} = {k-1\choose k-n}</script>
+</p><a href="../proc/lsfmbythreebands.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     

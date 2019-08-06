@@ -410,7 +410,7 @@ contains
 !    !  write(44,*) real(iE, dp)*deltaE*HartreeToEv, Vfis(iE)
 !    !enddo
 !    !
-!    return
+!    return @endtodo
 !    !
 !  end subroutine readVfis
   !
@@ -610,6 +610,8 @@ contains
   !
   subroutine distrubutePhononsInBands(m, l)
     !! @todo Write a recursive function to replace explicit loops @endtodo
+    !! @todo Fix typo in `distrubute` @endtodo
+    !! @todo Change `l` to `nBands` and `m` to `nPhonons` or something similar @endtodo
     !
     implicit none
     !
@@ -618,6 +620,7 @@ contains
     integer :: i, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12
     !
     if ( l == 1 ) then
+      !! * If there's only one band, all phonons go in the band
       !
       pj0s(1,1) = m
       !
@@ -629,6 +632,8 @@ contains
       enddo
       !
     else if ( l == m ) then
+      !! * If there are the same number of bands and phonons, 
+      !!   one phonon goes in each band
       !
       pj0s(1,:) = 1
       !
@@ -1239,7 +1244,7 @@ contains
     !! Calculate the line shape function for 
     !! various sets \(\{p_j\}\) where all \(p_j\)
     !! are zero except one that has values
-    !! \(-M, 0, M, 2M\) 
+    !! \(-M, M\) 
     !
     implicit none
     !
@@ -1279,9 +1284,8 @@ contains
     !! Calculate the line shape function for 
     !! various sets \(\{p_j\}\) where all \(p_j\)
     !! are zero except two that have values
-    !! ??
-    !!
-    !! @todo Figure out how came up with limits @endtodo
+    !! such that the total number of phonons (plus or minus) in
+    !! the two bands is 3
     !
     implicit none
     !
@@ -1328,7 +1332,21 @@ contains
   !
   !
   subroutine lsfMbyThreeBands(m)
-    !
+    !!
+    !!
+    !! <h2>Background</h2>
+    !! The number of ways to put `nPhonons` in `nBands` so that
+    !! all bands have at least one phonon is the same as first putting
+    !! a phonon in each band, then counting how many ways you can 
+    !! distribute the rest of the phonons. In other words, since the 
+    !! number of ways to distribute \(k\) phonons into \(n\) bands
+    !! (empty or not) is
+    !! \[{n+k-1\choose k}\]
+    !! and each of our \(n\) bands needs at least one phonon, we just 
+    !! replace the available phonons to distribute \(k\) with \(k-n\)
+    !! to get 
+    !! \[{n+(k-n)-1\choose (k-n)} = {k-1\choose k-n}\]
+    !!
     implicit none
     !
     integer, intent(in) :: m
@@ -1338,6 +1356,8 @@ contains
     !
     call cpu_time(t1)
     !
+    !> Determine the length of the `pj0s` array
+    !> @todo Replace this with `binomialCoefficient(nPhonons-1, nPhonons-nBands)`
     times3 = 1.0_dp
     mi = 2
     do ni = m - 1, m - 3 + 1, -1

@@ -260,19 +260,32 @@ All Procedures &ndash; Carrier Cross Sections
 			   <tr><td><a href='../proc/lsfmbyoneband.html'>lsfMbyOneBand</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Subroutine</td><td><p>Calculate the line shape function for 
  various sets <script type="math/tex">\{p_j\}</script> where all <script type="math/tex">p_j</script>
  are zero except one that has values
- <script type="math/tex">-M, 0, M, 2M</script>
+ <script type="math/tex">-M, M</script>
 </p></td></tr>
 			 
 			   <tr><td><a href='../proc/lsfmbyoneband%7E2.html'>lsfMbyOneBand</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
-			   <tr><td><a href='../proc/lsfmbythreebands.html'>lsfMbyThreeBands</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
+			   <tr><td><a href='../proc/lsfmbythreebands.html'>lsfMbyThreeBands</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Subroutine</td><td><p><h2>Background</h2>
+ The number of ways to put <code>nPhonons</code> in <code>nBands</code> so that
+ all bands have at least one phonon is the same as first putting
+ a phonon in each band, then counting how many ways you can 
+ distribute the rest of the phonons. In other words, since the 
+ number of ways to distribute <script type="math/tex">k</script> phonons into <script type="math/tex">n</script> bands
+ (empty or not) is
+ <script type="math/tex; mode=display">{n+k-1\choose k}</script>
+ and each of our <script type="math/tex">n</script> bands needs at least one phonon, we just 
+ replace the available phonons to distribute <script type="math/tex">k</script> with <script type="math/tex">k-n</script>
+ to get 
+ <script type="math/tex; mode=display">{n+(k-n)-1\choose (k-n)} = {k-1\choose k-n}</script>
+</p><a href="../proc/lsfmbythreebands.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/lsfmbythreebands%7E2.html'>lsfMbyThreeBands</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
 			   <tr><td><a href='../proc/lsfmbytwobands.html'>lsfMbyTwoBands</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Subroutine</td><td><p>Calculate the line shape function for 
  various sets <script type="math/tex">\{p_j\}</script> where all <script type="math/tex">p_j</script>
  are zero except two that have values
- ??</p><a href="../proc/lsfmbytwobands.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
+ such that the total number of phonons (plus or minus) in
+ the two bands is 3</p></td></tr>
 			 
 			   <tr><td><a href='../proc/lsfmbytwobands%7E2.html'>lsfMbyTwoBands</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
