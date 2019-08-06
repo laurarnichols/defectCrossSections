@@ -1750,7 +1750,7 @@
 <a name="ln-1481"></a>    <span class="c">!! modes, only `nModes-2` processes will actually be used</span>
 <a name="ln-1482"></a>    <span class="c">!! @endnote</span>
 <a name="ln-1483"></a>    <span class="c">!!</span>
-<a name="ln-1484"></a>    <span class="c">!! @todo Merge this will `parallelIsFsBy4` @endtodo</span>
+<a name="ln-1484"></a>    <span class="c">!! @todo Merge this with `parallelIsFsBy4` @endtodo</span>
 <a name="ln-1485"></a>    <span class="c">!</span>
 <a name="ln-1486"></a>    <span class="k">implicit none</span>
 <a name="ln-1487"></a>    <span class="c">!</span>
@@ -1813,62 +1813,70 @@
 <a name="ln-1544"></a>  <span class="c">!</span>
 <a name="ln-1545"></a>  <span class="c">!</span>
 <a name="ln-1546"></a>  <span class="k">subroutine </span><span class="n">parallelIsFsBy4</span><span class="p">()</span>
-<a name="ln-1547"></a>    <span class="c">!</span>
-<a name="ln-1548"></a>    <span class="k">implicit none</span>
-<a name="ln-1549"></a>    <span class="c">!</span>
-<a name="ln-1550"></a>    <span class="kt">real</span><span class="p">(</span><span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">parTotal</span><span class="p">,</span> <span class="n">parTotal2</span><span class="p">,</span> <span class="n">totalStates</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">averageStatesPerProc</span>
-<a name="ln-1551"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">iState</span><span class="p">,</span> <span class="n">iproc</span>
-<a name="ln-1552"></a>    <span class="c">!</span>
-<a name="ln-1553"></a>    <span class="n">totalStates</span> <span class="o">=</span> <span class="n">nModes</span><span class="o">/</span><span class="mi">2</span><span class="mf">4.0_dp</span>
-<a name="ln-1554"></a>    <span class="n">totalStates</span> <span class="o">=</span> <span class="n">totalStates</span><span class="o">*</span><span class="p">(</span><span class="n">nModes</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nModes</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nModes</span><span class="o">-</span><span class="mi">3</span><span class="p">)</span>
+<a name="ln-1547"></a>    <span class="c">!! Figure out what mode each process should start (`iModeIs`)</span>
+<a name="ln-1548"></a>    <span class="c">!! and finish on (`iModeFs`) so that the resulting states are </span>
+<a name="ln-1549"></a>    <span class="c">!! balanced between the processes</span>
+<a name="ln-1550"></a>    <span class="c">!!</span>
+<a name="ln-1551"></a>    <span class="c">!! @note </span>
+<a name="ln-1552"></a>    <span class="c">!! If the number of processors is greater than the number of </span>
+<a name="ln-1553"></a>    <span class="c">!! modes, only `nModes-2` processes will actually be used</span>
+<a name="ln-1554"></a>    <span class="c">!! @endnote</span>
 <a name="ln-1555"></a>    <span class="c">!</span>
-<a name="ln-1556"></a>    <span class="c">!write(iostd, *) &#39;totalStates&#39;, totalStates</span>
-<a name="ln-1557"></a>    <span class="k">if</span> <span class="p">(</span> <span class="n">nModes</span> <span class="o">&gt;</span> <span class="n">numprocs</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-1558"></a>      <span class="c">!</span>
-<a name="ln-1559"></a>      <span class="n">nProcMax</span> <span class="o">=</span> <span class="n">numprocs</span>
-<a name="ln-1560"></a>      <span class="c">!</span>
-<a name="ln-1561"></a>      <span class="n">parTotal</span> <span class="o">=</span> <span class="mi">0</span>
-<a name="ln-1562"></a>      <span class="n">iproc</span> <span class="o">=</span> <span class="mi">0</span>
-<a name="ln-1563"></a>      <span class="n">iModeIs</span><span class="p">(</span><span class="n">iproc</span><span class="p">)</span> <span class="o">=</span> <span class="mi">1</span>
-<a name="ln-1564"></a>      <span class="n">iState</span> <span class="o">=</span> <span class="n">nModes</span>
-<a name="ln-1565"></a>      <span class="c">!</span>
-<a name="ln-1566"></a>      <span class="k">do while</span> <span class="p">(</span> <span class="p">(</span><span class="n">iState</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">nProcMax</span> <span class="o">-</span> <span class="n">iproc</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
-<a name="ln-1567"></a>        <span class="c">!</span>
-<a name="ln-1568"></a>        <span class="n">states</span> <span class="o">=</span> <span class="kt">real</span><span class="p">(</span><span class="n">iState</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">iState</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">iState</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">/</span><span class="mf">6.0_dp</span>
-<a name="ln-1569"></a>        <span class="n">parTotal</span> <span class="o">=</span> <span class="n">parTotal</span> <span class="o">+</span> <span class="n">states</span>
-<a name="ln-1570"></a>        <span class="n">parTotal2</span> <span class="o">=</span> <span class="n">parTotal</span> <span class="o">+</span> <span class="kt">real</span><span class="p">(</span><span class="n">iState</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">iState</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">iState</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">/</span><span class="mf">6.0_dp</span> 
-<a name="ln-1571"></a>        <span class="c">!</span>
-<a name="ln-1572"></a>        <span class="n">averageStatesPerProc</span> <span class="o">=</span> <span class="n">totalStates</span><span class="o">/</span><span class="p">(</span><span class="n">nProcMax</span> <span class="o">-</span> <span class="n">iproc</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.01_dp</span>
-<a name="ln-1573"></a>        <span class="k">if</span> <span class="p">(</span> <span class="p">(</span> <span class="n">parTotal</span> <span class="o">&gt;</span> <span class="n">averageStatesPerProc</span> <span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span> <span class="n">parTotal2</span> <span class="o">&gt;</span> <span class="n">averageStatesPerProc</span> <span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-1574"></a><span class="k">          </span><span class="n">iModeFs</span><span class="p">(</span><span class="n">iproc</span><span class="p">)</span> <span class="o">=</span> <span class="n">nModes</span> <span class="o">-</span> <span class="n">iState</span> <span class="o">+</span> <span class="mi">1</span>
-<a name="ln-1575"></a>          <span class="n">iproc</span> <span class="o">=</span> <span class="n">iproc</span> <span class="o">+</span> <span class="mi">1</span>
-<a name="ln-1576"></a>          <span class="n">iModeIs</span><span class="p">(</span><span class="n">iproc</span><span class="p">)</span> <span class="o">=</span> <span class="n">nModes</span> <span class="o">-</span> <span class="n">iState</span> <span class="o">+</span> <span class="mi">2</span>
-<a name="ln-1577"></a>          <span class="n">totalStates</span> <span class="o">=</span> <span class="n">totalStates</span> <span class="o">-</span> <span class="n">parTotal</span>
-<a name="ln-1578"></a>          <span class="n">parTotal</span> <span class="o">=</span> <span class="mi">0</span>
-<a name="ln-1579"></a>        <span class="n">endif</span>
-<a name="ln-1580"></a>        <span class="c">!</span>
-<a name="ln-1581"></a>        <span class="n">iState</span> <span class="o">=</span> <span class="n">iState</span> <span class="o">-</span> <span class="mi">1</span>
-<a name="ln-1582"></a>        <span class="c">!</span>
-<a name="ln-1583"></a>      <span class="n">enddo</span>
-<a name="ln-1584"></a>      <span class="c">!</span>
-<a name="ln-1585"></a>      <span class="n">iModeFs</span><span class="p">(</span><span class="n">iproc</span><span class="p">)</span> <span class="o">=</span> <span class="n">nModes</span> <span class="o">-</span> <span class="mi">2</span>
-<a name="ln-1586"></a>      <span class="c">!</span>
-<a name="ln-1587"></a>    <span class="k">else</span>
-<a name="ln-1588"></a>      <span class="c">! </span>
-<a name="ln-1589"></a>      <span class="n">nProcMax</span> <span class="o">=</span> <span class="n">nModes</span> <span class="o">-</span> <span class="mi">2</span>
-<a name="ln-1590"></a>      <span class="c">!</span>
-<a name="ln-1591"></a>      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nProcMax</span> <span class="o">-</span> <span class="mi">1</span>
-<a name="ln-1592"></a>        <span class="n">iModeIs</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span>
-<a name="ln-1593"></a>        <span class="n">iModeFs</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span>
-<a name="ln-1594"></a>      <span class="n">enddo</span>
-<a name="ln-1595"></a>    <span class="n">endif</span>
-<a name="ln-1596"></a>    <span class="c">!</span>
-<a name="ln-1597"></a>    <span class="k">return</span>
-<a name="ln-1598"></a>    <span class="c">!</span>
-<a name="ln-1599"></a>  <span class="k">end subroutine </span><span class="n">parallelIsFsBy4</span>
-<a name="ln-1600"></a>  <span class="c">!</span>
-<a name="ln-1601"></a>  <span class="c">!</span>
-<a name="ln-1602"></a><span class="k">end module </span><span class="n">lsf</span>
+<a name="ln-1556"></a>    <span class="k">implicit none</span>
+<a name="ln-1557"></a>    <span class="c">!</span>
+<a name="ln-1558"></a>    <span class="kt">real</span><span class="p">(</span><span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">parTotal</span><span class="p">,</span> <span class="n">parTotal2</span><span class="p">,</span> <span class="n">totalStates</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">averageStatesPerProc</span>
+<a name="ln-1559"></a>    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span><span class="p">,</span> <span class="n">iState</span><span class="p">,</span> <span class="n">iproc</span>
+<a name="ln-1560"></a>    <span class="c">!</span>
+<a name="ln-1561"></a>    <span class="n">totalStates</span> <span class="o">=</span> <span class="n">nModes</span><span class="o">/</span><span class="mi">2</span><span class="mf">4.0_dp</span>
+<a name="ln-1562"></a>    <span class="n">totalStates</span> <span class="o">=</span> <span class="n">totalStates</span><span class="o">*</span><span class="p">(</span><span class="n">nModes</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nModes</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">nModes</span><span class="o">-</span><span class="mi">3</span><span class="p">)</span>
+<a name="ln-1563"></a>    <span class="c">!</span>
+<a name="ln-1564"></a>    <span class="c">!write(iostd, *) &#39;totalStates&#39;, totalStates</span>
+<a name="ln-1565"></a>    <span class="k">if</span> <span class="p">(</span> <span class="n">nModes</span> <span class="o">&gt;</span> <span class="n">numprocs</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-1566"></a>      <span class="c">!</span>
+<a name="ln-1567"></a>      <span class="n">nProcMax</span> <span class="o">=</span> <span class="n">numprocs</span>
+<a name="ln-1568"></a>      <span class="c">!</span>
+<a name="ln-1569"></a>      <span class="n">parTotal</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-1570"></a>      <span class="n">iproc</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-1571"></a>      <span class="n">iModeIs</span><span class="p">(</span><span class="n">iproc</span><span class="p">)</span> <span class="o">=</span> <span class="mi">1</span>
+<a name="ln-1572"></a>      <span class="n">iState</span> <span class="o">=</span> <span class="n">nModes</span>
+<a name="ln-1573"></a>      <span class="c">!</span>
+<a name="ln-1574"></a>      <span class="k">do while</span> <span class="p">(</span> <span class="p">(</span><span class="n">iState</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">nProcMax</span> <span class="o">-</span> <span class="n">iproc</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="p">)</span>
+<a name="ln-1575"></a>        <span class="c">!</span>
+<a name="ln-1576"></a>        <span class="n">states</span> <span class="o">=</span> <span class="kt">real</span><span class="p">(</span><span class="n">iState</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">iState</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">iState</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">/</span><span class="mf">6.0_dp</span>
+<a name="ln-1577"></a>        <span class="n">parTotal</span> <span class="o">=</span> <span class="n">parTotal</span> <span class="o">+</span> <span class="n">states</span>
+<a name="ln-1578"></a>        <span class="n">parTotal2</span> <span class="o">=</span> <span class="n">parTotal</span> <span class="o">+</span> <span class="kt">real</span><span class="p">(</span><span class="n">iState</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">iState</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">iState</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">/</span><span class="mf">6.0_dp</span> 
+<a name="ln-1579"></a>        <span class="c">!</span>
+<a name="ln-1580"></a>        <span class="n">averageStatesPerProc</span> <span class="o">=</span> <span class="n">totalStates</span><span class="o">/</span><span class="p">(</span><span class="n">nProcMax</span> <span class="o">-</span> <span class="n">iproc</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.01_dp</span>
+<a name="ln-1581"></a>        <span class="k">if</span> <span class="p">(</span> <span class="p">(</span> <span class="n">parTotal</span> <span class="o">&gt;</span> <span class="n">averageStatesPerProc</span> <span class="p">)</span> <span class="p">.</span><span class="nb">or</span><span class="p">.</span> <span class="p">(</span> <span class="n">parTotal2</span> <span class="o">&gt;</span> <span class="n">averageStatesPerProc</span> <span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-1582"></a><span class="k">          </span><span class="n">iModeFs</span><span class="p">(</span><span class="n">iproc</span><span class="p">)</span> <span class="o">=</span> <span class="n">nModes</span> <span class="o">-</span> <span class="n">iState</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-1583"></a>          <span class="n">iproc</span> <span class="o">=</span> <span class="n">iproc</span> <span class="o">+</span> <span class="mi">1</span>
+<a name="ln-1584"></a>          <span class="n">iModeIs</span><span class="p">(</span><span class="n">iproc</span><span class="p">)</span> <span class="o">=</span> <span class="n">nModes</span> <span class="o">-</span> <span class="n">iState</span> <span class="o">+</span> <span class="mi">2</span>
+<a name="ln-1585"></a>          <span class="n">totalStates</span> <span class="o">=</span> <span class="n">totalStates</span> <span class="o">-</span> <span class="n">parTotal</span>
+<a name="ln-1586"></a>          <span class="n">parTotal</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-1587"></a>        <span class="n">endif</span>
+<a name="ln-1588"></a>        <span class="c">!</span>
+<a name="ln-1589"></a>        <span class="n">iState</span> <span class="o">=</span> <span class="n">iState</span> <span class="o">-</span> <span class="mi">1</span>
+<a name="ln-1590"></a>        <span class="c">!</span>
+<a name="ln-1591"></a>      <span class="n">enddo</span>
+<a name="ln-1592"></a>      <span class="c">!</span>
+<a name="ln-1593"></a>      <span class="n">iModeFs</span><span class="p">(</span><span class="n">iproc</span><span class="p">)</span> <span class="o">=</span> <span class="n">nModes</span> <span class="o">-</span> <span class="mi">2</span>
+<a name="ln-1594"></a>      <span class="c">!</span>
+<a name="ln-1595"></a>    <span class="k">else</span>
+<a name="ln-1596"></a>      <span class="c">! </span>
+<a name="ln-1597"></a>      <span class="n">nProcMax</span> <span class="o">=</span> <span class="n">nModes</span> <span class="o">-</span> <span class="mi">2</span>
+<a name="ln-1598"></a>      <span class="c">!</span>
+<a name="ln-1599"></a>      <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nProcMax</span> <span class="o">-</span> <span class="mi">1</span>
+<a name="ln-1600"></a>        <span class="n">iModeIs</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-1601"></a>        <span class="n">iModeFs</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">=</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span>
+<a name="ln-1602"></a>      <span class="n">enddo</span>
+<a name="ln-1603"></a>    <span class="n">endif</span>
+<a name="ln-1604"></a>    <span class="c">!</span>
+<a name="ln-1605"></a>    <span class="k">return</span>
+<a name="ln-1606"></a>    <span class="c">!</span>
+<a name="ln-1607"></a>  <span class="k">end subroutine </span><span class="n">parallelIsFsBy4</span>
+<a name="ln-1608"></a>  <span class="c">!</span>
+<a name="ln-1609"></a>  <span class="c">!</span>
+<a name="ln-1610"></a><span class="k">end module </span><span class="n">lsf</span>
 </pre></div>
 
     </section>

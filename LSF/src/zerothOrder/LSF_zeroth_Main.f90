@@ -1,6 +1,5 @@
 program lineShapeFunction
   !
-  ! Pull in modules
   use mpi
   use lsf
   use generalComputations
@@ -10,29 +9,34 @@ program lineShapeFunction
   !
   implicit none
   !
-  ! Define an integer for ????
   integer :: lll, iPhonon
   !
   character(len=2) :: charI
   !
-  ! Initialize mpi and set up processes
   call MPI_INIT(ierr)
   call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
   call MPI_COMM_SIZE(MPI_COMM_WORLD, numprocs, ierr)
+    !! * Initialize mpi and set up processes
   !
-  ! If root process
   if ( myid == root ) then
+    !! * If root process
+    !!    * Start a timer
+    !!    * Read input, check all variables needed and initialize the calculation
+    !!    * Calculate \(\delta q_j\)
+    !!    * Compute main parts of equations 42 and 43 in paper
+    !!      to make whole formula more manageable
+    !!    * Initialize or read LSF from file
     !
-    ! Start a timer
     call cpu_time(ti)
+      ! Start a timer
     !
-    ! Read input, check all variables needed and initialize the calculation.
     call readInputs()
+      ! Read input, check all variables needed and initialize the calculation
     !
     allocate( genCoord(nModes) )
     !
     call computeGeneralizedDisplacements(nOfqPoints, nModes, genCoord, nAtoms, atomM, phonD, atomD)
-      !! * Calculate \(\delta q_j\)
+      ! Calculate \(\delta q_j\)
     !
     deallocate( atomM, phonD, atomD )
     !
@@ -41,31 +45,30 @@ program lineShapeFunction
     !
     call computeVariables(x, Sj, coth, wby2kT, phonF, genCoord, kT, s2L, nModes, maximumNumberOfPhonons, &
                           besOrderNofModeM)
-      !! * Compute main parts of equations 42 and 43 in paper
-      !!   to make whole formula more manageable
+      ! Compute main parts of equations 42 and 43 in paper
+      ! to make whole formula more manageable
     !
     deallocate( genCoord )
     !
     call initializeLSF()
+      ! Initialize or read LSF from file
     !
   endif
   !
-  ! Broadcast calculation parameters to all processes
   call MPI_BCAST(nModes   ,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(maximumNumberOfPhonons,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(minimumNumberOfPhonons,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(nEnergies,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr) 
   call MPI_BCAST(deltaE,     1, MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !
-  ! For all processes that aren't the root
   if ( myid /= root ) then
-    ! Allocate space for arrays
+    !
     allocate( phonF(nModes), x(nModes), Sj(nModes), coth(nModes), wby2kT(nModes) )
     allocate( besOrderNofModeM(0:maximumNumberOfPhonons + 1, nModes) )
     !allocate( Vfis(-nEnergies:nEnergies) )
+    !
   endif
   !
-  ! Broadcast arrays to all processes
   call MPI_BCAST( phonF, size(phonF), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST( x, size(x), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST( Sj, size(Sj), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
@@ -74,7 +77,6 @@ program lineShapeFunction
   call MPI_BCAST( besOrderNofModeM, size(besOrderNofModeM), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !call MPI_BCAST( Vfis, size(Vfis), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !
-  ! Allocate space for arrays
   allocate( lsfVsEbyBands(-nEnergies:nEnergies) )
   allocate( iEbinsByBands(-nEnergies:nEnergies) )
   !

@@ -1482,7 +1482,7 @@ contains
     !! modes, only `nModes-2` processes will actually be used
     !! @endnote
     !!
-    !! @todo Merge this will `parallelIsFsBy4` @endtodo
+    !! @todo Merge this with `parallelIsFsBy4` @endtodo
     !
     implicit none
     !
@@ -1545,6 +1545,14 @@ contains
   !
   !
   subroutine parallelIsFsBy4()
+    !! Figure out what mode each process should start (`iModeIs`)
+    !! and finish on (`iModeFs`) so that the resulting states are 
+    !! balanced between the processes
+    !!
+    !! @note 
+    !! If the number of processors is greater than the number of 
+    !! modes, only `nModes-2` processes will actually be used
+    !! @endnote
     !
     implicit none
     !
