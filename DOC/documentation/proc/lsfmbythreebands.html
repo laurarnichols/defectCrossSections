@@ -237,8 +237,8 @@ public subroutine lsfMbyThreeBands(m)
 
 
     
-    <p><h2>Background</h2>
- The number of ways to put <code>nPhonons</code> in <code>nBands</code> so that
+    <p><h2>Background</h2></p>
+<p>The number of ways to put <code>kPhonons</code> in <code>nBands</code> so that
  all bands have at least one phonon is the same as first putting
  a phonon in each band, then counting how many ways you can 
  distribute the rest of the phonons. In other words, since the 
@@ -249,9 +249,10 @@ public subroutine lsfMbyThreeBands(m)
  replace the available phonons to distribute <script type="math/tex">k</script> with <script type="math/tex">k-n</script>
  to get 
  <script type="math/tex; mode=display">{n+(k-n)-1\choose (k-n)} = {k-1\choose k-n}</script>
-</p>
+ See <a href="https://www.quora.com/What-is-the-number-of-ways-to-distribute-8-identical-balls-in-3-different-boxes-none-being-empty">this Quora article</a> for more details.</p>
+<p><h2>Walkthrough</h2></p>
 <p>Determine the length of the <code>pj0s</code> array
- </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Replace this with <code>binomialCoefficient(nPhonons-1, nPhonons-nBands)</code></p></div>
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Replace this with <code>binomialCoefficient(kPhonons-1, kPhonons-nBands)</code></p></div>
     
 
     <h3>Arguments</h3>

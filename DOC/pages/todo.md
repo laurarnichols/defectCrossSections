@@ -11,10 +11,10 @@ date: 08/06/2019
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:613:` Fix typo in `distrubute` 
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:614:` Change `l` to `nBands` and `m` to `nPhonons` or something similar 
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1157:` Figure out why array is reversed 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1360:` Replace this with `binomialCoefficient(nPhonons-1, nPhonons-nBands)`
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1515:` Merge this with `parallelIsFsBy4` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1525:` Write a binomialCoefficient function 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1552:` Change this to use available states instead of totalStates 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1364:` Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)`
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1519:` Merge this with `parallelIsFsBy4` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1529:` Write a binomialCoefficient function 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1556:` Change this to use available states instead of totalStates 
 * `../Mj/src/Mj_Main.f90:17:` Make sure that there is an end timer
 * `../Mj/src/Mj_Module_v1.f90:25:` Make sure default value is set for `qPoint` 
 * `../Mj/src/Mj_Module_v1.f90:269:` Figure out if expect `modeI` and `modeF` to represent index of magnitude of argument `x` 

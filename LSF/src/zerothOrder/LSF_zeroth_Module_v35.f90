@@ -1335,7 +1335,8 @@ contains
     !!
     !!
     !! <h2>Background</h2>
-    !! The number of ways to put `nPhonons` in `nBands` so that
+    !!
+    !! The number of ways to put `kPhonons` in `nBands` so that
     !! all bands have at least one phonon is the same as first putting
     !! a phonon in each band, then counting how many ways you can 
     !! distribute the rest of the phonons. In other words, since the 
@@ -1346,6 +1347,9 @@ contains
     !! replace the available phonons to distribute \(k\) with \(k-n\)
     !! to get 
     !! \[{n+(k-n)-1\choose (k-n)} = {k-1\choose k-n}\]
+    !! See [this Quora article](https://www.quora.com/What-is-the-number-of-ways-to-distribute-8-identical-balls-in-3-different-boxes-none-being-empty) for more details.
+    !!
+    !! <h2>Walkthrough</h2>
     !!
     implicit none
     !
@@ -1357,7 +1361,7 @@ contains
     call cpu_time(t1)
     !
     !> Determine the length of the `pj0s` array
-    !> @todo Replace this with `binomialCoefficient(nPhonons-1, nPhonons-nBands)`
+    !> @todo Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)`
     times3 = 1.0_dp
     mi = 2
     do ni = m - 1, m - 3 + 1, -1
