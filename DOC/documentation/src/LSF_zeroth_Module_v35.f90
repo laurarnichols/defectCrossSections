@@ -1022,7 +1022,17 @@ contains
   !
   !
   subroutine lsfWithMphonons(m, l, tTimes)
-    !
+    !! Pick `nMC` groups of bands, then calculate the
+    !! line shape function for all possible configurations
+    !! in those bands and sum to get an estimate of the
+    !! total line shape function for \(m\) phonons in 
+    !! \(l\) bands
+    !!
+    !! @todo Make sure that Monte Carlo makes sense here @endtodo
+    !! @todo Figure out if there are any methods that would be better/faster @endtodo
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
     integer, intent(in) :: m, l, tTimes
@@ -1034,7 +1044,7 @@ contains
     real(kind = dp) :: E, Fj, prodFj, sumOverj, besPj, besRatio, randy
     !
     logical :: picked
-    !
+    !!
     if (myid == root) then
       write(iostd,'(i4," phonons by", i3, " bands started.")') m, l
       flush(iostd)
@@ -1054,10 +1064,13 @@ contains
       !
       picks(:) = 0
       !
+      !> * Randomly pick \(l\) bands from possible modes
+      !> @todo Figure out a better way to do this as it is crazy inefficient @endtodo
       if (istat == 0) then
         !
         do iM = 1, l
           picked = .false.
+            !! @todo Remove as not needed @endtodo
 
  10       read(un) iRand
           iRand = mod(abs(iRand), nModes) + 1
@@ -1078,6 +1091,7 @@ contains
           pick = int( nModes*randy ) + 1
           do i = 1, l
             if ( pick .eq. picks(i) ) picked = .true.
+              !! @todo Fix the possible bug here @endtodo
           enddo
           if ( picked ) goto 11
           picks(iM) = pick
@@ -1086,6 +1100,9 @@ contains
       endif
       !
       do ii = 1, tTimes
+        !! * Calculate the line shape function for each possible 
+        !!   configuration in the chosen bands
+        !! @todo Move some of this to another subroutine @endtodo
         !
         do iDes = 0, 2**l - 1
           !
@@ -1384,7 +1401,7 @@ contains
     call cpu_time(t1)
     !
     !> * Determine the length of the `pj0s` array
-    !> @todo Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)`
+    !> @todo Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)` @endtodo
     times3 = 1.0_dp
     mi = 2
     do ni = m - 1, m - 3 + 1, -1

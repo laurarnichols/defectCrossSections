@@ -255,6 +255,28 @@ public subroutine lsfWithMphonons(m, l, tTimes)
 
 
     
+    <p>Pick <code>nMC</code> groups of bands, then calculate the
+ line shape function for all possible configurations
+ in those bands and sum to get an estimate of the
+ total line shape function for <script type="math/tex">m</script> phonons in 
+ <script type="math/tex">l</script> bands</p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Make sure that Monte Carlo makes sense here </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if there are any methods that would be better/faster </p></div>
+<p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>Randomly pick <script type="math/tex">l</script> bands from possible modes
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out a better way to do this as it is crazy inefficient </p></div>
+<p></li>
+</ul>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Remove as not needed </p></div>
+<p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Fix the possible bug here </p></div>
+<p>* Calculate the line shape function for each possible 
+   configuration in the chosen bands
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Move some of this to another subroutine </p></div>
+<p>
+    
 
     <h3>Arguments</h3>
     

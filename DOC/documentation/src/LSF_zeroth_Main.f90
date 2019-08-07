@@ -55,6 +55,9 @@ program lineShapeFunction
     !
   endif
   !
+  !-----------------------------------------------------------------------------------------------------------
+  !> * Allocate space for variables and broadcast to all processes so can move forward
+  !>   with calculation
   call MPI_BCAST(nModes   ,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(maximumNumberOfPhonons,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   call MPI_BCAST(minimumNumberOfPhonons,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
@@ -91,7 +94,18 @@ program lineShapeFunction
     !
   end if
   !
+  !-----------------------------------------------------------------------------------------------------------
+  !
   do iPhonon = minimumNumberOfPhonons, MIN0(maximumNumberOfPhonons,4)
+    !! * For each possible phonon number less than 5
+    !!    * Calculate the line shape function explicitly by 
+    !!      summing contributions from using different numbers of bands 
+    !!    * For more than 2 phonons, split up the possible configurations 
+    !!      among the processes for speed then sum
+    !!    * Calculate minimum energy bin size such that no bin is empty
+    !!    * Output resulting line shape function
+    !! @todo Redo the loop for less than 5 phonons to be more clear and streamlined @endtodo 
+    !
     if ( ( ( iPhonon == 1 .or. iPhonon == 2 ) .and. myid == root ) .or. iPhonon > 2 ) then
       if ( iPhonon > 2 ) then
         !
@@ -149,10 +163,14 @@ program lineShapeFunction
         lsfVsEbyPhonons = 0.0_dp
         !
         CALL MPI_REDUCE(iEbinsByBands, iEbinsByPhonons, size(iEbinsByBands), MPI_INTEGER, MPI_SUM, root, MPI_COMM_WORLD, ierr)
+          !! @todo Change this to have `size(iEbinsByBands)` @endtodo
         CALL MPI_REDUCE(lsfVsEbyBands, lsfVsEbyPhonons, size(lsfVsEbyPhonons), &
                                                                     MPI_DOUBLE_PRECISION, MPI_SUM, root, MPI_COMM_WORLD, ierr)
         !
       endif
+        !! @todo Add `else iEbinsByPhonons = iEbinsByBands` to remove if below @endtodo
+        !! @todo Maybe change variable names to be clearer @endtodo
+      !
       if ( myid == root ) then
         !
         call cpu_time(t2)
@@ -164,14 +182,20 @@ program lineShapeFunction
           ! calculate the DOS and update the total lsfVsE
           !
           call calculateDE(iPhonon, iEbinsByPhonons, de)
+            !! @todo Figure out how getting `de` is "calculating DOS" and if not where DOS is @endtodo
+            !! @todo Figure out why DOS isn't in sum as in formula @endtodo
+          !
           lsfVsE(:) = lsfVsE(:) + lsfVsEbyPhonons(:)/de
+            ! Add so that can continue from file if needed
           !
         else
           !
           ! calculate the DOS and update the total lsfVsE
           !
           call calculateDE(iPhonon, iEbinsByBands, de)
+          !
           lsfVsE(:) = lsfVsE(:) + lsfVsEbyBands(:)/de
+            ! Add so that can continue from file if needed
           !
         endif
         !
@@ -234,6 +258,11 @@ program lineShapeFunction
     !
     if ( minimumNumberOfPhonons < 6 ) minimumNumberOfPhonons = 5
     do m = minimumNumberOfPhonons, maximumNumberOfPhonons
+      !! * For each possible phonon number greater than or equal to 5
+      !!    * Calculate the contribution to the line shape function of splitting
+      !!      up the phonons in 1-3 bands explicitly, splitting up the possible 
+      !!      configurations among the processes for speed then summing all 
+      !!      contributions
       !
       lsfVsEbyBands(:) = 0.0_dp
       iEbinsByBands(:) = 0
