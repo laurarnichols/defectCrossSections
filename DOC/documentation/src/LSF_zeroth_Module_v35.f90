@@ -1432,6 +1432,10 @@ contains
   !
   !
   subroutine writeLSFandCrossSection()
+    !! Write out the line shape function versus energy
+    !!
+    !! @todo Change the name of this subroutine to just `writeLSF` @endtodo
+    !! @todo Remove all of the extra stuff from this subroutine @endtodo
     !
     implicit none
     ! 
