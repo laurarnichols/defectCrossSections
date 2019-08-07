@@ -36,15 +36,18 @@ LSF
 	* `maximumNumberOfPhonons` (integer) -- the maximum number of phonons to use
 	* `temperature` (real) -- the temperature of the system
 	* `maxEnergy` (real) -- ??
-	* `nMC`(integer) -- ??
+	* `nMC`(integer) -- number of Monte Carlo steps for more than 4 phonones
 	
 _Note: Do not alter the `&lsfInput` or `/` lines at the beginning and end of the file. They represent a namelist and fortran will not recognize the group of variables without this specific format_
 
 * [`phononsInput`](https://github.com/laurarnichols/carrierCrossSections/blob/master/LSF/DOC/phononsInput.md) file (e.g. phonons_SiVH3newDisp.dat)
 	* `nOfqPoints` (integer) -- the number of q points
 	* `nAtoms` (integer) -- the number of atoms in the system
-	* `atomD` (real `3xnAtoms` array) -- ??
-	* `atomM` (real vector of length `nAtoms`) -- ??
+	* `atomD` (real `3xnAtoms` array) -- atom displacements for defective versus pristine crystal
+	* `atomM` (real vector of length `nAtoms`) -- atom masses
 	* `phonQ` (real `3xnOfqPoints` array) -- ??
 	* `freqInTHz` (real) -- the frequency of the mode in THz; this value gets automatically converted to Hartree and put in the `phonF` array
 	* `phonD` (real `3xnAtomsxnModesxnOfqPoints` array) -- phonon displacements
+
+## Outputs
+Line shape function versus energy for each number of phonons you input
