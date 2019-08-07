@@ -146,7 +146,7 @@
     
      <li><a href='../sourcefile/lsf_zeroth_module_v35.f90.html'>LSF_zeroth_Module_v35.f90</a></li>
     
-     <li><a href='../module/lsf%7E2.html'>lsf</a></li>
+     <li><a href='../module/lsf.html'>lsf</a></li>
     
   
      <li class="active">lsfDeterministicFourPhononsByFourBands</li>
@@ -238,6 +238,16 @@ public subroutine lsfDeterministicFourPhononsByFourBands()
   
 
 
+    
+    <p>Explicitly calculate the line shape function for 
+ four phonons in four bands</p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if <code>iModeFs(myid)</code> has a max of <code>nModes-3</code> or <code>nModes-nBands+1</code>
+ Pick four bands,</p></div>
+<p>pick a combination of <script type="math/tex">\pm1</script> in each band,</p>
+<p>calculate the lsf of the configuration, and repeat
+ until all possible combinations have been done</p>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out what the purpose of <code>ic</code> is </p></div>
+<p>
     
 
     <h3>Arguments</h3>

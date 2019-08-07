@@ -373,6 +373,7 @@ contains
   !
   !  
 !  subroutine readVfis()
+    !! @todo Remove all of these comments @endtodo
 !    !
 !    implicit none
 !    !
@@ -416,6 +417,8 @@ contains
   !
   !
   subroutine lsfDeterministicFourPhononsByFourBands()
+    !! Explicitly calculate the line shape function for 
+    !! four phonons in four bands
     !
     implicit none
     !
@@ -430,22 +433,23 @@ contains
       flush(iostd)
     endif
     !
-    ! Four modes
-    ! 
     call cpu_time(t1)
     !
     ic = 0
     do iMode1 = iModeIs(myid), iModeFs(myid)
+      !! @todo Figure out if `iModeFs(myid)` has a max of `nModes-3` or `nModes-nBands+1`
       do iMode2 = iMode1+1, nModes - 2
         !write(iostd, '("myID ", i15, " iMode1 = ", i5, " / ", i5, " in each proc. iMode2 =", i5, " / ", i5)') myid, & 
         !           iMode1-iModeIs(myid)+1, iModeFs(myid)-iModeIs(myid)+1,iMode2 - iMode1+1 + 1, nModes - 2 - iMode1+1 + 1
         do iMode3 = iMode2+1, nModes - 1
           do iMode4 = iMode3+1, nModes
+            !! Pick four bands,
             !
             do pm1 = -1, 1, 2
               do pm2 = -1, 1, 2
                 do pm3 = -1, 1, 2
                   do pm4 = -1, 1, 2
+                    !! pick a combination of \(\pm1\) in each band,
                     !
                     pj(:) = 0
                     pj(iMode1) = pm1
@@ -454,8 +458,11 @@ contains
                     pj(iMode4) = pm4
                     !
                     call lsfOfConfigurationPj()
+                      !! calculate the lsf of the configuration, and repeat
+                      !! until all possible combinations have been done
                     !
                     ic = ic + 1
+                      !! @todo Figure out what the purpose of `ic` is @endtodo
                     !
                   enddo
                 enddo
@@ -1338,7 +1345,7 @@ contains
   !
   !
   subroutine lsfMbyThreeBands(m)
-    !!
+    !! Calculate the line shape function for \(m\) phonons in 3 bands
     !!
     !! <h2>Background</h2>
     !!
