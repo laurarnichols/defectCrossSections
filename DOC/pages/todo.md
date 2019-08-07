@@ -2,6 +2,7 @@ title: Todo
 author: Laura Nichols
 date: 08/07/2019
 
+* Binary file ../LSF/src/zerothOrder/.LSF_zeroth_Main.f90.swp matches
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:183:` Figure out why increase `minimumNumberOfPhonons` by 1
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:376:` Remove all of these comments 
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:440:` Figure out if `iModeFs(myid)` has a max of `nModes-3` or `nModes-nBands+1`
@@ -17,12 +18,15 @@ date: 08/07/2019
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:666:` Add a condition to exit inner loop if `i1 + i2 + i3 > m` 
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:675:` Add a condition to exit inner loop if `i > size of pj0s` 
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1170:` Figure out why array is reversed 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1377:` Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)`
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1444:` Change the name of this subroutine to just `writeLSF` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1445:` Remove all of the extra stuff from this subroutine 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1544:` Merge this with `parallelIsFsBy4` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1554:` Write a binomialCoefficient function 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1581:` Change this to use available states instead of totalStates 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1210:` Figure out if there is a clearer or faster way to do this 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1211:` Maybe move this to a subroutine 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1236:` Switch the `.true.` and `.false.` assignments to make more sense 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1387:` Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)`
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1454:` Change the name of this subroutine to just `writeLSF` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1455:` Remove all of the extra stuff from this subroutine 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1554:` Merge this with `parallelIsFsBy4` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1564:` Write a binomialCoefficient function 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1591:` Change this to use available states instead of totalStates 
 * `../Mj/src/Mj_Main.f90:17:` Make sure that there is an end timer
 * `../Mj/src/Mj_Module_v1.f90:25:` Make sure default value is set for `qPoint` 
 * `../Mj/src/Mj_Module_v1.f90:269:` Figure out if expect `modeI` and `modeF` to represent index of magnitude of argument `x` 

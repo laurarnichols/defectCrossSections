@@ -1188,6 +1188,10 @@ contains
   !
   !
   subroutine calculateDE(maxM, iEbins, de)
+    !! Calculate the maximum number of bins the
+    !! energy spectrum can be split into such that
+    !! no bin is empty then return the size `de` of
+    !! the resulting bin
     !
     implicit none
     !
@@ -1202,6 +1206,9 @@ contains
     !
     allocate ( tmpB(nEnergies) )
     !
+    !> * Generate factors of `nEnergies`
+    !> @todo Figure out if there is a clearer or faster way to do this @endtodo
+    !> @todo Maybe move this to a subroutine @endtodo
     ic = 1
     do j = 1, nEnergies
       if (mod(nEnergies,j) == 0) then
@@ -1226,8 +1233,11 @@ contains
     if (jMax > nSteps) jMax = nSteps
     !
     empty = .true.
+      !! @todo Switch the `.true.` and `.false.` assignments to make more sense @endtodo
     j = jMax
     do while ( ( empty .eqv. .true. ) .and. (j > 1) )
+      !! * Find the smallest factor (step) that can use such that
+      !!   none of the energy bins are empty
       !
       empty = .true.
       iEstep = iEsteps(j)

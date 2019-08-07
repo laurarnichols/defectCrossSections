@@ -239,6 +239,20 @@ public subroutine calculateDE(maxM, iEbins, de)
 
 
     
+    <p>Calculate the maximum number of bins the
+ energy spectrum can be split into such that
+ no bin is empty then return the size <code>de</code> of
+ the resulting bin</p>
+<ul>
+<li>Generate factors of <code>nEnergies</code>
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Figure out if there is a clearer or faster way to do this </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Maybe move this to a subroutine </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Switch the <code>.true.</code> and <code>.false.</code> assignments to make more sense </p></div>
+<p></li>
+<li>Find the smallest factor (step) that can use such that
+   none of the energy bins are empty</li>
+</ul>
+    
 
     <h3>Arguments</h3>
     
