@@ -13,7 +13,7 @@ TME
 
 ## How to Run
 * Ensure that the executables are up to date by going to the main folder and running `make TME`
-* Make sure that you have already [run `Export_QE-5.3.0.x`](../QE-dependent/QE-5.3.0/Export/README.md)
+* Make sure that you have already run [`Export_QE-5.3.0.x`](../QE-dependent/QE-5.3.0/Export/README.md)
 * Run the program and send the contents of the `TME_Input.in` file in as input (e.g., `./bin/TME.x < ExampleRun/TME/input/TME_Input.in`)
 
 ## Inputs
