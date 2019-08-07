@@ -297,6 +297,9 @@ program lineShapeFunction
       iModeFs(:) = -1
       !
       if ( myid == root ) then
+        ! If I'm root, figure out how the Monte Carlo
+        ! steps should be split up among the processes
+        !! @todo Move the behavior of splitting up Monte Carlo steps to a subroutine @endtodo
         !
         iMint = int(nMC/numprocs)
         iMmod = mod(nMC,numprocs)
@@ -327,11 +330,13 @@ program lineShapeFunction
       !write(6,*) myid, iModeIs(myid), iModeFs(myid)
       !
       do l = 4, m
+        !! @todo Move this to a subroutine @endtodo
         !
         !write(iostd,*) "---------------------------------"
         !write(iostd,*) m, " by ", l
         !flush(iostd)
         !
+        !> @todo Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)` @endtodo
         times = 1.0_dp
         mi = l-1
         !
@@ -450,6 +455,7 @@ program lineShapeFunction
   endif
   !
   if ( myid == root ) then
+    !! * Write out the configuration with the most phonons
     !
     call writeLSFandCrossSection()
     !

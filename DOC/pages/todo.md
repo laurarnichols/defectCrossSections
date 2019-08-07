@@ -2,13 +2,15 @@ title: Todo
 author: Laura Nichols
 date: 08/07/2019
 
-* Binary file ../LSF/src/zerothOrder/.LSF_zeroth_Main.f90.swp matches
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:107:` Redo the loop for less than 5 phonons to be more clear and streamlined
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:166:` Change this to have `size(iEbinsByBands)`
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:171:` Add `else iEbinsByPhonons = iEbinsByBands` to remove if below
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:172:` Maybe change variable names to be clearer
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:185:` Figure out how getting `de` is "calculating DOS" and if not where DOS is
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:186:` Figure out why DOS isn't in sum as in formula
+* `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:302:` Move the behavior of splitting up Monte Carlo steps to a subroutine
+* `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:333:` Move this to a subroutine
+* `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:339:` Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)`
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:183:` Figure out why increase `minimumNumberOfPhonons` by 1
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:376:` Remove all of these comments 
 * `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:440:` Figure out if `iModeFs(myid)` has a max of `nModes-3` or `nModes-nBands+1`

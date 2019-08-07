@@ -142,13 +142,15 @@
   <div class="row">
     <div class="col-md-9 col-md-push-3" id='text'>
       <ul>
-<li>Binary file ../LSF/src/zerothOrder/.LSF_zeroth_Main.f90.swp matches</li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:107:</code> Redo the loop for less than 5 phonons to be more clear and streamlined</li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:166:</code> Change this to have <code>size(iEbinsByBands)</code></li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:171:</code> Add <code>else iEbinsByPhonons = iEbinsByBands</code> to remove if below</li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:172:</code> Maybe change variable names to be clearer</li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:185:</code> Figure out how getting <code>de</code> is "calculating DOS" and if not where DOS is</li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:186:</code> Figure out why DOS isn't in sum as in formula</li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:302:</code> Move the behavior of splitting up Monte Carlo steps to a subroutine</li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:333:</code> Move this to a subroutine</li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:339:</code> Replace this with <code>binomialCoefficient(kPhonons-1, kPhonons-nBands)</code></li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:183:</code> Figure out why increase <code>minimumNumberOfPhonons</code> by 1</li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:376:</code> Remove all of these comments </li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:440:</code> Figure out if <code>iModeFs(myid)</code> has a max of <code>nModes-3</code> or <code>nModes-nBands+1</code></li>
