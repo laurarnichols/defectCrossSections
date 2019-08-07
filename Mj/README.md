@@ -15,11 +15,9 @@ Mj
 ```
 
 ## How to Run
-* Ensure that the executables are up to date by going to the main folder and running `make LSF`
-* Change into the `Mj/DOC` directory
-* Execute `cat input.in | ../src/Mj.x` to send the contents of the `input.in` file into the program as input
-* The output messages will be held in the `status` file now in the `DOC` directory
-* The program will generate a new QE input file for given mode(s), each in their own directory
+* Ensure that the executables are up to date by going to the main folder and running `make Mj`
+* Make sure that you have already run [`Export_QE-5.3.0.x`](../QE-dependent/QE-5.3.0/Export/README.md)
+* Run the program and send the contents of the `input.in` file in as input (e.g., `./bin/Mj.x < ExampleRun/Mj/input/input.in`)
 
 ## Inputs
 * `input.in`
