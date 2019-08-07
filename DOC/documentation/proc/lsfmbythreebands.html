@@ -251,8 +251,24 @@ public subroutine lsfMbyThreeBands(m)
  <script type="math/tex; mode=display">{n+(k-n)-1\choose (k-n)} = {k-1\choose k-n}</script>
  See <a href="https://www.quora.com/What-is-the-number-of-ways-to-distribute-8-identical-balls-in-3-different-boxes-none-being-empty">this Quora article</a> for more details.</p>
 <p><h2>Walkthrough</h2></p>
-<p>Determine the length of the <code>pj0s</code> array
- </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Replace this with <code>binomialCoefficient(kPhonons-1, kPhonons-nBands)</code></p></div>
+<ul>
+<li>Determine the length of the <code>pj0s</code> array
+ </p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Replace this with <code>binomialCoefficient(kPhonons-1, kPhonons-nBands)</code></li>
+<li>
+<p>Generate all of the possible configurations for 
+   <script type="math/tex">m</script> phonons in 3 bands</p></div>
+</li>
+<li>
+<p>Generate all possible binary numbers with 3 digits</p>
+</li>
+<li>
+<p>Pick 3 bands,</p>
+</li>
+</ul>
+<p>pick a phonon distribution configuration,</p>
+<p>pick a distribution of positive and negative signs,</p>
+<p>calculate the lsf of the configuration, and repeat
+ until all possible combinations have been calculated</p>
     
 
     <h3>Arguments</h3>

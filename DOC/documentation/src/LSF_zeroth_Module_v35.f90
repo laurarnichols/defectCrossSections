@@ -1366,7 +1366,7 @@ contains
     !
     call cpu_time(t1)
     !
-    !> Determine the length of the `pj0s` array
+    !> * Determine the length of the `pj0s` array
     !> @todo Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)`
     times3 = 1.0_dp
     mi = 2
@@ -1379,19 +1379,25 @@ contains
     pj0s(:,:) = 0
     !
     call distrubutePhononsInBands(m, 3)
+      !! * Generate all of the possible configurations for 
+      !!   \(m\) phonons in 3 bands
     !
     allocate( pms( 0:2**3-1, 0:3-1 ) )
     pms(:,:) = 0
     !
     call calculatePlusMinusStates( 3 )
+      !! * Generate all possible binary numbers with 3 digits
     !
     do iMode1 = iModeIs(myid), iModeFs(myid)
       do iMode2 = iMode1+1, nModes - 1
         do iMode3 = iMode2+1, nModes
+          !! * Pick 3 bands,
           !
           do ii = 1, int(times3 + 1.e-3_dp)
+            !! pick a phonon distribution configuration,
             !
             do iDes = 0, 2**3 - 1
+            !! pick a distribution of positive and negative signs,
               !
               pj(:) = 0
               !
@@ -1400,6 +1406,8 @@ contains
               pj(iMode3) = pj0s(ii,3)*(-1)**(pms(iDes,3-1))
               !
               call lsfOfConfigurationPj()
+                !! calculate the lsf of the configuration, and repeat
+                !! until all possible combinations have been calculated
               !
             enddo
             !
