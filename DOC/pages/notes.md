@@ -12,8 +12,8 @@ date: 7/3/2019
 * *What is the purpose of the QE calculation?* --> **Explore the TME program**
 * PC stands for perfect crystal and SD stands for solid defect
 * Things to make program work on HPC
- * `chmod +x <QE path>/configure`
- * `chmod +x <QE path>/install/configure`
- * `module swap PrgEnv-intel PrgEnv-gnu`
- * `module load mpi`
- * `module load intel`
+  * `chmod +x <QE path>/configure`
+  * `chmod +x <QE path>/install/configure`
+  * `module swap PrgEnv-intel PrgEnv-gnu`
+  * `module load mpi`
+  * `module load intel`
