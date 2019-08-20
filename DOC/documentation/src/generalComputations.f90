@@ -49,6 +49,8 @@ module generalComputations
           !!   \[\sum_{\text{mode}} \sqrt{1823m}\mathbf{\Delta r}_{\text{phonon}}\cdot\mathbf{\Delta r}_{\text{atom}}\]
           !
           genCoord(iMode) = genCoord(iMode) + sqrt(1822.88833218_dp*atomM(iAtom))*sum(phonD(:,iAtom,iMode,iq)*atomD(:,iAtom))
+            !! @note The `1822.88833218_dp` is a conversion factor from atomic mass units to Hartree @endnote
+            !! @todo Make mass conversion factor a constant parameter for clarity @endtodo
           !
         enddo
         !

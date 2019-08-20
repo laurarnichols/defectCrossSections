@@ -241,6 +241,9 @@ public subroutine computeGeneralizedDisplacements(nOfqPoints, nModes, genCoord, 
    <script type="math/tex; mode=display">\sum_{\text{mode}} \sqrt{1823m}\mathbf{\Delta r}_{\text{phonon}}\cdot\mathbf{\Delta r}_{\text{atom}}</script>
 </li>
 </ul>
+<p></p><div class="alert alert-info" role="alert"><h4>Note</h4><p>The <code>1822.88833218_dp</code> is a conversion factor from atomic mass units to Hartree </p></div>
+<p></p><div class="alert alert-success" role="alert"><h4>Todo</h4><p>Make mass conversion factor a constant parameter for clarity </p></div>
+<p>
     
 
     <h3>Arguments</h3>
@@ -547,6 +550,8 @@ public subroutine computeGeneralizedDisplacements(nOfqPoints, nModes, genCoord, 
           <span class="c">!!   \[\sum_{\text{mode}} \sqrt{1823m}\mathbf{\Delta r}_{\text{phonon}}\cdot\mathbf{\Delta r}_{\text{atom}}\]</span>
           <span class="c">!</span>
           <span class="n">genCoord</span><span class="p">(</span><span class="n">iMode</span><span class="p">)</span> <span class="o">=</span> <span class="n">genCoord</span><span class="p">(</span><span class="n">iMode</span><span class="p">)</span> <span class="o">+</span> <span class="nb">sqrt</span><span class="p">(</span><span class="mi">182</span><span class="mf">2.88833218_dp</span><span class="o">*</span><span class="n">atomM</span><span class="p">(</span><span class="n">iAtom</span><span class="p">))</span><span class="o">*</span><span class="nb">sum</span><span class="p">(</span><span class="n">phonD</span><span class="p">(:,</span><span class="n">iAtom</span><span class="p">,</span><span class="n">iMode</span><span class="p">,</span><span class="n">iq</span><span class="p">)</span><span class="o">*</span><span class="n">atomD</span><span class="p">(:,</span><span class="n">iAtom</span><span class="p">))</span>
+            <span class="c">!! @note The `1822.88833218_dp` is a conversion factor from atomic mass units to Hartree @endnote</span>
+            <span class="c">!! @todo Make mass conversion factor a constant parameter for clarity @endtodo</span>
           <span class="c">!</span>
         <span class="n">enddo</span>
         <span class="c">!</span>
