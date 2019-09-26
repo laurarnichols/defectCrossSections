@@ -1,6 +1,6 @@
 &inputpp
   prefix = 'SiPerf',
-  outdir = './SiliconFiles/tmp/',
+  outdir = './SiliconFiles/tmp',
   !
   exportDir = './ExportPC'
   writeWFC = .true.
