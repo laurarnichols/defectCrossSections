@@ -17,4 +17,4 @@ commonmodules.a : $(MODULES)
 	$(mpif90) -O3 -c $<
 
 clean : 
-	- /bin/rm -f *.o *.a *.f90 *.mod
+	- /bin/rm -f *.o *.a *.mod

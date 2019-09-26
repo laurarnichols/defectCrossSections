@@ -393,7 +393,7 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
   <td></td>
   
   <td>allocatable</td><td>::</td>
-  <td><strong>phonQ</strong>(:,:)</td><td></td>
+  <td><strong>phonQ</strong>(:,:)</td><td><p>Phonon q point coordinates</p></td>
   
 </tr>
 
@@ -408,7 +408,7 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
   <td></td>
   
   <td>allocatable</td><td>::</td>
-  <td><strong>phonF</strong>(:)</td><td></td>
+  <td><strong>phonF</strong>(:)</td><td><p>Phonon frequencies</p></td>
   
 </tr>
 
@@ -423,7 +423,7 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
   <td></td>
   
   <td>allocatable</td><td>::</td>
-  <td><strong>phonD</strong>(:,:,:,:)</td><td></td>
+  <td><strong>phonD</strong>(:,:,:,:)</td><td><p>Phonon displacements</p></td>
   
 </tr>
 
@@ -645,8 +645,11 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">atomM</span><span class="p">(:)</span>
       <span class="c">!! Atom masses</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phonD</span><span class="p">(:,:,:,:)</span>
+      <span class="c">!! Phonon displacements</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phonF</span><span class="p">(:)</span>
+      <span class="c">!! Phonon frequencies</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phonQ</span><span class="p">(:,:)</span>
+      <span class="c">!! Phonon q point coordinates</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">dummyD</span>
       <span class="c">!! Dummy variable to ignore input</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">freqInTHz</span> 
