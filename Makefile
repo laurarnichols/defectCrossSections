@@ -6,11 +6,11 @@
 #                                                                      #
 ########################################################################
 
-QE-5.3.0_Path = /mnt/c/Users/LJUDY/OneDrive/MyStuff/Research/Vanderbilt/q-e-qe-5.3
+QE-5.3.0_Path = ${HOME}/q-e-qe-5.3
 
-f90 = gfortran
+f90 = ftn
 
-mpif90 = mpif90
+mpif90 = ftn
 
 
 ########################################################################
