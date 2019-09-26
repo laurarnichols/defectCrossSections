@@ -33,8 +33,11 @@ module readInputFiles
     real(kind = dp), allocatable, intent(out) :: atomM(:)
       !! Atom masses
     real(kind = dp), allocatable, intent(out) :: phonD(:,:,:,:)
+      !! Phonon displacements
     real(kind = dp), allocatable, intent(out) :: phonF(:)
+      !! Phonon frequencies
     real(kind = dp), allocatable, intent(out) :: phonQ(:,:)
+      !! Phonon q point coordinates
     real(kind = dp) :: dummyD
       !! Dummy variable to ignore input
     real(kind = dp) :: freqInTHz 
