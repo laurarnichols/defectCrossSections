@@ -52,9 +52,11 @@ module lsf
   !real(kind = dp) :: volume
   real(kind = dp) :: weight
   !
+  character(len = 256) :: chargedPositionsFile
   character(len = 256) :: continueLSFfromFile
   !character(len = 256) :: crossSectionOutput
   character(len = 256) :: fn
+  character(len = 256) :: neutralPositionsFile
   character(len = 256) :: phononsInputFormat
   character(len = 256) :: phononsInput
   !character(len = 256) :: VfisInput
@@ -90,7 +92,7 @@ module lsf
   !
 !  namelist /elphscat/ VfisInput, PhononsInput, temperature, maxEnergy, continueLSFfromFile, volume, &
   namelist /lsfInput/ phononsInput, phononsInputFormat, temperature, &
-                      continueLSFfromFile, maximumNumberOfPhonons, nMC
+                      continueLSFfromFile, maximumNumberOfPhonons, nMC, neutralPositionsFile, chargedPositionsFile
   !
   !
 contains
@@ -126,14 +128,10 @@ contains
     call checkAndUpdateInput()
       !! * Check if input parameters were updated and do some basic checks
     !
-    !> * Read the phonons output from QE or VASP
-    if ( trim(phononsInputFormat) == 'VASP' ) then
+    !> * Read the phonons output from QE 
+    if ( trim(phononsInputFormat) == 'QE' ) then
       !
       call readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, atomM, phonQ, phonF, phonD)
-      !
-    else if ( trim(phononsInputFormat) == 'QE' ) then
-      !
-      call readPhononsQE()
       !
     else 
       !
@@ -209,6 +207,8 @@ contains
     !VfisInput = ''
     phononsInput = ''
     phononsInputFormat = ''
+    neutralPositionsFile = ''
+    chargedPositionsFile = ''
     temperature = -1.0_dp
     minimumNumberOfPhonons =  1
     maximumNumberOfPhonons = -1
@@ -224,6 +224,8 @@ contains
     !! values. The program will abort here if:
     !!   * `phononsInput` is undefined
     !!   * `phononsInputFormat` is undefined
+    !!   * `neutralPositionsFile` is undefined
+    !!   * `chargedPositionsFile` is undefined
     !!   * `temperature` is undefined
     !!   * `maximumNumberOfPhonons` is undefined
     !!   * number of Monte Carlo steps (`nMc`) is not
@@ -246,6 +248,20 @@ contains
     !
     if ( trim(phononsInputFormat) == '' ) then
       write(iostd, '(" PhononsInputFormat is not defined!")')
+      abortExecution = .true.
+    else
+      write(iostd, '(" Phonons input format : ", a)') trim(phononsInputFormat)
+    endif
+    !
+    if ( trim(neutralPositionsFile) == '' ) then
+      write(iostd, '(" neutralPositionsFile is not defined!")')
+      abortExecution = .true.
+    else
+      write(iostd, '(" Phonons input format : ", a)') trim(phononsInputFormat)
+    endif
+    !
+    if ( trim(chargedPositionsFile) == '' ) then
+      write(iostd, '(" neutralPositionsFile is not defined!")')
       abortExecution = .true.
     else
       write(iostd, '(" Phonons input format : ", a)') trim(phononsInputFormat)
