@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.2% of total for procedures.">51 statements</a>
+    title=" 1.3% of total for procedures.">53 statements</a>
      </li> 
      
      
@@ -219,7 +219,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, nAtoms, atomD, atomM)
+public subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, atomNames, atomMasses, nAtoms, atomD, atomM)
     
     
    
@@ -298,6 +298,36 @@ public subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, 
   
   <td></td><td>::</td>
   <td><strong>chargedPositionsFile</strong></td><td><p>Name of file with positions of relaxed charged cell</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-atomnames%7E2"></span>character(len=256),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>atomNames</strong>(ntyp)</td><td><p>Atom names from input file</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-atommasses%7E2"></span>character(len=256),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>atomMasses</strong>(ntyp)</td><td></td>
   
 </tr>
 

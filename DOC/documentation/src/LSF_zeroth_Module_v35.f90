@@ -75,6 +75,8 @@ module lsf
   !
   real(kind = dp), allocatable :: atomD(:,:)
   real(kind = dp), allocatable :: atomM(:)
+  real(kind=dp), allocatable :: atomMasses(:)
+    !! Atom masses from ATOMIC_SPECIES card
   real(kind = dp), allocatable :: besOrderNofModeM(:,:)
   real(kind = dp), allocatable :: coth(:)
   real(kind = dp), allocatable :: genCoord(:)
@@ -89,6 +91,9 @@ module lsf
   !real(kind = dp), allocatable :: Vfis(:)
   real(kind = dp), allocatable :: wby2kT(:)
   real(kind = dp), allocatable :: x(:)
+  !
+  character(len=256), allocatable :: atomNames(:)
+    !! Atom names from ATOMIC_SPECIES card
   !
 !  namelist /elphscat/ VfisInput, PhononsInput, temperature, maxEnergy, continueLSFfromFile, volume, &
   namelist /lsfInput/ phononsInput, phononsInputFormat, temperature, &
@@ -123,12 +128,12 @@ contains
     call initialize()
       !! * Set default values of input parameters
     !
-    call readInputFile()
+    call readInputFile(atomNames, atomMasses)
     !
     call checkAndUpdateInput()
       !! * Check if input parameters were updated and do some basic checks
     !
-    call readPositionFiles(neutralPositionsFile, chargedPositionsFile, nAtoms, atomD, atomM)
+    call readPositionFiles(neutralPositionsFile, chargedPositionsFile, atomNames, atomMasses, nAtoms, atomD, atomM)
       !! * Read the neutral and charged position files to get the base displacements
       !!   from changing the charge
     !
@@ -224,14 +229,57 @@ contains
     !
   end subroutine initialize
   !
-  subroutine readInputFile()
+  subroutine readInputFile(atomNames, atomMasses)
     !! Read the input file
+    !!
+    integer :: iType
+      !! Loop index over atom types
+    !
+    real(kind=dp), allocatable, intent(out) :: atomMasses(:)
+      !! Atom masses from ATOMIC_SPECIES card
+    !
+    character(len=256), allocatable, intent(out) :: atomNames(:)
+      !! Atom names from ATOMIC_SPECIES card
+    character(len=256) :: cardName
+      !! Name of card
     !
     implicit none
     !
     read (5, lsfInput, iostat = ios)
       !! * Read input parameters
-    read (5, *) 
+    read (5, *, iostat = ios) cardName
+    !
+    if ( cardName == "ATOMIC_SPECIES" ) then
+      !
+      allocate( atomNames(ntyp), atomMasses(ntyp) )
+      !
+      atomNames = ''
+      atomMasses = 0.0_dp
+      !
+      do iType = 1, ntyp
+        !
+        read(5,*) atomNames(iType), atomMasses(iType)
+        !
+      enddo
+      !
+    else
+      if ( ios < 0 ) then
+        !
+        write(iostd, '("ERROR: Expected to see ATOMIC_SPECIES card with atom names and masses")')  
+        !
+      else
+        !
+        write(iostd, '("ERROR: Given card name ", a, ", but only currently accepting ATOMIC_SPECIES card")') cardName 
+        !
+      endif
+      !
+      write(iostd, '(" *************************** ")')
+      write(iostd, '(" * Program stops!          * ")')
+      write(iostd, '(" * Please check the input. * ")')
+      write(iostd, '(" *************************** ")')
+      stop
+      !
+    endif
     !
     return
   end subroutine readInputFile
@@ -338,7 +386,7 @@ contains
   end subroutine checkAndUpdateInput
   !
   !
-  subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, nAtoms, atomD, atomM)
+  subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, atomNames, atomMasses, nAtoms, atomD, atomM)
     !! Read the positions for the neutral and charged cells to
     !! calculate the base displacements with a charge. Also
     !! read in the number of atoms and the atom masses
@@ -372,6 +420,9 @@ contains
     real(kind = dp), allocatable :: neutralPositions(:,:)
       !! Relaxed positions of neutral cell
     !
+    character(len=256), intent(in) :: atomMasses(ntyp)
+    character(len=256), intent(in) :: atomNames(ntyp)
+      !! Atom names from input file
     character(len = 256), intent(in) :: chargedPositionsFile
       !! Name of file with positions of relaxed charged cell
     character(len = 256), intent(in) :: neutralPositionsFile

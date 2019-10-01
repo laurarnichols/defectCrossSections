@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="24.0% of total for modules and submodules.">988 statements</a>
+    title="24.5% of total for modules and submodules.">1015 statements</a>
      </li> 
      
      
@@ -289,6 +289,8 @@
       
       <a class="list-group-item" href="../module/lsf.html#variable-atomm%7E4">atomM</a>
       
+      <a class="list-group-item" href="../module/lsf.html#variable-atommasses%7E3">atomMasses</a>
+      
       <a class="list-group-item" href="../module/lsf.html#variable-besordernofmodem%7E3">besOrderNofModeM</a>
       
       <a class="list-group-item" href="../module/lsf.html#variable-coth%7E3">coth</a>
@@ -314,6 +316,8 @@
       <a class="list-group-item" href="../module/lsf.html#variable-wby2kt%7E3">wby2kT</a>
       
       <a class="list-group-item" href="../module/lsf.html#variable-x%7E15">x</a>
+      
+      <a class="list-group-item" href="../module/lsf.html#variable-atomnames%7E3">atomNames</a>
       
     </div>
   </div>
@@ -562,6 +566,8 @@
       
       <a class="list-group-item" href="../module/lsf.html#variable-atomm%7E4">atomM</a>
       
+      <a class="list-group-item" href="../module/lsf.html#variable-atommasses%7E3">atomMasses</a>
+      
       <a class="list-group-item" href="../module/lsf.html#variable-besordernofmodem%7E3">besOrderNofModeM</a>
       
       <a class="list-group-item" href="../module/lsf.html#variable-coth%7E3">coth</a>
@@ -587,6 +593,8 @@
       <a class="list-group-item" href="../module/lsf.html#variable-wby2kt%7E3">wby2kT</a>
       
       <a class="list-group-item" href="../module/lsf.html#variable-x%7E15">x</a>
+      
+      <a class="list-group-item" href="../module/lsf.html#variable-atomnames%7E3">atomNames</a>
       
     </div>
   </div>
@@ -1496,6 +1504,20 @@
   
 <tr>
   
+  <td><span class="anchor" id="variable-atommasses%7E3"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>atomMasses</strong>(:)</td><td></td><td></td><td><p>Atom masses from ATOMIC_SPECIES card</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
   <td><span class="anchor" id="variable-besordernofmodem%7E3"></span>real(kind=dp),</td>
   
   <td>public,</td>
@@ -1669,6 +1691,20 @@
   <td>public,</td>
   <td>allocatable</td><td>::</td>
   <td><strong>x</strong>(:)</td><td></td><td></td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-atomnames%7E3"></span>character(len=256),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>atomNames</strong>(:)</td><td></td><td></td><td><p>Atom names from ATOMIC_SPECIES card</p></td>
   
 </tr>
 
@@ -1855,7 +1891,7 @@ public subroutine <a href='../proc/initialize.html'>initialize</a>()
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-readinputfile"></span><h3>
-public subroutine <a href='../proc/readinputfile.html'>readInputFile</a>()
+public subroutine <a href='../proc/readinputfile.html'>readInputFile</a>(atomNames, atomMasses)
     
     
    
@@ -1874,7 +1910,51 @@ public subroutine <a href='../proc/readinputfile.html'>readInputFile</a>()
     
     <h4>Arguments</h4>
     
-      <em>None</em>
+      
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=256),</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>allocatable</td><td>::</td>
+  <td><strong>atomNames</strong>(:)</td><td><p>Atom names from ATOMIC_SPECIES card</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>real(kind=dp),</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>allocatable</td><td>::</td>
+  <td><strong>atomMasses</strong>(:)</td><td><p>Atom masses from ATOMIC_SPECIES card</p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+      
     
     
 
@@ -1926,7 +2006,7 @@ public subroutine <a href='../proc/checkandupdateinput.html'>checkAndUpdateInput
     
   <div class="panel panel-default">
   <div class="panel-heading codesum"><span class="anchor" id="proc-readpositionfiles"></span><h3>
-public subroutine <a href='../proc/readpositionfiles.html'>readPositionFiles</a>(neutralPositionsFile, chargedPositionsFile, nAtoms, atomD, atomM)
+public subroutine <a href='../proc/readpositionfiles.html'>readPositionFiles</a>(neutralPositionsFile, chargedPositionsFile, atomNames, atomMasses, nAtoms, atomD, atomM)
     
     
    
@@ -1985,6 +2065,36 @@ public subroutine <a href='../proc/readpositionfiles.html'>readPositionFiles</a>
   
   <td></td><td>::</td>
   <td><strong>chargedPositionsFile</strong></td><td><p>Name of file with positions of relaxed charged cell</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=256),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>atomNames</strong>(ntyp)</td><td><p>Atom names from input file</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" ></span>character(len=256),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>atomMasses</strong>(ntyp)</td><td></td>
   
 </tr>
 
