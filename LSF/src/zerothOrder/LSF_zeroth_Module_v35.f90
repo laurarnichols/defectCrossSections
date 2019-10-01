@@ -123,8 +123,7 @@ contains
     call initialize()
       !! * Set default values of input parameters
     !
-    READ (5, lsfInput, iostat = ios)
-      !! * Read input parameters
+    call readInputFile()
     !
     call checkAndUpdateInput()
       !! * Check if input parameters were updated and do some basic checks
@@ -225,6 +224,17 @@ contains
     !
   end subroutine initialize
   !
+  subroutine readInputFile()
+    !! Read the input file
+    !
+    implicit none
+    !
+    read (5, lsfInput, iostat = ios)
+      !! * Read input parameters
+    read (5, *) 
+    !
+    return
+  end subroutine readInputFile
   !
   subroutine checkAndUpdateInput()
     !! Check that the input variables don't still have their default
