@@ -30,6 +30,8 @@ module lsf
   integer :: minimumNumberOfPhonons
   integer :: nAtoms
   integer :: nEnergies
+  integer :: ntyp
+    !! Number of different types of atoms
   integer :: ni
   integer :: nMC
   integer :: nModes
@@ -98,7 +100,7 @@ module lsf
 !  namelist /elphscat/ VfisInput, PhononsInput, temperature, maxEnergy, continueLSFfromFile, volume, &
   namelist /lsfInput/ phononsInput, phononsInputFormat, temperature, &
                       continueLSFfromFile, maximumNumberOfPhonons, nMC, & 
-                      neutralPositionsFile, chargedPositionsFile, nOfQPoints
+                      neutralPositionsFile, chargedPositionsFile, nOfQPoints, ntyp
   !
   !
 contains
