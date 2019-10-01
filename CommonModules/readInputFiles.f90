@@ -6,7 +6,7 @@ module readInputFiles
   !
   contains
   !
-  subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, atomM, phonQ, phonF, phonD)
+  subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, phonQ, phonF, phonD)
     !! Read the number of atoms and q points and
     !! get the phonon information like frequency 
     !! and displacements
@@ -30,10 +30,6 @@ module readInputFiles
     integer :: iq
       !! Loop index over q points
     !
-    real(kind = dp), allocatable, intent(out) :: atomD(:,:)
-      !! Atom displacements when comparing defective and perfect crystals
-    real(kind = dp), allocatable, intent(out) :: atomM(:)
-      !! Atom masses
     real(kind = dp), allocatable, intent(out) :: phonD(:,:,:,:)
       !! Phonon displacements
     real(kind = dp), allocatable, intent(out) :: phonF(:)
@@ -53,8 +49,6 @@ module readInputFiles
     open(1, file=trim(phononsInput), status="old")
       !! * Open `phononsInput` file
     !
-    !read(1,*) nOfqPoints, nAtoms
-      !! @todo Need to get number of atoms and q points from somewhere else @endtodo
     !
     nModes = 3*nAtoms - 3
       !! * Calculate the number of phonon modes
@@ -63,20 +57,6 @@ module readInputFiles
     write(iostd, '(" Number of modes : ", i5)') nModes
     flush(iostd)
       !! * Write the number of atoms, q points, and modes to the output file
-    !
-    !allocate( atomD(3,nAtoms), atomM(nAtoms) )
-    !
-    !atomD = 0.0_dp
-    !atomM = 0.0_dp
-    !
-    !do iAtom = 1, nAtoms
-      !! * For each atom, read in the displacement (either pristine-defect 
-      !!   or defect-pristine) and the atom mass
-      !
-    !  read(1,*) atomD(1,iAtom), atomD(2,iAtom), atomD(3,iAtom), atomM(iAtom)
-      !
-    !enddo
-      !! @todo Need to get atom masses and displacements from somewhere else @endtodo
     !
     allocate( phonQ(3,nOfqPoints), phonF(nModes), phonD(3,nAtoms,nModes,nOfqPoints) )
     !

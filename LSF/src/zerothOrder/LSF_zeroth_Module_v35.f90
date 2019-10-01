@@ -129,10 +129,14 @@ contains
     call checkAndUpdateInput()
       !! * Check if input parameters were updated and do some basic checks
     !
+    call readPositionFiles(neutralPositionsFile, chargedPositionsFile, nAtoms, atomD, atomM)
+      !! * Read the neutral and charged position files to get the base displacements
+      !!   from changing the charge
+    !
     !> * Read the phonons output from QE 
     if ( trim(phononsInputFormat) == 'QE' ) then
       !
-      call readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, atomM, phonQ, phonF, phonD)
+      call readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, phonQ, phonF, phonD)
       !
     else 
       !
@@ -322,6 +326,122 @@ contains
     return
     !
   end subroutine checkAndUpdateInput
+  !
+  !
+  subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, nAtoms, atomD, atomM)
+    !! Read the positions for the neutral and charged cells to
+    !! calculate the base displacements with a charge. Also
+    !! read in the number of atoms and the atom masses
+    !!
+    !! @note 
+    !!  This subroutine takes in positions in XSF format. To get this, you
+    !!  will need to first relax the positions for the neutral and charged
+    !!  cells, then run 
+    !!  `${QE-5.3.0_Path}/PW/tools/pwo2xsf.sh -lc [relaxation output file] > [coordinate file name]`
+    !!  on each of the output files. What you use in place of 
+    !!  `[coordinate file name]` will need to be included in the input file.
+    !! @endnote
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+    implicit none
+    !
+    integer, intent(in) :: nAtoms
+      !! Number of atoms in system
+    integer :: iAtom
+      !! Loop index over atoms
+    !
+    real(kind = dp), allocatable, intent(out) :: atomD(:,:)
+      !! Atom displacements when comparing defective and perfect crystals
+    real(kind = dp), allocatable, intent(out) :: atomM(:)
+      !! Atom masses
+    real(kind = dp) :: dummyD
+      !! Dummy variable to ignore input
+    real(kind = dp), allocatable :: chargedPositions(:,:)
+      !! Relaxed positions of charged cell
+    real(kind = dp), allocatable :: neutralPositions(:,:)
+      !! Relaxed positions of neutral cell
+    !
+    character(len = 256), intent(in) :: chargedPositionsFile
+      !! Name of file with positions of relaxed charged cell
+    character(len = 256), intent(in) :: neutralPositionsFile
+      !! Name of file with positions of relaxed neutral cell
+    character :: elementName
+      !! Stores name of each element when reading files
+    character :: dummyC
+      !! Dummy variable to ignore input
+    !
+    open(1, file=trim(neutralPositionsFile), status="old")
+      !! * Open `neutralPositionsFile` file
+    !
+    read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+      !! Ignore the first 6 lines
+    !
+    read(1,*) nAtoms, dummyC
+    !
+    allocate( neutralPositions(3,nAtoms), atomM(nAtoms) )
+    !
+    neutralPositions = 0.0_dp
+    atomM = 0.0_dp
+    !
+    do iAtom = 1, nAtoms
+      !
+      read (1,*) elementName, neutralPositions(1,iAtom), neutralPositions(2,iAtom), &
+                 neutralPositions(3,iAtom), dummyD, dummyD, dummyD
+      !
+      atomM(iAtom) = atomMasses(INDEX(atomNames, elementName))
+      !
+    enddo
+    !
+    close(1)
+      !! * Close `neutralPositionsFile`
+    !
+    open(1, file=trim(chargedPositionsFile), status="old")
+      !! * Open `chargedPositionsFile` file
+    !
+    read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+      !! Ignore the first 7 lines
+    !
+    allocate( chargedPositions(3,nAtoms) )
+    !
+    chargedPositions = 0.0_dp
+    !
+    do iAtom = 1, nAtoms
+      !
+      read (1,*) dummyC, chargedPositions(1,iAtom), chargedPositions(2,iAtom), &
+                 chargedPositions(3,iAtom), dummyD, dummyD, dummyD
+      !
+    enddo
+    !
+    close(1)
+      !! * Close `chargedPositionsFile`
+    !
+    allocate( atomD(3,nAtoms) )
+    !
+    atomD = 0.0_dp
+    !
+    do iAtom = 1, nAtoms
+      !
+      atomD(:,iAtom) = chargedPositions(:,iAtom) - neutralPositions(:,iAtom)
+      !
+    enddo
+    !
+    deallocate( chargedPositions, neutralPositions )
+    !
+    return
+    !
+  end subroutine readPositionFiles
   !
   !  
 !  subroutine readVfis()
