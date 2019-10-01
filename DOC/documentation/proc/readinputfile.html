@@ -10,7 +10,7 @@
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>readInputFiles &ndash; Carrier Cross Sections</title>
+    <title>readInputFile &ndash; Carrier Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -114,8 +114,8 @@
     
   
   <div class="row">
-    <h1>readInputFiles 
-    <small>Module</small>
+    <h1>readInputFile
+      <small>Subroutine</small>
     
     </h1>
     
@@ -132,22 +132,24 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.0% of total for modules and submodules.">48 statements</a>
+    title=" 0.1% of total for procedures.">6 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/readInputFiles.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/LSF_zeroth_Module_v35.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/readinputfiles.f90.html'>readInputFiles.f90</a></li>
+     <li><a href='../sourcefile/lsf_zeroth_module_v35.f90.html'>LSF_zeroth_Module_v35.f90</a></li>
+    
+     <li><a href='../module/lsf.html'>lsf</a></li>
     
   
-     <li class="active">readInputFiles</li>
+     <li class="active">readInputFile</li>
   </ol>
 </div>
 </div>
@@ -181,16 +183,6 @@
 
 
 
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-0">Subroutines</a></h3></div>
-  <div class="list-group">
-    <div id="subs-0" class="panel-collapse collapse">
-      
-      <a class="list-group-item" href="../module/readinputfiles.html#proc-readphonons">readPhonons</a>
-      
-    </div>
-  </div>
-</div>
 
 
 
@@ -198,7 +190,7 @@
 
 
 
-
+<em>None</em>
 
 
 </div>
@@ -206,33 +198,32 @@
     </div>
     
     <div class="col-md-9" id='text'>
+    <h2>
+public subroutine readInputFile()
     
-      <br>
+    
+   
+</h2>
     
   
-    <div class="panel panel-default">
-      <div class="panel-heading">
-  <h3 class="panel-title">Uses</h3>
-      </div>
-      <ul class="list-group">
-      
-      <li class="list-group-item">
-  <ul class="list-inline">
-    
-    <li><a href='../module/constants.html'>constants</a></li>
-    
-  </ul>
-      </li>
-      
-      
-      
-      </ul>
-    </div>
-    
+
 
     
+    <p>Read the input file</p>
+<ul>
+<li>Read input parameters</li>
+</ul>
     
 
+    <h3>Arguments</h3>
+    
+    <em>None</em>
+    <br>
+    
+    
+    
+    
+     
     <br>
 
     <section class="visible-xs visible-sm hidden-md">
@@ -253,16 +244,6 @@
 
 
 
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-1">Subroutines</a></h3></div>
-  <div class="list-group">
-    <div id="subs-1" class="panel-collapse collapse">
-      
-      <a class="list-group-item" href="../module/readinputfiles.html#proc-readphonons">readPhonons</a>
-      
-    </div>
-  </div>
-</div>
 
 
 
@@ -270,7 +251,7 @@
 
 
 
-
+<em>None</em>
 
 
     </section>
@@ -290,170 +271,15 @@
     
     
 
-    
-    <section>
-    <h2>Subroutines</h2>
-    
-    
-  <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-readphonons"></span><h3>
-public subroutine <a href='../proc/readphonons.html'>readPhonons</a>(phononsInput, nOfqPoints, nAtoms, nModes, phonQ, phonF, phonD)
-    
-    
-   
-</h3></div>
-  <div class="panel-body">
-       
-    
-
-
-
-
-
-
-
-<p>Read the number of atoms and q points and
- get the phonon information like frequency 
- and displacements</p><a href="../proc/readphonons.html" class="pull-right"><emph>Read more&hellip;</emph></a>
-    
-    <h4>Arguments</h4>
-    
-      
-      
-<table class="table table-striped varlist">
-<thead><tr><th>Type</th>
-<th>Intent</th><th>Optional</th>
-<th>Attributes</th><th></th><th>Name</th><th></th></thead>
-
-
-
-<tbody>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>character(len=256),</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>phononsInput</strong></td><td><p>QE phonon output file name</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>nOfqPoints</strong></td><td><p>Number of q points</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>nAtoms</strong></td><td><p>Number of atoms in system</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>nModes</strong></td><td><p>Number of phonon modes</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real(kind=dp),</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>phonQ</strong>(:,:)</td><td><p>Phonon q point coordinates</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real(kind=dp),</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>phonF</strong>(:)</td><td><p>Phonon frequencies</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real(kind=dp),</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>phonD</strong>(:,:,:,:)</td><td><p>Phonon displacements</p></td>
-  
-</tr>
-
-</tbody>
-</table>
-
-      
-    
-    
-
-  </div>
-  </div>
 
     
-    </section>    
-    <br>
     
     
     
     </div>
   </div>
 
-  
+
     <hr>    
     </div> <!-- /container -->
     <footer>

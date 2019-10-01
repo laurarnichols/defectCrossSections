@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.3% of total for procedures.">52 statements</a>
+    title=" 1.0% of total for procedures.">43 statements</a>
      </li> 
      
      
@@ -179,13 +179,13 @@
       
       <a class="list-group-item" href="../proc/readphonons.html#variable-iatom%7E9">iAtom</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-imode%7E11">iMode</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-imode%7E10">iMode</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-iq%7E5">iq</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-iq%7E4">iq</a>
       
       <a class="list-group-item" href="../proc/readphonons.html#variable-dummyd%7E5">dummyD</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-freqinthz%7E3">freqInTHz</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-freqinthz%7E2">freqInTHz</a>
       
       <a class="list-group-item" href="../proc/readphonons.html#variable-dummyc%7E3">dummyC</a>
       
@@ -227,7 +227,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, atomM, phonQ, phonF, phonD)
+public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, phonQ, phonF, phonD)
     
     
    
@@ -240,29 +240,18 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
     <p>Read the number of atoms and q points and
  get the phonon information like frequency 
  and displacements</p>
+<p></p><div class="alert alert-info" role="alert"><h4>Note</h4><p>This subroutine is only meant for QE 5.3.0 phonon output </p></div>
+<p>
 <p><h2>Walkthrough</h2></p>
 <ul>
 <li>
 <p>Open <code>phononsInput</code> file</p>
 </li>
 <li>
-<p>Read in the number of q points and number of atoms</p>
-</li>
-<li>
 <p>Calculate the number of phonon modes</p>
 </li>
 <li>
 <p>Write the number of atoms, q points, and modes to the output file</p>
-</li>
-<li>
-<p>Ignore the next line as it is blank</p>
-</li>
-<li>
-<p>For each atom, read in the displacement (either pristine-defect 
-   or defect-pristine) and the atom mass</p>
-</li>
-<li>
-<p>Ignore the next line as it is blank</p>
 </li>
 <li>
 <p>For each q point</p>
@@ -274,9 +263,12 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
 <li>Read in the atom displacements</li>
 </ul>
 </li>
-<li>
-<p>Close <code>phononsInput</code> file</p>
-</li>
+</ul>
+<p>Ignore the first 2 lines</p>
+<p>Skip the asterisk separator</p>
+<p>Skip the asterisk separator</p>
+<ul>
+<li>Close <code>phononsInput</code> file</li>
 </ul>
     
 
@@ -303,7 +295,7 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>phononsInput</strong></td><td><p>QE/VASP phonon output file name</p></td>
+  <td><strong>phononsInput</strong></td><td><p>QE phonon output file name</p></td>
   
 </tr>
 
@@ -314,7 +306,7 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
 <tr>
   
   <td><span class="anchor" id="variable-nofqpoints%7E2"></span>integer,</td>
-  <td>intent(out)</td>
+  <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
@@ -328,8 +320,8 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
   
 <tr>
   
-  <td><span class="anchor" id="variable-natoms%7E2"></span>integer,</td>
-  <td>intent(out)</td>
+  <td><span class="anchor" id="variable-natoms%7E3"></span>integer,</td>
+  <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
@@ -349,36 +341,6 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
   
   <td></td><td>::</td>
   <td><strong>nModes</strong></td><td><p>Number of phonon modes</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-atomd%7E2"></span>real(kind=dp),</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>atomD</strong>(:,:)</td><td><p>Atom displacements when comparing defective and perfect crystals</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-atomm%7E2"></span>real(kind=dp),</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>atomM</strong>(:)</td><td><p>Atom masses</p></td>
   
 </tr>
 
@@ -451,13 +413,13 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
       
       <a class="list-group-item" href="../proc/readphonons.html#variable-iatom%7E9">iAtom</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-imode%7E11">iMode</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-imode%7E10">iMode</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-iq%7E5">iq</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-iq%7E4">iq</a>
       
       <a class="list-group-item" href="../proc/readphonons.html#variable-dummyd%7E5">dummyD</a>
       
-      <a class="list-group-item" href="../proc/readphonons.html#variable-freqinthz%7E3">freqInTHz</a>
+      <a class="list-group-item" href="../proc/readphonons.html#variable-freqinthz%7E2">freqInTHz</a>
       
       <a class="list-group-item" href="../proc/readphonons.html#variable-dummyc%7E3">dummyC</a>
       
@@ -531,7 +493,7 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
   
 <tr>
   
-  <td><span class="anchor" id="variable-imode%7E11"></span>integer,</td>
+  <td><span class="anchor" id="variable-imode%7E10"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -545,7 +507,7 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
   
 <tr>
   
-  <td><span class="anchor" id="variable-iq%7E5"></span>integer,</td>
+  <td><span class="anchor" id="variable-iq%7E4"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -573,7 +535,7 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
   
 <tr>
   
-  <td><span class="anchor" id="variable-freqinthz%7E3"></span>real(kind=dp),</td>
+  <td><span class="anchor" id="variable-freqinthz%7E2"></span>real(kind=dp),</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -618,18 +580,20 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readPhonons</span><span class="p">(</span><span class="n">phononsInput</span><span class="p">,</span> <span class="n">nOfqPoints</span><span class="p">,</span> <span class="n">nAtoms</span><span class="p">,</span> <span class="n">nModes</span><span class="p">,</span> <span class="n">atomD</span><span class="p">,</span> <span class="n">atomM</span><span class="p">,</span> <span class="n">phonQ</span><span class="p">,</span> <span class="n">phonF</span><span class="p">,</span> <span class="n">phonD</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">readPhonons</span><span class="p">(</span><span class="n">phononsInput</span><span class="p">,</span> <span class="n">nOfqPoints</span><span class="p">,</span> <span class="n">nAtoms</span><span class="p">,</span> <span class="n">nModes</span><span class="p">,</span> <span class="n">phonQ</span><span class="p">,</span> <span class="n">phonF</span><span class="p">,</span> <span class="n">phonD</span><span class="p">)</span>
     <span class="c">!! Read the number of atoms and q points and</span>
     <span class="c">!! get the phonon information like frequency </span>
     <span class="c">!! and displacements</span>
+    <span class="c">!!</span>
+    <span class="c">!! @note This subroutine is only meant for QE 5.3.0 phonon output @endnote</span>
     <span class="c">!!</span>
     <span class="c">!! &lt;h2&gt;Walkthrough&lt;/h2&gt;</span>
     <span class="c">!!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
-    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nOfqPoints</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nOfqPoints</span>
       <span class="c">!! Number of q points</span>
-    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nAtoms</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nAtoms</span>
       <span class="c">!! Number of atoms in system</span>
     <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">nModes</span>
       <span class="c">!! Number of phonon modes</span>
@@ -640,10 +604,6 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iq</span>
       <span class="c">!! Loop index over q points</span>
     <span class="c">!</span>
-    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">atomD</span><span class="p">(:,:)</span>
-      <span class="c">!! Atom displacements when comparing defective and perfect crystals</span>
-    <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">atomM</span><span class="p">(:)</span>
-      <span class="c">!! Atom masses</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phonD</span><span class="p">(:,:,:,:)</span>
       <span class="c">!! Phonon displacements</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">allocatable</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phonF</span><span class="p">(:)</span>
@@ -656,15 +616,13 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
       <span class="c">!! Input frequency in THz</span>
     <span class="c">!</span>
     <span class="kt">character</span><span class="p">(</span><span class="nb">len</span> <span class="o">=</span> <span class="mi">256</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">phononsInput</span>
-      <span class="c">!! QE/VASP phonon output file name</span>
+      <span class="c">!! QE phonon output file name</span>
     <span class="kt">character</span> <span class="kd">::</span> <span class="n">dummyC</span>
       <span class="c">!! Dummy variable to ignore input</span>
     <span class="c">!</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">phononsInput</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s2">&quot;old&quot;</span><span class="p">)</span>
       <span class="c">!! * Open `phononsInput` file</span>
     <span class="c">!</span>
-    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">nOfqPoints</span><span class="p">,</span> <span class="n">nAtoms</span>
-      <span class="c">!! * Read in the number of q points and number of atoms</span>
     <span class="c">!</span>
     <span class="n">nModes</span> <span class="o">=</span> <span class="mi">3</span><span class="o">*</span><span class="n">nAtoms</span> <span class="o">-</span> <span class="mi">3</span>
       <span class="c">!! * Calculate the number of phonon modes</span>
@@ -673,25 +631,6 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Number of modes : &quot;, i5)&#39;</span><span class="p">)</span> <span class="n">nModes</span>
     <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
       <span class="c">!! * Write the number of atoms, q points, and modes to the output file</span>
-    <span class="c">!</span>
-    <span class="k">read</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
-      <span class="c">!! * Ignore the next line as it is blank</span>
-    <span class="c">!</span>
-    <span class="k">allocate</span><span class="p">(</span> <span class="n">atomD</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nAtoms</span><span class="p">),</span> <span class="n">atomM</span><span class="p">(</span><span class="n">nAtoms</span><span class="p">)</span> <span class="p">)</span>
-    <span class="c">!</span>
-    <span class="n">atomD</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-    <span class="n">atomM</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-    <span class="c">!</span>
-    <span class="k">do </span><span class="n">iAtom</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nAtoms</span>
-      <span class="c">!! * For each atom, read in the displacement (either pristine-defect </span>
-      <span class="c">!!   or defect-pristine) and the atom mass</span>
-      <span class="c">!</span>
-      <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">atomD</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">iAtom</span><span class="p">),</span> <span class="n">atomD</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="n">iAtom</span><span class="p">),</span> <span class="n">atomD</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">iAtom</span><span class="p">),</span> <span class="n">atomM</span><span class="p">(</span><span class="n">iAtom</span><span class="p">)</span>
-      <span class="c">!</span>
-    <span class="n">enddo</span>
-    <span class="c">!</span>
-    <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
-      <span class="c">!! * Ignore the next line as it is blank</span>
     <span class="c">!</span>
     <span class="k">allocate</span><span class="p">(</span> <span class="n">phonQ</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nOfqPoints</span><span class="p">),</span> <span class="n">phonF</span><span class="p">(</span><span class="n">nModes</span><span class="p">),</span> <span class="n">phonD</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">nAtoms</span><span class="p">,</span><span class="n">nModes</span><span class="p">,</span><span class="n">nOfqPoints</span><span class="p">)</span> <span class="p">)</span>
     <span class="c">!</span>
@@ -707,24 +646,31 @@ public subroutine readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, a
       <span class="c">!!      * Convert the frequency to Hartree</span>
       <span class="c">!!      * Read in the atom displacements</span>
       <span class="c">!</span>
-      <span class="k">read</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">phonQ</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">iq</span><span class="p">),</span> <span class="n">phonQ</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="n">iq</span><span class="p">),</span> <span class="n">phonQ</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">iq</span><span class="p">),</span> <span class="n">dummyC</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> 
+      <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> 
+        <span class="c">!! Ignore the first 2 lines</span>
+      <span class="c">!</span>
+      <span class="k">read</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">phonQ</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">iq</span><span class="p">),</span> <span class="n">phonQ</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="n">iq</span><span class="p">),</span> <span class="n">phonQ</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">iq</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+        <span class="c">!! Skip the asterisk separator</span>
       <span class="c">!</span>
       <span class="k">do </span><span class="n">iMode</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nModes</span>
         <span class="c">!</span>
-        <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
-        <span class="c">!</span>
-        <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">freqInTHz</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyD</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyD</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyD</span><span class="p">,</span> <span class="n">dummyC</span>
+        <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">freqInTHz</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyD</span><span class="p">,</span> <span class="n">dummyC</span>
         <span class="n">phonF</span><span class="p">(</span><span class="n">iMode</span><span class="p">)</span> <span class="o">=</span> <span class="nb">dble</span><span class="p">(</span><span class="n">freqInTHz</span><span class="p">)</span><span class="o">*</span><span class="n">THzToHartree</span> 
-        <span class="c">!</span>
-        <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyC</span>
         <span class="c">!</span>
         <span class="k">do </span><span class="n">iAtom</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nAtoms</span>
           <span class="c">!</span>
-          <span class="k">read</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">dummyD</span><span class="p">,</span> <span class="n">dummyD</span><span class="p">,</span> <span class="n">dummyD</span><span class="p">,</span> <span class="n">phonD</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">iAtom</span><span class="p">,</span><span class="n">iMode</span><span class="p">,</span><span class="n">iq</span><span class="p">),</span> <span class="n">phonD</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="n">iAtom</span><span class="p">,</span><span class="n">iMode</span><span class="p">,</span><span class="n">iq</span><span class="p">),</span> <span class="n">phonD</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">iAtom</span><span class="p">,</span><span class="n">iMode</span><span class="p">,</span><span class="n">iq</span><span class="p">)</span>
+          <span class="k">read</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="n">dummyC</span><span class="p">,</span> <span class="n">dummyD</span><span class="p">,</span> <span class="n">dummyD</span><span class="p">,</span> <span class="n">dummyD</span><span class="p">,</span> <span class="n">phonD</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">iAtom</span><span class="p">,</span><span class="n">iMode</span><span class="p">,</span><span class="n">iq</span><span class="p">),</span> <span class="n">phonD</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="n">iAtom</span><span class="p">,</span><span class="n">iMode</span><span class="p">,</span><span class="n">iq</span><span class="p">),</span> <span class="p">&amp;</span>
+                     <span class="n">phonD</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="n">iAtom</span><span class="p">,</span><span class="n">iMode</span><span class="p">,</span><span class="n">iq</span><span class="p">),</span> <span class="n">dummyC</span>
           <span class="c">!</span>
         <span class="n">enddo</span>
         <span class="c">!</span>
       <span class="n">enddo</span>
+      <span class="c">!</span>
+      <span class="k">read</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">*</span><span class="p">)</span>
+        <span class="c">!! Skip the asterisk separator</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>

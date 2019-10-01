@@ -10,7 +10,7 @@
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>readInputFiles &ndash; Carrier Cross Sections</title>
+    <title>read_cards_module &ndash; Carrier Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -114,7 +114,7 @@
     
   
   <div class="row">
-    <h1>readInputFiles 
+    <h1>read_cards_module 
     <small>Module</small>
     
     </h1>
@@ -132,22 +132,22 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.0% of total for modules and submodules.">48 statements</a>
+    title="16.0% of total for modules and submodules.">786 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/readInputFiles.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/read_cards.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/readinputfiles.f90.html'>readInputFiles.f90</a></li>
+     <li><a href='../sourcefile/read_cards.f90.html'>read_cards.f90</a></li>
     
   
-     <li class="active">readInputFiles</li>
+     <li class="active">read_cards_module</li>
   </ol>
 </div>
 </div>
@@ -186,7 +186,7 @@
   <div class="list-group">
     <div id="subs-0" class="panel-collapse collapse">
       
-      <a class="list-group-item" href="../module/readinputfiles.html#proc-readphonons">readPhonons</a>
+      <a class="list-group-item" href="../module/read_cards_module.html#proc-read_cards">read_cards</a>
       
     </div>
   </div>
@@ -219,7 +219,17 @@
       <li class="list-group-item">
   <ul class="list-inline">
     
-    <li><a href='../module/constants.html'>constants</a></li>
+    <li>kinds</li>
+    
+    <li>io_global</li>
+    
+    <li>wy_pos</li>
+    
+    <li>parser</li>
+    
+    <li>io_global</li>
+    
+    <li>input_parameters</li>
     
   </ul>
       </li>
@@ -258,7 +268,7 @@
   <div class="list-group">
     <div id="subs-1" class="panel-collapse collapse">
       
-      <a class="list-group-item" href="../module/readinputfiles.html#proc-readphonons">readPhonons</a>
+      <a class="list-group-item" href="../module/read_cards_module.html#proc-read_cards">read_cards</a>
       
     </div>
   </div>
@@ -296,8 +306,8 @@
     
     
   <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-readphonons"></span><h3>
-public subroutine <a href='../proc/readphonons.html'>readPhonons</a>(phononsInput, nOfqPoints, nAtoms, nModes, phonQ, phonF, phonD)
+  <div class="panel-heading codesum"><span class="anchor" id="proc-read_cards"></span><h3>
+public subroutine <a href='../proc/read_cards.html'>read_cards</a>(prog, unit)
     
     
    
@@ -305,16 +315,6 @@ public subroutine <a href='../proc/readphonons.html'>readPhonons</a>(phononsInpu
   <div class="panel-body">
        
     
-
-
-
-
-
-
-
-<p>Read the number of atoms and q points and
- get the phonon information like frequency 
- and displacements</p><a href="../proc/readphonons.html" class="pull-right"><emph>Read more&hellip;</emph></a>
     
     <h4>Arguments</h4>
     
@@ -335,12 +335,12 @@ public subroutine <a href='../proc/readphonons.html'>readPhonons</a>(phononsInpu
   
 <tr>
   
-  <td><span class="anchor" ></span>character(len=256),</td>
-  <td>intent(in)</td>
+  <td><span class="anchor" ></span>character(len=2)</td>
+  <td></td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>phononsInput</strong></td><td><p>QE phonon output file name</p></td>
+  <td><strong>prog</strong></td><td></td>
   
 </tr>
 
@@ -351,86 +351,11 @@ public subroutine <a href='../proc/readphonons.html'>readPhonons</a>(phononsInpu
 <tr>
   
   <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
+  <td>intent(in),</td>
+  <td>optional</td>
   
   <td></td><td>::</td>
-  <td><strong>nOfqPoints</strong></td><td><p>Number of q points</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>nAtoms</strong></td><td><p>Number of atoms in system</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>nModes</strong></td><td><p>Number of phonon modes</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real(kind=dp),</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>phonQ</strong>(:,:)</td><td><p>Phonon q point coordinates</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real(kind=dp),</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>phonF</strong>(:)</td><td><p>Phonon frequencies</p></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real(kind=dp),</td>
-  <td>intent(out),</td>
-  <td></td>
-  
-  <td>allocatable</td><td>::</td>
-  <td><strong>phonD</strong>(:,:,:,:)</td><td><p>Phonon displacements</p></td>
+  <td><strong>unit</strong></td><td></td>
   
 </tr>
 

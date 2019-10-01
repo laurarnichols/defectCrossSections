@@ -1,6 +1,6 @@
 title: Todo
 author: Laura Nichols
-date: 09/26/2019
+date: 10/01/2019
 
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:107:` Redo the loop for less than 5 phonons to be more clear and streamlined
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:166:` Change this to have `size(iEbinsByBands)`
@@ -11,36 +11,37 @@ date: 09/26/2019
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:302:` Move the behavior of splitting up Monte Carlo steps to a subroutine
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:333:` Move this to a subroutine
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:339:` Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)`
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:183:` Figure out why increase `minimumNumberOfPhonons` by 1
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:376:` Remove all of these comments 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:440:` Figure out if `iModeFs(myid)` has a max of `nModes-3` or `nModes-nBands+1`
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:465:` Figure out what the purpose of `ic` is 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:529:` Change this to merge if statements 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:543:` Figure out why don't just exit here because will be multiplying by 0 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:563:` Redo `besRatio` if statement to be more clear that it is if/else 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:609:` Send slice instead of using `other` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:622:` Figure out if there is a better way in general to do this 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:623:` Write a recursive function to replace explicit loops 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:624:` Fix typo in `distrubute` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:625:` Change `l` to `nBands` and `m` to `kPhonons` or something similar 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:666:` Add a condition to exit inner loop if `i1 + i2 + i3 > m` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:675:` Add a condition to exit inner loop if `i > size of pj0s` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1031:` Make sure that Monte Carlo makes sense here 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1032:` Figure out if there are any methods that would be better/faster 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1068:` Figure out a better way to do this as it is crazy inefficient 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1073:` Remove as not needed 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1094:` Fix the possible bug here 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1105:` Move some of this to another subroutine 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1187:` Figure out why array is reversed 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1227:` Figure out if there is a clearer or faster way to do this 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1228:` Maybe move this to a subroutine 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1253:` Switch the `.true.` and `.false.` assignments to make more sense 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1404:` Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1471:` Change the name of this subroutine to just `writeLSF` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1472:` Remove all of the extra stuff from this subroutine 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1571:` Merge this with `parallelIsFsBy4` 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1581:` Write a binomialCoefficient function 
-* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1608:` Change this to use available states instead of totalStates 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:185:` Figure out why increase `minimumNumberOfPhonons` by 1
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:220:` Change `nOfqPoints` to `numberOfQPoints` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:458:` Remove all of these comments 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:522:` Figure out if `iModeFs(myid)` has a max of `nModes-3` or `nModes-nBands+1`
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:547:` Figure out what the purpose of `ic` is 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:611:` Change this to merge if statements 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:625:` Figure out why don't just exit here because will be multiplying by 0 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:645:` Redo `besRatio` if statement to be more clear that it is if/else 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:691:` Send slice instead of using `other` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:704:` Figure out if there is a better way in general to do this 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:705:` Write a recursive function to replace explicit loops 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:706:` Fix typo in `distrubute` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:707:` Change `l` to `nBands` and `m` to `kPhonons` or something similar 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:748:` Add a condition to exit inner loop if `i1 + i2 + i3 > m` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:757:` Add a condition to exit inner loop if `i > size of pj0s` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1113:` Make sure that Monte Carlo makes sense here 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1114:` Figure out if there are any methods that would be better/faster 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1150:` Figure out a better way to do this as it is crazy inefficient 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1155:` Remove as not needed 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1176:` Fix the possible bug here 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1187:` Move some of this to another subroutine 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1269:` Figure out why array is reversed 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1309:` Figure out if there is a clearer or faster way to do this 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1310:` Maybe move this to a subroutine 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1335:` Switch the `.true.` and `.false.` assignments to make more sense 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1486:` Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1553:` Change the name of this subroutine to just `writeLSF` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1554:` Remove all of the extra stuff from this subroutine 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1653:` Merge this with `parallelIsFsBy4` 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1663:` Write a binomialCoefficient function 
+* `../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1690:` Change this to use available states instead of totalStates 
 * `../Mj/src/Mj_Main.f90:17:` Make sure that there is an end timer
 * `../Mj/src/Mj_Module_v1.f90:25:` Make sure default value is set for `qPoint` 
 * `../Mj/src/Mj_Module_v1.f90:269:` Figure out if expect `modeI` and `modeF` to represent index of magnitude of argument `x` 

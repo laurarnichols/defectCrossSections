@@ -10,7 +10,7 @@
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>readPhononsQE &ndash; Carrier Cross Sections</title>
+    <title>readPositionFiles &ndash; Carrier Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -114,7 +114,7 @@
     
   
   <div class="row">
-    <h1>readPhononsQE
+    <h1>readPositionFiles
       <small>Subroutine</small>
     
     </h1>
@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.0% of total for procedures.">39 statements</a>
+    title=" 1.2% of total for procedures.">51 statements</a>
      </li> 
      
      
@@ -149,7 +149,7 @@
      <li><a href='../module/lsf.html'>lsf</a></li>
     
   
-     <li class="active">readPhononsQE</li>
+     <li class="active">readPositionFiles</li>
   </ol>
 </div>
 </div>
@@ -177,17 +177,17 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/readphononsqe.html#variable-iatom%7E5">iAtom</a>
+      <a class="list-group-item" href="../proc/readpositionfiles.html#variable-iatom%7E5">iAtom</a>
       
-      <a class="list-group-item" href="../proc/readphononsqe.html#variable-imode%7E4">iMode</a>
+      <a class="list-group-item" href="../proc/readpositionfiles.html#variable-dummyd%7E2">dummyD</a>
       
-      <a class="list-group-item" href="../proc/readphononsqe.html#variable-iq">iq</a>
+      <a class="list-group-item" href="../proc/readpositionfiles.html#variable-chargedpositions">chargedPositions</a>
       
-      <a class="list-group-item" href="../proc/readphononsqe.html#variable-dummyd%7E2">dummyD</a>
+      <a class="list-group-item" href="../proc/readpositionfiles.html#variable-neutralpositions">neutralPositions</a>
       
-      <a class="list-group-item" href="../proc/readphononsqe.html#variable-freqinthz">freqInTHz</a>
+      <a class="list-group-item" href="../proc/readpositionfiles.html#variable-elementname">elementName</a>
       
-      <a class="list-group-item" href="../proc/readphononsqe.html#variable-dummyc">dummyC</a>
+      <a class="list-group-item" href="../proc/readpositionfiles.html#variable-dummyc">dummyC</a>
       
     </div>
   </div>
@@ -219,7 +219,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine readPhononsQE()
+public subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, nAtoms, atomD, atomM)
     
     
    
@@ -229,11 +229,126 @@ public subroutine readPhononsQE()
 
 
     
+    <p>Read the positions for the neutral and charged cells to
+ calculate the base displacements with a charge. Also
+ read in the number of atoms and the atom masses</p>
+<p></p><div class="alert alert-info" role="alert"><h4>Note</h4><p>This subroutine takes in positions in XSF format. To get this, you
+  will need to first relax the positions for the neutral and charged
+  cells, then run 
+  <code>${QE-5.3.0_Path}/PW/tools/pwo2xsf.sh -lc [relaxation output file] &gt; [coordinate file name]</code>
+  on each of the output files. What you use in place of 
+  <code>[coordinate file name]</code> will need to be included in the input file.
+ </p></div>
+<p>
+<p><h2>Walkthrough</h2></p>
+<ul>
+<li>Open <code>neutralPositionsFile</code> file</li>
+</ul>
+<p>Ignore the first 6 lines</p>
+<ul>
+<li>
+<p>Close <code>neutralPositionsFile</code></p>
+</li>
+<li>
+<p>Open <code>chargedPositionsFile</code> file</p>
+</li>
+</ul>
+<p>Ignore the first 7 lines</p>
+<ul>
+<li>Close <code>chargedPositionsFile</code></li>
+</ul>
+    
 
     <h3>Arguments</h3>
     
-    <em>None</em>
-    <br>
+      
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th>
+<th>Intent</th><th>Optional</th>
+<th>Attributes</th><th></th><th>Name</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-neutralpositionsfile"></span>character(len=256),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>neutralPositionsFile</strong></td><td><p>Name of file with positions of relaxed neutral cell</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-chargedpositionsfile"></span>character(len=256),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>chargedPositionsFile</strong></td><td><p>Name of file with positions of relaxed charged cell</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-natoms"></span>integer,</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>nAtoms</strong></td><td><p>Number of atoms in system</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-atomd"></span>real(kind=dp),</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>allocatable</td><td>::</td>
+  <td><strong>atomD</strong>(:,:)</td><td><p>Atom displacements when comparing defective and perfect crystals</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-atomm"></span>real(kind=dp),</td>
+  <td>intent(out),</td>
+  <td></td>
+  
+  <td>allocatable</td><td>::</td>
+  <td><strong>atomM</strong>(:)</td><td><p>Atom masses</p></td>
+  
+</tr>
+
+</tbody>
+</table>
+
     
     
     
@@ -253,17 +368,17 @@ public subroutine readPhononsQE()
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/readphononsqe.html#variable-iatom%7E5">iAtom</a>
+      <a class="list-group-item" href="../proc/readpositionfiles.html#variable-iatom%7E5">iAtom</a>
       
-      <a class="list-group-item" href="../proc/readphononsqe.html#variable-imode%7E4">iMode</a>
+      <a class="list-group-item" href="../proc/readpositionfiles.html#variable-dummyd%7E2">dummyD</a>
       
-      <a class="list-group-item" href="../proc/readphononsqe.html#variable-iq">iq</a>
+      <a class="list-group-item" href="../proc/readpositionfiles.html#variable-chargedpositions">chargedPositions</a>
       
-      <a class="list-group-item" href="../proc/readphononsqe.html#variable-dummyd%7E2">dummyD</a>
+      <a class="list-group-item" href="../proc/readpositionfiles.html#variable-neutralpositions">neutralPositions</a>
       
-      <a class="list-group-item" href="../proc/readphononsqe.html#variable-freqinthz">freqInTHz</a>
+      <a class="list-group-item" href="../proc/readpositionfiles.html#variable-elementname">elementName</a>
       
-      <a class="list-group-item" href="../proc/readphononsqe.html#variable-dummyc">dummyC</a>
+      <a class="list-group-item" href="../proc/readpositionfiles.html#variable-dummyc">dummyC</a>
       
     </div>
   </div>
@@ -317,35 +432,7 @@ public subroutine readPhononsQE()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iAtom</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-imode%7E4"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>iMode</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-iq"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>iq</strong></td><td></td><td></td><td></td>
+  <td><strong>iAtom</strong></td><td></td><td></td><td><p>Loop index over atoms</p></td>
   
 </tr>
 
@@ -359,7 +446,7 @@ public subroutine readPhononsQE()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>dummyD</strong></td><td></td><td></td><td></td>
+  <td><strong>dummyD</strong></td><td></td><td></td><td><p>Dummy variable to ignore input</p></td>
   
 </tr>
 
@@ -369,11 +456,39 @@ public subroutine readPhononsQE()
   
 <tr>
   
-  <td><span class="anchor" id="variable-freqinthz"></span>real(kind=dp),</td>
+  <td><span class="anchor" id="variable-chargedpositions"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>chargedPositions</strong>(:,:)</td><td></td><td></td><td><p>Relaxed positions of charged cell</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-neutralpositions"></span>real(kind=dp),</td>
+  
+  <td>public,</td>
+  <td>allocatable</td><td>::</td>
+  <td><strong>neutralPositions</strong>(:,:)</td><td></td><td></td><td><p>Relaxed positions of neutral cell</p></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-elementname"></span>character,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>freqInTHz</strong></td><td></td><td></td><td></td>
+  <td><strong>elementName</strong></td><td></td><td></td><td><p>Stores name of each element when reading files</p></td>
   
 </tr>
 
@@ -387,7 +502,7 @@ public subroutine readPhononsQE()
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>dummyC</strong></td><td></td><td></td><td></td>
+  <td><strong>dummyC</strong></td><td></td><td></td><td><p>Dummy variable to ignore input</p></td>
   
 </tr>
 

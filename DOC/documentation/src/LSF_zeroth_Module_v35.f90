@@ -52,9 +52,11 @@ module lsf
   !real(kind = dp) :: volume
   real(kind = dp) :: weight
   !
+  character(len = 256) :: chargedPositionsFile
   character(len = 256) :: continueLSFfromFile
   !character(len = 256) :: crossSectionOutput
   character(len = 256) :: fn
+  character(len = 256) :: neutralPositionsFile
   character(len = 256) :: phononsInputFormat
   character(len = 256) :: phononsInput
   !character(len = 256) :: VfisInput
@@ -90,7 +92,8 @@ module lsf
   !
 !  namelist /elphscat/ VfisInput, PhononsInput, temperature, maxEnergy, continueLSFfromFile, volume, &
   namelist /lsfInput/ phononsInput, phononsInputFormat, temperature, &
-                      continueLSFfromFile, maximumNumberOfPhonons, nMC
+                      continueLSFfromFile, maximumNumberOfPhonons, nMC, & 
+                      neutralPositionsFile, chargedPositionsFile, nOfQPoints
   !
   !
 contains
@@ -120,20 +123,19 @@ contains
     call initialize()
       !! * Set default values of input parameters
     !
-    READ (5, lsfInput, iostat = ios)
-      !! * Read input parameters
+    call readInputFile()
     !
     call checkAndUpdateInput()
       !! * Check if input parameters were updated and do some basic checks
     !
-    !> * Read the phonons output from QE or VASP
-    if ( trim(phononsInputFormat) == 'VASP' ) then
+    call readPositionFiles(neutralPositionsFile, chargedPositionsFile, nAtoms, atomD, atomM)
+      !! * Read the neutral and charged position files to get the base displacements
+      !!   from changing the charge
+    !
+    !> * Read the phonons output from QE 
+    if ( trim(phononsInputFormat) == 'QE' ) then
       !
-      call readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, atomD, atomM, phonQ, phonF, phonD)
-      !
-    else if ( trim(phononsInputFormat) == 'QE' ) then
-      !
-      call readPhononsQE()
+      call readPhonons(phononsInput, nOfqPoints, nAtoms, nModes, phonQ, phonF, phonD)
       !
     else 
       !
@@ -209,23 +211,41 @@ contains
     !VfisInput = ''
     phononsInput = ''
     phononsInputFormat = ''
+    neutralPositionsFile = ''
+    chargedPositionsFile = ''
     temperature = -1.0_dp
     minimumNumberOfPhonons =  1
     maximumNumberOfPhonons = -1
+    nOfqPoints = -1
+      !! @todo Change `nOfqPoints` to `numberOfQPoints` @endtodo
     nMC = -1
     !
     return
     !
   end subroutine initialize
   !
+  subroutine readInputFile()
+    !! Read the input file
+    !
+    implicit none
+    !
+    read (5, lsfInput, iostat = ios)
+      !! * Read input parameters
+    read (5, *) 
+    !
+    return
+  end subroutine readInputFile
   !
   subroutine checkAndUpdateInput()
     !! Check that the input variables don't still have their default
     !! values. The program will abort here if:
     !!   * `phononsInput` is undefined
     !!   * `phononsInputFormat` is undefined
+    !!   * `neutralPositionsFile` is undefined
+    !!   * `chargedPositionsFile` is undefined
     !!   * `temperature` is undefined
     !!   * `maximumNumberOfPhonons` is undefined
+    !!   * `nOfqPoints` is undefined
     !!   * number of Monte Carlo steps (`nMc`) is not
     !!     set and `maximumNumberOfPhonons` is greater
     !!     than 4
@@ -249,6 +269,20 @@ contains
       abortExecution = .true.
     else
       write(iostd, '(" Phonons input format : ", a)') trim(phononsInputFormat)
+    endif
+    !
+    if ( trim(neutralPositionsFile) == '' ) then
+      write(iostd, '(" neutralPositionsFile is not defined!")')
+      abortExecution = .true.
+    else
+      write(iostd, '(" Neutral positions file : ", a)') trim(phononsInputFormat)
+    endif
+    !
+    if ( trim(chargedPositionsFile) == '' ) then
+      write(iostd, '(" chargedPositionsFile is not defined!")')
+      abortExecution = .true.
+    else
+      write(iostd, '(" Charged positions file : ", a)') trim(phononsInputFormat)
     endif
     !
     if ( temperature < 0.0_dp ) then
@@ -304,72 +338,120 @@ contains
   end subroutine checkAndUpdateInput
   !
   !
-  subroutine readPhononsQE()
-    !
+  subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, nAtoms, atomD, atomM)
+    !! Read the positions for the neutral and charged cells to
+    !! calculate the base displacements with a charge. Also
+    !! read in the number of atoms and the atom masses
+    !!
+    !! @note 
+    !!  This subroutine takes in positions in XSF format. To get this, you
+    !!  will need to first relax the positions for the neutral and charged
+    !!  cells, then run 
+    !!  `${QE-5.3.0_Path}/PW/tools/pwo2xsf.sh -lc [relaxation output file] > [coordinate file name]`
+    !!  on each of the output files. What you use in place of 
+    !!  `[coordinate file name]` will need to be included in the input file.
+    !! @endnote
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
     implicit none
     !
-    integer :: iAtom, iMode, iq
-    real(kind = dp) :: dummyD, freqInTHz
+    integer, intent(in) :: nAtoms
+      !! Number of atoms in system
+    integer :: iAtom
+      !! Loop index over atoms
     !
-    CHARACTER :: dummyC
+    real(kind = dp), allocatable, intent(out) :: atomD(:,:)
+      !! Atom displacements when comparing defective and perfect crystals
+    real(kind = dp), allocatable, intent(out) :: atomM(:)
+      !! Atom masses
+    real(kind = dp) :: dummyD
+      !! Dummy variable to ignore input
+    real(kind = dp), allocatable :: chargedPositions(:,:)
+      !! Relaxed positions of charged cell
+    real(kind = dp), allocatable :: neutralPositions(:,:)
+      !! Relaxed positions of neutral cell
     !
-    !write(6,*) trim(phononsInput)
-    open(1, file=trim(phononsInput), status="old")
+    character(len = 256), intent(in) :: chargedPositionsFile
+      !! Name of file with positions of relaxed charged cell
+    character(len = 256), intent(in) :: neutralPositionsFile
+      !! Name of file with positions of relaxed neutral cell
+    character :: elementName
+      !! Stores name of each element when reading files
+    character :: dummyC
+      !! Dummy variable to ignore input
     !
-    read(1,*) nOfqPoints, nAtoms, nModes
-    !
-    write(iostd, '(" Number of atoms : ", i5)') nAtoms
-    write(iostd, '(" Number of q-Points : ", i5)') nOfqPoints
-    write(iostd, '(" Number of modes : ", i5)') nModes
-    flush(iostd)
-    !
-    read (1,*)
-    !
-    allocate( atomD(3,nAtoms), atomM(nAtoms) )
-    !
-    atomD = 0.0_dp
-    atomM = 0.0_dp
-    !The unit is in Bohr
-    do iAtom = 1, nAtoms
-      read(1,*) atomD(1,iAtom), atomD(2,iAtom), atomD(3,iAtom), atomM(iAtom)
-    enddo
+    open(1, file=trim(neutralPositionsFile), status="old")
+      !! * Open `neutralPositionsFile` file
     !
     read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+      !! Ignore the first 6 lines
     !
-    allocate( phonQ(3,nOfqPoints), phonF(nModes), phonD(3,nAtoms,nModes,nOfqPoints) )
+    read(1,*) nAtoms, dummyC
     !
-    phonQ = 0.0_dp
-    phonF = 0.0_dp
-    phonD = 0.0_dp
+    allocate( neutralPositions(3,nAtoms), atomM(nAtoms) )
     !
-    do iq = 1, nOfqPoints
+    neutralPositions = 0.0_dp
+    atomM = 0.0_dp
+    !
+    do iAtom = 1, nAtoms
       !
-      read (1,*) dummyC, dummyC, dummyC, phonQ(1,iq), phonQ(2,iq), phonQ(3,iq), dummyC
-      read(1,*)
+      read (1,*) elementName, neutralPositions(1,iAtom), neutralPositions(2,iAtom), &
+                 neutralPositions(3,iAtom), dummyD, dummyD, dummyD
       !
-      do iMode = 1, nModes
-        !
-        read(1,*) dummyC, dummyC, dummyC, dummyC, freqInTHz
-        phonF(iMode) = dble(freqInTHz)*THzToHartree
-        !
-        do iAtom = 1, nAtoms
-          !
-          read(1,*) dummyC, phonD(1,iAtom,iMode,iq), dummyD, phonD(2,iAtom,iMode,iq), dummyD, phonD(3,iAtom,iMode,iq), dummyC
-          write(6,*) phonD(1,iAtom,iMode,iq),phonD(2,iAtom,iMode,iq),phonD(3,iAtom,iMode,iq)
-          !
-        enddo
-        !
-      enddo
+      atomM(iAtom) = atomMasses(INDEX(atomNames, elementName))
       !
     enddo
     !
     close(1)
+      !! * Close `neutralPositionsFile`
     !
-    flush(iostd)
+    open(1, file=trim(chargedPositionsFile), status="old")
+      !! * Open `chargedPositionsFile` file
+    !
+    read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+    read(1,*)
+      !! Ignore the first 7 lines
+    !
+    allocate( chargedPositions(3,nAtoms) )
+    !
+    chargedPositions = 0.0_dp
+    !
+    do iAtom = 1, nAtoms
+      !
+      read (1,*) dummyC, chargedPositions(1,iAtom), chargedPositions(2,iAtom), &
+                 chargedPositions(3,iAtom), dummyD, dummyD, dummyD
+      !
+    enddo
+    !
+    close(1)
+      !! * Close `chargedPositionsFile`
+    !
+    allocate( atomD(3,nAtoms) )
+    !
+    atomD = 0.0_dp
+    !
+    do iAtom = 1, nAtoms
+      !
+      atomD(:,iAtom) = chargedPositions(:,iAtom) - neutralPositions(:,iAtom)
+      !
+    enddo
+    !
+    deallocate( chargedPositions, neutralPositions )
     !
     return
     !
-  end subroutine readPhononsQE
+  end subroutine readPositionFiles
   !
   !  
 !  subroutine readVfis()
