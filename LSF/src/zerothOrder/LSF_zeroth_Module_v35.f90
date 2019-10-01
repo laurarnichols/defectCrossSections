@@ -92,7 +92,8 @@ module lsf
   !
 !  namelist /elphscat/ VfisInput, PhononsInput, temperature, maxEnergy, continueLSFfromFile, volume, &
   namelist /lsfInput/ phononsInput, phononsInputFormat, temperature, &
-                      continueLSFfromFile, maximumNumberOfPhonons, nMC, neutralPositionsFile, chargedPositionsFile
+                      continueLSFfromFile, maximumNumberOfPhonons, nMC, & 
+                      neutralPositionsFile, chargedPositionsFile, nOfQPoints
   !
   !
 contains
@@ -212,6 +213,8 @@ contains
     temperature = -1.0_dp
     minimumNumberOfPhonons =  1
     maximumNumberOfPhonons = -1
+    nOfqPoints = -1
+      !! @todo Change `nOfqPoints` to `numberOfQPoints` @endtodo
     nMC = -1
     !
     return
@@ -228,6 +231,7 @@ contains
     !!   * `chargedPositionsFile` is undefined
     !!   * `temperature` is undefined
     !!   * `maximumNumberOfPhonons` is undefined
+    !!   * `nOfqPoints` is undefined
     !!   * number of Monte Carlo steps (`nMc`) is not
     !!     set and `maximumNumberOfPhonons` is greater
     !!     than 4
@@ -257,14 +261,14 @@ contains
       write(iostd, '(" neutralPositionsFile is not defined!")')
       abortExecution = .true.
     else
-      write(iostd, '(" Phonons input format : ", a)') trim(phononsInputFormat)
+      write(iostd, '(" Neutral positions file : ", a)') trim(phononsInputFormat)
     endif
     !
     if ( trim(chargedPositionsFile) == '' ) then
-      write(iostd, '(" neutralPositionsFile is not defined!")')
+      write(iostd, '(" chargedPositionsFile is not defined!")')
       abortExecution = .true.
     else
-      write(iostd, '(" Phonons input format : ", a)') trim(phononsInputFormat)
+      write(iostd, '(" Charged positions file : ", a)') trim(phononsInputFormat)
     endif
     !
     if ( temperature < 0.0_dp ) then
