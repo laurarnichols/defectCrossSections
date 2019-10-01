@@ -11,13 +11,15 @@ module readInputFiles
     !! get the phonon information like frequency 
     !! and displacements
     !!
+    !! @note This subroutine is only meant for QE 5.3.0 phonon output @endnote
+    !!
     !! <h2>Walkthrough</h2>
     !!
     implicit none
     !
-    integer, intent(out) :: nOfqPoints
+    integer, intent(in) :: nOfqPoints
       !! Number of q points
-    integer, intent(out) :: nAtoms
+    integer, intent(in) :: nAtoms
       !! Number of atoms in system
     integer, intent(out) :: nModes
       !! Number of phonon modes
@@ -44,15 +46,15 @@ module readInputFiles
       !! Input frequency in THz
     !
     character(len = 256), intent(in) :: phononsInput
-      !! QE/VASP phonon output file name
+      !! QE phonon output file name
     character :: dummyC
       !! Dummy variable to ignore input
     !
     open(1, file=trim(phononsInput), status="old")
       !! * Open `phononsInput` file
     !
-    read(1,*) nOfqPoints, nAtoms
-      !! * Read in the number of q points and number of atoms
+    !read(1,*) nOfqPoints, nAtoms
+      !! @todo Need to get number of atoms and q points from somewhere else @endtodo
     !
     nModes = 3*nAtoms - 3
       !! * Calculate the number of phonon modes
@@ -62,24 +64,19 @@ module readInputFiles
     flush(iostd)
       !! * Write the number of atoms, q points, and modes to the output file
     !
-    read (1,*)
-      !! * Ignore the next line as it is blank
+    !allocate( atomD(3,nAtoms), atomM(nAtoms) )
     !
-    allocate( atomD(3,nAtoms), atomM(nAtoms) )
+    !atomD = 0.0_dp
+    !atomM = 0.0_dp
     !
-    atomD = 0.0_dp
-    atomM = 0.0_dp
-    !
-    do iAtom = 1, nAtoms
+    !do iAtom = 1, nAtoms
       !! * For each atom, read in the displacement (either pristine-defect 
       !!   or defect-pristine) and the atom mass
       !
-      read(1,*) atomD(1,iAtom), atomD(2,iAtom), atomD(3,iAtom), atomM(iAtom)
+    !  read(1,*) atomD(1,iAtom), atomD(2,iAtom), atomD(3,iAtom), atomM(iAtom)
       !
-    enddo
-    !
-    read(1,*)
-      !! * Ignore the next line as it is blank
+    !enddo
+      !! @todo Need to get atom masses and displacements from somewhere else @endtodo
     !
     allocate( phonQ(3,nOfqPoints), phonF(nModes), phonD(3,nAtoms,nModes,nOfqPoints) )
     !
@@ -95,24 +92,31 @@ module readInputFiles
       !!      * Convert the frequency to Hartree
       !!      * Read in the atom displacements
       !
-      read (1,*) dummyC, dummyC, dummyC, phonQ(1,iq), phonQ(2,iq), phonQ(3,iq), dummyC
+      read(1,*) 
+      read(1,*) 
+        !! Ignore the first 2 lines
+      !
+      read (1,*) dummyC, dummyC, phonQ(1,iq), phonQ(2,iq), phonQ(3,iq)
+      !
+      read(1,*)
+        !! Skip the asterisk separator
       !
       do iMode = 1, nModes
         !
-        read(1,*)
-        !
-        read(1,*) freqInTHz, dummyC, dummyD, dummyC, dummyD, dummyC, dummyD, dummyC
+        read(1,*) dummyC, dummyC, dummyC, dummyC, freqInTHz, dummyC, dummyC, dummyD, dummyC
         phonF(iMode) = dble(freqInTHz)*THzToHartree 
-        !
-        read(1,*) dummyC, dummyC, dummyC, dummyC, dummyC, dummyC
         !
         do iAtom = 1, nAtoms
           !
-          read (1,*) dummyD, dummyD, dummyD, phonD(1,iAtom,iMode,iq), phonD(2,iAtom,iMode,iq), phonD(3,iAtom,iMode,iq)
+          read (1,*) dummyC, dummyD, dummyD, dummyD, phonD(1,iAtom,iMode,iq), phonD(2,iAtom,iMode,iq), &
+                     phonD(3,iAtom,iMode,iq), dummyC
           !
         enddo
         !
       enddo
+      !
+      read(1,*)
+        !! Skip the asterisk separator
       !
     enddo
     !
