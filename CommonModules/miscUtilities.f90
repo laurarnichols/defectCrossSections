@@ -81,4 +81,27 @@ module miscUtilities
     !
   end subroutine arrangeLargerToSmaller
   !
+  !
+  function findloc(stringArr, searchString) result(loc)
+    !! Find the first instance of a search string in
+    !! an array of strings
+    !!
+    implicit none
+    !
+    integer :: i
+    integer :: loc
+    !
+    character, intent(in) :: searchString
+    character, intent(in) :: stringArr(:)
+    !
+    loc = -1
+    !
+    do i = 1, size(stringArr)
+      !
+      if (stringArr(i) == searchString) loc = i   
+      !
+    enddo
+    !
+  end function findloc
+  !
 end module miscUtilities

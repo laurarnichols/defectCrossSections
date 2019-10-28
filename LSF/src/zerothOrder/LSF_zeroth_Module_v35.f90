@@ -234,6 +234,8 @@ contains
   subroutine readInputFile(atomNames, atomMasses)
     !! Read the input file
     !!
+    implicit none
+    !
     integer :: iType
       !! Loop index over atom types
     !
@@ -244,8 +246,6 @@ contains
       !! Atom names from ATOMIC_SPECIES card
     character(len=256) :: cardName
       !! Name of card
-    !
-    implicit none
     !
     read (5, lsfInput, iostat = ios)
       !! * Read input parameters
@@ -404,9 +404,11 @@ contains
     !!
     !! <h2>Walkthrough</h2>
     !!
+    use miscUtilities
+    !
     implicit none
     !
-    integer, intent(in) :: nAtoms
+    integer, intent(out) :: nAtoms
       !! Number of atoms in system
     integer :: iAtom
       !! Loop index over atoms
@@ -415,6 +417,8 @@ contains
       !! Atom displacements when comparing defective and perfect crystals
     real(kind = dp), allocatable, intent(out) :: atomM(:)
       !! Atom masses
+    real(kind=dp), intent(in) :: atomMasses(ntyp)
+      !! Atom masses from input file
     real(kind = dp) :: dummyD
       !! Dummy variable to ignore input
     real(kind = dp), allocatable :: chargedPositions(:,:)
@@ -422,7 +426,6 @@ contains
     real(kind = dp), allocatable :: neutralPositions(:,:)
       !! Relaxed positions of neutral cell
     !
-    character(len=256), intent(in) :: atomMasses(ntyp)
     character(len=256), intent(in) :: atomNames(ntyp)
       !! Atom names from input file
     character(len = 256), intent(in) :: chargedPositionsFile
@@ -457,7 +460,21 @@ contains
       read (1,*) elementName, neutralPositions(1,iAtom), neutralPositions(2,iAtom), &
                  neutralPositions(3,iAtom), dummyD, dummyD, dummyD
       !
-      atomM(iAtom) = atomMasses(INDEX(atomNames, elementName))
+      if (findloc(atomNames, elementName) /= -1) then
+        !
+        atomM(iAtom) = atomMasses(findloc(atomNames, elementName))
+        !
+      else
+        !
+        write(iostd, '("ERROR: No information given for atom ", a, "in input file")') elementName
+        !
+        write(iostd, '(" *************************** ")')
+        write(iostd, '(" * Program stops!          * ")')
+        write(iostd, '(" * Please check the input. * ")')
+        write(iostd, '(" *************************** ")')
+        stop
+        !
+      endif 
       !
     enddo
     !
