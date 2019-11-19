@@ -25,7 +25,7 @@ mods :
 	make
 
 %.o : %.f90
-	$(mpif90) $(MODFLAGS) -c $<
+	$(mpif90) $(MODFLAGS) -c -g $<
 
 clean :
 

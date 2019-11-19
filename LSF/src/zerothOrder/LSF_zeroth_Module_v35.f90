@@ -244,14 +244,16 @@ contains
     !
     character(len=256), allocatable, intent(out) :: atomNames(:)
       !! Atom names from ATOMIC_SPECIES card
+    character(len=256) :: atomName
+      !! Atom name from ATOMIC_SPECIES card
     character(len=256) :: cardName
       !! Name of card
     !
     read (5, lsfInput, iostat = ios)
       !! * Read input parameters
-    read (5, *, iostat = ios) cardName
+    read (5, *) cardName
     !
-    if ( cardName == "ATOMIC_SPECIES" ) then
+    if ( trim(cardName) == "ATOMIC_SPECIES" ) then
       !
       allocate( atomNames(ntyp), atomMasses(ntyp) )
       !
@@ -260,7 +262,8 @@ contains
       !
       do iType = 1, ntyp
         !
-        read(5,*) atomNames(iType), atomMasses(iType)
+        read(5,*) atomName, atomMasses(iType)
+        atomNames(iType) = trim(atomName)
         !
       enddo
       !
@@ -432,9 +435,9 @@ contains
       !! Name of file with positions of relaxed charged cell
     character(len = 256), intent(in) :: neutralPositionsFile
       !! Name of file with positions of relaxed neutral cell
-    character :: elementName
+    character(len = 2) :: elementName
       !! Stores name of each element when reading files
-    character :: dummyC
+    character(len = 256) :: dummyC
       !! Dummy variable to ignore input
     !
     open(1, file=trim(neutralPositionsFile), status="old")
@@ -460,13 +463,14 @@ contains
       read (1,*) elementName, neutralPositions(1,iAtom), neutralPositions(2,iAtom), &
                  neutralPositions(3,iAtom), dummyD, dummyD, dummyD
       !
-      if (findloc(atomNames, elementName) /= -1) then
+      if (findloc(atomNames, trim(elementName)) /= -1) then
         !
-        atomM(iAtom) = atomMasses(findloc(atomNames, elementName))
+        atomM(iAtom) = atomMasses(findloc(atomNames, trim(elementName)))
         !
       else
         !
-        write(iostd, '("ERROR: No information given for atom ", a, "in input file")') elementName
+        write(iostd, '("ERROR: No information given for atom ", a, " in input file")') elementName
+        write(iostd, '(a, a, a)') trim(elementName), trim(atomNames(1)), trim(atomNames(2))
         !
         write(iostd, '(" *************************** ")')
         write(iostd, '(" * Program stops!          * ")')
@@ -680,9 +684,9 @@ contains
       !
       !> @todo Change this to merge if statements @endtodo
       !if ( pj(j) > 0 .and. besPj > 1.0e-15_dp ) then
-      !  !
-      !  Fj = 0.0_dp
-      !  !
+        !
+        Fj = 0.0_dp
+        !
       if ( pj(j) > 0 ) then
         !
         if ( besPj > 1.0e-15_dp ) then 
