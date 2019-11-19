@@ -91,8 +91,8 @@ module miscUtilities
     integer :: i
     integer :: loc
     !
-    character, intent(in) :: searchString
-    character, intent(in) :: stringArr(:)
+    character(len=*), intent(in) :: searchString
+    character(len=*), intent(in) :: stringArr(:)
     !
     loc = -1
     !

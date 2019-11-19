@@ -179,10 +179,11 @@ module generalComputations
         !! @todo Figure out why this loop is here. Can not just pass `besOrderNofModeM(:,j)` @endtodo
         !
         besOrderNofModeM(i,j) = bi(i)
+
         !
       enddo
       !
-      !write(6,*) j, x(j) !, (besOrderNofModeM(i,j), i = 0, 5) ! nb + 1) !, phonF(j)
+      !write(6,*) j, x(j) , (besOrderNofModeM(i,j), i = 0, 5) ! nb + 1) !, phonF(j)
       !
     enddo
     !
@@ -199,7 +200,7 @@ module generalComputations
     !
     ! Modified : when x < 10^(-15) return the limiting value for small argument [ I_n(x) ~ (x/2)^n Gamma(n+1) ]
     ! 
-    !*********************************************************************72
+    ! *********************************************************************
     !
     !! IKNB compute Bessel function In(x) and Kn(x).
     !!
@@ -264,11 +265,20 @@ module generalComputations
     el = 0.5772156649015329D+00
     nm = n
     !
-    if ( x .le. 1.0D-15 ) then
+    if ( x .le. 1.0D-100 ) then
+      write(iostd, '("Approximation 1")')
+      !
+      bi(:) = 0.0d0
+      bi(0) = 1.0D+00
+      return
+      !
+    else if ( x .le. 1.0D-15 ) then
       !! * If \(x < 10^{-15}\), use the limiting value for  a small argument 
       !!   \[I_n(x) \approx \left(\dfrac{x}{2}\right)^2\Gamma(n+1)\]
       !!   where \(\Gamma(n+1) = n!\) to calculate multiple orders of the 
       !!   modified Bessel function (up to \(n\)) for a single value of \(x\)
+      !
+      write(iostd, '("Approximation 2")')
       !
       do k = 0, n
         ! For each order
@@ -451,7 +461,7 @@ module generalComputations
       ! 
       obj = mp 
       ! 
-      n0 = int(1.1*a0) 
+      n0 = int(1.1*a0) + 1
       ! 
     else
       ! 
@@ -460,8 +470,6 @@ module generalComputations
       n0 = n 
       ! 
     endif 
-    !
-    if ( n0 < 1 ) n0 = 1
     !
     f0 = envj(n0,a0) - obj 
     !
