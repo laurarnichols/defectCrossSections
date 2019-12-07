@@ -5,10 +5,10 @@
  !
  elementsPath   = '.'      ! path to store outputs
  !
- iBandIinit  = 3         ! initial state initial band
- iBandIfinal = 1         ! initial state final band
- iBandFinit  = 1         ! final state initial band
- iBandFfinal = 1         ! final state final band
+ iBandL_PC  = 3         ! initial state initial band
+ iBandH_PC = 1         ! initial state final band
+ iBandL_SD  = 1         ! final state initial band
+ iBandH_SD = 1         ! final state final band
  !
  !ki = 1                   ! initial k-point, if ki and kf are not set all k-points will be calculated
  !kf = 1                   ! final k-point

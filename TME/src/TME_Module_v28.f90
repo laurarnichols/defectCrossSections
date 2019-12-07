@@ -39,10 +39,6 @@ module TMEModule
   integer :: gy
   integer :: gz
   integer :: i
-  integer :: iBandFfinal
-  integer :: iBandFinit
-  integer :: iBandIfinal
-  integer :: iBandIinit
   integer :: ibf
   integer :: ibi
   integer :: id
@@ -196,6 +192,10 @@ module TMEModule
   !
   !
   type :: crystal
+    integer :: iBandL
+      !! Lower band
+    integer :: iBandH
+      !! Higher band
     integer :: nKpts
       !! Number of k points
     integer :: numOfPWs
@@ -280,8 +280,8 @@ module TMEModule
 contains
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine initializeCalculation(solidDefect, pristineCrystal, elementsPath, VFisOutput, ki, kf, eBin, &
-                                   iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVFis, t0)
+  subroutine initializeCalculation(solidDefect, perfectCrystal, elementsPath, VFisOutput, ki, kf, eBin, &
+                                   calculateVFis, t0)
     !! Initialize the calculation by starting timer,
     !! setting start values for variables to be read from
     !! `.in` file, removing any existing output in the output directory,
@@ -291,7 +291,7 @@ contains
     !!
     implicit none
     !
-    integer, intent(out) :: ki, kf, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+    integer, intent(out) :: ki, kf
     !
     real(kind = dp), intent(out) :: eBin, t0
     !
@@ -301,7 +301,7 @@ contains
     logical, intent(out) :: calculateVfis
     logical :: fileExists
       !! Whether or not the output file already exists
-    TYPE(crystal), intent(inout) :: solidDefect, pristineCrystal
+    TYPE(crystal), intent(inout) :: solidDefect, perfectCrystal
     !
     solidDefect%exportDir = ''
     perfectCrystal%exportDir = ''
@@ -313,10 +313,10 @@ contains
     !
     eBin = -1.0_dp
     !
-    iBandIinit  = -1
-    iBandIfinal = -1
-    iBandFinit  = -1
-    iBandFfinal = -1
+    solidDefect%iBandL  = -1
+    solidDefect%iBandH = -1
+    perfectCrystal%iBandL  = -1
+    perfectCrystal%iBandH = -1
     !
     calculateVfis = .false.
     !
@@ -343,14 +343,17 @@ contains
   !
   !
   !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readInput(perfectCrystal, solidDefect, elementsPath, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
-                       ki, kf, calculateVfis, VfisOutput)
+  subroutine readInput(perfectCrystal, solidDefect, elementsPath, ki, kf, calculateVfis, VfisOutput)
     !! Delete any previous output, initialize input variables,
     !! start a timer, and read in the input files
     !!
     implicit none
     !
-    integer, intent(inout) :: ki, kf, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+    integer, intent(inout) :: ki, kf
+    integer :: iBandL_SD
+    integer :: iBandH_SD
+    integer :: iBandL_PC
+    integer :: iBandH_PC
     !
     character(len = 300), intent(inout) :: elementsPath
     character(len = 200), intent(inout) :: VfisOutput
@@ -365,7 +368,7 @@ contains
       !! Holds all of the information on the defective crystal
     !
     NAMELIST /TME_Input/ exportDirSD, exportDirPC, elementsPath, &
-                       iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
+                       iBandL_SD, iBandH_SD, iBandL_PC, iBandH_PC, &
                        ki, kf, calculateVfis, VfisOutput, eBin
                        !! Used to group the variables read in from the .in file
     !
@@ -374,6 +377,11 @@ contains
         !! * Read input from command line (or input file if use `< TME_Input.md`)
     solidDefect%exportDir = exportDirSD
     perfectCrystal%exportDir = exportDirPC
+    !
+    solidDefect%iBandL = iBandL_SD
+    solidDefect%iBandH = iBandH_SD
+    perfectCrystal%iBandL = iBandL_PC
+    perfectCrystal%iBandH = iBandH_PC
     !
     call checkInitialization()
         !! * Check that all required variables were input and have values that make sense
@@ -483,48 +491,48 @@ contains
     write(iostd, '("elementsPath = ''", a, "''")') trim(elementsPath)
       !! * Output the elements path
     !
-    if( wasRead(iBandIinit, 'iBandIinit', 'iBandIinit = 10', abortExecution) ) then
-      !! * If `iBandIinit` was read, output its value
+    if( wasRead(perfectCrystal%iBandL, 'iBandL_PC', 'iBandL_PC = 10', abortExecution) ) then
+      !! * If `iBandL_PC` was read, output its value
       !
-      write(iostd, '("iBandIinit = ", i4)') iBandIinit
-      !
-    endif
-    !
-    if( wasRead(iBandIfinal, 'iBandIfinal', 'iBandIfinal = 20', abortExecution) ) then
-      !! * If `iBandIfinal` was read, output its value
-      !
-      write(iostd, '("iBandIfinal = ", i4)') iBandIfinal
+      write(iostd, '("iBandL_PC = ", i4)') perfectCrystal%iBandL
       !
     endif
     !
-    if( wasRead(iBandFinit, 'iBandFinit', 'iBandFinit = 9', abortExecution) ) then
-      !! * If `iBandFinit` was read, output its value
+    if( wasRead(perfectCrystal%iBandH, 'iBandH_PC', 'iBandH_PC = 20', abortExecution) ) then
+      !! * If `iBandH_PC` was read, output its value
       !
-      write(iostd, '("iBandFinit = ", i4)') iBandFinit
-      !
-    endif
-    !
-    if( wasRead(iBandFfinal, 'iBandFfinal', 'iBandFfinal = 9', abortExecution) ) then
-      !! * If `iBandFfinal` was read, output its value
-      !
-      write(iostd, '("iBandFfinal = ", i4)') iBandFfinal
+      write(iostd, '("iBandH_PC = ", i4)') perfectCrystal%iBandH
       !
     endif
     !
-    !> * If `calculateVfis` is true and `iBandFinit` and `iBandFfinal` are not equal
+    if( wasRead(solidDefect%iBandL, 'iBandL_SD', 'iBandL_SD = 9', abortExecution) ) then
+      !! * If `iBandL_SD` was read, output its value
+      !
+      write(iostd, '("iBandL_SD = ", i4)') solidDefect%iBandL
+      !
+    endif
+    !
+    if( wasRead(solidDefect%iBandH, 'iBandH_SD', 'iBandH_SD = 9', abortExecution) ) then
+      !! * If `iBandH_SD` was read, output its value
+      !
+      write(iostd, '("iBandH_SD = ", i4)') solidDefect%iBandH
+      !
+    endif
+    !
+    !> * If `calculateVfis` is true and `iBandL_SD` and `iBandH_SD` are not equal
     !>    * Output an error message and set `abortExecution` to true
-    if ( ( calculateVfis ) .and. ( iBandFinit /= iBandFfinal ) ) then
+    if ( ( calculateVfis ) .and. ( solidDefect%iBandL /= solidDefect%iBandH ) ) then
       !
       write(iostd, *)
       write(iostd, '(" Vfis can be calculated only if the final state is one and only one!")')
-      write(iostd, '(" ''iBandFInit'' = ", i10)') iBandFinit
-      write(iostd, '(" ''iBandFfinal'' = ", i10)') iBandFfinal
+      write(iostd, '(" ''iBandL_SD'' = ", i10)') solidDefect%iBandL
+      write(iostd, '(" ''iBandH_SD'' = ", i10)') solidDefect%iBandH
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
       !
     endif
     !
-    write(iostd, '("calculateVfis = ", l )') calculateVfis
+    write(iostd, '("calculateVfis = ", l5 )') calculateVfis
       !! * Output the value of `calculateVfis`
     !
     !> * If the `VfisOutput` file name is blank
@@ -628,7 +636,6 @@ contains
       !! Local start time
     real(kind = dp) :: t2
       !! Local end time
-    real(kind = dp) :: ef
     !
     character(len = 300) :: textDum
       !! Dummy variable to hold trash from input file
@@ -1058,9 +1065,9 @@ contains
     Ufi(:,:,ik) = cmplx(0.0_dp, 0.0_dp, kind = dp)
       !! * Initialize `Ufi` for the given k point to complex double zero
     !
-    do ibi = iBandIinit, iBandIfinal 
+    do ibi = perfectCrystal%iBandL, perfectCrystal%iBandH 
       !
-      do ibf = iBandFinit, iBandFfinal
+      do ibf = solidDefect%iBandL, solidDefect%iBandH
         !! * For each initial band, calculate \(\sum \phi_f^*\psi_i\) (overlap??) with each final band
         !!
         Ufi(ibf, ibi, ik) = sum(conjg(solidDefect%wfc(:,ibf))*perfectCrystal%wfc(:,ibi))
@@ -1140,9 +1147,9 @@ contains
     read(72, * )
     read(72, * )
     !
-    do ib = 1, iBandIinit - 1
+    do ib = 1, system%iBandL - 1
       do ig = 1, system%npws(ik)
-        !! * For each band before `iBandInit`, ignore all of the
+        !! * For each band before `iBandL`, ignore all of the
         !!   plane waves for the given k point
         read(72, *)
         !
@@ -1152,9 +1159,9 @@ contains
     system%wfc(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
       !! * Initialize the wavefunction to complex double zero
     !
-    do ib = iBandIinit, iBandIfinal
+    do ib = system%iBandL, system%iBandH
       do ig = 1, system%npws(ik)
-        !! * For bands between `iBandIinit` and `iBandIfinal`,
+        !! * For bands between `iBandL` and `iBandH`,
         !!   read in all of the plane waves for the given k point
         !!   and store them in the proper index of the system's `wfc`
         !
@@ -1241,7 +1248,7 @@ contains
       !! K point index
     integer :: ig, i, j
       !! Loop index
-    integer :: iDumV(3), iDum
+    integer :: iDumV(3)
       !! Dummy variable to ignore input from file
     integer, allocatable :: pwGind(:)
       !! Indices for the wavefunction of a given k point
@@ -1314,33 +1321,15 @@ contains
     deallocate ( pwGind )
       !! * Deallocate space for `pwGind`
     !
-    if ( betaSystem%crystalType == "PC" ) then
-      !! * If the system that you are getting \(|\beta\rangle\) from 
-      !!   is the perfect crystal, then calculate 
-      !!   \(\langle\beta|\Phi\rangle\) between `iBandFinit`
-      !!   and `iBandFfinal`
-      !
-      do j = iBandFinit, iBandFfinal
-        do i = 1, betaSystem%nProjs
-          !
-          betaSystem%cCrossProj(i,j,1) = sum(conjg(betaSystem%beta(:,i))*projectedSystem%wfc(:,j))
-          !
-        enddo
+    do j = projectedSystem%iBandL, projectedSystem%iBandH
+      do i = 1, betaSystem%nProjs
+        !! * Calculate \(\langle\beta|\Phi\rangle\) between 
+        !!   `iBandL` and `iBandH`
+        !
+        betaSystem%cCrossProj(i,j,1) = sum(conjg(betaSystem%beta(:,i))*projectedSystem%wfc(:,j))
+        !
       enddo
-      !
-    else if ( betaSystem%crystalType == "SD" ) then
-      !! * If the system that you are getting \(|\beta\rangle\) from 
-      !!   is the solid defect, then calculate 
-      !!   \(\langle\beta|\Psi\rangle\) between `iBandIinit`
-      !!   and `iBandIfinal`
-      !
-      do j = iBandIinit, iBandIfinal
-        do i = 1, betaSystem%nProjs
-          betaSystem%cCrossProj(i,j,1) = sum(conjg(betaSystem%beta(:,i))*projectedSystem%wfc(:,j))
-        enddo
-      enddo
-      !
-    endif
+    enddo
     !
     deallocate ( betaSystem%beta )
       !! * Deallocate space for \(|\beta\rangle\)
@@ -1434,7 +1423,7 @@ contains
                 !
                 atomicOverlap = sum(system%atoms(iAtomType)%F1(:,iProj, jProj))
                 !
-                do ibi = iBandIinit, iBandIfinal
+                do ibi = perfectCrystal%iBandL, perfectCrystal%iBandH
                   !
                   !> @todo Figure out why the difference between SD and PC @endtodo
                   if ( system%crystalType == 'PC' ) then
@@ -1447,7 +1436,7 @@ contains
                     !
                   endif
                   !
-                  do ibf = iBandFinit, iBandFfinal
+                  do ibf = solidDefect%iBandL, solidDefect%iBandH
                     !
                     !> @todo Figure out why the difference between SD and PC @endtodo
                     if ( system%crystalType == 'PC' ) then
@@ -1670,9 +1659,9 @@ contains
               !
             endif
             !
-            do ibi = iBandIinit, iBandIfinal
+            do ibi = perfectCrystal%iBandL, perfectCrystal%iBandH
               !
-              do ibf = iBandFinit, iBandFfinal
+              do ibf = solidDefect%iBandL, solidDefect%iBandH
                 !
                 !> @todo Figure out why the difference between SD and PC @endtodo
                 if ( system%crystalType == 'PC' ) then
@@ -2047,16 +2036,18 @@ contains
     write(17,'(a, " Format : ''(5i10)''")') trim(text)
       ! * Output header for next section
     !
-    totalNumberOfElements = (iBandIfinal - iBandIinit + 1)*(iBandFfinal - iBandFinit + 1)
+    totalNumberOfElements = (perfectCrystal%iBandH - perfectCrystal%iBandL + 1)* &
+                            (solidDefect%iBandH - solidDefect%iBandL + 1)
       !! * Calculate the total number of matrix elements
-    write(17,'(5i10)') totalNumberOfElements, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+    write(17,'(5i10)') totalNumberOfElements, perfectCrystal%iBandL, perfectCrystal%iBandH, &
+                       solidDefect%iBandL, solidDefect%iBandH
       !! * Output the total number of elements and band limits
     !
     write(17, '("# Final Band, Initial Band, Delta energy, Complex <f|U|i>, |<f|U|i>|^2 Format : ''(2i10,4ES24.15E3)''")')
       ! * Output header for next section
     !
-    do ibf = iBandFinit, iBandFfinal
-      do ibi = iBandIinit, iBandIfinal
+    do ibf = solidDefect%iBandL, solidDefect%iBandH
+      do ibi = perfectCrystal%iBandL, perfectCrystal%iBandH
         !! * Loop through the bands to output the change 
         !!   in eigenvalues, matrix element, and norm 
         !!   squared matrix element
@@ -2181,14 +2172,15 @@ contains
       !! Loop index over bands
     integer :: nOfEnergies, iE
     !
-    real(kind = dp) :: eMin, eMax, E, av, sd, x, epsilon_if, A, DHifMin
+    real(kind = dp) :: eMin, eMax, E, av, sd, x, epsilon_if, DHifMin
     !
     real(kind = dp), allocatable :: sumWk(:), sAbsVfiOfE2(:), absVfiOfE2(:)
     integer, allocatable :: nKsInEbin(:)
     !
     character (len = 300) :: text
     !
-    allocate( DE(iBandIinit:iBandIfinal, perfectCrystal%nKpts), absVfi2(iBandIinit:iBandIfinal, perfectCrystal%nKpts) )
+    allocate( DE(perfectCrystal%iBandL:perfectCrystal%iBandH, perfectCrystal%nKpts))
+    allocate( absVfi2(perfectCrystal%iBandL:perfectCrystal%iBandH, perfectCrystal%nKpts) )
       !! * Allocate space for `DE` and `absVfi2`
     ! 
     DE(:,:) = 0.0_dp
@@ -2198,7 +2190,7 @@ contains
     do ik = 1, perfectCrystal%nKpts
       !! * For each k point
       !!    * Read in the initial and final eigenvalues
-      !!    * For each band between `iBandIinit` and `iBandIfinal`
+      !!    * For each band between `iBandL_PC` and `iBandH_PC`
       !!       * Calculate \(\epsilon_{if} = \epsilon_f - \epsilon_i\)
       !!         as defined in paper
       !!       * Calculate 
@@ -2216,10 +2208,11 @@ contains
       !
       call readEigenvalues(ik)
       !
-      do ib = iBandIinit, iBandIfinal
+      do ib = perfectCrystal%iBandL, perfectCrystal%iBandH
         !
-        epsilon_if = eigvF(iBandFinit) - eigvI(ib)
-        absVfi2(ib,ik) = epsilon_if**2*( abs(Ufi(iBandFinit,ib,ik))**2 - abs(Ufi(iBandFinit,ib,ik))**4 )
+        epsilon_if = eigvF(solidDefect%iBandL) - eigvI(ib)
+        absVfi2(ib,ik) = epsilon_if**2*( abs(Ufi(solidDefect%iBandL,ib,ik))**2 - &
+                         abs(Ufi(solidDefect%iBandL,ib,ik))**4 )
         !
         DE(ib, ik) = sqrt(epsilon_if**2 - 4.0_dp*absVfi2(ib,ik))
         !
@@ -2246,7 +2239,7 @@ contains
     !
     do ik = 1, perfectCrystal%nKpts
       !
-      do ib = iBandIinit, iBandIfinal
+      do ib = perfectCrystal%iBandL, perfectCrystal%iBandH
         !! * For each k point and band
         !!    * Store `absVfi2` (\(|\Delta H_{if}|^2\)) if have min `DE`
         !!    * Find the "index" of the particular `DE`
@@ -2297,7 +2290,7 @@ contains
     !
     do ik = 1, perfectCrystal%nKpts
       !
-      do ib = iBandIinit, iBandIfinal
+      do ib = perfectCrystal%iBandL, perfectCrystal%iBandH
         !! * For each k point and band, 
         !!    * Figure out the "index" for `DE`
         !!    * Calculate \(|\Delta H_{if}|^2\) average over k points
@@ -2402,22 +2395,22 @@ contains
     read(72, * )
       !! * Ignore the first two lines as they are comments
     !
-    do ib = 1, iBandIinit - 1
-      !! * Ignore eigenvalues for bands that are before `iBandIinit`
+    do ib = 1, perfectCrystal%iBandL - 1
+      !! * Ignore eigenvalues for bands that are before `iBandL_PC`
       !
       read(72, *)
       !
     enddo
     !
-    do ib = iBandIinit, iBandIfinal
-      !! * Read in the eigenvalues from `iBandIinit` to `iBandIfinal`
+    do ib = perfectCrystal%iBandL, perfectCrystal%iBandH
+      !! * Read in the eigenvalues from `iBandL_PC` to `iBandH_PC`
       !
       read(72, '(ES24.15E3)') eigvI(ib)
       !
     enddo
     !
     close(72)
-      !! * Close the solid defect `eigenvalues.ik` file
+      !! * Close the perfect crystal `eigenvalues.ik` file
     !
     open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(ikstr))
       !! * Open the solid defect `eigenvalues.ik` file from [[pw_export_for_tme(program)]]
@@ -2426,15 +2419,15 @@ contains
     read(72, * ) 
       !! * Ignore the first two lines as they are comments
     !
-    do ib = 1, iBandFinit - 1
-      !! * Ignore eigenvalues for bands that are before `iBandFinit`
+    do ib = 1, solidDefect%iBandL - 1
+      !! * Ignore eigenvalues for bands that are before `iBandL_SD`
       !
       read(72, *)
       !
     enddo
     !
-    do ib = iBandFinit, iBandFfinal
-      !! * Read in the eigenvalues from `iBandFinit` to `iBandFfinal`
+    do ib = solidDefect%iBandL, solidDefect%iBandH
+      !! * Read in the eigenvalues from `iBandL_SD` to `iBandH_SD`
       !
       read(72, '(ES24.15E3)') eigvF(ib)
       !
