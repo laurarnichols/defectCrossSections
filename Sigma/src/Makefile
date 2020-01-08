@@ -16,7 +16,8 @@ Sigma.x : $(OBJS)
 	echo "" ;
 
 %.o : %.f90
-	$(f90) -c $<
+	#$(f90) -c $<
+	$(f90) -Wall -Wextra -fbacktrace -Wconversion -pedantic -fbounds-check -ffpe-trap=zero,overflow,underflow,denormal,invalid -O3 -c -g $<
 
 clean :
 

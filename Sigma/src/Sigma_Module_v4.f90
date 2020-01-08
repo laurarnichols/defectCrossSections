@@ -314,7 +314,7 @@ contains
     integer :: iE
     real(kind = dp) :: vg, sigma0
     !
-    allocate( sigma(numOfVfis) ) ! , sigmaByPhonon(-nEnergies:nEnergies) )
+    allocate( sigma(0:numOfVfis) ) ! , sigmaByPhonon(-nEnergies:nEnergies) )
     !allocate( sigma(-nEnergies:nEnergies), sigmaByPhonon(-nEnergies:nEnergies) )
     !
     iE = int(eifMin/de) + 1

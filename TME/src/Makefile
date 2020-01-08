@@ -16,8 +16,8 @@ TME.x : $(TME_OBJS)
 	echo "" ; 
 
 %.o : %.f90
-	$(mpif90) -O3 -c $<
-	#$(mpif90) -Wall -Wextra -fbacktrace -Wconversion -pedantic -fbounds-check -ffpe-trap=zero,overflow,underflow,denormal,invalid -O3 -c $<
+	#$(mpif90) -O3 -c $<
+	$(mpif90) -Wall -Wextra -fbacktrace -Wconversion -pedantic -fbounds-check -ffpe-trap=zero,overflow,underflow,denormal,invalid -O3 -c -g $<
 
 clean :
 
