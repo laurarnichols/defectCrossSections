@@ -36,11 +36,13 @@ MODULES = $(PWOBJS) $(QEOBJS)
 TLDEPS= bindir mods libs pw
 
 # LIBOBJS = $(QE-6.3_Path)/flib/ptools.a $(QE-6.3_Path)/flib/flib.a $(QE-6.3_Path)/clib/clib.a $(QE-6.3_Path)/iotk/src/libiotk.a
+	
+DEBUGFLAGS = -Wall -Wextra -fbacktrace -Wconversion -pedantic -fbounds-check -ffpe-trap=zero,overflow,underflow,denormal,invalid -O3 -c -g
 
 all : tldeps Export_QE-6.3.x 
 
 Export_QE-6.3.x : Export_QE-6.3.o $(PPOBJS) $(MODULES) $(LIBOBJS)
-	$(LD) $(LDFLAGS) -o $@ \
+	$(LD) $(LDFLAGS) $(DEBUGFLAGS) -o $@ \
 		Export_QE-6.3.o $(PPOBJS) $(MODULES) $(LIBOBJS) $(LIBS)
 	- ( cd $(Home_Path)/bin ; ln -fs $(Export_QE-6.3_srcPath)/$@ . )
 	
