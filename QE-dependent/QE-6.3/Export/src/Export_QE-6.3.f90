@@ -643,7 +643,9 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
     !
     DO i = 1, nsp
       !
-      call read_upf(upf, grid, ierr, 71, trim(outdir)//'/'//trim(prefix)//'.save/'//trim(psfile(i)))
+      write(50,*) trim(outdir)//'/'//trim(prefix)//'.save/'//trim(psfile(i))
+      !
+      call read_upf(upf, grid, ierr, filename=trim(outdir)//'/'//trim(prefix)//'.save/'//trim(psfile(i)))
       !
       if (  upf%typ == 'PAW' ) then
         !
