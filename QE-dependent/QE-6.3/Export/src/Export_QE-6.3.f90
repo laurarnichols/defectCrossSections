@@ -305,7 +305,7 @@ PROGRAM pw_export_for_TME
   kunittmp = 1
 #endif
 
-  CALL write_export (pp_file, exportDir, kunittmp )
+  CALL write_export (pp_file, exportDir, outdir, kunittmp )
 
   CALL stop_pp
  
@@ -314,7 +314,7 @@ CONTAINS
 
 !
 !-----------------------------------------------------------------------
-SUBROUTINE write_export (pp_file, exportDir, kunit )
+SUBROUTINE write_export (pp_file, exportDir, outdir, kunit )
   !-----------------------------------------------------------------------
   !
   USE iotk_module
@@ -362,7 +362,7 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
   CHARACTER(5), PARAMETER :: fmt_version="1.1.0"
 
   INTEGER, INTENT(in) :: kunit
-  CHARACTER(256), INTENT(in) :: pp_file, exportDir
+  CHARACTER(256), INTENT(in) :: pp_file, exportDir, outdir
 
   INTEGER :: i, j, k, ig, ik, ibnd, na, ngg,ig_, ierr
   !INTEGER, ALLOCATABLE :: kisort(:)
@@ -382,7 +382,6 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
 
   !
   character(len = 300) :: text
-  CHARACTER(LEN=256) :: outdir
   !
 
   real(DP) :: wfc_scal
@@ -642,8 +641,6 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
     enddo
     !
     DO i = 1, nsp
-      !
-      write(50,*) trim(outdir)//'/'//trim(prefix)//'.save/'//trim(psfile(i))
       !
       call read_upf(upf, grid, ierr, filename=trim(outdir)//'/'//trim(prefix)//'.save/'//trim(psfile(i)))
       !
