@@ -9,10 +9,6 @@
   MODULE io_base_export
 !=----------------------------------------------------------------------------=!
 
-! do i = 1, nk             !                                                   !
-!   WAVEFUNCTIONS( i )     !  write_restart_wfc         read_restart_wfc       !
-! end do                   !                                                   !
-
   USE io_global,  ONLY : stdout
   USE kinds
 
@@ -32,44 +28,31 @@
 ! .. Where:
 ! iuni    = Restart file I/O fortran unit
 !
-    SUBROUTINE write_restart_wfc(iuni, exportDir, &
-      ik, nk, kunit, ispin, nspin, scal, wf0, t0, wfm, tm, ngw, gamma_only, nbnd, igl, ngwl )
+    SUBROUTINE write_restart_wfc(iuni, ik, nk, kunit, wf0, t0, &
+                  nbnd, igl, ngwl )
 !
       USE mp_wave
       USE mp, ONLY: mp_sum, mp_get, mp_max
       USE mp_pools, ONLY: me_pool, my_pool_id, &
         nproc_pool, intra_pool_comm, root_pool
-      USE mp_world,  ONLY: mpime, nproc, root, world_comm
+      USE mp_world,  ONLY: mpime, nproc, world_comm
       USE io_global, ONLY: ionode, ionode_id
       USE iotk_module
 !
       IMPLICIT NONE
 !
       INTEGER, INTENT(in) :: iuni
-      character(len = 256), intent(in) :: exportDir
-      INTEGER, INTENT(in) :: ik, nk, kunit, ispin, nspin
+      INTEGER, INTENT(in) :: ik, nk, kunit
       COMPLEX(DP), INTENT(in) :: wf0(:,:)
-      COMPLEX(DP), INTENT(in) :: wfm(:,:)
-      INTEGER, INTENT(in) :: ngw   !
-      LOGICAL, INTENT(in) :: gamma_only
       INTEGER, INTENT(in) :: nbnd
       INTEGER, INTENT(in) :: ngwl
       INTEGER, INTENT(in) :: igl(:)
-      REAL(DP), INTENT(in) :: scal
-      LOGICAL, INTENT(in) :: t0, tm
+      LOGICAL, INTENT(in) :: t0
 
-      INTEGER :: i, j, ierr, idum = 0
+      INTEGER :: i, j, ierr
       INTEGER :: nkl, nkr, nkbl, iks, ike, nkt, ikt, igwx, ig
       INTEGER :: npool, ipmask( nproc ), ipsour
       COMPLEX(DP), ALLOCATABLE :: wtmp(:)
-      INTEGER, ALLOCATABLE :: igltot(:)
-
-      CHARACTER(len=20) :: section_name = 'wfc'
-
-      LOGICAL :: twrite = .true.
-
-      INTEGER :: ierr_iotk
-      CHARACTER(len=iotk_attlenx) :: attr
 
 !
 ! ... Subroutine Body
@@ -174,25 +157,6 @@
           ENDIF
         ENDDO
 
-!        DO j = 1, nbnd
-!          IF( tm ) THEN
-!            IF( npool > 1 ) THEN
-!              IF( ( ikt >= iks ) .and. ( ikt <= ike ) ) THEN
-!                CALL mergewf(wfm(:,j), wtmp, ngwl, igl, me_pool, &
-!                             nproc_pool, root_pool, intra_pool_comm)
-!              ENDIF
-!              IF( ipsour /= ionode_id ) THEN
-!                CALL mp_get( wtmp, wtmp, mpime, ionode_id, ipsour, j, world_comm )
-!              ENDIF
-!            ELSE
-!              CALL mergewf(wfm(:,j), wtmp, ngwl, igl, mpime, nproc, ionode_id, world_comm )
-!            ENDIF
-!            IF( ionode ) THEN
-!              CALL iotk_write_dat(iuni,"Wfcm"//iotk_index(j),wtmp(1:igwx))
-!            ENDIF
-!          ELSE
-!          ENDIF
-!        ENDDO
         IF(ionode) then
           close(iuni)
           !CALL iotk_write_end  (iuni,"Kpoint"//iotk_index(ik))
@@ -230,7 +194,6 @@ PROGRAM pw_export_for_TME
 
   USE io_global, ONLY : ionode, ionode_id
   USE io_files,  ONLY : prefix, tmp_dir
-  USE ions_base, ONLY : ntype => nsp
   USE iotk_module
   USE mp_global, ONLY : mp_startup
   USE mp_pools,  ONLY : kunit
@@ -243,7 +206,7 @@ PROGRAM pw_export_for_TME
   CHARACTER(LEN=256), EXTERNAL :: trimcheck
   CHARACTER(LEN=256) :: outdir
   !
-  INTEGER :: ik, i, kunittmp, ios
+  INTEGER :: kunittmp, ios
   !
   real(kind = dp), parameter :: ryToHartree = 0.5_dp
   !
@@ -323,9 +286,7 @@ SUBROUTINE write_export (pp_file, exportDir, outdir, kunit )
   USE kinds,          ONLY : DP
   USE gvect,          ONLY : ngm, ngm_g, mill, ig_l2g
   USE pwcom
-  USE start_k,        ONLY : nk1, nk2, nk3, k1, k2, k3
   USE control_flags,  ONLY : gamma_only
-  USE global_version, ONLY : version_number
   USE becmod,         ONLY : bec_type, becp, calbec, &
                              allocate_bec_type, deallocate_bec_type
 
@@ -336,11 +297,10 @@ SUBROUTINE write_export (pp_file, exportDir, outdir, kunit )
   USE io_base_export, ONLY : write_restart_wfc
   USE io_global,      ONLY : ionode, stdout
   USE ions_base,      ONLY : atm, nat, ityp, tau, nsp
-  USE cell_base,      ONLY : at, bg, alat, omega, tpiba, tpiba2
-  USE mp_pools,       ONLY : my_pool_id, intra_pool_comm, inter_pool_comm, &
-                             nproc_pool
+  USE cell_base,      ONLY : at, bg, alat, omega, tpiba
+  USE mp_pools,       ONLY : my_pool_id, intra_pool_comm, nproc_pool
   USE mp,             ONLY : mp_sum, mp_max
-  USE mp_world,       ONLY : world_comm, nproc, mpime
+  USE mp_world,       ONLY : world_comm, nproc
   !
   USE upf_module,     ONLY : read_upf
   !
@@ -349,12 +309,8 @@ SUBROUTINE write_export (pp_file, exportDir, outdir, kunit )
   !
   USE wvfct,         ONLY : wg
   !
-  USE paw_variables,        ONLY : okpaw, ddd_paw, total_core_energy, only_paw
   USE paw_onecenter,        ONLY : PAW_potential
   USE paw_symmetry,         ONLY : PAW_symmetrize_ddd
-  USE uspp_param,           ONLY : nh, nhm ! used for PAW
-  USE uspp,                 ONLY : qq_so, dvan_so, dvan
-  USE scf,                  ONLY : rho
   !
   IMPLICIT NONE
   !
@@ -364,9 +320,9 @@ SUBROUTINE write_export (pp_file, exportDir, outdir, kunit )
   INTEGER, INTENT(in) :: kunit
   CHARACTER(256), INTENT(in) :: pp_file, exportDir, outdir
 
-  INTEGER :: i, j, k, ig, ik, ibnd, na, ngg,ig_, ierr
+  INTEGER :: i, j, ig, ik, ibnd, ngg,ig_, ierr
   !INTEGER, ALLOCATABLE :: kisort(:)
-  real(DP) :: xyz(3), tmp(3)
+  real(DP) :: xyz(3)
   INTEGER :: npool, nkbl, nkl, nkr, npwx_g, im, ink, inb, ms
   INTEGER :: ike, iks, npw_g, ispin, local_pw
   INTEGER, ALLOCATABLE :: ngk_g( : )
@@ -379,14 +335,8 @@ SUBROUTINE write_export (pp_file, exportDir, outdir, kunit )
   INTEGER, ALLOCATABLE :: igk_l2g( :, : )
   !
 
-
-  !
-  character(len = 300) :: text
-  !
-
   real(DP) :: wfc_scal
-  LOGICAL :: twf0, twfm, file_exists
-  CHARACTER(iotk_attlenx) :: attr
+  LOGICAL :: twf0, file_exists
   TYPE(pseudo_upf) :: upf       ! the pseudo data
   TYPE(radial_grid_type) :: grid
 
@@ -421,6 +371,11 @@ SUBROUTINE write_export (pp_file, exportDir, outdir, kunit )
 
      !  find out the index of the last k point in this pool
      ike = iks + nkl - 1
+
+  ELSE
+
+    write(stdout,*) "nkstot <= 0 so program will abort"
+    stop
 
   ENDIF
 
@@ -473,10 +428,6 @@ SUBROUTINE write_export (pp_file, exportDir, outdir, kunit )
   ALLOCATE ( igk_l2g ( npwx, nks ) )
   !ALLOCATE ( kisort( npwx ) )
   DO ik = 1, nks
-     !kisort = 0
-     !npw = npwx
-     !CALL gk_sort (xk (1, ik+iks-1), ngm, g, ecutwfc / tpiba2, npw, kisort(1), g2kin)
-     !
      ! mapping between local and global G vector index, for this kpoint
      !
      npw = ngk(ik)
@@ -633,6 +584,7 @@ SUBROUTINE write_export (pp_file, exportDir, outdir, kunit )
     !
     write(50, '("# Spin. Format: ''(i10)''")')
     write(50, '(i10)') nspin
+      !! @note The program reads in and writes out nspin, but doesn't do anything with it otherwise. @endnote
     !
     allocate( nnTyp(nsp) )
     nnTyp = 0
@@ -734,7 +686,6 @@ SUBROUTINE write_export (pp_file, exportDir, outdir, kunit )
   !
   wfc_scal = 1.0d0
   twf0 = .true.
-  twfm = .false.
   !
   IF ( nkb > 0 ) THEN
     !
@@ -747,7 +698,6 @@ SUBROUTINE write_export (pp_file, exportDir, outdir, kunit )
       !
       local_pw = 0
       IF ( (ik >= iks) .and. (ik <= ike) ) THEN
-        !CALL gk_sort (xk (1, ik+iks-1), ngm, g, ecutwfc / tpiba2, npw, igk, g2kin)
         CALL davcio (evc, nwordwfc, iunwfc, (ik-iks+1), - 1)
 
         !CALL init_us_2(npw, igk, xk(1, ik), vkb)
@@ -854,12 +804,10 @@ SUBROUTINE write_export (pp_file, exportDir, outdir, kunit )
       CALL mp_bcast( file_exists, ionode_id, world_comm )
       !
       if ( .not. file_exists ) then
-        CALL write_restart_wfc(72, exportDir, ik, nkstot, kunit, ispin, nspin, &
-                               wfc_scal, evc, twf0, evc, twfm, npw_g, gamma_only, nbnd, &
-                               l2g_new(:),local_pw )
-        CALL write_restart_wfc(73, exportDir, ik, nkstot, kunit, ispin, nspin, &
-                               wfc_scal, vkb, twf0, evc, twfm, npw_g, gamma_only, nkb, &
-                               l2g_new(:), local_pw )
+        CALL write_restart_wfc(72, ik, nkstot, kunit, evc, twf0, &
+                               nbnd, l2g_new(:),local_pw )
+        CALL write_restart_wfc(73, ik, nkstot, kunit, vkb, twf0, &
+                               nkb, l2g_new(:), local_pw )
       endif
       !
       if ( .not. file_exists .and. ionode ) then
