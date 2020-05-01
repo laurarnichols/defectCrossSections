@@ -38,21 +38,25 @@ program transitionMatrixElements
     !!      number of plane waves
     !
     call initializeCalculation(solidDefect, perfectCrystal, elementsPath, VFisOutput, ki, kf, eBin, &
-                               iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVFis, t0)
+                               calculateVFis, t0)
     ! 
-    call readInput(perfectCrystal, solidDefect, elementsPath, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
-                       ki, kf, calculateVfis, VfisOutput)
+    call readInput(perfectCrystal, solidDefect, elementsPath, ki, kf, calculateVfis, VfisOutput)
     !
     call readPWsSet()
     !
     !> @todo Figure out if need to allocate space for arrays so soon @endtodo
     allocate ( counts(0:numprocs-1) )!, displmnt(0:numprocs-1) )
-    allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, perfectCrystal%nKpts) )
-    allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-    allocate ( perfectCrystal%paw_Wfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-    allocate ( solidDefect%paw_Wfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-    allocate ( paw_fi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-    allocate ( eigvI (iBandIinit:iBandIfinal), eigvF (iBandFinit:iBandFfinal) )
+    allocate ( Ufi(solidDefect%iBandL:solidDefect%iBandH, &
+                   perfectCrystal%iBandL:perfectCrystal%iBandH, perfectCrystal%nKpts) )
+    allocate ( paw_SDKKPC(solidDefect%iBandL:solidDefect%iBandH, &
+                          perfectCrystal%iBandL:perfectCrystal%iBandH) )
+    allocate ( perfectCrystal%paw_Wfc(solidDefect%iBandL:solidDefect%iBandH, &
+                                      perfectCrystal%iBandL:perfectCrystal%iBandH) )
+    allocate ( solidDefect%paw_Wfc(solidDefect%iBandL:solidDefect%iBandH, &
+                                   perfectCrystal%iBandL:perfectCrystal%iBandH) )
+    allocate ( paw_fi(solidDefect%iBandL:solidDefect%iBandH, perfectCrystal%iBandL:perfectCrystal%iBandH) )
+    allocate ( eigvI (perfectCrystal%iBandL:perfectCrystal%iBandH) )
+    allocate ( eigvF (solidDefect%iBandL:solidDefect%iBandH) )
     !
     Ufi(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
@@ -72,10 +76,10 @@ program transitionMatrixElements
   !--------------------------------------------------------------------------------------------------------
   !> * Broadcast variables from root process to all other processes, allocating space as needed
   !
-  call MPI_BCAST(iBandIinit,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(iBandFinit,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+  call MPI_BCAST(perfectCrystal%iBandL,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+  call MPI_BCAST(perfectCrystal%iBandH, 1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+  call MPI_BCAST(solidDefect%iBandL,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
+  call MPI_BCAST(solidDefect%iBandH, 1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   !
   call MPI_BCAST(perfectCrystal%nKpts,     1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
   !
@@ -168,7 +172,8 @@ program transitionMatrixElements
   call MPI_BCAST(solidDefect%atomTypeIndex,  size(solidDefect%atomTypeIndex),  MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
   call MPI_BCAST(solidDefect%posIon, size(solidDefect%posIon), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
   !
-  allocate ( paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
+  allocate ( paw_id(solidDefect%iBandL:solidDefect%iBandH, &
+                    perfectCrystal%iBandL:perfectCrystal%iBandH) )
   !
   !--------------------------------------------------------------------------------------------------------
   !
@@ -277,8 +282,8 @@ program transitionMatrixElements
         call cpu_time(t1)
           ! Start a timer and output that starting to calculate overlap
         !
-        allocate( perfectCrystal%wfc (solidDefect%numOfPWs, iBandIinit:iBandIfinal), &
-                  solidDefect%wfc (solidDefect%numOfPWs, iBandFinit:iBandFfinal ) )
+        allocate( perfectCrystal%wfc (solidDefect%numOfPWs, perfectCrystal%iBandL:perfectCrystal%iBandH), &
+                  solidDefect%wfc (solidDefect%numOfPWs, solidDefect%iBandL:solidDefect%iBandH ) )
           ! Allocate space for the wavefunctions
         !
         call calculatePWsOverlap(ik)
@@ -354,7 +359,7 @@ program transitionMatrixElements
         call cpu_time(t1)
           ! Start a timer and output that started k projections for perfect crystal
         !
-        !do ibi = iBandIinit, iBandIfinal
+        !do ibi = perfectCrystal%iBandL, perfectCrystal%iBandH
         !  !
         !  do ibf = ibi, ibi
         !    paw = solidDefect%paw_Wfc(ibf,ibi) + perfectCrystal%paw_Wfc(ibf,ibi)
@@ -366,7 +371,7 @@ program transitionMatrixElements
         !enddo
         !
         !call pawCorrection()
-        !do ibi = iBandIinit, iBandIfinal
+        !do ibi = perfectCrystal%iBandL, perfectCrystal%iBandH
         !  !
         !  do ibf = ibi, ibi
         !    paw = solidDefect%paw_Wfc(ibf,ibi) + perfectCrystal%paw_Wfc(ibf,ibi) + paw_fi(ibf,ibi)
@@ -383,7 +388,8 @@ program transitionMatrixElements
       call MPI_BCAST(solidDefect%cProj, size(solidDefect%cProj), MPI_DOUBLE_COMPLEX, root, MPI_COMM_WORLD, ierr)
         ! Send projectors to all other processes
       !
-      allocate ( perfectCrystal%pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid)) )
+      allocate ( perfectCrystal%pawK(solidDefect%iBandL:solidDefect%iBandH, &
+                                     perfectCrystal%iBandL:perfectCrystal%iBandH, nPWsI(myid):nPWsF(myid)) )
         ! Allocate space for k projections for perfect crystal
       !
       call pawCorrectionK(perfectCrystal)
@@ -403,7 +409,8 @@ program transitionMatrixElements
         !
       endif
       !
-      allocate ( solidDefect%pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid) ) )
+      allocate ( solidDefect%pawK(solidDefect%iBandL:solidDefect%iBandH, &
+                                  perfectCrystal%iBandL:perfectCrystal%iBandH, nPWsI(myid):nPWsF(myid) ) )
         ! Allocate space for k projections for solid defect
       !
       call pawCorrectionK(solidDefect)
@@ -425,9 +432,9 @@ program transitionMatrixElements
       !
       paw_id(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
       !
-      do ibi = iBandIinit, iBandIfinal
+      do ibi = perfectCrystal%iBandL, perfectCrystal%iBandH
         !
-        do ibf = iBandFinit, iBandFfinal   
+        do ibf = solidDefect%iBandL, solidDefect%iBandH   
           ! For each initial and final band, sum the product of the k projections
           ! of the solid defect and perfect crystal to get the last term in 
           ! equation C3 in the paper
@@ -460,9 +467,9 @@ program transitionMatrixElements
         !
         !write(iostd,*)'--------------------------------------------------------------------------------------------'
         !
-        !do ibi = iBandIinit, iBandIfinal
+        !do ibi = perfectCrystal%iBandL, perfectCrystal%iBandH
         !  !
-        !  do ibf = iBandFinit, iBandFfinal
+        !  do ibf = solidDefect%iBandL, solidDefect%iBandH
         !    !paw = solidDefect%paw_Wfc(ibf,ibi) + perfectCrystal%paw_Wfc(ibf,ibi) + paw_SDKKPC(ibf,ibi)*16.0_dp*pi*pi/solidDefect%omega
         !    !write(iostd,'(" paw ", 2i4, 6f15.10)') ibi, ibf, Ufi(ibf, ibi, ik), paw, Ufi(ibf, ibi, ik) + paw
         !    !Ufi(ibf, ibi, ik) = Ufi(ibf, ibi, ik) + paw

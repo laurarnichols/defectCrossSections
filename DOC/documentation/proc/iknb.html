@@ -5,12 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
    
-   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the cross section of a defect that can capture or scatter a carrier.">
+   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the capture cross section of a defect or the probability that a hot carrier will be captured by the defect">
     
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>iknb &ndash; Carrier Cross Sections</title>
+    <title>iknb &ndash; Defect Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -44,7 +44,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="../index.html">Carrier Cross Sections </a>
+          <a class="navbar-brand" href="../index.html">Defect Cross Sections </a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
@@ -136,7 +136,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.5% of total for procedures.">62 statements</a>
+    title=" 1.6% of total for procedures.">68 statements</a>
      </li> 
      
      
@@ -253,8 +253,7 @@ public subroutine iknb(n, x, nm, bi)
 
 
     
-    <p><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong>*</strong>72</p>
-<p>IKNB compute Bessel function In(x) and Kn(x).</p>
+    <p>IKNB compute Bessel function In(x) and Kn(x).</p>
 <p><h2>Discussion</h2></p>
 <div class="codehilite"><pre><span></span><span class="n">Compute</span> <span class="n">modified</span> <span class="n">Bessel</span> <span class="n">functions</span> <span class="k">In</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">and</span> <span class="n">Kn</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
 <span class="k">and</span> <span class="n">their</span> <span class="n">derivatives</span><span class="p">.</span>
@@ -671,7 +670,7 @@ public subroutine iknb(n, x, nm, bi)
     <span class="c">!</span>
     <span class="c">! Modified : when x &lt; 10^(-15) return the limiting value for small argument [ I_n(x) ~ (x/2)^n Gamma(n+1) ]</span>
     <span class="c">! </span>
-    <span class="c">!*********************************************************************72</span>
+    <span class="c">! *********************************************************************</span>
     <span class="c">!</span>
     <span class="c">!! IKNB compute Bessel function In(x) and Kn(x).</span>
     <span class="c">!!</span>
@@ -736,11 +735,20 @@ public subroutine iknb(n, x, nm, bi)
     <span class="n">el</span> <span class="o">=</span> <span class="mf">0.5772156649015329D+00</span>
     <span class="n">nm</span> <span class="o">=</span> <span class="n">n</span>
     <span class="c">!</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">x</span> <span class="p">.</span><span class="n">le</span><span class="p">.</span> <span class="mf">1.0D-15</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="n">x</span> <span class="p">.</span><span class="n">le</span><span class="p">.</span> <span class="mf">1.0D-100</span> <span class="p">)</span> <span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;Approximation 1&quot;)&#39;</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="n">bi</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0d0</span>
+      <span class="n">bi</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">=</span> <span class="mf">1.0D+00</span>
+      <span class="k">return</span>
+      <span class="c">!</span>
+    <span class="k">else if</span> <span class="p">(</span> <span class="n">x</span> <span class="p">.</span><span class="n">le</span><span class="p">.</span> <span class="mf">1.0D-15</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!! * If \(x &lt; 10^{-15}\), use the limiting value for  a small argument </span>
       <span class="c">!!   \[I_n(x) \approx \left(\dfrac{x}{2}\right)^2\Gamma(n+1)\]</span>
       <span class="c">!!   where \(\Gamma(n+1) = n!\) to calculate multiple orders of the </span>
       <span class="c">!!   modified Bessel function (up to \(n\)) for a single value of \(x\)</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;Approximation 2&quot;)&#39;</span><span class="p">)</span>
       <span class="c">!</span>
       <span class="k">do </span><span class="n">k</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">n</span>
         <span class="c">! For each order</span>
@@ -841,7 +849,7 @@ public subroutine iknb(n, x, nm, bi)
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2020 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">
@@ -850,7 +858,7 @@ public subroutine iknb(n, x, nm, bi)
             
           </p>
         </div>
-        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Carrier Cross Sections was developed by </p></div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Defect Cross Sections was developed by </p></div>
       </div>
       <br>
       </div> <!-- /container -->    

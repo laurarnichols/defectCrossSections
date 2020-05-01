@@ -5,12 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
    
-   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the cross section of a defect that can capture or scatter a carrier.">
+   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the capture cross section of a defect or the probability that a hot carrier will be captured by the defect">
     
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>calculateSigma &ndash; Carrier Cross Sections</title>
+    <title>calculateSigma &ndash; Defect Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -44,7 +44,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="../index.html">Carrier Cross Sections </a>
+          <a class="navbar-brand" href="../index.html">Defect Cross Sections </a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
@@ -406,7 +406,7 @@ public subroutine calculateSigma()
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">iE</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span> <span class="kd">::</span> <span class="n">vg</span><span class="p">,</span> <span class="n">sigma0</span>
     <span class="c">!</span>
-    <span class="k">allocate</span><span class="p">(</span> <span class="n">sigma</span><span class="p">(</span><span class="n">numOfVfis</span><span class="p">)</span> <span class="p">)</span> <span class="c">! , sigmaByPhonon(-nEnergies:nEnergies) )</span>
+    <span class="k">allocate</span><span class="p">(</span> <span class="n">sigma</span><span class="p">(</span><span class="mi">0</span><span class="p">:</span><span class="n">numOfVfis</span><span class="p">)</span> <span class="p">)</span> <span class="c">! , sigmaByPhonon(-nEnergies:nEnergies) )</span>
     <span class="c">!allocate( sigma(-nEnergies:nEnergies), sigmaByPhonon(-nEnergies:nEnergies) )</span>
     <span class="c">!</span>
     <span class="n">iE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">eifMin</span><span class="o">/</span><span class="n">de</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
@@ -461,7 +461,7 @@ public subroutine calculateSigma()
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2020 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">
@@ -470,7 +470,7 @@ public subroutine calculateSigma()
             
           </p>
         </div>
-        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Carrier Cross Sections was developed by </p></div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Defect Cross Sections was developed by </p></div>
       </div>
       <br>
       </div> <!-- /container -->    

@@ -5,12 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
    
-   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the cross section of a defect that can capture or scatter a carrier.">
+   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the capture cross section of a defect or the probability that a hot carrier will be captured by the defect">
     
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>Export_QE-5.3.0_v3.f90 &ndash; Carrier Cross Sections</title>
+    <title>Export_QE-5.3.0_v3.f90 &ndash; Defect Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -44,7 +44,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="../index.html">Carrier Cross Sections </a>
+          <a class="navbar-brand" href="../index.html">Defect Cross Sections </a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
@@ -983,230 +983,190 @@
 <a name="ln-690"></a>  <span class="c">!</span>
 <a name="ln-691"></a>  <span class="k">DEALLOCATE</span><span class="p">(</span> <span class="n">rtmp_gg</span> <span class="p">)</span>
 <a name="ln-692"></a>
-<a name="ln-693"></a><span class="c">!  ! for each k point build and write the global G+k indexes array</span>
-<a name="ln-694"></a><span class="c">!  ALLOCATE( igwk( npwx_g,nkstot ) )</span>
-<a name="ln-695"></a><span class="c">!  !WRITE(0,*) &quot;Writing grids for wfc&quot;</span>
-<a name="ln-696"></a><span class="c">!  !CALL iotk_write_attr (attr,&quot;npwx&quot;,npwx_g,first=.true.)</span>
-<a name="ln-697"></a><span class="c">!  !IF(ionode) CALL iotk_write_begin(50,&quot;Wfc_grids&quot;,ATTR=attr)</span>
-<a name="ln-698"></a><span class="c">!</span>
-<a name="ln-699"></a><span class="c">!</span>
-<a name="ln-700"></a><span class="c">!  DO ik = 1, nkstot</span>
-<a name="ln-701"></a><span class="c">!    igwk(:,ik) = 0</span>
-<a name="ln-702"></a><span class="c">!    !</span>
-<a name="ln-703"></a><span class="c">!    ALLOCATE( itmp1( npw_g ), STAT= ierr )</span>
-<a name="ln-704"></a><span class="c">!    IF ( ierr/=0 ) CALL errore(&#39;pw_export&#39;,&#39;allocating itmp1&#39;, abs(ierr) )</span>
-<a name="ln-705"></a><span class="c">!    itmp1 = 0</span>
-<a name="ln-706"></a><span class="c">!    !</span>
-<a name="ln-707"></a><span class="c">!    IF( ik &gt;= iks .and. ik &lt;= ike ) THEN</span>
-<a name="ln-708"></a><span class="c">!      DO  ig = 1, ngk( ik-iks+1 )</span>
-<a name="ln-709"></a><span class="c">!        itmp1( igk_l2g( ig, ik-iks+1 ) ) = igk_l2g( ig, ik-iks+1 )</span>
-<a name="ln-710"></a><span class="c">!      ENDDO</span>
-<a name="ln-711"></a><span class="c">!    ENDIF</span>
-<a name="ln-712"></a><span class="c">!    !</span>
-<a name="ln-713"></a><span class="c">!    CALL mp_sum( itmp1 )</span>
-<a name="ln-714"></a><span class="c">!    !</span>
-<a name="ln-715"></a><span class="c">!    ngg = 0</span>
-<a name="ln-716"></a><span class="c">!    DO  ig = 1, npw_g</span>
-<a name="ln-717"></a><span class="c">!      IF( itmp1( ig ) == ig ) THEN</span>
-<a name="ln-718"></a><span class="c">!        ngg = ngg + 1</span>
-<a name="ln-719"></a><span class="c">!        igwk( ngg , ik) = ig</span>
-<a name="ln-720"></a><span class="c">!      ENDIF</span>
-<a name="ln-721"></a><span class="c">!    ENDDO</span>
-<a name="ln-722"></a><span class="c">!    IF( ngg /= ngk_g( ik ) ) THEN</span>
-<a name="ln-723"></a><span class="c">!      WRITE( stdout,*) &#39; ik, ngg, ngk_g = &#39;, ik, ngg, ngk_g( ik )</span>
-<a name="ln-724"></a><span class="c">!    ENDIF</span>
-<a name="ln-725"></a><span class="c">!    !</span>
-<a name="ln-726"></a><span class="c">!    DEALLOCATE( itmp1 )</span>
-<a name="ln-727"></a><span class="c">!    !</span>
-<a name="ln-728"></a><span class="c">!  ENDDO</span>
-<a name="ln-729"></a><span class="c">!</span>
-<a name="ln-730"></a><span class="c">!  DEALLOCATE( itmp_g )</span>
-<a name="ln-731"></a><span class="c">!</span>
-<a name="ln-732"></a><span class="c">!</span>
-<a name="ln-733"></a><span class="cp">#ifdef __MPI</span>
-<a name="ln-734"></a>  <span class="k">CALL </span><span class="n">poolrecover</span> <span class="p">(</span><span class="n">et</span><span class="p">,</span> <span class="n">nbnd</span><span class="p">,</span> <span class="n">nkstot</span><span class="p">,</span> <span class="n">nks</span><span class="p">)</span>
-<a name="ln-735"></a><span class="cp">#endif</span>
-<a name="ln-736"></a>
-<a name="ln-737"></a>
-<a name="ln-738"></a>  <span class="k">WRITE</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Writing Eigenvalues&quot;</span>
-<a name="ln-739"></a>
-<a name="ln-740"></a>  <span class="k">IF</span><span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">THEN</span>
+<a name="ln-693"></a><span class="cp">#ifdef __MPI</span>
+<a name="ln-694"></a>  <span class="k">CALL </span><span class="n">poolrecover</span> <span class="p">(</span><span class="n">et</span><span class="p">,</span> <span class="n">nbnd</span><span class="p">,</span> <span class="n">nkstot</span><span class="p">,</span> <span class="n">nks</span><span class="p">)</span>
+<a name="ln-695"></a><span class="cp">#endif</span>
+<a name="ln-696"></a>
+<a name="ln-697"></a>
+<a name="ln-698"></a>  <span class="k">WRITE</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Writing Eigenvalues&quot;</span>
+<a name="ln-699"></a>
+<a name="ln-700"></a>  <span class="k">IF</span><span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">THEN</span>
+<a name="ln-701"></a>    <span class="c">!</span>
+<a name="ln-702"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Fermi Energy (Hartree). Format: &#39;&#39;(ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+<a name="ln-703"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">ef</span><span class="o">*</span><span class="n">ryToHartree</span>
+<a name="ln-704"></a>    <span class="nb">flush</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>
+<a name="ln-705"></a>    <span class="c">!</span>
+<a name="ln-706"></a>    <span class="k">DO </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nkstot</span>
+<a name="ln-707"></a>      <span class="c">!</span>
+<a name="ln-708"></a>      <span class="n">ispin</span> <span class="o">=</span> <span class="n">isk</span><span class="p">(</span> <span class="n">ik</span> <span class="p">)</span>
+<a name="ln-709"></a>      <span class="c">!</span>
+<a name="ln-710"></a>      <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span>
+<a name="ln-711"></a>      <span class="c">!</span>
+<a name="ln-712"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Spin : &quot;,i10, &quot; Format: &#39;&#39;(a9, i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">ispin</span>
+<a name="ln-713"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Eigenvalues (Hartree), band occupation number. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+<a name="ln-714"></a>      <span class="c">!</span>
+<a name="ln-715"></a>      <span class="k">do </span><span class="n">ibnd</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nbnd</span>
+<a name="ln-716"></a>        <span class="k">if</span> <span class="p">(</span> <span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.D0</span> <span class="p">)</span> <span class="k">then </span>
+<a name="ln-717"></a><span class="k">          write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">et</span><span class="p">(</span><span class="n">ibnd</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">*</span><span class="n">ryToHartree</span><span class="p">,</span> <span class="n">wg</span><span class="p">(</span><span class="n">ibnd</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
+<a name="ln-718"></a>        <span class="k">else</span>
+<a name="ln-719"></a><span class="k">          write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">et</span><span class="p">(</span><span class="n">ibnd</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">*</span><span class="n">ryToHartree</span><span class="p">,</span> <span class="n">wg</span><span class="p">(</span><span class="n">ibnd</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">/</span><span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+<a name="ln-720"></a>        <span class="n">endif</span>
+<a name="ln-721"></a>      <span class="n">enddo</span>
+<a name="ln-722"></a>      <span class="c">!</span>
+<a name="ln-723"></a>      <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+<a name="ln-724"></a>      <span class="c">!</span>
+<a name="ln-725"></a>    <span class="n">ENDDO</span>
+<a name="ln-726"></a>    <span class="c">!</span>
+<a name="ln-727"></a>  <span class="n">endif</span>
+<a name="ln-728"></a>  <span class="c">!</span>
+<a name="ln-729"></a>  <span class="k">if</span> <span class="p">(</span> <span class="n">ionode</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">writeWFC</span> <span class="p">)</span> <span class="k">WRITE</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Writing Wavefunctions&quot;</span>
+<a name="ln-730"></a>  <span class="c">!</span>
+<a name="ln-731"></a>  <span class="n">wfc_scal</span> <span class="o">=</span> <span class="mf">1.0d0</span>
+<a name="ln-732"></a>  <span class="n">twf0</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<a name="ln-733"></a>  <span class="n">twfm</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-734"></a>  <span class="c">!</span>
+<a name="ln-735"></a>  <span class="k">IF</span> <span class="p">(</span> <span class="n">nkb</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="k">THEN</span>
+<a name="ln-736"></a>    <span class="c">!</span>
+<a name="ln-737"></a>    <span class="k">CALL </span><span class="n">init_us_1</span>
+<a name="ln-738"></a>    <span class="k">CALL </span><span class="n">init_at_1</span>
+<a name="ln-739"></a>    <span class="c">!</span>
+<a name="ln-740"></a>    <span class="k">CALL </span><span class="n">allocate_bec_type</span> <span class="p">(</span><span class="n">nkb</span><span class="p">,</span><span class="n">nbnd</span><span class="p">,</span> <span class="n">becp</span><span class="p">)</span>
 <a name="ln-741"></a>    <span class="c">!</span>
-<a name="ln-742"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Fermi Energy (Hartree). Format: &#39;&#39;(ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
-<a name="ln-743"></a>    <span class="k">write</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">ef</span><span class="o">*</span><span class="n">ryToHartree</span>
-<a name="ln-744"></a>    <span class="nb">flush</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>
-<a name="ln-745"></a>    <span class="c">!</span>
-<a name="ln-746"></a>    <span class="k">DO </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nkstot</span>
-<a name="ln-747"></a>      <span class="c">!</span>
-<a name="ln-748"></a>      <span class="n">ispin</span> <span class="o">=</span> <span class="n">isk</span><span class="p">(</span> <span class="n">ik</span> <span class="p">)</span>
-<a name="ln-749"></a>      <span class="c">!</span>
-<a name="ln-750"></a>      <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span>
-<a name="ln-751"></a>      <span class="c">!</span>
-<a name="ln-752"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Spin : &quot;,i10, &quot; Format: &#39;&#39;(a9, i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">ispin</span>
-<a name="ln-753"></a>      <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Eigenvalues (Hartree), band occupation number. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
-<a name="ln-754"></a>      <span class="c">!</span>
-<a name="ln-755"></a>      <span class="k">do </span><span class="n">ibnd</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nbnd</span>
-<a name="ln-756"></a>        <span class="k">if</span> <span class="p">(</span> <span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.D0</span> <span class="p">)</span> <span class="k">then </span>
-<a name="ln-757"></a><span class="k">          write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">et</span><span class="p">(</span><span class="n">ibnd</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">*</span><span class="n">ryToHartree</span><span class="p">,</span> <span class="n">wg</span><span class="p">(</span><span class="n">ibnd</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span>
-<a name="ln-758"></a>        <span class="k">else</span>
-<a name="ln-759"></a><span class="k">          write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">et</span><span class="p">(</span><span class="n">ibnd</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">*</span><span class="n">ryToHartree</span><span class="p">,</span> <span class="n">wg</span><span class="p">(</span><span class="n">ibnd</span><span class="p">,</span><span class="n">ik</span><span class="p">)</span><span class="o">/</span><span class="n">wk</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
-<a name="ln-760"></a>        <span class="n">endif</span>
-<a name="ln-761"></a>      <span class="n">enddo</span>
-<a name="ln-762"></a>      <span class="c">!</span>
-<a name="ln-763"></a>      <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
-<a name="ln-764"></a>      <span class="c">!</span>
-<a name="ln-765"></a>    <span class="n">ENDDO</span>
-<a name="ln-766"></a>    <span class="c">!</span>
-<a name="ln-767"></a>  <span class="n">endif</span>
-<a name="ln-768"></a>  <span class="c">!</span>
-<a name="ln-769"></a>  <span class="k">if</span> <span class="p">(</span> <span class="n">ionode</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">writeWFC</span> <span class="p">)</span> <span class="k">WRITE</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Writing Wavefunctions&quot;</span>
-<a name="ln-770"></a>  <span class="c">!</span>
-<a name="ln-771"></a>  <span class="n">wfc_scal</span> <span class="o">=</span> <span class="mf">1.0d0</span>
-<a name="ln-772"></a>  <span class="n">twf0</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
-<a name="ln-773"></a>  <span class="n">twfm</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-774"></a>  <span class="c">!</span>
-<a name="ln-775"></a>  <span class="k">IF</span> <span class="p">(</span> <span class="n">nkb</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="k">THEN</span>
-<a name="ln-776"></a>    <span class="c">!</span>
-<a name="ln-777"></a>    <span class="k">CALL </span><span class="n">init_us_1</span>
-<a name="ln-778"></a>    <span class="k">CALL </span><span class="n">init_at_1</span>
-<a name="ln-779"></a>    <span class="c">!</span>
-<a name="ln-780"></a>    <span class="k">CALL </span><span class="n">allocate_bec_type</span> <span class="p">(</span><span class="n">nkb</span><span class="p">,</span><span class="n">nbnd</span><span class="p">,</span> <span class="n">becp</span><span class="p">)</span>
-<a name="ln-781"></a>    <span class="c">!</span>
-<a name="ln-782"></a>    <span class="k">DO </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nkstot</span>
-<a name="ln-783"></a>      <span class="c">!</span>
-<a name="ln-784"></a>      <span class="n">local_pw</span> <span class="o">=</span> <span class="mi">0</span>
-<a name="ln-785"></a>      <span class="k">IF</span> <span class="p">(</span> <span class="p">(</span><span class="n">ik</span> <span class="o">&gt;=</span> <span class="n">iks</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">ik</span> <span class="o">&lt;=</span> <span class="n">ike</span><span class="p">)</span> <span class="p">)</span> <span class="k">THEN</span>
-<a name="ln-786"></a><span class="k">        CALL </span><span class="n">gk_sort</span> <span class="p">(</span><span class="n">xk</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ik</span><span class="o">+</span><span class="n">iks</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">ngm</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">ecutwfc</span> <span class="o">/</span> <span class="n">tpiba2</span><span class="p">,</span> <span class="n">npw</span><span class="p">,</span> <span class="n">igk</span><span class="p">,</span> <span class="n">g2kin</span><span class="p">)</span>
-<a name="ln-787"></a>        <span class="k">CALL </span><span class="n">davcio</span> <span class="p">(</span><span class="n">evc</span><span class="p">,</span> <span class="n">nwordwfc</span><span class="p">,</span> <span class="n">iunwfc</span><span class="p">,</span> <span class="p">(</span><span class="n">ik</span><span class="o">-</span><span class="n">iks</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-<a name="ln-788"></a>
-<a name="ln-789"></a>        <span class="k">CALL </span><span class="n">init_us_2</span><span class="p">(</span><span class="n">npw</span><span class="p">,</span> <span class="n">igk</span><span class="p">,</span> <span class="n">xk</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ik</span><span class="p">),</span> <span class="n">vkb</span><span class="p">)</span>
-<a name="ln-790"></a>        <span class="n">local_pw</span> <span class="o">=</span> <span class="n">ngk</span><span class="p">(</span><span class="n">ik</span><span class="o">-</span><span class="n">iks</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
-<a name="ln-791"></a>
-<a name="ln-792"></a>        <span class="k">IF</span> <span class="p">(</span> <span class="n">gamma_only</span> <span class="p">)</span> <span class="k">THEN</span>
-<a name="ln-793"></a><span class="k">          CALL </span><span class="n">calbec</span> <span class="p">(</span> <span class="n">ngk_g</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">vkb</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">becp</span> <span class="p">)</span>
-<a name="ln-794"></a>          <span class="k">WRITE</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Gamma only PW_EXPORT not yet tested&#39;</span>
-<a name="ln-795"></a>        <span class="k">ELSE</span>
-<a name="ln-796"></a><span class="k">          CALL </span><span class="n">calbec</span> <span class="p">(</span> <span class="n">npw</span><span class="p">,</span> <span class="n">vkb</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">becp</span> <span class="p">)</span>
-<a name="ln-797"></a>          <span class="k">if</span> <span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-798"></a>            <span class="c">!</span>
-<a name="ln-799"></a>            <span class="k">WRITE</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Writing projectors of kpt&quot;</span><span class="p">,</span> <span class="n">ik</span>
-<a name="ln-800"></a>            <span class="c">!</span>
-<a name="ln-801"></a><span class="c">!            file_exists = .false.</span>
-<a name="ln-802"></a><span class="c">!            inquire(file =trim(exportDir)//&quot;/projectors&quot;//iotk_index(ik), exist = file_exists)</span>
-<a name="ln-803"></a><span class="c">!            if ( .not. file_exists ) then</span>
-<a name="ln-804"></a><span class="c">!              open(73, file=trim(exportDir)//&quot;/projectors&quot;//iotk_index(ik))</span>
-<a name="ln-805"></a><span class="c">!              write(73, &#39;(&quot;# Complex projectors |beta&gt;. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;)</span>
-<a name="ln-806"></a><span class="c">!              write(73,&#39;(2i10)&#39;) nkb, ngk_g(ik)</span>
-<a name="ln-807"></a><span class="c">!              do j = 1, nkb</span>
-<a name="ln-808"></a><span class="c">!                do i = 1, ngk_g(ik)</span>
-<a name="ln-809"></a><span class="c">!                  write(73,&#39;(2ES24.15E3)&#39;) vkb(i,j)</span>
-<a name="ln-810"></a><span class="c">!                enddo</span>
-<a name="ln-811"></a><span class="c">!              enddo</span>
-<a name="ln-812"></a><span class="c">!              close(73)</span>
-<a name="ln-813"></a><span class="c">!            endif</span>
-<a name="ln-814"></a><span class="c">!            !</span>
-<a name="ln-815"></a><span class="c">!            file_exists = .false.</span>
-<a name="ln-816"></a><span class="c">!            inquire(file =trim(exportDir)//&quot;/evc&quot;//iotk_index(ik), exist = file_exists)</span>
-<a name="ln-817"></a><span class="c">!            if ( .not. file_exists ) then</span>
-<a name="ln-818"></a><span class="c">!              !</span>
-<a name="ln-819"></a><span class="c">!              open(74, file=trim(exportDir)//&quot;/evc&quot;//iotk_index(ik))</span>
-<a name="ln-820"></a><span class="c">!              write(74, &#39;(&quot;# Spin : &quot;,i10, &quot; Format: &#39;&#39;(a9, i10)&#39;&#39;&quot;)&#39;) ispin</span>
-<a name="ln-821"></a><span class="c">!              write(74, &#39;(&quot;# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;)</span>
-<a name="ln-822"></a><span class="c">!              write(74,&#39;(2i10)&#39;) nbnd, ngk_g(ik)</span>
-<a name="ln-823"></a><span class="c">!              !</span>
-<a name="ln-824"></a><span class="c">!              do j = 1, nbnd</span>
-<a name="ln-825"></a><span class="c">!                do i = 1, ngk_g(ik)</span>
-<a name="ln-826"></a><span class="c">!                  write(74,&#39;(2ES24.15E3)&#39;) evc(i,j) </span>
-<a name="ln-827"></a><span class="c">!                enddo</span>
-<a name="ln-828"></a><span class="c">!              enddo</span>
-<a name="ln-829"></a><span class="c">!              !</span>
-<a name="ln-830"></a><span class="c">!              close(74)</span>
-<a name="ln-831"></a><span class="c">!              !</span>
-<a name="ln-832"></a><span class="c">!            endif</span>
-<a name="ln-833"></a><span class="c">!            !</span>
-<a name="ln-834"></a>            <span class="n">file_exists</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-835"></a>            <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projections&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
-<a name="ln-836"></a>            <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-837"></a><span class="k">              open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projections&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span>
-<a name="ln-838"></a>              <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Complex projections &lt;beta|psi&gt;. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
-<a name="ln-839"></a>              <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>  <span class="n">becp</span><span class="p">%</span><span class="n">nbnd</span> <span class="c">! number of bands </span>
-<a name="ln-840"></a>                <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nkb</span>      <span class="c">! number of projections</span>
-<a name="ln-841"></a>                  <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span><span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">becp</span><span class="p">%</span><span class="n">k</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span>
-<a name="ln-842"></a>                <span class="n">enddo</span>
-<a name="ln-843"></a>              <span class="n">enddo</span>
-<a name="ln-844"></a>              <span class="c">!</span>
-<a name="ln-845"></a>              <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
-<a name="ln-846"></a>              <span class="c">!</span>
-<a name="ln-847"></a>            <span class="n">endif</span>
-<a name="ln-848"></a>          <span class="n">endif</span>
-<a name="ln-849"></a>        <span class="n">ENDIF</span>
-<a name="ln-850"></a>      <span class="n">ENDIF</span>
-<a name="ln-851"></a>
-<a name="ln-852"></a>      <span class="k">ALLOCATE</span><span class="p">(</span><span class="n">l2g_new</span><span class="p">(</span><span class="n">local_pw</span><span class="p">))</span>
-<a name="ln-853"></a>
-<a name="ln-854"></a>      <span class="n">l2g_new</span> <span class="o">=</span> <span class="mi">0</span>
-<a name="ln-855"></a>      <span class="k">DO </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">local_pw</span>
-<a name="ln-856"></a>        <span class="n">ngg</span> <span class="o">=</span> <span class="n">igk_l2g</span><span class="p">(</span><span class="n">ig</span><span class="p">,</span><span class="n">ik</span><span class="o">-</span><span class="n">iks</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
-<a name="ln-857"></a>        <span class="k">DO </span><span class="n">ig_</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ngk_g</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
-<a name="ln-858"></a>          <span class="k">IF</span><span class="p">(</span><span class="n">ngg</span> <span class="o">==</span> <span class="n">igwk</span><span class="p">(</span><span class="n">ig_</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span> <span class="k">THEN</span>
-<a name="ln-859"></a><span class="k">            </span><span class="n">l2g_new</span><span class="p">(</span><span class="n">ig</span><span class="p">)</span> <span class="o">=</span> <span class="n">ig_</span>
-<a name="ln-860"></a>            <span class="k">exit</span>
-<a name="ln-861"></a><span class="k">          </span><span class="n">ENDIF</span>
-<a name="ln-862"></a>        <span class="n">ENDDO</span>
-<a name="ln-863"></a>      <span class="n">ENDDO</span>
-<a name="ln-864"></a>      <span class="c">!</span>
-<a name="ln-865"></a>      <span class="n">ispin</span> <span class="o">=</span> <span class="n">isk</span><span class="p">(</span> <span class="n">ik</span> <span class="p">)</span>
-<a name="ln-866"></a>      <span class="c">!</span>
-<a name="ln-867"></a>      <span class="k">if</span> <span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-868"></a>
-<a name="ln-869"></a><span class="k">        </span><span class="n">file_exists</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
-<a name="ln-870"></a>        <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/wfc&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
-<a name="ln-871"></a>        <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-872"></a><span class="k">          open</span> <span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/wfc&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span>
-<a name="ln-873"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Spin : &quot;,i10, &quot; Format: &#39;&#39;(a9, i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">ispin</span>
-<a name="ln-874"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
-<a name="ln-875"></a>          <span class="c">!</span>
-<a name="ln-876"></a>          <span class="k">open</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projectors&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span>
-<a name="ln-877"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Complex projectors |beta&gt;. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
-<a name="ln-878"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span><span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">nkb</span><span class="p">,</span> <span class="n">ngk_g</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
-<a name="ln-879"></a><span class="c">!          WRITE(stdout,*) &quot;Writing Wavefunctions of kpt&quot;, ik</span>
-<a name="ln-880"></a><span class="c">!          open(74, file=trim(exportDir)//&quot;/evc&quot;//iotk_index(ik))</span>
-<a name="ln-881"></a><span class="c">!          write(74, &#39;(&quot;# Spin : &quot;,i10, &quot; Format: &#39;&#39;(a9, i10)&#39;&#39;&quot;)&#39;) ispin</span>
-<a name="ln-882"></a><span class="c">!          write(74, &#39;(&quot;# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;)</span>
-<a name="ln-883"></a>        <span class="n">endif</span>
-<a name="ln-884"></a>      <span class="n">endif</span>
-<a name="ln-885"></a>      <span class="c">!</span>
-<a name="ln-886"></a>      <span class="k">CALL </span><span class="n">mp_bcast</span><span class="p">(</span> <span class="n">file_exists</span><span class="p">,</span> <span class="n">ionode_id</span><span class="p">,</span> <span class="n">world_comm</span> <span class="p">)</span>
-<a name="ln-887"></a>      <span class="c">!</span>
-<a name="ln-888"></a>      <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-889"></a><span class="k">        CALL </span><span class="n">write_restart_wfc</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">nkstot</span><span class="p">,</span> <span class="n">kunit</span><span class="p">,</span> <span class="n">ispin</span><span class="p">,</span> <span class="n">nspin</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-890"></a>                               <span class="n">wfc_scal</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">twf0</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">twfm</span><span class="p">,</span> <span class="n">npw_g</span><span class="p">,</span> <span class="n">gamma_only</span><span class="p">,</span> <span class="n">nbnd</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-891"></a>                               <span class="n">l2g_new</span><span class="p">(:),</span><span class="n">local_pw</span> <span class="p">)</span>
-<a name="ln-892"></a>        <span class="k">CALL </span><span class="n">write_restart_wfc</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">nkstot</span><span class="p">,</span> <span class="n">kunit</span><span class="p">,</span> <span class="n">ispin</span><span class="p">,</span> <span class="n">nspin</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-893"></a>                               <span class="n">wfc_scal</span><span class="p">,</span> <span class="n">vkb</span><span class="p">,</span> <span class="n">twf0</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">twfm</span><span class="p">,</span> <span class="n">npw_g</span><span class="p">,</span> <span class="n">gamma_only</span><span class="p">,</span> <span class="n">nkb</span><span class="p">,</span> <span class="p">&amp;</span>
-<a name="ln-894"></a>                               <span class="n">l2g_new</span><span class="p">(:),</span> <span class="n">local_pw</span> <span class="p">)</span>
-<a name="ln-895"></a>      <span class="n">endif</span>
-<a name="ln-896"></a>      <span class="c">!</span>
-<a name="ln-897"></a>      <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">file_exists</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-898"></a><span class="k">        close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
-<a name="ln-899"></a>        <span class="k">close</span><span class="p">(</span><span class="mi">73</span><span class="p">)</span>
-<a name="ln-900"></a><span class="c">!        close(74)</span>
-<a name="ln-901"></a>      <span class="n">endif</span>
-<a name="ln-902"></a>      <span class="c">!</span>
-<a name="ln-903"></a>      <span class="k">DEALLOCATE</span><span class="p">(</span><span class="n">l2g_new</span><span class="p">)</span>
-<a name="ln-904"></a>    <span class="n">ENDDO</span>
-<a name="ln-905"></a>    <span class="c">!</span>
-<a name="ln-906"></a>    <span class="k">CALL </span><span class="n">deallocate_bec_type</span> <span class="p">(</span> <span class="n">becp</span> <span class="p">)</span>
-<a name="ln-907"></a>    <span class="c">!</span>
-<a name="ln-908"></a>  <span class="n">ENDIF</span>
-<a name="ln-909"></a>
-<a name="ln-910"></a>  <span class="k">DEALLOCATE</span><span class="p">(</span> <span class="n">igk_l2g</span> <span class="p">)</span>
-<a name="ln-911"></a>  <span class="k">DEALLOCATE</span><span class="p">(</span> <span class="n">igwk</span> <span class="p">)</span>
-<a name="ln-912"></a>  <span class="k">DEALLOCATE</span> <span class="p">(</span> <span class="n">ngk_g</span> <span class="p">)</span>
-<a name="ln-913"></a>
-<a name="ln-914"></a><span class="k">END SUBROUTINE </span><span class="n">write_export</span>
-<a name="ln-915"></a>
-<a name="ln-916"></a><span class="k">END PROGRAM </span><span class="n">pw_export_for_TME</span>
+<a name="ln-742"></a>    <span class="k">DO </span><span class="n">ik</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nkstot</span>
+<a name="ln-743"></a>      <span class="c">!</span>
+<a name="ln-744"></a>      <span class="n">local_pw</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-745"></a>      <span class="k">IF</span> <span class="p">(</span> <span class="p">(</span><span class="n">ik</span> <span class="o">&gt;=</span> <span class="n">iks</span><span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span><span class="n">ik</span> <span class="o">&lt;=</span> <span class="n">ike</span><span class="p">)</span> <span class="p">)</span> <span class="k">THEN</span>
+<a name="ln-746"></a><span class="k">        CALL </span><span class="n">gk_sort</span> <span class="p">(</span><span class="n">xk</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ik</span><span class="o">+</span><span class="n">iks</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">ngm</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">ecutwfc</span> <span class="o">/</span> <span class="n">tpiba2</span><span class="p">,</span> <span class="n">npw</span><span class="p">,</span> <span class="n">igk</span><span class="p">,</span> <span class="n">g2kin</span><span class="p">)</span>
+<a name="ln-747"></a>        <span class="k">CALL </span><span class="n">davcio</span> <span class="p">(</span><span class="n">evc</span><span class="p">,</span> <span class="n">nwordwfc</span><span class="p">,</span> <span class="n">iunwfc</span><span class="p">,</span> <span class="p">(</span><span class="n">ik</span><span class="o">-</span><span class="n">iks</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+<a name="ln-748"></a>
+<a name="ln-749"></a>        <span class="k">CALL </span><span class="n">init_us_2</span><span class="p">(</span><span class="n">npw</span><span class="p">,</span> <span class="n">igk</span><span class="p">,</span> <span class="n">xk</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ik</span><span class="p">),</span> <span class="n">vkb</span><span class="p">)</span>
+<a name="ln-750"></a>        <span class="n">local_pw</span> <span class="o">=</span> <span class="n">ngk</span><span class="p">(</span><span class="n">ik</span><span class="o">-</span><span class="n">iks</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<a name="ln-751"></a>
+<a name="ln-752"></a>        <span class="k">IF</span> <span class="p">(</span> <span class="n">gamma_only</span> <span class="p">)</span> <span class="k">THEN</span>
+<a name="ln-753"></a><span class="k">          CALL </span><span class="n">calbec</span> <span class="p">(</span> <span class="n">ngk_g</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">vkb</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">becp</span> <span class="p">)</span>
+<a name="ln-754"></a>          <span class="k">WRITE</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;Gamma only PW_EXPORT not yet tested&#39;</span>
+<a name="ln-755"></a>        <span class="k">ELSE</span>
+<a name="ln-756"></a><span class="k">          CALL </span><span class="n">calbec</span> <span class="p">(</span> <span class="n">npw</span><span class="p">,</span> <span class="n">vkb</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">becp</span> <span class="p">)</span>
+<a name="ln-757"></a>          <span class="k">if</span> <span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-758"></a>            <span class="c">!</span>
+<a name="ln-759"></a>            <span class="k">WRITE</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s2">&quot;Writing projectors of kpt&quot;</span><span class="p">,</span> <span class="n">ik</span>
+<a name="ln-760"></a>            <span class="c">!</span>
+<a name="ln-761"></a><span class="c">!            file_exists = .false.</span>
+<a name="ln-762"></a><span class="c">!            inquire(file =trim(exportDir)//&quot;/projectors&quot;//iotk_index(ik), exist = file_exists)</span>
+<a name="ln-763"></a><span class="c">!            if ( .not. file_exists ) then</span>
+<a name="ln-764"></a><span class="c">!              open(73, file=trim(exportDir)//&quot;/projectors&quot;//iotk_index(ik))</span>
+<a name="ln-765"></a><span class="c">!              write(73, &#39;(&quot;# Complex projectors |beta&gt;. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;)</span>
+<a name="ln-766"></a><span class="c">!              write(73,&#39;(2i10)&#39;) nkb, ngk_g(ik)</span>
+<a name="ln-767"></a><span class="c">!              do j = 1, nkb</span>
+<a name="ln-768"></a><span class="c">!                do i = 1, ngk_g(ik)</span>
+<a name="ln-769"></a><span class="c">!                  write(73,&#39;(2ES24.15E3)&#39;) vkb(i,j)</span>
+<a name="ln-770"></a><span class="c">!                enddo</span>
+<a name="ln-771"></a><span class="c">!              enddo</span>
+<a name="ln-772"></a><span class="c">!              close(73)</span>
+<a name="ln-773"></a><span class="c">!            endif</span>
+<a name="ln-774"></a><span class="c">!            !</span>
+<a name="ln-775"></a><span class="c">!            file_exists = .false.</span>
+<a name="ln-776"></a><span class="c">!            inquire(file =trim(exportDir)//&quot;/evc&quot;//iotk_index(ik), exist = file_exists)</span>
+<a name="ln-777"></a><span class="c">!            if ( .not. file_exists ) then</span>
+<a name="ln-778"></a><span class="c">!              !</span>
+<a name="ln-779"></a><span class="c">!              open(74, file=trim(exportDir)//&quot;/evc&quot;//iotk_index(ik))</span>
+<a name="ln-780"></a><span class="c">!              write(74, &#39;(&quot;# Spin : &quot;,i10, &quot; Format: &#39;&#39;(a9, i10)&#39;&#39;&quot;)&#39;) ispin</span>
+<a name="ln-781"></a><span class="c">!              write(74, &#39;(&quot;# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;)</span>
+<a name="ln-782"></a><span class="c">!              write(74,&#39;(2i10)&#39;) nbnd, ngk_g(ik)</span>
+<a name="ln-783"></a><span class="c">!              !</span>
+<a name="ln-784"></a><span class="c">!              do j = 1, nbnd</span>
+<a name="ln-785"></a><span class="c">!                do i = 1, ngk_g(ik)</span>
+<a name="ln-786"></a><span class="c">!                  write(74,&#39;(2ES24.15E3)&#39;) evc(i,j) </span>
+<a name="ln-787"></a><span class="c">!                enddo</span>
+<a name="ln-788"></a><span class="c">!              enddo</span>
+<a name="ln-789"></a><span class="c">!              !</span>
+<a name="ln-790"></a><span class="c">!              close(74)</span>
+<a name="ln-791"></a><span class="c">!              !</span>
+<a name="ln-792"></a><span class="c">!            endif</span>
+<a name="ln-793"></a><span class="c">!            !</span>
+<a name="ln-794"></a>            <span class="n">file_exists</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-795"></a>            <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projections&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
+<a name="ln-796"></a>            <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-797"></a><span class="k">              open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projections&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span>
+<a name="ln-798"></a>              <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Complex projections &lt;beta|psi&gt;. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+<a name="ln-799"></a>              <span class="k">do </span><span class="n">j</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>  <span class="n">becp</span><span class="p">%</span><span class="n">nbnd</span> <span class="c">! number of bands </span>
+<a name="ln-800"></a>                <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nkb</span>      <span class="c">! number of projections</span>
+<a name="ln-801"></a>                  <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span><span class="s1">&#39;(2ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">becp</span><span class="p">%</span><span class="n">k</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span>
+<a name="ln-802"></a>                <span class="n">enddo</span>
+<a name="ln-803"></a>              <span class="n">enddo</span>
+<a name="ln-804"></a>              <span class="c">!</span>
+<a name="ln-805"></a>              <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+<a name="ln-806"></a>              <span class="c">!</span>
+<a name="ln-807"></a>            <span class="n">endif</span>
+<a name="ln-808"></a>          <span class="n">endif</span>
+<a name="ln-809"></a>        <span class="n">ENDIF</span>
+<a name="ln-810"></a>      <span class="n">ENDIF</span>
+<a name="ln-811"></a>
+<a name="ln-812"></a>      <span class="k">ALLOCATE</span><span class="p">(</span><span class="n">l2g_new</span><span class="p">(</span><span class="n">local_pw</span><span class="p">))</span>
+<a name="ln-813"></a>
+<a name="ln-814"></a>      <span class="n">l2g_new</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-815"></a>      <span class="k">DO </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">local_pw</span>
+<a name="ln-816"></a>        <span class="n">ngg</span> <span class="o">=</span> <span class="n">igk_l2g</span><span class="p">(</span><span class="n">ig</span><span class="p">,</span><span class="n">ik</span><span class="o">-</span><span class="n">iks</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<a name="ln-817"></a>        <span class="k">DO </span><span class="n">ig_</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ngk_g</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+<a name="ln-818"></a>          <span class="k">IF</span><span class="p">(</span><span class="n">ngg</span> <span class="o">==</span> <span class="n">igwk</span><span class="p">(</span><span class="n">ig_</span><span class="p">,</span><span class="n">ik</span><span class="p">))</span> <span class="k">THEN</span>
+<a name="ln-819"></a><span class="k">            </span><span class="n">l2g_new</span><span class="p">(</span><span class="n">ig</span><span class="p">)</span> <span class="o">=</span> <span class="n">ig_</span>
+<a name="ln-820"></a>            <span class="k">exit</span>
+<a name="ln-821"></a><span class="k">          </span><span class="n">ENDIF</span>
+<a name="ln-822"></a>        <span class="n">ENDDO</span>
+<a name="ln-823"></a>      <span class="n">ENDDO</span>
+<a name="ln-824"></a>      <span class="c">!</span>
+<a name="ln-825"></a>      <span class="n">ispin</span> <span class="o">=</span> <span class="n">isk</span><span class="p">(</span> <span class="n">ik</span> <span class="p">)</span>
+<a name="ln-826"></a>      <span class="c">!</span>
+<a name="ln-827"></a>      <span class="k">if</span> <span class="p">(</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-828"></a>
+<a name="ln-829"></a><span class="k">        </span><span class="n">file_exists</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<a name="ln-830"></a>        <span class="k">inquire</span><span class="p">(</span><span class="k">file</span> <span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/wfc&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">),</span> <span class="n">exist</span> <span class="o">=</span> <span class="n">file_exists</span><span class="p">)</span>
+<a name="ln-831"></a>        <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-832"></a><span class="k">          open</span> <span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/wfc&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span>
+<a name="ln-833"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Spin : &quot;,i10, &quot; Format: &#39;&#39;(a9, i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="n">ispin</span>
+<a name="ln-834"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+<a name="ln-835"></a>          <span class="c">!</span>
+<a name="ln-836"></a>          <span class="k">open</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/projectors&quot;</span><span class="o">//</span><span class="n">iotk_index</span><span class="p">(</span><span class="n">ik</span><span class="p">))</span>
+<a name="ln-837"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Complex projectors |beta&gt;. Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
+<a name="ln-838"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span><span class="s1">&#39;(2i10)&#39;</span><span class="p">)</span> <span class="n">nkb</span><span class="p">,</span> <span class="n">ngk_g</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
+<a name="ln-839"></a><span class="c">!          WRITE(stdout,*) &quot;Writing Wavefunctions of kpt&quot;, ik</span>
+<a name="ln-840"></a><span class="c">!          open(74, file=trim(exportDir)//&quot;/evc&quot;//iotk_index(ik))</span>
+<a name="ln-841"></a><span class="c">!          write(74, &#39;(&quot;# Spin : &quot;,i10, &quot; Format: &#39;&#39;(a9, i10)&#39;&#39;&quot;)&#39;) ispin</span>
+<a name="ln-842"></a><span class="c">!          write(74, &#39;(&quot;# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: &#39;&#39;(2ES24.15E3)&#39;&#39;&quot;)&#39;)</span>
+<a name="ln-843"></a>        <span class="n">endif</span>
+<a name="ln-844"></a>      <span class="n">endif</span>
+<a name="ln-845"></a>      <span class="c">!</span>
+<a name="ln-846"></a>      <span class="k">CALL </span><span class="n">mp_bcast</span><span class="p">(</span> <span class="n">file_exists</span><span class="p">,</span> <span class="n">ionode_id</span><span class="p">,</span> <span class="n">world_comm</span> <span class="p">)</span>
+<a name="ln-847"></a>      <span class="c">!</span>
+<a name="ln-848"></a>      <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">file_exists</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-849"></a><span class="k">        CALL </span><span class="n">write_restart_wfc</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">nkstot</span><span class="p">,</span> <span class="n">kunit</span><span class="p">,</span> <span class="n">ispin</span><span class="p">,</span> <span class="n">nspin</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-850"></a>                               <span class="n">wfc_scal</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">twf0</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">twfm</span><span class="p">,</span> <span class="n">npw_g</span><span class="p">,</span> <span class="n">gamma_only</span><span class="p">,</span> <span class="n">nbnd</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-851"></a>                               <span class="n">l2g_new</span><span class="p">(:),</span><span class="n">local_pw</span> <span class="p">)</span>
+<a name="ln-852"></a>        <span class="k">CALL </span><span class="n">write_restart_wfc</span><span class="p">(</span><span class="mi">73</span><span class="p">,</span> <span class="n">exportDir</span><span class="p">,</span> <span class="n">ik</span><span class="p">,</span> <span class="n">nkstot</span><span class="p">,</span> <span class="n">kunit</span><span class="p">,</span> <span class="n">ispin</span><span class="p">,</span> <span class="n">nspin</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-853"></a>                               <span class="n">wfc_scal</span><span class="p">,</span> <span class="n">vkb</span><span class="p">,</span> <span class="n">twf0</span><span class="p">,</span> <span class="n">evc</span><span class="p">,</span> <span class="n">twfm</span><span class="p">,</span> <span class="n">npw_g</span><span class="p">,</span> <span class="n">gamma_only</span><span class="p">,</span> <span class="n">nkb</span><span class="p">,</span> <span class="p">&amp;</span>
+<a name="ln-854"></a>                               <span class="n">l2g_new</span><span class="p">(:),</span> <span class="n">local_pw</span> <span class="p">)</span>
+<a name="ln-855"></a>      <span class="n">endif</span>
+<a name="ln-856"></a>      <span class="c">!</span>
+<a name="ln-857"></a>      <span class="k">if</span> <span class="p">(</span> <span class="p">.</span><span class="nb">not</span><span class="p">.</span> <span class="n">file_exists</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="n">ionode</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-858"></a><span class="k">        close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
+<a name="ln-859"></a>        <span class="k">close</span><span class="p">(</span><span class="mi">73</span><span class="p">)</span>
+<a name="ln-860"></a><span class="c">!        close(74)</span>
+<a name="ln-861"></a>      <span class="n">endif</span>
+<a name="ln-862"></a>      <span class="c">!</span>
+<a name="ln-863"></a>      <span class="k">DEALLOCATE</span><span class="p">(</span><span class="n">l2g_new</span><span class="p">)</span>
+<a name="ln-864"></a>    <span class="n">ENDDO</span>
+<a name="ln-865"></a>    <span class="c">!</span>
+<a name="ln-866"></a>    <span class="k">CALL </span><span class="n">deallocate_bec_type</span> <span class="p">(</span> <span class="n">becp</span> <span class="p">)</span>
+<a name="ln-867"></a>    <span class="c">!</span>
+<a name="ln-868"></a>  <span class="n">ENDIF</span>
+<a name="ln-869"></a>
+<a name="ln-870"></a>  <span class="k">DEALLOCATE</span><span class="p">(</span> <span class="n">igk_l2g</span> <span class="p">)</span>
+<a name="ln-871"></a>  <span class="k">DEALLOCATE</span><span class="p">(</span> <span class="n">igwk</span> <span class="p">)</span>
+<a name="ln-872"></a>  <span class="k">DEALLOCATE</span> <span class="p">(</span> <span class="n">ngk_g</span> <span class="p">)</span>
+<a name="ln-873"></a>
+<a name="ln-874"></a><span class="k">END SUBROUTINE </span><span class="n">write_export</span>
+<a name="ln-875"></a>
+<a name="ln-876"></a><span class="k">END PROGRAM </span><span class="n">pw_export_for_TME</span>
 </pre></div>
 
     </section>
@@ -1219,7 +1179,7 @@
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2020 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">
@@ -1228,7 +1188,7 @@
             
           </p>
         </div>
-        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Carrier Cross Sections was developed by </p></div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Defect Cross Sections was developed by </p></div>
       </div>
       <br>
       </div> <!-- /container -->    

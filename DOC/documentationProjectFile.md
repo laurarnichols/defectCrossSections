@@ -1,7 +1,7 @@
 ---
-project: Carrier Cross Sections
+project: Defect Cross Sections
 project_gitub: https://github.com/laurarnichols/carrierCrossSections.git
-summary: This program takes input from Quantum ESPRESSO and calculates the cross section of a defect that can capture or scatter a carrier.
+summary: This program takes input from Quantum ESPRESSO and calculates the capture cross section of a defect or the probability that a hot carrier will be captured by the defect
 src_dir: ../QE-dependent/QE-5.3.0/Export/src
 src_dir:../TME/src
 src_dir:../Mj/src
@@ -60,7 +60,7 @@ This documentation is in progress. Please report any issues you find.
 @endnote
 
 ## How to Run
-I don't know how to run yet, so this section contains notes to try to figure that out. [Here](carrierCapture.pdf) is a flow chart describing 
+I don't know how to run yet, so this section contains notes to try to figure that out. [Here](media/carrierCapture.pdf) is a flow chart describing 
 how the programs connect as far as I know.
 
 * TME stands for transition matrix element

@@ -5,12 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
    
-   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the cross section of a defect that can capture or scatter a carrier.">
+   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the capture cross section of a defect or the probability that a hot carrier will be captured by the defect">
     
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>initializeCalculation &ndash; Carrier Cross Sections</title>
+    <title>initializeCalculation &ndash; Defect Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -44,7 +44,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="../index.html">Carrier Cross Sections </a>
+          <a class="navbar-brand" href="../index.html">Defect Cross Sections </a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
@@ -217,7 +217,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine initializeCalculation(solidDefect, pristineCrystal, elementsPath, VfisOutput, ki, kf, eBin, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, calculateVfis, t0)
+public subroutine initializeCalculation(solidDefect, perfectCrystal, elementsPath, VfisOutput, ki, kf, eBin, calculateVfis, t0)
     
     
    
@@ -277,12 +277,12 @@ public subroutine initializeCalculation(solidDefect, pristineCrystal, elementsPa
   
 <tr>
   
-  <td><span class="anchor" id="variable-pristinecrystal"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
+  <td><span class="anchor" id="variable-perfectcrystal"></span>type(<a href='../type/crystal.html'>crystal</a>),</td>
   <td>intent(inout)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>pristineCrystal</strong></td><td></td>
+  <td><strong>perfectCrystal</strong></td><td></td>
   
 </tr>
 
@@ -358,66 +358,6 @@ public subroutine initializeCalculation(solidDefect, pristineCrystal, elementsPa
   
   <td></td><td>::</td>
   <td><strong>eBin</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-ibandiinit"></span>integer,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>iBandIinit</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-ibandifinal"></span>integer,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>iBandIfinal</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-ibandfinit"></span>integer,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>iBandFinit</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-ibandffinal"></span>integer,</td>
-  <td>intent(out)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>iBandFfinal</strong></td><td></td>
   
 </tr>
 
@@ -562,8 +502,8 @@ public subroutine initializeCalculation(solidDefect, pristineCrystal, elementsPa
     
     <section>
     <h2><span class="anchor" id="src"></span>Source Code</h2>
-    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initializeCalculation</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">,</span> <span class="n">pristineCrystal</span><span class="p">,</span> <span class="n">elementsPath</span><span class="p">,</span> <span class="n">VFisOutput</span><span class="p">,</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">eBin</span><span class="p">,</span> <span class="p">&amp;</span>
-                                   <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span><span class="p">,</span> <span class="n">calculateVFis</span><span class="p">,</span> <span class="n">t0</span><span class="p">)</span>
+    <div class="highlight"><pre><span></span>  <span class="k">subroutine </span><span class="n">initializeCalculation</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">,</span> <span class="n">elementsPath</span><span class="p">,</span> <span class="n">VFisOutput</span><span class="p">,</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">eBin</span><span class="p">,</span> <span class="p">&amp;</span>
+                                   <span class="n">calculateVFis</span><span class="p">,</span> <span class="n">t0</span><span class="p">)</span>
     <span class="c">!! Initialize the calculation by starting timer,</span>
     <span class="c">!! setting start values for variables to be read from</span>
     <span class="c">!! `.in` file, removing any existing output in the output directory,</span>
@@ -573,7 +513,7 @@ public subroutine initializeCalculation(solidDefect, pristineCrystal, elementsPa
     <span class="c">!!</span>
     <span class="k">implicit none</span>
     <span class="c">!</span>
-    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+    <span class="kt">integer</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">ki</span><span class="p">,</span> <span class="n">kf</span>
     <span class="c">!</span>
     <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">eBin</span><span class="p">,</span> <span class="n">t0</span>
     <span class="c">!</span>
@@ -583,7 +523,7 @@ public subroutine initializeCalculation(solidDefect, pristineCrystal, elementsPa
     <span class="kt">logical</span><span class="p">,</span> <span class="k">intent</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="kd">::</span> <span class="n">calculateVfis</span>
     <span class="kt">logical</span> <span class="kd">::</span> <span class="n">fileExists</span>
       <span class="c">!! Whether or not the output file already exists</span>
-    <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">solidDefect</span><span class="p">,</span> <span class="n">pristineCrystal</span>
+    <span class="k">TYPE</span><span class="p">(</span><span class="n">crystal</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span> <span class="kd">::</span> <span class="n">solidDefect</span><span class="p">,</span> <span class="n">perfectCrystal</span>
     <span class="c">!</span>
     <span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">exportDir</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
@@ -595,10 +535,10 @@ public subroutine initializeCalculation(solidDefect, pristineCrystal, elementsPa
     <span class="c">!</span>
     <span class="n">eBin</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0_dp</span>
     <span class="c">!</span>
-    <span class="n">iBandIinit</span>  <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">iBandIfinal</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">iBandFinit</span>  <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">iBandFfinal</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandL</span>  <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandH</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandL</span>  <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandH</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="c">!</span>
     <span class="n">calculateVfis</span> <span class="o">=</span> <span class="p">.</span><span class="n">false</span><span class="p">.</span>
     <span class="c">!</span>
@@ -637,7 +577,7 @@ public subroutine initializeCalculation(solidDefect, pristineCrystal, elementsPa
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2020 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">
@@ -646,7 +586,7 @@ public subroutine initializeCalculation(solidDefect, pristineCrystal, elementsPa
             
           </p>
         </div>
-        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Carrier Cross Sections was developed by </p></div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Defect Cross Sections was developed by </p></div>
       </div>
       <br>
       </div> <!-- /container -->    

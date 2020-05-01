@@ -5,13 +5,13 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
    
-   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the cross section of a defect that can capture or scatter a carrier.">
+   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the capture cross section of a defect or the probability that a hot carrier will be captured by the defect">
     
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
     <title>
-All Procedures &ndash; Carrier Cross Sections
+All Procedures &ndash; Defect Cross Sections
 </title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
@@ -46,7 +46,7 @@ All Procedures &ndash; Carrier Cross Sections
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="../index.html">Carrier Cross Sections </a>
+          <a class="navbar-brand" href="../index.html">Defect Cross Sections </a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
@@ -222,9 +222,12 @@ All Procedures &ndash; Carrier Cross Sections
 			 
 			   <tr><td><a href='../proc/finalizecalculation.html'>finalizeCalculation</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Stop timer, write out total time taken, and close the output file</p></td></tr>
 			 
+			   <tr><td><a href='../proc/findloc.html'>findloc</a></td><td><a href='../module/miscutilities.html'>miscUtilities</a></td><td>Function</td><td><p>Find the first instance of a search string in
+ an array of strings</p></td></tr>
+			 
 			   <tr><td><a href='../proc/iknb%7E2.html'>iknb</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
-			   <tr><td><a href='../proc/iknb.html'>iknb</a></td><td><a href='../module/generalcomputations.html'>generalComputations</a></td><td>Subroutine</td><td><p><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong>*</strong>72</p><a href="../proc/iknb.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
+			   <tr><td><a href='../proc/iknb.html'>iknb</a></td><td><a href='../module/generalcomputations.html'>generalComputations</a></td><td>Subroutine</td><td><p>IKNB compute Bessel function In(x) and Kn(x).</p><a href="../proc/iknb.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/iknb2.html'>iknb2</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
@@ -426,7 +429,7 @@ All Procedures &ndash; Carrier Cross Sections
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2020 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">
@@ -435,7 +438,7 @@ All Procedures &ndash; Carrier Cross Sections
             
           </p>
         </div>
-        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Carrier Cross Sections was developed by </p></div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Defect Cross Sections was developed by </p></div>
       </div>
       <br>
       </div> <!-- /container -->    

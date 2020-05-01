@@ -5,12 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
    
-   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the cross section of a defect that can capture or scatter a carrier.">
+   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the capture cross section of a defect or the probability that a hot carrier will be captured by the defect">
     
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>checkInitialization &ndash; Carrier Cross Sections</title>
+    <title>checkInitialization &ndash; Defect Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -44,7 +44,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="../index.html">Carrier Cross Sections </a>
+          <a class="navbar-brand" href="../index.html">Defect Cross Sections </a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
@@ -278,19 +278,19 @@ public subroutine checkInitialization()
 <p>Output the elements path</p>
 </li>
 <li>
-<p>If <code>iBandIinit</code> was read, output its value</p>
+<p>If <code>iBandL_PC</code> was read, output its value</p>
 </li>
 <li>
-<p>If <code>iBandIfinal</code> was read, output its value</p>
+<p>If <code>iBandH_PC</code> was read, output its value</p>
 </li>
 <li>
-<p>If <code>iBandFinit</code> was read, output its value</p>
+<p>If <code>iBandL_SD</code> was read, output its value</p>
 </li>
 <li>
-<p>If <code>iBandFfinal</code> was read, output its value</p>
+<p>If <code>iBandH_SD</code> was read, output its value</p>
 </li>
 <li>
-<p>If <code>calculateVfis</code> is true and <code>iBandFinit</code> and <code>iBandFfinal</code> are not equal</p>
+<p>If <code>calculateVfis</code> is true and <code>iBandL_SD</code> and <code>iBandH_SD</code> are not equal</p>
 <ul>
 <li>Output an error message and set <code>abortExecution</code> to true</li>
 </ul>
@@ -551,48 +551,48 @@ public subroutine checkInitialization()
     <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;elementsPath = &#39;&#39;&quot;, a, &quot;&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">elementsPath</span><span class="p">)</span>
       <span class="c">!! * Output the elements path</span>
     <span class="c">!</span>
-    <span class="k">if</span><span class="p">(</span> <span class="n">wasRead</span><span class="p">(</span><span class="n">iBandIinit</span><span class="p">,</span> <span class="s1">&#39;iBandIinit&#39;</span><span class="p">,</span> <span class="s1">&#39;iBandIinit = 10&#39;</span><span class="p">,</span> <span class="n">abortExecution</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
-      <span class="c">!! * If `iBandIinit` was read, output its value</span>
+    <span class="k">if</span><span class="p">(</span> <span class="n">wasRead</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandL</span><span class="p">,</span> <span class="s1">&#39;iBandL_PC&#39;</span><span class="p">,</span> <span class="s1">&#39;iBandL_PC = 10&#39;</span><span class="p">,</span> <span class="n">abortExecution</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!! * If `iBandL_PC` was read, output its value</span>
       <span class="c">!</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;iBandIinit = &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">iBandIinit</span>
-      <span class="c">!</span>
-    <span class="n">endif</span>
-    <span class="c">!</span>
-    <span class="k">if</span><span class="p">(</span> <span class="n">wasRead</span><span class="p">(</span><span class="n">iBandIfinal</span><span class="p">,</span> <span class="s1">&#39;iBandIfinal&#39;</span><span class="p">,</span> <span class="s1">&#39;iBandIfinal = 20&#39;</span><span class="p">,</span> <span class="n">abortExecution</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
-      <span class="c">!! * If `iBandIfinal` was read, output its value</span>
-      <span class="c">!</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;iBandIfinal = &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">iBandIfinal</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;iBandL_PC = &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandL</span>
       <span class="c">!</span>
     <span class="n">endif</span>
     <span class="c">!</span>
-    <span class="k">if</span><span class="p">(</span> <span class="n">wasRead</span><span class="p">(</span><span class="n">iBandFinit</span><span class="p">,</span> <span class="s1">&#39;iBandFinit&#39;</span><span class="p">,</span> <span class="s1">&#39;iBandFinit = 9&#39;</span><span class="p">,</span> <span class="n">abortExecution</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
-      <span class="c">!! * If `iBandFinit` was read, output its value</span>
+    <span class="k">if</span><span class="p">(</span> <span class="n">wasRead</span><span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandH</span><span class="p">,</span> <span class="s1">&#39;iBandH_PC&#39;</span><span class="p">,</span> <span class="s1">&#39;iBandH_PC = 20&#39;</span><span class="p">,</span> <span class="n">abortExecution</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!! * If `iBandH_PC` was read, output its value</span>
       <span class="c">!</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;iBandFinit = &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">iBandFinit</span>
-      <span class="c">!</span>
-    <span class="n">endif</span>
-    <span class="c">!</span>
-    <span class="k">if</span><span class="p">(</span> <span class="n">wasRead</span><span class="p">(</span><span class="n">iBandFfinal</span><span class="p">,</span> <span class="s1">&#39;iBandFfinal&#39;</span><span class="p">,</span> <span class="s1">&#39;iBandFfinal = 9&#39;</span><span class="p">,</span> <span class="n">abortExecution</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
-      <span class="c">!! * If `iBandFfinal` was read, output its value</span>
-      <span class="c">!</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;iBandFfinal = &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">iBandFfinal</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;iBandH_PC = &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandH</span>
       <span class="c">!</span>
     <span class="n">endif</span>
     <span class="c">!</span>
-    <span class="c">!&gt; * If `calculateVfis` is true and `iBandFinit` and `iBandFfinal` are not equal</span>
+    <span class="k">if</span><span class="p">(</span> <span class="n">wasRead</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandL</span><span class="p">,</span> <span class="s1">&#39;iBandL_SD&#39;</span><span class="p">,</span> <span class="s1">&#39;iBandL_SD = 9&#39;</span><span class="p">,</span> <span class="n">abortExecution</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!! * If `iBandL_SD` was read, output its value</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;iBandL_SD = &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandL</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="k">if</span><span class="p">(</span> <span class="n">wasRead</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandH</span><span class="p">,</span> <span class="s1">&#39;iBandH_SD&#39;</span><span class="p">,</span> <span class="s1">&#39;iBandH_SD = 9&#39;</span><span class="p">,</span> <span class="n">abortExecution</span><span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+      <span class="c">!! * If `iBandH_SD` was read, output its value</span>
+      <span class="c">!</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;iBandH_SD = &quot;, i4)&#39;</span><span class="p">)</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandH</span>
+      <span class="c">!</span>
+    <span class="n">endif</span>
+    <span class="c">!</span>
+    <span class="c">!&gt; * If `calculateVfis` is true and `iBandL_SD` and `iBandH_SD` are not equal</span>
     <span class="c">!&gt;    * Output an error message and set `abortExecution` to true</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="p">(</span> <span class="n">calculateVfis</span> <span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span> <span class="n">iBandFinit</span> <span class="o">/=</span> <span class="n">iBandFfinal</span> <span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
+    <span class="k">if</span> <span class="p">(</span> <span class="p">(</span> <span class="n">calculateVfis</span> <span class="p">)</span> <span class="p">.</span><span class="nb">and</span><span class="p">.</span> <span class="p">(</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandL</span> <span class="o">/=</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandH</span> <span class="p">)</span> <span class="p">)</span> <span class="k">then</span>
       <span class="c">!</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; Vfis can be calculated only if the final state is one and only one!&quot;)&#39;</span><span class="p">)</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; &#39;&#39;iBandFInit&#39;&#39; = &quot;, i10)&#39;</span><span class="p">)</span> <span class="n">iBandFinit</span>
-      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; &#39;&#39;iBandFfinal&#39;&#39; = &quot;, i10)&#39;</span><span class="p">)</span> <span class="n">iBandFfinal</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; &#39;&#39;iBandL_SD&#39;&#39; = &quot;, i10)&#39;</span><span class="p">)</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandL</span>
+      <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; &#39;&#39;iBandH_SD&#39;&#39; = &quot;, i10)&#39;</span><span class="p">)</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandH</span>
       <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot; This variable is mandatory and thus the program will not be executed!&quot;)&#39;</span><span class="p">)</span>
       <span class="n">abortExecution</span> <span class="o">=</span> <span class="p">.</span><span class="n">true</span><span class="p">.</span>
       <span class="c">!</span>
     <span class="n">endif</span>
     <span class="c">!</span>
-    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;calculateVfis = &quot;, l )&#39;</span><span class="p">)</span> <span class="n">calculateVfis</span>
+    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="s1">&#39;(&quot;calculateVfis = &quot;, l5 )&#39;</span><span class="p">)</span> <span class="n">calculateVfis</span>
       <span class="c">!! * Output the value of `calculateVfis`</span>
     <span class="c">!</span>
     <span class="c">!&gt; * If the `VfisOutput` file name is blank</span>
@@ -679,7 +679,7 @@ public subroutine checkInitialization()
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2020 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">
@@ -688,7 +688,7 @@ public subroutine checkInitialization()
             
           </p>
         </div>
-        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Carrier Cross Sections was developed by </p></div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Defect Cross Sections was developed by </p></div>
       </div>
       <br>
       </div> <!-- /container -->    

@@ -5,12 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
    
-   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the cross section of a defect that can capture or scatter a carrier.">
+   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the capture cross section of a defect or the probability that a hot carrier will be captured by the defect">
     
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>Todo &ndash; Carrier Cross Sections</title>
+    <title>Todo &ndash; Defect Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -44,7 +44,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="../index.html">Carrier Cross Sections </a>
+          <a class="navbar-brand" href="../index.html">Defect Cross Sections </a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
@@ -122,7 +122,7 @@
         <li><i class="fa fa-pencil"></i> Laura Nichols</li>
          
          
-        <li><i class="fa fa-calendar-o"></i> 10/01/2019</li>
+        <li><i class="fa fa-calendar-o"></i> 05/01/2020</li>
          
 <!--
         
@@ -149,39 +149,39 @@
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:185:</code> Figure out how getting <code>de</code> is "calculating DOS" and if not where DOS is</li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:186:</code> Figure out why DOS isn't in sum as in formula</li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:302:</code> Move the behavior of splitting up Monte Carlo steps to a subroutine</li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:333:</code> Move this to a subroutine</li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:339:</code> Replace this with <code>binomialCoefficient(kPhonons-1, kPhonons-nBands)</code></li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:331:</code> Move this to a subroutine</li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Main.f90:337:</code> Replace this with <code>binomialCoefficient(kPhonons-1, kPhonons-nBands)</code></li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:192:</code> Figure out why increase <code>minimumNumberOfPhonons</code> by 1</li>
 <li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:227:</code> Change <code>nOfqPoints</code> to <code>numberOfQPoints</code> </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:511:</code> Remove all of these comments </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:575:</code> Figure out if <code>iModeFs(myid)</code> has a max of <code>nModes-3</code> or <code>nModes-nBands+1</code></li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:600:</code> Figure out what the purpose of <code>ic</code> is </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:664:</code> Change this to merge if statements </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:678:</code> Figure out why don't just exit here because will be multiplying by 0 </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:698:</code> Redo <code>besRatio</code> if statement to be more clear that it is if/else </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:744:</code> Send slice instead of using <code>other</code> </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:757:</code> Figure out if there is a better way in general to do this </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:758:</code> Write a recursive function to replace explicit loops </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:759:</code> Fix typo in <code>distrubute</code> </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:760:</code> Change <code>l</code> to <code>nBands</code> and <code>m</code> to <code>kPhonons</code> or something similar </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:801:</code> Add a condition to exit inner loop if <code>i1 + i2 + i3 &gt; m</code> </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:810:</code> Add a condition to exit inner loop if <code>i &gt; size of pj0s</code> </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1166:</code> Make sure that Monte Carlo makes sense here </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1167:</code> Figure out if there are any methods that would be better/faster </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1203:</code> Figure out a better way to do this as it is crazy inefficient </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1208:</code> Remove as not needed </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1229:</code> Fix the possible bug here </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1240:</code> Move some of this to another subroutine </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1322:</code> Figure out why array is reversed </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1362:</code> Figure out if there is a clearer or faster way to do this </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1363:</code> Maybe move this to a subroutine </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1388:</code> Switch the <code>.true.</code> and <code>.false.</code> assignments to make more sense </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1539:</code> Replace this with <code>binomialCoefficient(kPhonons-1, kPhonons-nBands)</code> </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1606:</code> Change the name of this subroutine to just <code>writeLSF</code> </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1607:</code> Remove all of the extra stuff from this subroutine </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1706:</code> Merge this with <code>parallelIsFsBy4</code> </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1716:</code> Write a binomialCoefficient function </li>
-<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1743:</code> Change this to use available states instead of totalStates </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:532:</code> Remove all of these comments </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:596:</code> Figure out if <code>iModeFs(myid)</code> has a max of <code>nModes-3</code> or <code>nModes-nBands+1</code></li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:621:</code> Figure out what the purpose of <code>ic</code> is </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:685:</code> Change this to merge if statements </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:699:</code> Figure out why don't just exit here because will be multiplying by 0 </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:719:</code> Redo <code>besRatio</code> if statement to be more clear that it is if/else </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:765:</code> Send slice instead of using <code>other</code> </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:778:</code> Figure out if there is a better way in general to do this </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:779:</code> Write a recursive function to replace explicit loops </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:780:</code> Fix typo in <code>distrubute</code> </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:781:</code> Change <code>l</code> to <code>nBands</code> and <code>m</code> to <code>kPhonons</code> or something similar </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:822:</code> Add a condition to exit inner loop if <code>i1 + i2 + i3 &gt; m</code> </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:831:</code> Add a condition to exit inner loop if <code>i &gt; size of pj0s</code> </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1187:</code> Make sure that Monte Carlo makes sense here </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1188:</code> Figure out if there are any methods that would be better/faster </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1224:</code> Figure out a better way to do this as it is crazy inefficient </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1229:</code> Remove as not needed </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1250:</code> Fix the possible bug here </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1261:</code> Move some of this to another subroutine </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1343:</code> Figure out why array is reversed </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1383:</code> Figure out if there is a clearer or faster way to do this </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1384:</code> Maybe move this to a subroutine </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1409:</code> Switch the <code>.true.</code> and <code>.false.</code> assignments to make more sense </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1560:</code> Replace this with <code>binomialCoefficient(kPhonons-1, kPhonons-nBands)</code> </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1627:</code> Change the name of this subroutine to just <code>writeLSF</code> </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1628:</code> Remove all of the extra stuff from this subroutine </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1727:</code> Merge this with <code>parallelIsFsBy4</code> </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1737:</code> Write a binomialCoefficient function </li>
+<li><code>../LSF/src/zerothOrder/LSF_zeroth_Module_v35.f90:1764:</code> Change this to use available states instead of totalStates </li>
 <li><code>../Mj/src/Mj_Main.f90:17:</code> Make sure that there is an end timer</li>
 <li><code>../Mj/src/Mj_Module_v1.f90:25:</code> Make sure default value is set for <code>qPoint</code> </li>
 <li><code>../Mj/src/Mj_Module_v1.f90:269:</code> Figure out if expect <code>modeI</code> and <code>modeF</code> to represent index of magnitude of argument <code>x</code> </li>
@@ -193,45 +193,45 @@
 <li><code>../Sigma/src/Sigma_Module_v4.f90:325:</code> Figure out where this file is opened</li>
 <li><code>../Sigma/src/Sigma_Module_v4.f90:329:</code> Figure out what <code>abCM</code> is</li>
 <li><code>../TME/src/TME_Main_v9.f90:2:</code> Add detailed math derivation and summary for main program</li>
-<li><code>../TME/src/TME_Main_v9.f90:48:</code> Figure out if need to allocate space for arrays so soon</li>
-<li><code>../TME/src/TME_Main_v9.f90:60:</code> Figure out if SD and PC <code>numOfGvecs</code> should be the same</li>
+<li><code>../TME/src/TME_Main_v9.f90:47:</code> Figure out if need to allocate space for arrays so soon</li>
+<li><code>../TME/src/TME_Main_v9.f90:64:</code> Figure out if SD and PC <code>numOfGvecs</code> should be the same</li>
 <li><code>../TME/src/TME_Module_v28.f90:34:</code> Change I/O from file to console so that usage matches that of QE</li>
-<li><code>../TME/src/TME_Module_v28.f90:156:</code> Consider changing <code>atom</code> type to <code>element</code> since it holds more than one atom</li>
-<li><code>../TME/src/TME_Module_v28.f90:402:</code> Change <code>checkInitialization()</code> to have arguments to make clear that these variables are getting changed</li>
-<li><code>../TME/src/TME_Module_v28.f90:544:</code> Remove everything with <code>ki</code> and <code>kf</code> because never used</li>
-<li><code>../TME/src/TME_Module_v28.f90:831:</code> Look more into how AE and PS wavefunctions are combined to further understand this</li>
-<li><code>../TME/src/TME_Module_v28.f90:832:</code> Move this behavior to another subroutine for clarity</li>
-<li><code>../TME/src/TME_Module_v28.f90:841:</code> Figure out if differences in PC and SD <code>F1</code> calculations are intentional</li>
-<li><code>../TME/src/TME_Module_v28.f90:842:</code> Figure out if should be <code>(wae_i wae_j - wps_i wps_j)r_{ab}</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:843:</code> Figure out if first term in each should be conjugated for inner product form</li>
-<li><code>../TME/src/TME_Module_v28.f90:844:</code> Figure out if <code>rab</code> plays role of <script type="math/tex">dr</script> within augmentation sphere</li>
-<li><code>../TME/src/TME_Module_v28.f90:883:</code> Figure out if intentional to only use <code>JMAX</code> from SD input</li>
-<li><code>../TME/src/TME_Module_v28.f90:1213:</code> Get actual perfect crystal and solid defect output to test</li>
-<li><code>../TME/src/TME_Module_v28.f90:1214:</code> Figure out if loop should be over <code>solidDefect</code> or <code>perfectCrystal</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1215:</code> Look into <code>nSpins</code> to figure out if it is needed</li>
-<li><code>../TME/src/TME_Module_v28.f90:1233:</code> Figure out what this subroutine really does</li>
-<li><code>../TME/src/TME_Module_v28.f90:1355:</code> Figure out what this subroutine really does</li>
-<li><code>../TME/src/TME_Module_v28.f90:1407:</code> Figure out the significance of <script type="math/tex">l = l^{\prime}</script> and <script type="math/tex">m = m^{\prime}</script>
+<li><code>../TME/src/TME_Module_v28.f90:152:</code> Consider changing <code>atom</code> type to <code>element</code> since it holds more than one atom</li>
+<li><code>../TME/src/TME_Module_v28.f90:410:</code> Change <code>checkInitialization()</code> to have arguments to make clear that these variables are getting changed</li>
+<li><code>../TME/src/TME_Module_v28.f90:552:</code> Remove everything with <code>ki</code> and <code>kf</code> because never used</li>
+<li><code>../TME/src/TME_Module_v28.f90:838:</code> Look more into how AE and PS wavefunctions are combined to further understand this</li>
+<li><code>../TME/src/TME_Module_v28.f90:839:</code> Move this behavior to another subroutine for clarity</li>
+<li><code>../TME/src/TME_Module_v28.f90:848:</code> Figure out if differences in PC and SD <code>F1</code> calculations are intentional</li>
+<li><code>../TME/src/TME_Module_v28.f90:849:</code> Figure out if should be <code>(wae_i wae_j - wps_i wps_j)r_{ab}</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:850:</code> Figure out if first term in each should be conjugated for inner product form</li>
+<li><code>../TME/src/TME_Module_v28.f90:851:</code> Figure out if <code>rab</code> plays role of <script type="math/tex">dr</script> within augmentation sphere</li>
+<li><code>../TME/src/TME_Module_v28.f90:890:</code> Figure out if intentional to only use <code>JMAX</code> from SD input</li>
+<li><code>../TME/src/TME_Module_v28.f90:1220:</code> Get actual perfect crystal and solid defect output to test</li>
+<li><code>../TME/src/TME_Module_v28.f90:1221:</code> Figure out if loop should be over <code>solidDefect</code> or <code>perfectCrystal</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1222:</code> Look into <code>nSpins</code> to figure out if it is needed</li>
+<li><code>../TME/src/TME_Module_v28.f90:1240:</code> Figure out what this subroutine really does</li>
+<li><code>../TME/src/TME_Module_v28.f90:1344:</code> Figure out what this subroutine really does</li>
+<li><code>../TME/src/TME_Module_v28.f90:1396:</code> Figure out the significance of <script type="math/tex">l = l^{\prime}</script> and <script type="math/tex">m = m^{\prime}</script>
 </li>
-<li><code>../TME/src/TME_Module_v28.f90:1439:</code> Figure out why the difference between SD and PC</li>
-<li><code>../TME/src/TME_Module_v28.f90:1452:</code> Figure out why the difference between SD and PC</li>
-<li><code>../TME/src/TME_Module_v28.f90:1489:</code> Figure out what this subroutine really does</li>
-<li><code>../TME/src/TME_Module_v28.f90:1561:</code> Figure out if this output slows things down significantly</li>
-<li><code>../TME/src/TME_Module_v28.f90:1562:</code> Figure out if formula gives accurate representation of time left</li>
-<li><code>../TME/src/TME_Module_v28.f90:1606:</code> Figure out if this should be <code>system</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1607:</code> Figure out significance of "qr" point</li>
-<li><code>../TME/src/TME_Module_v28.f90:1610:</code> Test if can just directly store in each atom type's <code>bes_J_qr</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1630:</code> Figure out if this should be <code>gDotR</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1632:</code> Figure out why this is called <code>ATOMIC_CENTER</code></li>
-<li><code>../TME/src/TME_Module_v28.f90:1633:</code> Figure out why the difference between SD and PC</li>
-<li><code>../TME/src/TME_Module_v28.f90:1662:</code> Figure out why the difference between SD and PC</li>
-<li><code>../TME/src/TME_Module_v28.f90:1677:</code> Figure out why the difference between SD and PC</li>
-<li><code>../TME/src/TME_Module_v28.f90:2172:</code> Figure out what the purpose of this function is. For plotting?</li>
-<li><code>../TME/src/TME_Module_v28.f90:2259:</code> Figure out why <code>DHifMin</code> is needed</li>
-<li><code>../TME/src/TME_Module_v28.f90:2260:</code> Figure out why used difference rather than `==</li>
-<li><code>../TME/src/TME_Module_v28.f90:2265:</code> Figure out why this test is here. All of these should be positive, right?</li>
-<li><code>../TME/src/TME_Module_v28.f90:2319:</code> Figure out where unit 12 file is opened and what it is</li>
-<li><code>../TME/src/TME_Module_v28.f90:2354:</code> Figure out why use <code>eMin + iE*eBin</code> rather than <code>DE</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1428:</code> Figure out why the difference between SD and PC</li>
+<li><code>../TME/src/TME_Module_v28.f90:1441:</code> Figure out why the difference between SD and PC</li>
+<li><code>../TME/src/TME_Module_v28.f90:1478:</code> Figure out what this subroutine really does</li>
+<li><code>../TME/src/TME_Module_v28.f90:1550:</code> Figure out if this output slows things down significantly</li>
+<li><code>../TME/src/TME_Module_v28.f90:1551:</code> Figure out if formula gives accurate representation of time left</li>
+<li><code>../TME/src/TME_Module_v28.f90:1595:</code> Figure out if this should be <code>system</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1596:</code> Figure out significance of "qr" point</li>
+<li><code>../TME/src/TME_Module_v28.f90:1599:</code> Test if can just directly store in each atom type's <code>bes_J_qr</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1619:</code> Figure out if this should be <code>gDotR</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1621:</code> Figure out why this is called <code>ATOMIC_CENTER</code></li>
+<li><code>../TME/src/TME_Module_v28.f90:1622:</code> Figure out why the difference between SD and PC</li>
+<li><code>../TME/src/TME_Module_v28.f90:1651:</code> Figure out why the difference between SD and PC</li>
+<li><code>../TME/src/TME_Module_v28.f90:1666:</code> Figure out why the difference between SD and PC</li>
+<li><code>../TME/src/TME_Module_v28.f90:2163:</code> Figure out what the purpose of this function is. For plotting?</li>
+<li><code>../TME/src/TME_Module_v28.f90:2252:</code> Figure out why <code>DHifMin</code> is needed</li>
+<li><code>../TME/src/TME_Module_v28.f90:2253:</code> Figure out why used difference rather than `==</li>
+<li><code>../TME/src/TME_Module_v28.f90:2258:</code> Figure out why this test is here. All of these should be positive, right?</li>
+<li><code>../TME/src/TME_Module_v28.f90:2312:</code> Figure out where unit 12 file is opened and what it is</li>
+<li><code>../TME/src/TME_Module_v28.f90:2347:</code> Figure out why use <code>eMin + iE*eBin</code> rather than <code>DE</code></li>
 </ul>
     </div>
     
@@ -279,7 +279,7 @@
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2020 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">
@@ -288,7 +288,7 @@
             
           </p>
         </div>
-        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Carrier Cross Sections was developed by </p></div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Defect Cross Sections was developed by </p></div>
       </div>
       <br>
       </div> <!-- /container -->    

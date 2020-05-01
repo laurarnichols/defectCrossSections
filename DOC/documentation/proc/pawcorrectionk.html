@@ -5,12 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
    
-   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the cross section of a defect that can capture or scatter a carrier.">
+   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the capture cross section of a defect or the probability that a hot carrier will be captured by the defect">
     
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>pawCorrectionK &ndash; Carrier Cross Sections</title>
+    <title>pawCorrectionK &ndash; Defect Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -44,7 +44,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="../index.html">Carrier Cross Sections </a>
+          <a class="navbar-brand" href="../index.html">Defect Cross Sections </a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
@@ -1039,9 +1039,9 @@ public subroutine pawCorrectionK(system)
               <span class="c">!</span>
             <span class="n">endif</span>
             <span class="c">!</span>
-            <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+            <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandL</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandH</span>
               <span class="c">!</span>
-              <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+              <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandL</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandH</span>
                 <span class="c">!</span>
                 <span class="c">!&gt; @todo Figure out why the difference between SD and PC @endtodo</span>
                 <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
@@ -1087,7 +1087,7 @@ public subroutine pawCorrectionK(system)
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2020 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">
@@ -1096,7 +1096,7 @@ public subroutine pawCorrectionK(system)
             
           </p>
         </div>
-        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Carrier Cross Sections was developed by </p></div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Defect Cross Sections was developed by </p></div>
       </div>
       <br>
       </div> <!-- /container -->    

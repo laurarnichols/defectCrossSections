@@ -690,46 +690,6 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
   !
   DEALLOCATE( rtmp_gg )
 
-!  ! for each k point build and write the global G+k indexes array
-!  ALLOCATE( igwk( npwx_g,nkstot ) )
-!  !WRITE(0,*) "Writing grids for wfc"
-!  !CALL iotk_write_attr (attr,"npwx",npwx_g,first=.true.)
-!  !IF(ionode) CALL iotk_write_begin(50,"Wfc_grids",ATTR=attr)
-!
-!
-!  DO ik = 1, nkstot
-!    igwk(:,ik) = 0
-!    !
-!    ALLOCATE( itmp1( npw_g ), STAT= ierr )
-!    IF ( ierr/=0 ) CALL errore('pw_export','allocating itmp1', abs(ierr) )
-!    itmp1 = 0
-!    !
-!    IF( ik >= iks .and. ik <= ike ) THEN
-!      DO  ig = 1, ngk( ik-iks+1 )
-!        itmp1( igk_l2g( ig, ik-iks+1 ) ) = igk_l2g( ig, ik-iks+1 )
-!      ENDDO
-!    ENDIF
-!    !
-!    CALL mp_sum( itmp1 )
-!    !
-!    ngg = 0
-!    DO  ig = 1, npw_g
-!      IF( itmp1( ig ) == ig ) THEN
-!        ngg = ngg + 1
-!        igwk( ngg , ik) = ig
-!      ENDIF
-!    ENDDO
-!    IF( ngg /= ngk_g( ik ) ) THEN
-!      WRITE( stdout,*) ' ik, ngg, ngk_g = ', ik, ngg, ngk_g( ik )
-!    ENDIF
-!    !
-!    DEALLOCATE( itmp1 )
-!    !
-!  ENDDO
-!
-!  DEALLOCATE( itmp_g )
-!
-!
 #ifdef __MPI
   CALL poolrecover (et, nbnd, nkstot, nks)
 #endif

@@ -5,12 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
    
-   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the cross section of a defect that can capture or scatter a carrier.">
+   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the capture cross section of a defect or the probability that a hot carrier will be captured by the defect">
     
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>readEigenvalues &ndash; Carrier Cross Sections</title>
+    <title>readEigenvalues &ndash; Defect Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -44,7 +44,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="../index.html">Carrier Cross Sections </a>
+          <a class="navbar-brand" href="../index.html">Defect Cross Sections </a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
@@ -242,13 +242,13 @@ public subroutine readEigenvalues(ik)
 <p>Ignore the first two lines as they are comments</p>
 </li>
 <li>
-<p>Ignore eigenvalues for bands that are before <code>iBandIinit</code></p>
+<p>Ignore eigenvalues for bands that are before <code>iBandL_PC</code></p>
 </li>
 <li>
-<p>Read in the eigenvalues from <code>iBandIinit</code> to <code>iBandIfinal</code></p>
+<p>Read in the eigenvalues from <code>iBandL_PC</code> to <code>iBandH_PC</code></p>
 </li>
 <li>
-<p>Close the solid defect <code>eigenvalues.ik</code> file</p>
+<p>Close the perfect crystal <code>eigenvalues.ik</code> file</p>
 </li>
 <li>
 <p>Open the solid defect <code>eigenvalues.ik</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
@@ -257,10 +257,10 @@ public subroutine readEigenvalues(ik)
 <p>Ignore the first two lines as they are comments</p>
 </li>
 <li>
-<p>Ignore eigenvalues for bands that are before <code>iBandFinit</code></p>
+<p>Ignore eigenvalues for bands that are before <code>iBandL_SD</code></p>
 </li>
 <li>
-<p>Read in the eigenvalues from <code>iBandFinit</code> to <code>iBandFfinal</code></p>
+<p>Read in the eigenvalues from <code>iBandL_SD</code> to <code>iBandH_SD</code></p>
 </li>
 <li>
 <p>Close the solid defect <code>eigenvalues.ik</code> file</p>
@@ -447,22 +447,22 @@ public subroutine readEigenvalues(ik)
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
       <span class="c">!! * Ignore the first two lines as they are comments</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iBandIinit</span> <span class="o">-</span> <span class="mi">1</span>
-      <span class="c">!! * Ignore eigenvalues for bands that are before `iBandIinit`</span>
+    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandL</span> <span class="o">-</span> <span class="mi">1</span>
+      <span class="c">!! * Ignore eigenvalues for bands that are before `iBandL_PC`</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
-      <span class="c">!! * Read in the eigenvalues from `iBandIinit` to `iBandIfinal`</span>
+    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandL</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandH</span>
+      <span class="c">!! * Read in the eigenvalues from `iBandL_PC` to `iBandH_PC`</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">eigvI</span><span class="p">(</span><span class="n">ib</span><span class="p">)</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
     <span class="k">close</span><span class="p">(</span><span class="mi">72</span><span class="p">)</span>
-      <span class="c">!! * Close the solid defect `eigenvalues.ik` file</span>
+      <span class="c">!! * Close the perfect crystal `eigenvalues.ik` file</span>
     <span class="c">!</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/eigenvalues.&quot;</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">ikstr</span><span class="p">))</span>
       <span class="c">!! * Open the solid defect `eigenvalues.ik` file from [[pw_export_for_tme(program)]]</span>
@@ -471,15 +471,15 @@ public subroutine readEigenvalues(ik)
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span> 
       <span class="c">!! * Ignore the first two lines as they are comments</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iBandFinit</span> <span class="o">-</span> <span class="mi">1</span>
-      <span class="c">!! * Ignore eigenvalues for bands that are before `iBandFinit`</span>
+    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandL</span> <span class="o">-</span> <span class="mi">1</span>
+      <span class="c">!! * Ignore eigenvalues for bands that are before `iBandL_SD`</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
       <span class="c">!</span>
     <span class="n">enddo</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
-      <span class="c">!! * Read in the eigenvalues from `iBandFinit` to `iBandFfinal`</span>
+    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandL</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandH</span>
+      <span class="c">!! * Read in the eigenvalues from `iBandL_SD` to `iBandH_SD`</span>
       <span class="c">!</span>
       <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="s1">&#39;(ES24.15E3)&#39;</span><span class="p">)</span> <span class="n">eigvF</span><span class="p">(</span><span class="n">ib</span><span class="p">)</span>
       <span class="c">!</span>
@@ -506,7 +506,7 @@ public subroutine readEigenvalues(ik)
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2020 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">
@@ -515,7 +515,7 @@ public subroutine readEigenvalues(ik)
             
           </p>
         </div>
-        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Carrier Cross Sections was developed by </p></div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Defect Cross Sections was developed by </p></div>
       </div>
       <br>
       </div> <!-- /container -->    

@@ -10,7 +10,7 @@
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>lsfMbyOneBand &ndash; Defect Cross Sections</title>
+    <title>findloc &ndash; Defect Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -114,8 +114,8 @@
     
   
   <div class="row">
-    <h1>lsfMbyOneBand
-      <small>Subroutine</small>
+    <h1>findloc
+      <small>Function</small>
     
     </h1>
     
@@ -132,24 +132,24 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.4% of total for procedures.">18 statements</a>
+    title=" 0.3% of total for procedures.">11 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/LSF_zeroth_Module_v35.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/miscUtilities.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/lsf_zeroth_module_v35.f90.html'>LSF_zeroth_Module_v35.f90</a></li>
+     <li><a href='../sourcefile/miscutilities.f90.html'>miscUtilities.f90</a></li>
     
-     <li><a href='../module/lsf.html'>lsf</a></li>
+     <li><a href='../module/miscutilities.html'>miscUtilities</a></li>
     
   
-     <li class="active">lsfMbyOneBand</li>
+     <li class="active">findloc</li>
   </ol>
 </div>
 </div>
@@ -177,13 +177,7 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/lsfmbyoneband.html#variable-imode1%7E2">iMode1</a>
-      
-      <a class="list-group-item" href="../proc/lsfmbyoneband.html#variable-pm1%7E2">pm1</a>
-      
-      <a class="list-group-item" href="../proc/lsfmbyoneband.html#variable-t1%7E6">t1</a>
-      
-      <a class="list-group-item" href="../proc/lsfmbyoneband.html#variable-t2%7E6">t2</a>
+      <a class="list-group-item" href="../proc/findloc.html#variable-i%7E19">i</a>
       
     </div>
   </div>
@@ -208,6 +202,14 @@
 
 
 
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/findloc.html#src">findloc</a>
+  </div>
+</div>
+
+
 
 </div>
 
@@ -215,7 +217,7 @@
     
     <div class="col-md-9" id='text'>
     <h2>
-public subroutine lsfMbyOneBand(M)
+public function findloc(stringArr, searchString) result(loc)
     
     
    
@@ -225,11 +227,8 @@ public subroutine lsfMbyOneBand(M)
 
 
     
-    <p>Calculate the line shape function for 
- various sets <script type="math/tex">\{p_j\}</script> where all <script type="math/tex">p_j</script>
- are zero except one that has values
- <script type="math/tex">-M, M</script>
-</p>
+    <p>Find the first instance of a search string in
+ an array of strings</p>
     
 
     <h3>Arguments</h3>
@@ -250,18 +249,42 @@ public subroutine lsfMbyOneBand(M)
   
 <tr>
   
-  <td><span class="anchor" id="variable-m%7E2"></span>integer,</td>
+  <td><span class="anchor" id="variable-stringarr"></span>character(len=*),</td>
   <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>M</strong></td><td><p>Number of phonons</p></td>
+  <td><strong>stringArr</strong>(:)</td><td></td>
+  
+</tr>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-searchstring"></span>character(len=*),</td>
+  <td>intent(in)</td>
+  <td></td>
+  
+  <td></td><td>::</td>
+  <td><strong>searchString</strong></td><td></td>
   
 </tr>
 
 </tbody>
 </table>
 
+    
+    
+    
+    
+    
+    
+    
+   <h3>Return Value <small><span class="anchor" id="variable-loc"></span>integer
+  </small></h3>
     
     
     
@@ -281,13 +304,7 @@ public subroutine lsfMbyOneBand(M)
   <div id="vars-1" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../proc/lsfmbyoneband.html#variable-imode1%7E2">iMode1</a>
-      
-      <a class="list-group-item" href="../proc/lsfmbyoneband.html#variable-pm1%7E2">pm1</a>
-      
-      <a class="list-group-item" href="../proc/lsfmbyoneband.html#variable-t1%7E6">t1</a>
-      
-      <a class="list-group-item" href="../proc/lsfmbyoneband.html#variable-t2%7E6">t2</a>
+      <a class="list-group-item" href="../proc/findloc.html#variable-i%7E19">i</a>
       
     </div>
   </div>
@@ -310,6 +327,14 @@ public subroutine lsfMbyOneBand(M)
 
 
 
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/findloc.html#src">findloc</a>
+  </div>
+</div>
 
 
 
@@ -337,53 +362,11 @@ public subroutine lsfMbyOneBand(M)
   
 <tr>
   
-  <td><span class="anchor" id="variable-imode1%7E2"></span>integer,</td>
+  <td><span class="anchor" id="variable-i%7E19"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
-  <td><strong>iMode1</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-pm1%7E2"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>pm1</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-t1%7E6"></span>real(kind=dp),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>t1</strong></td><td></td><td></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-t2%7E6"></span>real(kind=dp),</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>t2</strong></td><td></td><td></td><td></td>
+  <td><strong>i</strong></td><td></td><td></td><td></td>
   
 </tr>
 
@@ -407,6 +390,34 @@ public subroutine lsfMbyOneBand(M)
 
     
     
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">function </span><span class="nb">findloc</span><span class="p">(</span><span class="n">stringArr</span><span class="p">,</span> <span class="n">searchString</span><span class="p">)</span> <span class="k">result</span><span class="p">(</span><span class="nb">loc</span><span class="p">)</span>
+    <span class="c">!! Find the first instance of a search string in</span>
+    <span class="c">!! an array of strings</span>
+    <span class="c">!!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="nb">loc</span>
+    <span class="c">!</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=*</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">searchString</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=*</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">stringArr</span><span class="p">(:)</span>
+    <span class="c">!</span>
+    <span class="nb">loc</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">stringArr</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">stringArr</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">==</span> <span class="n">searchString</span><span class="p">)</span> <span class="nb">loc</span> <span class="o">=</span> <span class="n">i</span>   
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+  <span class="k">end function </span><span class="nb">findloc</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>

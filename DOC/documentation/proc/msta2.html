@@ -5,12 +5,12 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
    
-   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the cross section of a defect that can capture or scatter a carrier.">
+   <meta name="description" content="This program takes input from Quantum ESPRESSO and calculates the capture cross section of a defect or the probability that a hot carrier will be captured by the defect">
     
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>msta2 &ndash; Carrier Cross Sections</title>
+    <title>msta2 &ndash; Defect Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -44,7 +44,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="../index.html">Carrier Cross Sections </a>
+          <a class="navbar-brand" href="../index.html">Defect Cross Sections </a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.8% of total for procedures.">34 statements</a>
+    title=" 0.8% of total for procedures.">33 statements</a>
      </li> 
      
      
@@ -623,7 +623,7 @@ public function msta2(x, n, mp) result(fn_val)
       <span class="c">! </span>
       <span class="n">obj</span> <span class="o">=</span> <span class="n">mp</span> 
       <span class="c">! </span>
-      <span class="n">n0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">1.1</span><span class="o">*</span><span class="n">a0</span><span class="p">)</span> 
+      <span class="n">n0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">1.1</span><span class="o">*</span><span class="n">a0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
       <span class="c">! </span>
     <span class="k">else</span>
       <span class="c">! </span>
@@ -632,8 +632,6 @@ public function msta2(x, n, mp) result(fn_val)
       <span class="n">n0</span> <span class="o">=</span> <span class="n">n</span> 
       <span class="c">! </span>
     <span class="n">endif</span> 
-    <span class="c">!</span>
-    <span class="k">if</span> <span class="p">(</span> <span class="n">n0</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="p">)</span> <span class="n">n0</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="c">!</span>
     <span class="n">f0</span> <span class="o">=</span> <span class="n">envj</span><span class="p">(</span><span class="n">n0</span><span class="p">,</span><span class="n">a0</span><span class="p">)</span> <span class="o">-</span> <span class="n">obj</span> 
     <span class="c">!</span>
@@ -679,7 +677,7 @@ public function msta2(x, n, mp) result(fn_val)
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2020 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">
@@ -688,7 +686,7 @@ public function msta2(x, n, mp) result(fn_val)
             
           </p>
         </div>
-        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Carrier Cross Sections was developed by </p></div>
+        <div class="col-xs-12 col-md-4 col-md-pull-4"><p class="text-center"> Defect Cross Sections was developed by </p></div>
       </div>
       <br>
       </div> <!-- /container -->    
