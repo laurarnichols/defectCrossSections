@@ -1,5 +1,5 @@
 
--include ../../../../make.sys
+-include ../../../make.sys
 -include $(QE-5.0.2_Path)/make.sys
 
 # location of needed modules

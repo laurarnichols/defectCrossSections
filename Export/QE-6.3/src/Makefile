@@ -1,5 +1,5 @@
 
--include ../../../../make.sys
+-include ../../../make.sys
 -include $(QE-6.3_Path)/make.inc
 
 # location of needed modules
