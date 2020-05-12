@@ -8,7 +8,7 @@
 
 QE-5.3.0_Path = ${HOME}/q-e-qe-5.3
 
-QE-6.3_Path = ${HOME}/q-e-qe-6.3
+QE-6.3_Path = ${HOME}/qe-6.3
 
 f90 = ftn
 
