@@ -1,0 +1,131 @@
+18d17
+<   USE parameters, ONLY: nsx
+47c46
+<         nproc_pool, intra_pool_comm, root_pool
+---
+>         nproc_pool, intra_pool_comm, root_pool, npool
+67,68c66,68
+<       INTEGER :: nkl, nkr, nkbl
+<       INTEGER :: npool
+---
+>       INTEGER, EXTERNAL :: global_kpoint_index
+87,107c87,88
+<         !  find out the number of pools
+<         npool = nproc / nproc_pool
+< 
+<         !  find out number of k points blocks
+<         nkbl = nkt / kunit
+< 
+<         !  k points per pool
+<         nkl = kunit * ( nkbl / npool )
+< 
+<         !  find out the reminder
+<         nkr = ( nkt - nkl * npool ) / kunit
+< 
+<         !  Assign the reminder to the first nkr pools
+<         IF( my_pool_id < nkr ) nkl = nkl + kunit
+< 
+<         !  find out the index of the first k point in this pool
+<         iks = nkl * my_pool_id + 1
+<         IF( my_pool_id >= nkr ) iks = iks + nkr * kunit
+< 
+<         !  find out the index of the last k point in this pool
+<         ike = iks + nkl - 1
+---
+>         iks = global_kpoint_index (nkt, 1)
+>         ike = iks + nk - 1
+273,274c252
+<   USE io_files,  ONLY : outdir
+---
+285a264
+>   CHARACTER(LEN=256) :: outdir
+298c277
+< #ifdef __MPI
+---
+> #if defined(__MPI)
+337d315
+<   CALL mp_bcast( outdir, ionode_id, world_comm )
+380c358,360
+<   USE pwcom
+---
+>   USE gvecs,          ONLY : dual
+>   USE gvect,          ONLY : ngm, ngm_g, mill, ig_l2g
+>   USE gvecw,          ONLY : ecutwfc, gcutw
+389c369
+<   USE io_files,       ONLY : outdir
+---
+393a374
+>   USE cell_base,      ONLY : at, bg, alat, omega, tpiba, tpiba2  
+408,409c389
+<   INTEGER, ALLOCATABLE :: kisort(:)
+---
+>   INTEGER :: npw
+411,412c391,392
+<   INTEGER :: npool, nkbl, nkl, nkr
+---
+>   INTEGER, EXTERNAL :: global_kpoint_index
+438,458c418,419
+<      !  find out the number of pools
+<      npool = nproc / nproc_pool
+< 
+<      !  find out number of k points blocks
+<      nkbl = nkstot / kunit
+< 
+<      !  k points per pool
+<      nkl = kunit * ( nkbl / npool )
+< 
+<      !  find out the reminder
+<      nkr = ( nkstot - nkl * npool ) / kunit
+< 
+<      !  Assign the reminder to the first nkr pools
+<      IF( my_pool_id < nkr ) nkl = nkl + kunit
+< 
+<      !  find out the index of the first k point in this pool
+<      iks = nkl * my_pool_id + 1
+<      IF( my_pool_id >= nkr ) iks = iks + nkr * kunit
+< 
+<      !  find out the index of the last k point in this pool
+<      ike = iks + nkl - 1
+---
+>      iks = global_kpoint_index (nkstot, 1)
+>      ike = iks + nks - 1
+471c432
+<     CALL iotk_open_write(50,file=trim(outdir)//'/'//trim(pp_file))
+---
+>     CALL iotk_open_write(50,file=trim(tmp_dir) // trim(pp_file))
+504d464
+<   ALLOCATE ( kisort( npwx ) )
+506,508d465
+<      kisort = 0
+<      npw = npwx
+<      CALL gk_sort (xk (1, ik+iks-1), ngm, g, ecutwfc / tpiba2, npw, kisort(1), g2kin)
+511a469
+>      npw = ngk(ik)
+514c472
+<         igk_l2g(ig,ik) = ig_l2g( kisort(ig) )
+---
+>         igk_l2g(ig,ik) = ig_l2g( igk_k(ig,ik) )
+520d477
+<      ngk (ik) = npw
+522d478
+<   DEALLOCATE (kisort)
+744c700
+< #ifdef __MPI
+---
+> #if defined(__MPI)
+860,861c816
+< 
+<                CALL gk_sort (xk (1, ik+iks-1), ngm, g, ecutwfc / tpiba2, npw, igk, g2kin)
+---
+>  
+864,865c819,821
+<                CALL init_us_2(npw, igk, xk(1, ik), vkb)
+<                local_pw = ngk(ik-iks+1)
+---
+>                npw = ngk(ik-iks+1)
+>                local_pw = npw
+>                CALL init_us_2(npw, igk_k(1,ik-iks+1), xk(1, ik), vkb)
+868c824
+<                   CALL calbec ( ngk_g(ik), vkb, evc, becp )
+---
+>                   CALL calbec ( npw, vkb, evc, becp )
