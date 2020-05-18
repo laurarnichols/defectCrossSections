@@ -14,32 +14,9 @@ program wfcExportVASPMain
   !                are accessible through the ""exportDir"/input" file.
   !
 
-
-  USE wrappers,      ONLY : f_mkdir_safe
-  USE pwcom
-
-  USE io_global, ONLY : ionode, ionode_id
-  USE io_files,  ONLY : prefix, tmp_dir, outdir
-  USE ions_base, ONLY : ntype => nsp
-  USE iotk_module
-  USE mp_global, ONLY : mp_startup
-  USE mp_pools,  ONLY : kunit
-  USE mp_world,  ONLY: world_comm
-  USE mp,        ONLY: mp_bcast
-  USE environment,   ONLY : environment_start
+  use wfcExportVASPMod
   !
   IMPLICIT NONE
-  !
-  CHARACTER(LEN=256), EXTERNAL :: trimcheck
-  !
-  INTEGER :: ik, i, kunittmp, ios
-  !
-  real(kind = dp), parameter :: ryToHartree = 0.5_dp
-  !
-  CHARACTER(len=256) :: pp_file, exportDir
-  LOGICAL :: writeWFC
-  !
-  NAMELIST /inputpp/ prefix, outdir, exportDir, writeWFC
   !
   ! initialise environment
   !
@@ -98,5 +75,5 @@ program wfcExportVASPMain
 
   CALL stop_pp
  
-END PROGRAM pw_export_for_TME
+END PROGRAM wfcExportVASPMain
 

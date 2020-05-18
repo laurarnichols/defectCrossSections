@@ -1,6 +1,34 @@
 module wfcExportVASPMod
 
+  USE wrappers,      ONLY : f_mkdir_safe
+  USE pwcom
+
+  USE io_global, ONLY : ionode, ionode_id
+  USE io_files,  ONLY : prefix, tmp_dir, outdir
+  USE ions_base, ONLY : ntype => nsp
+  USE iotk_module
+  USE mp_global, ONLY : mp_startup
+  !USE mp_pools,  ONLY : kunit
+  USE mp_pools
+  !USE mp_world,  ONLY: world_comm
+  USE mp_world
+  USE mp,        ONLY: mp_bcast, mp_sum, mp_max, mp_get
+  USE mp_wave, ONLY : mergewf
+  USE environment,   ONLY : environment_start
+
   implicit none
+
+  CHARACTER(LEN=256), EXTERNAL :: trimcheck
+  !
+  INTEGER :: ik, i, kunittmp, ios
+  !
+  real(kind = dp), parameter :: ryToHartree = 0.5_dp
+  !
+  CHARACTER(len=256) :: pp_file, exportDir
+  LOGICAL :: writeWFC
+  !
+  NAMELIST /inputpp/ prefix, outdir, exportDir, writeWFC
+
 
   contains
 
@@ -384,7 +412,7 @@ module wfcExportVASPMod
         enddo
 10      continue
       enddo
-    `
+    
     endif
   
     ALLOCATE( igwk( npwx_g, nkstot ) )
