@@ -24,7 +24,7 @@ mpif90 = ftn
 ########################################################################
 
 
-all : initialize QE-5.0.2_dependent QE-5.3.0_dependent QE-6.3_dependent TME LSF0 Mj LSF1 Sigma
+all : initialize QE-5.0.2_dependent QE-5.3.0_dependent QE-6.3_dependent VASP_dependent TME LSF0 Mj LSF1 Sigma
 
 menu :
 
@@ -69,6 +69,7 @@ menu :
 Export_QE-5.0.2_srcPath = Export/QE-5.0.2/src
 Export_QE-5.3.0_srcPath = Export/QE-5.3/src
 Export_QE-6.3_srcPath = Export/QE-6.3/src
+Export_VASP_srcPath = Export/VASP/src
 TME_srcPath    = TME/src
 Mj_srcPath     = Mj/src
 LSF_srcPath    = LSF/src
@@ -85,11 +86,15 @@ all_QE-5.3.0 : initialize QE-5.3.0_dependent TME LSF0 Mj LSF1 Sigma
 
 all_QE-6.3 : initialize QE-6.3_dependent TME LSF0 Mj LSF1 Sigma
 
+all_VASP : initialize VASP_dependent TME LSF0 Mj LSF1 Sigma
+
 QE-5.0.2_dependent : initialize Export_QE-5.0.2
 
 QE-5.3.0_dependent : initialize Export_QE-5.3.0
 
 QE-6.3_dependent : initialize Export_QE-6.3
+
+VASP_dependent : initialize Export_VASP
 
 initialize :
 
@@ -101,6 +106,7 @@ initialize :
 	echo "Export_QE-5.0.2_srcPath = " $(PWD)/$(Export_QE-5.0.2_srcPath) >> make.sys ; \
 	echo "Export_QE-5.3.0_srcPath = " $(PWD)/$(Export_QE-5.3.0_srcPath) >> make.sys ; \
 	echo "Export_QE-6.3_srcPath = " $(PWD)/$(Export_QE-6.3_srcPath) >> make.sys ; \
+	echo "Export_VASP_srcPath = " $(PWD)/$(Export_VASP_srcPath) >> make.sys ; \
 	echo "TME_srcPath    = " $(PWD)/$(TME_srcPath) >> make.sys ; \
 	echo "Mj_srcPath    = " $(PWD)/$(Mj_srcPath) >> make.sys ; \
 	echo "LSF_srcPath = " $(PWD)/$(LSF_srcPath) >> make.sys ; \
@@ -141,6 +147,11 @@ Export_QE-6.3 : initialize
 	@cd $(Export_QE-6.3_srcPath) ; \
 		make all
 
+Export_VASP : initialize
+
+	@cd $(Export_VASP_srcPath) ; \
+		make all
+
 TME : initialize
 
 	@cd $(TME_srcPath) ; \
@@ -169,7 +180,7 @@ Sigma : initialize
 	@cd $(Sigma_srcPath) ; \
         	make all
 
-clean : clean_QE-5.0.2_dependent clean_QE-5.3.0_dependent clean_QE-6.3_dependent cleanTME cleanInitialization cleanMj cleanLSF0 cleanLSF1 cleanSigma
+clean : cleanExport_VASP clean_QE-5.0.2_dependent clean_QE-5.3.0_dependent clean_QE-6.3_dependent cleanTME cleanInitialization cleanMj cleanLSF0 cleanLSF1 cleanSigma
 
 clean_all_QE-5.0.2 : clean_QE-5.0.2_dependent cleanTME cleanInitialization cleanMj cleanLSF0 cleanLSF1 cleanSigma
 
@@ -205,6 +216,11 @@ cleanExport_QE-5.3.0 :
 cleanExport_QE-6.3 :
 
 	@cd $(Export_QE-6.3_srcPath) ; \
+        	make clean
+
+cleanExport_VASP :
+
+	@cd $(Export_VASP_srcPath) ; \
         	make clean
 
 cleanTME :
