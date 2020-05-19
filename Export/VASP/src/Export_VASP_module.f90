@@ -34,9 +34,7 @@ module wfcExportVASPMod
   character(len=256) :: mainOutputFile
     !! Main output file
 
-  LOGICAL :: writeWFC
-  
-  NAMELIST /inputParams/ prefix, outdir, exportDir, writeWFC
+  NAMELIST /inputParams/ prefix, outdir, exportDir
 
 
   contains
@@ -52,15 +50,17 @@ module wfcExportVASPMod
     prefix = ''
     outdir = './'
     exportDir = './Export'
-    writeWFC  = .true.        
-      !! * gdb : by default the wavefunctions are needed,
-      !!   this gives the user the ability not to write the wavefunctions
-      !! @todo Remove this as an input variable because we always need the wavefunctions @endtodo
 
   end subroutine initialize
 
 !----------------------------------------------------------------------------
   subroutine exitError(calledFrom, message, ierr)
+    !! Output error message and abort if ierr > 0
+    !!
+    !! Can ensure that error will cause abort by
+    !! passing abs(ierr)
+    !!
+    !! <h2>Walkthrough</h2>
     
     implicit none
 
@@ -693,7 +693,7 @@ module wfcExportVASPMod
     
     endif
   
-    if ( ionode .and. writeWFC ) WRITE(stdout,*) "Writing Wavefunctions"
+    if ( ionode ) WRITE(stdout,*) "Writing Wavefunctions"
   
     wfc_scal = 1.0d0
     twf0 = .true.
