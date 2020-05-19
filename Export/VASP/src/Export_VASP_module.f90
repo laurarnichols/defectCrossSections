@@ -115,6 +115,14 @@ module wfcExportVASPMod
     return
 
   end subroutine exitError
+
+!----------------------------------------------------------------------------
+  subroutine readInputFiles()
+    implicit none
+
+
+    return
+  end subroutine readInputFiles
 !----------------------------------------------------------------------------
 ! ..  This subroutine write wavefunctions to the disk
 ! .. Where:
