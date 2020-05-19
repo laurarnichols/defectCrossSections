@@ -5,7 +5,7 @@ program wfcExportVASPMain
   ! writes PWSCF data for postprocessing purposes in XML format using IOTK lib
   ! Wave-functions are collected and written using IO_BASE module.
   !
-  ! input:  namelist "&inputpp", with variables
+  ! input:  namelist "&inputParams", with variables
   !   prefix       prefix of input files saved by program pwscf
   !   outdir       temporary directory where files resides
   !   exportDir    output directory. A directory
@@ -29,9 +29,9 @@ program wfcExportVASPMain
 
     call initialize()
     
-    READ(5, inputpp, IOSTAT=ios)
+    READ(5, inputParams, IOSTAT=ios)
     
-    IF (ios /= 0) call exitError ('export main', 'reading inputpp namelist', abs(ios) )
+    IF (ios /= 0) call exitError ('export main', 'reading inputParams namelist', abs(ios) )
     
     ios = f_mkdir_safe( trim(exportDir) )
     

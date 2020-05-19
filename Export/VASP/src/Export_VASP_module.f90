@@ -36,7 +36,7 @@ module wfcExportVASPMod
 
   LOGICAL :: writeWFC
   
-  NAMELIST /inputpp/ prefix, outdir, exportDir, writeWFC
+  NAMELIST /inputParams/ prefix, outdir, exportDir, writeWFC
 
 
   contains
