@@ -41,9 +41,8 @@ program wfcExportVASPMain
   !
   ! ... Broadcasting variables
   !
-  tmp_dir = trimcheck( outdir )
   CALL mp_bcast( outdir, ionode_id, world_comm )
-  CALL mp_bcast( tmp_dir, ionode_id, world_comm )
+  CALL mp_bcast( exportDir, ionode_id, world_comm )
   CALL mp_bcast( prefix, ionode_id, world_comm )
   !
   !   Now allocate space for pwscf variables, read and check them.

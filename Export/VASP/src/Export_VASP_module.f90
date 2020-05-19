@@ -4,7 +4,7 @@ module wfcExportVASPMod
   USE pwcom
 
   USE io_global, ONLY : ionode, ionode_id
-  USE io_files,  ONLY : prefix, tmp_dir, outdir
+  USE io_files,  ONLY : prefix, outdir
   USE ions_base, ONLY : ntype => nsp
   USE iotk_module
   USE mp_global, ONLY : mp_startup
