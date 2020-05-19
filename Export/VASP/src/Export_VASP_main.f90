@@ -31,7 +31,7 @@ program wfcExportVASPMain
     
     READ(5, inputpp, IOSTAT=ios)
     
-    IF (ios /= 0) CALL errore ('pw_export', 'reading inputpp namelist', abs(ios) )
+    IF (ios /= 0) call exitError ('export main', 'reading inputpp namelist', abs(ios) )
     
     ios = f_mkdir_safe( trim(exportDir) )
     

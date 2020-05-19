@@ -18,6 +18,9 @@ module wfcExportVASPMod
 
   implicit none
 
+  integer, parameter :: stdout = 6
+    !! Standard output unit
+
   CHARACTER(LEN=256), EXTERNAL :: trimcheck
   
   INTEGER :: ik, i, kunittmp
@@ -37,6 +40,8 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine initialize()
     !! Set the default values for input variables
+    !!
+    !! <h2>Walkthrough</h2>
     
     implicit none
 
@@ -44,12 +49,68 @@ module wfcExportVASPMod
     outdir = './'
     exportDir = './Export'
     writeWFC  = .true.        
-      !! gdb : by default the wavefunctions are needed,
-      !!       this gives the user the ability not to write the wavefunctions
+      !! * gdb : by default the wavefunctions are needed,
+      !!   this gives the user the ability not to write the wavefunctions
       !! @todo Remove this as an input variable because we always need the wavefunctions @endtodo
 
   end subroutine initialize
 
+!----------------------------------------------------------------------------
+  subroutine exitError(calledFrom, message, ierr)
+    
+    implicit none
+
+    integer, intent(in) :: ierr
+      !! Error
+
+    character(len=*), intent(in) :: calledFrom
+      !! Place where this subroutine was called from
+    character(len=*), intent(in) :: message
+      !! Error message
+
+    integer :: id
+      !! ID of this process
+    integer :: mpierr
+      !! Error output from MPI
+
+    character(len=6) :: cerr
+      !! String version of error
+
+
+    if ( ierr <= 0 ) return
+      !! * Do nothing if the error is less than or equal to zero
+
+    write( cerr, fmt = '(I6)' ) ierr
+      !! * Write ierr to a string
+    write(unit=*, fmt = '(/,1X,78("%"))' )
+      !! * Output a dividing line
+    write(unit=*, fmt = '(5X,"Error in ",A," (",A,"):")' ) trim(calledFrom), trim(adjustl(cerr))
+      !! * Output where the error occurred and the error
+    write(unit=*, fmt = '(5X,A)' ) TRIM(message)
+      !! * Output the error message
+    write(unit=*, fmt = '(1X,78("%"),/)' )
+      !! * Output a dividing line
+
+    write( *, '("     stopping ...")' )
+  
+    call flush( stdout )
+
+#if defined (__MPI)
+  
+    id = 0
+  
+    !> * For MPI, get the id of this process and abort
+    call MPI_COMM_RANK( MPI_COMM_WORLD, id, mpierr )
+    call MPI_ABORT( MPI_COMM_WORLD, mpierr )
+    call MPI_FINALIZE( mpierr )
+
+#endif
+
+    stop 2
+
+    return
+
+  end subroutine exitError
 !----------------------------------------------------------------------------
 ! ..  This subroutine write wavefunctions to the disk
 ! .. Where:
@@ -150,7 +211,7 @@ module wfcExportVASPMod
         CALL mp_max( ierr, world_comm )
 
         IF( ierr > 0 ) &
-          CALL errore(' write_restart_wfc ',' wrong size ngl ', ierr )
+          CALL exitError(' write_restart_wfc ',' wrong size ngl ', ierr )
 
         IF( ipsour /= ionode_id ) THEN
           CALL mp_get( igwx, igwx, mpime, ionode_id, ipsour, 1, world_comm )
@@ -297,10 +358,10 @@ module wfcExportVASPMod
     IF( nkstot > 0 ) THEN
 
       IF( ( kunit < 1 ) .or. ( mod( nkstot, kunit ) /= 0 ) ) &
-        CALL errore( ' write_export ',' wrong kunit ', 1 )
+        CALL exitError( ' write_export ',' wrong kunit ', 1 )
 
       IF( ( nproc_pool > nproc ) .or. ( mod( nproc, nproc_pool ) /= 0 ) ) &
-        CALL errore( ' write_export ',' nproc_pool ', 1 )
+        CALL exitError( ' write_export ',' nproc_pool ', 1 )
 
       !  find out the number of pools
       npool = nproc / nproc_pool
@@ -439,7 +500,7 @@ module wfcExportVASPMod
       igwk(:,ik) = 0
     
       ALLOCATE( itmp1( npw_g ), STAT= ierr )
-      IF ( ierr/=0 ) CALL errore('pw_export','allocating itmp1', abs(ierr) )
+      IF ( ierr/=0 ) CALL exitError('pw_export','allocating itmp1', abs(ierr) )
       itmp1 = 0
     
       IF( ik >= iks .and. ik <= ike ) THEN
