@@ -19,14 +19,14 @@ module wfcExportVASPMod
   implicit none
 
   CHARACTER(LEN=256), EXTERNAL :: trimcheck
-  !
+  
   INTEGER :: ik, i, kunittmp, ios
-  !
+  
   real(kind = dp), parameter :: ryToHartree = 0.5_dp
-  !
+  
   CHARACTER(len=256) :: pp_file, exportDir
   LOGICAL :: writeWFC
-  !
+  
   NAMELIST /inputpp/ prefix, outdir, exportDir, writeWFC
 
 

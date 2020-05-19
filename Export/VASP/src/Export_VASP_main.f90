@@ -28,18 +28,15 @@ program wfcExportVASPMain
   IF ( ionode ) THEN
 
     call initialize()
-    !
-    CALL input_from_file ( )
-    !
+    
     READ(5, inputpp, IOSTAT=ios)
-    !
+    
     IF (ios /= 0) CALL errore ('pw_export', 'reading inputpp namelist', abs(ios) )
-    !
+    
     ios = f_mkdir_safe( trim(exportDir) )
-    !
+    
     pp_file = trim(exportDir)//"/input"
-    !
-    !
+    
   ENDIF
   !
   ! ... Broadcasting variables
