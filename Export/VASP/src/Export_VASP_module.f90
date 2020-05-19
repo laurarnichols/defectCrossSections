@@ -29,7 +29,11 @@ module wfcExportVASPMod
   
   real(kind = dp), parameter :: ryToHartree = 0.5_dp
   
-  CHARACTER(len=256) :: pp_file, exportDir
+  character(len=256) :: exportDir
+    !! Directory to be used for export
+  character(len=256) :: mainOutputFile
+    !! Main output file
+
   LOGICAL :: writeWFC
   
   NAMELIST /inputpp/ prefix, outdir, exportDir, writeWFC
@@ -280,7 +284,7 @@ module wfcExportVASPMod
       RETURN
     END SUBROUTINE
 
-  SUBROUTINE write_export (pp_file, exportDir, kunit )
+  SUBROUTINE write_export (mainOutputFile, exportDir, kunit )
     !-----------------------------------------------------------------------
     !
     USE iotk_module
@@ -325,7 +329,7 @@ module wfcExportVASPMod
     CHARACTER(5), PARAMETER :: fmt_version="1.1.0"
 
     INTEGER, INTENT(in) :: kunit
-    CHARACTER(256), INTENT(in) :: pp_file, exportDir
+    CHARACTER(256), INTENT(in) :: mainOutputFile, exportDir
 
     INTEGER :: i, j, k, ig, ik, ibnd, na, ngg,ig_, ierr
     INTEGER, ALLOCATABLE :: kisort(:)
@@ -396,9 +400,9 @@ module wfcExportVASPMod
 
     IF( ionode ) THEN
     
-      WRITE(stdout,*) "Opening file "//trim(pp_file)
+      WRITE(stdout,*) "Opening file "//trim(mainOutputFile)
     
-      open(50, file=trim(pp_file))
+      open(50, file=trim(mainOutputFile))
 
       WRITE(stdout,*) "Reconstructing the main grid"
     

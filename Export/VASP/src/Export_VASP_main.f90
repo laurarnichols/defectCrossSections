@@ -35,7 +35,7 @@ program wfcExportVASPMain
     
     ios = f_mkdir_safe( trim(exportDir) )
     
-    pp_file = trim(exportDir)//"/input"
+    mainOutputFile = trim(exportDir)//"/input"
     
   ENDIF
   !
@@ -58,7 +58,7 @@ program wfcExportVASPMain
   kunittmp = 1
 #endif
 
-  CALL write_export (pp_file, exportDir, kunittmp )
+  CALL write_export (mainOutputFile, exportDir, kunittmp )
 
   CALL stop_pp
  
