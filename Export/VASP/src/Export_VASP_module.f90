@@ -20,7 +20,9 @@ module wfcExportVASPMod
 
   CHARACTER(LEN=256), EXTERNAL :: trimcheck
   
-  INTEGER :: ik, i, kunittmp, ios
+  INTEGER :: ik, i, kunittmp
+  integer :: ios
+    !! Error for input/output
   
   real(kind = dp), parameter :: ryToHartree = 0.5_dp
   
