@@ -33,6 +33,22 @@ module wfcExportVASPMod
   contains
 
 !----------------------------------------------------------------------------
+  subroutine initialize()
+    !! Set the default values for input variables
+    
+    implicit none
+
+    prefix = ''
+    outdir = './'
+    exportDir = './Export'
+    writeWFC  = .true.        
+      !! gdb : by default the wavefunctions are needed,
+      !!       this gives the user the ability not to write the wavefunctions
+      !! @todo Remove this as an input variable because we always need the wavefunctions @endtodo
+
+  end subroutine initialize
+
+!----------------------------------------------------------------------------
 ! ..  This subroutine write wavefunctions to the disk
 ! .. Where:
 ! iuni    = Restart file I/O fortran unit

@@ -24,20 +24,10 @@ program wfcExportVASPMain
   CALL mp_startup ( )
 #endif
   CALL environment_start ( 'PW_EXPORT' )
-  !
-  !   set default values for variables in namelist
-  !
-  prefix = ''
-  CALL get_environment_variable( 'ESPRESSO_TMPDIR', outdir )
-  IF ( trim( outdir ) == ' ' ) outdir = './'
-  exportDir = './Export'
-  !
-  writeWFC  = .true.        ! gdb : by default the wavefunctions are needed, 
-                            !       this gives the user the ability not to write the wavefunctions
-  !
-  !    Reading input file
-  !
+
   IF ( ionode ) THEN
+
+    call initialize()
     !
     CALL input_from_file ( )
     !
