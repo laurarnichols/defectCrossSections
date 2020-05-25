@@ -23,7 +23,7 @@ module wfcExportVASPMod
 
   CHARACTER(LEN=256), EXTERNAL :: trimcheck
   
-  INTEGER :: ik, i, kunittmp
+  INTEGER :: ik, i
   integer :: ios
     !! Error for input/output
   
@@ -138,14 +138,14 @@ module wfcExportVASPMod
 ! iuni    = Restart file I/O fortran unit
 !
     SUBROUTINE write_restart_wfc(iuni, exportDir, &
-      ik, nk, kunit, ispin, nspin, scal, wf0, t0, wfm, tm, ngw, gamma_only, nbnd, igl, ngwl )
+      ik, nk, ispin, nspin, scal, wf0, t0, wfm, tm, ngw, gamma_only, nbnd, igl, ngwl )
 !
 !
       IMPLICIT NONE
 !
       INTEGER, INTENT(in) :: iuni
       character(len = 256), intent(in) :: exportDir
-      INTEGER, INTENT(in) :: ik, nk, kunit, ispin, nspin
+      INTEGER, INTENT(in) :: ik, nk, ispin, nspin
       COMPLEX(DP), INTENT(in) :: wf0(:,:)
       COMPLEX(DP), INTENT(in) :: wfm(:,:)
       INTEGER, INTENT(in) :: ngw   !
@@ -181,20 +181,20 @@ module wfcExportVASPMod
         npool = nproc / nproc_pool
 
         !  find out number of k points blocks
-        nkbl = nkt / kunit
+        nkbl = nkt
 
         !  k points per pool
-        nkl = kunit * ( nkbl / npool )
+        nkl = nkbl / npool
 
         !  find out the reminder
-        nkr = ( nkt - nkl * npool ) / kunit
+        nkr = nkt - nkl * npool
 
         !  Assign the reminder to the first nkr pools
-        IF( my_pool_id < nkr ) nkl = nkl + kunit
+        IF( my_pool_id < nkr ) nkl = nkl 
 
         !  find out the index of the first k point in this pool
         iks = nkl * my_pool_id + 1
-        IF( my_pool_id >= nkr ) iks = iks + nkr * kunit
+        IF( my_pool_id >= nkr ) iks = iks + nkr 
 
         !  find out the index of the last k point in this pool
         ike = iks + nkl - 1
@@ -301,7 +301,7 @@ module wfcExportVASPMod
       RETURN
     END SUBROUTINE
 
-  SUBROUTINE write_export (mainOutputFile, exportDir, kunit )
+  SUBROUTINE write_export (mainOutputFile, exportDir)
     !-----------------------------------------------------------------------
     !
     USE iotk_module
@@ -345,7 +345,6 @@ module wfcExportVASPMod
     CHARACTER(5), PARAMETER :: fmt_name="QEXPT"
     CHARACTER(5), PARAMETER :: fmt_version="1.1.0"
 
-    INTEGER, INTENT(in) :: kunit
     CHARACTER(256), INTENT(in) :: mainOutputFile, exportDir
 
     INTEGER :: i, j, k, ig, ik, ibnd, na, ngg,ig_, ierr
@@ -378,9 +377,6 @@ module wfcExportVASPMod
 
     IF( nkstot > 0 ) THEN
 
-      IF( ( kunit < 1 ) .or. ( mod( nkstot, kunit ) /= 0 ) ) &
-        CALL exitError( ' write_export ',' wrong kunit ', 1 )
-
       IF( ( nproc_pool > nproc ) .or. ( mod( nproc, nproc_pool ) /= 0 ) ) &
         CALL exitError( ' write_export ',' nproc_pool ', 1 )
 
@@ -388,20 +384,20 @@ module wfcExportVASPMod
       npool = nproc / nproc_pool
 
       !  find out number of k points blocks
-      nkbl = nkstot / kunit
+      nkbl = nkstot
 
       !  k points per pool
-      nkl = kunit * ( nkbl / npool )
+      nkl = nkbl / npool
 
       !  find out the reminder
-      nkr = ( nkstot - nkl * npool ) / kunit
+      nkr = nkstot - nkl * npool 
 
       !  Assign the reminder to the first nkr pools
-      IF( my_pool_id < nkr ) nkl = nkl + kunit
+      IF( my_pool_id < nkr ) nkl = nkl
 
       !  find out the index of the first k point in this pool
       iks = nkl * my_pool_id + 1
-      IF( my_pool_id >= nkr ) iks = iks + nkr * kunit
+      IF( my_pool_id >= nkr ) iks = iks + nkr
 
       !  find out the index of the last k point in this pool
       ike = iks + nkl - 1
@@ -797,10 +793,10 @@ module wfcExportVASPMod
         CALL mp_bcast( file_exists, ionode_id, world_comm )
         
         if ( .not. file_exists ) then
-          CALL write_restart_wfc(72, exportDir, ik, nkstot, kunit, ispin, nspin, &
+          CALL write_restart_wfc(72, exportDir, ik, nkstot, ispin, nspin, &
                                  wfc_scal, evc, twf0, evc, twfm, npw_g, gamma_only, nbnd, &
                                  l2g_new(:),local_pw )
-          CALL write_restart_wfc(73, exportDir, ik, nkstot, kunit, ispin, nspin, &
+          CALL write_restart_wfc(73, exportDir, ik, nkstot, ispin, nspin, &
                                  wfc_scal, vkb, twf0, evc, twfm, npw_g, gamma_only, nkb, &
                                  l2g_new(:), local_pw )
         endif

@@ -53,14 +53,7 @@ program wfcExportVASPMain
   
   call distributeKpointsInPools()
 
-!> @todo Figure out what the purpose of `kunittmp` is @endtodo
-#if defined __MPI
-  kunittmp = kunit
-#else
-  kunittmp = 1
-#endif
-
-  CALL write_export (mainOutputFile, exportDir, kunittmp )
+  CALL write_export (mainOutputFile, exportDir)
 
   CALL stop_pp
     !! @todo Figure out what this subroutine does and what can be moved here @endtodo
