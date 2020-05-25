@@ -25,9 +25,9 @@ module wfcExportVASPMod
   CHARACTER(LEN=256), EXTERNAL :: trimcheck
   
   INTEGER :: ik, i
-  integer :: ike
+  integer :: ikEnd
     !! Ending index for kpoints in single pool 
-  integer :: iks
+  integer :: ikStart
     !! Starting index for kpoints in single pool 
   integer :: ios
     !! Error for input/output
@@ -167,10 +167,10 @@ module wfcExportVASPMod
         !! * Assign the remainder to the first `nkr` pools
 
       !>  * Calculate the index of the first k point in this pool
-      iks = nkl * my_pool_id + 1
-      IF( my_pool_id >= nkr ) iks = iks + nkr
+      ikStart = nkl * my_pool_id + 1
+      IF( my_pool_id >= nkr ) ikStart = ikStart + nkr
 
-      ike = iks + nkl - 1
+      ikEnd = ikStart + nkl - 1
         !!  * Calculate the index of the last k point in this pool
 
     endif
@@ -203,7 +203,7 @@ module wfcExportVASPMod
       LOGICAL, INTENT(in) :: t0, tm
 
       INTEGER :: i, j, ierr, idum = 0
-      INTEGER :: nkl, nkr, nkbl, iks, ike, nkt, ikt, igwx, ig
+      INTEGER :: nkl, nkr, nkbl, ikStart, ikEnd, nkt, ikt, igwx, ig
       INTEGER :: npool, ipmask( nproc ), ipsour
       COMPLEX(DP), ALLOCATABLE :: wtmp(:)
       INTEGER, ALLOCATABLE :: igltot(:)
@@ -239,18 +239,18 @@ module wfcExportVASPMod
         IF( my_pool_id < nkr ) nkl = nkl + 1
 
         !  find out the index of the first k point in this pool
-        iks = nkl * my_pool_id + 1
-        IF( my_pool_id >= nkr ) iks = iks + nkr 
+        ikStart = nkl * my_pool_id + 1
+        IF( my_pool_id >= nkr ) ikStart = ikStart + nkr 
 
         !  find out the index of the last k point in this pool
-        ike = iks + nkl - 1
+        ikEnd = ikStart + nkl - 1
 
         ipmask = 0
         ipsour = ionode_id
 
         !  find out the index of the processor which collect the data in the pool of ik
         IF( npool > 1 ) THEN
-          IF( ( ikt >= iks ) .and. ( ikt <= ike ) ) THEN
+          IF( ( ikt >= ikStart ) .and. ( ikt <= ikEnd ) ) THEN
             IF( me_pool == root_pool ) ipmask( mpime + 1 ) = 1
           ENDIF
           CALL mp_sum( ipmask, world_comm )
@@ -261,7 +261,7 @@ module wfcExportVASPMod
 
         igwx = 0
         ierr = 0
-        IF( ( ikt >= iks ) .and. ( ikt <= ike ) ) THEN
+        IF( ( ikt >= ikStart ) .and. ( ikt <= ikEnd ) ) THEN
           IF( ngwl > size( igl ) ) THEN
             ierr = 1
           ELSE
@@ -290,7 +290,7 @@ module wfcExportVASPMod
         DO j = 1, nbnd
           IF( t0 ) THEN
             IF( npool > 1 ) THEN
-              IF( ( ikt >= iks ) .and. ( ikt <= ike ) ) THEN
+              IF( ( ikt >= ikStart ) .and. ( ikt <= ikEnd ) ) THEN
                 CALL mergewf(wf0(:,j), wtmp, ngwl, igl, me_pool, &
                              nproc_pool, root_pool, intra_pool_comm)
               ENDIF
@@ -321,7 +321,7 @@ module wfcExportVASPMod
 !        DO j = 1, nbnd
 !          IF( tm ) THEN
 !            IF( npool > 1 ) THEN
-!              IF( ( ikt >= iks ) .and. ( ikt <= ike ) ) THEN
+!              IF( ( ikt >= ikStart ) .and. ( ikt <= ikEnd ) ) THEN
 !                CALL mergewf(wfm(:,j), wtmp, ngwl, igl, me_pool, &
 !                             nproc_pool, root_pool, intra_pool_comm)
 !              ENDIF
@@ -397,7 +397,7 @@ module wfcExportVASPMod
     INTEGER, ALLOCATABLE :: kisort(:)
     real(DP) :: xyz(3), tmp(3)
     INTEGER :: npool, nkl, nkr, npwx_g, im, ink, inb, ms
-    INTEGER :: ike, iks, npw_g, ispin, local_pw
+    INTEGER :: ikEnd, ikStart, npw_g, ispin, local_pw
     INTEGER, ALLOCATABLE :: ngk_g( : )
     INTEGER, ALLOCATABLE :: itmp_g( :, : )
     real(DP),ALLOCATABLE :: rtmp_g( :, : )
@@ -472,7 +472,7 @@ module wfcExportVASPMod
     DO ik = 1, nks
       kisort = 0
       npw = npwx
-      CALL gk_sort (xk (1, ik+iks-1), ngm, g, ecutwfc / tpiba2, npw, kisort(1), g2kin)
+      CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc / tpiba2, npw, kisort(1), g2kin)
 
       ! mapping between local and global G vector index, for this kpoint
      
@@ -491,7 +491,7 @@ module wfcExportVASPMod
     ! compute the global number of G+k vectors for each k point
     ALLOCATE( ngk_g( nkstot ) )
     ngk_g = 0
-    ngk_g( iks:ike ) = ngk( 1:nks )
+    ngk_g( ikStart:ikEnd ) = ngk( 1:nks )
     CALL mp_sum( ngk_g, world_comm )
 
     ! compute the Maximum G vector index among all G+k and processors
@@ -537,9 +537,9 @@ module wfcExportVASPMod
       IF ( ierr/=0 ) CALL exitError('pw_export','allocating itmp1', abs(ierr) )
       itmp1 = 0
     
-      IF( ik >= iks .and. ik <= ike ) THEN
-        DO  ig = 1, ngk( ik-iks+1 )
-          itmp1( igk_l2g( ig, ik-iks+1 ) ) = igk_l2g( ig, ik-iks+1 )
+      IF( ik >= ikStart .and. ik <= ikEnd ) THEN
+        DO  ig = 1, ngk( ik-ikStart+1 )
+          itmp1( igk_l2g( ig, ik-ikStart+1 ) ) = igk_l2g( ig, ik-ikStart+1 )
         ENDDO
       ENDIF
     
@@ -739,12 +739,12 @@ module wfcExportVASPMod
       DO ik = 1, nkstot
       
         local_pw = 0
-        IF ( (ik >= iks) .and. (ik <= ike) ) THEN
-          CALL gk_sort (xk (1, ik+iks-1), ngm, g, ecutwfc / tpiba2, npw, igk, g2kin)
-          CALL davcio (evc, nwordwfc, iunwfc, (ik-iks+1), - 1)
+        IF ( (ik >= ikStart) .and. (ik <= ikEnd) ) THEN
+          CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc / tpiba2, npw, igk, g2kin)
+          CALL davcio (evc, nwordwfc, iunwfc, (ik-ikStart+1), - 1)
 
           CALL init_us_2(npw, igk, xk(1, ik), vkb)
-          local_pw = ngk(ik-iks+1)
+          local_pw = ngk(ik-ikStart+1)
 
           IF ( gamma_only ) THEN
             CALL calbec ( ngk_g(ik), vkb, evc, becp )
@@ -777,7 +777,7 @@ module wfcExportVASPMod
 
         l2g_new = 0
         DO ig = 1, local_pw
-          ngg = igk_l2g(ig,ik-iks+1)
+          ngg = igk_l2g(ig,ik-ikStart+1)
           DO ig_ = 1, ngk_g(ik)
             IF(ngg == igwk(ig_,ik)) THEN
               l2g_new(ig) = ig_
