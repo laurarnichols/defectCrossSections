@@ -41,6 +41,8 @@ module wfcExportVASPMod
     !! Plane wave energy cutoff?
   
   INTEGER :: ik, i
+  integer :: ierr
+    !! Error returned by MPI
   integer :: ikEnd
     !! Ending index for kpoints in single pool 
   integer :: ikStart
@@ -69,14 +71,24 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine mpiInitialization()
     use command_line_options, only : get_command_line, npool_, nband_, ntg_
-    use mp_world,  only : mp_world_start
     use mp_images, only : mp_init_image
     use mp_pools, only : mp_start_pools
     use mp_bands, only : mp_start_bands
+    use mp, only : mp_stop
 
     implicit none
 
-    call mp_world_start(MPI_COMM_WORLD)
+#if defined(__MPI)
+    CALL MPI_Initialized ( .false., ierr)
+    IF (ierr/=0) CALL mp_stop( 8000 )
+#if defined(__OPENMP)
+       CALL MPI_Init_thread(MPI_THREAD_FUNNELED, PROVIDED, ierr)
+#else
+       CALL MPI_Init(ierr)
+#endif
+       IF (ierr/=0) CALL mp_stop( 8001 )
+#endif
+
     call get_command_line()
     call mp_init_image(world_comm)
       !! @todo Figure out where `world_comm` comes from @endtodo
@@ -103,17 +115,17 @@ module wfcExportVASPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine exitError(calledFrom, message, ierr)
+  subroutine exitError(calledFrom, message, ierror)
     !! Output error message and abort if ierr > 0
     !!
     !! Can ensure that error will cause abort by
-    !! passing abs(ierr)
+    !! passing abs(ierror)
     !!
     !! <h2>Walkthrough</h2>
     
     implicit none
 
-    integer, intent(in) :: ierr
+    integer, intent(in) :: ierror
       !! Error
 
     character(len=*), intent(in) :: calledFrom
@@ -123,8 +135,6 @@ module wfcExportVASPMod
 
     integer :: id
       !! ID of this process
-    integer :: ierror
-      !! Error returned by MPI_ABORT
     integer :: mpierr
       !! Error output from MPI
 
@@ -135,7 +145,7 @@ module wfcExportVASPMod
     if ( ierr <= 0 ) return
       !! * Do nothing if the error is less than or equal to zero
 
-    write( cerr, fmt = '(I6)' ) ierr
+    write( cerr, fmt = '(I6)' ) ierror
       !! * Write ierr to a string
     write(unit=*, fmt = '(/,1X,78("%"))' )
       !! * Output a dividing line
@@ -156,7 +166,7 @@ module wfcExportVASPMod
   
     !> * For MPI, get the id of this process and abort
     call MPI_COMM_RANK( MPI_COMM_WORLD, id, mpierr )
-    call MPI_ABORT( MPI_COMM_WORLD, mpierr, ierror )
+    call MPI_ABORT( MPI_COMM_WORLD, mpierr, ierr )
     call MPI_FINALIZE( mpierr )
 
 #endif
