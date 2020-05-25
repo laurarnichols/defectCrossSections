@@ -123,6 +123,15 @@ module wfcExportVASPMod
 
     return
   end subroutine readInputFiles
+
+!----------------------------------------------------------------------------
+  subroutine distributeKpointsInPools()
+    implicit none
+
+
+    return
+  end subroutine distributeKpointsInPools
+
 !----------------------------------------------------------------------------
 ! ..  This subroutine write wavefunctions to the disk
 ! .. Where:

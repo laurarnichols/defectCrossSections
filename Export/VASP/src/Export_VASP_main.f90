@@ -51,6 +51,8 @@ program wfcExportVASPMain
   CALL openfil_pp
     !! @todo Figure out what this subroutine does and what can be moved here @endtodo
   
+  call distributeKpointsInPools()
+
 !> @todo Figure out what the purpose of `kunittmp` is @endtodo
 #if defined __MPI
   kunittmp = kunit
