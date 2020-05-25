@@ -155,17 +155,19 @@ module wfcExportVASPMod
         !! * Calculate the remainder
         !! @todo Figure out where `nkr` should be defined @endtodo
 
-      !  Assign the reminder to the first nkr pools
       IF( my_pool_id < nkr ) nkl = nkl + 1
+        !! * Assign the remainder to the first `nkr` pools
 
-      !  find out the index of the first k point in this pool
+      !>  * Calculate the index of the first k point in this pool
       iks = nkl * my_pool_id + 1
+        !! @todo Figure out where `iks` should be defined @endtodo
       IF( my_pool_id >= nkr ) iks = iks + nkr
 
-      !  find out the index of the last k point in this pool
       ike = iks + nkl - 1
+        !!  * Calculate the index of the last k point in this pool
+        !! @todo Figure out where `ike` should be defined @endtodo
 
-    ENDIF
+    endif
 
     return
   end subroutine distributeKpointsInPools
