@@ -49,6 +49,14 @@ module wfcExportVASPMod
   contains
 
 !----------------------------------------------------------------------------
+  subroutine mpiInitialization()
+    implicit none
+
+
+    return
+  end subroutine mpiInitialization
+
+!----------------------------------------------------------------------------
   subroutine initialize()
     !! Set the default values for input variables
     !!
