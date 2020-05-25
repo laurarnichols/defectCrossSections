@@ -127,8 +127,44 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine distributeKpointsInPools()
+    !!
+    !!
+    !! <h2>Walkthrough</h2>
+
     implicit none
 
+
+    if( nkstot > 0 ) then
+      !! @todo Figure out where `nkstot` comes from @endtodo
+
+      IF( ( nproc_pool > nproc ) .or. ( mod( nproc, nproc_pool ) /= 0 ) ) &
+        CALL exitError( ' write_export ',' nproc_pool ', 1 )
+        !! @todo Figure out where `nproc_pool` comes from @endtodo
+        !! @todo Figure out where `nproc` comes from @endtodo
+
+      npool = nproc / nproc_pool
+        !!  * Find out the number of pools
+
+      !  find out number of k points blocks
+      nkbl = nkstot
+
+      !  k points per pool
+      nkl = nkbl / npool
+
+      !  find out the reminder
+      nkr = nkstot - nkl * npool 
+
+      !  Assign the reminder to the first nkr pools
+      IF( my_pool_id < nkr ) nkl = nkl
+
+      !  find out the index of the first k point in this pool
+      iks = nkl * my_pool_id + 1
+      IF( my_pool_id >= nkr ) iks = iks + nkr
+
+      !  find out the index of the last k point in this pool
+      ike = iks + nkl - 1
+
+    ENDIF
 
     return
   end subroutine distributeKpointsInPools
@@ -375,35 +411,6 @@ module wfcExportVASPMod
     TYPE(radial_grid_type) :: grid
 
     integer, allocatable :: nnTyp(:), groundState(:)
-
-    IF( nkstot > 0 ) THEN
-
-      IF( ( nproc_pool > nproc ) .or. ( mod( nproc, nproc_pool ) /= 0 ) ) &
-        CALL exitError( ' write_export ',' nproc_pool ', 1 )
-
-      !  find out the number of pools
-      npool = nproc / nproc_pool
-
-      !  find out number of k points blocks
-      nkbl = nkstot
-
-      !  k points per pool
-      nkl = nkbl / npool
-
-      !  find out the reminder
-      nkr = nkstot - nkl * npool 
-
-      !  Assign the reminder to the first nkr pools
-      IF( my_pool_id < nkr ) nkl = nkl
-
-      !  find out the index of the first k point in this pool
-      iks = nkl * my_pool_id + 1
-      IF( my_pool_id >= nkr ) iks = iks + nkr
-
-      !  find out the index of the last k point in this pool
-      ike = iks + nkl - 1
-
-    ENDIF
 
     ! find out the global number of G vectors: ngm_g
     ngm_g = ngm
