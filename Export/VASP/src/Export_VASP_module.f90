@@ -31,6 +31,8 @@ module wfcExportVASPMod
     !! Starting index for kpoints in single pool 
   integer :: ios
     !! Error for input/output
+  integer :: nkstot
+    !! Total number of kpoints
   integer :: npool
     !! Number of pools for kpoint parallelization
   
@@ -150,8 +152,6 @@ module wfcExportVASPMod
       !! Index used for reading lattice vectors
     integer :: nbnd
       !! Total number of bands
-    integer :: nkstot
-      !! Total number of kpoints
     integer :: nspin
       !! Number of spins
     integer :: prec
@@ -188,7 +188,6 @@ module wfcExportVASPMod
 
 
     if( nkstot > 0 ) then
-      !! @todo Figure out where `nkstot` comes from @endtodo
 
       IF( ( nproc_pool > nproc ) .or. ( mod( nproc, nproc_pool ) /= 0 ) ) &
         CALL exitError( ' write_export ',' nproc_pool ', 1 )
