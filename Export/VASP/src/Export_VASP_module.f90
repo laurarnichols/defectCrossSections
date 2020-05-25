@@ -152,7 +152,6 @@ module wfcExportVASPMod
 
       nkl = nkstot / npool
         !!  * Calculate k points per pool
-        !! @todo Figure out where `nkl` should be defined @endtodo
         !! @todo Figure out where `nkstot` comes from @endtodo
 
       nkr = nkstot - nkl * npool 
