@@ -69,8 +69,18 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine mpiInitialization()
+    use command_line_options, ONLY : get_command_line, npool_, nband_, ntg_
+
     implicit none
 
+    call mp_world_start(MPI_COMM_WORLD)
+    call get_command_line()
+    call mp_init_image(world_comm)
+      !! @todo Figure out where `world_comm` comes from @endtodo
+    call mp_start_pools(npool_, intra_image_comm)
+      !! @todo Figure out where `intra_image_comm` comes from @endtodo
+    call mp_start_bands(nband_, ntg_, intra_pool_comm)
+      !! @todo Figure out where `intra_pool_comm` comes from @endtodo
 
     return
   end subroutine mpiInitialization

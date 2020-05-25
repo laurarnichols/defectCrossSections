@@ -16,8 +16,6 @@ program wfcExportVASPMain
   implicit none
 
 #ifdef __MPI
-  CALL mp_startup ( )
-    !! @todo Figure out what this subroutine does and what can be moved here @endtodo
   call mpiInitialization()
 #endif
   CALL environment_start ( 'PW_EXPORT' )
