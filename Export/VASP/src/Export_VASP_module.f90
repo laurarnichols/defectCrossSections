@@ -17,10 +17,11 @@ module wfcExportVASPMod
   USE iotk_module
   USE mp_global, ONLY : mp_startup
   USE mp_pools,  ONLY : intra_pool_comm, me_pool, my_pool_id, nproc_pool, root_pool
-  USE parallel_include
+  use mpi
   !USE mp_pools
   !USE mp_world,  ONLY: world_comm
   USE mp_world
+    !! @todo Make this more explicit @endtodo
   USE mp,        ONLY: mp_bcast, mp_sum, mp_max, mp_get
   USE mp_wave, ONLY : mergewf
   USE environment,   ONLY : environment_start
