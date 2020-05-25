@@ -143,13 +143,17 @@ module wfcExportVASPMod
         !! @todo Figure out where `nproc` comes from @endtodo
 
       npool = nproc / nproc_pool
-        !!  * Find out the number of pools
+        !!  * Calculate number of pools
+        !! @todo Figure out where `npool` should be defined @endtodo
 
-      !  k points per pool
       nkl = nkstot / npool
+        !!  * Calculate k points per pool
+        !! @todo Figure out where `nkl` should be defined @endtodo
+        !! @todo Figure out where `nkstot` comes from @endtodo
 
-      !  find out the reminder
       nkr = nkstot - nkl * npool 
+        !! * Calculate the remainder
+        !! @todo Figure out where `nkr` should be defined @endtodo
 
       !  Assign the reminder to the first nkr pools
       IF( my_pool_id < nkr ) nkl = nkl
