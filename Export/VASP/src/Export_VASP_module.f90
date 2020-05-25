@@ -22,6 +22,7 @@ module wfcExportVASPMod
   !USE mp_world,  ONLY: world_comm
   USE mp_world
     !! @todo Make this more explicit @endtodo
+  use mp_images, ONLY : intra_image_comm
   USE mp,        ONLY: mp_bcast, mp_sum, mp_max, mp_get
   USE mp_wave, ONLY : mergewf
   USE environment,   ONLY : environment_start
@@ -71,6 +72,9 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine mpiInitialization()
     use command_line_options, ONLY : get_command_line, npool_, nband_, ntg_
+    use mp_images, ONLY : mp_init_image
+    use mp_pools, ONLY : mp_start_pools
+    use mp_bands, ONLY : mp_start_bands
 
     implicit none
 
@@ -121,6 +125,8 @@ module wfcExportVASPMod
 
     integer :: id
       !! ID of this process
+    integer :: ierror
+      !! Error returned by MPI_ABORT
     integer :: mpierr
       !! Error output from MPI
 
@@ -152,7 +158,7 @@ module wfcExportVASPMod
   
     !> * For MPI, get the id of this process and abort
     call MPI_COMM_RANK( MPI_COMM_WORLD, id, mpierr )
-    call MPI_ABORT( MPI_COMM_WORLD, mpierr )
+    call MPI_ABORT( MPI_COMM_WORLD, mpierr, ierror )
     call MPI_FINALIZE( mpierr )
 
 #endif
