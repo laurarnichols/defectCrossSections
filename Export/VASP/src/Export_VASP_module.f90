@@ -19,9 +19,7 @@ module wfcExportVASPMod
   USE mp_pools,  ONLY : intra_pool_comm, me_pool, my_pool_id, nproc_pool, root_pool
   use mpi
   !USE mp_pools
-  !USE mp_world,  ONLY: world_comm
-  USE mp_world
-    !! @todo Make this more explicit @endtodo
+  USE mp_world,  ONLY: world_comm, nproc, mpime, mp_world_start
   use mp_images, ONLY : intra_image_comm
   USE mp,        ONLY: mp_bcast, mp_sum, mp_max, mp_get
   USE mp_wave, ONLY : mergewf
