@@ -132,6 +132,43 @@ module wfcExportVASPMod
   end subroutine readInputFiles
 
 !----------------------------------------------------------------------------
+  subroutine readWAVECAR()
+    !! Read data from the WAVECAR file
+    !!
+    !! <h2>Walkthrough</h2>
+
+    implicit none
+
+    real(kind=dp) :: a1(3), a2(3), a3(3)
+      !! Real space lattice vectors
+    real(kind=dp) :: ecut
+      !! Plane wave energy cutoff?
+
+    integer :: dummyI
+      !! Dummy integer for ignoring input
+    integer :: j
+      !! Index used for reading lattice vectors
+    integer :: nbnd
+      !! Total number of bands
+    integer :: nkstot
+      !! Total number of kpoints
+    integer :: prec
+      !! Precision of plane wave coefficients
+
+    open( unit = 10, file = 'WAVECAR')
+      !! * Open the WAVECAR file
+
+    read(10,*) dummyI, nspin, prec
+
+    !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
+
+    read(10,*) nkstot, nbnd, ecut, (a1(j),j=1,3),(a2(j),j=1,3), &
+         (a3(j),j=1,3)
+
+    return
+  end subroutine readWAVECAR
+
+!----------------------------------------------------------------------------
   subroutine distributeKpointsInPools()
     !! Figure out how many kpoints there should be per pool
     !!

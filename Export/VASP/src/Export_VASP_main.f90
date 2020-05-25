@@ -39,6 +39,8 @@ program wfcExportVASPMain
     mainOutputFile = trim(exportDir)//"/input"
       !! * Set the name of the main output file for export
     
+    call readWAVECAR()
+      !! * Read data from the WAVECAR file
   ENDIF
 
   !> * Broadcast variables to other processes
@@ -51,6 +53,7 @@ program wfcExportVASPMain
   CALL openfil_pp
     !! @todo Figure out what this subroutine does and what can be moved here @endtodo
   
+
   call distributeKpointsInPools()
 
   CALL write_export (mainOutputFile, exportDir)
