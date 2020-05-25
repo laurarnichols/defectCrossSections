@@ -17,8 +17,10 @@ program wfcExportVASPMain
 
 #ifdef __MPI
   CALL mp_startup ( )
+    !! @todo Figure out what this subroutine does and what can be moved here @endtodo
 #endif
   CALL environment_start ( 'PW_EXPORT' )
+    !! @todo Figure out what this subroutine does and what can be moved here @endtodo
 
   IF ( ionode ) THEN
 
@@ -43,13 +45,13 @@ program wfcExportVASPMain
   CALL mp_bcast( outdir, ionode_id, world_comm )
   CALL mp_bcast( exportDir, ionode_id, world_comm )
   CALL mp_bcast( prefix, ionode_id, world_comm )
-  !
-  !   Now allocate space for pwscf variables, read and check them.
-  !
-  CALL read_file
-  CALL openfil_pp
-  !
 
+  CALL read_file
+    !! @todo Figure out what this subroutine does and what can be moved here @endtodo
+  CALL openfil_pp
+    !! @todo Figure out what this subroutine does and what can be moved here @endtodo
+  
+!> @todo Figure out what the purpose of `kunittmp` is @endtodo
 #if defined __MPI
   kunittmp = kunit
 #else
@@ -59,6 +61,7 @@ program wfcExportVASPMain
   CALL write_export (mainOutputFile, exportDir, kunittmp )
 
   CALL stop_pp
+    !! @todo Figure out what this subroutine does and what can be moved here @endtodo
  
 END PROGRAM wfcExportVASPMain
 
