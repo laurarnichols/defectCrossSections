@@ -156,7 +156,7 @@ module wfcExportVASPMod
         !! @todo Figure out where `nkr` should be defined @endtodo
 
       !  Assign the reminder to the first nkr pools
-      IF( my_pool_id < nkr ) nkl = nkl
+      IF( my_pool_id < nkr ) nkl = nkl + 1
 
       !  find out the index of the first k point in this pool
       iks = nkl * my_pool_id + 1
@@ -228,7 +228,7 @@ module wfcExportVASPMod
         nkr = nkt - nkl * npool
 
         !  Assign the reminder to the first nkr pools
-        IF( my_pool_id < nkr ) nkl = nkl 
+        IF( my_pool_id < nkr ) nkl = nkl + 1
 
         !  find out the index of the first k point in this pool
         iks = nkl * my_pool_id + 1
