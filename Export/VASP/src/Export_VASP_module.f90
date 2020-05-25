@@ -145,11 +145,8 @@ module wfcExportVASPMod
       npool = nproc / nproc_pool
         !!  * Find out the number of pools
 
-      !  find out number of k points blocks
-      nkbl = nkstot
-
       !  k points per pool
-      nkl = nkbl / npool
+      nkl = nkstot / npool
 
       !  find out the reminder
       nkr = nkstot - nkl * npool 
@@ -387,7 +384,7 @@ module wfcExportVASPMod
     INTEGER :: i, j, k, ig, ik, ibnd, na, ngg,ig_, ierr
     INTEGER, ALLOCATABLE :: kisort(:)
     real(DP) :: xyz(3), tmp(3)
-    INTEGER :: npool, nkbl, nkl, nkr, npwx_g, im, ink, inb, ms
+    INTEGER :: npool, nkl, nkr, npwx_g, im, ink, inb, ms
     INTEGER :: ike, iks, npw_g, ispin, local_pw
     INTEGER, ALLOCATABLE :: ngk_g( : )
     INTEGER, ALLOCATABLE :: itmp_g( :, : )
