@@ -1,7 +1,15 @@
 module wfcExportVASPMod
 
   USE wrappers,      ONLY : f_mkdir_safe
-  USE pwcom
+
+  !USE pwcom
+  USE constants, ONLY : e2, rytoev, pi, tpi, fpi
+  USE cell_base, ONLY : celldm, bg, alat, omega, tpiba, tpiba2, ibrav
+  USE gvect, ONLY : g, ngm, ngm_g, ig_l2g, mill
+  USE klist, ONLY : xk, wk, ngk, nks
+  USE ener, ONLY : ef
+  USE wvfct, ONLY : g2kin, igk, npw, npwx, et
+  USE lsda_mod, ONLY : isk
 
   USE io_global, ONLY : ionode, ionode_id
   USE io_files,  ONLY : prefix, outdir
@@ -19,10 +27,19 @@ module wfcExportVASPMod
 
   implicit none
 
+  integer, parameter :: dp = selected_real_kind(15, 307)
+    !! Used to set real variables to double precision
   integer, parameter :: stdout = 6
     !! Standard output unit
 
+  real(kind = dp), parameter :: ryToHartree = 0.5_dp
+  
   CHARACTER(LEN=256), EXTERNAL :: trimcheck
+
+  real(kind=dp) :: at(3,3)
+    !! Real space lattice vectors
+  real(kind=dp) :: ecutwfc
+    !! Plane wave energy cutoff?
   
   INTEGER :: ik, i
   integer :: ikEnd
@@ -31,12 +48,14 @@ module wfcExportVASPMod
     !! Starting index for kpoints in single pool 
   integer :: ios
     !! Error for input/output
+  integer :: nbnd
+    !! Total number of bands
   integer :: nkstot
     !! Total number of kpoints
   integer :: npool
     !! Number of pools for kpoint parallelization
-  
-  real(kind = dp), parameter :: ryToHartree = 0.5_dp
+  integer :: nspin
+    !! Number of spins
   
   character(len=256) :: exportDir
     !! Directory to be used for export
@@ -149,19 +168,10 @@ module wfcExportVASPMod
 
     implicit none
 
-    real(kind=dp) :: a1(3), a2(3), a3(3)
-      !! Real space lattice vectors
-    real(kind=dp) :: ecut
-      !! Plane wave energy cutoff?
-
     integer :: dummyI
       !! Dummy integer for ignoring input
     integer :: j
       !! Index used for reading lattice vectors
-    integer :: nbnd
-      !! Total number of bands
-    integer :: nspin
-      !! Number of spins
     integer :: prec
       !! Precision of plane wave coefficients
 
@@ -173,8 +183,8 @@ module wfcExportVASPMod
 
     !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
-    read(10,*) nkstot, nbnd, ecut, (a1(j),j=1,3),(a2(j),j=1,3), &
-         (a3(j),j=1,3)
+    read(10,*) nkstot, nbnd, ecutwfc, (at(j,1),j=1,3),(at(j,2),j=1,3), &
+         (at(j,2),j=1,3)
       !! * Read total number of kpoints, plane wave cutoff energy, and real
       !!   space lattice vectors
 
@@ -380,7 +390,6 @@ module wfcExportVASPMod
 
 
     USE kinds,          ONLY : DP
-    USE pwcom
     USE start_k,        ONLY : nk1, nk2, nk3, k1, k2, k3
     USE control_flags,  ONLY : gamma_only
     USE global_version, ONLY : version_number
