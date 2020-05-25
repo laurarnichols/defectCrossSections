@@ -74,17 +74,15 @@ module wfcExportVASPMod
     use mp_images, only : mp_init_image
     use mp_pools, only : mp_start_pools
     use mp_bands, only : mp_start_bands
-    use mp, only : mp_stop
 
     implicit none
 
 #if defined(__OPENMP)
-       CALL MPI_Init_thread(MPI_THREAD_FUNNELED, PROVIDED, ierr)
+    call MPI_Init_thread(MPI_THREAD_FUNNELED, PROVIDED, ierr)
 #else
-       CALL MPI_Init(ierr)
+    call MPI_Init(ierr)
 #endif
-       IF (ierr/=0) CALL mp_stop( 8001 )
-#endif
+    if (ierr /= 0) call mpiExitError( 8001 )
 
     call get_command_line()
     call mp_init_image(world_comm)
@@ -110,6 +108,24 @@ module wfcExportVASPMod
     exportDir = './Export'
 
   end subroutine initialize
+
+!----------------------------------------------------------------------------
+  subroutine mpiExitError(code)
+    !! Exit on error with MPI communication
+
+    implicit none
+    
+    integer, intent(in) :: code
+
+    write( stdout, '( "*** MPI error ***")' )
+    write( stdout, '( "*** error code: ",I5, " ***")' ) code
+
+    call MPI_ABORT(MPI_COMM_WORLD,code,ierr)
+    
+    stop
+
+    return
+  end subroutine mpiExitError
 
 !----------------------------------------------------------------------------
   subroutine exitError(calledFrom, message, ierror)
