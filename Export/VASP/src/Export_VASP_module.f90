@@ -27,6 +27,8 @@ module wfcExportVASPMod
   INTEGER :: ik, i
   integer :: ios
     !! Error for input/output
+  integer :: npool
+    !! Number of pools for kpoint parallelization
   
   real(kind = dp), parameter :: ryToHartree = 0.5_dp
   
@@ -133,6 +135,9 @@ module wfcExportVASPMod
 
     implicit none
 
+    integer :: nkl
+      !! Number of kpoints in each pool
+
 
     if( nkstot > 0 ) then
       !! @todo Figure out where `nkstot` comes from @endtodo
@@ -144,7 +149,6 @@ module wfcExportVASPMod
 
       npool = nproc / nproc_pool
         !!  * Calculate number of pools
-        !! @todo Figure out where `npool` should be defined @endtodo
 
       nkl = nkstot / npool
         !!  * Calculate k points per pool
