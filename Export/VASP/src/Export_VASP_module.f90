@@ -139,7 +139,7 @@ module wfcExportVASPMod
 
     implicit none
 
-    integer :: nkl
+    integer :: nk_Pool
       !! Number of kpoints in each pool
     integer :: nkr
       !! Number of kpoints left over after evenly divided across pools
@@ -156,21 +156,21 @@ module wfcExportVASPMod
       npool = nproc / nproc_pool
         !!  * Calculate number of pools
 
-      nkl = nkstot / npool
+      nk_Pool = nkstot / npool
         !!  * Calculate k points per pool
         !! @todo Figure out where `nkstot` comes from @endtodo
 
-      nkr = nkstot - nkl * npool 
+      nkr = nkstot - nk_Pool * npool 
         !! * Calculate the remainder
 
-      IF( my_pool_id < nkr ) nkl = nkl + 1
+      IF( my_pool_id < nkr ) nk_Pool = nk_Pool + 1
         !! * Assign the remainder to the first `nkr` pools
 
       !>  * Calculate the index of the first k point in this pool
-      ikStart = nkl * my_pool_id + 1
+      ikStart = nk_Pool * my_pool_id + 1
       IF( my_pool_id >= nkr ) ikStart = ikStart + nkr
 
-      ikEnd = ikStart + nkl - 1
+      ikEnd = ikStart + nk_Pool - 1
         !!  * Calculate the index of the last k point in this pool
 
     endif
@@ -203,7 +203,7 @@ module wfcExportVASPMod
       LOGICAL, INTENT(in) :: t0, tm
 
       INTEGER :: i, j, ierr, idum = 0
-      INTEGER :: nkl, nkr, nkbl, ikStart, ikEnd, nkt, ikt, igwx, ig
+      INTEGER :: nk_Pool, nkr, nkbl, ikStart, ikEnd, nkt, ikt, igwx, ig
       INTEGER :: npool, ipmask( nproc ), ipsour
       COMPLEX(DP), ALLOCATABLE :: wtmp(:)
       INTEGER, ALLOCATABLE :: igltot(:)
@@ -230,20 +230,20 @@ module wfcExportVASPMod
         nkbl = nkt
 
         !  k points per pool
-        nkl = nkbl / npool
+        nk_Pool = nkbl / npool
 
         !  find out the reminder
-        nkr = nkt - nkl * npool
+        nkr = nkt - nk_Pool * npool
 
         !  Assign the reminder to the first nkr pools
-        IF( my_pool_id < nkr ) nkl = nkl + 1
+        IF( my_pool_id < nkr ) nk_Pool = nk_Pool + 1
 
         !  find out the index of the first k point in this pool
-        ikStart = nkl * my_pool_id + 1
+        ikStart = nk_Pool * my_pool_id + 1
         IF( my_pool_id >= nkr ) ikStart = ikStart + nkr 
 
         !  find out the index of the last k point in this pool
-        ikEnd = ikStart + nkl - 1
+        ikEnd = ikStart + nk_Pool - 1
 
         ipmask = 0
         ipsour = ionode_id
@@ -396,7 +396,7 @@ module wfcExportVASPMod
     INTEGER :: i, j, k, ig, ik, ibnd, na, ngg,ig_, ierr
     INTEGER, ALLOCATABLE :: kisort(:)
     real(DP) :: xyz(3), tmp(3)
-    INTEGER :: npool, nkl, nkr, npwx_g, im, ink, inb, ms
+    INTEGER :: npool, nk_Pool, nkr, npwx_g, im, ink, inb, ms
     INTEGER :: ikEnd, ikStart, npw_g, ispin, local_pw
     INTEGER, ALLOCATABLE :: ngk_g( : )
     INTEGER, ALLOCATABLE :: itmp_g( :, : )
