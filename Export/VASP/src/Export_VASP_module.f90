@@ -8,8 +8,9 @@ module wfcExportVASPMod
   USE ions_base, ONLY : ntype => nsp
   USE iotk_module
   USE mp_global, ONLY : mp_startup
-  !USE mp_pools,  ONLY : kunit
-  USE mp_pools
+  USE mp_pools,  ONLY : intra_pool_comm, me_pool, my_pool_id, nproc_pool, root_pool
+  USE parallel_include
+  !USE mp_pools
   !USE mp_world,  ONLY: world_comm
   USE mp_world
   USE mp,        ONLY: mp_bcast, mp_sum, mp_max, mp_get
