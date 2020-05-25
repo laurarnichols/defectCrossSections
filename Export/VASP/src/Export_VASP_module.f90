@@ -78,9 +78,6 @@ module wfcExportVASPMod
 
     implicit none
 
-#if defined(__MPI)
-    CALL MPI_Initialized ( .false., ierr)
-    IF (ierr/=0) CALL mp_stop( 8000 )
 #if defined(__OPENMP)
        CALL MPI_Init_thread(MPI_THREAD_FUNNELED, PROVIDED, ierr)
 #else
