@@ -152,6 +152,8 @@ module wfcExportVASPMod
       !! Total number of bands
     integer :: nkstot
       !! Total number of kpoints
+    integer :: nspin
+      !! Number of spins
     integer :: prec
       !! Precision of plane wave coefficients
 
@@ -159,11 +161,14 @@ module wfcExportVASPMod
       !! * Open the WAVECAR file
 
     read(10,*) dummyI, nspin, prec
+      !! * Read the number of spins and place wave coefficient precision
 
     !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
     read(10,*) nkstot, nbnd, ecut, (a1(j),j=1,3),(a2(j),j=1,3), &
          (a3(j),j=1,3)
+      !! * Read total number of kpoints, plane wave cutoff energy, and real
+      !!   space lattice vectors
 
     return
   end subroutine readWAVECAR
