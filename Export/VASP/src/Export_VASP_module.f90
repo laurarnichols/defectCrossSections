@@ -133,7 +133,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine distributeKpointsInPools()
-    !!
+    !! Figure out how many kpoints there should be per pool
     !!
     !! <h2>Walkthrough</h2>
 
@@ -203,8 +203,8 @@ module wfcExportVASPMod
       LOGICAL, INTENT(in) :: t0, tm
 
       INTEGER :: i, j, ierr, idum = 0
-      INTEGER :: nk_Pool, nkr, nkbl, ikStart, ikEnd, nkt, ikt, igwx, ig
-      INTEGER :: npool, ipmask( nproc ), ipsour
+      INTEGER :: nkt, ikt, igwx, ig
+      INTEGER :: ipmask( nproc ), ipsour
       COMPLEX(DP), ALLOCATABLE :: wtmp(:)
       INTEGER, ALLOCATABLE :: igltot(:)
 
@@ -222,28 +222,6 @@ module wfcExportVASPMod
         ! set working variables for k point index (ikt) and k points number (nkt)
         ikt = ik
         nkt = nk
-
-        !  find out the number of pools
-        npool = nproc / nproc_pool
-
-        !  find out number of k points blocks
-        nkbl = nkt
-
-        !  k points per pool
-        nk_Pool = nkbl / npool
-
-        !  find out the reminder
-        nkr = nkt - nk_Pool * npool
-
-        !  Assign the reminder to the first nkr pools
-        IF( my_pool_id < nkr ) nk_Pool = nk_Pool + 1
-
-        !  find out the index of the first k point in this pool
-        ikStart = nk_Pool * my_pool_id + 1
-        IF( my_pool_id >= nkr ) ikStart = ikStart + nkr 
-
-        !  find out the index of the last k point in this pool
-        ikEnd = ikStart + nk_Pool - 1
 
         ipmask = 0
         ipsour = ionode_id
