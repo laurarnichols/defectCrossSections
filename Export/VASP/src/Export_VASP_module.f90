@@ -137,6 +137,8 @@ module wfcExportVASPMod
 
     integer :: nkl
       !! Number of kpoints in each pool
+    integer :: nkr
+      !! Number of kpoints left over after evenly divided across pools
 
 
     if( nkstot > 0 ) then
@@ -156,7 +158,6 @@ module wfcExportVASPMod
 
       nkr = nkstot - nkl * npool 
         !! * Calculate the remainder
-        !! @todo Figure out where `nkr` should be defined @endtodo
 
       IF( my_pool_id < nkr ) nkl = nkl + 1
         !! * Assign the remainder to the first `nkr` pools
