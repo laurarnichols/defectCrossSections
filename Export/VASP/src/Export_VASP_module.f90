@@ -396,8 +396,8 @@ module wfcExportVASPMod
     INTEGER :: i, j, k, ig, ik, ibnd, na, ngg,ig_, ierr
     INTEGER, ALLOCATABLE :: kisort(:)
     real(DP) :: xyz(3), tmp(3)
-    INTEGER :: npool, nk_Pool, nkr, npwx_g, im, ink, inb, ms
-    INTEGER :: ikEnd, ikStart, npw_g, ispin, local_pw
+    INTEGER :: npwx_g, im, ink, inb, ms
+    INTEGER :: npw_g, ispin, local_pw
     INTEGER, ALLOCATABLE :: ngk_g( : )
     INTEGER, ALLOCATABLE :: itmp_g( :, : )
     real(DP),ALLOCATABLE :: rtmp_g( :, : )
