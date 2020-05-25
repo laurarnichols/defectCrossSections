@@ -25,6 +25,10 @@ module wfcExportVASPMod
   CHARACTER(LEN=256), EXTERNAL :: trimcheck
   
   INTEGER :: ik, i
+  integer :: ike
+    !! Ending index for kpoints in single pool 
+  integer :: iks
+    !! Starting index for kpoints in single pool 
   integer :: ios
     !! Error for input/output
   integer :: npool
@@ -164,12 +168,10 @@ module wfcExportVASPMod
 
       !>  * Calculate the index of the first k point in this pool
       iks = nkl * my_pool_id + 1
-        !! @todo Figure out where `iks` should be defined @endtodo
       IF( my_pool_id >= nkr ) iks = iks + nkr
 
       ike = iks + nkl - 1
         !!  * Calculate the index of the last k point in this pool
-        !! @todo Figure out where `ike` should be defined @endtodo
 
     endif
 
