@@ -18,8 +18,7 @@ module wfcExportVASPMod
   USE mp_global, ONLY : mp_startup
   USE mp_pools,  ONLY : intra_pool_comm, me_pool, my_pool_id, nproc_pool, root_pool
   use mpi
-  !USE mp_pools
-  USE mp_world,  ONLY: world_comm, nproc, mpime, mp_world_start
+  USE mp_world,  ONLY: world_comm, nproc, mpime
   use mp_images, ONLY : intra_image_comm
   USE mp,        ONLY: mp_bcast, mp_sum, mp_max, mp_get
   USE mp_wave, ONLY : mergewf
@@ -69,10 +68,11 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine mpiInitialization()
-    use command_line_options, ONLY : get_command_line, npool_, nband_, ntg_
-    use mp_images, ONLY : mp_init_image
-    use mp_pools, ONLY : mp_start_pools
-    use mp_bands, ONLY : mp_start_bands
+    use command_line_options, only : get_command_line, npool_, nband_, ntg_
+    use mp_world,  only : mp_world_start
+    use mp_images, only : mp_init_image
+    use mp_pools, only : mp_start_pools
+    use mp_bands, only : mp_start_bands
 
     implicit none
 
