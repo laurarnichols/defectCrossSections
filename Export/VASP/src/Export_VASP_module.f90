@@ -335,11 +335,6 @@ module wfcExportVASPMod
 
       IF( ( nproc_pool > nproc ) .or. ( mod( nproc, nproc_pool ) /= 0 ) ) &
         CALL exitError( ' write_export ',' nproc_pool ', 1 )
-        !! @todo Figure out where `nproc_pool` comes from @endtodo
-        !! @todo Figure out where `nproc` comes from @endtodo
-
-      !npool = nproc / nproc_pool
-        !!  * Calculate number of pools
 
       nk_Pool = nkstot / npool
         !!  * Calculate k points per pool
