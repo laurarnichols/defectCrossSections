@@ -11,7 +11,6 @@ module wfcExportVASPMod
   USE wvfct, ONLY : g2kin, igk, npw, npwx, et
   USE lsda_mod, ONLY : isk
 
-  USE io_global, ONLY : ionode, ionode_id
   USE io_files,  ONLY : prefix, outdir
   USE ions_base, ONLY : ntype => nsp
   USE iotk_module
@@ -19,7 +18,6 @@ module wfcExportVASPMod
   USE mp_pools,  ONLY : intra_pool_comm, me_pool, my_pool_id, nproc_pool, root_pool
   use mpi
   USE mp_world,  ONLY: nproc, mpime
-  use mp_images, ONLY : intra_image_comm
   USE mp,        ONLY: mp_sum, mp_max, mp_get
   USE mp_wave, ONLY : mergewf
   USE environment,   ONLY : environment_start
@@ -59,11 +57,16 @@ module wfcExportVASPMod
     !! Number of pools for kpoint parallelization
   integer :: nspin
     !! Number of spins
+  integer :: myid
+    !! ID of this process
   
   character(len=256) :: exportDir
     !! Directory to be used for export
   character(len=256) :: mainOutputFile
     !! Main output file
+
+  logical :: ionode
+    !! If this node is the root node
 
   NAMELIST /inputParams/ prefix, outdir, exportDir
 
@@ -72,7 +75,6 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine mpiInitialization()
-    use mp_images, only : mp_init_image
     use mp_pools, only : mp_start_pools
     use mp_bands, only : mp_start_bands
 
@@ -84,8 +86,6 @@ module wfcExportVASPMod
       !! Total number of command line arguments
     integer :: nband_ = 1
       !! Number of band groups for parallelization
-    integer :: nimage_ = 1
-      !! Number of images for parallelization
     integer :: npool_ = 1
       !! Number of k point pools for parallelization
     integer :: ntg_ = 1
@@ -103,6 +103,18 @@ module wfcExportVASPMod
 #endif
     if (ierr /= 0) call mpiExitError( 8001 )
 
+    !intra_image_comm = MPI_COMM_WORLD
+    !nproc_image = mp_size(MPI_COMM_WORLD)
+    !me_image = mp_rank(MPI_COMM_WORLD)
+
+    call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
+      !! * Determine the rank or ID of the calling process
+    call MPI_COMM_SIZE(MPI_COMM_WORLD, nproc, ierr)
+      !! * Determine the size of the MPI pool (i.e., the number of processes)
+
+    ionode = (myid == root)
+    !ionode_id = root
+
     nargs = command_argument_count()
       !! * Get the number of arguments input
 
@@ -118,10 +130,6 @@ module wfcExportVASPMod
 
         !> * Process the flag and store the following value
         select case (trim(arg))
-          case('-ni', '-nimage', '-nimages') 
-            call get_command_argument(narg, arg)
-            read(arg, *) nimage_
-            narg = narg + 1
           case('-nk', '-npool', '-npools') 
             call get_command_argument(narg, arg)
             read(arg, *) npool_
@@ -142,13 +150,11 @@ module wfcExportVASPMod
       write(stdout,*) 'Unprocessed command line arguments: ' // trim(command_line)
     endif
 
-    call MPI_BCAST(nimage_, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(npool_, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(ntg_, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
     call MPI_BCAST(nband_, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
 
-    call mp_init_image(MPI_COMM_WORLD)
-    call mp_start_pools(npool_, intra_image_comm)
+    call mp_start_pools(npool_, MPI_COMM_WORLD)
     call mp_start_bands(nband_, ntg_, intra_pool_comm)
 
     return
@@ -379,7 +385,7 @@ module wfcExportVASPMod
         nkt = nk
 
         ipmask = 0
-        ipsour = ionode_id
+        ipsour = root
 
         !  find out the index of the processor which collect the data in the pool of ik
         IF( npool > 1 ) THEN
@@ -413,8 +419,8 @@ module wfcExportVASPMod
         IF( ierr > 0 ) &
           CALL exitError(' write_restart_wfc ',' wrong size ngl ', ierr )
 
-        IF( ipsour /= ionode_id ) THEN
-          CALL mp_get( igwx, igwx, mpime, ionode_id, ipsour, 1, MPI_COMM_WORLD )
+        IF( ipsour /= root ) THEN
+          CALL mp_get( igwx, igwx, mpime, root, ipsour, 1, MPI_COMM_WORLD )
         ENDIF
 
         ALLOCATE( wtmp( max(igwx,1) ) )
@@ -427,12 +433,12 @@ module wfcExportVASPMod
                 CALL mergewf(wf0(:,j), wtmp, ngwl, igl, me_pool, &
                              nproc_pool, root_pool, intra_pool_comm)
               ENDIF
-              IF( ipsour /= ionode_id ) THEN
-                CALL mp_get( wtmp, wtmp, mpime, ionode_id, ipsour, j, MPI_COMM_WORLD )
+              IF( ipsour /= root ) THEN
+                CALL mp_get( wtmp, wtmp, mpime, root, ipsour, j, MPI_COMM_WORLD )
               ENDIF
             ELSE
               CALL mergewf(wf0(:,j), wtmp, ngwl, igl, mpime, nproc, &
-                           ionode_id, MPI_COMM_WORLD )
+                           root, MPI_COMM_WORLD )
             ENDIF
 
             IF( ionode ) THEN
@@ -458,11 +464,11 @@ module wfcExportVASPMod
 !                CALL mergewf(wfm(:,j), wtmp, ngwl, igl, me_pool, &
 !                             nproc_pool, root_pool, intra_pool_comm)
 !              ENDIF
-!              IF( ipsour /= ionode_id ) THEN
-!                CALL mp_get( wtmp, wtmp, mpime, ionode_id, ipsour, j, MPI_COMM_WORLD )
+!              IF( ipsour /= root ) THEN
+!                CALL mp_get( wtmp, wtmp, mpime, root, ipsour, j, MPI_COMM_WORLD )
 !              ENDIF
 !            ELSE
-!              CALL mergewf(wfm(:,j), wtmp, ngwl, igl, mpime, nproc, ionode_id, MPI_COMM_WORLD )
+!              CALL mergewf(wfm(:,j), wtmp, ngwl, igl, mpime, nproc, root, MPI_COMM_WORLD )
 !            ENDIF
 !            IF( ionode ) THEN
 !              CALL iotk_write_dat(iuni,"Wfcm"//iotk_index(j),wtmp(1:igwx))
