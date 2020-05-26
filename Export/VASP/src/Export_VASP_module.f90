@@ -16,7 +16,7 @@ module wfcExportVASPMod
   USE iotk_module
   USE mp_global, ONLY : mp_startup
   use mpi
-  USE mp,        ONLY: mp_sum, mp_max, mp_get, mp_comm_split
+  USE mp,        ONLY: mp_sum, mp_max, mp_get
   USE mp_wave, ONLY : mergewf
   USE environment,   ONLY : environment_start
 
@@ -194,10 +194,12 @@ module wfcExportVASPMod
     call MPI_BARRIER(world_comm, ierr)
     if(ierr /= 0) call mpiExitError(8005)
 
-    call mp_comm_split(world_comm, myPoolId, myid, intra_pool_comm)
+    call MPI_COMM_SPLIT(world_comm, myPoolId, myid, intra_pool_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8006)
       !! * Create intra pool communicator
 
-    call mp_comm_split(world_comm, indexInPool, myid, inter_pool_comm)
+    call MPI_COMM_SPLIT(world_comm, indexInPool, myid, inter_pool_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8007)
       !! * Create inter pool communicator
 
     call mp_start_bands(nband_, ntg_, intra_pool_comm)
