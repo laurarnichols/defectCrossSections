@@ -18,18 +18,17 @@ program wfcExportVASPMain
 #ifdef __MPI
   call mpiInitialization()
 #endif
-  CALL environment_start ( 'PW_EXPORT' )
-    !! @todo Figure out what this subroutine does and what can be moved here @endtodo
 
-  IF ( ionode ) THEN
+  call initialize()
+    !! * Set default values for input variables, open output file,
+    !!   and start timers
 
-    call initialize()
-      !! * Set default values for input variables
+  if ( ionode ) then
     
-    READ(5, inputParams, IOSTAT=ios)
+    read(5, inputParams, iostat=ios)
       !! * Read input variables
     
-    IF (ios /= 0) call exitError ('export main', 'reading inputParams namelist', abs(ios) )
+    if (ios /= 0) call exitError ('export main', 'reading inputParams namelist', abs(ios) )
       !! * Exit calculation if there's an error
     
     ios = f_mkdir_safe( trim(exportDir) )
@@ -40,7 +39,7 @@ program wfcExportVASPMain
     
     call readWAVECAR()
       !! * Read data from the WAVECAR file
-  ENDIF
+  endif
 
   !CALL mp_bcast( outdir, root, world_comm )
   !CALL mp_bcast( exportDir, root, world_comm )

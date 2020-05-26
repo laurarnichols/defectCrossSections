@@ -17,7 +17,6 @@ module wfcExportVASPMod
   use mpi
   USE mp,        ONLY: mp_sum, mp_max, mp_get
   USE mp_wave, ONLY : mergewf
-  USE environment,   ONLY : environment_start
 
   implicit none
 
@@ -38,6 +37,8 @@ module wfcExportVASPMod
     !! Real space lattice vectors
   real(kind=dp) :: ecutwfc
     !! Plane wave energy cutoff?
+  real(kind=dp) :: tStart
+    !! Start time
   
   INTEGER :: ik, i
   integer :: ierr
@@ -106,11 +107,8 @@ module wfcExportVASPMod
     character(len=256) :: command_line = ' '
       !! Command line arguments that were not processed
 
-#if defined(__OPENMP)
-    call MPI_Init_thread(MPI_THREAD_FUNNELED, PROVIDED, ierr)
-#else
     call MPI_Init(ierr)
-#endif
+
     if (ierr /= 0) call mpiExitError( 8001 )
 
     world_comm = world_comm
@@ -185,15 +183,42 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine initialize()
-    !! Set the default values for input variables
+    !! Set the default values for input variables, open output files,
+    !! and start timer
     !!
     !! <h2>Walkthrough</h2>
     
     implicit none
 
+    character(len=8) :: cdate
+      !! String for date
+    character(len=10) :: ctime
+      !! String for time
+
     prefix = ''
     outdir = './'
     exportDir = './Export'
+
+#ifdef __INTEL_COMPILER
+    call remove_stack_limit ( )
+      !! * Removed the stack limit because Intel compiler allocates a lot of stack space
+      !!   which leads to seg faults and crash. This always works unlike `ulimit -s unlimited`
+#endif
+
+    call cpu_time(tStart)
+
+    call date_and_time( cdate, ctime )
+
+    write( stdout, '(/5X,"VASP wavefunction export program starts on ",A9," at ",A9)' ) &
+         cdate, ctime
+
+#ifdef __MPI
+    write( stdout, '(/5X,"Parallel version (MPI), running on ",I5," processors")' ) nproc
+
+    if(npool > 1) write( stdout, '(5X,"K-points division:     npool     = ",I7)' ) npool
+#else
+    write( stdout, '(/5X,"Serial version")' )
+#endif
 
   end subroutine initialize
 
