@@ -88,6 +88,9 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine mpiInitialization()
+    !! Initialize MPI processes and split into pools
+    !!
+    !! <h2>Walkthrough</h2>
 
     implicit none
 
@@ -118,10 +121,9 @@ module wfcExportVASPMod
       !! * Determine the size of the MPI pool (i.e., the number of processes)
 
     ionode = (myid == root)
-    !ionode_id = root
 
     nargs = command_argument_count()
-      !! * Get the number of arguments input
+      !! * Get the number of arguments input at command line
 
     call MPI_BCAST(nargs, 1, MPI_INTEGER, root, world_comm, ierr)
 
@@ -129,7 +131,7 @@ module wfcExportVASPMod
 
       do while (narg <= nargs)
         call get_command_argument(narg, arg)
-          !! * Get the flag
+          !! * Get the flag (currently only processes number of pools)
 
         narg = narg + 1
 
@@ -151,7 +153,6 @@ module wfcExportVASPMod
     if(ierr /= 0) call mpiExitError(8002)
 
     npool = npool_
-      !! @todo Figure out the point of the separate underscore variable @endtodo
 
     if(npool < 1 .or. npool > nproc) call exitError('mpiInitialization', 'invalid number of pools, out of range', 1)
       !! * Verify that the number of pools is between 1 and the number of processes
