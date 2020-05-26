@@ -18,7 +18,7 @@ module wfcExportVASPMod
   USE mp_global, ONLY : mp_startup
   USE mp_pools,  ONLY : intra_pool_comm, me_pool, my_pool_id, nproc_pool, root_pool
   use mpi
-  USE mp_world,  ONLY: world_comm, nproc, mpime
+  USE mp_world,  ONLY: nproc, mpime
   use mp_images, ONLY : intra_image_comm
   USE mp,        ONLY: mp_bcast, mp_sum, mp_max, mp_get
   USE mp_wave, ONLY : mergewf
@@ -28,6 +28,8 @@ module wfcExportVASPMod
 
   integer, parameter :: dp = selected_real_kind(15, 307)
     !! Used to set real variables to double precision
+  integer, parameter :: root = 0
+    !! ID of the root node
   integer, parameter :: stdout = 6
     !! Standard output unit
 
@@ -70,12 +72,29 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine mpiInitialization()
-    use command_line_options, only : get_command_line, npool_, nband_, ntg_
     use mp_images, only : mp_init_image
     use mp_pools, only : mp_start_pools
     use mp_bands, only : mp_start_bands
 
     implicit none
+
+    integer :: narg = 0
+      !! Arguments processed
+    integer :: nargs
+      !! Total number of command line arguments
+    integer :: nband_ = 1
+      !! Number of band groups for parallelization
+    integer :: nimage_ = 1
+      !! Number of images for parallelization
+    integer :: npool_ = 1
+      !! Number of k point pools for parallelization
+    integer :: ntg_ = 1
+      !! Number of task groups for parallelization
+
+    character(len=256) :: arg = ' '
+      !! Command line argument
+    character(len=256) :: command_line = ' '
+      !! Command line arguments that were not processed
 
 #if defined(__OPENMP)
     call MPI_Init_thread(MPI_THREAD_FUNNELED, PROVIDED, ierr)
@@ -84,8 +103,50 @@ module wfcExportVASPMod
 #endif
     if (ierr /= 0) call mpiExitError( 8001 )
 
-    call get_command_line()
-    call mp_init_image(world_comm)
+    nargs = command_argument_count()
+      !! * Get the number of arguments input
+
+    call mp_bcast(nargs, root, MPI_COMM_WORLD)
+
+    if(ionode) then
+
+      do while (narg <= nargs)
+        call get_command_argument(narg, arg)
+          !! * Get the flag
+
+        narg = narg + 1
+
+        !> * Process the flag and store the following value
+        select case (trim(arg))
+          case('-ni', '-nimage', '-nimages') 
+            call get_command_argument(narg, arg)
+            read(arg, *) nimage_
+            narg = narg + 1
+          case('-nk', '-npool', '-npools') 
+            call get_command_argument(narg, arg)
+            read(arg, *) npool_
+            narg = narg + 1
+          case('-nt', '-ntg', '-ntask_groups') 
+            call get_command_argument(narg, arg)
+            read(arg, *) ntg_
+            narg = narg + 1
+          case('-nb', '-nband', '-nbgrp', '-nband_group') 
+            call get_command_argument(narg, arg)
+            read(arg, *) nband_
+            narg = narg + 1
+          case default
+            command_line = trim(command_line) // ' ' // trim(arg)
+        end select
+      enddo
+    endif
+
+    call mp_bcast(command_line, root, MPI_COMM_WORLD)
+    call mp_bcast(nimage_, root, MPI_COMM_WORLD)
+    call mp_bcast(npool_, root, MPI_COMM_WORLD)
+    call mp_bcast(ntg_, root, MPI_COMM_WORLD)
+    call mp_bcast(nband_, root, MPI_COMM_WORLD)
+
+    call mp_init_image(MPI_COMM_WORLD)
     call mp_start_pools(npool_, intra_image_comm)
     call mp_start_bands(nband_, ntg_, intra_pool_comm)
 
@@ -324,7 +385,7 @@ module wfcExportVASPMod
           IF( ( ikt >= ikStart ) .and. ( ikt <= ikEnd ) ) THEN
             IF( me_pool == root_pool ) ipmask( mpime + 1 ) = 1
           ENDIF
-          CALL mp_sum( ipmask, world_comm )
+          CALL mp_sum( ipmask, MPI_COMM_WORLD )
           DO i = 1, nproc
             IF( ipmask(i) == 1 ) ipsour = ( i - 1 )
           ENDDO
@@ -346,13 +407,13 @@ module wfcExportVASPMod
 
         ! now notify all procs if an error has been found
         !
-        CALL mp_max( ierr, world_comm )
+        CALL mp_max( ierr, MPI_COMM_WORLD )
 
         IF( ierr > 0 ) &
           CALL exitError(' write_restart_wfc ',' wrong size ngl ', ierr )
 
         IF( ipsour /= ionode_id ) THEN
-          CALL mp_get( igwx, igwx, mpime, ionode_id, ipsour, 1, world_comm )
+          CALL mp_get( igwx, igwx, mpime, ionode_id, ipsour, 1, MPI_COMM_WORLD )
         ENDIF
 
         ALLOCATE( wtmp( max(igwx,1) ) )
@@ -366,11 +427,11 @@ module wfcExportVASPMod
                              nproc_pool, root_pool, intra_pool_comm)
               ENDIF
               IF( ipsour /= ionode_id ) THEN
-                CALL mp_get( wtmp, wtmp, mpime, ionode_id, ipsour, j, world_comm )
+                CALL mp_get( wtmp, wtmp, mpime, ionode_id, ipsour, j, MPI_COMM_WORLD )
               ENDIF
             ELSE
               CALL mergewf(wf0(:,j), wtmp, ngwl, igl, mpime, nproc, &
-                           ionode_id, world_comm )
+                           ionode_id, MPI_COMM_WORLD )
             ENDIF
 
             IF( ionode ) THEN
@@ -397,10 +458,10 @@ module wfcExportVASPMod
 !                             nproc_pool, root_pool, intra_pool_comm)
 !              ENDIF
 !              IF( ipsour /= ionode_id ) THEN
-!                CALL mp_get( wtmp, wtmp, mpime, ionode_id, ipsour, j, world_comm )
+!                CALL mp_get( wtmp, wtmp, mpime, ionode_id, ipsour, j, MPI_COMM_WORLD )
 !              ENDIF
 !            ELSE
-!              CALL mergewf(wfm(:,j), wtmp, ngwl, igl, mpime, nproc, ionode_id, world_comm )
+!              CALL mergewf(wfm(:,j), wtmp, ngwl, igl, mpime, nproc, ionode_id, MPI_COMM_WORLD )
 !            ENDIF
 !            IF( ionode ) THEN
 !              CALL iotk_write_dat(iuni,"Wfcm"//iotk_index(j),wtmp(1:igwx))
@@ -440,7 +501,7 @@ module wfcExportVASPMod
     USE mp_pools,       ONLY : my_pool_id, intra_pool_comm, inter_pool_comm, &
                              nproc_pool
     USE mp,             ONLY : mp_sum, mp_max
-    USE mp_world,       ONLY : world_comm, nproc, mpime
+    USE mp_world,       ONLY : nproc, mpime
   
     USE upf_module,     ONLY : read_upf
   
@@ -562,11 +623,11 @@ module wfcExportVASPMod
     ALLOCATE( ngk_g( nkstot ) )
     ngk_g = 0
     ngk_g( ikStart:ikEnd ) = ngk( 1:nks )
-    CALL mp_sum( ngk_g, world_comm )
+    CALL mp_sum( ngk_g, MPI_COMM_WORLD )
 
     ! compute the Maximum G vector index among all G+k and processors
     npw_g = maxval( igk_l2g(:,:) )
-    CALL mp_max( npw_g, world_comm )
+    CALL mp_max( npw_g, MPI_COMM_WORLD )
 
     ! compute the Maximum number of G vector among all k points
     npwx_g = maxval( ngk_g( 1:nkstot ) )
@@ -613,7 +674,7 @@ module wfcExportVASPMod
         ENDDO
       ENDIF
     
-      CALL mp_sum( itmp1, world_comm )
+      CALL mp_sum( itmp1, MPI_COMM_WORLD )
     
       ngg = 0
       DO  ig = 1, npw_g
@@ -877,7 +938,7 @@ module wfcExportVASPMod
           endif
         endif
         
-        CALL mp_bcast( file_exists, ionode_id, world_comm )
+        CALL mp_bcast( file_exists, ionode_id, MPI_COMM_WORLD )
         
         if ( .not. file_exists ) then
           CALL write_restart_wfc(72, exportDir, ik, nkstot, ispin, nspin, &
