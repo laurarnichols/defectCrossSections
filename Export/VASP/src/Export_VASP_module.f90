@@ -14,7 +14,6 @@ module wfcExportVASPMod
   USE io_files,  ONLY : prefix, outdir
   USE ions_base, ONLY : ntype => nsp
   USE iotk_module
-  USE mp_global, ONLY : mp_startup
   use mpi
   USE mp,        ONLY: mp_sum, mp_max, mp_get
   USE mp_wave, ONLY : mergewf
@@ -89,8 +88,6 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine mpiInitialization()
-    use mp_pools, only : mp_start_pools
-    use mp_bands, only : mp_start_bands
 
     implicit none
 
@@ -98,12 +95,8 @@ module wfcExportVASPMod
       !! Arguments processed
     integer :: nargs
       !! Total number of command line arguments
-    integer :: nband_ = 1
-      !! Number of band groups for parallelization
     integer :: npool_ = 1
       !! Number of k point pools for parallelization
-    integer :: ntg_ = 1
-      !! Number of task groups for parallelization
 
     character(len=256) :: arg = ' '
       !! Command line argument
@@ -118,10 +111,6 @@ module wfcExportVASPMod
     if (ierr /= 0) call mpiExitError( 8001 )
 
     world_comm = world_comm
-
-    !intra_image_comm = world_comm
-    !nproc_image = mp_size(world_comm)
-    !me_image = mp_rank(world_comm)
 
     call MPI_COMM_RANK(world_comm, myid, ierr)
       !! * Determine the rank or ID of the calling process
@@ -150,14 +139,6 @@ module wfcExportVASPMod
             call get_command_argument(narg, arg)
             read(arg, *) npool_
             narg = narg + 1
-          case('-nt', '-ntg', '-ntask_groups') 
-            call get_command_argument(narg, arg)
-            read(arg, *) ntg_
-            narg = narg + 1
-          case('-nb', '-nband', '-nbgrp', '-nband_group') 
-            call get_command_argument(narg, arg)
-            read(arg, *) nband_
-            narg = narg + 1
           case default
             command_line = trim(command_line) // ' ' // trim(arg)
         end select
@@ -168,10 +149,6 @@ module wfcExportVASPMod
 
     call MPI_BCAST(npool_, 1, MPI_INTEGER, root, world_comm, ierr)
     if(ierr /= 0) call mpiExitError(8002)
-    call MPI_BCAST(ntg_, 1, MPI_INTEGER, root, world_comm, ierr)
-    if(ierr /= 0) call mpiExitError(8003)
-    call MPI_BCAST(nband_, 1, MPI_INTEGER, root, world_comm, ierr)
-    if(ierr /= 0) call mpiExitError(8004)
 
     npool = npool_
       !! @todo Figure out the point of the separate underscore variable @endtodo
@@ -192,17 +169,15 @@ module wfcExportVASPMod
       !! * Get the index of the process within the pool
 
     call MPI_BARRIER(world_comm, ierr)
-    if(ierr /= 0) call mpiExitError(8005)
+    if(ierr /= 0) call mpiExitError(8003)
 
     call MPI_COMM_SPLIT(world_comm, myPoolId, myid, intra_pool_comm, ierr)
-    if(ierr /= 0) call mpiExitError(8006)
+    if(ierr /= 0) call mpiExitError(8004)
       !! * Create intra pool communicator
 
     call MPI_COMM_SPLIT(world_comm, indexInPool, myid, inter_pool_comm, ierr)
-    if(ierr /= 0) call mpiExitError(8007)
+    if(ierr /= 0) call mpiExitError(8005)
       !! * Create inter pool communicator
-
-    call mp_start_bands(nband_, ntg_, intra_pool_comm)
 
     return
   end subroutine mpiInitialization
