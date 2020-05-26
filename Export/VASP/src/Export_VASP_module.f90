@@ -15,7 +15,6 @@ module wfcExportVASPMod
   USE ions_base, ONLY : ntype => nsp
   USE iotk_module
   USE mp_global, ONLY : mp_startup
-  USE mp_pools,  ONLY : root_pool
   use mpi
   USE mp,        ONLY: mp_sum, mp_max, mp_get, mp_barrier, mp_comm_split
   USE mp_wave, ONLY : mergewf
@@ -27,6 +26,8 @@ module wfcExportVASPMod
     !! Used to set real variables to double precision
   integer, parameter :: root = 0
     !! ID of the root node
+  integer, parameter :: root_pool = 0
+    !! Index of the root process within each pool
   integer, parameter :: stdout = 6
     !! Standard output unit
 
