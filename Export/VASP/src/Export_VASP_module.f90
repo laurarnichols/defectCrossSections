@@ -20,7 +20,7 @@ module wfcExportVASPMod
   use mpi
   USE mp_world,  ONLY: nproc, mpime
   use mp_images, ONLY : intra_image_comm
-  USE mp,        ONLY: mp_bcast, mp_sum, mp_max, mp_get
+  USE mp,        ONLY: mp_sum, mp_max, mp_get
   USE mp_wave, ONLY : mergewf
   USE environment,   ONLY : environment_start
 
@@ -106,7 +106,7 @@ module wfcExportVASPMod
     nargs = command_argument_count()
       !! * Get the number of arguments input
 
-    call mp_bcast(nargs, root, MPI_COMM_WORLD)
+    call MPI_BCAST(nargs, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
 
     if(ionode) then
 
@@ -138,13 +138,14 @@ module wfcExportVASPMod
             command_line = trim(command_line) // ' ' // trim(arg)
         end select
       enddo
+
+      write(stdout,*) 'Unprocessed command line arguments: ' // trim(command_line)
     endif
 
-    call mp_bcast(command_line, root, MPI_COMM_WORLD)
-    call mp_bcast(nimage_, root, MPI_COMM_WORLD)
-    call mp_bcast(npool_, root, MPI_COMM_WORLD)
-    call mp_bcast(ntg_, root, MPI_COMM_WORLD)
-    call mp_bcast(nband_, root, MPI_COMM_WORLD)
+    call MPI_BCAST(nimage_, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(npool_, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(ntg_, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(nband_, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
 
     call mp_init_image(MPI_COMM_WORLD)
     call mp_start_pools(npool_, intra_image_comm)
@@ -938,7 +939,7 @@ module wfcExportVASPMod
           endif
         endif
         
-        CALL mp_bcast( file_exists, ionode_id, MPI_COMM_WORLD )
+        call MPI_BCAST(file_exists, 1, MPI_LOGICAL, root, MPI_COMM_WORLD, ierr)
         
         if ( .not. file_exists ) then
           CALL write_restart_wfc(72, exportDir, ik, nkstot, ispin, nspin, &
