@@ -16,8 +16,6 @@ program wfcExportVASPMain
   implicit none
 
 #ifdef __MPI
-  CALL mp_startup ( )
-    !! @todo Figure out what this subroutine does and what can be moved here @endtodo
   call mpiInitialization()
 #endif
   CALL environment_start ( 'PW_EXPORT' )
@@ -44,10 +42,9 @@ program wfcExportVASPMain
       !! * Read data from the WAVECAR file
   ENDIF
 
-  !> * Broadcast variables to other processes
-  CALL mp_bcast( outdir, ionode_id, world_comm )
-  CALL mp_bcast( exportDir, ionode_id, world_comm )
-  CALL mp_bcast( prefix, ionode_id, world_comm )
+  !CALL mp_bcast( outdir, root, world_comm )
+  !CALL mp_bcast( exportDir, root, world_comm )
+  !CALL mp_bcast( prefix, root, world_comm )
 
   CALL read_file
     !! @todo Figure out what this subroutine does and what can be moved here @endtodo

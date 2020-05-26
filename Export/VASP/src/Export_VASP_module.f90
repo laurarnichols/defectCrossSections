@@ -11,17 +11,11 @@ module wfcExportVASPMod
   USE wvfct, ONLY : g2kin, igk, npw, npwx, et
   USE lsda_mod, ONLY : isk
 
-  USE io_global, ONLY : ionode, ionode_id
   USE io_files,  ONLY : prefix, outdir
   USE ions_base, ONLY : ntype => nsp
   USE iotk_module
-  USE mp_global, ONLY : mp_startup
-  USE mp_pools,  ONLY : intra_pool_comm, me_pool, my_pool_id, nproc_pool, root_pool
-  USE parallel_include
-  !USE mp_pools
-  !USE mp_world,  ONLY: world_comm
-  USE mp_world
-  USE mp,        ONLY: mp_bcast, mp_sum, mp_max, mp_get
+  use mpi
+  USE mp,        ONLY: mp_sum, mp_max, mp_get
   USE mp_wave, ONLY : mergewf
   USE environment,   ONLY : environment_start
 
@@ -29,6 +23,10 @@ module wfcExportVASPMod
 
   integer, parameter :: dp = selected_real_kind(15, 307)
     !! Used to set real variables to double precision
+  integer, parameter :: root = 0
+    !! ID of the root node
+  integer, parameter :: root_pool = 0
+    !! Index of the root process within each pool
   integer, parameter :: stdout = 6
     !! Standard output unit
 
@@ -42,25 +40,46 @@ module wfcExportVASPMod
     !! Plane wave energy cutoff?
   
   INTEGER :: ik, i
+  integer :: ierr
+    !! Error returned by MPI
   integer :: ikEnd
     !! Ending index for kpoints in single pool 
   integer :: ikStart
     !! Starting index for kpoints in single pool 
   integer :: ios
     !! Error for input/output
+  integer :: indexInPool
+    !! Process index within pool
+  integer :: inter_pool_comm = 0
+    !! Inter pool communicator
+  integer :: intra_pool_comm = 0
+    !! Intra pool communicator
+  integer :: myPoolId
+    !! Pool index for this process
   integer :: nbnd
     !! Total number of bands
   integer :: nkstot
     !! Total number of kpoints
-  integer :: npool
+  integer :: npool = 1
     !! Number of pools for kpoint parallelization
+  integer :: nproc
+    !! Number of processes
+  integer :: nproc_pool
+    !! Number of processes per pool
   integer :: nspin
     !! Number of spins
+  integer :: myid
+    !! ID of this process
+  integer :: world_comm = 0
+    !! World communicator
   
   character(len=256) :: exportDir
     !! Directory to be used for export
   character(len=256) :: mainOutputFile
     !! Main output file
+
+  logical :: ionode
+    !! If this node is the root node
 
   NAMELIST /inputParams/ prefix, outdir, exportDir
 
@@ -69,8 +88,97 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine mpiInitialization()
+    !! Initialize MPI processes and split into pools
+    !!
+    !! <h2>Walkthrough</h2>
+
     implicit none
 
+    integer :: narg = 0
+      !! Arguments processed
+    integer :: nargs
+      !! Total number of command line arguments
+    integer :: npool_ = 1
+      !! Number of k point pools for parallelization
+
+    character(len=256) :: arg = ' '
+      !! Command line argument
+    character(len=256) :: command_line = ' '
+      !! Command line arguments that were not processed
+
+#if defined(__OPENMP)
+    call MPI_Init_thread(MPI_THREAD_FUNNELED, PROVIDED, ierr)
+#else
+    call MPI_Init(ierr)
+#endif
+    if (ierr /= 0) call mpiExitError( 8001 )
+
+    world_comm = world_comm
+
+    call MPI_COMM_RANK(world_comm, myid, ierr)
+      !! * Determine the rank or ID of the calling process
+    call MPI_COMM_SIZE(world_comm, nproc, ierr)
+      !! * Determine the size of the MPI pool (i.e., the number of processes)
+
+    ionode = (myid == root)
+
+    nargs = command_argument_count()
+      !! * Get the number of arguments input at command line
+
+    call MPI_BCAST(nargs, 1, MPI_INTEGER, root, world_comm, ierr)
+
+    if(ionode) then
+
+      do while (narg <= nargs)
+        call get_command_argument(narg, arg)
+          !! * Get the flag (currently only processes number of pools)
+
+        narg = narg + 1
+
+        !> * Process the flag and store the following value
+        select case (trim(arg))
+          case('-nk', '-npool', '-npools') 
+            call get_command_argument(narg, arg)
+            read(arg, *) npool_
+            narg = narg + 1
+          case default
+            command_line = trim(command_line) // ' ' // trim(arg)
+        end select
+      enddo
+
+      write(stdout,*) 'Unprocessed command line arguments: ' // trim(command_line)
+    endif
+
+    call MPI_BCAST(npool_, 1, MPI_INTEGER, root, world_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8002)
+
+    npool = npool_
+
+    if(npool < 1 .or. npool > nproc) call exitError('mpiInitialization', 'invalid number of pools, out of range', 1)
+      !! * Verify that the number of pools is between 1 and the number of processes
+
+    if(mod(nproc, npool) /= 0) call exitError('mpiInitialization', 'invalid number of pools, mod(nproc,npool) /=0 ', 1)
+      !! * Verify that the number of processes is evenly divisible by the number of pools
+
+    nproc_pool = nproc / npool
+      !! * Calculate how many processes there are per pool
+
+    myPoolId = myid / nproc_pool
+      !! * Get the pool index for this process
+
+    indexInPool = mod(myid, nproc_pool)
+      !! * Get the index of the process within the pool
+
+    call MPI_BARRIER(world_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8003)
+
+    call MPI_COMM_SPLIT(world_comm, myPoolId, myid, intra_pool_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8004)
+      !! * Create intra pool communicator
+
+    call MPI_COMM_SPLIT(world_comm, indexInPool, myid, inter_pool_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8005)
+      !! * Create inter pool communicator
 
     return
   end subroutine mpiInitialization
@@ -90,17 +198,35 @@ module wfcExportVASPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine exitError(calledFrom, message, ierr)
+  subroutine mpiExitError(code)
+    !! Exit on error with MPI communication
+
+    implicit none
+    
+    integer, intent(in) :: code
+
+    write( stdout, '( "*** MPI error ***")' )
+    write( stdout, '( "*** error code: ",I5, " ***")' ) code
+
+    call MPI_ABORT(world_comm,code,ierr)
+    
+    stop
+
+    return
+  end subroutine mpiExitError
+
+!----------------------------------------------------------------------------
+  subroutine exitError(calledFrom, message, ierror)
     !! Output error message and abort if ierr > 0
     !!
     !! Can ensure that error will cause abort by
-    !! passing abs(ierr)
+    !! passing abs(ierror)
     !!
     !! <h2>Walkthrough</h2>
     
     implicit none
 
-    integer, intent(in) :: ierr
+    integer, intent(in) :: ierror
       !! Error
 
     character(len=*), intent(in) :: calledFrom
@@ -120,7 +246,7 @@ module wfcExportVASPMod
     if ( ierr <= 0 ) return
       !! * Do nothing if the error is less than or equal to zero
 
-    write( cerr, fmt = '(I6)' ) ierr
+    write( cerr, fmt = '(I6)' ) ierror
       !! * Write ierr to a string
     write(unit=*, fmt = '(/,1X,78("%"))' )
       !! * Output a dividing line
@@ -140,8 +266,8 @@ module wfcExportVASPMod
     id = 0
   
     !> * For MPI, get the id of this process and abort
-    call MPI_COMM_RANK( MPI_COMM_WORLD, id, mpierr )
-    call MPI_ABORT( MPI_COMM_WORLD, mpierr )
+    call MPI_COMM_RANK( world_comm, id, mpierr )
+    call MPI_ABORT( world_comm, mpierr, ierr )
     call MPI_FINALIZE( mpierr )
 
 #endif
@@ -209,11 +335,6 @@ module wfcExportVASPMod
 
       IF( ( nproc_pool > nproc ) .or. ( mod( nproc, nproc_pool ) /= 0 ) ) &
         CALL exitError( ' write_export ',' nproc_pool ', 1 )
-        !! @todo Figure out where `nproc_pool` comes from @endtodo
-        !! @todo Figure out where `nproc` comes from @endtodo
-
-      npool = nproc / nproc_pool
-        !!  * Calculate number of pools
 
       nk_Pool = nkstot / npool
         !!  * Calculate k points per pool
@@ -221,12 +342,12 @@ module wfcExportVASPMod
       nkr = nkstot - nk_Pool * npool 
         !! * Calculate the remainder
 
-      IF( my_pool_id < nkr ) nk_Pool = nk_Pool + 1
+      IF( myPoolId < nkr ) nk_Pool = nk_Pool + 1
         !! * Assign the remainder to the first `nkr` pools
 
       !>  * Calculate the index of the first k point in this pool
-      ikStart = nk_Pool * my_pool_id + 1
-      IF( my_pool_id >= nkr ) ikStart = ikStart + nkr
+      ikStart = nk_Pool * myPoolId + 1
+      IF( myPoolId >= nkr ) ikStart = ikStart + nkr
 
       ikEnd = ikStart + nk_Pool - 1
         !!  * Calculate the index of the last k point in this pool
@@ -282,12 +403,12 @@ module wfcExportVASPMod
         nkt = nk
 
         ipmask = 0
-        ipsour = ionode_id
+        ipsour = root
 
         !  find out the index of the processor which collect the data in the pool of ik
         IF( npool > 1 ) THEN
           IF( ( ikt >= ikStart ) .and. ( ikt <= ikEnd ) ) THEN
-            IF( me_pool == root_pool ) ipmask( mpime + 1 ) = 1
+            IF( indexInPool == root_pool ) ipmask( myid + 1 ) = 1
           ENDIF
           CALL mp_sum( ipmask, world_comm )
           DO i = 1, nproc
@@ -316,8 +437,8 @@ module wfcExportVASPMod
         IF( ierr > 0 ) &
           CALL exitError(' write_restart_wfc ',' wrong size ngl ', ierr )
 
-        IF( ipsour /= ionode_id ) THEN
-          CALL mp_get( igwx, igwx, mpime, ionode_id, ipsour, 1, world_comm )
+        IF( ipsour /= root ) THEN
+          CALL mp_get( igwx, igwx, myid, root, ipsour, 1, world_comm )
         ENDIF
 
         ALLOCATE( wtmp( max(igwx,1) ) )
@@ -327,15 +448,15 @@ module wfcExportVASPMod
           IF( t0 ) THEN
             IF( npool > 1 ) THEN
               IF( ( ikt >= ikStart ) .and. ( ikt <= ikEnd ) ) THEN
-                CALL mergewf(wf0(:,j), wtmp, ngwl, igl, me_pool, &
+                CALL mergewf(wf0(:,j), wtmp, ngwl, igl, indexInPool, &
                              nproc_pool, root_pool, intra_pool_comm)
               ENDIF
-              IF( ipsour /= ionode_id ) THEN
-                CALL mp_get( wtmp, wtmp, mpime, ionode_id, ipsour, j, world_comm )
+              IF( ipsour /= root ) THEN
+                CALL mp_get( wtmp, wtmp, myid, root, ipsour, j, world_comm )
               ENDIF
             ELSE
-              CALL mergewf(wf0(:,j), wtmp, ngwl, igl, mpime, nproc, &
-                           ionode_id, world_comm )
+              CALL mergewf(wf0(:,j), wtmp, ngwl, igl, myid, nproc, &
+                           root, world_comm )
             ENDIF
 
             IF( ionode ) THEN
@@ -358,14 +479,14 @@ module wfcExportVASPMod
 !          IF( tm ) THEN
 !            IF( npool > 1 ) THEN
 !              IF( ( ikt >= ikStart ) .and. ( ikt <= ikEnd ) ) THEN
-!                CALL mergewf(wfm(:,j), wtmp, ngwl, igl, me_pool, &
+!                CALL mergewf(wfm(:,j), wtmp, ngwl, igl, indexInPool, &
 !                             nproc_pool, root_pool, intra_pool_comm)
 !              ENDIF
-!              IF( ipsour /= ionode_id ) THEN
-!                CALL mp_get( wtmp, wtmp, mpime, ionode_id, ipsour, j, world_comm )
+!              IF( ipsour /= root ) THEN
+!                CALL mp_get( wtmp, wtmp, myid, root, ipsour, j, world_comm )
 !              ENDIF
 !            ELSE
-!              CALL mergewf(wfm(:,j), wtmp, ngwl, igl, mpime, nproc, ionode_id, world_comm )
+!              CALL mergewf(wfm(:,j), wtmp, ngwl, igl, myid, nproc, root, world_comm )
 !            ENDIF
 !            IF( ionode ) THEN
 !              CALL iotk_write_dat(iuni,"Wfcm"//iotk_index(j),wtmp(1:igwx))
@@ -400,12 +521,8 @@ module wfcExportVASPMod
     USE wavefunctions_module,  ONLY : evc
     USE io_files,       ONLY : outdir, prefix, iunwfc, nwordwfc
     USE io_files,       ONLY : psfile
-    USE io_global,      ONLY : ionode, stdout
     USE ions_base,      ONLY : atm, nat, ityp, tau, nsp
-    USE mp_pools,       ONLY : my_pool_id, intra_pool_comm, inter_pool_comm, &
-                             nproc_pool
     USE mp,             ONLY : mp_sum, mp_max
-    USE mp_world,       ONLY : world_comm, nproc, mpime
   
     USE upf_module,     ONLY : read_upf
   
@@ -842,7 +959,7 @@ module wfcExportVASPMod
           endif
         endif
         
-        CALL mp_bcast( file_exists, ionode_id, world_comm )
+        call MPI_BCAST(file_exists, 1, MPI_LOGICAL, root, world_comm, ierr)
         
         if ( .not. file_exists ) then
           CALL write_restart_wfc(72, exportDir, ik, nkstot, ispin, nspin, &
