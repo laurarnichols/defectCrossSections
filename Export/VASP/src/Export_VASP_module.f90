@@ -16,7 +16,7 @@ module wfcExportVASPMod
   USE iotk_module
   USE mp_global, ONLY : mp_startup
   use mpi
-  USE mp,        ONLY: mp_sum, mp_max, mp_get, mp_barrier, mp_comm_split
+  USE mp,        ONLY: mp_sum, mp_max, mp_get, mp_comm_split
   USE mp_wave, ONLY : mergewf
   USE environment,   ONLY : environment_start
 
@@ -167,8 +167,11 @@ module wfcExportVASPMod
     endif
 
     call MPI_BCAST(npool_, 1, MPI_INTEGER, root, world_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8002)
     call MPI_BCAST(ntg_, 1, MPI_INTEGER, root, world_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8003)
     call MPI_BCAST(nband_, 1, MPI_INTEGER, root, world_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8004)
 
     npool = npool_
       !! @todo Figure out the point of the separate underscore variable @endtodo
@@ -188,7 +191,8 @@ module wfcExportVASPMod
     indexInPool = mod(myid, nproc_pool)
       !! * Get the index of the process within the pool
 
-    call mp_barrier(world_comm)
+    call MPI_BARRIER(world_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8005)
 
     call mp_comm_split(world_comm, myPoolId, myid, intra_pool_comm)
       !! * Create intra pool communicator
