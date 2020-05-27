@@ -1,6 +1,6 @@
 program kpointBinningByEnergy
   !! Take in eigenvalue files for each kpoint
-  !! and energy bins from the VfiVsE file, bin
+  !! and energy bins from the VfisVsE file, bin
   !! each bands for each kpoint by energy, and
   !! output the results
   !!
@@ -38,10 +38,10 @@ program kpointBinningByEnergy
     !! * Read eigenvalue file for each kpoint
 
   write(*,*) "Done reading eigenvalue files"
-  write(*,*) "Reading energy bins from VfiVsE file"
+  write(*,*) "Reading energy bins from VfisVsE file"
 
   call getEnergyBins(nBins, eBin)
-    !! * Read in the energy bins from the VfiVsE file
+    !! * Read in the energy bins from the VfisVsE file
 
 
   write(*,*) "Done reading energy bins"
@@ -115,7 +115,7 @@ subroutine readEigenvalueFiles(nKpoints, nBands, eHartree)
   do ik = 1, nKpoints
     ! Read in eigenvalues files for each kpoint
 
-    write(fileName, '("eigenvalue.", I1)') ik
+    write(fileName, '("eigenvalues.", I1)') ik
     open(unit=18,file=trim(fileName))
       ! Open the eigenvalue file for this kpoint
     
@@ -142,7 +142,7 @@ end subroutine readEigenvalueFiles
 !------------------------------------------------------------------------------
 
 subroutine getEnergyBins(nBins, eBin)
-  !! Read in the energy bins from the VfiVsE file
+  !! Read in the energy bins from the VfisVsE file
 
   implicit none
 
@@ -159,15 +159,15 @@ subroutine getEnergyBins(nBins, eBin)
   real(kind=dp) :: dummyD
     !! Dummy variable to ignore input
 
-  open(18,file="VfiVsE")
-    ! Open VfiVsE file
+  open(18,file="VfisVsE")
+    ! Open VfisVsE file
 
-  read(*,*)
-  read(*,*)
-  read(*,*)
-  read(*,*)
-  read(*,*)
-  read(*,*)
+  read(18,*)
+  read(18,*)
+  read(18,*)
+  read(18,*)
+  read(18,*)
+  read(18,*)
     ! Ignore comments
 
   do iE = 1, nBins
@@ -227,7 +227,7 @@ subroutine binBands(nBands, nBins, nKpoints, bandsBinnedByE, eHartree, eBin)
         ! so you don't need to go through each band
         ! every time
 
-        if(eHartree(iE,ik) < eBin(ib)) then
+        if(eHartree(iE,ik) >= eBin(ib-1) .AND. eHartree(iE,ik) < eBin(ib)) then
           ! Increment the count in the previous bin if the band
           ! energy is less than the current bin energy boundary
         
@@ -238,10 +238,10 @@ subroutine binBands(nBands, nBins, nKpoints, bandsBinnedByE, eHartree, eBin)
           ! will be greater than the current bin boundary,
           ! so put the rest of the bands in this bin and exit
           
-          bandsBinnedByE(ib) = nBands - iEMin + 1
+          bandsBinnedByE(ib) = bandsBinnedByE(ib) + nBands - iE + 1
           exit
 
-        else
+        else if(eHartree(iE,ik) >= eBin(ib)) then
           ! If you are not in the last bin and the band energy
           ! goes higher than the current bin boundary, update
           ! the minimum band index and exit to move on to the 
