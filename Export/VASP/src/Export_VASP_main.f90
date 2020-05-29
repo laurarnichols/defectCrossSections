@@ -39,6 +39,11 @@ program wfcExportVASPMain
     
     call readWAVECAR()
       !! * Read data from the WAVECAR file
+
+    write(stdout,*) "Opening file "//trim(mainOutputFile)
+    open(mainout, file=trim(mainOutputFile))
+      !! * Open main output file
+
   endif
 
   !CALL mp_bcast( outdir, root, world_comm )

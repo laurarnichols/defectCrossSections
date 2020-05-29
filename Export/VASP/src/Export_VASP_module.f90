@@ -26,6 +26,8 @@ module wfcExportVASPMod
     !! ID of the root node
   integer, parameter :: root_pool = 0
     !! Index of the root process within each pool
+  integer, parameter :: mainout = 50
+    !! Main output file unit
   integer, parameter :: stdout = 6
     !! Standard output unit
 
@@ -607,10 +609,6 @@ module wfcExportVASPMod
 
     IF( ionode ) THEN
     
-      WRITE(stdout,*) "Opening file "//trim(mainOutputFile)
-    
-      open(50, file=trim(mainOutputFile))
-
       WRITE(stdout,*) "Reconstructing the main grid"
     
     endif
@@ -681,13 +679,13 @@ module wfcExportVASPMod
     IF( ionode ) THEN
     
 
-      write(50, '("# Cell volume (a.u.)^3. Format: ''(ES24.15E3)''")')
-      write(50, '(ES24.15E3)' ) omega
+      write(mainout, '("# Cell volume (a.u.)^3. Format: ''(ES24.15E3)''")')
+      write(mainout, '(ES24.15E3)' ) omega
     
-      write(50, '("# Number of K-points. Format: ''(i10)''")')
-      write(50, '(i10)') nkstot
+      write(mainout, '("# Number of K-points. Format: ''(i10)''")')
+      write(mainout, '(i10)') nkstot
     
-      write(50, '("# ik, groundState, ngk_g(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
+      write(mainout, '("# ik, groundState, ngk_g(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
     
       allocate ( groundState(nkstot) )
 
@@ -730,52 +728,52 @@ module wfcExportVASPMod
         ENDIF
       ENDDO
       IF( ngg /= ngk_g( ik ) ) THEN
-        if ( ionode ) WRITE(50, *) ' ik, ngg, ngk_g = ', ik, ngg, ngk_g( ik )
+        if ( ionode ) WRITE(mainout, *) ' ik, ngg, ngk_g = ', ik, ngg, ngk_g( ik )
       ENDIF
     
       DEALLOCATE( itmp1 )
     
-      if ( ionode ) write(50, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk(ik), xk(1:3,ik)
+      if ( ionode ) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk(ik), xk(1:3,ik)
     
     ENDDO
   
     if ( ionode ) then
     
-      write(50, '("# Number of G-vectors. Format: ''(i10)''")')
-      write(50, '(i10)') ngm_g
+      write(mainout, '("# Number of G-vectors. Format: ''(i10)''")')
+      write(mainout, '(i10)') ngm_g
     
-      write(50, '("# Number of PW-vectors. Format: ''(i10)''")')
-      write(50, '(i10)') npw_g
+      write(mainout, '("# Number of PW-vectors. Format: ''(i10)''")')
+      write(mainout, '(i10)') npw_g
     
-      write(50, '("# Number of min - max values of fft grid in x, y and z axis. Format: ''(6i10)''")')
-      write(50, '(6i10)') minval(itmp_g(1,1:ngm_g)), maxval(itmp_g(1,1:ngm_g)), &
+      write(mainout, '("# Number of min - max values of fft grid in x, y and z axis. Format: ''(6i10)''")')
+      write(mainout, '(6i10)') minval(itmp_g(1,1:ngm_g)), maxval(itmp_g(1,1:ngm_g)), &
                           minval(itmp_g(2,1:ngm_g)), maxval(itmp_g(2,1:ngm_g)), &
                           minval(itmp_g(3,1:ngm_g)), maxval(itmp_g(3,1:ngm_g))
     
-      write(50, '("# Cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
-      write(50, '("# a1 ",3ES24.15E3)') at(:,1)*alat
-      write(50, '("# a2 ",3ES24.15E3)') at(:,2)*alat
-      write(50, '("# a3 ",3ES24.15E3)') at(:,3)*alat
+      write(mainout, '("# Cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
+      write(mainout, '("# a1 ",3ES24.15E3)') at(:,1)*alat
+      write(mainout, '("# a2 ",3ES24.15E3)') at(:,2)*alat
+      write(mainout, '("# a3 ",3ES24.15E3)') at(:,3)*alat
     
-      write(50, '("# Reciprocal cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
-      write(50, '("# b1 ",3ES24.15E3)') bg(:,1)*tpiba
-      write(50, '("# b2 ",3ES24.15E3)') bg(:,2)*tpiba
-      write(50, '("# b3 ",3ES24.15E3)') bg(:,3)*tpiba
+      write(mainout, '("# Reciprocal cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
+      write(mainout, '("# b1 ",3ES24.15E3)') bg(:,1)*tpiba
+      write(mainout, '("# b2 ",3ES24.15E3)') bg(:,2)*tpiba
+      write(mainout, '("# b3 ",3ES24.15E3)') bg(:,3)*tpiba
     
-      write(50, '("# Number of Atoms. Format: ''(i10)''")')
-      write(50, '(i10)') nat
+      write(mainout, '("# Number of Atoms. Format: ''(i10)''")')
+      write(mainout, '(i10)') nat
     
-      write(50, '("# Number of Types. Format: ''(i10)''")')
-      write(50, '(i10)') nsp
+      write(mainout, '("# Number of Types. Format: ''(i10)''")')
+      write(mainout, '(i10)') nsp
     
-      write(50, '("# Atoms type, position(1:3) (a.u.). Format: ''(i10,3ES24.15E3)''")')
+      write(mainout, '("# Atoms type, position(1:3) (a.u.). Format: ''(i10,3ES24.15E3)''")')
       DO i = 1, nat
         xyz = tau(:,i)
-        write(50,'(i10,3ES24.15E3)') ityp(i), tau(:,i)*alat
+        write(mainout,'(i10,3ES24.15E3)') ityp(i), tau(:,i)*alat
       ENDDO
     
-      write(50, '("# Number of Bands. Format: ''(i10)''")')
-      write(50, '(i10)') nbnd
+      write(mainout, '("# Number of Bands. Format: ''(i10)''")')
+      write(mainout, '(i10)') nbnd
     
       DO ik = 1, nkstot
       
@@ -801,8 +799,8 @@ module wfcExportVASPMod
     
       close(72)
 
-      write(50, '("# Spin. Format: ''(i10)''")')
-      write(50, '(i10)') nspin
+      write(mainout, '("# Spin. Format: ''(i10)''")')
+      write(mainout, '(i10)') nspin
     
       allocate( nnTyp(nsp) )
       nnTyp = 0
@@ -818,41 +816,41 @@ module wfcExportVASPMod
         
           write(stdout, *) ' PAW type pseudopotential found !'
         
-          write(50, '("# Element")')
-          write(50, *) trim(atm(i))
-          write(50, '("# Number of Atoms of this type. Format: ''(i10)''")')
-          write(50, '(i10)') nnTyp(i)
-          write(50, '("# Number of projectors. Format: ''(i10)''")')
-          write(50, '(i10)') upf%nbeta              ! number of projectors
+          write(mainout, '("# Element")')
+          write(mainout, *) trim(atm(i))
+          write(mainout, '("# Number of Atoms of this type. Format: ''(i10)''")')
+          write(mainout, '(i10)') nnTyp(i)
+          write(mainout, '("# Number of projectors. Format: ''(i10)''")')
+          write(mainout, '(i10)') upf%nbeta              ! number of projectors
         
-          write(50, '("# Angular momentum, index of the projectors. Format: ''(2i10)''")')
+          write(mainout, '("# Angular momentum, index of the projectors. Format: ''(2i10)''")')
           ms = 0
           do inb = 1, upf%nbeta
-            write(50, '(2i10)') upf%lll(inb), inb
+            write(mainout, '(2i10)') upf%lll(inb), inb
             ms = ms + 2*upf%lll(inb) + 1
           enddo
         
-          write(50, '("# Number of channels. Format: ''(i10)''")')
-          write(50, '(i10)') ms
+          write(mainout, '("# Number of channels. Format: ''(i10)''")')
+          write(mainout, '(i10)') ms
         
-          write(50, '("# Number of radial mesh points. Format: ''(2i10)''")')
-          write(50, '(2i10)') upf%mesh, upf%kkbeta ! number of points in the radial mesh, number of point inside the aug sphere
+          write(mainout, '("# Number of radial mesh points. Format: ''(2i10)''")')
+          write(mainout, '(2i10)') upf%mesh, upf%kkbeta ! number of points in the radial mesh, number of point inside the aug sphere
         
-          write(50, '("# Radial grid, Integratable grid. Format: ''(2ES24.15E3)''")')
+          write(mainout, '("# Radial grid, Integratable grid. Format: ''(2ES24.15E3)''")')
           do im = 1, upf%mesh
-            write(50, '(2ES24.15E3)') upf%r(im), upf%rab(im) ! r(mesh) radial grid, rab(mesh) dr(x)/dx (x=linear grid)
+            write(mainout, '(2ES24.15E3)') upf%r(im), upf%rab(im) ! r(mesh) radial grid, rab(mesh) dr(x)/dx (x=linear grid)
           enddo
         
-          write(50, '("# AE, PS radial wfc for each beta function. Format: ''(2ES24.15E3)''")')
+          write(mainout, '("# AE, PS radial wfc for each beta function. Format: ''(2ES24.15E3)''")')
           if ( upf%has_wfc ) then   ! if true, UPF contain AE and PS wfc for each beta
             do inb = 1, upf%nbeta
               do im = 1, upf%mesh
-                write(50, '(2ES24.15E3)') upf%aewfc(im, inb), upf%pswfc(im, inb)
+                write(mainout, '(2ES24.15E3)') upf%aewfc(im, inb), upf%pswfc(im, inb)
                                           ! wfc(mesh,nbeta) AE wfc, wfc(mesh,nbeta) PS wfc
               enddo
             enddo
           else
-            write(50, *) 'UPF does not contain AE and PS wfcs!!'
+            write(mainout, *) 'UPF does not contain AE and PS wfcs!!'
             stop
           endif
         
@@ -873,9 +871,9 @@ module wfcExportVASPMod
 
     IF( ionode ) THEN
     
-      write(50, '("# Fermi Energy (Hartree). Format: ''(ES24.15E3)''")')
-      write(50, '(ES24.15E3)') ef*ryToHartree
-      flush(50)
+      write(mainout, '("# Fermi Energy (Hartree). Format: ''(ES24.15E3)''")')
+      write(mainout, '(ES24.15E3)') ef*ryToHartree
+      flush(mainout)
     
       DO ik = 1, nkstot
       
