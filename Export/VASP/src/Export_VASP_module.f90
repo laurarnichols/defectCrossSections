@@ -4,11 +4,10 @@ module wfcExportVASPMod
 
   !USE pwcom
   USE constants, ONLY : e2, rytoev, pi, tpi, fpi
-  USE cell_base, ONLY : celldm, bg, alat, omega, tpiba, tpiba2, ibrav
-  USE gvect, ONLY : g, ngm, ngm_g, ig_l2g, mill
-  USE klist, ONLY : xk, wk, ngk, nks
+  USE cell_base, ONLY : celldm, bg, alat, omega, tpiba, ibrav
+  USE klist, ONLY : wk
   USE ener, ONLY : ef
-  USE wvfct, ONLY : g2kin, igk, npw, npwx, et
+  USE wvfct, ONLY : igk, et
   USE lsda_mod, ONLY : isk
 
   USE io_files,  ONLY : prefix, outdir
@@ -32,8 +31,7 @@ module wfcExportVASPMod
     !! Standard output unit
 
   real(kind = dp), parameter :: ryToHartree = 0.5_dp
-  
-  CHARACTER(LEN=256), EXTERNAL :: trimcheck
+    !! Conversion factor from Rydberg to Hartree
 
   real(kind=dp) :: at(3,3)
     !! Real space lattice vectors
@@ -69,6 +67,10 @@ module wfcExportVASPMod
     !! Number of processes
   integer :: nproc_pool
     !! Number of processes per pool
+  integer :: npw_g
+    !! ??Not sure what this is
+  integer :: npwx_g
+    !! ??Not sure what this is
   integer :: nspin
     !! Number of spins
   integer :: myid
@@ -83,6 +85,18 @@ module wfcExportVASPMod
 
   logical :: ionode
     !! If this node is the root node
+
+  real(kind=dp), allocatable :: rtmp_g( :, : )
+    !! ??Not sure what this is
+  real(kind=dp), allocatable :: rtmp_gg( : )
+    !! ??Not sure what this is
+
+  integer, allocatable :: igk_l2g( :, : )
+    !! ??Not sure what this is
+  integer, allocatable :: itmp_g( :, : )
+    !! ??Not sure what this is
+  integer, allocatable :: ngk_g( : )
+    !! ??Not sure what this is
 
   NAMELIST /inputParams/ prefix, outdir, exportDir
 
@@ -385,6 +399,100 @@ module wfcExportVASPMod
   end subroutine distributeKpointsInPools
 
 !----------------------------------------------------------------------------
+  subroutine reconstructMainGrid()
+    use gvect, only : g, ngm, ngm_g, ig_l2g, mill
+    use wvfct, only : npwx, npw, g2kin
+    use klist, only : nks, xk, ngk
+    use cell_base, only : tpiba2
+
+    implicit none
+
+    integer :: ig, ik
+      !! Loop indices
+
+    integer, allocatable :: kisort(:)
+      !! ??Not sure what this is
+
+    ! find out the global number of G vectors: ngm_g
+    ngm_g = ngm
+    CALL mp_sum( ngm_g , intra_pool_comm )
+
+
+    !  Open file PP_FILE
+
+    IF( ionode ) THEN
+    
+      WRITE(stdout,*) "Reconstructing the main grid"
+    
+    endif
+
+    ! collect all G vectors across processors within the pools
+    ! and compute their modules
+  
+    ALLOCATE( itmp_g( 3, ngm_g ) )
+    ALLOCATE( rtmp_g( 3, ngm_g ) )
+    ALLOCATE( rtmp_gg( ngm_g ) )
+
+    itmp_g = 0
+    DO  ig = 1, ngm
+      itmp_g( 1, ig_l2g( ig ) ) = mill(1,ig )
+      itmp_g( 2, ig_l2g( ig ) ) = mill(2,ig )
+      itmp_g( 3, ig_l2g( ig ) ) = mill(3,ig )
+    ENDDO
+  
+    CALL mp_sum( itmp_g , intra_pool_comm )
+  
+    ! here we are in crystal units
+    rtmp_g(1:3,1:ngm_g) = REAL( itmp_g(1:3,1:ngm_g) )
+  
+    ! go to cartesian units (tpiba)
+    CALL cryst_to_cart( ngm_g, rtmp_g, bg , 1 )
+  
+    ! compute squared moduli
+    DO  ig = 1, ngm_g
+      rtmp_gg(ig) = rtmp_g(1,ig)**2 + rtmp_g(2,ig)**2 + rtmp_g(3,ig)**2
+    ENDDO
+    DEALLOCATE( rtmp_g )
+
+    ! build the G+k array indexes
+    ALLOCATE ( igk_l2g ( npwx, nks ) )
+    ALLOCATE ( kisort( npwx ) )
+    DO ik = 1, nks
+      kisort = 0
+      npw = npwx
+      CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc / tpiba2, npw, kisort(1), g2kin)
+
+      ! mapping between local and global G vector index, for this kpoint
+     
+      DO ig = 1, npw
+        
+        igk_l2g(ig,ik) = ig_l2g( kisort(ig) )
+        
+      ENDDO
+     
+      igk_l2g( npw+1 : npwx, ik ) = 0
+     
+      ngk (ik) = npw
+    ENDDO
+    DEALLOCATE (kisort)
+
+    ! compute the global number of G+k vectors for each k point
+    ALLOCATE( ngk_g( nkstot ) )
+    ngk_g = 0
+    ngk_g( ikStart:ikEnd ) = ngk( 1:nks )
+    CALL mp_sum( ngk_g, world_comm )
+
+    ! compute the Maximum G vector index among all G+k and processors
+    npw_g = maxval( igk_l2g(:,:) )
+    CALL mp_max( npw_g, world_comm )
+
+    ! compute the Maximum number of G vector among all k points
+    npwx_g = maxval( ngk_g( 1:nkstot ) )
+
+    return 
+  end subroutine reconstructMainGrid
+
+!----------------------------------------------------------------------------
 ! ..  This subroutine write wavefunctions to the disk
 ! .. Where:
 ! iuni    = Restart file I/O fortran unit
@@ -536,6 +644,9 @@ module wfcExportVASPMod
     !
     USE iotk_module
 
+    use gvect, only : g, ngm, ngm_g
+    use klist, only : nks, xk, ngk
+    use cell_base, only : tpiba2
 
     USE kinds,          ONLY : DP
     USE start_k,        ONLY : nk1, nk2, nk3, k1, k2, k3
@@ -556,7 +667,7 @@ module wfcExportVASPMod
     USE pseudo_types, ONLY : pseudo_upf
     USE radial_grids, ONLY : radial_grid_type
     
-    USE wvfct,         ONLY : wg
+    USE wvfct,         ONLY : wg, npw, g2kin
   
     USE paw_variables,        ONLY : okpaw, ddd_paw, total_core_energy, only_paw
     USE paw_onecenter,        ONLY : PAW_potential
@@ -573,21 +684,12 @@ module wfcExportVASPMod
     CHARACTER(256), INTENT(in) :: mainOutputFile, exportDir
 
     INTEGER :: i, j, k, ig, ik, ibnd, na, ngg,ig_, ierr
-    INTEGER, ALLOCATABLE :: kisort(:)
     real(DP) :: xyz(3), tmp(3)
-    INTEGER :: npwx_g, im, ink, inb, ms
-    INTEGER :: npw_g, ispin, local_pw
-    INTEGER, ALLOCATABLE :: ngk_g( : )
-    INTEGER, ALLOCATABLE :: itmp_g( :, : )
-    real(DP),ALLOCATABLE :: rtmp_g( :, : )
-    real(DP),ALLOCATABLE :: rtmp_gg( : )
+    INTEGER :: im, ink, inb, ms
+    INTEGER :: ispin, local_pw
     INTEGER, ALLOCATABLE :: itmp1( : )
     INTEGER, ALLOCATABLE :: igwk( :, : )
     INTEGER, ALLOCATABLE :: l2g_new( : )
-    INTEGER, ALLOCATABLE :: igk_l2g( :, : )
-  
-
-
   
     character(len = 300) :: text
   
@@ -599,82 +701,6 @@ module wfcExportVASPMod
     TYPE(radial_grid_type) :: grid
 
     integer, allocatable :: nnTyp(:), groundState(:)
-
-    ! find out the global number of G vectors: ngm_g
-    ngm_g = ngm
-    CALL mp_sum( ngm_g , intra_pool_comm )
-
-
-    !  Open file PP_FILE
-
-    IF( ionode ) THEN
-    
-      WRITE(stdout,*) "Reconstructing the main grid"
-    
-    endif
-
-    ! collect all G vectors across processors within the pools
-    ! and compute their modules
-  
-    ALLOCATE( itmp_g( 3, ngm_g ) )
-    ALLOCATE( rtmp_g( 3, ngm_g ) )
-    ALLOCATE( rtmp_gg( ngm_g ) )
-
-    itmp_g = 0
-    DO  ig = 1, ngm
-      itmp_g( 1, ig_l2g( ig ) ) = mill(1,ig )
-      itmp_g( 2, ig_l2g( ig ) ) = mill(2,ig )
-      itmp_g( 3, ig_l2g( ig ) ) = mill(3,ig )
-    ENDDO
-  
-    CALL mp_sum( itmp_g , intra_pool_comm )
-  
-    ! here we are in crystal units
-    rtmp_g(1:3,1:ngm_g) = REAL( itmp_g(1:3,1:ngm_g) )
-  
-    ! go to cartesian units (tpiba)
-    CALL cryst_to_cart( ngm_g, rtmp_g, bg , 1 )
-  
-    ! compute squared moduli
-    DO  ig = 1, ngm_g
-      rtmp_gg(ig) = rtmp_g(1,ig)**2 + rtmp_g(2,ig)**2 + rtmp_g(3,ig)**2
-    ENDDO
-    DEALLOCATE( rtmp_g )
-
-    ! build the G+k array indexes
-    ALLOCATE ( igk_l2g ( npwx, nks ) )
-    ALLOCATE ( kisort( npwx ) )
-    DO ik = 1, nks
-      kisort = 0
-      npw = npwx
-      CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc / tpiba2, npw, kisort(1), g2kin)
-
-      ! mapping between local and global G vector index, for this kpoint
-     
-      DO ig = 1, npw
-        
-        igk_l2g(ig,ik) = ig_l2g( kisort(ig) )
-        
-      ENDDO
-     
-      igk_l2g( npw+1 : npwx, ik ) = 0
-     
-      ngk (ik) = npw
-    ENDDO
-    DEALLOCATE (kisort)
-
-    ! compute the global number of G+k vectors for each k point
-    ALLOCATE( ngk_g( nkstot ) )
-    ngk_g = 0
-    ngk_g( ikStart:ikEnd ) = ngk( 1:nks )
-    CALL mp_sum( ngk_g, world_comm )
-
-    ! compute the Maximum G vector index among all G+k and processors
-    npw_g = maxval( igk_l2g(:,:) )
-    CALL mp_max( npw_g, world_comm )
-
-    ! compute the Maximum number of G vector among all k points
-    npwx_g = maxval( ngk_g( 1:nkstot ) )
 
     IF( ionode ) THEN
     
