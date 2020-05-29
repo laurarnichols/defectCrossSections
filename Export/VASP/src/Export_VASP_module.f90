@@ -359,7 +359,7 @@ module wfcExportVASPMod
     if( nkstot > 0 ) then
 
       IF( ( nproc_pool > nproc ) .or. ( mod( nproc, nproc_pool ) /= 0 ) ) &
-        CALL exitError( ' write_export ',' nproc_pool ', 1 )
+        CALL exitError( 'distributeKpointsInPools','nproc_pool', 1 )
 
       nk_Pool = nkstot / npool
         !!  * Calculate k points per pool
