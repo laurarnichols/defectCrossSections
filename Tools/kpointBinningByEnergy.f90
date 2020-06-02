@@ -115,7 +115,12 @@ subroutine readEigenvalueFiles(nKpoints, nBands, eHartree)
   do ik = 1, nKpoints
     ! Read in eigenvalues files for each kpoint
 
-    write(fileName, '("eigenvalues.", I1)') ik
+    if(ik < 10) then
+      write(fileName, '("eigenvalues.", I1)') ik
+    else
+      write(fileName, '("eigenvalues.", I2)') ik
+    endif
+
     open(unit=18,file=trim(fileName))
       ! Open the eigenvalue file for this kpoint
     
