@@ -415,10 +415,11 @@ module wfcExportVASPMod
 
     ! find out the global number of G vectors: ngm_g
     ngm_g = ngm
-    CALL mp_sum( ngm_g , intra_pool_comm )
+      !! @todo Figure out where the value of `ngm` comes from @endtodo
+      !! @todo Figure out how to get this value from VASP files @endtodo
 
-
-    !  Open file PP_FILE
+    call MPI_ALLREDUCE(ngm, ngm_g, 1, MPI_INTEGER, MPI_SUM, intra_pool_comm, ierr)
+    if( ierr /= 0 ) call exitError( 'reconstructMainGrid', 'error in mpi_allreduce 1', ierr)
 
     IF( ionode ) THEN
     
