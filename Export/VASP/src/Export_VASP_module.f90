@@ -421,9 +421,9 @@ module wfcExportVASPMod
     call MPI_ALLREDUCE(ngm, ngm_g, 1, MPI_INTEGER, MPI_SUM, intra_pool_comm, ierr)
     if( ierr /= 0 ) call exitError( 'reconstructMainGrid', 'error in mpi_allreduce 1', ierr)
 
-    IF( ionode ) THEN
+    if( ionode ) then 
     
-      WRITE(stdout,*) "Reconstructing the main grid"
+      write(stdout,*) "Reconstructing the main grid"
     
     endif
 
