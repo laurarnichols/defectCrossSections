@@ -15,26 +15,31 @@ program kpointBinningByEnergy
 
   real(kind=dp), allocatable :: eBin(:)
     !! Energies for each bin
-  real(kind=dp), allocatable :: eHartree(:,:)
+  real(kind=dp), allocatable :: DEHartree(:,:)
     !! Energy in Hartree
 
   integer, allocatable :: bandsBinnedByE(:)
     !! Number of kpoints in each bin
-  integer :: nBands
-    !! Total number of bands
+  integer :: iBandFinalState
+    !! Band index for the final state
   integer :: nBins
     !! Number of energy bins
   integer :: nKpoints
     !! Total number of kpoints
 
-  call readInputs(nKpoints, nBands, nBins)
+  character(len=256) :: finalStateDir
+    !! Path for final state eigenvalues
+  character(len=256) :: initialStateDir
+    !! Path for initial state eigenvalues
+
+  call readInputs(nKpoints, nBins, *** finalStateDir, initialStateDir, iBandFinalState)
     !! * Read the input parameters
 
-  allocate(eBin(nBins), eHartree(nBands,nKpoints), bandsBinnedByE(nBins))
+  allocate(eBin(nBins), DEHartree(iBandFinalState+1:iBandMax,nKpoints), bandsBinnedByE(nBins))
 
   write(*,*) "Reading eigenvalue files"
 
-  call readEigenvalueFiles(nKpoints, nBands, eHartree)
+  call readEigenvalueFiles(nKpoints, finalStateDir, initialStateDir, iBandFinalState, DEHartree)
     !! * Read eigenvalue file for each kpoint
 
   write(*,*) "Done reading eigenvalue files"
@@ -47,7 +52,7 @@ program kpointBinningByEnergy
   write(*,*) "Done reading energy bins"
   write(*,*) "Counting kpoints in each bin"
 
-  call binBands(nBands, nBins, nKpoints, bandsBinnedByE, eHartree, eBin)
+  call binBands(nBands, nBins, nKpoints, bandsBinnedByE, DEHartree, eBin)
     !! * Assign each band for each kpoint to the energy bins
 
   write(*,*) "Done binning kpoints"
@@ -59,7 +64,7 @@ program kpointBinningByEnergy
   write(*,*) "Program complete"
 
   deallocate(eBin)
-  deallocate(eHartree)
+  deallocate(DEHartree)
   deallocate(bandsBinnedByE)
     ! Deallocate arrays
 
@@ -90,7 +95,7 @@ end subroutine readInputs
 
 !------------------------------------------------------------------------------
 
-subroutine readEigenvalueFiles(nKpoints, nBands, eHartree)
+subroutine readEigenvalueFiles(nKpoints, finalStateDir, initialStateDir, iBandFinalState, DEHartree)
   !! Read eigenvalue file for each kpoint
 
   implicit none
@@ -100,17 +105,35 @@ subroutine readEigenvalueFiles(nKpoints, nBands, eHartree)
 
   integer :: ib, ik
     !! Loop indices
-  integer, intent(in) :: nBands
-    !! Number of energy bands
+  integer, intent(in) :: iBandFinalState
+    !! Band index for the final state
+  integer, intent(in) :: iBandMax
+    !! Max band index for the initial state
   integer, intent(in) :: nKpoints
     !! Total number of kpoints
 
-  real(kind=dp), intent(out) :: eHartree(nBands,nKpoints)
-    !! Energy in Hartree
+  real(kind=dp), intent(out) :: DEHartree(iBandFinalState+1:iBandMax,nKpoints)
+    !! Energy difference between initial and
+    !! final state in Hartree
   real(kind=dp) :: dummyD
     !! Dummy variable to ignore input
+  real(kind=dp) :: eFinalState(nKpoints)
+    !! Energy of final band in final state
+    !! for each k-point
+  real(kind=dp) :: eInitialState
+    !! Band energy of initial state
 
   character(len=256) :: fileName
+    !! String to hold eigenvalue file name 
+    !! at each k-point
+  character(len=256), intent(in) :: finalStateDir
+    !! Path for final state eigenvalues
+  character(len=256) :: finalStateFile
+    !! File name with path for final state
+  character(len=256), intent(in) :: initialStateDir
+    !! Path for initial state eigenvalues
+  character(len=256) :: initialStateFile
+    !! File name with path for initial state
 
   do ik = 1, nKpoints
     ! Read in eigenvalues files for each kpoint
@@ -121,18 +144,52 @@ subroutine readEigenvalueFiles(nKpoints, nBands, eHartree)
       write(fileName, '("eigenvalues.", I2)') ik
     endif
 
-    open(unit=18,file=trim(fileName))
-      ! Open the eigenvalue file for this kpoint
+    initialStateFile = trim(trim(initialStateDir) // '/' // fileName)
+    finalStateFile = trim(trim(finalStateDir) // '/' // fileName)
+
+    open(unit=18,file=trim(finalStateFile))
+      ! Open the eigenvalue file for this kpoint 
+      ! for the final state
     
     read(18,*) 
     read(18,*) 
       ! Skip the first 2 blank lines
 
-    do ib = 1, nBands
-      ! Read in all of the energy bands for this kpoint,
-      ! converting from Hartree to eV
+    do ib = 1, iBandFinalState-1
+      ! Ignore all energy bands below final band
 
-      read(18,*) eHartree(ib,ik), dummyD
+      read(18,*) 
+
+    enddo
+
+    read(18,*) eFinalState(ik), dummyD
+      ! Read the band energy of the final state
+
+    close(18)
+      ! Close the eigenvalue file
+
+    open(unit=18,file=trim(initialStateFile))
+      ! Open the eigenvalue file for this kpoint 
+      ! for the initial state
+    
+    read(18,*) 
+    read(18,*) 
+      ! Skip the first 2 blank lines
+
+    do ib = 1, iBandFinalState
+      ! Ignore all energy bands at or below final band
+
+      read(18,*) 
+
+    enddo
+
+    do ib = iBandFinalState+1, iBandMax
+      ! Read in all of the energy bands between the 
+      ! bounds for this kpoint,
+
+      read(18,*) eInitialState, dummyD
+
+      DEHartree(ib,ik) = eInitialState - eFinalState(ik)
 
     enddo
 
@@ -189,7 +246,7 @@ end subroutine getEnergyBins
 
 !------------------------------------------------------------------------------
 
-subroutine binBands(nBands, nBins, nKpoints, bandsBinnedByE, eHartree, eBin)
+subroutine binBands(nBands, nBins, nKpoints, bandsBinnedByE, DEHartree, eBin)
   !! Assign each band for each kpoint to the energy bins
 
   implicit none
@@ -213,7 +270,7 @@ subroutine binBands(nBands, nBins, nKpoints, bandsBinnedByE, eHartree, eBin)
 
   real(kind=dp), intent(in) :: eBin(nBins)
     !! Energies for each bin
-  real(kind=dp), intent(in) :: eHartree(nBands, nKpoints)
+  real(kind=dp), intent(in) :: DEHartree(nBands, nKpoints)
     !! Energy in Hartree
 
   bandsBinnedByE = 0
@@ -232,7 +289,7 @@ subroutine binBands(nBands, nBins, nKpoints, bandsBinnedByE, eHartree, eBin)
         ! so you don't need to go through each band
         ! every time
 
-        if(eHartree(iE,ik) >= eBin(ib-1) .AND. eHartree(iE,ik) < eBin(ib)) then
+        if(DEHartree(iE,ik) >= eBin(ib-1) .AND. DEHartree(iE,ik) < eBin(ib)) then
           ! Increment the count in the previous bin if the band
           ! energy is less than the current bin energy boundary
         
@@ -246,7 +303,7 @@ subroutine binBands(nBands, nBins, nKpoints, bandsBinnedByE, eHartree, eBin)
           bandsBinnedByE(ib) = bandsBinnedByE(ib) + nBands - iE + 1
           exit
 
-        else if(eHartree(iE,ik) >= eBin(ib)) then
+        else if(DEHartree(iE,ik) >= eBin(ib)) then
           ! If you are not in the last bin and the band energy
           ! goes higher than the current bin boundary, update
           ! the minimum band index and exit to move on to the 
