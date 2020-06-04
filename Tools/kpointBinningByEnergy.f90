@@ -255,7 +255,7 @@ end subroutine getEnergyBins
 
 !------------------------------------------------------------------------------
 
-subroutine binBands(nBands, nBins, nKpoints, bandsBinnedByE, DEHartree, eBin)
+subroutine binBands(iBandFinalState, iBandMax, nBins, nKpoints, bandsBinnedByE, DEHartree, eBin)
   !! Assign each band for each kpoint to the energy bins
 
   implicit none
@@ -265,10 +265,12 @@ subroutine binBands(nBands, nBins, nKpoints, bandsBinnedByE, DEHartree, eBin)
 
   integer :: ib, iE, ik
     !! Loop indices
+  integer, intent(in) :: iBandFinalState
+    !! Band index for the final state
+  integer, intent(in) :: iBandMax
+    !! Max band index for the initial state
   integer :: iEMin
     !! Minimum index for energy loop
-  integer, intent(in) :: nBands
-    !! Total number of bands
   integer, intent(in) :: nBins
     !! Number of energy bins
   integer, intent(in) :: nKpoints
@@ -279,11 +281,11 @@ subroutine binBands(nBands, nBins, nKpoints, bandsBinnedByE, DEHartree, eBin)
 
   real(kind=dp), intent(in) :: eBin(nBins)
     !! Energies for each bin
-  real(kind=dp), intent(in) :: DEHartree(nBands, nKpoints)
+  real(kind=dp), intent(in) :: DEHartree(iBandFinalState+1:iBandMax, nKpoints)
     !! Energy in Hartree
 
   bandsBinnedByE = 0
-  iEMin = 1
+  iEMin = iBandFinalState + 1
 
   do ik = 1, nKpoints
     ! Choose a kpoint
@@ -291,7 +293,7 @@ subroutine binBands(nBands, nBins, nKpoints, bandsBinnedByE, DEHartree, eBin)
     do ib = 2, nBins
       ! Go through each bin
 
-      do iE = iEMin, nBands
+      do iE = iEMin, iBandMax
         ! Cycle through bands starting at last index
         ! This starts at 1 but gets updated as you go 
         ! through bins because the energies are increasing
@@ -326,7 +328,7 @@ subroutine binBands(nBands, nBins, nKpoints, bandsBinnedByE, DEHartree, eBin)
       enddo
     enddo
 
-    iEMin = 1
+    iEMin = iBandFinalState + 1
       ! Once you go through all of the bins and are moving
       ! on to another kpoint, restart the minimum band index
 
