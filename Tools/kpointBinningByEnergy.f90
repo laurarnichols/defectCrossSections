@@ -22,6 +22,8 @@ program kpointBinningByEnergy
     !! Number of kpoints in each bin
   integer :: iBandFinalState
     !! Band index for the final state
+  integer :: iBandMax
+    !! Max band index for the initial state
   integer :: nBins
     !! Number of energy bins
   integer :: nKpoints
@@ -32,7 +34,7 @@ program kpointBinningByEnergy
   character(len=256) :: initialStateDir
     !! Path for initial state eigenvalues
 
-  call readInputs(nKpoints, nBins, *** finalStateDir, initialStateDir, iBandFinalState)
+  call readInputs(nKpoints, nBins, finalStateDir, initialStateDir, iBandFinalState, iBandMax)
     !! * Read the input parameters
 
   allocate(eBin(nBins), DEHartree(iBandFinalState+1:iBandMax,nKpoints), bandsBinnedByE(nBins))
@@ -72,19 +74,26 @@ end program kpointBinningByEnergy
 
 !==============================================================================
 
-subroutine readInputs(nKpoints, nBands, nBins)
+subroutine readInputs(nKpoints, nBins, finalStateDir, initialStateDir, iBandFinalState, iBandMax)
   !! Read input parameters
 
   implicit none
 
-  integer, intent(out) :: nBands
-    !! Total number of bands
-  integer, intent(out) :: nBins
+  integer :: iBandFinalState
+    !! Band index for the final state
+  integer :: iBandMax
+    !! Max band index for the initial state
+  integer :: nBins
     !! Number of energy bins
-  integer, intent(out) :: nKpoints
+  integer :: nKpoints
     !! Total number of kpoints
 
-  namelist /input/ nKpoints, nBands, nBins
+  character(len=256) :: finalStateDir
+    !! Path for final state eigenvalues
+  character(len=256) :: initialStateDir
+    !! Path for initial state eigenvalues
+
+  namelist /input/ nKpoints, nBins, finalStateDir, initialStateDir, iBandFinalState, iBandMax
 
   write(*,*) "Reading input parameters"
 
