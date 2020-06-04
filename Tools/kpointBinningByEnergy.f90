@@ -41,7 +41,8 @@ program kpointBinningByEnergy
 
   write(*,*) "Reading eigenvalue files"
 
-  call readEigenvalueFiles(nKpoints, finalStateDir, initialStateDir, iBandFinalState, DEHartree)
+  call readEigenvalueFiles(nKpoints, finalStateDir, initialStateDir, iBandFinalState, &
+          iBandMax, DEHartree)
     !! * Read eigenvalue file for each kpoint
 
   write(*,*) "Done reading eigenvalue files"
@@ -54,7 +55,7 @@ program kpointBinningByEnergy
   write(*,*) "Done reading energy bins"
   write(*,*) "Counting kpoints in each bin"
 
-  call binBands(nBands, nBins, nKpoints, bandsBinnedByE, DEHartree, eBin)
+  call binBands(iBandFinalState, iBandMax, nBins, nKpoints, bandsBinnedByE, DEHartree, eBin)
     !! * Assign each band for each kpoint to the energy bins
 
   write(*,*) "Done binning kpoints"
@@ -104,8 +105,9 @@ end subroutine readInputs
 
 !------------------------------------------------------------------------------
 
-subroutine readEigenvalueFiles(nKpoints, finalStateDir, initialStateDir, iBandFinalState, DEHartree)
-  !! Read eigenvalue file for each kpoint
+subroutine readEigenvalueFiles(nKpoints, finalStateDir, initialStateDir, &
+              iBandFinalState, iBandMax, DEHartree)
+  !! Read eigenvalue file for each k-point
 
   implicit none
 
@@ -119,7 +121,7 @@ subroutine readEigenvalueFiles(nKpoints, finalStateDir, initialStateDir, iBandFi
   integer, intent(in) :: iBandMax
     !! Max band index for the initial state
   integer, intent(in) :: nKpoints
-    !! Total number of kpoints
+    !! Total number of k-points
 
   real(kind=dp), intent(out) :: DEHartree(iBandFinalState+1:iBandMax,nKpoints)
     !! Energy difference between initial and
@@ -281,7 +283,7 @@ subroutine binBands(iBandFinalState, iBandMax, nBins, nKpoints, bandsBinnedByE, 
 
   real(kind=dp), intent(in) :: eBin(nBins)
     !! Energies for each bin
-  real(kind=dp), intent(in) :: DEHartree(iBandFinalState+1:iBandMax, nKpoints)
+  real(kind=dp), intent(in) :: DEHartree(iBandFinalState+1:iBandMax,nKpoints)
     !! Energy in Hartree
 
   bandsBinnedByE = 0
@@ -311,7 +313,7 @@ subroutine binBands(iBandFinalState, iBandMax, nBins, nKpoints, bandsBinnedByE, 
           ! will be greater than the current bin boundary,
           ! so put the rest of the bands in this bin and exit
           
-          bandsBinnedByE(ib) = bandsBinnedByE(ib) + nBands - iE + 1
+          bandsBinnedByE(ib) = bandsBinnedByE(ib) + iBandMax - iE + 1
           exit
 
         else if(DEHartree(iE,ik) >= eBin(ib)) then
