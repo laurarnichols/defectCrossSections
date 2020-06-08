@@ -4,7 +4,7 @@ module wfcExportVASPMod
 
   !USE pwcom
   USE constants, ONLY : e2, rytoev, pi, tpi, fpi
-  USE cell_base, ONLY : celldm, bg, alat, omega, tpiba, ibrav
+  USE cell_base, ONLY : celldm, bg, alat, tpiba, ibrav
   USE klist, ONLY : wk
   USE ener, ONLY : ef
   USE wvfct, ONLY : igk, et
@@ -37,6 +37,8 @@ module wfcExportVASPMod
     !! Real space lattice vectors
   real(kind=dp) :: ecutwfc
     !! Plane wave energy cutoff?
+  real(kind=dp) :: omega
+    !! Volume of unit cell
   real(kind=dp) :: tStart
     !! Start time
   
@@ -351,12 +353,47 @@ module wfcExportVASPMod
     !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
     read(10,*) nkstot, nbnd, ecutwfc, (at(j,1),j=1,3),(at(j,2),j=1,3), &
-         (at(j,2),j=1,3)
+         (at(j,3),j=1,3)
       !! * Read total number of kpoints, plane wave cutoff energy, and real
       !!   space lattice vectors
 
+    call calculateOmega(at, omega)
+
     return
   end subroutine readWAVECAR
+
+!----------------------------------------------------------------------------
+  subroutine calculateOmega(at, omega)
+    implicit none
+
+    real(kind=dp), intent(in) :: at(3,3)
+      !! Real space lattice vectors
+    real(kind=dp), intent(out) :: omega
+      !! Volume of unit cell
+    real(kind=dp) :: vtmp(3)
+      !! \(a_2\times a_3\)
+
+    call vcross(at(:,2), at(:,3), vtmp)
+
+    omega = at(1,1)*vtmp(1) + at(2,1)*vtmp(2) + at(3,1)*vtmp(3)
+
+    return
+  end subroutine calculateOmega
+
+!----------------------------------------------------------------------------
+  subroutine vcross(vec1, vec2, crossProd)
+    implicit none
+
+    real(kind=dp) :: vec1(3)
+    real(kind=dp) :: vec2(3)
+    real(kind=dp) :: crossProd(3)
+    
+    crossProd(1) = vec1(2)*vec2(3) - vec1(3)*vec2(2)
+    crossProd(2) = vec1(3)*vec2(1) - vec1(1)*vec2(3)
+    crossProd(3) = vec1(1)*vec2(2) - vec1(2)*vec2(1)
+
+    return
+  end subroutine vcross
 
 !----------------------------------------------------------------------------
   subroutine distributeKpointsInPools()
