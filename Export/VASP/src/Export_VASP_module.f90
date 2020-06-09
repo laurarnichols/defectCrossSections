@@ -4,7 +4,7 @@ module wfcExportVASPMod
 
   !USE pwcom
   USE constants, ONLY : e2, rytoev, pi, tpi, fpi
-  USE cell_base, ONLY : celldm, bg, alat, tpiba, ibrav
+  USE cell_base, ONLY : celldm, alat, tpiba, ibrav
   USE klist, ONLY : wk
   USE ener, ONLY : ef
   USE wvfct, ONLY : igk, et
@@ -35,6 +35,8 @@ module wfcExportVASPMod
 
   real(kind=dp) :: at(3,3)
     !! Real space lattice vectors
+  real(kind=dp) :: bg(3,3)
+    !! Reciprocal lattice vectors
   real(kind=dp) :: ecutwfc
     !! Plane wave energy cutoff?
   real(kind=dp) :: omega
@@ -333,6 +335,7 @@ module wfcExportVASPMod
   subroutine readWAVECAR()
     !! Read data from the WAVECAR file
     !!
+    !! @todo Update this to have input/output variables @endtodo
     !! <h2>Walkthrough</h2>
 
     implicit none
@@ -358,6 +361,9 @@ module wfcExportVASPMod
       !!   space lattice vectors
 
     call calculateOmega(at, omega)
+      !! * Calculate unit cell volume
+
+    call getReciprocalVectors(at, omega, bg)
 
     return
   end subroutine readWAVECAR
@@ -379,6 +385,31 @@ module wfcExportVASPMod
 
     return
   end subroutine calculateOmega
+
+!----------------------------------------------------------------------------
+  subroutine getReciprocalVectors(at, omega, bg)
+    implicit none
+
+    real(kind=dp), intent(in) :: at(3,3)
+      !! Real space lattice vectors
+    real(kind=dp), intent(out) :: bg(3,3)
+      !! Reciprocal lattice vectors
+    real(kind=dp), intent(in) :: omega
+      !! Volume of unit cell
+
+    integer :: i
+      !! Loop index
+    
+    call vcross(2.0d0*pi*at(:,2)/omega, at(:,3), bg(:,1))
+      ! \(b_1 = 2\pi/\Omega a_2\times a_3\)
+    call vcross(2.0d0*pi*at(:,3)/omega, at(:,1), bg(:,2))
+      ! \(b_2 = 2\pi/\Omega a_3\times a_1\)
+    call vcross(2.0d0*pi*at(:,1)/omega, at(:,2), bg(:,3))
+      ! \(b_3 = 2\pi/\Omega a_1\times a_2\)
+
+
+    return
+  end subroutine getReciprocalVectors
 
 !----------------------------------------------------------------------------
   subroutine vcross(vec1, vec2, crossProd)
