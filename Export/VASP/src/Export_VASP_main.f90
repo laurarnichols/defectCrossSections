@@ -30,6 +30,11 @@ program wfcExportVASPMain
     
     if (ios /= 0) call exitError ('export main', 'reading inputParams namelist', abs(ios) )
       !! * Exit calculation if there's an error
+
+    outdir = QEDir
+      !! * Convert the QEDir to outdir to match what QE uses;
+      !!   eventually will get rid of both directories, but 
+      !!   needed for now
     
     ios = f_mkdir_safe( trim(exportDir) )
       !! * Make the export directory

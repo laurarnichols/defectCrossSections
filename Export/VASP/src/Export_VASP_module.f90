@@ -86,6 +86,10 @@ module wfcExportVASPMod
     !! Directory to be used for export
   character(len=256) :: mainOutputFile
     !! Main output file
+  character(len=256) :: QEDir
+    !! Directory with QE files
+  character(len=256) :: VASPDir
+    !! Directory with VASP files
 
   logical :: ionode
     !! If this node is the root node
@@ -102,7 +106,7 @@ module wfcExportVASPMod
   integer, allocatable :: ngk_g( : )
     !! ??Not sure what this is
 
-  NAMELIST /inputParams/ prefix, outdir, exportDir
+  NAMELIST /inputParams/ prefix, QEDir, VASPDir, exportDir
 
 
   contains
@@ -347,7 +351,7 @@ module wfcExportVASPMod
     integer :: prec
       !! Precision of plane wave coefficients
 
-    open( unit = 10, file = 'WAVECAR')
+    open( unit = 10, file = trim(VASPDir)//'/WAVECAR')
       !! * Open the WAVECAR file
 
     read(10,*) dummyI, nspin, prec
