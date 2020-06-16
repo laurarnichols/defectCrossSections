@@ -245,7 +245,8 @@ module wfcExportVASPMod
       !! String for time
 
     prefix = ''
-    outdir = './'
+    QEDir = './'
+    VASPDir = './'
     exportDir = './Export'
 
 #ifdef __INTEL_COMPILER
@@ -258,16 +259,18 @@ module wfcExportVASPMod
 
     call date_and_time( cdate, ctime )
 
-    write( stdout, '(/5X,"VASP wavefunction export program starts on ",A9," at ",A9)' ) &
-         cdate, ctime
+    if(ionode) then
+      write( stdout, '(/5X,"VASP wavefunction export program starts on ",A9," at ",A9)' ) &
+             cdate, ctime
 
 #ifdef __MPI
-    write( stdout, '(/5X,"Parallel version (MPI), running on ",I5," processors")' ) nproc_local
+      write( stdout, '(/5X,"Parallel version (MPI), running on ",I5," processors")' ) nproc_local
 
-    if(npool_local > 1) write( stdout, '(5X,"K-points division:     npool_local     = ",I7)' ) npool_local
+      if(npool_local > 1) write( stdout, '(5X,"K-points division:     npool_local     = ",I7)' ) npool_local
 #else
-    write( stdout, '(/5X,"Serial version")' )
+      write( stdout, '(/5X,"Serial version")' )
 #endif
+    endif
 
   end subroutine initialize
 
@@ -382,23 +385,41 @@ module wfcExportVASPMod
     integer :: prec
       !! Precision of plane wave coefficients
 
-    open( unit = 10, file = trim(VASPDir)//'/WAVECAR')
-      !! * Open the WAVECAR file
+    character(len=256) :: fileName
+      !! Full WAVECAR file name including path
 
-    read(10,*) dummyI, nspin_local, prec
-      !! * Read the number of spins and place wave coefficient precision
+    if(ionode) then
+      fileName = trim(VASPDir)//'/WAVECAR'
 
-    !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
+      write(stdout,*) VASPDir, " ", fileName
 
-    read(10,*) nkstot_local, nbnd_local, ecutwfc_local, (at_local(j,1),j=1,3),(at_local(j,2),j=1,3), &
-         (at_local(j,3),j=1,3)
-      !! * Read total number of kpoints, plane wave cutoff energy, and real
-      !!   space lattice vectors
+      open( unit = 10, file = trim(fileName))
+        !! * Open the WAVECAR file
 
-    call calculateOmega(at_local, omega_local)
-      !! * Calculate unit cell volume
+      read(10,*) dummyI, nspin_local, prec
+        !! * Read the number of spins and place wave coefficient precision
 
-    call getReciprocalVectors(at_local, omega_local, bg_local)
+      !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
+
+      read(10,*) nkstot_local, nbnd_local, ecutwfc_local, (at_local(j,1),j=1,3),(at_local(j,2),j=1,3), &
+           (at_local(j,3),j=1,3)
+        !! * Read total number of kpoints, plane wave cutoff energy, and real
+        !!   space lattice vectors
+
+      call calculateOmega(at_local, omega_local)
+        !! * Calculate unit cell volume
+
+      call getReciprocalVectors(at_local, omega_local, bg_local)
+
+    endif
+
+    call MPI_BCAST(nspin_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
+    call MPI_BCAST(nkstot_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
+    call MPI_BCAST(nbnd_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
+    call MPI_BCAST(ecutwfc_local, 1, MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
+    call MPI_BCAST(omega_local, 1, MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
+    call MPI_BCAST(at_local, size(at_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
+    call MPI_BCAST(bg_local, size(bg_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
 
     at = at_local
     bg = bg_local
