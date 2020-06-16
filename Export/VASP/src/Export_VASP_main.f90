@@ -51,9 +51,9 @@ program wfcExportVASPMain
 
   endif
 
-  !CALL mp_bcast( outdir, root, world_comm )
-  !CALL mp_bcast( exportDir, root, world_comm )
-  !CALL mp_bcast( prefix, root, world_comm )
+  CALL mp_bcast( outdir, root, world_comm_local )
+  CALL mp_bcast( exportDir, root, world_comm_local )
+  CALL mp_bcast( prefix, root, world_comm_local )
 
   CALL read_file
     !! @todo Figure out what this subroutine does and what can be moved here @endtodo

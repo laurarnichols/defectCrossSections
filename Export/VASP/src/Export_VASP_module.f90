@@ -14,7 +14,7 @@ module wfcExportVASPMod
   USE ions_base, ONLY : ntype => nsp
   USE iotk_module
   use mpi
-  USE mp,        ONLY: mp_sum, mp_max, mp_get
+  USE mp,        ONLY: mp_sum, mp_max, mp_get, mp_bcast
   USE mp_wave, ONLY : mergewf
 
   implicit none
@@ -33,14 +33,18 @@ module wfcExportVASPMod
   real(kind = dp), parameter :: ryToHartree = 0.5_dp
     !! Conversion factor from Rydberg to Hartree
 
-  real(kind=dp) :: at(3,3)
+  real(kind=dp) :: at_local(3,3)
     !! Real space lattice vectors
-  real(kind=dp) :: bg(3,3)
+    !! @todo Change back to `at` once extracted from QE @endtodo
+  real(kind=dp) :: bg_local(3,3)
     !! Reciprocal lattice vectors
-  real(kind=dp) :: ecutwfc
-    !! Plane wave energy cutoff?
-  real(kind=dp) :: omega
+    !! @todo Change back to `bg` once extracted from QE @endtodo
+  real(kind=dp) :: ecutwfc_local
+    !! Plane wave energy cutoff
+    !! @todo Change back to `ecutwfc` once extracted from QE @endtodo
+  real(kind=dp) :: omega_local
     !! Volume of unit cell
+    !! @todo Change back to `omega` once extracted from QE @endtodo
   real(kind=dp) :: tStart
     !! Start time
   
@@ -55,32 +59,41 @@ module wfcExportVASPMod
     !! Error for input/output
   integer :: indexInPool
     !! Process index within pool
-  integer :: inter_pool_comm = 0
+  integer :: inter_pool_comm_local = 0
     !! Inter pool communicator
-  integer :: intra_pool_comm = 0
+    !! @todo Change back to `inter_pool_comm` once extracted from QE @endtodo
+  integer :: intra_pool_comm_local = 0
     !! Intra pool communicator
+    !! @todo Change back to `intra_pool_comm` once extracted from QE @endtodo
   integer :: myPoolId
     !! Pool index for this process
-  integer :: nbnd
+  integer :: nbnd_local
     !! Total number of bands
-  integer :: nkstot
+    !! @todo Change back to `nbnd` once extracted from QE @endtodo
+  integer :: nkstot_local
     !! Total number of kpoints
-  integer :: npool = 1
+    !! @todo Change back to `nkstot` once extracted from QE @endtodo
+  integer :: npool_local = 1
     !! Number of pools for kpoint parallelization
-  integer :: nproc
+    !! @todo Change back to `npool` once extracted from QE @endtodo
+  integer :: nproc_local
     !! Number of processes
-  integer :: nproc_pool
+    !! @todo Change back to `nproc` once extracted from QE @endtodo
+  integer :: nproc_pool_local
     !! Number of processes per pool
+    !! @todo Change back to `nproc_pool` once extracted from QE @endtodo
   integer :: npw_g
     !! ??Not sure what this is
   integer :: npwx_g
     !! ??Not sure what this is
-  integer :: nspin
+  integer :: nspin_local
     !! Number of spins
+    !! @todo Change back to `nspin` once extracted from QE @endtodo
   integer :: myid
     !! ID of this process
-  integer :: world_comm = 0
+  integer :: world_comm_local
     !! World communicator
+    !! @todo Change back to `world_comm` once extracted from QE @endtodo
   
   character(len=256) :: exportDir
     !! Directory to be used for export
@@ -93,11 +106,6 @@ module wfcExportVASPMod
 
   logical :: ionode
     !! If this node is the root node
-
-  real(kind=dp), allocatable :: rtmp_g( :, : )
-    !! ??Not sure what this is
-  real(kind=dp), allocatable :: rtmp_gg( : )
-    !! ??Not sure what this is
 
   integer, allocatable :: igk_l2g( :, : )
     !! ??Not sure what this is
@@ -117,6 +125,10 @@ module wfcExportVASPMod
     !!
     !! <h2>Walkthrough</h2>
 
+    use mp_world, only : world_comm, nproc, mpime
+    use mp_pools, only : npool, nproc_pool, me_pool, my_pool_id, intra_pool_comm, inter_pool_comm
+      !! @todo Remove this once extracted from QE @endtodo
+
     implicit none
 
     integer :: narg = 0
@@ -135,11 +147,11 @@ module wfcExportVASPMod
 
     if (ierr /= 0) call mpiExitError( 8001 )
 
-    world_comm = world_comm
+    world_comm_local = MPI_COMM_WORLD
 
-    call MPI_COMM_RANK(world_comm, myid, ierr)
+    call MPI_COMM_RANK(world_comm_local, myid, ierr)
       !! * Determine the rank or ID of the calling process
-    call MPI_COMM_SIZE(world_comm, nproc, ierr)
+    call MPI_COMM_SIZE(world_comm_local, nproc_local, ierr)
       !! * Determine the size of the MPI pool (i.e., the number of processes)
 
     ionode = (myid == root)
@@ -147,7 +159,7 @@ module wfcExportVASPMod
     nargs = command_argument_count()
       !! * Get the number of arguments input at command line
 
-    call MPI_BCAST(nargs, 1, MPI_INTEGER, root, world_comm, ierr)
+    call MPI_BCAST(nargs, 1, MPI_INTEGER, root, world_comm_local, ierr)
 
     if(ionode) then
 
@@ -171,36 +183,49 @@ module wfcExportVASPMod
       write(stdout,*) 'Unprocessed command line arguments: ' // trim(command_line)
     endif
 
-    call MPI_BCAST(npool_, 1, MPI_INTEGER, root, world_comm, ierr)
+    call MPI_BCAST(npool_, 1, MPI_INTEGER, root, world_comm_local, ierr)
     if(ierr /= 0) call mpiExitError(8002)
 
-    npool = npool_
+    npool_local = npool_
 
-    if(npool < 1 .or. npool > nproc) call exitError('mpiInitialization', 'invalid number of pools, out of range', 1)
+    if(npool_local < 1 .or. npool_local > nproc_local) call exitError('mpiInitialization', &
+      'invalid number of pools, out of range', 1)
       !! * Verify that the number of pools is between 1 and the number of processes
 
-    if(mod(nproc, npool) /= 0) call exitError('mpiInitialization', 'invalid number of pools, mod(nproc,npool) /=0 ', 1)
+    if(mod(nproc_local, npool_local) /= 0) call exitError('mpiInitialization', &
+      'invalid number of pools, mod(nproc_local,npool_local) /=0 ', 1)
       !! * Verify that the number of processes is evenly divisible by the number of pools
 
-    nproc_pool = nproc / npool
+    nproc_pool_local = nproc_local / npool_local
       !! * Calculate how many processes there are per pool
 
-    myPoolId = myid / nproc_pool
+    myPoolId = myid / nproc_pool_local
       !! * Get the pool index for this process
 
-    indexInPool = mod(myid, nproc_pool)
+    indexInPool = mod(myid, nproc_pool_local)
       !! * Get the index of the process within the pool
 
-    call MPI_BARRIER(world_comm, ierr)
+    call MPI_BARRIER(world_comm_local, ierr)
     if(ierr /= 0) call mpiExitError(8003)
 
-    call MPI_COMM_SPLIT(world_comm, myPoolId, myid, intra_pool_comm, ierr)
+    call MPI_COMM_SPLIT(world_comm_local, myPoolId, myid, intra_pool_comm_local, ierr)
     if(ierr /= 0) call mpiExitError(8004)
       !! * Create intra pool communicator
 
-    call MPI_COMM_SPLIT(world_comm, indexInPool, myid, inter_pool_comm, ierr)
+    call MPI_COMM_SPLIT(world_comm_local, indexInPool, myid, inter_pool_comm_local, ierr)
     if(ierr /= 0) call mpiExitError(8005)
       !! * Create inter pool communicator
+
+    world_comm = world_comm_local
+    nproc = nproc_local
+    mpime = myid
+    npool = npool_local
+    nproc_pool = nproc_pool_local
+    me_pool = indexInPool
+    my_pool_id = myPoolId
+    inter_pool_comm = inter_pool_comm_local
+    intra_pool_comm = intra_pool_comm_local
+      !! @todo Remove this once extracted from QE @endtodo
 
     return
   end subroutine mpiInitialization
@@ -237,9 +262,9 @@ module wfcExportVASPMod
          cdate, ctime
 
 #ifdef __MPI
-    write( stdout, '(/5X,"Parallel version (MPI), running on ",I5," processors")' ) nproc
+    write( stdout, '(/5X,"Parallel version (MPI), running on ",I5," processors")' ) nproc_local
 
-    if(npool > 1) write( stdout, '(5X,"K-points division:     npool     = ",I7)' ) npool
+    if(npool_local > 1) write( stdout, '(5X,"K-points division:     npool_local     = ",I7)' ) npool_local
 #else
     write( stdout, '(/5X,"Serial version")' )
 #endif
@@ -257,7 +282,7 @@ module wfcExportVASPMod
     write( stdout, '( "*** MPI error ***")' )
     write( stdout, '( "*** error code: ",I5, " ***")' ) code
 
-    call MPI_ABORT(world_comm,code,ierr)
+    call MPI_ABORT(world_comm_local,code,ierr)
     
     stop
 
@@ -315,8 +340,8 @@ module wfcExportVASPMod
     id = 0
   
     !> * For MPI, get the id of this process and abort
-    call MPI_COMM_RANK( world_comm, id, mpierr )
-    call MPI_ABORT( world_comm, mpierr, ierr )
+    call MPI_COMM_RANK( world_comm_local, id, mpierr )
+    call MPI_ABORT( world_comm_local, mpierr, ierr )
     call MPI_FINALIZE( mpierr )
 
 #endif
@@ -342,6 +367,12 @@ module wfcExportVASPMod
     !! @todo Update this to have input/output variables @endtodo
     !! <h2>Walkthrough</h2>
 
+    use cell_base, only : at, bg, omega
+    use wvfct, only : ecutwfc, nbnd
+    use klist, only : nkstot
+    use lsda_mod, only : nspin
+      !! @todo Remove this once extracted from QE @endtodo
+
     implicit none
 
     integer :: dummyI
@@ -354,61 +385,70 @@ module wfcExportVASPMod
     open( unit = 10, file = trim(VASPDir)//'/WAVECAR')
       !! * Open the WAVECAR file
 
-    read(10,*) dummyI, nspin, prec
+    read(10,*) dummyI, nspin_local, prec
       !! * Read the number of spins and place wave coefficient precision
 
     !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
-    read(10,*) nkstot, nbnd, ecutwfc, (at(j,1),j=1,3),(at(j,2),j=1,3), &
-         (at(j,3),j=1,3)
+    read(10,*) nkstot_local, nbnd_local, ecutwfc_local, (at_local(j,1),j=1,3),(at_local(j,2),j=1,3), &
+         (at_local(j,3),j=1,3)
       !! * Read total number of kpoints, plane wave cutoff energy, and real
       !!   space lattice vectors
 
-    call calculateOmega(at, omega)
+    call calculateOmega(at_local, omega_local)
       !! * Calculate unit cell volume
 
-    call getReciprocalVectors(at, omega, bg)
+    call getReciprocalVectors(at_local, omega_local, bg_local)
+
+    at = at_local
+    bg = bg_local
+    omega = omega_local
+    ecutwfc = ecutwfc_local
+    nbnd = nbnd_local
+    nkstot = nkstot_local
+    nspin = nspin_local
+      !! @todo Remove this once extracted from QE @endtodo
 
     return
   end subroutine readWAVECAR
 
 !----------------------------------------------------------------------------
-  subroutine calculateOmega(at, omega)
+  subroutine calculateOmega(at_local, omega_local)
     implicit none
 
-    real(kind=dp), intent(in) :: at(3,3)
+    real(kind=dp), intent(in) :: at_local(3,3)
       !! Real space lattice vectors
-    real(kind=dp), intent(out) :: omega
+    real(kind=dp), intent(out) :: omega_local
       !! Volume of unit cell
     real(kind=dp) :: vtmp(3)
       !! \(a_2\times a_3\)
 
-    call vcross(at(:,2), at(:,3), vtmp)
+    call vcross(at_local(:,2), at_local(:,3), vtmp)
 
-    omega = at(1,1)*vtmp(1) + at(2,1)*vtmp(2) + at(3,1)*vtmp(3)
+    omega_local = at_local(1,1)*vtmp(1) + at_local(2,1)*vtmp(2) + at_local(3,1)*vtmp(3)
 
     return
   end subroutine calculateOmega
 
 !----------------------------------------------------------------------------
-  subroutine getReciprocalVectors(at, omega, bg)
+  subroutine getReciprocalVectors(at_local, omega_local, bg_local)
     implicit none
 
-    real(kind=dp), intent(in) :: at(3,3)
+    real(kind=dp), intent(in) :: at_local(3,3)
       !! Real space lattice vectors
-    real(kind=dp), intent(out) :: bg(3,3)
+    real(kind=dp), intent(out) :: bg_local(3,3)
       !! Reciprocal lattice vectors
-    real(kind=dp), intent(in) :: omega
+    real(kind=dp), intent(in) :: omega_local
       !! Volume of unit cell
 
     integer :: i
       !! Loop index
     
-    call vcross(2.0d0*pi*at(:,2)/omega, at(:,3), bg(:,1))
+    call vcross(2.0d0*pi*at_local(:,2)/omega_local, at_local(:,3), bg_local(:,1))
       ! \(b_1 = 2\pi/\Omega a_2\times a_3\)
-    call vcross(2.0d0*pi*at(:,3)/omega, at(:,1), bg(:,2))
+    call vcross(2.0d0*pi*at_local(:,3)/omega_local, at_local(:,1), bg_local(:,2))
       ! \(b_2 = 2\pi/\Omega a_3\times a_1\)
-    call vcross(2.0d0*pi*at(:,1)/omega, at(:,2), bg(:,3))
+    call vcross(2.0d0*pi*at_local(:,1)/omega_local, at_local(:,2), bg_local(:,3))
       ! \(b_3 = 2\pi/\Omega a_1\times a_2\)
 
 
@@ -444,15 +484,15 @@ module wfcExportVASPMod
       !! Number of kpoints left over after evenly divided across pools
 
 
-    if( nkstot > 0 ) then
+    if( nkstot_local > 0 ) then
 
-      IF( ( nproc_pool > nproc ) .or. ( mod( nproc, nproc_pool ) /= 0 ) ) &
-        CALL exitError( 'distributeKpointsInPools','nproc_pool', 1 )
+      IF( ( nproc_pool_local > nproc_local ) .or. ( mod( nproc_local, nproc_pool_local ) /= 0 ) ) &
+        CALL exitError( 'distributeKpointsInPools','nproc_pool_local', 1 )
 
-      nk_Pool = nkstot / npool
+      nk_Pool = nkstot_local / npool_local
         !!  * Calculate k points per pool
 
-      nkr = nkstot - nk_Pool * npool 
+      nkr = nkstot_local - nk_Pool * npool_local 
         !! * Calculate the remainder
 
       IF( myPoolId < nkr ) nk_Pool = nk_Pool + 1
@@ -482,6 +522,9 @@ module wfcExportVASPMod
     integer :: ig, ik
       !! Loop indices
 
+    real(kind=dp), allocatable :: rtmp_g( :, : )
+      !! ??Not sure what this is
+
     integer, allocatable :: kisort(:)
       !! ??Not sure what this is
 
@@ -490,7 +533,7 @@ module wfcExportVASPMod
       !! @todo Figure out where the value of `ngm` comes from @endtodo
       !! @todo Figure out how to get this value from VASP files @endtodo
 
-    call MPI_ALLREDUCE(ngm, ngm_g, 1, MPI_INTEGER, MPI_SUM, intra_pool_comm, ierr)
+    call MPI_ALLREDUCE(ngm, ngm_g, 1, MPI_INTEGER, MPI_SUM, intra_pool_comm_local, ierr)
     if( ierr /= 0 ) call exitError( 'reconstructMainGrid', 'error in mpi_allreduce 1', ierr)
 
     if( ionode ) then 
@@ -504,7 +547,6 @@ module wfcExportVASPMod
   
     ALLOCATE( itmp_g( 3, ngm_g ) )
     ALLOCATE( rtmp_g( 3, ngm_g ) )
-    ALLOCATE( rtmp_gg( ngm_g ) )
 
     itmp_g = 0
     DO  ig = 1, ngm
@@ -513,18 +555,14 @@ module wfcExportVASPMod
       itmp_g( 3, ig_l2g( ig ) ) = mill(3,ig )
     ENDDO
   
-    CALL mp_sum( itmp_g , intra_pool_comm )
+    CALL mp_sum( itmp_g , intra_pool_comm_local )
   
     ! here we are in crystal units
     rtmp_g(1:3,1:ngm_g) = REAL( itmp_g(1:3,1:ngm_g) )
   
     ! go to cartesian units (tpiba)
-    CALL cryst_to_cart( ngm_g, rtmp_g, bg , 1 )
+    CALL cryst_to_cart( ngm_g, rtmp_g, bg_local , 1 )
   
-    ! compute squared moduli
-    DO  ig = 1, ngm_g
-      rtmp_gg(ig) = rtmp_g(1,ig)**2 + rtmp_g(2,ig)**2 + rtmp_g(3,ig)**2
-    ENDDO
     DEALLOCATE( rtmp_g )
 
     ! build the G+k array indexes
@@ -533,7 +571,7 @@ module wfcExportVASPMod
     DO ik = 1, nks
       kisort = 0
       npw = npwx
-      CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc / tpiba2, npw, kisort(1), g2kin)
+      CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, kisort(1), g2kin)
 
       ! mapping between local and global G vector index, for this kpoint
      
@@ -550,17 +588,17 @@ module wfcExportVASPMod
     DEALLOCATE (kisort)
 
     ! compute the global number of G+k vectors for each k point
-    ALLOCATE( ngk_g( nkstot ) )
+    ALLOCATE( ngk_g( nkstot_local ) )
     ngk_g = 0
     ngk_g( ikStart:ikEnd ) = ngk( 1:nks )
-    CALL mp_sum( ngk_g, world_comm )
+    CALL mp_sum( ngk_g, world_comm_local )
 
     ! compute the Maximum G vector index among all G+k and processors
     npw_g = maxval( igk_l2g(:,:) )
-    CALL mp_max( npw_g, world_comm )
+    CALL mp_max( npw_g, world_comm_local )
 
     ! compute the Maximum number of G vector among all k points
-    npwx_g = maxval( ngk_g( 1:nkstot ) )
+    npwx_g = maxval( ngk_g( 1:nkstot_local ) )
 
     return 
   end subroutine reconstructMainGrid
@@ -571,19 +609,19 @@ module wfcExportVASPMod
 ! iuni    = Restart file I/O fortran unit
 !
     SUBROUTINE write_restart_wfc(iuni, exportDir, &
-      ik, nk, ispin, nspin, scal, wf0, t0, wfm, tm, ngw, gamma_only, nbnd, igl, ngwl )
+      ik, nk, ispin, nspin_local, scal, wf0, t0, wfm, tm, ngw, gamma_only, nbnd_local, igl, ngwl )
 !
 !
       IMPLICIT NONE
 !
       INTEGER, INTENT(in) :: iuni
       character(len = 256), intent(in) :: exportDir
-      INTEGER, INTENT(in) :: ik, nk, ispin, nspin
+      INTEGER, INTENT(in) :: ik, nk, ispin, nspin_local
       COMPLEX(DP), INTENT(in) :: wf0(:,:)
       COMPLEX(DP), INTENT(in) :: wfm(:,:)
       INTEGER, INTENT(in) :: ngw   !
       LOGICAL, INTENT(in) :: gamma_only
-      INTEGER, INTENT(in) :: nbnd
+      INTEGER, INTENT(in) :: nbnd_local
       INTEGER, INTENT(in) :: ngwl
       INTEGER, INTENT(in) :: igl(:)
       REAL(DP), INTENT(in) :: scal
@@ -591,7 +629,7 @@ module wfcExportVASPMod
 
       INTEGER :: i, j, ierr, idum = 0
       INTEGER :: nkt, ikt, igwx, ig
-      INTEGER :: ipmask( nproc ), ipsour
+      INTEGER :: ipmask( nproc_local ), ipsour
       COMPLEX(DP), ALLOCATABLE :: wtmp(:)
       INTEGER, ALLOCATABLE :: igltot(:)
 
@@ -614,12 +652,12 @@ module wfcExportVASPMod
         ipsour = root
 
         !  find out the index of the processor which collect the data in the pool of ik
-        IF( npool > 1 ) THEN
+        IF( npool_local > 1 ) THEN
           IF( ( ikt >= ikStart ) .and. ( ikt <= ikEnd ) ) THEN
             IF( indexInPool == root_pool ) ipmask( myid + 1 ) = 1
           ENDIF
-          CALL mp_sum( ipmask, world_comm )
-          DO i = 1, nproc
+          CALL mp_sum( ipmask, world_comm_local )
+          DO i = 1, nproc_local
             IF( ipmask(i) == 1 ) ipsour = ( i - 1 )
           ENDDO
         ENDIF
@@ -636,35 +674,35 @@ module wfcExportVASPMod
 
         ! get the maximum index within the pool
         !
-        CALL mp_max( igwx, intra_pool_comm )
+        CALL mp_max( igwx, intra_pool_comm_local )
 
         ! now notify all procs if an error has been found
         !
-        CALL mp_max( ierr, world_comm )
+        CALL mp_max( ierr, world_comm_local )
 
         IF( ierr > 0 ) &
           CALL exitError(' write_restart_wfc ',' wrong size ngl ', ierr )
 
         IF( ipsour /= root ) THEN
-          CALL mp_get( igwx, igwx, myid, root, ipsour, 1, world_comm )
+          CALL mp_get( igwx, igwx, myid, root, ipsour, 1, world_comm_local )
         ENDIF
 
         ALLOCATE( wtmp( max(igwx,1) ) )
         wtmp = cmplx(0.0_dp, 0.0_dp, kind=dp)
 
-        DO j = 1, nbnd
+        DO j = 1, nbnd_local
           IF( t0 ) THEN
-            IF( npool > 1 ) THEN
+            IF( npool_local > 1 ) THEN
               IF( ( ikt >= ikStart ) .and. ( ikt <= ikEnd ) ) THEN
                 CALL mergewf(wf0(:,j), wtmp, ngwl, igl, indexInPool, &
-                             nproc_pool, root_pool, intra_pool_comm)
+                             nproc_pool_local, root_pool, intra_pool_comm_local)
               ENDIF
               IF( ipsour /= root ) THEN
-                CALL mp_get( wtmp, wtmp, myid, root, ipsour, j, world_comm )
+                CALL mp_get( wtmp, wtmp, myid, root, ipsour, j, world_comm_local )
               ENDIF
             ELSE
-              CALL mergewf(wf0(:,j), wtmp, ngwl, igl, myid, nproc, &
-                           root, world_comm )
+              CALL mergewf(wf0(:,j), wtmp, ngwl, igl, myid, nproc_local, &
+                           root, world_comm_local )
             ENDIF
 
             IF( ionode ) THEN
@@ -672,7 +710,7 @@ module wfcExportVASPMod
                 write(iuni, '(2ES24.15E3)') wtmp(ig)
               enddo
               !
-!              do j = 1, nbnd
+!              do j = 1, nbnd_local
 !                do i = 1, igwx ! ngk_g(ik)
 !                  write(74,'(2ES24.15E3)') wf0(i,j) ! wf0 is the local array for evc(i,j)
 !                enddo
@@ -683,18 +721,18 @@ module wfcExportVASPMod
           ENDIF
         ENDDO
 
-!        DO j = 1, nbnd
+!        DO j = 1, nbnd_local
 !          IF( tm ) THEN
-!            IF( npool > 1 ) THEN
+!            IF( npool_local > 1 ) THEN
 !              IF( ( ikt >= ikStart ) .and. ( ikt <= ikEnd ) ) THEN
 !                CALL mergewf(wfm(:,j), wtmp, ngwl, igl, indexInPool, &
-!                             nproc_pool, root_pool, intra_pool_comm)
+!                             nproc_pool_local, root_pool, intra_pool_comm_local)
 !              ENDIF
 !              IF( ipsour /= root ) THEN
-!                CALL mp_get( wtmp, wtmp, myid, root, ipsour, j, world_comm )
+!                CALL mp_get( wtmp, wtmp, myid, root, ipsour, j, world_comm_local )
 !              ENDIF
 !            ELSE
-!              CALL mergewf(wfm(:,j), wtmp, ngwl, igl, myid, nproc, root, world_comm )
+!              CALL mergewf(wfm(:,j), wtmp, ngwl, igl, myid, nproc_local, root, world_comm_local )
 !            ENDIF
 !            IF( ionode ) THEN
 !              CALL iotk_write_dat(iuni,"Wfcm"//iotk_index(j),wtmp(1:igwx))
@@ -779,18 +817,18 @@ module wfcExportVASPMod
     
 
       write(mainout, '("# Cell volume (a.u.)^3. Format: ''(ES24.15E3)''")')
-      write(mainout, '(ES24.15E3)' ) omega
+      write(mainout, '(ES24.15E3)' ) omega_local
     
       write(mainout, '("# Number of K-points. Format: ''(i10)''")')
-      write(mainout, '(i10)') nkstot
+      write(mainout, '(i10)') nkstot_local
     
       write(mainout, '("# ik, groundState, ngk_g(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
     
-      allocate ( groundState(nkstot) )
+      allocate ( groundState(nkstot_local) )
 
       groundState(:) = 0
-      DO ik=1,nkstot
-        do ibnd = 1, nbnd
+      DO ik=1,nkstot_local
+        do ibnd = 1, nbnd_local
           if ( wg(ibnd,ik)/wk(ik) < 0.5_dp ) then
           !if (et(ibnd,ik) > ef) then
             groundState(ik) = ibnd - 1
@@ -802,9 +840,9 @@ module wfcExportVASPMod
     
     endif
   
-    ALLOCATE( igwk( npwx_g, nkstot ) )
+    ALLOCATE( igwk( npwx_g, nkstot_local ) )
   
-    DO ik = 1, nkstot
+    DO ik = 1, nkstot_local
       igwk(:,ik) = 0
     
       ALLOCATE( itmp1( npw_g ), STAT= ierr )
@@ -817,7 +855,7 @@ module wfcExportVASPMod
         ENDDO
       ENDIF
     
-      CALL mp_sum( itmp1, world_comm )
+      CALL mp_sum( itmp1, world_comm_local )
     
       ngg = 0
       DO  ig = 1, npw_g
@@ -850,14 +888,14 @@ module wfcExportVASPMod
                           minval(itmp_g(3,1:ngm_g)), maxval(itmp_g(3,1:ngm_g))
     
       write(mainout, '("# Cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
-      write(mainout, '("# a1 ",3ES24.15E3)') at(:,1)*alat
-      write(mainout, '("# a2 ",3ES24.15E3)') at(:,2)*alat
-      write(mainout, '("# a3 ",3ES24.15E3)') at(:,3)*alat
+      write(mainout, '("# a1 ",3ES24.15E3)') at_local(:,1)*alat
+      write(mainout, '("# a2 ",3ES24.15E3)') at_local(:,2)*alat
+      write(mainout, '("# a3 ",3ES24.15E3)') at_local(:,3)*alat
     
       write(mainout, '("# Reciprocal cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
-      write(mainout, '("# b1 ",3ES24.15E3)') bg(:,1)*tpiba
-      write(mainout, '("# b2 ",3ES24.15E3)') bg(:,2)*tpiba
-      write(mainout, '("# b3 ",3ES24.15E3)') bg(:,3)*tpiba
+      write(mainout, '("# b1 ",3ES24.15E3)') bg_local(:,1)*tpiba
+      write(mainout, '("# b2 ",3ES24.15E3)') bg_local(:,2)*tpiba
+      write(mainout, '("# b3 ",3ES24.15E3)') bg_local(:,3)*tpiba
     
       write(mainout, '("# Number of Atoms. Format: ''(i10)''")')
       write(mainout, '(i10)') nat
@@ -872,9 +910,9 @@ module wfcExportVASPMod
       ENDDO
     
       write(mainout, '("# Number of Bands. Format: ''(i10)''")')
-      write(mainout, '(i10)') nbnd
+      write(mainout, '(i10)') nbnd_local
     
-      DO ik = 1, nkstot
+      DO ik = 1, nkstot_local
       
         open(72, file=trim(exportDir)//"/grid"//iotk_index(ik))
         write(72, '("# Wave function G-vectors grid")')
@@ -899,7 +937,7 @@ module wfcExportVASPMod
       close(72)
 
       write(mainout, '("# Spin. Format: ''(i10)''")')
-      write(mainout, '(i10)') nspin
+      write(mainout, '(i10)') nspin_local
     
       allocate( nnTyp(nsp) )
       nnTyp = 0
@@ -958,11 +996,9 @@ module wfcExportVASPMod
       enddo
     
     ENDIF
-  
-    DEALLOCATE( rtmp_gg )
 
 #ifdef __MPI
-  CALL poolrecover (et, nbnd, nkstot, nks)
+  CALL poolrecover (et, nbnd_local, nkstot_local, nks)
 #endif
 
 
@@ -974,7 +1010,7 @@ module wfcExportVASPMod
       write(mainout, '(ES24.15E3)') ef*ryToHartree
       flush(mainout)
     
-      DO ik = 1, nkstot
+      DO ik = 1, nkstot_local
       
         ispin = isk( ik )
       
@@ -983,7 +1019,7 @@ module wfcExportVASPMod
         write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') ispin
         write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
       
-        do ibnd = 1, nbnd
+        do ibnd = 1, nbnd_local
           if ( wk(ik) == 0.D0 ) then
               write(72, '(2ES24.15E3)') et(ibnd,ik)*ryToHartree, wg(ibnd,ik)
            else
@@ -1008,13 +1044,13 @@ module wfcExportVASPMod
       CALL init_us_1
       CALL init_at_1
     
-      CALL allocate_bec_type (nkb,nbnd, becp)
+      CALL allocate_bec_type (nkb,nbnd_local, becp)
     
-      DO ik = 1, nkstot
+      DO ik = 1, nkstot_local
       
         local_pw = 0
         IF ( (ik >= ikStart) .and. (ik <= ikEnd) ) THEN
-          CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc / tpiba2, npw, igk, g2kin)
+          CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, igk, g2kin)
           CALL davcio (evc, nwordwfc, iunwfc, (ik-ikStart+1), - 1)
 
           CALL init_us_2(npw, igk, xk(1, ik), vkb)
@@ -1081,13 +1117,13 @@ module wfcExportVASPMod
           endif
         endif
         
-        call MPI_BCAST(file_exists, 1, MPI_LOGICAL, root, world_comm, ierr)
+        call MPI_BCAST(file_exists, 1, MPI_LOGICAL, root, world_comm_local, ierr)
         
         if ( .not. file_exists ) then
-          CALL write_restart_wfc(72, exportDir, ik, nkstot, ispin, nspin, &
-                                 wfc_scal, evc, twf0, evc, twfm, npw_g, gamma_only, nbnd, &
+          CALL write_restart_wfc(72, exportDir, ik, nkstot_local, ispin, nspin_local, &
+                                 wfc_scal, evc, twf0, evc, twfm, npw_g, gamma_only, nbnd_local, &
                                  l2g_new(:),local_pw )
-          CALL write_restart_wfc(73, exportDir, ik, nkstot, ispin, nspin, &
+          CALL write_restart_wfc(73, exportDir, ik, nkstot_local, ispin, nspin_local, &
                                  wfc_scal, vkb, twf0, evc, twfm, npw_g, gamma_only, nkb, &
                                  l2g_new(:), local_pw )
         endif
