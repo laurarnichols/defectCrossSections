@@ -378,32 +378,22 @@ module wfcExportVASPMod
 
     implicit none
 
-    !real(kind=dp) :: dummyD
-      !! Dummy character for ignoring input
-    real*8 :: xnspin, xnprec, xnrecl, xnwk, xnband
+    real(kind=dp) :: nRecords_real, nspin_real, prec_real, nkstot_real &
+                     nbnd_real
+      !! Real version of integers for reading from file
 
     integer :: j
       !! Index used for reading lattice vectors
     integer :: prec
       !! Precision of plane wave coefficients
-    integer :: nrecl
+    integer :: nRecords
+      !! Number of records in WAVECAR file
 
     character(len=256) :: fileName
       !! Full WAVECAR file name including path
 
     if(ionode) then
       fileName = trim(VASPDir)//'/WAVECAR'
-
-      write(stdout,*) VASPDir, " ", fileName
-
-      !open( unit = 10, file = trim(fileName))
-        !! * Open the WAVECAR file
-
-      !read(10,*) dummyR, xnspin, xnprec
-        !! * Read the number of spins and place wave coefficient precision
-
-      !nspin_local = nint(xnspin)
-      !prec = nint(xnprec)
 
       !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
@@ -412,37 +402,36 @@ module wfcExportVASPMod
         !! * Read total number of kpoints, plane wave cutoff energy, and real
         !!   space lattice vectors
 
-      nrecl=24
+      nRecords = 24
+        ! Set a starting value for the number of records
 
-      open(unit=10,file=fileName,access='direct',recl=nrecl, &
-           iostat=ierr,status='old')
+      open(unit=10, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
       if (ierr .ne. 0) write(stdout,*) 'open error - iostat =',ierr
 
-      read(unit=10,rec=1) xnrecl,xnspin,xnprec
+      read(unit=10,rec=1) nRecords_real, nspin_real, prec_real
+        !! @note Must read in as real first then convert to integer @endnote
 
       close(unit=10)
 
-      nrecl = nint(xnrecl)
-      nspin_local = nint(xnspin)
-      prec = nint(xnprec)
+      nRecords = nint(nRecords_real)
+      nspin_local = nint(nspin_real)
+      prec = nint(prec_real)
+        ! Convert input variables to integers
 
-      if(prec .eq. 45210) then
-        write(6,*) '*** error - WAVECAR_double requires complex*16'
-        stop
-      endif
+      !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
       write(stdout,*)
-      write(stdout,*) 'record length  =',nrecl,' spins =',nspin_local, &
-           ' prec flag ',prec
+      write(stdout,*) 'record length  =', nRecords, ' spins =', nspin_local, ' prec flag ', prec
 
-      open(unit=10,file=fileName,access='direct',recl=nrecl, &
-           iostat=ierr,status='old')
-      if (ierr .ne. 0) write(6,*) 'open error - iostat =',ierr
+      open(unit=10, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
+      if (ierr .ne. 0) write(stdout,*) 'open error - iostat =',ierr
 
-      read(unit=10,rec=2) xnwk, xnband, ecutwfc_local,(at(j,1),j=1,3),(at(j,2),j=1,3), &
+      read(unit=10,rec=2) nkstot_real, nbnd_real, ecutwfc_local,(at(j,1),j=1,3),(at(j,2),j=1,3), &
            (at(j,3),j=1,3)
-      nkstot_local = nint(xnwk)
-      nbnd_local = nint(xnband)
+
+      nkstot_local = nint(nkstot_real)
+      nbnd_local = nint(nbnd_real)
+        ! Convert input variables to integers
 
       call calculateOmega(at_local, omega_local)
         !! * Calculate unit cell volume
