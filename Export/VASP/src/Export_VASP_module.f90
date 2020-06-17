@@ -378,8 +378,9 @@ module wfcExportVASPMod
 
     implicit none
 
-    real(kind=dp) :: nRecords_real, nspin_real, prec_real, nkstot_real &
-                     nbnd_real
+    real(kind=dp) :: nRecords_real, nspin_real, prec_real, nkstot_real 
+      !! Real version of integers for reading from file
+    real(kind=dp) :: nbnd_real
       !! Real version of integers for reading from file
 
     integer :: j
@@ -394,13 +395,6 @@ module wfcExportVASPMod
 
     if(ionode) then
       fileName = trim(VASPDir)//'/WAVECAR'
-
-      !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
-
-      !read(10,*) nkstot_local, nbnd_local, ecutwfc_local, (at_local(j,1),j=1,3),(at_local(j,2),j=1,3), &
-      !     (at_local(j,3),j=1,3)
-        !! * Read total number of kpoints, plane wave cutoff energy, and real
-        !!   space lattice vectors
 
       nRecords = 24
         ! Set a starting value for the number of records
@@ -428,6 +422,8 @@ module wfcExportVASPMod
 
       read(unit=10,rec=2) nkstot_real, nbnd_real, ecutwfc_local,(at(j,1),j=1,3),(at(j,2),j=1,3), &
            (at(j,3),j=1,3)
+        !! * Read total number of kpoints, plane wave cutoff energy, and real
+        !!   space lattice vectors
 
       nkstot_local = nint(nkstot_real)
       nbnd_local = nint(nbnd_real)
