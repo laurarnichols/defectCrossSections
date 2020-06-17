@@ -378,12 +378,15 @@ module wfcExportVASPMod
 
     implicit none
 
-    integer :: dummyI
-      !! Dummy integer for ignoring input
+    !real(kind=dp) :: dummyD
+      !! Dummy character for ignoring input
+    real*8 :: xnspin, xnprec, xnrecl, xnwk, xnband
+
     integer :: j
       !! Index used for reading lattice vectors
     integer :: prec
       !! Precision of plane wave coefficients
+    integer :: nrecl
 
     character(len=256) :: fileName
       !! Full WAVECAR file name including path
@@ -393,18 +396,53 @@ module wfcExportVASPMod
 
       write(stdout,*) VASPDir, " ", fileName
 
-      open( unit = 10, file = trim(fileName))
+      !open( unit = 10, file = trim(fileName))
         !! * Open the WAVECAR file
 
-      read(10,*) dummyI, nspin_local, prec
+      !read(10,*) dummyR, xnspin, xnprec
         !! * Read the number of spins and place wave coefficient precision
+
+      !nspin_local = nint(xnspin)
+      !prec = nint(xnprec)
 
       !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
-      read(10,*) nkstot_local, nbnd_local, ecutwfc_local, (at_local(j,1),j=1,3),(at_local(j,2),j=1,3), &
-           (at_local(j,3),j=1,3)
+      !read(10,*) nkstot_local, nbnd_local, ecutwfc_local, (at_local(j,1),j=1,3),(at_local(j,2),j=1,3), &
+      !     (at_local(j,3),j=1,3)
         !! * Read total number of kpoints, plane wave cutoff energy, and real
         !!   space lattice vectors
+
+      nrecl=24
+
+      open(unit=10,file=fileName,access='direct',recl=nrecl, &
+           iostat=ierr,status='old')
+      if (ierr .ne. 0) write(stdout,*) 'open error - iostat =',ierr
+
+      read(unit=10,rec=1) xnrecl,xnspin,xnprec
+
+      close(unit=10)
+
+      nrecl = nint(xnrecl)
+      nspin_local = nint(xnspin)
+      prec = nint(xnprec)
+
+      if(prec .eq. 45210) then
+        write(6,*) '*** error - WAVECAR_double requires complex*16'
+        stop
+      endif
+
+      write(stdout,*)
+      write(stdout,*) 'record length  =',nrecl,' spins =',nspin_local, &
+           ' prec flag ',prec
+
+      open(unit=10,file=fileName,access='direct',recl=nrecl, &
+           iostat=ierr,status='old')
+      if (ierr .ne. 0) write(6,*) 'open error - iostat =',ierr
+
+      read(unit=10,rec=2) xnwk, xnband, ecutwfc_local,(at(j,1),j=1,3),(at(j,2),j=1,3), &
+           (at(j,3),j=1,3)
+      nkstot_local = nint(xnwk)
+      nbnd_local = nint(xnband)
 
       call calculateOmega(at_local, omega_local)
         !! * Calculate unit cell volume

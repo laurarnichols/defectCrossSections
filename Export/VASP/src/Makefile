@@ -25,7 +25,7 @@ all : tldeps Export_VASP.x
 Export_VASP.x : $(EXPORTOBJS) $(PPOBJS) $(MODULES) $(LIBOBJS)
 	$(LD) $(LDFLAGS) -o $@ \
 		$(EXPORTOBJS) $(PPOBJS) $(MODULES) $(LIBOBJS) $(LIBS)
-	- ( cd $(Home_Path)/bin ; ln -fs $(Export_QE-5.3.0_srcPath)/$@ . )
+	- ( cd $(Home_Path)/bin ; ln -fs $(Export_VASP_srcPath)/$@ . )
 	
 	@echo "" ; \
 	echo "" ; \
