@@ -23,7 +23,7 @@ program wfcExportVASPMain
     !! * Set default values for input variables, open output file,
     !!   and start timers
 
-  if ( ionode ) then
+  if ( ionode_local ) then
     
     read(5, inputParams, iostat=ios)
       !! * Read input variables
@@ -42,14 +42,14 @@ program wfcExportVASPMain
     mainOutputFile = trim(exportDir)//"/input"
       !! * Set the name of the main output file for export
     
-    call readWAVECAR()
-      !! * Read data from the WAVECAR file
-
     write(stdout,*) "Opening file "//trim(mainOutputFile)
     open(mainout, file=trim(mainOutputFile))
       !! * Open main output file
 
   endif
+
+  call readWAVECAR()
+    !! * Read data from the WAVECAR file
 
   CALL mp_bcast( outdir, root, world_comm_local )
   CALL mp_bcast( exportDir, root, world_comm_local )

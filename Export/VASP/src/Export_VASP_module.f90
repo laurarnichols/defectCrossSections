@@ -104,8 +104,9 @@ module wfcExportVASPMod
   character(len=256) :: VASPDir
     !! Directory with VASP files
 
-  logical :: ionode
+  logical :: ionode_local
     !! If this node is the root node
+    !! @todo Change back to `ionode` once extracted from QE @endtodo
 
   integer, allocatable :: igk_l2g( :, : )
     !! ??Not sure what this is
@@ -127,6 +128,7 @@ module wfcExportVASPMod
 
     use mp_world, only : world_comm, nproc, mpime
     use mp_pools, only : npool, nproc_pool, me_pool, my_pool_id, intra_pool_comm, inter_pool_comm
+    use io_global, only : ionode
       !! @todo Remove this once extracted from QE @endtodo
 
     implicit none
@@ -154,14 +156,14 @@ module wfcExportVASPMod
     call MPI_COMM_SIZE(world_comm_local, nproc_local, ierr)
       !! * Determine the size of the MPI pool (i.e., the number of processes)
 
-    ionode = (myid == root)
+    ionode_local = (myid == root)
 
     nargs = command_argument_count()
       !! * Get the number of arguments input at command line
 
     call MPI_BCAST(nargs, 1, MPI_INTEGER, root, world_comm_local, ierr)
 
-    if(ionode) then
+    if(ionode_local) then
 
       do while (narg <= nargs)
         call get_command_argument(narg, arg)
@@ -216,6 +218,7 @@ module wfcExportVASPMod
     if(ierr /= 0) call mpiExitError(8005)
       !! * Create inter pool communicator
 
+    ionode = ionode_local
     world_comm = world_comm_local
     nproc = nproc_local
     mpime = myid
@@ -259,7 +262,7 @@ module wfcExportVASPMod
 
     call date_and_time( cdate, ctime )
 
-    if(ionode) then
+    if(ionode_local) then
       write( stdout, '(/5X,"VASP wavefunction export program starts on ",A9," at ",A9)' ) &
              cdate, ctime
 
@@ -393,7 +396,7 @@ module wfcExportVASPMod
     character(len=256) :: fileName
       !! Full WAVECAR file name including path
 
-    if(ionode) then
+    if(ionode_local) then
       fileName = trim(VASPDir)//'/WAVECAR'
 
       nRecords = 24
@@ -580,7 +583,7 @@ module wfcExportVASPMod
     call MPI_ALLREDUCE(ngm, ngm_g, 1, MPI_INTEGER, MPI_SUM, intra_pool_comm_local, ierr)
     if( ierr /= 0 ) call exitError( 'reconstructMainGrid', 'error in mpi_allreduce 1', ierr)
 
-    if( ionode ) then 
+    if( ionode_local ) then 
     
       write(stdout,*) "Reconstructing the main grid"
     
@@ -749,7 +752,7 @@ module wfcExportVASPMod
                            root, world_comm_local )
             ENDIF
 
-            IF( ionode ) THEN
+            IF( ionode_local ) THEN
               do ig = 1, igwx
                 write(iuni, '(2ES24.15E3)') wtmp(ig)
               enddo
@@ -778,13 +781,13 @@ module wfcExportVASPMod
 !            ELSE
 !              CALL mergewf(wfm(:,j), wtmp, ngwl, igl, myid, nproc_local, root, world_comm_local )
 !            ENDIF
-!            IF( ionode ) THEN
+!            IF( ionode_local ) THEN
 !              CALL iotk_write_dat(iuni,"Wfcm"//iotk_index(j),wtmp(1:igwx))
 !            ENDIF
 !          ELSE
 !          ENDIF
 !        ENDDO
-        IF(ionode) then
+        IF(ionode_local) then
           close(iuni)
           !CALL iotk_write_end  (iuni,"Kpoint"//iotk_index(ik))
         endif
@@ -857,7 +860,7 @@ module wfcExportVASPMod
 
     integer, allocatable :: nnTyp(:), groundState(:)
 
-    IF( ionode ) THEN
+    IF( ionode_local ) THEN
     
 
       write(mainout, '("# Cell volume (a.u.)^3. Format: ''(ES24.15E3)''")')
@@ -909,16 +912,16 @@ module wfcExportVASPMod
         ENDIF
       ENDDO
       IF( ngg /= ngk_g( ik ) ) THEN
-        if ( ionode ) WRITE(mainout, *) ' ik, ngg, ngk_g = ', ik, ngg, ngk_g( ik )
+        if ( ionode_local ) WRITE(mainout, *) ' ik, ngg, ngk_g = ', ik, ngg, ngk_g( ik )
       ENDIF
     
       DEALLOCATE( itmp1 )
     
-      if ( ionode ) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk(ik), xk(1:3,ik)
+      if ( ionode_local ) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk(ik), xk(1:3,ik)
     
     ENDDO
   
-    if ( ionode ) then
+    if ( ionode_local ) then
     
       write(mainout, '("# Number of G-vectors. Format: ''(i10)''")')
       write(mainout, '(i10)') ngm_g
@@ -1048,7 +1051,7 @@ module wfcExportVASPMod
 
     WRITE(stdout,*) "Writing Eigenvalues"
 
-    IF( ionode ) THEN
+    IF( ionode_local ) THEN
     
       write(mainout, '("# Fermi Energy (Hartree). Format: ''(ES24.15E3)''")')
       write(mainout, '(ES24.15E3)') ef*ryToHartree
@@ -1077,7 +1080,7 @@ module wfcExportVASPMod
     
     endif
   
-    if ( ionode ) WRITE(stdout,*) "Writing Wavefunctions"
+    if ( ionode_local ) WRITE(stdout,*) "Writing Wavefunctions"
   
     wfc_scal = 1.0d0
     twf0 = .true.
@@ -1105,7 +1108,7 @@ module wfcExportVASPMod
             WRITE(0,*) 'Gamma only PW_EXPORT not yet tested'
           ELSE
             CALL calbec ( npw, vkb, evc, becp )
-            if ( ionode ) then
+            if ( ionode_local ) then
 
               WRITE(stdout,*) "Writing projectors of kpt", ik
 
@@ -1142,7 +1145,7 @@ module wfcExportVASPMod
         
         ispin = isk( ik )
         
-        if ( ionode ) then
+        if ( ionode_local ) then
 
           file_exists = .false.
           inquire(file =trim(exportDir)//"/wfc"//iotk_index(ik), exist = file_exists)
@@ -1172,7 +1175,7 @@ module wfcExportVASPMod
                                  l2g_new(:), local_pw )
         endif
       
-        if ( .not. file_exists .and. ionode ) then
+        if ( .not. file_exists .and. ionode_local ) then
           close(72)
           close(73)
 !          close(74)
