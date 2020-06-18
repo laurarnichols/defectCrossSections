@@ -126,10 +126,32 @@ module wfcExportVASPMod
     !!
     !! <h2>Walkthrough</h2>
 
-    use mp_world, only : world_comm, nproc, mpime
-    use mp_pools, only : npool, nproc_pool, me_pool, my_pool_id, intra_pool_comm, inter_pool_comm
-    use io_global, only : ionode
-      !! @todo Remove this once extracted from QE @endtodo
+    implicit none
+
+    call MPI_Init(ierr)
+
+    if (ierr /= 0) call mpiExitError( 8001 )
+
+    world_comm_local = MPI_COMM_WORLD
+
+    call MPI_COMM_RANK(world_comm_local, myid, ierr)
+      !! * Determine the rank or ID of the calling process
+    call MPI_COMM_SIZE(world_comm_local, nproc_local, ierr)
+      !! * Determine the size of the MPI pool (i.e., the number of processes)
+
+    ionode_local = (myid == root)
+
+    call getCommandLineArguments()
+
+    call setUpPools()
+
+    call setGlobalVariables()
+
+    return
+  end subroutine mpiInitialization
+
+!----------------------------------------------------------------------------
+  subroutine getCommandLineArguments()
 
     implicit none
 
@@ -144,19 +166,6 @@ module wfcExportVASPMod
       !! Command line argument
     character(len=256) :: command_line = ' '
       !! Command line arguments that were not processed
-
-    call MPI_Init(ierr)
-
-    if (ierr /= 0) call mpiExitError( 8001 )
-
-    world_comm_local = MPI_COMM_WORLD
-
-    call MPI_COMM_RANK(world_comm_local, myid, ierr)
-      !! * Determine the rank or ID of the calling process
-    call MPI_COMM_SIZE(world_comm_local, nproc_local, ierr)
-      !! * Determine the size of the MPI pool (i.e., the number of processes)
-
-    ionode_local = (myid == root)
 
     nargs = command_argument_count()
       !! * Get the number of arguments input at command line
@@ -190,6 +199,14 @@ module wfcExportVASPMod
 
     npool_local = npool_
 
+    return
+  end subroutine getCommandLineArguments
+
+!----------------------------------------------------------------------------
+  subroutine setUpPools()
+
+    implicit none
+
     if(npool_local < 1 .or. npool_local > nproc_local) call exitError('mpiInitialization', &
       'invalid number of pools, out of range', 1)
       !! * Verify that the number of pools is between 1 and the number of processes
@@ -218,6 +235,19 @@ module wfcExportVASPMod
     if(ierr /= 0) call mpiExitError(8005)
       !! * Create inter pool communicator
 
+    return
+  end subroutine setUpPools
+
+!----------------------------------------------------------------------------
+  subroutine setGlobalVariables()
+    !! @todo Remove this once extracted from QE @endtodo
+
+    use mp_world, only : world_comm, nproc, mpime
+    use mp_pools, only : npool, nproc_pool, me_pool, my_pool_id, intra_pool_comm, inter_pool_comm
+    use io_global, only : ionode
+
+    implicit none
+
     ionode = ionode_local
     world_comm = world_comm_local
     nproc = nproc_local
@@ -228,10 +258,9 @@ module wfcExportVASPMod
     my_pool_id = myPoolId
     inter_pool_comm = inter_pool_comm_local
     intra_pool_comm = intra_pool_comm_local
-      !! @todo Remove this once extracted from QE @endtodo
 
     return
-  end subroutine mpiInitialization
+  end subroutine setGlobalVariables
 
 !----------------------------------------------------------------------------
   subroutine initialize()
