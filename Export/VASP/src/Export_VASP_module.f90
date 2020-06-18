@@ -145,6 +145,8 @@ module wfcExportVASPMod
 
     call setUpPools()
 
+    call setUpImages()
+
     call setGlobalVariables()
 
     return
@@ -237,6 +239,38 @@ module wfcExportVASPMod
 
     return
   end subroutine setUpPools
+
+!----------------------------------------------------------------------------
+  subroutine setUpImages()
+    !! @todo Remove this once extracted from QE @endtodo
+
+    use mp_images, only : nproc_image, my_image_id, me_image, &
+                          intra_image_comm, inter_image_comm
+
+    implicit none
+
+    nproc_image = nproc_local
+      !! * Calculate how many processes there are per pool
+
+    my_image_id = 0
+      !! * Get the image index for this process
+
+    me_image = myid
+      !! * Get the index of the process within the image
+
+    call MPI_BARRIER(world_comm_local, ierr)
+    if(ierr /= 0) call mpiExitError(8006)
+
+    call MPI_COMM_SPLIT(world_comm_local, my_image_id, myid, intra_image_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8007)
+      !! * Create intra pool communicator
+
+    call MPI_COMM_SPLIT(world_comm_local, me_image, myid, inter_image_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8008)
+      !! * Create inter pool communicator
+
+    return
+  end subroutine setUpImages
 
 !----------------------------------------------------------------------------
   subroutine setGlobalVariables()
