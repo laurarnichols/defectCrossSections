@@ -10,11 +10,11 @@ module wfcExportVASPMod
   USE wvfct, ONLY : igk, et
   USE lsda_mod, ONLY : isk
 
-  USE io_files,  ONLY : prefix, outdir
+  USE io_files,  ONLY : prefix, outdir, tmp_dir
   USE ions_base, ONLY : ntype => nsp
   USE iotk_module
   use mpi
-  USE mp,        ONLY: mp_sum, mp_max, mp_get, mp_bcast
+  USE mp,        ONLY: mp_sum, mp_max, mp_get, mp_bcast, mp_rank
   USE mp_wave, ONLY : mergewf
 
   implicit none
@@ -129,23 +129,30 @@ module wfcExportVASPMod
     implicit none
 
     call MPI_Init(ierr)
-
     if (ierr /= 0) call mpiExitError( 8001 )
 
     world_comm_local = MPI_COMM_WORLD
 
     call MPI_COMM_RANK(world_comm_local, myid, ierr)
+    if (ierr /= 0) call mpiExitError( 8002 )
       !! * Determine the rank or ID of the calling process
     call MPI_COMM_SIZE(world_comm_local, nproc_local, ierr)
+    if (ierr /= 0) call mpiExitError( 8003 )
       !! * Determine the size of the MPI pool (i.e., the number of processes)
 
     ionode_local = (myid == root)
 
     call getCommandLineArguments()
 
+    call setUpImages()
+
     call setUpPools()
 
-    call setUpImages()
+    call setUpBands()
+
+    !***********************************************************************
+
+    call setUpDiag()
 
     call setGlobalVariables()
 
@@ -197,7 +204,7 @@ module wfcExportVASPMod
     endif
 
     call MPI_BCAST(npool_, 1, MPI_INTEGER, root, world_comm_local, ierr)
-    if(ierr /= 0) call mpiExitError(8002)
+    if(ierr /= 0) call mpiExitError(8005)
 
     npool_local = npool_
 
@@ -227,14 +234,17 @@ module wfcExportVASPMod
       !! * Get the index of the process within the pool
 
     call MPI_BARRIER(world_comm_local, ierr)
-    if(ierr /= 0) call mpiExitError(8003)
+    if(ierr /= 0) call mpiExitError(8007)
 
     call MPI_COMM_SPLIT(world_comm_local, myPoolId, myid, intra_pool_comm_local, ierr)
-    if(ierr /= 0) call mpiExitError(8004)
+    if(ierr /= 0) call mpiExitError(8008)
       !! * Create intra pool communicator
 
+    call MPI_BARRIER(world_comm_local, ierr)
+    if(ierr /= 0) call mpiExitError(8009)
+
     call MPI_COMM_SPLIT(world_comm_local, indexInPool, myid, inter_pool_comm_local, ierr)
-    if(ierr /= 0) call mpiExitError(8005)
+    if(ierr /= 0) call mpiExitError(8010)
       !! * Create inter pool communicator
 
     return
@@ -244,33 +254,134 @@ module wfcExportVASPMod
   subroutine setUpImages()
     !! @todo Remove this once extracted from QE @endtodo
 
-    use mp_images, only : nproc_image, my_image_id, me_image, &
-                          intra_image_comm, inter_image_comm
+    use mp_images, only : nproc_image, me_image, intra_image_comm
 
     implicit none
 
-    nproc_image = nproc_local
-      !! * Calculate how many processes there are per pool
+    intra_image_comm = world_comm_local
 
-    my_image_id = 0
-      !! * Get the image index for this process
+    nproc_image = nproc_local
+      !! * Calculate how many processes there are per image
 
     me_image = myid
       !! * Get the index of the process within the image
 
-    call MPI_BARRIER(world_comm_local, ierr)
-    if(ierr /= 0) call mpiExitError(8006)
+    return
+  end subroutine setUpImages
 
-    call MPI_COMM_SPLIT(world_comm_local, my_image_id, myid, intra_image_comm, ierr)
-    if(ierr /= 0) call mpiExitError(8007)
+!----------------------------------------------------------------------------
+  subroutine setUpBands()
+    !! @todo Remove this once extracted from QE @endtodo
+
+    use mp_bands, only : nproc_bgrp, me_bgrp, intra_bgrp_comm, inter_bgrp_comm, &
+        my_bgrp_id
+
+    implicit none
+
+    nproc_bgrp = nproc_local
+
+    me_bgrp = myid
+
+    call MPI_BARRIER(intra_pool_comm_local, ierr)
+    if(ierr /= 0) call mpiExitError(8010)
+
+    call MPI_COMM_SPLIT(intra_pool_comm_local, my_bgrp_id, myid, intra_bgrp_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8011)
       !! * Create intra pool communicator
 
-    call MPI_COMM_SPLIT(world_comm_local, me_image, myid, inter_image_comm, ierr)
-    if(ierr /= 0) call mpiExitError(8008)
+    call MPI_BARRIER(intra_pool_comm_local, ierr)
+    if(ierr /= 0) call mpiExitError(8012)
+
+    call MPI_COMM_SPLIT(intra_pool_comm_local, me_bgrp, myid, inter_bgrp_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8013)
       !! * Create inter pool communicator
 
     return
-  end subroutine setUpImages
+  end subroutine setUpBands
+
+!----------------------------------------------------------------------------
+  subroutine setUpDiag()
+    !! @todo Remove this once extracted from QE @endtodo
+
+    use mp_diag, only : np_ortho, me_ortho, nproc_ortho, leg_ortho, &
+        ortho_comm, ortho_parent_comm, me_ortho1, ortho_comm_id, &
+        ortho_row_comm, ortho_col_comm
+
+    implicit none
+
+    integer :: nproc_all, color, key
+
+    call MPI_COMM_SIZE(intra_pool_comm_local, nproc_all, ierr)
+    if (ierr /= 0) call mpiExitError( 8014 )
+
+    np_ortho = 1 
+
+    if( nproc_all >= 4*nproc_ortho ) then
+       !  Here we choose a processor every 4, in order not to stress memory BW
+       !  on multi core procs, for which further performance enhancements are
+       !  possible using OpenMP BLAS inside regter/cegter/rdiaghg/cdiaghg
+       !  (to be implemented)
+
+       color = 0
+       if( indexInPool < 4*nproc_ortho .AND. MOD( indexInPool, 4 ) == 0 ) color = 1
+       
+       leg_ortho = 4
+       
+    else if( nproc_all >= 2*nproc_ortho ) then
+       !  here we choose a processor every 2, in order not to stress memory BW
+       
+       color = 0
+       if( indexInPool < 2*nproc_ortho .AND. MOD( indexInPool, 2 ) == 0 ) color = 1
+       
+       leg_ortho = 2
+       
+    else
+       !  here we choose the first processors
+       
+       color = 0
+       if( indexInPool < nproc_ortho ) color = 1
+       !
+       leg_ortho = 1
+       !
+    end if
+
+    key = indexInPool
+    
+    call MPI_COMM_SPLIT(intra_pool_comm_local, color, key, ortho_comm, ierr)
+    if(ierr /= 0) call mpiExitError(8015)
+      !  initialize the communicator for the new group by splitting the input communicator
+    
+    ortho_parent_comm = intra_pool_comm_local
+      ! and remember where it comes from
+    
+    me_ortho1 = mp_rank( ortho_comm )
+      !  Computes coordinates of the processors, in row maior order
+    
+    IF( indexInPool == 0 .AND. me_ortho1 /= 0 ) &
+         CALL exitError( " init_ortho_group ", " wrong root task in ortho group ", ierr )
+    !
+    if( color == 1 ) then
+      ortho_comm_id = 1
+      CALL GRID2D_COORDS( 'R', me_ortho1, np_ortho(1), np_ortho(2), me_ortho(1), me_ortho(2) )
+      CALL GRID2D_RANK( 'R', np_ortho(1), np_ortho(2), me_ortho(1), me_ortho(2), ierr )
+      if( ierr /= me_ortho1 ) &
+          CALL exitError( " init_ortho_group ", " wrong task coordinates in ortho group ", ierr )
+      if( me_ortho1*leg_ortho /= indexInPool ) &
+          CALL exitError( " init_ortho_group ", " wrong rank assignment in ortho group ", ierr )
+
+      call MPI_COMM_SPLIT(ortho_comm, me_ortho(2), me_ortho(1), ortho_col_comm, ierr)
+      if(ierr /= 0) call mpiExitError(8017)
+      call MPI_COMM_SPLIT(ortho_comm, me_ortho(1), me_ortho(2), ortho_row_comm, ierr)
+      if(ierr /= 0) call mpiExitError(8018)
+
+    else
+       ortho_comm_id = 0
+       me_ortho(1) = me_ortho1
+       me_ortho(2) = me_ortho1
+    endif
+
+    return
+  end subroutine setUpDiag
 
 !----------------------------------------------------------------------------
   subroutine setGlobalVariables()
@@ -278,11 +389,13 @@ module wfcExportVASPMod
 
     use mp_world, only : world_comm, nproc, mpime
     use mp_pools, only : npool, nproc_pool, me_pool, my_pool_id, intra_pool_comm, inter_pool_comm
-    use io_global, only : ionode
+    use io_global, only : ionode, meta_ionode, meta_ionode_id
 
     implicit none
 
     ionode = ionode_local
+    meta_ionode = (myid == root)
+    meta_ionode_id = root
     world_comm = world_comm_local
     nproc = nproc_local
     mpime = myid
@@ -326,6 +439,7 @@ module wfcExportVASPMod
     call date_and_time( cdate, ctime )
 
     if(ionode_local) then
+
       write( stdout, '(/5X,"VASP wavefunction export program starts on ",A9," at ",A9)' ) &
              cdate, ctime
 
@@ -336,6 +450,13 @@ module wfcExportVASPMod
 #else
       write( stdout, '(/5X,"Serial version")' )
 #endif
+
+    else
+
+      open( unit = stdout, file='/dev/null', status='unknown' )
+        ! Make the stdout unit point to null for non-root processors
+        ! to avoid tons of duplicate output
+
     endif
 
   end subroutine initialize
@@ -479,9 +600,6 @@ module wfcExportVASPMod
         ! Convert input variables to integers
 
       !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
-
-      write(stdout,*)
-      write(stdout,*) 'record length  =', nRecords, ' spins =', nspin_local, ' prec flag ', prec
 
       open(unit=10, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
       if (ierr .ne. 0) write(stdout,*) 'open error - iostat =',ierr

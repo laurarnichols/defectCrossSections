@@ -51,6 +51,7 @@ program wfcExportVASPMain
   call readWAVECAR()
     !! * Read data from the WAVECAR file
 
+  tmp_dir = trim(outdir)
   CALL mp_bcast( outdir, root, world_comm_local )
   CALL mp_bcast( exportDir, root, world_comm_local )
   CALL mp_bcast( prefix, root, world_comm_local )
