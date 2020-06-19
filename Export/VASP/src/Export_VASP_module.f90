@@ -150,8 +150,6 @@ module wfcExportVASPMod
 
     call setUpBands()
 
-    !***********************************************************************
-
     call setUpDiag()
 
     call setGlobalVariables()
@@ -415,6 +413,9 @@ module wfcExportVASPMod
     !! and start timer
     !!
     !! <h2>Walkthrough</h2>
+
+    use io_files, only : nd_nmbr
+      !! @todo Remove this once extracted from QE @endtodo
     
     implicit none
 
@@ -422,6 +423,9 @@ module wfcExportVASPMod
       !! String for date
     character(len=10) :: ctime
       !! String for time
+
+    character(len=6), external :: int_to_char
+      !! @todo Remove this once extracted from QE @endtodo
 
     prefix = ''
     QEDir = './'
@@ -437,6 +441,12 @@ module wfcExportVASPMod
     call cpu_time(tStart)
 
     call date_and_time( cdate, ctime )
+
+#ifdef __MPI
+    nd_nmbr = trim(int_to_char(myid))
+#else
+    nd_nmbr = ' '
+#endif
 
     if(ionode_local) then
 
