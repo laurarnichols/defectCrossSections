@@ -616,8 +616,8 @@ module wfcExportVASPMod
       open(unit=10, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
       if (ierr .ne. 0) write(stdout,*) 'open error - iostat =',ierr
 
-      read(unit=10,rec=2) nkstot_real, nbnd_real, ecutwfc_local,(at(j,1),j=1,3),(at(j,2),j=1,3), &
-           (at(j,3),j=1,3)
+      read(unit=10,rec=2) nkstot_real, nbnd_real, ecutwfc_local,(at_local(j,1),j=1,3),&
+          (at_local(j,2),j=1,3), (at_local(j,3),j=1,3)
         !! * Read total number of kpoints, plane wave cutoff energy, and real
         !!   space lattice vectors
 
@@ -762,8 +762,8 @@ module wfcExportVASPMod
     integer :: nb1max, nb2max, nb3max, npmax
 
     b1mag = sqrt(bg_local(1,1)**2 + bg_local(2,1)**2 + bg_local(3,1)**2)
-    b1mag = sqrt(bg_local(1,2)**2 + bg_local(2,2)**2 + bg_local(3,2)**2)
-    b1mag = sqrt(bg_local(1,3)**2 + bg_local(2,3)**2 + bg_local(3,3)**2)
+    b2mag = sqrt(bg_local(1,2)**2 + bg_local(2,2)**2 + bg_local(3,2)**2)
+    b3mag = sqrt(bg_local(1,3)**2 + bg_local(2,3)**2 + bg_local(3,3)**2)
       !! * Calculate reciprocal vector magnitudes
 
     write(6,*) 'reciprocal lattice vector magnitudes:'
@@ -779,9 +779,9 @@ module wfcExportVASPMod
         bg_local(3,3)*vtmp(3))/(vmag*b3mag)
       !! * Get \(\sin\phi_{123}\)
 
-    nb1maxA = (dsqrt(ecutwfc_local*c)/(b1mag*abs(sin(phi12)))) + 1
-    nb2maxA = (dsqrt(ecutwfc_local*c)/(b2mag*abs(sin(phi12)))) + 1
-    nb3maxA = (dsqrt(ecutwfc_local*c)/(b3mag*abs(sinphi123))) + 1
+    nb1maxA = (dsqrt(ecutwfc_local/eVToRy*c)/(b1mag*abs(sin(phi12)))) + 1
+    nb2maxA = (dsqrt(ecutwfc_local/eVToRy*c)/(b2mag*abs(sin(phi12)))) + 1
+    nb3maxA = (dsqrt(ecutwfc_local/eVToRy*c)/(b3mag*abs(sinphi123))) + 1
     npmaxA = nint(4.0*pi*nb1maxA*nb2maxA*nb3maxA/3.0)
       !! * Get first set of max values
 
@@ -796,9 +796,9 @@ module wfcExportVASPMod
         bg_local(3,2)*vtmp(3))/(vmag*b3mag)
       !! * Get \(\sin\phi_{123}\)
 
-    nb1maxB = (dsqrt(ecutwfc_local*c)/(b1mag*abs(sin(phi13)))) + 1
-    nb2maxB = (dsqrt(ecutwfc_local*c)/(b2mag*abs(sinphi123))) + 1
-    nb3maxB = (dsqrt(ecutwfc_local*c)/(b3mag*abs(sin(phi13)))) + 1
+    nb1maxB = (dsqrt(ecutwfc_local/eVToRy*c)/(b1mag*abs(sin(phi13)))) + 1
+    nb2maxB = (dsqrt(ecutwfc_local/eVToRy*c)/(b2mag*abs(sinphi123))) + 1
+    nb3maxB = (dsqrt(ecutwfc_local/eVToRy*c)/(b3mag*abs(sin(phi13)))) + 1
     npmaxB = nint(4.*pi*nb1maxB*nb2maxB*nb3maxB/3.)
       !! * Get first set of max values
 
@@ -813,9 +813,9 @@ module wfcExportVASPMod
         bg_local(3,1)*vtmp(3))/(vmag*b1mag)
       !! * Get \(\sin\phi_{123}\)
 
-    nb1maxC = (dsqrt(ecutwfc_local*c)/(b1mag*abs(sinphi123))) + 1
-    nb2maxC = (dsqrt(ecutwfc_local*c)/(b2mag*abs(sin(phi23)))) + 1
-    nb3maxC = (dsqrt(ecutwfc_local*c)/(b3mag*abs(sin(phi23)))) + 1
+    nb1maxC = (dsqrt(ecutwfc_local/eVToRy*c)/(b1mag*abs(sinphi123))) + 1
+    nb2maxC = (dsqrt(ecutwfc_local/eVToRy*c)/(b2mag*abs(sin(phi23)))) + 1
+    nb3maxC = (dsqrt(ecutwfc_local/eVToRy*c)/(b3mag*abs(sin(phi23)))) + 1
     npmaxC = nint(4.*pi*nb1maxC*nb2maxC*nb3maxC/3.)
       !! * Get first set of max values
 
