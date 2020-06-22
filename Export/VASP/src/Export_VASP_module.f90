@@ -30,6 +30,8 @@ module wfcExportVASPMod
   integer, parameter :: stdout = 6
     !! Standard output unit
 
+  real(kind = dp), parameter :: eVToRy = 0.073498618_dp
+    !! Conversion factor from eV Rydberg
   real(kind = dp), parameter :: ryToHartree = 0.5_dp
     !! Conversion factor from Rydberg to Hartree
 
@@ -619,13 +621,17 @@ module wfcExportVASPMod
         !! * Read total number of kpoints, plane wave cutoff energy, and real
         !!   space lattice vectors
 
+      ecutwfc_local = ecutwfc_local*eVToRy
+        !! * Convert energy from VASP to Rydberg to match QE expectation
+        !! @todo Remove this once extracted from QE @endtodo
+
       nkstot_local = nint(nkstot_real)
       nbnd_local = nint(nbnd_real)
         ! Convert input variables to integers
 
       write(6,*) 'no. k points =', nkstot_local
       write(6,*) 'no. bands =', nbnd_local
-      write(6,*) 'max. energy =', sngl(ecutwfc_local)
+      write(6,*) 'max. energy =', sngl(ecutwfc_local/eVToRy)
       write(6,*) 'real space lattice vectors:'
       write(6,*) 'a1 =', (sngl(at_local(j,1)),j=1,3)
       write(6,*) 'a2 =', (sngl(at_local(j,2)),j=1,3)
