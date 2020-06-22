@@ -443,7 +443,7 @@ module wfcExportVASPMod
     call date_and_time( cdate, ctime )
 
 #ifdef __MPI
-    nd_nmbr = trim(int_to_char(myid))
+    nd_nmbr = trim(int_to_char(myid+1))
 #else
     nd_nmbr = ' '
 #endif
@@ -623,10 +623,33 @@ module wfcExportVASPMod
       nbnd_local = nint(nbnd_real)
         ! Convert input variables to integers
 
+      write(6,*) 'no. k points =', nkstot_local
+      write(6,*) 'no. bands =', nbnd_local
+      write(6,*) 'max. energy =', sngl(ecutwfc_local)
+      write(6,*) 'real space lattice vectors:'
+      write(6,*) 'a1 =', (sngl(at_local(j,1)),j=1,3)
+      write(6,*) 'a2 =', (sngl(at_local(j,2)),j=1,3)
+      write(6,*) 'a3 =', (sngl(at_local(j,3)),j=1,3)
+      write(6,*) 
+
       call calculateOmega(at_local, omega_local)
         !! * Calculate unit cell volume
 
+      write(6,*) 'volume unit cell =', sngl(omega)
+      write(6,*) 
+
       call getReciprocalVectors(at_local, omega_local, bg_local)
+
+      write(6,*) 'reciprocal lattice vectors:'
+      write(6,*) 'b1 =', (sngl(bg_local(j,1)),j=1,3)
+      write(6,*) 'b2 =', (sngl(bg_local(j,2)),j=1,3)
+      write(6,*) 'b3 =', (sngl(bg_local(j,3)),j=1,3)
+      write(6,*) 
+
+
+      call estimateMaxNumPlanewaves(bg_local)
+
+      close(10)
 
     endif
 
@@ -707,6 +730,104 @@ module wfcExportVASPMod
 
     return
   end subroutine vcross
+
+!----------------------------------------------------------------------------
+  subroutine estimateMaxNumPlanewaves(bg_local)
+    implicit none
+
+    real(kind=dp) :: b1mag, b2mag, b3mag
+      !! Reciprocal vector magnitudes
+    real(kind=dp), intent(in) :: bg_local(3,3)
+      !! Reciprocal lattice vectors
+    real(kind=dp) :: c = 0.26246582250210965422
+    real(kind=dp) :: phi12, phi13, phi23
+      !! Angle between vectors
+    real(kind=dp) :: sinphi123
+      !! \(\sin\phi_{123}\)
+    real(kind=dp) :: vmag
+      !! Magnitude of temporary vector
+    real(kind=dp) :: vtmp(3)
+      !! Temporary vector for calculating angles
+
+    integer :: nb1maxA, nb2maxA, nb3maxA
+    integer :: nb1maxB, nb2maxB, nb3maxB
+    integer :: nb1maxC, nb2maxC, nb3maxC
+    integer :: npmaxA, npmaxB, npmaxC
+    integer :: nb1max, nb2max, nb3max, npmax
+
+    b1mag = sqrt(bg_local(1,1)**2 + bg_local(2,1)**2 + bg_local(3,1)**2)
+    b1mag = sqrt(bg_local(1,2)**2 + bg_local(2,2)**2 + bg_local(3,2)**2)
+    b1mag = sqrt(bg_local(1,3)**2 + bg_local(2,3)**2 + bg_local(3,3)**2)
+      !! * Calculate reciprocal vector magnitudes
+
+    write(6,*) 'reciprocal lattice vector magnitudes:'
+    write(6,*) sngl(b1mag),sngl(b2mag),sngl(b3mag)
+
+    phi12 = acos((bg_local(1,1)*bg_local(1,2) + bg_local(2,1)*bg_local(2,2) + &
+        bg_local(3,1)*bg_local(3,2))/(b1mag*b2mag))
+      !! * Calculate angle between \(b_1\) and \(b_2\)
+
+    call vcross(bg_local(:,1), bg_local(:,2), vtmp)
+    vmag = sqrt(vtmp(1)**2 + vtmp(2)**2 + vtmp(3)**2)
+    sinphi123 = (bg_local(1,3)*vtmp(1) + bg_local(2,3)*vtmp(2) + &
+        bg_local(3,3)*vtmp(3))/(vmag*b3mag)
+      !! * Get \(\sin\phi_{123}\)
+
+    nb1maxA = (dsqrt(ecutwfc_local*c)/(b1mag*abs(sin(phi12)))) + 1
+    nb2maxA = (dsqrt(ecutwfc_local*c)/(b2mag*abs(sin(phi12)))) + 1
+    nb3maxA = (dsqrt(ecutwfc_local*c)/(b3mag*abs(sinphi123))) + 1
+    npmaxA = nint(4.0*pi*nb1maxA*nb2maxA*nb3maxA/3.0)
+      !! * Get first set of max values
+
+
+    phi13 = acos((bg_local(1,1)*bg_local(1,3) + bg_local(2,1)*bg_local(2,3) + &
+        bg_local(3,1)*bg_local(3,3))/(b1mag*b3mag))
+      !! * Calculate angle between \(b_1\) and \(b_3\)
+
+    call vcross(bg_local(:,1), bg_local(:,3), vtmp)
+    vmag = sqrt(vtmp(1)**2 + vtmp(2)**2 + vtmp(3)**2)
+    sinphi123 = (bg_local(1,2)*vtmp(1) + bg_local(2,2)*vtmp(2) + &
+        bg_local(3,2)*vtmp(3))/(vmag*b3mag)
+      !! * Get \(\sin\phi_{123}\)
+
+    nb1maxB = (dsqrt(ecutwfc_local*c)/(b1mag*abs(sin(phi13)))) + 1
+    nb2maxB = (dsqrt(ecutwfc_local*c)/(b2mag*abs(sinphi123))) + 1
+    nb3maxB = (dsqrt(ecutwfc_local*c)/(b3mag*abs(sin(phi13)))) + 1
+    npmaxB = nint(4.*pi*nb1maxB*nb2maxB*nb3maxB/3.)
+      !! * Get first set of max values
+
+
+    phi23 = acos((bg_local(1,2)*bg_local(1,3) + bg_local(2,2)*bg_local(2,3) + &
+        bg_local(3,2)*bg_local(3,3))/(b2mag*b3mag))
+      !! * Calculate angle between \(b_2\) and \(b_3\)
+
+    call vcross(bg_local(:,2), bg_local(:,3), vtmp)
+    vmag = sqrt(vtmp(1)**2 + vtmp(2)**2 + vtmp(3)**2)
+    sinphi123 = (bg_local(1,1)*vtmp(1) + bg_local(2,1)*vtmp(2) + &
+        bg_local(3,1)*vtmp(3))/(vmag*b1mag)
+      !! * Get \(\sin\phi_{123}\)
+
+    nb1maxC = (dsqrt(ecutwfc_local*c)/(b1mag*abs(sinphi123))) + 1
+    nb2maxC = (dsqrt(ecutwfc_local*c)/(b2mag*abs(sin(phi23)))) + 1
+    nb3maxC = (dsqrt(ecutwfc_local*c)/(b3mag*abs(sin(phi23)))) + 1
+    npmaxC = nint(4.*pi*nb1maxC*nb2maxC*nb3maxC/3.)
+      !! * Get first set of max values
+
+
+    nb1max = max0(nb1maxA,nb1maxB,nb1maxC)
+    nb2max = max0(nb2maxA,nb2maxB,nb2maxC)
+    nb3max = max0(nb3maxA,nb3maxB,nb3maxC)
+    npmax = min0(npmaxA,npmaxB,npmaxC)
+
+    write(6,*) 'max. no. G values; 1,2,3 =', nb1max, nb2max, nb3max
+    write(6,*) ' '
+
+    write(6,*) 'estimated max. no. plane waves =', npmax
+    !allocate (igall(3,npmax))
+    !allocate (coeff(npmax,nband))
+
+    return
+  end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
   subroutine distributeKpointsInPools()

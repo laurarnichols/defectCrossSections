@@ -12,6 +12,7 @@ program wfcExportVASPMain
   !! <h2>Walkthrough</h2>
 
   use wfcExportVASPMod
+  use wvfct, only : ecutwfc, npwx
   
   implicit none
 
@@ -24,6 +25,9 @@ program wfcExportVASPMain
     !!   and start timers
 
   if ( ionode_local ) then
+    
+    call input_from_file()
+      !! @todo Remove this once extracted from QE @endtodo
     
     read(5, inputParams, iostat=ios)
       !! * Read input variables
@@ -48,19 +52,26 @@ program wfcExportVASPMain
 
   endif
 
-  call readWAVECAR()
-    !! * Read data from the WAVECAR file
-
   tmp_dir = trim(outdir)
   CALL mp_bcast( outdir, root, world_comm_local )
-  CALL mp_bcast( exportDir, root, world_comm_local )
+  CALL mp_bcast( tmp_dir, root, world_comm_local )
   CALL mp_bcast( prefix, root, world_comm_local )
 
   CALL read_file
     !! @todo Figure out what this subroutine does and what can be moved here @endtodo
   CALL openfil_pp
     !! @todo Figure out what this subroutine does and what can be moved here @endtodo
+
+  write(stdout,*) "QE Values:"
+  write(stdout,*) "  ecutwfc = ", ecutwfc
+  write(stdout,*) "  npwx = ", npwx
   
+  call readWAVECAR()
+    !! * Read data from the WAVECAR file
+
+  write(stdout,*) "VASP Values:"
+  write(stdout,*) "  ecutwfc = ", ecutwfc
+  write(stdout,*) "  npwx = ", npwx
 
   call distributeKpointsInPools()
 
