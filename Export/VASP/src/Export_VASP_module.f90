@@ -598,13 +598,13 @@ module wfcExportVASPMod
       nRecords = 24
         ! Set a starting value for the number of records
 
-      open(unit=10, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
+      open(unit=86, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
       if (ierr .ne. 0) write(stdout,*) 'open error - iostat =',ierr
 
-      read(unit=10,rec=1) nRecords_real, nspin_real, prec_real
+      read(unit=86,rec=1) nRecords_real, nspin_real, prec_real
         !! @note Must read in as real first then convert to integer @endnote
 
-      close(unit=10)
+      close(unit=86)
 
       nRecords = nint(nRecords_real)
       nspin_local = nint(nspin_real)
@@ -613,10 +613,10 @@ module wfcExportVASPMod
 
       !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
-      open(unit=10, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
+      open(unit=86, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
       if (ierr .ne. 0) write(stdout,*) 'open error - iostat =',ierr
 
-      read(unit=10,rec=2) nkstot_real, nbnd_real, ecutwfc_local,(at_local(j,1),j=1,3),&
+      read(unit=86,rec=2) nkstot_real, nbnd_real, ecutwfc_local,(at_local(j,1),j=1,3),&
           (at_local(j,2),j=1,3), (at_local(j,3),j=1,3)
         !! * Read total number of kpoints, plane wave cutoff energy, and real
         !!   space lattice vectors
@@ -655,7 +655,7 @@ module wfcExportVASPMod
 
       call estimateMaxNumPlanewaves(bg_local)
 
-      close(10)
+      close(86)
 
     endif
 
