@@ -4,7 +4,7 @@ module wfcExportVASPMod
 
   !USE pwcom
   USE constants, ONLY : e2, rytoev, pi, tpi, fpi
-  USE cell_base, ONLY : celldm, alat, tpiba, ibrav
+  USE cell_base, ONLY : celldm, ibrav
   USE klist, ONLY : wk
   USE ener, ONLY : ef
   USE wvfct, ONLY : igk, et
@@ -569,7 +569,7 @@ module wfcExportVASPMod
     !! @todo Update this to have input/output variables @endtodo
     !! <h2>Walkthrough</h2>
 
-    use cell_base, only : at, bg, omega
+    use cell_base, only : at, bg, omega, alat, tpiba
     use wvfct, only : ecutwfc, nbnd
     use klist, only : nkstot
     use lsda_mod, only : nspin
@@ -667,8 +667,8 @@ module wfcExportVASPMod
     call MPI_BCAST(at_local, size(at_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
     call MPI_BCAST(bg_local, size(bg_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
 
-    at = at_local
-    bg = bg_local
+    at = at_local/alat
+    bg = bg_local/tpiba
     omega = omega_local
     ecutwfc = ecutwfc_local
     nbnd = nbnd_local
@@ -1122,7 +1122,7 @@ module wfcExportVASPMod
 
     use gvect, only : g, ngm, ngm_g
     use klist, only : nks, xk, ngk
-    use cell_base, only : tpiba2
+    use cell_base, only : tpiba2, alat
 
     USE kinds,          ONLY : DP
     USE start_k,        ONLY : nk1, nk2, nk3, k1, k2, k3
@@ -1253,14 +1253,14 @@ module wfcExportVASPMod
                           minval(itmp_g(3,1:ngm_g)), maxval(itmp_g(3,1:ngm_g))
     
       write(mainout, '("# Cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
-      write(mainout, '("# a1 ",3ES24.15E3)') at_local(:,1)*alat
-      write(mainout, '("# a2 ",3ES24.15E3)') at_local(:,2)*alat
-      write(mainout, '("# a3 ",3ES24.15E3)') at_local(:,3)*alat
+      write(mainout, '("# a1 ",3ES24.15E3)') at_local(:,1)
+      write(mainout, '("# a2 ",3ES24.15E3)') at_local(:,2)
+      write(mainout, '("# a3 ",3ES24.15E3)') at_local(:,3)
     
       write(mainout, '("# Reciprocal cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
-      write(mainout, '("# b1 ",3ES24.15E3)') bg_local(:,1)*tpiba
-      write(mainout, '("# b2 ",3ES24.15E3)') bg_local(:,2)*tpiba
-      write(mainout, '("# b3 ",3ES24.15E3)') bg_local(:,3)*tpiba
+      write(mainout, '("# b1 ",3ES24.15E3)') bg_local(:,1)
+      write(mainout, '("# b2 ",3ES24.15E3)') bg_local(:,2)
+      write(mainout, '("# b3 ",3ES24.15E3)') bg_local(:,3)
     
       write(mainout, '("# Number of Atoms. Format: ''(i10)''")')
       write(mainout, '(i10)') nat
