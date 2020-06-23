@@ -843,12 +843,15 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine mainDoLoop()
+
+    use klist, only : xk
+
     implicit none
 
     real(kind=dp) :: nPlane_real
       !! Real version of integers for reading from file
 
-    integer :: irec, isp, ik, ig1, ig2, ig3
+    integer :: irec, isp, ik, i, ig1, ig2, ig3
       !! Loop indices
     integer :: nPlane
       !! Input number of plane waves
@@ -856,7 +859,6 @@ module wfcExportVASPMod
     irec=2
 
     allocate(xk_local(3,nkstot_local))
-      !! @todo Figure out how xk is allocated/looped over to confirm allocation size #thisbranch @endtodo
 
     do isp = 1, nspin_local
 
@@ -879,6 +881,10 @@ module wfcExportVASPMod
             !!  add a sum within the loop to get the total number of plane waves.
             !! @endnote
 
+          write(stdout,*) 'k-point ', ik, ' coordinates (VASP) = ', sngl(xk_local(i,ik),i=1,3)
+          write(stdout,*) 'k-point ', ik, ' coordinates (QE) = ', sngl(xk(i,ik),i=1,3)
+
+          write(stdout,*) 'Number of plane waves at k-point ', ik, ' (VASP): ', nplane
 
           write(stdout,*) 'k point #',iwk,'  input no. of plane waves =', &
                nplane
@@ -1057,6 +1063,8 @@ module wfcExportVASPMod
       igk_l2g( npw+1 : npwx, ik ) = 0
      
       ngk (ik) = npw
+      write(stdout,*) 'Number of plane waves at k-point ', ik, ' (QE): ', npw
+
     ENDDO
     DEALLOCATE (kisort)
 
