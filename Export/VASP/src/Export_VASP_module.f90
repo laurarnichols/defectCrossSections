@@ -629,28 +629,28 @@ module wfcExportVASPMod
       nbnd_local = nint(nbnd_real)
         ! Convert input variables to integers
 
-      write(6,*) 'no. k points =', nkstot_local
-      write(6,*) 'no. bands =', nbnd_local
-      write(6,*) 'max. energy =', sngl(ecutwfc_local/eVToRy)
-      write(6,*) 'real space lattice vectors:'
-      write(6,*) 'a1 =', (sngl(at_local(j,1)),j=1,3)
-      write(6,*) 'a2 =', (sngl(at_local(j,2)),j=1,3)
-      write(6,*) 'a3 =', (sngl(at_local(j,3)),j=1,3)
-      write(6,*) 
+      write(stdout,*) 'no. k points =', nkstot_local
+      write(stdout,*) 'no. bands =', nbnd_local
+      write(stdout,*) 'max. energy =', sngl(ecutwfc_local/eVToRy)
+      write(stdout,*) 'real space lattice vectors:'
+      write(stdout,*) 'a1 =', (sngl(at_local(j,1)),j=1,3)
+      write(stdout,*) 'a2 =', (sngl(at_local(j,2)),j=1,3)
+      write(stdout,*) 'a3 =', (sngl(at_local(j,3)),j=1,3)
+      write(stdout,*) 
 
       call calculateOmega(at_local, omega_local)
         !! * Calculate unit cell volume
 
-      write(6,*) 'volume unit cell =', sngl(omega)
-      write(6,*) 
+      write(stdout,*) 'volume unit cell =', sngl(omega)
+      write(stdout,*) 
 
       call getReciprocalVectors(at_local, omega_local, bg_local)
 
-      write(6,*) 'reciprocal lattice vectors:'
-      write(6,*) 'b1 =', (sngl(bg_local(j,1)),j=1,3)
-      write(6,*) 'b2 =', (sngl(bg_local(j,2)),j=1,3)
-      write(6,*) 'b3 =', (sngl(bg_local(j,3)),j=1,3)
-      write(6,*) 
+      write(stdout,*) 'reciprocal lattice vectors:'
+      write(stdout,*) 'b1 =', (sngl(bg_local(j,1)),j=1,3)
+      write(stdout,*) 'b2 =', (sngl(bg_local(j,2)),j=1,3)
+      write(stdout,*) 'b3 =', (sngl(bg_local(j,3)),j=1,3)
+      write(stdout,*) 
 
 
       call estimateMaxNumPlanewaves(bg_local)
@@ -769,8 +769,8 @@ module wfcExportVASPMod
     b3mag = sqrt(bg_local(1,3)**2 + bg_local(2,3)**2 + bg_local(3,3)**2)
       !! * Calculate reciprocal vector magnitudes
 
-    write(6,*) 'reciprocal lattice vector magnitudes:'
-    write(6,*) sngl(b1mag),sngl(b2mag),sngl(b3mag)
+    write(stdout,*) 'reciprocal lattice vector magnitudes:'
+    write(stdout,*) sngl(b1mag),sngl(b2mag),sngl(b3mag)
 
     phi12 = acos((bg_local(1,1)*bg_local(1,2) + bg_local(2,1)*bg_local(2,2) + &
         bg_local(3,1)*bg_local(3,2))/(b1mag*b2mag))
@@ -828,10 +828,10 @@ module wfcExportVASPMod
     nb3max = max0(nb3maxA,nb3maxB,nb3maxC)
     npmax = min0(npmaxA,npmaxB,npmaxC)
 
-    write(6,*) 'max. no. G values; 1,2,3 =', nb1max, nb2max, nb3max
-    write(6,*) ' '
+    write(stdout,*) 'max. no. G values; 1,2,3 =', nb1max, nb2max, nb3max
+    write(stdout,*) ' '
 
-    write(6,*) 'estimated max. no. plane waves =', npmax
+    write(stdout,*) 'estimated max. no. plane waves =', npmax
     !allocate (igall(3,npmax))
     !allocate (coeff(npmax,nband))
 
@@ -852,9 +852,9 @@ module wfcExportVASPMod
           read(unit=10,rec=irec) xnplane,(wk(i),i=1,3), &
                (cener(iband),occ(iband),iband=1,nband)
           nplane=nint(xnplane)
-          write(6,*) 'k point #',iwk,'  input no. of plane waves =', &
+          write(stdout,*) 'k point #',iwk,'  input no. of plane waves =', &
                nplane
-          write(6,*) 'k value =',(sngl(wk(j)),j=1,3)
+          write(stdout,*) 'k value =',(sngl(wk(j)),j=1,3)
           write(11,*) (sngl(wk(j)),j=1,3)
 
     !!$*   Calculate plane waves
@@ -884,11 +884,11 @@ module wfcExportVASPMod
              enddo
           enddo
           if (ncnt.ne.nplane) then
-             write(6,*) '*** error - computed no. != input no.'
+             write(stdout,*) '*** error - computed no. != input no.'
              stop
           endif
           if (ncnt.gt.npmax) then
-             write(6,*) '*** error - plane wave count exceeds estimate'
+             write(stdout,*) '*** error - plane wave count exceeds estimate'
              stop
           endif
 
