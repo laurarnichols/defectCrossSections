@@ -844,9 +844,9 @@ module wfcExportVASPMod
 
     irec=2
     do isp=1,nspin
-       write(*,*) ' '
-       write(*,*) '******'
-       write(*,*) 'reading spin ',isp
+       write(stdout,*) ' '
+       write(stdout,*) '******'
+       write(stdout,*) 'reading spin ',isp
        do iwk=1,nwk
           irec=irec+1
           read(unit=10,rec=irec) xnplane,(wk(i),i=1,3), &
