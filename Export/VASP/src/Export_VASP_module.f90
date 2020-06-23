@@ -29,6 +29,8 @@ module wfcExportVASPMod
     !! Main output file unit
   integer, parameter :: stdout = 6
     !! Standard output unit
+  integer, parameter :: wavecarUnit = 86
+    !! WAVECAR unit for I/O
 
   real(kind = dp), parameter :: eVToRy = 0.073498618_dp
     !! Conversion factor from eV Rydberg
@@ -37,20 +39,21 @@ module wfcExportVASPMod
 
   real(kind=dp) :: at_local(3,3)
     !! Real space lattice vectors
-    !! @todo Change back to `at` once extracted from QE @endtodo
+    !! @todo Change back to `at` once extracted from QE #end @endtodo
   real(kind=dp) :: bg_local(3,3)
     !! Reciprocal lattice vectors
-    !! @todo Change back to `bg` once extracted from QE @endtodo
+    !! @todo Change back to `bg` once extracted from QE #end @endtodo
   real(kind=dp) :: ecutwfc_local
     !! Plane wave energy cutoff
-    !! @todo Change back to `ecutwfc` once extracted from QE @endtodo
+    !! @todo Change back to `ecutwfc` once extracted from QE #end @endtodo
   real(kind=dp) :: omega_local
     !! Volume of unit cell
-    !! @todo Change back to `omega` once extracted from QE @endtodo
+    !! @todo Change back to `omega` once extracted from QE #end @endtodo
   real(kind=dp) :: tStart
     !! Start time
   
   INTEGER :: ik, i
+    !! @todo Move these variables to be local #thisbranch @endtodo
   integer :: ierr
     !! Error returned by MPI
   integer :: ikEnd
@@ -63,39 +66,39 @@ module wfcExportVASPMod
     !! Process index within pool
   integer :: inter_pool_comm_local = 0
     !! Inter pool communicator
-    !! @todo Change back to `inter_pool_comm` once extracted from QE @endtodo
+    !! @todo Change back to `inter_pool_comm` once extracted from QE #end @endtodo
   integer :: intra_pool_comm_local = 0
     !! Intra pool communicator
-    !! @todo Change back to `intra_pool_comm` once extracted from QE @endtodo
+    !! @todo Change back to `intra_pool_comm` once extracted from QE #end @endtodo
   integer :: myPoolId
     !! Pool index for this process
   integer :: nbnd_local
     !! Total number of bands
-    !! @todo Change back to `nbnd` once extracted from QE @endtodo
+    !! @todo Change back to `nbnd` once extracted from QE #end @endtodo
   integer :: nkstot_local
     !! Total number of kpoints
-    !! @todo Change back to `nkstot` once extracted from QE @endtodo
+    !! @todo Change back to `nkstot` once extracted from QE #end @endtodo
   integer :: npool_local = 1
     !! Number of pools for kpoint parallelization
-    !! @todo Change back to `npool` once extracted from QE @endtodo
+    !! @todo Change back to `npool` once extracted from QE #end @endtodo
   integer :: nproc_local
     !! Number of processes
-    !! @todo Change back to `nproc` once extracted from QE @endtodo
+    !! @todo Change back to `nproc` once extracted from QE #end @endtodo
   integer :: nproc_pool_local
     !! Number of processes per pool
-    !! @todo Change back to `nproc_pool` once extracted from QE @endtodo
+    !! @todo Change back to `nproc_pool` once extracted from QE #end @endtodo
   integer :: npw_g
     !! ??Not sure what this is
   integer :: npwx_g
     !! ??Not sure what this is
   integer :: nspin_local
     !! Number of spins
-    !! @todo Change back to `nspin` once extracted from QE @endtodo
+    !! @todo Change back to `nspin` once extracted from QE #end @endtodo
   integer :: myid
     !! ID of this process
   integer :: world_comm_local
     !! World communicator
-    !! @todo Change back to `world_comm` once extracted from QE @endtodo
+    !! @todo Change back to `world_comm` once extracted from QE #end @endtodo
   
   character(len=256) :: exportDir
     !! Directory to be used for export
@@ -108,7 +111,7 @@ module wfcExportVASPMod
 
   logical :: ionode_local
     !! If this node is the root node
-    !! @todo Change back to `ionode` once extracted from QE @endtodo
+    !! @todo Change back to `ionode` once extracted from QE #end @endtodo
 
   integer, allocatable :: igk_l2g( :, : )
     !! ??Not sure what this is
@@ -252,7 +255,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine setUpImages()
-    !! @todo Remove this once extracted from QE @endtodo
+    !! @todo Remove this once extracted from QE #end @endtodo
 
     use mp_images, only : nproc_image, me_image, intra_image_comm
 
@@ -271,7 +274,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine setUpBands()
-    !! @todo Remove this once extracted from QE @endtodo
+    !! @todo Remove this once extracted from QE #end @endtodo
 
     use mp_bands, only : nproc_bgrp, me_bgrp, intra_bgrp_comm, inter_bgrp_comm, &
         my_bgrp_id
@@ -301,7 +304,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine setUpDiag()
-    !! @todo Remove this once extracted from QE @endtodo
+    !! @todo Remove this once extracted from QE #end @endtodo
 
     use mp_diag, only : np_ortho, me_ortho, nproc_ortho, leg_ortho, &
         ortho_comm, ortho_parent_comm, me_ortho1, ortho_comm_id, &
@@ -385,7 +388,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine setGlobalVariables()
-    !! @todo Remove this once extracted from QE @endtodo
+    !! @todo Remove this once extracted from QE #end @endtodo
 
     use mp_world, only : world_comm, nproc, mpime
     use mp_pools, only : npool, nproc_pool, me_pool, my_pool_id, intra_pool_comm, inter_pool_comm
@@ -417,7 +420,7 @@ module wfcExportVASPMod
     !! <h2>Walkthrough</h2>
 
     use io_files, only : nd_nmbr
-      !! @todo Remove this once extracted from QE @endtodo
+      !! @todo Remove this once extracted from QE #end @endtodo
     
     implicit none
 
@@ -427,7 +430,7 @@ module wfcExportVASPMod
       !! String for time
 
     character(len=6), external :: int_to_char
-      !! @todo Remove this once extracted from QE @endtodo
+      !! @todo Remove this once extracted from QE #end @endtodo
 
     prefix = ''
     QEDir = './'
@@ -566,14 +569,14 @@ module wfcExportVASPMod
   subroutine readWAVECAR()
     !! Read data from the WAVECAR file
     !!
-    !! @todo Update this to have input/output variables @endtodo
+    !! @todo Update this to have input/output variables #thisbranch @endtodo
     !! <h2>Walkthrough</h2>
 
     use cell_base, only : at, bg, omega, alat, tpiba
     use wvfct, only : ecutwfc, nbnd
     use klist, only : nkstot
     use lsda_mod, only : nspin
-      !! @todo Remove this once extracted from QE @endtodo
+      !! @todo Remove this once extracted from QE #end @endtodo
 
     implicit none
 
@@ -598,13 +601,13 @@ module wfcExportVASPMod
       nRecords = 24
         ! Set a starting value for the number of records
 
-      open(unit=86, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
+      open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
       if (ierr .ne. 0) write(stdout,*) 'open error - iostat =',ierr
 
-      read(unit=86,rec=1) nRecords_real, nspin_real, prec_real
+      read(unit=wavecarUnit,rec=1) nRecords_real, nspin_real, prec_real
         !! @note Must read in as real first then convert to integer @endnote
 
-      close(unit=86)
+      close(unit=wavecarUnit)
 
       nRecords = nint(nRecords_real)
       nspin_local = nint(nspin_real)
@@ -613,17 +616,17 @@ module wfcExportVASPMod
 
       !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
-      open(unit=86, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
+      open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
       if (ierr .ne. 0) write(stdout,*) 'open error - iostat =',ierr
 
-      read(unit=86,rec=2) nkstot_real, nbnd_real, ecutwfc_local,(at_local(j,1),j=1,3),&
+      read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, ecutwfc_local,(at_local(j,1),j=1,3),&
           (at_local(j,2),j=1,3), (at_local(j,3),j=1,3)
         !! * Read total number of kpoints, plane wave cutoff energy, and real
         !!   space lattice vectors
 
       ecutwfc_local = ecutwfc_local*eVToRy
         !! * Convert energy from VASP to Rydberg to match QE expectation
-        !! @todo Remove this once extracted from QE @endtodo
+        !! @todo Remove this once extracted from QE #end @endtodo
 
       nkstot_local = nint(nkstot_real)
       nbnd_local = nint(nbnd_real)
@@ -656,9 +659,9 @@ module wfcExportVASPMod
       call estimateMaxNumPlanewaves(bg_local)
 
       call mainDoLoop()
-        !! @todo Rename this when figure out what loop does @endtodo
+        !! @todo Rename this when figure out what loop does #thisbranch @endtodo
 
-      close(86)
+      close(wavecarUnit)
 
     endif
 
@@ -677,7 +680,7 @@ module wfcExportVASPMod
     nbnd = nbnd_local
     nkstot = nkstot_local
     nspin = nspin_local
-      !! @todo Remove this once extracted from QE @endtodo
+      !! @todo Remove this once extracted from QE #end @endtodo
 
     return
   end subroutine readWAVECAR
@@ -842,16 +845,41 @@ module wfcExportVASPMod
   subroutine mainDoLoop()
     implicit none
 
+    real(kind=dp) :: nPlane_real
+      !! Real version of integers for reading from file
+
+    integer :: irec, isp, ik, ig1, ig2, ig3
+      !! Loop indices
+    integer :: nPlane
+      !! Input number of plane waves
+
     irec=2
-    do isp=1,nspin
+
+    allocate(xk_local(3,nkstot_local))
+      !! @todo Figure out how xk is allocated/looped over to confirm allocation size #thisbranch @endtodo
+
+    do isp = 1, nspin_local
+
        write(stdout,*) ' '
        write(stdout,*) '******'
-       write(stdout,*) 'reading spin ',isp
-       do iwk=1,nwk
-          irec=irec+1
-          read(unit=10,rec=irec) xnplane,(wk(i),i=1,3), &
-               (cener(iband),occ(iband),iband=1,nband)
-          nplane=nint(xnplane)
+       write(stdout,*) 'Reading spin ', isp
+
+       do ik = 1, nkstot_local
+
+          irec = irec+1
+       
+          read(unit=wavecarUnit,rec=irec) nPlane_real, (xk_local(i,ik),i=1,3), &
+               (cener(iband), occ(iband), iband=1,nband)
+
+          nplane = nint(xnplane)
+            !! @todo Figure out the difference between this and npw/npwx #thisbranch @endtodo
+            !! @note 
+            !!  `nplane` is read within the k-point loop, so it could be the 
+            !!  number of plane waves per k-point, `npws`/`ngk_g`. May need to 
+            !!  add a sum within the loop to get the total number of plane waves.
+            !! @endnote
+
+
           write(stdout,*) 'k point #',iwk,'  input no. of plane waves =', &
                nplane
           write(stdout,*) 'k value =',(sngl(wk(j)),j=1,3)
@@ -894,7 +922,7 @@ module wfcExportVASPMod
 
           do iband=1,nband
              irec=irec+1
-             read(unit=10,rec=irec) (coeff(iplane,iband), &
+             read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), &
                   iplane=1,nplane)
           enddo
     !!$*   output G values and coefficients
@@ -976,8 +1004,7 @@ module wfcExportVASPMod
 
     ! find out the global number of G vectors: ngm_g
     ngm_g = ngm
-      !! @todo Figure out where the value of `ngm` comes from @endtodo
-      !! @todo Figure out how to get this value from VASP files @endtodo
+      !! @todo Figure out how to get this value from VASP files #thisbranch @endtodo
 
     call MPI_ALLREDUCE(ngm, ngm_g, 1, MPI_INTEGER, MPI_SUM, intra_pool_comm_local, ierr)
     if( ierr /= 0 ) call exitError( 'reconstructMainGrid', 'error in mpi_allreduce 1', ierr)
