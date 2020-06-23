@@ -113,6 +113,10 @@ module wfcExportVASPMod
     !! If this node is the root node
     !! @todo Change back to `ionode` once extracted from QE #end @endtodo
 
+  real(kind=dp), allocatable :: xk_local(:,:)
+
+  integer, allocatable :: igall(:,:)
+    !! Integer coefficients for G-vectors
   integer, allocatable :: igk_l2g( :, : )
     !! ??Not sure what this is
   integer, allocatable :: itmp_g( :, : )
@@ -589,6 +593,8 @@ module wfcExportVASPMod
       !! Index used for reading lattice vectors
     integer :: prec
       !! Precision of plane wave coefficients
+    integer :: npmax
+      !! Maximum number of plane waves
     integer :: nRecords
       !! Number of records in WAVECAR file
 
@@ -656,9 +662,9 @@ module wfcExportVASPMod
       write(stdout,*) 
 
 
-      call estimateMaxNumPlanewaves(bg_local)
+      call estimateMaxNumPlanewaves(bg_local, npmax)
 
-      call mainDoLoop()
+      call mainDoLoop(npmax)
         !! @todo Rename this when figure out what loop does #thisbranch @endtodo
 
       close(wavecarUnit)
@@ -744,7 +750,7 @@ module wfcExportVASPMod
   end subroutine vcross
 
 !----------------------------------------------------------------------------
-  subroutine estimateMaxNumPlanewaves(bg_local)
+  subroutine estimateMaxNumPlanewaves(bg_local, npmax)
     implicit none
 
     real(kind=dp) :: b1mag, b2mag, b3mag
@@ -765,7 +771,9 @@ module wfcExportVASPMod
     integer :: nb1maxB, nb2maxB, nb3maxB
     integer :: nb1maxC, nb2maxC, nb3maxC
     integer :: npmaxA, npmaxB, npmaxC
-    integer :: nb1max, nb2max, nb3max, npmax
+    integer :: nb1max, nb2max, nb3max
+    integer, intent(out) :: npmax
+      !! Maximum number of plane waves
 
     b1mag = sqrt(bg_local(1,1)**2 + bg_local(2,1)**2 + bg_local(3,1)**2)
     b2mag = sqrt(bg_local(1,2)**2 + bg_local(2,2)**2 + bg_local(3,2)**2)
@@ -835,30 +843,41 @@ module wfcExportVASPMod
     write(stdout,*) ' '
 
     write(stdout,*) 'estimated max. no. plane waves =', npmax
-    !allocate (igall(3,npmax))
-    !allocate (coeff(npmax,nband))
 
     return
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine mainDoLoop()
+  subroutine mainDoLoop(npmax)
 
     use klist, only : xk
 
     implicit none
 
+    real(kind=dp), allocatable :: cener(:)
+      !! Band eigenvalues
+    real(kind=dp), allocatable :: coeff(:,:)
+      !! Plane wave coefficients
+    real(kind=dp), allocatable :: occ(:)
+      !! Occupation of band
     real(kind=dp) :: nPlane_real
       !! Real version of integers for reading from file
 
-    integer :: irec, isp, ik, i, ig1, ig2, ig3
+    integer :: irec, isp, ik, i, ig1, ig2, ig3, iband, iplane
       !! Loop indices
     integer :: nPlane
       !! Input number of plane waves
+    integer, intent(in) :: npmax
+      !! Maximum number of plane waves
 
     irec=2
 
+    allocate(occ(nbnd_local))
+    allocate(cener(nbnd_local))
     allocate(xk_local(3,nkstot_local))
+    allocate(igall(3,npmax))
+    allocate(coeff(npmax,nbnd_local))
+      !! @todo Make sure that these variables are also deallocated #thisbranch @endtodo
 
     do isp = 1, nspin_local
 
@@ -868,12 +887,12 @@ module wfcExportVASPMod
 
        do ik = 1, nkstot_local
 
-          irec = irec+1
+          irec = irec + 1
        
           read(unit=wavecarUnit,rec=irec) nPlane_real, (xk_local(i,ik),i=1,3), &
-               (cener(iband), occ(iband), iband=1,nband)
+               (cener(iband), occ(iband), iband=1,nbnd_local)
 
-          nplane = nint(xnplane)
+          nplane = nint(nPlane_real)
             !! @todo Figure out the difference between this and npw/npwx #thisbranch @endtodo
             !! @note 
             !!  `nplane` is read within the k-point loop, so it could be the 
@@ -881,13 +900,10 @@ module wfcExportVASPMod
             !!  add a sum within the loop to get the total number of plane waves.
             !! @endnote
 
-          write(stdout,*) 'k-point ', ik, ' coordinates (VASP) = ', sngl(xk_local(i,ik),i=1,3)
-          write(stdout,*) 'k-point ', ik, ' coordinates (QE) = ', sngl(xk(i,ik),i=1,3)
+          write(stdout,*) 'k-point ', ik, ' coordinates (VASP) = ', (sngl(xk_local(i,ik)),i=1,3)
+          write(stdout,*) 'k-point ', ik, ' coordinates (QE) = ', (sngl(xk(i,ik)),i=1,3)
 
           write(stdout,*) 'Number of plane waves at k-point ', ik, ' (VASP): ', nplane
-
-          write(stdout,*) 'k point #',iwk,'  input no. of plane waves =', &
-               nplane
 
 !    !!$*   Calculate plane waves
 !          ncnt=0
@@ -925,10 +941,16 @@ module wfcExportVASPMod
 !             stop
 !          endif
 !
-          do iband=1,nband
-             irec=irec+1
-             read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), &
-                  iplane=1,nplane)
+          do iband = 1, nbnd_local
+
+            irec = irec + 1
+
+            read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nplane)
+
+            write(46+ik,*) cener(iband)
+              !! @todo 
+              !!  Figure out how this and `eigF`/`eigI` relates to `et` #thisbranch @endtodo
+
           enddo
        enddo
     enddo
