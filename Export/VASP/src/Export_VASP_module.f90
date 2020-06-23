@@ -888,61 +888,47 @@ module wfcExportVASPMod
 
           write(stdout,*) 'k point #',iwk,'  input no. of plane waves =', &
                nplane
-          write(stdout,*) 'k value =',(sngl(wk(j)),j=1,3)
-          write(11,*) (sngl(wk(j)),j=1,3)
 
-    !!$*   Calculate plane waves
-          ncnt=0
-          do ig3=0,2*nb3max
-             ig3p=ig3
-             if (ig3.gt.nb3max) ig3p=ig3-2*nb3max-1
-             do ig2=0,2*nb2max
-                ig2p=ig2
-                if (ig2.gt.nb2max) ig2p=ig2-2*nb2max-1
-                do ig1=0,2*nb1max
-                   ig1p=ig1
-                   if (ig1.gt.nb1max) ig1p=ig1-2*nb1max-1
-                   do j=1,3
-                      sumkg(j)=(wk(1)+ig1p)*b1(j)+ &
-                           (wk(2)+ig2p)*b2(j)+(wk(3)+ig3p)*b3(j)
-                   enddo
-                   gtot=sqrt(sumkg(1)**2+sumkg(2)**2+sumkg(3)**2)
-                   etot=gtot**2/c
-                   if (etot.lt.ecut) then
-                      ncnt=ncnt+1
-                      igall(1,ncnt)=ig1p
-                      igall(2,ncnt)=ig2p
-                      igall(3,ncnt)=ig3p
-                   end if
-                enddo
-             enddo
-          enddo
-          if (ncnt.ne.nplane) then
-             write(stdout,*) '*** error - computed no. != input no.'
-             stop
-          endif
-          if (ncnt.gt.npmax) then
-             write(stdout,*) '*** error - plane wave count exceeds estimate'
-             stop
-          endif
-
+!    !!$*   Calculate plane waves
+!          ncnt=0
+!          do ig3=0,2*nb3max
+!             ig3p=ig3
+!             if (ig3.gt.nb3max) ig3p=ig3-2*nb3max-1
+!             do ig2=0,2*nb2max
+!                ig2p=ig2
+!                if (ig2.gt.nb2max) ig2p=ig2-2*nb2max-1
+!                do ig1=0,2*nb1max
+!                   ig1p=ig1
+!                   if (ig1.gt.nb1max) ig1p=ig1-2*nb1max-1
+!                   do j=1,3
+!                      sumkg(j)=(wk(1)+ig1p)*b1(j)+ &
+!                           (wk(2)+ig2p)*b2(j)+(wk(3)+ig3p)*b3(j)
+!                   enddo
+!                   gtot=sqrt(sumkg(1)**2+sumkg(2)**2+sumkg(3)**2)
+!                   etot=gtot**2/c
+!                   if (etot.lt.ecut) then
+!                      ncnt=ncnt+1
+!                      igall(1,ncnt)=ig1p
+!                      igall(2,ncnt)=ig2p
+!                      igall(3,ncnt)=ig3p
+!                   end if
+!                enddo
+!             enddo
+!          enddo
+!
+!          if (ncnt.ne.nplane) then
+!             write(stdout,*) '*** error - computed no. != input no.'
+!             stop
+!          endif
+!          if (ncnt.gt.npmax) then
+!             write(stdout,*) '*** error - plane wave count exceeds estimate'
+!             stop
+!          endif
+!
           do iband=1,nband
              irec=irec+1
              read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), &
                   iplane=1,nplane)
-          enddo
-    !!$*   output G values and coefficients
-          do iband=1,nband
-             write(11,*) iband,nplane
-             !write(11,560) cener(iband),occ(iband)
-             write(11,*) cener(iband),occ(iband)
-    !560      format('( ',g14.6,' , ',g14.6,' ) ',g14.6)
-             do iplane=1,nplane
-                !write(11,570) (igall(j,iplane),j=1,3), &
-                write(11,*) (igall(j,iplane),j=1,3), &
-                     coeff(iplane,iband)
-    !570         format(3i6,'  ( ',g14.6,' , ',g14.6,' )')
-             enddo
           enddo
        enddo
     enddo
@@ -1007,6 +993,8 @@ module wfcExportVASPMod
 
     integer, allocatable :: kisort(:)
       !! ??Not sure what this is
+
+    write(stdout,*) 'Max. no. plane waves (QE) =', npwx
 
     ! find out the global number of G vectors: ngm_g
     ngm_g = ngm
