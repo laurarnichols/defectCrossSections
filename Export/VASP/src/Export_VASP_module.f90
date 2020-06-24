@@ -945,7 +945,7 @@ module wfcExportVASPMod
 
             read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nplane)
 
-            write(46+ik,*) cener(iband)
+            write(45+ik,*) cener(iband)
               !! @todo 
               !!  Figure out how this and `eigF`/`eigI` relates to `et` #thisbranch @endtodo
 
