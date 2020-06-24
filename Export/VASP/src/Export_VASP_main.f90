@@ -61,17 +61,9 @@ program wfcExportVASPMain
     !! @todo Figure out what this subroutine does and what can be moved here @endtodo
   CALL openfil_pp
     !! @todo Figure out what this subroutine does and what can be moved here @endtodo
-
-  write(stdout,*) "QE Values:"
-  write(stdout,*) "  ecutwfc = ", ecutwfc
-  write(stdout,*) "  npwx = ", npwx
   
   call readWAVECAR()
     !! * Read data from the WAVECAR file
-
-  write(stdout,*) "VASP Values:"
-  write(stdout,*) "  ecutwfc = ", ecutwfc
-  write(stdout,*) "  npwx = ", npwx
 
   call distributeKpointsInPools()
 
