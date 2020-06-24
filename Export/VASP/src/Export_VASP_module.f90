@@ -851,6 +851,7 @@ module wfcExportVASPMod
   subroutine mainDoLoop(npmax)
 
     use klist, only : xk
+      !! @todo Remove this once extracted from QE #end @endtodo
 
     implicit none
 
@@ -899,9 +900,6 @@ module wfcExportVASPMod
             !!  number of plane waves per k-point, `npws`/`ngk_g`. May need to 
             !!  add a sum within the loop to get the total number of plane waves.
             !! @endnote
-
-          write(stdout,*) 'k-point ', ik, ' coordinates (VASP) = ', (sngl(xk_local(i,ik)),i=1,3)
-          write(stdout,*) 'k-point ', ik, ' coordinates (QE) = ', (sngl(xk(i,ik)),i=1,3)
 
           write(stdout,*) 'Number of plane waves at k-point ', ik, ' (VASP): ', nplane
 
@@ -954,6 +952,9 @@ module wfcExportVASPMod
           enddo
        enddo
     enddo
+
+    xk = xk_local
+      !! @todo Remove this once extracted from QE #end @endtodo
 
     return
   end subroutine mainDoLoop
