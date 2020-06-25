@@ -44,7 +44,7 @@ module wfcExportVASPMod
     !! Reciprocal lattice vectors
     !! @todo Change back to `bg` once extracted from QE #end @endtodo
   real(kind=dp) :: ecutwfc_local
-    !! Plane wave energy cutoff
+    !! Plane wave energy cutoff in Ry
     !! @todo Change back to `ecutwfc` once extracted from QE #end @endtodo
   real(kind=dp) :: omega_local
     !! Volume of unit cell
@@ -631,8 +631,7 @@ module wfcExportVASPMod
         !!   space lattice vectors
 
       ecutwfc_local = ecutwfc_local*eVToRy
-        !! * Convert energy from VASP to Rydberg to match QE expectation
-        !! @todo Remove this once extracted from QE #end @endtodo
+        !! * Convert energy from VASP to Rydberg to match QE/TME expectation
 
       nkstot_local = nint(nkstot_real)
       nbnd_local = nint(nbnd_real)
@@ -1074,7 +1073,6 @@ module wfcExportVASPMod
       igk_l2g( npw+1 : npwx, ik ) = 0
      
       ngk (ik) = npw
-      write(stdout,*) 'Number of plane waves at k-point ', ik, ' (QE): ', npw
 
     ENDDO
     DEALLOCATE (kisort)
