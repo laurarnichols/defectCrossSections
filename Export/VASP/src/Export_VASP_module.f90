@@ -959,6 +959,46 @@ module wfcExportVASPMod
   end subroutine mainDoLoop
 
 !----------------------------------------------------------------------------
+  subroutine distributeGvecsOverProcessors(ngm_g_local, ngm_local)
+    !! Figure out how many g-vectors there should be per processor
+    !!
+    !! <h2>Walkthrough</h2>
+
+    implicit none
+
+    integer, intent(out) :: ngm_local
+      !! Local number of g-vectors on this processor
+    integer, intent(in) :: ngm_g_local
+      !! Global number of g-vectors
+    integer :: ngr
+      !! Number of g-vectors left over after evenly divided across processors
+
+
+#if defined (__MPI)
+
+    if( ngm_g_local > 0 ) then
+
+      ngm_local = ngm_g_local / nproc_local
+        !!  * Calculate number of g-vectors per processor
+
+      ngr = ngm_g_local - ngm_local * nproc_local 
+        !! * Calculate the remainder
+
+      IF( myid < ngr ) ngm_local = ngm_local + 1
+        !! * Assign the remainder to the first `ngr` processors
+
+    endif
+
+#else
+
+    ngm_local = ngm_g_local
+
+#endif
+
+    return
+  end subroutine distributeGvecsOverProcessors
+
+!----------------------------------------------------------------------------
   subroutine distributeKpointsInPools()
     !! Figure out how many kpoints there should be per pool
     !!
