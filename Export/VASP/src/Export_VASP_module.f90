@@ -75,6 +75,12 @@ module wfcExportVASPMod
   integer :: nbnd_local
     !! Total number of bands
     !! @todo Change back to `nbnd` once extracted from QE #end @endtodo
+  integer :: ngm_local
+    !! Local number of G-vectors on this processor
+    !! @todo Change back to `ngm` once extracted from QE #end @endtodo
+  integer :: ngm_g_local
+    !! Global number of G-vectors
+    !! @todo Change back to `ngm_g` once extracted from QE #end @endtodo
   integer :: nkstot_local
     !! Total number of kpoints
     !! @todo Change back to `nkstot` once extracted from QE #end @endtodo
@@ -114,6 +120,7 @@ module wfcExportVASPMod
     !! @todo Change back to `ionode` once extracted from QE #end @endtodo
 
   real(kind=dp), allocatable :: xk_local(:,:)
+    !! Position of k-points in reciprocal space
 
   integer, allocatable :: igall(:,:)
     !! Integer coefficients for G-vectors
@@ -593,6 +600,7 @@ module wfcExportVASPMod
       !! Index used for reading lattice vectors
     integer :: prec
       !! Precision of plane wave coefficients
+    integer :: nb1max, nb2max, nb3max
     integer :: npmax
       !! Maximum number of plane waves
     integer :: nRecords
@@ -661,9 +669,10 @@ module wfcExportVASPMod
       write(stdout,*) 
 
 
-      call estimateMaxNumPlanewaves(bg_local, npmax)
+      call estimateMaxNumPlanewaves(bg_local, nb1max, nb2max, nb3max, npmax)
 
-      call mainDoLoop(npmax)
+      call mainDoLoop(nkstot_local, nb1max, nb2max, nb3max, npmax, bg_local, ecutwfc_local, &
+              xk_local, ngm_g_local, ngm_local, igall)
         !! @todo Rename this when figure out what loop does #thisbranch @endtodo
 
       close(wavecarUnit)
@@ -749,7 +758,7 @@ module wfcExportVASPMod
   end subroutine vcross
 
 !----------------------------------------------------------------------------
-  subroutine estimateMaxNumPlanewaves(bg_local, npmax)
+  subroutine estimateMaxNumPlanewaves(bg_local, nb1max, nb2max, nb3max, npmax)
     implicit none
 
     real(kind=dp) :: b1mag, b2mag, b3mag
@@ -770,7 +779,7 @@ module wfcExportVASPMod
     integer :: nb1maxB, nb2maxB, nb3maxB
     integer :: nb1maxC, nb2maxC, nb3maxC
     integer :: npmaxA, npmaxB, npmaxC
-    integer :: nb1max, nb2max, nb3max
+    integer, intent(out) :: nb1max, nb2max, nb3max
     integer, intent(out) :: npmax
       !! Maximum number of plane waves
 
@@ -847,28 +856,44 @@ module wfcExportVASPMod
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine mainDoLoop(npmax)
+  subroutine mainDoLoop(nkstot_local, nb1max, nb2max, nb3max, npmax, bg_local, ecutwfc_local, &
+        xk_local, ngm_g_local, ngm_local, igall)
 
     use klist, only : xk
       !! @todo Remove this once extracted from QE #end @endtodo
 
     implicit none
 
-    real(kind=dp), allocatable :: cener(:)
-      !! Band eigenvalues
-    real(kind=dp), allocatable :: coeff(:,:)
-      !! Plane wave coefficients
-    real(kind=dp), allocatable :: occ(:)
-      !! Occupation of band
-    real(kind=dp) :: nPlane_real
-      !! Real version of integers for reading from file
-
     integer :: irec, isp, ik, i, ig1, ig2, ig3, iband, iplane
       !! Loop indices
+    integer, allocatable, intent(out) :: igall(:,:)
+      !! Integer coefficients for G-vectors
+    integer, intent(in) :: nb1max, nb2max, nb3max
+    integer, intent(out) :: ngm_local
+      !! Local number of G-vectors on this processor
+    integer, intent(out) :: ngm_g_local
+      !! Global number of G-vectors
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
     integer :: nPlane
       !! Input number of plane waves
     integer, intent(in) :: npmax
       !! Maximum number of plane waves
+
+    real(kind=dp), intent(in) :: bg_local(3,3)
+      !! Reciprocal lattice vectors
+    real(kind=dp), allocatable :: cener(:)
+      !! Band eigenvalues
+    real(kind=dp), allocatable :: coeff(:,:)
+      !! Plane wave coefficients
+    real(kind=dp), intent(in) :: ecutwfc_local
+      !! Cutoff energy for plane waves
+    real(kind=dp), allocatable :: occ(:)
+      !! Occupation of band
+    real(kind=dp) :: nPlane_real
+      !! Real version of integers for reading from file
+    real(kind=dp), allocatable, intent(out) ::xk_local(:,:)
+      !! Position of k-points in reciprocal space
 
     irec=2
 
@@ -902,42 +927,21 @@ module wfcExportVASPMod
 
           write(stdout,*) 'Number of plane waves at k-point ', ik, ' (VASP): ', nplane
 
-!    !!$*   Calculate plane waves
-!          ncnt=0
-!          do ig3=0,2*nb3max
-!             ig3p=ig3
-!             if (ig3.gt.nb3max) ig3p=ig3-2*nb3max-1
-!             do ig2=0,2*nb2max
-!                ig2p=ig2
-!                if (ig2.gt.nb2max) ig2p=ig2-2*nb2max-1
-!                do ig1=0,2*nb1max
-!                   ig1p=ig1
-!                   if (ig1.gt.nb1max) ig1p=ig1-2*nb1max-1
-!                   do j=1,3
-!                      sumkg(j)=(wk(1)+ig1p)*b1(j)+ &
-!                           (wk(2)+ig2p)*b2(j)+(wk(3)+ig3p)*b3(j)
-!                   enddo
-!                   gtot=sqrt(sumkg(1)**2+sumkg(2)**2+sumkg(3)**2)
-!                   etot=gtot**2/c
-!                   if (etot.lt.ecut) then
-!                      ncnt=ncnt+1
-!                      igall(1,ncnt)=ig1p
-!                      igall(2,ncnt)=ig2p
-!                      igall(3,ncnt)=ig3p
-!                   end if
-!                enddo
-!             enddo
-!          enddo
-!
-!          if (ncnt.ne.nplane) then
-!             write(stdout,*) '*** error - computed no. != input no.'
-!             stop
-!          endif
-!          if (ncnt.gt.npmax) then
-!             write(stdout,*) '*** error - plane wave count exceeds estimate'
-!             stop
-!          endif
-!
+          call calculateGvecs(ik, nkstot_local, nb1max, nb2max, nb3max, npmax, xk_local, bg_local, &
+                  ecutwfc_local, ngm_g_local, ngm_local, igall)
+
+          !> Check that number of -vectors are the same as the number of plane waves
+          if (ngm_g_local .ne. nplane) then
+             write(stdout,*) '*** error - computed no. of G-vectors != input no. of plane waves'
+             stop
+          endif
+
+          !> Make sure that number of g-vectors isn't higher than the calculated maximum
+          if (ngm_g_local .gt. npmax) then
+             write(stdout,*) '*** error - G-vector count exceeds estimate'
+             stop
+          endif
+
           do iband = 1, nbnd_local
 
             irec = irec + 1
@@ -949,6 +953,7 @@ module wfcExportVASPMod
               !!  Figure out how this and `eigF`/`eigI` relates to `et` #thisbranch @endtodo
 
           enddo
+          write(45+ik,*) "--------------------------------------------------------"
        enddo
     enddo
 
@@ -957,6 +962,98 @@ module wfcExportVASPMod
 
     return
   end subroutine mainDoLoop
+
+!----------------------------------------------------------------------------
+  subroutine calculateGvecs(ik, nkstot_local, nb1max, nb2max, nb3max, npmax, xk_local, bg_local, &
+        ecutwfc_local, ngm_g_local, ngm_local, igall)
+
+    implicit none
+
+    integer, intent(in) :: npmax
+      !! Max number of plane waves
+
+    integer :: ig1, ig2, ig3, ig1p, ig2p, ig3p, j
+      !! Loop indices
+    integer, intent(out) :: igall(3,npmax)
+      !! Integer coefficients for G-vectors
+    integer, intent(in) :: ik
+      !! Index for this k-point
+    integer, intent(in) :: nb1max, nb2max, nb3max
+    integer, intent(out) :: ngm_local
+      !! Local number of G-vectors on this processor
+    integer, intent(out) :: ngm_g_local
+      !! Global number of G-vectors
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
+ 
+    real(kind=dp), intent(in) :: bg_local(3,3)
+      !! Reciprocal lattice vectors
+    real(kind=dp) :: c = 0.26246582250210965422
+    real(kind=dp), intent(in) :: ecutwfc_local
+      !! Cutoff energy for plane waves
+    real(kind=dp) :: etot
+      !! Total energy for a G-vector
+    real(kind=dp) :: gtot
+      !! Magnitude of G-vector
+    real(kind=dp) :: sumkg(3)
+      !! \(\vec{k} + \vec{G}\)
+    real(kind=dp), intent(in) ::xk_local(3,nkstot_local)
+      !! Position of k-points in reciprocal space
+
+    ngm_g_local = 0
+
+    do ig3 = 0, 2*nb3max
+
+       ig3p = ig3
+
+       if (ig3 .gt. nb3max) ig3p = ig3 - 2*nb3max - 1
+
+       do ig2 = 0, 2*nb2max
+
+         ig2p = ig2
+
+         if (ig2 .gt. nb2max) ig2p = ig2 - 2*nb2max - 1
+
+         do ig1 = 0, 2*nb1max
+
+           ig1p = ig1
+
+           if (ig1 .gt. nb1max) ig1p = ig1 - 2*nb1max - 1
+
+           do j = 1, 3
+            !! * Calculate \(\vec{k} + \vec{G}\)
+
+             sumkg(j)=(xk_local(1,ik)+ig1p)*bg_local(j,1)+ &
+                      (xk_local(2,ik)+ig2p)*bg_local(j,2)+ &
+                      (xk_local(3,ik)+ig3p)*bg_local(j,3)
+
+           enddo
+
+           gtot = sqrt(sumkg(1)**2+sumkg(2)**2+sumkg(3)**2)
+            !! * Get magnitude of the G-vector
+           etot = gtot**2/c
+            !! * Get the energy
+
+           if (etot .lt. ecutwfc_local) then
+            !! * If the energy is less than the cutoff energy,
+            !!   increment the number of G-vectors and store
+            !!   the G-vector integer coefficients
+
+             ngm_g_local = ngm_g_local + 1
+
+             igall(1,ngm_g_local) = ig1p
+             igall(2,ngm_g_local) = ig2p
+             igall(3,ngm_g_local) = ig3p
+
+           end if
+         enddo
+       enddo
+     enddo
+
+     call distributeGvecsOverProcessors(ngm_g_local, ngm_local)
+
+    return
+  end subroutine calculateGvecs
 
 !----------------------------------------------------------------------------
   subroutine distributeGvecsOverProcessors(ngm_g_local, ngm_local)
