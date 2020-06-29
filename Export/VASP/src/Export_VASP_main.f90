@@ -66,6 +66,8 @@ program wfcExportVASPMain
         nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, ngm_local, igall)
     !! * Read data from the WAVECAR file
 
+  stop
+
   call distributeKpointsInPools()
 
   call reconstructMainGrid()
