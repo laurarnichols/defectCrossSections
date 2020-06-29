@@ -733,15 +733,22 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateOmega(at_local, omega_local)
-    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
     implicit none
 
+    ! Input variables:
     real(kind=dp), intent(in) :: at_local(3,3)
       !! Real space lattice vectors
+
+
+    ! Output variables:
     real(kind=dp), intent(out) :: omega_local
       !! Volume of unit cell
+
+
+    ! Local variables:
     real(kind=dp) :: vtmp(3)
       !! \(a_2\times a_3\)
+
 
     call vcross(at_local(:,2), at_local(:,3), vtmp)
 
@@ -752,19 +759,25 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine getReciprocalVectors(at_local, omega_local, bg_local)
-    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
     implicit none
 
+    ! Input variables:
     real(kind=dp), intent(in) :: at_local(3,3)
       !! Real space lattice vectors
-    real(kind=dp), intent(out) :: bg_local(3,3)
-      !! Reciprocal lattice vectors
     real(kind=dp), intent(in) :: omega_local
       !! Volume of unit cell
 
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: bg_local(3,3)
+      !! Reciprocal lattice vectors
+
+
+    ! Local variables:
     integer :: i
       !! Loop index
     
+
     call vcross(2.0d0*pi*at_local(:,2)/omega_local, at_local(:,3), bg_local(:,1))
       ! \(b_1 = 2\pi/\Omega a_2\times a_3\)
     call vcross(2.0d0*pi*at_local(:,3)/omega_local, at_local(:,1), bg_local(:,2))
@@ -778,13 +791,18 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine vcross(vec1, vec2, crossProd)
-    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
     implicit none
 
-    real(kind=dp) :: vec1(3)
-    real(kind=dp) :: vec2(3)
-    real(kind=dp) :: crossProd(3)
-    
+    ! Input variables:
+    real(kind=dp), intent(in) :: vec1(3), vec2(3)
+      !! Input vectors
+
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: crossProd(3)
+      !! Cross product of input vectors
+
+
     crossProd(1) = vec1(2)*vec2(3) - vec1(3)*vec2(2)
     crossProd(2) = vec1(3)*vec2(1) - vec1(1)*vec2(3)
     crossProd(3) = vec1(1)*vec2(2) - vec1(2)*vec2(1)
@@ -794,13 +812,23 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine estimateMaxNumPlanewaves(bg_local, nb1max, nb2max, nb3max, npmax)
-    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
     implicit none
 
-    real(kind=dp) :: b1mag, b2mag, b3mag
-      !! Reciprocal vector magnitudes
+    ! Input variables:
     real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
+
+
+    ! Output variables:
+    integer, intent(out) :: nb1max, nb2max, nb3max
+      !! Not sure what this is??
+    integer, intent(out) :: npmax
+      !! Maximum number of plane waves
+
+
+    ! Local variables:
+    real(kind=dp) :: b1mag, b2mag, b3mag
+      !! Reciprocal vector magnitudes
     real(kind=dp) :: c = 0.26246582250210965422
     real(kind=dp) :: phi12, phi13, phi23
       !! Angle between vectors
@@ -812,12 +840,14 @@ module wfcExportVASPMod
       !! Temporary vector for calculating angles
 
     integer :: nb1maxA, nb2maxA, nb3maxA
+      !! Not sure what this is??
     integer :: nb1maxB, nb2maxB, nb3maxB
+      !! Not sure what this is??
     integer :: nb1maxC, nb2maxC, nb3maxC
+      !! Not sure what this is??
     integer :: npmaxA, npmaxB, npmaxC
-    integer, intent(out) :: nb1max, nb2max, nb3max
-    integer, intent(out) :: npmax
-      !! Maximum number of plane waves
+      !! Not sure what this is??
+
 
     b1mag = sqrt(bg_local(1,1)**2 + bg_local(2,1)**2 + bg_local(3,1)**2)
     b2mag = sqrt(bg_local(1,2)**2 + bg_local(2,2)**2 + bg_local(3,2)**2)
@@ -894,43 +924,53 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine readWavefunction(nkstot_local, nb1max, nb2max, nb3max, npmax, bg_local, ecutwfc_local, &
         xk_local, ngm_g_local, ngm_local, igall)
-    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
 
     use klist, only : xk
       !! @todo Remove this once extracted from QE #end @endtodo
 
     implicit none
 
-    integer :: irec, isp, ik, i, ig1, ig2, ig3, iband, iplane
-      !! Loop indices
+    ! Input variables:
+    real(kind=dp), intent(in) :: bg_local(3,3)
+      !! Reciprocal lattice vectors
+    real(kind=dp), intent(in) :: ecutwfc_local
+      !! Cutoff energy for plane waves
+
+    integer, intent(in) :: nb1max, nb2max, nb3max
+      !! Not sure what this is??
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
+    integer, intent(in) :: npmax
+      !! Maximum number of plane waves
+
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) ::xk_local(:,:)
+      !! Position of k-points in reciprocal space
+
     integer, allocatable, intent(out) :: igall(:,:)
       !! Integer coefficients for G-vectors
-    integer, intent(in) :: nb1max, nb2max, nb3max
     integer, intent(out) :: ngm_local
       !! Local number of G-vectors on this processor
     integer, intent(out) :: ngm_g_local
       !! Global number of G-vectors
-    integer, intent(in) :: nkstot_local
-      !! Total number of k-points
-    integer :: nPlane
-      !! Input number of plane waves
-    integer, intent(in) :: npmax
-      !! Maximum number of plane waves
 
-    real(kind=dp), intent(in) :: bg_local(3,3)
-      !! Reciprocal lattice vectors
+
+    ! Local variables:
     real(kind=dp), allocatable :: cener(:)
       !! Band eigenvalues
     real(kind=dp), allocatable :: coeff(:,:)
       !! Plane wave coefficients
-    real(kind=dp), intent(in) :: ecutwfc_local
-      !! Cutoff energy for plane waves
     real(kind=dp), allocatable :: occ(:)
       !! Occupation of band
     real(kind=dp) :: nPlane_real
       !! Real version of integers for reading from file
-    real(kind=dp), allocatable, intent(out) ::xk_local(:,:)
-      !! Position of k-points in reciprocal space
+
+    integer :: irec, isp, ik, i, ig1, ig2, ig3, iband, iplane
+      !! Loop indices
+    integer :: nPlane
+      !! Input number of plane waves for a single k-point
+
 
     !> @todo Make sure that these variables are also deallocated #thisbranch @endtodo
     if(ionode_local) then
@@ -1014,40 +1054,48 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(ik, nkstot_local, nb1max, nb2max, nb3max, npmax, xk_local, bg_local, &
         ecutwfc_local, ngm_g_local, ngm_local, igall)
-    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
 
     implicit none
 
-    integer, intent(in) :: npmax
-      !! Max number of plane waves
-
-    integer :: ig1, ig2, ig3, ig1p, ig2p, ig3p, j
-      !! Loop indices
-    integer, intent(out) :: igall(3,npmax)
-      !! Integer coefficients for G-vectors
+    ! Input variables:
     integer, intent(in) :: ik
       !! Index for this k-point
     integer, intent(in) :: nb1max, nb2max, nb3max
+      !! Not sure what this is??
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
+    integer, intent(in) :: npmax
+      !! Max number of plane waves
+
+    real(kind=dp), intent(in) :: bg_local(3,3)
+      !! Reciprocal lattice vectors
+    real(kind=dp), intent(in) :: ecutwfc_local
+      !! Cutoff energy for plane waves
+    real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
+      !! Position of k-points in reciprocal space
+
+    
+    ! Output variables:
+    integer, intent(out) :: igall(3,npmax)
+      !! Integer coefficients for G-vectors
     integer, intent(out) :: ngm_local
       !! Local number of G-vectors on this processor
     integer, intent(out) :: ngm_g_local
       !! Global number of G-vectors
-    integer, intent(in) :: nkstot_local
-      !! Total number of k-points
- 
-    real(kind=dp), intent(in) :: bg_local(3,3)
-      !! Reciprocal lattice vectors
+
+
+    ! Local variables:
     real(kind=dp) :: c = 0.26246582250210965422
-    real(kind=dp), intent(in) :: ecutwfc_local
-      !! Cutoff energy for plane waves
     real(kind=dp) :: etot
       !! Total energy for a G-vector
     real(kind=dp) :: gtot
       !! Magnitude of G-vector
     real(kind=dp) :: sumkg(3)
       !! \(\vec{k} + \vec{G}\)
-    real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
-      !! Position of k-points in reciprocal space
+
+    integer :: ig1, ig2, ig3, ig1p, ig2p, ig3p, j
+      !! Loop indices
+ 
 
    if(ionode_local) then
      ngm_g_local = 0
@@ -1111,17 +1159,23 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine distributeGvecsOverProcessors(ngm_g_local, ngm_local)
-    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
     !! Figure out how many G-vectors there should be per processor
     !!
     !! <h2>Walkthrough</h2>
 
     implicit none
 
-    integer, intent(out) :: ngm_local
-      !! Local number of G-vectors on this processor
+    ! Input variables:
     integer, intent(in) :: ngm_g_local
       !! Global number of G-vectors
+
+    
+    ! Output variables:
+    integer, intent(out) :: ngm_local
+      !! Local number of G-vectors on this processor
+
+
+    ! Local variables:
     integer :: ngr
       !! Number of G-vectors left over after evenly divided across processors
 
