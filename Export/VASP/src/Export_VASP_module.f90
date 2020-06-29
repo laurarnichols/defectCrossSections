@@ -577,47 +577,6 @@ module wfcExportVASPMod
   end subroutine readInputFiles
 
 !----------------------------------------------------------------------------
-  subroutine distributeKpointsInPools()
-    !! Figure out how many kpoints there should be per pool
-    !! @todo Make this have arguments #thisbranch @endtodo
-    !!
-    !! <h2>Walkthrough</h2>
-
-    implicit none
-
-    integer :: nk_Pool
-      !! Number of kpoints in each pool
-    integer :: nkr
-      !! Number of kpoints left over after evenly divided across pools
-
-
-    if( nkstot_local > 0 ) then
-
-      IF( ( nproc_pool_local > nproc_local ) .or. ( mod( nproc_local, nproc_pool_local ) /= 0 ) ) &
-        CALL exitError( 'distributeKpointsInPools','nproc_pool_local', 1 )
-
-      nk_Pool = nkstot_local / npool_local
-        !!  * Calculate k points per pool
-
-      nkr = nkstot_local - nk_Pool * npool_local 
-        !! * Calculate the remainder
-
-      IF( myPoolId < nkr ) nk_Pool = nk_Pool + 1
-        !! * Assign the remainder to the first `nkr` pools
-
-      !>  * Calculate the index of the first k point in this pool
-      ikStart = nk_Pool * myPoolId + 1
-      IF( myPoolId >= nkr ) ikStart = ikStart + nkr
-
-      ikEnd = ikStart + nk_Pool - 1
-        !!  * Calculate the index of the last k point in this pool
-
-    endif
-
-    return
-  end subroutine distributeKpointsInPools
-
-!----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, nspin_local, ecutwfc_local, at_local, nkstot_local, &
       nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, ngm_local, igall)
     !! Read data from the WAVECAR file
@@ -675,6 +634,8 @@ module wfcExportVASPMod
       !! Precision of plane wave coefficients
     integer :: nb1max, nb2max, nb3max
       !! Not sure what this is??
+    integer :: nk_Pool
+      !! Number of k-points in each pool
     integer :: npmax
       !! Maximum number of plane waves
     integer :: nRecords
@@ -749,8 +710,10 @@ module wfcExportVASPMod
 
     endif
 
-    call readWavefunction(nkstot_local, nb1max, nb2max, nb3max, npmax, bg_local, ecutwfc_local, &
-            xk_local, ngm_g_local, ngm_local, igall)
+    call distributeKpointsInPools(nkstot_local, ikEnd, ikStart, nk_Pool)
+
+    call readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, bg_local, &
+            ecutwfc_local, xk_local, ngm_g_local, ngm_local, igall)
 
     if(ionode_local) close(wavecarUnit)
 
@@ -965,8 +928,62 @@ module wfcExportVASPMod
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine readWavefunction(nkstot_local, nb1max, nb2max, nb3max, npmax, bg_local, ecutwfc_local, &
-        xk_local, ngm_g_local, ngm_local, igall)
+  subroutine distributeKpointsInPools(nkstot_local, ikEnd, ikStart, nk_Pool)
+    !! Figure out how many k-points there should be per pool
+    !! @todo Make this have arguments #thisbranch @endtodo
+    !!
+    !! <h2>Walkthrough</h2>
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
+
+
+    ! Output variables:
+    integer, intent(out) :: ikEnd
+      !! Ending index for k-points in single pool 
+    integer, intent(out) :: ikStart
+      !! Starting index for k-points in single pool 
+    integer, intent(out) :: nk_Pool
+      !! Number of k-points in each pool
+
+
+    ! Local variables:
+    integer :: nkr
+      !! Number of k-points left over after evenly divided across pools
+
+
+    if( nkstot_local > 0 ) then
+
+      IF( ( nproc_pool_local > nproc_local ) .or. ( mod( nproc_local, nproc_pool_local ) /= 0 ) ) &
+        CALL exitError( 'distributeKpointsInPools','nproc_pool_local', 1 )
+
+      nk_Pool = nkstot_local / npool_local
+        !!  * Calculate k-points per pool
+
+      nkr = nkstot_local - nk_Pool * npool_local 
+        !! * Calculate the remainder
+
+      IF( myPoolId < nkr ) nk_Pool = nk_Pool + 1
+        !! * Assign the remainder to the first `nkr` pools
+
+      !>  * Calculate the index of the first k-point in this pool
+      ikStart = nk_Pool * myPoolId + 1
+      IF( myPoolId >= nkr ) ikStart = ikStart + nkr
+
+      ikEnd = ikStart + nk_Pool - 1
+        !!  * Calculate the index of the last k-point in this pool
+
+    endif
+
+    return
+  end subroutine distributeKpointsInPools
+
+!----------------------------------------------------------------------------
+  subroutine readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
+        bg_local, ecutwfc_local, xk_local, ngm_g_local, ngm_local, igall)
 
     use klist, only : xk
       !! @todo Remove this once extracted from QE #end @endtodo
@@ -981,6 +998,8 @@ module wfcExportVASPMod
 
     integer, intent(in) :: nb1max, nb2max, nb3max
       !! Not sure what this is??
+    integer, intent(in) :: nk_Pool
+      !! Number of k-points in each pool
     integer, intent(in) :: nkstot_local
       !! Total number of k-points
     integer, intent(in) :: npmax
@@ -1054,8 +1073,8 @@ module wfcExportVASPMod
             write(stdout,*) 'Number of plane waves at k-point ', ik, ' (VASP): ', nplane
           endif
 
-          call calculateGvecs(ik, nkstot_local, nb1max, nb2max, nb3max, npmax, xk_local, bg_local, &
-                  ecutwfc_local, ngm_g_local, ngm_local, igall)
+          call calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
+                  xk_local, bg_local, ecutwfc_local, ngm_g_local, ngm_local, igall)
 
           if(ionode_local) then
             !> Check that number of G-vectors are the same as the number of plane waves
@@ -1101,8 +1120,8 @@ module wfcExportVASPMod
   end subroutine readWavefunction
 
 !----------------------------------------------------------------------------
-  subroutine calculateGvecs(ik, nkstot_local, nb1max, nb2max, nb3max, npmax, xk_local, bg_local, &
-        ecutwfc_local, ngm_g_local, ngm_local, igall)
+  subroutine calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, xk_local, &
+        bg_local, ecutwfc_local, ngm_g_local, ngm_local, igall)
 
     implicit none
 
@@ -1111,6 +1130,8 @@ module wfcExportVASPMod
       !! Index for this k-point
     integer, intent(in) :: nb1max, nb2max, nb3max
       !! Not sure what this is??
+    integer, intent(in) :: nk_Pool
+      !! Number of k-points in each pool
     integer, intent(in) :: nkstot_local
       !! Total number of k-points
     integer, intent(in) :: npmax
@@ -1203,7 +1224,7 @@ module wfcExportVASPMod
 
     call distributeGvecsOverProcessors(ngm_g_local, ngm_local, igStart, igEnd)
 
-    call getNumGkVectors(npmax, igall, igStart, ngm_local, nkstot_local, bg_local, &
+    call getNumGkVectors(npmax, igall, igStart, ngm_local, nkstot_local, nk_Pool, bg_local, &
           ecutwfc_local, xk_local, ngk_local, npwx_local)
 
     return
@@ -1268,7 +1289,7 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(npmax, igall, igStart, ngm_local, nkstot_local, bg_local, &
+  subroutine getNumGkVectors(npmax, igall, igStart, ngm_local, nkstot_local, nk_Pool, bg_local, &
       ecutwfc_local, xk_local, ngk_local, npwx_local)
     implicit none
 
@@ -1282,6 +1303,8 @@ module wfcExportVASPMod
       !! Starting index for G-vectors across processors 
     integer, intent(in) :: ngm_local
       !! Number of G-vectors on this processor
+    integer, intent(in) :: nk_Pool
+      !! Number of k-points in each pool
     integer, intent(in) :: nkstot_local
       !! Total number of k-points
 

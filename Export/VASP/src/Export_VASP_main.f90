@@ -68,8 +68,6 @@ program wfcExportVASPMain
 
   stop
 
-  call distributeKpointsInPools()
-
   call reconstructMainGrid()
 
   CALL write_export (mainOutputFile, exportDir)
