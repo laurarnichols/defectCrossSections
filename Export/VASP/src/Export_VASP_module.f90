@@ -36,6 +36,8 @@ module wfcExportVASPMod
     !! Conversion factor from eV Rydberg
   real(kind = dp), parameter :: ryToHartree = 0.5_dp
     !! Conversion factor from Rydberg to Hartree
+  real(kind = dp), parameter :: pi = 3.141592653589793_dp
+    !! \(\pi\)
 
   real(kind=dp) :: at_local(3,3)
     !! Real space lattice vectors
@@ -573,6 +575,47 @@ module wfcExportVASPMod
 
     return
   end subroutine readInputFiles
+
+!----------------------------------------------------------------------------
+  subroutine distributeKpointsInPools()
+    !! Figure out how many kpoints there should be per pool
+    !! @todo Make this have arguments #thisbranch @endtodo
+    !!
+    !! <h2>Walkthrough</h2>
+
+    implicit none
+
+    integer :: nk_Pool
+      !! Number of kpoints in each pool
+    integer :: nkr
+      !! Number of kpoints left over after evenly divided across pools
+
+
+    if( nkstot_local > 0 ) then
+
+      IF( ( nproc_pool_local > nproc_local ) .or. ( mod( nproc_local, nproc_pool_local ) /= 0 ) ) &
+        CALL exitError( 'distributeKpointsInPools','nproc_pool_local', 1 )
+
+      nk_Pool = nkstot_local / npool_local
+        !!  * Calculate k points per pool
+
+      nkr = nkstot_local - nk_Pool * npool_local 
+        !! * Calculate the remainder
+
+      IF( myPoolId < nkr ) nk_Pool = nk_Pool + 1
+        !! * Assign the remainder to the first `nkr` pools
+
+      !>  * Calculate the index of the first k point in this pool
+      ikStart = nk_Pool * myPoolId + 1
+      IF( myPoolId >= nkr ) ikStart = ikStart + nkr
+
+      ikEnd = ikStart + nk_Pool - 1
+        !!  * Calculate the index of the last k point in this pool
+
+    endif
+
+    return
+  end subroutine distributeKpointsInPools
 
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, nspin_local, ecutwfc_local, at_local, nkstot_local, &
@@ -1160,7 +1203,8 @@ module wfcExportVASPMod
 
     call distributeGvecsOverProcessors(ngm_g_local, ngm_local, igStart, igEnd)
 
-    call getNumGkVectors()
+    call getNumGkVectors(npmax, igall, igStart, ngm_local, nkstot_local, bg_local, &
+          ecutwfc_local, xk_local, ngk_local, npwx_local)
 
     return
   end subroutine calculateGvecs
@@ -1224,82 +1268,95 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors()
+  subroutine getNumGkVectors(npmax, igall, igStart, ngm_local, nkstot_local, bg_local, &
+      ecutwfc_local, xk_local, ngk_local, npwx_local)
     implicit none
 
-    npwx = 0
-    do nk = 1, nks
-      ngk (nk) = 0
-      do ng = 1, ngm
-        q2 = (xk (1, nk) + g (1, ng) ) **2 + (xk (2, nk) + g (2, ng) ) ** &
-             2 + (xk (3, nk) + g (3, ng) ) **2
-        if (q2 <= ecutwfc / tpiba2) then
-          !
-          ! here if |k+G|^2 <= Ecut increase the number of G inside the sphere
-          !
-          ngk (nk) = ngk (nk) + 1
+    ! Input variables:
+    integer, intent(in) :: npmax
+      !! Max number of plane waves
+
+    integer, intent(in) :: igall(3,npmax)
+      !! Integer coefficients for G-vectors
+    integer, intent(in) :: igStart
+      !! Starting index for G-vectors across processors 
+    integer, intent(in) :: ngm_local
+      !! Number of G-vectors on this processor
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
+
+    real(kind=dp), intent(in) :: bg_local(3,3)
+      !! Reciprocal lattice vectors
+    real(kind=dp), intent(in) :: ecutwfc_local
+      !! Cutoff energy for plane waves
+    real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
+      !! Position of k-points in reciprocal space
+
+
+    ! Output variables:
+    integer, intent(out) :: ngk_local
+      !! Number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local`
+    integer, intent(out) :: npwx_local
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points
+
+
+    ! Local variables:
+    real(kind=dp) :: g(3,ngm_local)
+    real(kind=dp) :: q2
+      !! \(q^2\) where \(q = G+k\)
+
+    integer :: nk, ng
+      !! Loop indices
+
+
+    npwx_local = 0
+
+    do nk = 1, nk_Pool
+
+      ngk_local(nk) = 0
+
+      do ng = 1, ngm_local
+
+        g(1,ng) = igall(1,igStart+ng-1)*bg_local(1,1) + igall(2,igStart+ng-1)*bg_local(1,2) + &
+                  igall(3,igStart+ng-1)*bg_local(1,3) 
+        g(2,ng) = igall(1,igStart+ng-1)*bg_local(2,1) + igall(2,igStart+ng-1)*bg_local(2,2) + &
+                  igall(3,igStart+ng-1)*bg_local(2,3) 
+        g(3,ng) = igall(1,igStart+ng-1)*bg_local(3,1) + igall(2,igStart+ng-1)*bg_local(3,2) + &
+                  igall(3,igStart+ng-1)*bg_local(3,3) 
+          !! * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
+
+        q2 = (xk_local (1, nk) + g (1, ng) ) **2 + (xk_local (2, nk) + g (2, ng) ) ** &
+             2 + (xk_local (3, nk) + g (3, ng) ) **2
+
+        if (q2 <= ecutwfc_local / (2.0*pi)**2) then
+
+          ngk_local(nk) = ngk_local(nk) + 1
+            ! here if |k+G|^2 <= Ecut increase the number of G inside the sphere
+
         else
+
           if (sqrt (g (1, ng) **2 + g (2, ng) **2 + g (3, ng) **2) &
-               .gt.sqrt (xk (1, nk) **2 + xk (2, nk) **2 + xk (3, nk) **2) &
-               + sqrt (ecutwfc / tpiba2) ) goto 100
-          !
-          ! if |G| > |k| + sqrt(Ecut)  stop search
-          !
+               .gt. sqrt (xk_local (1, nk) **2 + xk_local (2, nk) **2 + xk_local (3, nk) **2) &
+               + sqrt (ecutwfc_local / tpiba2) ) goto 100
+            ! if |G| > |k| + sqrt(Ecut)  stop search
+
         endif
       enddo
-100   npwx = max (npwx, ngk (nk) )
+100   npwx_local = max (npwx_local, ngk_local(nk) )
     enddo
 
-    if (npwx <= 0) call errore ('n_plane_waves', &
+    if (npwx_local <= 0) call errore ('n_plane_waves', &
                 'No plane waves found: running on too many processors?', 1)
 
-    ! when using pools, set npwx to the maximum value across pools
+    ! when using pools, set npwx_local to the maximum value across pools
     ! (you may run into trouble at restart otherwise)
 
-    CALL mp_max ( npwx, inter_pool_comm )
+    CALL mp_max ( npwx_local, inter_pool_comm )
 
     return
   end subroutine getNumGkVectors
-
-!----------------------------------------------------------------------------
-  subroutine distributeKpointsInPools()
-    !! Figure out how many kpoints there should be per pool
-    !!
-    !! <h2>Walkthrough</h2>
-
-    implicit none
-
-    integer :: nk_Pool
-      !! Number of kpoints in each pool
-    integer :: nkr
-      !! Number of kpoints left over after evenly divided across pools
-
-
-    if( nkstot_local > 0 ) then
-
-      IF( ( nproc_pool_local > nproc_local ) .or. ( mod( nproc_local, nproc_pool_local ) /= 0 ) ) &
-        CALL exitError( 'distributeKpointsInPools','nproc_pool_local', 1 )
-
-      nk_Pool = nkstot_local / npool_local
-        !!  * Calculate k points per pool
-
-      nkr = nkstot_local - nk_Pool * npool_local 
-        !! * Calculate the remainder
-
-      IF( myPoolId < nkr ) nk_Pool = nk_Pool + 1
-        !! * Assign the remainder to the first `nkr` pools
-
-      !>  * Calculate the index of the first k point in this pool
-      ikStart = nk_Pool * myPoolId + 1
-      IF( myPoolId >= nkr ) ikStart = ikStart + nkr
-
-      ikEnd = ikStart + nk_Pool - 1
-        !!  * Calculate the index of the last k point in this pool
-
-    endif
-
-    return
-  end subroutine distributeKpointsInPools
 
 !----------------------------------------------------------------------------
   subroutine reconstructMainGrid()
