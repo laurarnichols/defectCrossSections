@@ -972,7 +972,6 @@ module wfcExportVASPMod
       !! Input number of plane waves for a single k-point
 
 
-    !> @todo Make sure that these variables are also deallocated #thisbranch @endtodo
     if(ionode_local) then
       allocate(occ(nbnd_local))
       allocate(cener(nbnd_local))
@@ -981,6 +980,7 @@ module wfcExportVASPMod
 
     allocate(xk_local(3,nkstot_local))
     allocate(igall(3,npmax))
+      !! @todo Make sure that these variables are also deallocated @endtodo
 
     if(ionode_local) irec=2
 
@@ -1042,6 +1042,12 @@ module wfcExportVASPMod
           endif
        enddo
     enddo
+
+    if(ionode_local) then
+      deallocate(occ)
+      deallocate(cener)
+      deallocate(coeff)
+    endif
 
     call MPI_BCAST(xk_local, size(xk_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
 
