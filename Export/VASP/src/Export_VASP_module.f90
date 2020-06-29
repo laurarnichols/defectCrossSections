@@ -34,10 +34,11 @@ module wfcExportVASPMod
 
   real(kind = dp), parameter :: eVToRy = 0.073498618_dp
     !! Conversion factor from eV Rydberg
-  real(kind = dp), parameter :: ryToHartree = 0.5_dp
-    !! Conversion factor from Rydberg to Hartree
   real(kind = dp), parameter :: pi = 3.141592653589793_dp
     !! \(\pi\)
+  real(kind = dp), parameter :: ryToHartree = 0.5_dp
+    !! Conversion factor from Rydberg to Hartree
+  real(kind = dp), parameter :: twoPiSquared = 39.47841760435743_dp
 
   real(kind=dp) :: at_local(3,3)
     !! Real space lattice vectors
@@ -930,7 +931,6 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine distributeKpointsInPools(nkstot_local, ikEnd, ikStart, nk_Pool)
     !! Figure out how many k-points there should be per pool
-    !! @todo Make this have arguments #thisbranch @endtodo
     !!
     !! <h2>Walkthrough</h2>
 
@@ -1165,6 +1165,16 @@ module wfcExportVASPMod
 
     integer :: ig1, ig2, ig3, ig1p, ig2p, ig3p, j
       !! Loop indices
+    integer :: igEnd
+      !! Ending index for G-vectors across processors 
+    integer :: igStart
+      !! Starting index for G-vectors across processors 
+    integer :: ngk_local(nk_Pool)
+      !! Number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local`
+    integer :: npwx_local
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points
  
 
    if(ionode_local) then
@@ -1317,7 +1327,7 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    integer, intent(out) :: ngk_local
+    integer, intent(out) :: ngk_local(nk_Pool)
       !! Number of \(G+k\) vectors with energy
       !! less than `ecutwfc_local`
     integer, intent(out) :: npwx_local
@@ -1353,7 +1363,7 @@ module wfcExportVASPMod
         q2 = (xk_local (1, nk) + g (1, ng) ) **2 + (xk_local (2, nk) + g (2, ng) ) ** &
              2 + (xk_local (3, nk) + g (3, ng) ) **2
 
-        if (q2 <= ecutwfc_local / (2.0*pi)**2) then
+        if (q2 <= ecutwfc_local / twoPiSquared ) then
 
           ngk_local(nk) = ngk_local(nk) + 1
             ! here if |k+G|^2 <= Ecut increase the number of G inside the sphere
@@ -1362,7 +1372,7 @@ module wfcExportVASPMod
 
           if (sqrt (g (1, ng) **2 + g (2, ng) **2 + g (3, ng) **2) &
                .gt. sqrt (xk_local (1, nk) **2 + xk_local (2, nk) **2 + xk_local (3, nk) **2) &
-               + sqrt (ecutwfc_local / tpiba2) ) goto 100
+               + sqrt (ecutwfc_local / twoPiSquared ) ) goto 100
             ! if |G| > |k| + sqrt(Ecut)  stop search
 
         endif
@@ -1376,7 +1386,7 @@ module wfcExportVASPMod
     ! when using pools, set npwx_local to the maximum value across pools
     ! (you may run into trouble at restart otherwise)
 
-    CALL mp_max ( npwx_local, inter_pool_comm )
+    CALL mp_max ( npwx_local, inter_pool_comm_local )
 
     return
   end subroutine getNumGkVectors
