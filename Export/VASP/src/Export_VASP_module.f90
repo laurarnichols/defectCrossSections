@@ -52,8 +52,6 @@ module wfcExportVASPMod
   real(kind=dp) :: tStart
     !! Start time
   
-  INTEGER :: ik, i
-    !! @todo Move these variables to be local #thisbranch @endtodo
   integer :: ierr
     !! Error returned by MPI
   integer :: ikEnd
@@ -577,10 +575,10 @@ module wfcExportVASPMod
   end subroutine readInputFiles
 
 !----------------------------------------------------------------------------
-  subroutine readWAVECAR()
+  subroutine readWAVECAR(VASPDir, nspin_local, ecutwfc_local, at_local, nkstot_local, &
+      nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, ngm_local, igall)
     !! Read data from the WAVECAR file
     !!
-    !! @todo Update this to have input/output variables #thisbranch @endtodo
     !! <h2>Walkthrough</h2>
 
     use cell_base, only : at, bg, omega, alat, tpiba
@@ -591,6 +589,38 @@ module wfcExportVASPMod
 
     implicit none
 
+    ! Input variables:
+    character(len=256), intent(in) :: VASPDir
+      !! Directory with VASP files
+
+    
+    ! Output variables:
+    real(kind=dp), intent(out) :: at_local(3,3)
+      !! Real space lattice vectors
+    real(kind=dp), intent(out) :: bg_local(3,3)
+      !! Reciprocal lattice vectors
+    real(kind=dp), intent(out) :: ecutwfc_local
+      !! Plane wave energy cutoff in Ry
+    real(kind=dp), intent(out) :: omega_local
+      !! Volume of unit cell
+    real(kind=dp), allocatable, intent(out) :: xk_local(:,:)
+      !! Position of k-points in reciprocal space
+
+    integer, allocatable, intent(out) :: igall(:,:)
+      !! Integer coefficients for G-vectors
+    integer, intent(out) :: nbnd_local
+      !! Total number of bands
+    integer, intent(out) :: ngm_local
+      !! Local number of G-vectors on this processor
+    integer, intent(out) :: ngm_g_local
+      !! Global number of G-vectors
+    integer, intent(out) :: nkstot_local
+      !! Total number of k-points
+    integer, intent(out) :: nspin_local
+      !! Number of spins
+
+
+    ! Local variables:
     real(kind=dp) :: nRecords_real, nspin_real, prec_real, nkstot_real 
       !! Real version of integers for reading from file
     real(kind=dp) :: nbnd_real
@@ -601,6 +631,7 @@ module wfcExportVASPMod
     integer :: prec
       !! Precision of plane wave coefficients
     integer :: nb1max, nb2max, nb3max
+      !! Not sure what this is??
     integer :: npmax
       !! Maximum number of plane waves
     integer :: nRecords
@@ -608,6 +639,7 @@ module wfcExportVASPMod
 
     character(len=256) :: fileName
       !! Full WAVECAR file name including path
+
 
     if(ionode_local) then
       fileName = trim(VASPDir)//'/WAVECAR'
@@ -657,7 +689,7 @@ module wfcExportVASPMod
       call calculateOmega(at_local, omega_local)
         !! * Calculate unit cell volume
 
-      write(stdout,*) 'volume unit cell =', sngl(omega)
+      write(stdout,*) 'volume unit cell =', sngl(omega_local)
       write(stdout,*) 
 
       call getReciprocalVectors(at_local, omega_local, bg_local)
@@ -670,14 +702,14 @@ module wfcExportVASPMod
 
 
       call estimateMaxNumPlanewaves(bg_local, nb1max, nb2max, nb3max, npmax)
-
-      call mainDoLoop(nkstot_local, nb1max, nb2max, nb3max, npmax, bg_local, ecutwfc_local, &
-              xk_local, ngm_g_local, ngm_local, igall)
-        !! @todo Rename this when figure out what loop does #thisbranch @endtodo
-
-      close(wavecarUnit)
+        !! @todo Figure out if other nodes need the output variables from here @endtodo
 
     endif
+
+    call readWavefunction(nkstot_local, nb1max, nb2max, nb3max, npmax, bg_local, ecutwfc_local, &
+            xk_local, ngm_g_local, ngm_local, igall)
+
+    if(ionode_local) close(wavecarUnit)
 
     call MPI_BCAST(nspin_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
     call MPI_BCAST(nkstot_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
@@ -701,6 +733,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateOmega(at_local, omega_local)
+    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
     implicit none
 
     real(kind=dp), intent(in) :: at_local(3,3)
@@ -719,6 +752,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine getReciprocalVectors(at_local, omega_local, bg_local)
+    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
     implicit none
 
     real(kind=dp), intent(in) :: at_local(3,3)
@@ -744,6 +778,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine vcross(vec1, vec2, crossProd)
+    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
     implicit none
 
     real(kind=dp) :: vec1(3)
@@ -759,6 +794,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine estimateMaxNumPlanewaves(bg_local, nb1max, nb2max, nb3max, npmax)
+    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
     implicit none
 
     real(kind=dp) :: b1mag, b2mag, b3mag
@@ -856,8 +892,9 @@ module wfcExportVASPMod
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine mainDoLoop(nkstot_local, nb1max, nb2max, nb3max, npmax, bg_local, ecutwfc_local, &
+  subroutine readWavefunction(nkstot_local, nb1max, nb2max, nb3max, npmax, bg_local, ecutwfc_local, &
         xk_local, ngm_g_local, ngm_local, igall)
+    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
 
     use klist, only : xk
       !! @todo Remove this once extracted from QE #end @endtodo
@@ -895,77 +932,89 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) ::xk_local(:,:)
       !! Position of k-points in reciprocal space
 
-    irec=2
+    !> @todo Make sure that these variables are also deallocated #thisbranch @endtodo
+    if(ionode_local) then
+      allocate(occ(nbnd_local))
+      allocate(cener(nbnd_local))
+      allocate(coeff(npmax,nbnd_local))
+    endif
 
-    allocate(occ(nbnd_local))
-    allocate(cener(nbnd_local))
     allocate(xk_local(3,nkstot_local))
     allocate(igall(3,npmax))
-    allocate(coeff(npmax,nbnd_local))
-      !! @todo Make sure that these variables are also deallocated #thisbranch @endtodo
+
+    if(ionode_local) irec=2
 
     do isp = 1, nspin_local
 
-       write(stdout,*) ' '
-       write(stdout,*) '******'
-       write(stdout,*) 'Reading spin ', isp
+       if(ionode_local) then
+         write(stdout,*) ' '
+         write(stdout,*) '******'
+         write(stdout,*) 'Reading spin ', isp
+       endif         
 
        do ik = 1, nkstot_local
 
-          irec = irec + 1
+          if(ionode_local) then
+            irec = irec + 1
        
-          read(unit=wavecarUnit,rec=irec) nPlane_real, (xk_local(i,ik),i=1,3), &
-               (cener(iband), occ(iband), iband=1,nbnd_local)
+            read(unit=wavecarUnit,rec=irec) nPlane_real, (xk_local(i,ik),i=1,3), &
+                 (cener(iband), occ(iband), iband=1,nbnd_local)
 
-          nplane = nint(nPlane_real)
-            !! @todo Figure out the difference between this and npw/npwx #thisbranch @endtodo
-            !! @note 
-            !!  `nplane` is read within the k-point loop, so it could be the 
-            !!  number of plane waves per k-point, `npws`/`ngk_g`. May need to 
-            !!  add a sum within the loop to get the total number of plane waves.
-            !! @endnote
+            nplane = nint(nPlane_real)
+              !! @todo Figure out the difference between this and npw/npwx #thisbranch @endtodo
+              !! @note 
+              !!  `nplane` is read within the k-point loop, so it could be the 
+              !!  number of plane waves per k-point, `npws`/`ngk_g`. May need to 
+              !!  add a sum within the loop to get the total number of plane waves.
+              !! @endnote
 
-          write(stdout,*) 'Number of plane waves at k-point ', ik, ' (VASP): ', nplane
+            write(stdout,*) 'Number of plane waves at k-point ', ik, ' (VASP): ', nplane
+          endif
 
           call calculateGvecs(ik, nkstot_local, nb1max, nb2max, nb3max, npmax, xk_local, bg_local, &
                   ecutwfc_local, ngm_g_local, ngm_local, igall)
 
-          !> Check that number of -vectors are the same as the number of plane waves
-          if (ngm_g_local .ne. nplane) then
-             write(stdout,*) '*** error - computed no. of G-vectors != input no. of plane waves'
-             stop
+          if(ionode_local) then
+            !> Check that number of G-vectors are the same as the number of plane waves
+            if (ngm_g_local .ne. nplane) then
+               write(stdout,*) '*** error - computed no. of G-vectors != input no. of plane waves'
+               stop
+            endif
+
+            !> Make sure that number of G-vectors isn't higher than the calculated maximum
+            if (ngm_g_local .gt. npmax) then
+               write(stdout,*) '*** error - G-vector count exceeds estimate'
+               stop
+            endif
+
+            do iband = 1, nbnd_local
+
+              irec = irec + 1
+
+              read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nplane)
+
+              write(45+ik,*) cener(iband)
+                !! @todo 
+                !!  Figure out how this and `eigF`/`eigI` relates to `et` #thisbranch @endtodo
+
+            enddo
+            write(45+ik,*) "--------------------------------------------------------"
           endif
-
-          !> Make sure that number of g-vectors isn't higher than the calculated maximum
-          if (ngm_g_local .gt. npmax) then
-             write(stdout,*) '*** error - G-vector count exceeds estimate'
-             stop
-          endif
-
-          do iband = 1, nbnd_local
-
-            irec = irec + 1
-
-            read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nplane)
-
-            write(45+ik,*) cener(iband)
-              !! @todo 
-              !!  Figure out how this and `eigF`/`eigI` relates to `et` #thisbranch @endtodo
-
-          enddo
-          write(45+ik,*) "--------------------------------------------------------"
        enddo
     enddo
+
+    call MPI_BCAST(xk_local, size(xk_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
 
     xk = xk_local
       !! @todo Remove this once extracted from QE #end @endtodo
 
     return
-  end subroutine mainDoLoop
+  end subroutine readWavefunction
 
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(ik, nkstot_local, nb1max, nb2max, nb3max, npmax, xk_local, bg_local, &
         ecutwfc_local, ngm_g_local, ngm_local, igall)
+    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
 
     implicit none
 
@@ -997,78 +1046,84 @@ module wfcExportVASPMod
       !! Magnitude of G-vector
     real(kind=dp) :: sumkg(3)
       !! \(\vec{k} + \vec{G}\)
-    real(kind=dp), intent(in) ::xk_local(3,nkstot_local)
+    real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
       !! Position of k-points in reciprocal space
 
-    ngm_g_local = 0
+   if(ionode_local) then
+     ngm_g_local = 0
 
-    do ig3 = 0, 2*nb3max
+     do ig3 = 0, 2*nb3max
 
-       ig3p = ig3
+        ig3p = ig3
 
-       if (ig3 .gt. nb3max) ig3p = ig3 - 2*nb3max - 1
+        if (ig3 .gt. nb3max) ig3p = ig3 - 2*nb3max - 1
 
-       do ig2 = 0, 2*nb2max
+        do ig2 = 0, 2*nb2max
 
-         ig2p = ig2
+          ig2p = ig2
 
-         if (ig2 .gt. nb2max) ig2p = ig2 - 2*nb2max - 1
+          if (ig2 .gt. nb2max) ig2p = ig2 - 2*nb2max - 1
 
-         do ig1 = 0, 2*nb1max
+          do ig1 = 0, 2*nb1max
 
-           ig1p = ig1
+            ig1p = ig1
 
-           if (ig1 .gt. nb1max) ig1p = ig1 - 2*nb1max - 1
+            if (ig1 .gt. nb1max) ig1p = ig1 - 2*nb1max - 1
 
-           do j = 1, 3
-            !! * Calculate \(\vec{k} + \vec{G}\)
+            do j = 1, 3
+              !! * Calculate \(\vec{k} + \vec{G}\)
 
-             sumkg(j)=(xk_local(1,ik)+ig1p)*bg_local(j,1)+ &
-                      (xk_local(2,ik)+ig2p)*bg_local(j,2)+ &
-                      (xk_local(3,ik)+ig3p)*bg_local(j,3)
+              sumkg(j)=(xk_local(1,ik)+ig1p)*bg_local(j,1)+ &
+                       (xk_local(2,ik)+ig2p)*bg_local(j,2)+ &
+                       (xk_local(3,ik)+ig3p)*bg_local(j,3)
 
-           enddo
+            enddo
 
-           gtot = sqrt(sumkg(1)**2+sumkg(2)**2+sumkg(3)**2)
-            !! * Get magnitude of the G-vector
-           etot = gtot**2/c
-            !! * Get the energy
+            gtot = sqrt(sumkg(1)**2+sumkg(2)**2+sumkg(3)**2)
+             !! * Get magnitude of the G-vector
+            etot = gtot**2/c
+             !! * Get the energy
 
-           if (etot .lt. ecutwfc_local) then
-            !! * If the energy is less than the cutoff energy,
-            !!   increment the number of G-vectors and store
-            !!   the G-vector integer coefficients
+            if (etot .lt. ecutwfc_local) then
+             !! * If the energy is less than the cutoff energy,
+             !!   increment the number of G-vectors and store
+             !!   the G-vector integer coefficients
 
-             ngm_g_local = ngm_g_local + 1
+              ngm_g_local = ngm_g_local + 1
 
-             igall(1,ngm_g_local) = ig1p
-             igall(2,ngm_g_local) = ig2p
-             igall(3,ngm_g_local) = ig3p
+              igall(1,ngm_g_local) = ig1p
+              igall(2,ngm_g_local) = ig2p
+              igall(3,ngm_g_local) = ig3p
 
-           end if
-         enddo
-       enddo
-     enddo
+            end if
+          enddo
+        enddo
+      enddo
+    endif
 
-     call distributeGvecsOverProcessors(ngm_g_local, ngm_local)
+    call MPI_BCAST(ngm_g_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
+    call MPI_BCAST(igall, size(igall), MPI_INTEGER, root, world_comm_local, ierr)
+
+    call distributeGvecsOverProcessors(ngm_g_local, ngm_local)
 
     return
   end subroutine calculateGvecs
 
 !----------------------------------------------------------------------------
   subroutine distributeGvecsOverProcessors(ngm_g_local, ngm_local)
-    !! Figure out how many g-vectors there should be per processor
+    !! @todo Rearrange variable declarations to group in/out/local #thisbranch @endtodo
+    !! Figure out how many G-vectors there should be per processor
     !!
     !! <h2>Walkthrough</h2>
 
     implicit none
 
     integer, intent(out) :: ngm_local
-      !! Local number of g-vectors on this processor
+      !! Local number of G-vectors on this processor
     integer, intent(in) :: ngm_g_local
-      !! Global number of g-vectors
+      !! Global number of G-vectors
     integer :: ngr
-      !! Number of g-vectors left over after evenly divided across processors
+      !! Number of G-vectors left over after evenly divided across processors
 
 
 #if defined (__MPI)
@@ -1076,7 +1131,7 @@ module wfcExportVASPMod
     if( ngm_g_local > 0 ) then
 
       ngm_local = ngm_g_local / nproc_local
-        !!  * Calculate number of g-vectors per processor
+        !!  * Calculate number of G-vectors per processor
 
       ngr = ngm_g_local - ngm_local * nproc_local 
         !! * Calculate the remainder

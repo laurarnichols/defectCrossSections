@@ -62,7 +62,8 @@ program wfcExportVASPMain
   CALL openfil_pp
     !! @todo Figure out what this subroutine does and what can be moved here @endtodo
   
-  call readWAVECAR()
+  call readWAVECAR(VASPDir, nspin_local, ecutwfc_local, at_local, nkstot_local, &
+        nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, ngm_local, igall)
     !! * Read data from the WAVECAR file
 
   call distributeKpointsInPools()
