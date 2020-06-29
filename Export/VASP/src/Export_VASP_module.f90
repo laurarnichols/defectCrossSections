@@ -1158,13 +1158,15 @@ module wfcExportVASPMod
     call MPI_BCAST(ngm_g_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
     call MPI_BCAST(igall, size(igall), MPI_INTEGER, root, world_comm_local, ierr)
 
-    call distributeGvecsOverProcessors(ngm_g_local, ngm_local)
+    call distributeGvecsOverProcessors(ngm_g_local, ngm_local, igStart, igEnd)
+
+    call getNumGkVectors()
 
     return
   end subroutine calculateGvecs
 
 !----------------------------------------------------------------------------
-  subroutine distributeGvecsOverProcessors(ngm_g_local, ngm_local)
+  subroutine distributeGvecsOverProcessors(ngm_g_local, ngm_local, igStart, igEnd)
     !! Figure out how many G-vectors there should be per processor
     !!
     !! <h2>Walkthrough</h2>
@@ -1177,6 +1179,10 @@ module wfcExportVASPMod
 
     
     ! Output variables:
+    integer, intent(out) :: igEnd
+      !! Ending index for G-vectors across processors 
+    integer, intent(out) :: igStart
+      !! Starting index for G-vectors across processors 
     integer, intent(out) :: ngm_local
       !! Local number of G-vectors on this processor
 
@@ -1199,6 +1205,13 @@ module wfcExportVASPMod
       IF( myid < ngr ) ngm_local = ngm_local + 1
         !! * Assign the remainder to the first `ngr` processors
 
+      !>  * Calculate the index of the first k point in this pool
+      igStart = ngm_local * myid + 1
+      IF( myid >= ngr ) igStart = igStart + ngr
+
+      igEnd = igStart + ngm_local - 1
+        !!  * Calculate the index of the last k point in this pool
+
     endif
 
 #else
@@ -1209,6 +1222,14 @@ module wfcExportVASPMod
 
     return
   end subroutine distributeGvecsOverProcessors
+
+!----------------------------------------------------------------------------
+  subroutine getNumGkVectors()
+    implicit none
+
+
+    return
+  end subroutine getNumGkVectors
 
 !----------------------------------------------------------------------------
   subroutine distributeKpointsInPools()
@@ -1318,6 +1339,7 @@ module wfcExportVASPMod
       kisort = 0
       npw = npwx
       CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, kisort(1), g2kin)
+        !! @todo Figure out if `npw` is changed in call to `gk_sort` #thisbranch @endtodo
 
       ! mapping between local and global G vector index, for this kpoint
      
