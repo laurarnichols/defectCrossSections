@@ -1279,6 +1279,7 @@ module wfcExportVASPMod
       !! @endnote
 
     call MPI_ALLREDUCE(ngm, ngm_g, 1, MPI_INTEGER, MPI_SUM, intra_pool_comm_local, ierr)
+      !! @note Don't think will need `MPI_SUM` to get `ngm_g` once extracted from QE @endtodo
     if( ierr /= 0 ) call exitError( 'reconstructMainGrid', 'error in mpi_allreduce 1', ierr)
 
     if( ionode_local ) then 
