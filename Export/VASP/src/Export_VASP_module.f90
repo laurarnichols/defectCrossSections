@@ -1272,7 +1272,11 @@ module wfcExportVASPMod
 
     ! find out the global number of G vectors: ngm_g
     ngm_g = ngm
-      !! @todo Figure out how to get this value from VASP files #thisbranch @endtodo
+      !! @note
+      !!  I think that the equivalent value for `ngm_g`  is set in `readWAVECAR`,
+      !!  but I'm not going to change the global variable yet because of array
+      !!  allocation with this variable.
+      !! @endnote
 
     call MPI_ALLREDUCE(ngm, ngm_g, 1, MPI_INTEGER, MPI_SUM, intra_pool_comm_local, ierr)
     if( ierr /= 0 ) call exitError( 'reconstructMainGrid', 'error in mpi_allreduce 1', ierr)
