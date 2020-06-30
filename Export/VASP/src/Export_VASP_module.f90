@@ -1063,11 +1063,11 @@ module wfcExportVASPMod
                  (cener(iband), occ(iband), iband=1,nbnd_local)
 
             nplane = nint(nPlane_real)
-              !! @todo Figure out the difference between this and npw/npwx #thisbranch @endtodo
-              !! @note 
-              !!  `nplane` is read within the k-point loop, so it could be the 
-              !!  number of plane waves per k-point, `npws`/`ngk_g`. May need to 
-              !!  add a sum within the loop to get the total number of plane waves.
+              !! @todo Figure out how to use `nplane` @endtodo
+              !! @note
+              !!  `nplane` doesn't seem to match up neatly with any of the QE variables at this point. 
+              !!  Will need to wait to see how projectors are indexed which might give an indication
+              !!  of how to use `nplane`.
               !! @endnote
 
             write(stdout,*) 'Number of plane waves at k-point ', ik, ' (VASP): ', nplane
