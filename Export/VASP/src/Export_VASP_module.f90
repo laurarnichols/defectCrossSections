@@ -570,14 +570,6 @@ module wfcExportVASPMod
   end subroutine exitError
 
 !----------------------------------------------------------------------------
-  subroutine readInputFiles()
-    implicit none
-
-
-    return
-  end subroutine readInputFiles
-
-!----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, nspin_local, ecutwfc_local, at_local, nkstot_local, &
       nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, ngm_local, mill_local)
     !! Read data from the WAVECAR file
@@ -1507,6 +1499,14 @@ module wfcExportVASPMod
 
     return 
   end subroutine reconstructMainGrid
+
+!----------------------------------------------------------------------------
+  subroutine subroutineTemplate()
+    implicit none
+
+
+    return
+  end subroutine subroutineTemplate
 
 !----------------------------------------------------------------------------
 ! ..  This subroutine write wavefunctions to the disk
