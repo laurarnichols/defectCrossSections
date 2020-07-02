@@ -1449,15 +1449,6 @@ module wfcExportVASPMod
     CALL mp_sum( itmp_g , intra_pool_comm_local )
       ! Combine all results into a single global array
 
-  
-    ! here we are in crystal units
-    rtmp_g(1:3,1:ngm_g) = REAL( itmp_g(1:3,1:ngm_g) )
-  
-    ! go to cartesian units (tpiba)
-    CALL cryst_to_cart( ngm_g, rtmp_g, bg_local , 1 )
-      !! @todo Move `cryst_to_cart` subroutine here @endtodo
-  
-    DEALLOCATE( rtmp_g )
 
     ! build the G+k array indexes
     ALLOCATE ( igk_l2g ( npwx, nks ) )
