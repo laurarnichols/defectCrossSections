@@ -1429,14 +1429,17 @@ module wfcExportVASPMod
     
     endif
 
-    ! collect all G vectors across processors within the pools
-    ! and compute their modules
+
+    !> @note 
+    !>  `mill` is the Miller indices to generate the G-vectors from the reciprocal vectors 
+    !>  that is local to each processor. `itmp_g` is an array that contains all Miller
+    !>  indices across all processors. `ig_l2g` takes the local index `ig` and converts to
+    !>  a global index (`l2g` means local to global). 
+    !> @endnote
   
     ALLOCATE( itmp_g( 3, ngm_g ) )
     ALLOCATE( rtmp_g( 3, ngm_g ) )
 
-    !> @todo Figure out meaning of `ig_l2g` and where it is set #thisbranch @endtodo
-    !> @note `mill` is the Miller indices to generate the G-vectors from the reciprocal vectors @endnote
     itmp_g = 0
     DO  ig = 1, ngm
       itmp_g( 1, ig_l2g( ig ) ) = mill(1,ig )
@@ -1445,6 +1448,8 @@ module wfcExportVASPMod
     ENDDO
   
     CALL mp_sum( itmp_g , intra_pool_comm_local )
+      ! Combine all results into a single global array
+
   
     ! here we are in crystal units
     rtmp_g(1:3,1:ngm_g) = REAL( itmp_g(1:3,1:ngm_g) )
