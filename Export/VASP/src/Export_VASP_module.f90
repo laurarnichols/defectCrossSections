@@ -124,12 +124,12 @@ module wfcExportVASPMod
     !! Position of k-points in reciprocal space
 
   integer, allocatable :: mill_local(:,:)
-    !! Integer coefficients for G-vectors
-  integer, allocatable :: igk_l2g( :, : )
+    !! Integer coefficients for G-vectors on each processor
+  integer, allocatable :: igk_l2g(:,:)
     !! ??Not sure what this is
-  integer, allocatable :: itmp_g( :, : )
-    !! ??Not sure what this is
-  integer, allocatable :: ngk_g( : )
+  integer, allocatable :: itmp_g(:,:)
+    !! Integer coefficients for G-vectors on all processors
+  integer, allocatable :: ngk_g(:)
     !! ??Not sure what this is
 
   NAMELIST /inputParams/ prefix, QEDir, VASPDir, exportDir
@@ -1399,16 +1399,28 @@ module wfcExportVASPMod
 
     implicit none
 
+    ! Input variables:
+    !integer, intent(in) :: ngm_local
+      ! Number of G-vectors on this processor
+    !integer, intent(in) :: ngm_g_local
+      ! Global number of G-vectors
+
+    !integer, intent(in) :: ig_l2g(ngm_local)
+      ! Converts local index `ig` to global index
+    !integer, intent(in) :: mill_local(3,ngm_local)
+      ! Integer coefficients for G-vectors on each processor
+
+    ! Output variables:
+    !integer, allocatable, intent(out) :: itmp_g(:,:)
+      ! Integer coefficients for G-vectors on all processors
+
+
+    ! Local variables
     integer :: ig, ik
       !! Loop indices
-
-    real(kind=dp), allocatable :: rtmp_g( :, : )
-      !! ??Not sure what this is
-
     integer, allocatable :: kisort(:)
       !! ??Not sure what this is
 
-    write(stdout,*) 'Max. no. plane waves (QE) =', npwx
 
     ! find out the global number of G vectors: ngm_g
     ngm_g = ngm
@@ -1437,7 +1449,6 @@ module wfcExportVASPMod
     !> @endnote
   
     ALLOCATE( itmp_g( 3, ngm_g ) )
-    ALLOCATE( rtmp_g( 3, ngm_g ) )
 
     itmp_g = 0
     DO  ig = 1, ngm
