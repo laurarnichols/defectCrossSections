@@ -1097,7 +1097,7 @@ module wfcExportVASPMod
 
               write(45+ik,*) cener(iband)
                 !! @todo 
-                !!  Figure out how this and `eigF`/`eigI` relates to `et` #thisbranch @endtodo
+                !!  Figure out how this and `eigF`/`eigI` relates to `et` @endtodo
 
             enddo
             write(45+ik,*) "--------------------------------------------------------"
@@ -1435,6 +1435,8 @@ module wfcExportVASPMod
     ALLOCATE( itmp_g( 3, ngm_g ) )
     ALLOCATE( rtmp_g( 3, ngm_g ) )
 
+    !> @todo Figure out meaning of `ig_l2g` and where it is set #thisbranch @endtodo
+    !> @todo Figure out meaning of `mill` and where it is set #thisbranch @endtodo
     itmp_g = 0
     DO  ig = 1, ngm
       itmp_g( 1, ig_l2g( ig ) ) = mill(1,ig )
@@ -1449,6 +1451,7 @@ module wfcExportVASPMod
   
     ! go to cartesian units (tpiba)
     CALL cryst_to_cart( ngm_g, rtmp_g, bg_local , 1 )
+      !! @todo Figure out what `cryst_to_cart` subroutine does #thisbranch @endtodo
   
     DEALLOCATE( rtmp_g )
 
@@ -1460,6 +1463,7 @@ module wfcExportVASPMod
       npw = npwx
       CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, kisort(1), g2kin)
         !! @todo Figure out if `npw` is changed in call to `gk_sort` #thisbranch @endtodo
+        !! @todo Figure out what `gk_sort` subroutine does #thisbranch @endtodo
 
       ! mapping between local and global G vector index, for this kpoint
      
@@ -1496,6 +1500,8 @@ module wfcExportVASPMod
 ! ..  This subroutine write wavefunctions to the disk
 ! .. Where:
 ! iuni    = Restart file I/O fortran unit
+    CALL mp_max( npw_g, world_comm_local )
+
 !
     SUBROUTINE write_restart_wfc(iuni, exportDir, &
       ik, nk, ispin, nspin_local, scal, wf0, t0, wfm, tm, ngw, gamma_only, nbnd_local, igl, ngwl )
