@@ -1398,6 +1398,8 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine reconstructMainGrid()
+    !! @todo Add arguments to this and rearrange variables #thisbranch @endtodo
+
     use gvect, only : g, ngm, ngm_g, ig_l2g, mill
     use wvfct, only : npwx, npw, g2kin
     use klist, only : nks, xk, ngk
@@ -1461,7 +1463,7 @@ module wfcExportVASPMod
   
     ! go to cartesian units (tpiba)
     CALL cryst_to_cart( ngm_g, rtmp_g, bg_local , 1 )
-      !! @todo Figure out what `cryst_to_cart` subroutine does #thisbranch @endtodo
+      !! @todo Move `cryst_to_cart` subroutine here @endtodo
   
     DEALLOCATE( rtmp_g )
 
@@ -1510,7 +1512,7 @@ module wfcExportVASPMod
 ! ..  This subroutine write wavefunctions to the disk
 ! .. Where:
 ! iuni    = Restart file I/O fortran unit
-    CALL mp_max( npw_g, world_comm_local )
+    !CALL mp_max( npw_g, world_comm_local )
 
 !
     SUBROUTINE write_restart_wfc(iuni, exportDir, &
