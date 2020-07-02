@@ -1233,6 +1233,11 @@ module wfcExportVASPMod
     call MPI_BCAST(mill_local, size(mill_local), MPI_INTEGER, root, world_comm_local, ierr)
 
     call distributeGvecsOverProcessors(ngm_g_local, ngm_local, igStart, igEnd)
+      !! @note
+      !!  To match QE, will need to make mill local to a processor rather than global.
+      !!  Could also leave global and just be careful about indices used. `mill_local`
+      !!  actually matches `itmp_g` used in `reconstructMainGrid`.
+      !! @endnote
 
     call getNumGkVectors(npmax, mill_local, igStart, ngm_local, nkstot_local, nk_Pool, bg_local, &
           ecutwfc_local, xk_local, ngk_local, npwx_local)
