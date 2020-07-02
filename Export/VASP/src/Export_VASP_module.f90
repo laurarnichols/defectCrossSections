@@ -123,7 +123,7 @@ module wfcExportVASPMod
   real(kind=dp), allocatable :: xk_local(:,:)
     !! Position of k-points in reciprocal space
 
-  integer, allocatable :: igall(:,:)
+  integer, allocatable :: mill_local(:,:)
     !! Integer coefficients for G-vectors
   integer, allocatable :: igk_l2g( :, : )
     !! ??Not sure what this is
@@ -579,7 +579,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, nspin_local, ecutwfc_local, at_local, nkstot_local, &
-      nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, ngm_local, igall)
+      nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, ngm_local, mill_local)
     !! Read data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -609,7 +609,7 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) :: xk_local(:,:)
       !! Position of k-points in reciprocal space
 
-    integer, allocatable, intent(out) :: igall(:,:)
+    integer, allocatable, intent(out) :: mill_local(:,:)
       !! Integer coefficients for G-vectors
     integer, intent(out) :: nbnd_local
       !! Total number of bands
@@ -714,7 +714,7 @@ module wfcExportVASPMod
     call distributeKpointsInPools(nkstot_local, ikEnd, ikStart, nk_Pool)
 
     call readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, bg_local, &
-            ecutwfc_local, xk_local, ngm_g_local, ngm_local, igall)
+            ecutwfc_local, xk_local, ngm_g_local, ngm_local, mill_local)
 
     if(ionode_local) close(wavecarUnit)
 
@@ -983,7 +983,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
-        bg_local, ecutwfc_local, xk_local, ngm_g_local, ngm_local, igall)
+        bg_local, ecutwfc_local, xk_local, ngm_g_local, ngm_local, mill_local)
 
     use klist, only : xk
       !! @todo Remove this once extracted from QE #end @endtodo
@@ -1010,7 +1010,7 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) ::xk_local(:,:)
       !! Position of k-points in reciprocal space
 
-    integer, allocatable, intent(out) :: igall(:,:)
+    integer, allocatable, intent(out) :: mill_local(:,:)
       !! Integer coefficients for G-vectors
     integer, intent(out) :: ngm_local
       !! Local number of G-vectors on this processor
@@ -1041,7 +1041,7 @@ module wfcExportVASPMod
     endif
 
     allocate(xk_local(3,nkstot_local))
-    allocate(igall(3,npmax))
+    allocate(mill_local(3,npmax))
       !! @todo Make sure that these variables are also deallocated @endtodo
 
     if(ionode_local) irec=2
@@ -1074,7 +1074,7 @@ module wfcExportVASPMod
           endif
 
           call calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
-                  xk_local, bg_local, ecutwfc_local, ngm_g_local, ngm_local, igall)
+                  xk_local, bg_local, ecutwfc_local, ngm_g_local, ngm_local, mill_local)
 
           if(ionode_local) then
             !> Check that number of G-vectors are the same as the number of plane waves
@@ -1121,7 +1121,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, xk_local, &
-        bg_local, ecutwfc_local, ngm_g_local, ngm_local, igall)
+        bg_local, ecutwfc_local, ngm_g_local, ngm_local, mill_local)
 
     implicit none
 
@@ -1146,7 +1146,7 @@ module wfcExportVASPMod
 
     
     ! Output variables:
-    integer, intent(out) :: igall(3,npmax)
+    integer, intent(out) :: mill_local(3,npmax)
       !! Integer coefficients for G-vectors
     integer, intent(out) :: ngm_local
       !! Local number of G-vectors on this processor
@@ -1219,9 +1219,9 @@ module wfcExportVASPMod
 
               ngm_g_local = ngm_g_local + 1
 
-              igall(1,ngm_g_local) = ig1p
-              igall(2,ngm_g_local) = ig2p
-              igall(3,ngm_g_local) = ig3p
+              mill_local(1,ngm_g_local) = ig1p
+              mill_local(2,ngm_g_local) = ig2p
+              mill_local(3,ngm_g_local) = ig3p
 
             end if
           enddo
@@ -1230,11 +1230,11 @@ module wfcExportVASPMod
     endif
 
     call MPI_BCAST(ngm_g_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
-    call MPI_BCAST(igall, size(igall), MPI_INTEGER, root, world_comm_local, ierr)
+    call MPI_BCAST(mill_local, size(mill_local), MPI_INTEGER, root, world_comm_local, ierr)
 
     call distributeGvecsOverProcessors(ngm_g_local, ngm_local, igStart, igEnd)
 
-    call getNumGkVectors(npmax, igall, igStart, ngm_local, nkstot_local, nk_Pool, bg_local, &
+    call getNumGkVectors(npmax, mill_local, igStart, ngm_local, nkstot_local, nk_Pool, bg_local, &
           ecutwfc_local, xk_local, ngk_local, npwx_local)
 
     return
@@ -1299,7 +1299,7 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(npmax, igall, igStart, ngm_local, nkstot_local, nk_Pool, bg_local, &
+  subroutine getNumGkVectors(npmax, mill_local, igStart, ngm_local, nkstot_local, nk_Pool, bg_local, &
       ecutwfc_local, xk_local, ngk_local, npwx_local)
     implicit none
 
@@ -1307,7 +1307,7 @@ module wfcExportVASPMod
     integer, intent(in) :: npmax
       !! Max number of plane waves
 
-    integer, intent(in) :: igall(3,npmax)
+    integer, intent(in) :: mill_local(3,npmax)
       !! Integer coefficients for G-vectors
     integer, intent(in) :: igStart
       !! Starting index for G-vectors across processors 
@@ -1352,12 +1352,12 @@ module wfcExportVASPMod
 
       do ng = 1, ngm_local
 
-        g(1,ng) = igall(1,igStart+ng-1)*bg_local(1,1) + igall(2,igStart+ng-1)*bg_local(1,2) + &
-                  igall(3,igStart+ng-1)*bg_local(1,3) 
-        g(2,ng) = igall(1,igStart+ng-1)*bg_local(2,1) + igall(2,igStart+ng-1)*bg_local(2,2) + &
-                  igall(3,igStart+ng-1)*bg_local(2,3) 
-        g(3,ng) = igall(1,igStart+ng-1)*bg_local(3,1) + igall(2,igStart+ng-1)*bg_local(3,2) + &
-                  igall(3,igStart+ng-1)*bg_local(3,3) 
+        g(1,ng) = mill_local(1,igStart+ng-1)*bg_local(1,1) + mill_local(2,igStart+ng-1)*bg_local(1,2) + &
+                  mill_local(3,igStart+ng-1)*bg_local(1,3) 
+        g(2,ng) = mill_local(1,igStart+ng-1)*bg_local(2,1) + mill_local(2,igStart+ng-1)*bg_local(2,2) + &
+                  mill_local(3,igStart+ng-1)*bg_local(2,3) 
+        g(3,ng) = mill_local(1,igStart+ng-1)*bg_local(3,1) + mill_local(2,igStart+ng-1)*bg_local(3,2) + &
+                  mill_local(3,igStart+ng-1)*bg_local(3,3) 
           !! * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
 
         q2 = (xk_local (1, nk) + g (1, ng) ) **2 + (xk_local (2, nk) + g (2, ng) ) ** &
@@ -1436,7 +1436,7 @@ module wfcExportVASPMod
     ALLOCATE( rtmp_g( 3, ngm_g ) )
 
     !> @todo Figure out meaning of `ig_l2g` and where it is set #thisbranch @endtodo
-    !> @todo Figure out meaning of `mill` and where it is set #thisbranch @endtodo
+    !> @note `mill` is the Miller indices to generate the G-vectors from the reciprocal vectors @endnote
     itmp_g = 0
     DO  ig = 1, ngm
       itmp_g( 1, ig_l2g( ig ) ) = mill(1,ig )
