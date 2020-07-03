@@ -1576,12 +1576,13 @@ module wfcExportVASPMod
     gkMod(:) = 0.0_dp
    
     DO ig = 1, ngm
+
       q = sum( ( xk_local(:) + g(:,ig) )**2 )
       IF(q<=eps8) q=0.d0
       
       ! ... here if |k+G|^2 <= Ecut
       
-      IF ( q <= ecutwfc_local ) THEN
+      IF ( q <= vcut_local ) THEN
         ngk = ngk + 1
         IF ( ngk > npwx ) &
           CALL errore( 'gk_sort', 'array gk out-of-bounds', 1 )
