@@ -1563,6 +1563,8 @@ module wfcExportVASPMod
 
 
     ! Local variables:
+    real(kind=dp) :: eps8 = 1.0E-8_dp
+      !! Double precision zero
     real(kind=dp) :: gMagMax
       !! Upper bound for \(|G|\)
     real(kind=dp) :: q
@@ -1583,7 +1585,7 @@ module wfcExportVASPMod
 
       q = sum( ( xk_local(:) + g(:,ig) )**2 )
 
-      IF(q<=eps8) q=0.d0
+      IF(q <= eps8) q = 0.d0
       
       ! ... here if |k+G|^2 <= Ecut
       
