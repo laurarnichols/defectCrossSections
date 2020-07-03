@@ -1194,7 +1194,7 @@ module wfcExportVASPMod
     real(kind=dp) :: sumkg(3)
       !! \(\vec{k} + \vec{G}\)
 
-    integer :: ig1, ig2, ig3, ig1p, ig2p, ig3p, j
+    integer :: ig1, ig2, ig3, ig1p, ig2p, ig3p, j, ig, ix
       !! Loop indices
     integer :: igEnd
       !! Ending index for G-vectors across processors 
@@ -1390,7 +1390,7 @@ module wfcExportVASPMod
     real(kind=dp) :: q2
       !! \(q^2\) where \(q = G+k\)
 
-    integer :: nk, ng, ix
+    integer :: nk, ng
       !! Loop indices
 
     
