@@ -1385,6 +1385,9 @@ module wfcExportVASPMod
         g(3,ng) = mill_local(1,igStart+ng-1)*bg_local(3,1) + mill_local(2,igStart+ng-1)*bg_local(3,2) + &
                   mill_local(3,igStart+ng-1)*bg_local(3,3) 
           !! * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
+          !! @todo Change this to a loop @endtodo
+          !! @todo Change `g` to `gCart_local` @endtodo
+          !! @todo Change this from local variable to being passed out and passed in to `gk_sort` @endtodo
 
         q2 = (xk_local (1, nk) + g (1, ng) ) **2 + (xk_local (2, nk) + g (2, ng) ) ** &
              2 + (xk_local (3, nk) + g (3, ng) ) **2
