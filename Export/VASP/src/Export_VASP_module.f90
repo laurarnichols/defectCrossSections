@@ -1366,7 +1366,7 @@ module wfcExportVASPMod
     real(kind=dp) :: q2
       !! \(q^2\) where \(q = G+k\)
 
-    integer :: nk, ng
+    integer :: nk, ng, ix
       !! Loop indices
 
 
@@ -1378,16 +1378,13 @@ module wfcExportVASPMod
 
       do ng = 1, ngm_local
 
-        g(1,ng) = mill_local(1,igStart+ng-1)*bg_local(1,1) + mill_local(2,igStart+ng-1)*bg_local(1,2) + &
-                  mill_local(3,igStart+ng-1)*bg_local(1,3) 
-        g(2,ng) = mill_local(1,igStart+ng-1)*bg_local(2,1) + mill_local(2,igStart+ng-1)*bg_local(2,2) + &
-                  mill_local(3,igStart+ng-1)*bg_local(2,3) 
-        g(3,ng) = mill_local(1,igStart+ng-1)*bg_local(3,1) + mill_local(2,igStart+ng-1)*bg_local(3,2) + &
-                  mill_local(3,igStart+ng-1)*bg_local(3,3) 
-          !! * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
-          !! @todo Change this to a loop @endtodo
-          !! @todo Change `g` to `gCart_local` @endtodo
-          !! @todo Change this from local variable to being passed out and passed in to `gk_sort` @endtodo
+        !> * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
+        do ix = 1, 3
+          g(ix,ng) = mill_local(1,igStart+ng-1)*bg_local(ix,1) + mill_local(2,igStart+ng-1)*bg_local(ix,2) + &
+                     mill_local(3,igStart+ng-1)*bg_local(ix,3) 
+            !! @todo Change `g` to `gCart_local` @endtodo
+            !! @todo Change this from local variable to being passed out and passed in to `gk_sort` @endtodo
+        enddo
 
         q2 = (xk_local (1, nk) + g (1, ng) ) **2 + (xk_local (2, nk) + g (2, ng) ) ** &
              2 + (xk_local (3, nk) + g (3, ng) ) **2
