@@ -7,7 +7,7 @@ module wfcExportVASPMod
   USE cell_base, ONLY : celldm, ibrav
   USE klist, ONLY : wk
   USE ener, ONLY : ef
-  USE wvfct, ONLY : igk, et
+  USE wvfct, ONLY : et
   USE lsda_mod, ONLY : isk
 
   USE io_files,  ONLY : prefix, outdir, tmp_dir
@@ -1447,8 +1447,8 @@ module wfcExportVASPMod
     ! Local variables
     integer :: ig, ik
       !! Loop indices
-    integer, allocatable :: kisort(:)
-      !! ??Not sure what this is
+    integer, allocatable :: igk(:)
+      !! Index map from \(G\) to \(G+k\)
 
 
     ! find out the global number of G vectors: ngm_g
@@ -1492,12 +1492,12 @@ module wfcExportVASPMod
 
     ! build the G+k array indexes
     ALLOCATE ( igk_l2g ( npwx, nks ) )
-    ALLOCATE ( kisort( npwx ) )
+    ALLOCATE ( igk( npwx ) )
     DO ik = 1, nks
-      kisort = 0
+      igk = 0
       npw = npwx
         !! @todo Remove this because this variable is `intent(out)` in `gk_sort` @endtodo
-      CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, kisort(1), g2kin)
+      CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, igk, g2kin)
         !! @todo Change `npw` here to `ngk(ik)`@endtodo
         !! @todo Figure out what `gk_sort` subroutine does #thisbranch @endtodo
 
@@ -1505,7 +1505,7 @@ module wfcExportVASPMod
      
       DO ig = 1, npw
         
-        igk_l2g(ig,ik) = ig_l2g( kisort(ig) )
+        igk_l2g(ig,ik) = ig_l2g( igk(ig) )
         
       ENDDO
      
@@ -1514,7 +1514,7 @@ module wfcExportVASPMod
       ngk (ik) = npw
 
     ENDDO
-    DEALLOCATE (kisort)
+    DEALLOCATE(igk)
 
     ! compute the global number of G+k vectors for each k point
     ALLOCATE( ngk_g( nkstot_local ) )
@@ -1783,7 +1783,7 @@ module wfcExportVASPMod
     USE pseudo_types, ONLY : pseudo_upf
     USE radial_grids, ONLY : radial_grid_type
     
-    USE wvfct,         ONLY : wg, npw, g2kin
+    USE wvfct,         ONLY : wg, npw, g2kin, igk
   
     USE paw_variables,        ONLY : okpaw, ddd_paw, total_core_energy, only_paw
     USE paw_onecenter,        ONLY : PAW_potential
