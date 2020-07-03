@@ -1565,6 +1565,9 @@ module wfcExportVASPMod
     real(kind=dp) :: gMagMax
       !! Upper bound for \(|G|\)
 
+    integer :: ig
+      !! Loop index
+
 
     gMagMax = ( sqrt( sum(xk_local(:)**2) ) + sqrt( vcut_local ) )**2
    
@@ -1572,8 +1575,8 @@ module wfcExportVASPMod
     igk(:) = 0
     gkMod(:) = 0.0_dp
    
-    DO ng = 1, ngm
-      q = sum( ( xk_local(:) + g(:,ng) )**2 )
+    DO ig = 1, ngm
+      q = sum( ( xk_local(:) + g(:,ig) )**2 )
       IF(q<=eps8) q=0.d0
       
       ! ... here if |k+G|^2 <= Ecut
@@ -1586,14 +1589,14 @@ module wfcExportVASPMod
           gkMod(ngk) = q
          
           ! set the initial value of index array
-          igk(ngk) = ng
+          igk(ngk) = ig
       ELSE
         ! if |G| > |k| + SQRT( Ecut )  stop search and order vectors
-        IF ( sum( g(:,ng)**2 ) > ( gMagMax + eps8 ) ) exit
+        IF ( sum( g(:,ig)**2 ) > ( gMagMax + eps8 ) ) exit
       ENDIF
     ENDDO
    
-    IF ( ng > ngm ) &
+    IF ( ig > ngm ) &
       CALL infomsg( 'gk_sort', 'unexpected exit from do-loop')
    
     ! ... order vector gk keeping initial position in index
