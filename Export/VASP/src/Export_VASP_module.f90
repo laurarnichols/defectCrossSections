@@ -1270,6 +1270,18 @@ module wfcExportVASPMod
       !!  actually matches `itmp_g` used in `reconstructMainGrid`.
       !! @endnote
 
+    do ig = 1, ngm_local
+
+      do ix = 1, 3
+        !! * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
+
+        gCart_local(ix,ig) = mill_local(1,igStart+ig-1)*bg_local(ix,1) + &
+                             mill_local(2,igStart+ig-1)*bg_local(ix,2) + &
+                             mill_local(3,igStart+ig-1)*bg_local(ix,3) 
+
+      enddo
+    enddo
+
     call getNumGkVectors(npmax, mill_local, igStart, ngm_local, nkstot_local, nk_Pool, bg_local, &
           vcut_local, xk_local, gCart_local, ngk_local, npwx_local)
 
@@ -1356,6 +1368,8 @@ module wfcExportVASPMod
 
     real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
+    real(kind=dp), allocatable, intent(in) :: gCart_local(:,:)
+      !! G-vectors in Cartesian coordinates
     real(kind=dp), intent(in) :: vcut_local
       !! Energy cutoff converted to vector cutoff;
       !! assumes \(a=1\)
@@ -1364,9 +1378,6 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: gCart_local(:,:)
-      !! G-vectors in Cartesian coordinates
-
     integer, intent(out) :: ngk_local(nk_Pool)
       !! Number of \(G+k\) vectors with energy
       !! less than `ecutwfc_local`
@@ -1392,14 +1403,6 @@ module wfcExportVASPMod
       ngk_local(nk) = 0
 
       do ng = 1, ngm_local
-
-        !> * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
-        do ix = 1, 3
-          gCart_local(ix,ng) = mill_local(1,igStart+ng-1)*bg_local(ix,1) + &
-                               mill_local(2,igStart+ng-1)*bg_local(ix,2) + &
-                               mill_local(3,igStart+ng-1)*bg_local(ix,3) 
-            !! @todo Change this to being calculated earlier if possible #thisbranch @endtodo
-        enddo
 
         q2 = (xk_local(1, nk) + gCart_local(1, ng) ) **2 + &
              (xk_local(2, nk) + gCart_local(2, ng) ) **2 + &
