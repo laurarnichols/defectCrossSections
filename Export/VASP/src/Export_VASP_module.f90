@@ -1154,6 +1154,7 @@ module wfcExportVASPMod
 
     ! Local variables:
     real(kind=dp) :: c = 0.26246582250210965422
+      !! \(2m/\hbar^2\)
     real(kind=dp) :: etot
       !! Total energy for a G-vector
     real(kind=dp) :: gtot
@@ -1383,7 +1384,7 @@ module wfcExportVASPMod
 100   npwx_local = max (npwx_local, ngk_local(nk) )
     enddo
 
-    if (npwx_local <= 0) call errore ('n_plane_waves', &
+    if (npwx_local <= 0) call exitError('getNumGkVectors', &
                 'No plane waves found: running on too many processors?', 1)
 
     ! when using pools, set npwx_local to the maximum value across pools
