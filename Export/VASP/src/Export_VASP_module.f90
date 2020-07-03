@@ -1496,8 +1496,9 @@ module wfcExportVASPMod
     DO ik = 1, nks
       kisort = 0
       npw = npwx
+        !! @todo Remove this because this variable is `intent(out)` in `gk_sort` @endtodo
       CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, kisort(1), g2kin)
-        !! @todo Figure out if `npw` is changed in call to `gk_sort` #thisbranch @endtodo
+        !! @todo Change `npw` here to `ngk(ik)`@endtodo
         !! @todo Figure out what `gk_sort` subroutine does #thisbranch @endtodo
 
       ! mapping between local and global G vector index, for this kpoint
@@ -1545,6 +1546,8 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    integer, intent(out) :: ngk
+      !! Number of \(G+k\) vectors within vector cutoff
 
 
     ! Local variables:
