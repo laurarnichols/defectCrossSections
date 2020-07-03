@@ -50,7 +50,7 @@ module wfcExportVASPMod
   real(kind=dp) :: ecutwfc_local
     !! Plane wave energy cutoff in Ry
     !! @todo Change back to `ecutwfc` once extracted from QE #end @endtodo
-  real(kind=dp) :: gcut_local
+  real(kind=dp) :: vcut_local
     !! Energy cutoff converted to vector cutoff;
     !! assumes \(a=1\)
   real(kind=dp) :: omega_local
@@ -574,7 +574,7 @@ module wfcExportVASPMod
   end subroutine exitError
 
 !----------------------------------------------------------------------------
-  subroutine readWAVECAR(VASPDir, nspin_local, ecutwfc_local, gcut_local, at_local, &
+  subroutine readWAVECAR(VASPDir, nspin_local, ecutwfc_local, vcut_local, at_local, &
       nkstot_local, nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, &
       ngm_local, mill_local)
     !! Read data from the WAVECAR file
@@ -601,7 +601,7 @@ module wfcExportVASPMod
       !! Reciprocal lattice vectors
     real(kind=dp), intent(out) :: ecutwfc_local
       !! Plane wave energy cutoff in Ry
-    real(kind=dp), intent(out) :: gcut_local
+    real(kind=dp), intent(out) :: vcut_local
       !! Energy cutoff converted to vector cutoff;
       !! assumes \(a=1\)
     real(kind=dp), intent(out) :: omega_local
@@ -678,9 +678,9 @@ module wfcExportVASPMod
       ecutwfc_local = ecutwfc_local*eVToRy
         !! * Convert energy from VASP to Rydberg to match QE/TME expectation
 
-      gcut_local = ecutwfc_local*alat**2/twoPiSquared
+      vcut_local = ecutwfc_local*alat**2/twoPiSquared
         !! * Calculate vector cutoff from energy cutoff
-        !! @todo Remove `alat**2` from `gcut_local` calculation once extracted from QE #end @endtodo
+        !! @todo Remove `alat**2` from `vcut_local` calculation once extracted from QE #end @endtodo
 
       nkstot_local = nint(nkstot_real)
       nbnd_local = nint(nbnd_real)
@@ -724,7 +724,7 @@ module wfcExportVASPMod
     call distributeKpointsInPools(nkstot_local, ikEnd, ikStart, nk_Pool)
 
     call readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, bg_local, &
-            ecutwfc_local, gcut_local, xk_local, ngm_g_local, ngm_local, mill_local)
+            ecutwfc_local, vcut_local, xk_local, ngm_g_local, ngm_local, mill_local)
 
     if(ionode_local) close(wavecarUnit)
 
@@ -995,7 +995,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
-        bg_local, ecutwfc_local, gcut_local, xk_local, ngm_g_local, ngm_local, mill_local)
+        bg_local, ecutwfc_local, vcut_local, xk_local, ngm_g_local, ngm_local, mill_local)
 
     use klist, only : xk
       !! @todo Remove this once extracted from QE #end @endtodo
@@ -1007,7 +1007,7 @@ module wfcExportVASPMod
       !! Reciprocal lattice vectors
     real(kind=dp), intent(in) :: ecutwfc_local
       !! Cutoff energy for plane waves
-    real(kind=dp), intent(in) :: gcut_local
+    real(kind=dp), intent(in) :: vcut_local
       !! Energy cutoff converted to vector cutoff;
       !! assumes \(a=1\)
 
@@ -1089,7 +1089,7 @@ module wfcExportVASPMod
           endif
 
           call calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
-                  xk_local, bg_local, ecutwfc_local, gcut_local, ngm_g_local, ngm_local, mill_local)
+                  xk_local, bg_local, ecutwfc_local, vcut_local, ngm_g_local, ngm_local, mill_local)
 
           if(ionode_local) then
             !> Check that number of G-vectors are the same as the number of plane waves
@@ -1136,7 +1136,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, xk_local, &
-        bg_local, ecutwfc_local, gcut_local, ngm_g_local, ngm_local, mill_local)
+        bg_local, ecutwfc_local, vcut_local, ngm_g_local, ngm_local, mill_local)
 
     implicit none
 
@@ -1156,7 +1156,7 @@ module wfcExportVASPMod
       !! Reciprocal lattice vectors
     real(kind=dp), intent(in) :: ecutwfc_local
       !! Cutoff energy for plane waves
-    real(kind=dp), intent(in) :: gcut_local
+    real(kind=dp), intent(in) :: vcut_local
       !! Energy cutoff converted to vector cutoff;
       !! assumes \(a=1\)
     real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
@@ -1260,7 +1260,7 @@ module wfcExportVASPMod
       !! @endnote
 
     call getNumGkVectors(npmax, mill_local, igStart, ngm_local, nkstot_local, nk_Pool, bg_local, &
-          gcut_local, xk_local, ngk_local, npwx_local)
+          vcut_local, xk_local, ngk_local, npwx_local)
 
     return
   end subroutine calculateGvecs
@@ -1325,7 +1325,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine getNumGkVectors(npmax, mill_local, igStart, ngm_local, nkstot_local, nk_Pool, bg_local, &
-      gcut_local, xk_local, ngk_local, npwx_local)
+      vcut_local, xk_local, ngk_local, npwx_local)
     implicit none
 
     ! Input variables:
@@ -1345,7 +1345,7 @@ module wfcExportVASPMod
 
     real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
-    real(kind=dp), intent(in) :: gcut_local
+    real(kind=dp), intent(in) :: vcut_local
       !! Energy cutoff converted to vector cutoff;
       !! assumes \(a=1\)
     real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
@@ -1389,7 +1389,7 @@ module wfcExportVASPMod
         q2 = (xk_local (1, nk) + g (1, ng) ) **2 + (xk_local (2, nk) + g (2, ng) ) ** &
              2 + (xk_local (3, nk) + g (3, ng) ) **2
 
-        if (q2 <= gcut_local ) then
+        if (q2 <= vcut_local ) then
 
           ngk_local(nk) = ngk_local(nk) + 1
             ! here if |k+G|^2 <= Ecut increase the number of G inside the sphere
@@ -1398,7 +1398,7 @@ module wfcExportVASPMod
 
           if (sqrt (g (1, ng) **2 + g (2, ng) **2 + g (3, ng) **2) &
                .gt. sqrt (xk_local (1, nk) **2 + xk_local (2, nk) **2 + xk_local (3, nk) **2) &
-               + sqrt (gcut_local) ) goto 100
+               + sqrt (vcut_local) ) goto 100
             ! if |G| > |k| + sqrt(Ecut)  stop search
 
         endif
@@ -1538,7 +1538,7 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    real(kind=dp), intent(in) :: gcut_local
+    real(kind=dp), intent(in) :: vcut_local
       !! Energy cutoff converted to vector cutoff;
       !! assumes \(a=1\)
     real(kind=dp), intent(in) :: xk_local(3)
@@ -1555,7 +1555,7 @@ module wfcExportVASPMod
       !! Upper bound for \(|G|\)
 
 
-    gMagMax = ( sqrt( sum(xk_local(:)**2) ) + sqrt( gcut_local ) )**2
+    gMagMax = ( sqrt( sum(xk_local(:)**2) ) + sqrt( vcut_local ) )**2
    
     ngk = 0
     igk(:) = 0
