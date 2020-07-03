@@ -1498,8 +1498,10 @@ module wfcExportVASPMod
       npw = npwx
         !! @todo Remove this because this variable is `intent(out)` in `gk_sort` @endtodo
       CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, igk, g2kin)
-        !! @todo Change `npw` here to `ngk(ik)`@endtodo
         !! @todo Figure out what `gk_sort` subroutine does #thisbranch @endtodo
+        !! @todo Change `ecutwfc_local/tpiba2` to `vcut_local` @endtodo
+        !! @todo Change `npw` here to `ngk(ik)`@endtodo
+        !! @todo Change `g2kin` to `gkMod` and assign `g2kin=gkMod` for QE @endtodo
 
       ! mapping between local and global G vector index, for this kpoint
      
@@ -1566,6 +1568,7 @@ module wfcExportVASPMod
     ngk = 0
     igk(:) = 0
     gk (:) = 0.0_dp
+      !! @todo Change this to `gkMod` and everywhere and add to variables @endtodo
    
     DO ng = 1, ngm
       q = sum( ( xk_local(:) + g(:,ng) )**2 )
