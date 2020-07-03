@@ -1362,7 +1362,7 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    real(kind=dp) :: g(3,ngm_local)
+    real(kind=dp) :: gCart_local(3,ngm_local)
     real(kind=dp) :: q2
       !! \(q^2\) where \(q = G+k\)
 
@@ -1380,14 +1380,15 @@ module wfcExportVASPMod
 
         !> * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
         do ix = 1, 3
-          g(ix,ng) = mill_local(1,igStart+ng-1)*bg_local(ix,1) + mill_local(2,igStart+ng-1)*bg_local(ix,2) + &
-                     mill_local(3,igStart+ng-1)*bg_local(ix,3) 
-            !! @todo Change `g` to `gCart_local` @endtodo
+          gCart_local(ix,ng) = mill_local(1,igStart+ng-1)*bg_local(ix,1) + &
+                               mill_local(2,igStart+ng-1)*bg_local(ix,2) + &
+                               mill_local(3,igStart+ng-1)*bg_local(ix,3) 
             !! @todo Change this from local variable to being passed out and passed in to `gk_sort` @endtodo
         enddo
 
-        q2 = (xk_local (1, nk) + g (1, ng) ) **2 + (xk_local (2, nk) + g (2, ng) ) ** &
-             2 + (xk_local (3, nk) + g (3, ng) ) **2
+        q2 = (xk_local(1, nk) + gCart_local(1, ng) ) **2 + &
+             (xk_local(2, nk) + gCart_local(2, ng) ) **2 + &
+             (xk_local(3, nk) + gCart_local(3, ng) ) **2
 
         if (q2 <= vcut_local ) then
 
@@ -1396,7 +1397,7 @@ module wfcExportVASPMod
 
         else
 
-          if (sqrt (g (1, ng) **2 + g (2, ng) **2 + g (3, ng) **2) &
+          if (sqrt (gCart_local(1, ng) **2 + gCart_local(2, ng) **2 + gCart_local(3, ng) **2) &
                .gt. sqrt (xk_local (1, nk) **2 + xk_local (2, nk) **2 + xk_local (3, nk) **2) &
                + sqrt (vcut_local) ) goto 100
             ! if |G| > |k| + sqrt(Ecut)  stop search
