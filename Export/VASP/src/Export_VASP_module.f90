@@ -50,14 +50,14 @@ module wfcExportVASPMod
   real(kind=dp) :: ecutwfc_local
     !! Plane wave energy cutoff in Ry
     !! @todo Change back to `ecutwfc` once extracted from QE #end @endtodo
-  real(kind=dp) :: vcut_local
-    !! Energy cutoff converted to vector cutoff;
-    !! assumes \(a=1\)
   real(kind=dp) :: omega_local
     !! Volume of unit cell
     !! @todo Change back to `omega` once extracted from QE #end @endtodo
   real(kind=dp) :: tStart
     !! Start time
+  real(kind=dp) :: vcut_local
+    !! Energy cutoff converted to vector cutoff;
+    !! assumes \(a=1\)
   
   integer :: ierr
     !! Error returned by MPI
@@ -605,12 +605,11 @@ module wfcExportVASPMod
       !! Plane wave energy cutoff in Ry
     real(kind=dp), allocatable, intent(out) :: gCart_local(:,:)
       !! G-vectors in Cartesian coordinates
+    real(kind=dp), intent(out) :: omega_local
+      !! Volume of unit cell
     real(kind=dp), intent(out) :: vcut_local
       !! Energy cutoff converted to vector cutoff;
       !! assumes \(a=1\)
-      !! @todo Fix ordering now that changed name #thisbranch @endtodo
-    real(kind=dp), intent(out) :: omega_local
-      !! Volume of unit cell
     real(kind=dp), allocatable, intent(out) :: xk_local(:,:)
       !! Position of k-points in reciprocal space
 
