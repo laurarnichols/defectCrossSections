@@ -697,6 +697,12 @@ module wfcExportVASPMod
       write(stdout,*) 'b3 =', (sngl(bg_local(j,3)),j=1,3)
       write(stdout,*) 
 
+      !! @note
+      !!  I made an intentional choice to stick with the unscaled lattice
+      !!  vectors until I see if it will be convenient to scale them down.
+      !!  QE uses the `alat` and `tpiba` scaling quite a bit though, so I
+      !!  will have to be careful with the scaling/units.
+      !! @endnote
 
       call estimateMaxNumPlanewaves(bg_local, nb1max, nb2max, nb3max, npmax)
         !! @todo Figure out if other nodes need the output variables from here @endtodo
@@ -1501,6 +1507,72 @@ module wfcExportVASPMod
 
     return 
   end subroutine reconstructMainGrid
+
+!----------------------------------------------------------------------------
+  subroutine gkSort()
+    implicit none
+
+    ! Input variables:
+    real(kind=dp) :: ecutwfc_local
+      !! Plane wave energy cutoff in Ry
+    real(kind=dp) :: xk_local(3)
+      !! Position of k-point in reciprocal space
+
+
+    ! Output variables:
+
+
+    ! Local variables:
+    real(kind=dp) :: gcutwfc_local
+      !! Energy cutoff converted to vector cutoff
+    real(kind=dp) :: gMagMax
+      !! Upper bound for \(|G|\)
+
+
+    gcutwfc_local = ecutwfc_local/tpiba
+
+    gMagMax = ( sqrt( sum(xk_local(:)**2) ) + sqrt( gcutwfc_local ) )**2
+   
+    ngk = 0
+    igk(:) = 0
+    gk (:) = 0.0_dp
+   
+    DO ng = 1, ngm
+      q = sum( ( xk_local(:) + g(:,ng) )**2 )
+      IF(q<=eps8) q=0.d0
+      
+      ! ... here if |k+G|^2 <= Ecut
+      
+      IF ( q <= ecutwfc_local ) THEN
+        ngk = ngk + 1
+        IF ( ngk > npwx ) &
+          CALL errore( 'gk_sort', 'array gk out-of-bounds', 1 )
+         
+          gk(ngk) = q
+         
+          ! set the initial value of index array
+          igk(ngk) = ng
+      ELSE
+        ! if |G| > |k| + SQRT( Ecut )  stop search and order vectors
+        IF ( sum( g(:,ng)**2 ) > ( gMagMax + eps8 ) ) exit
+      ENDIF
+    ENDDO
+   
+    IF ( ng > ngm ) &
+      CALL infomsg( 'gk_sort', 'unexpected exit from do-loop')
+   
+    ! ... order vector gk keeping initial position in index
+   
+    CALL hpsort_eps( ngk, gk, igk, eps8 )
+   
+    ! ... now order true |k+G|
+   
+    DO nk = 1, ngk
+      gk(nk) = sum( (xk_local(:) + g(:,igk(nk)) )**2 )
+    ENDDO
+
+    return
+  end subroutine gkSort
 
 !----------------------------------------------------------------------------
   subroutine subroutineTemplate()
