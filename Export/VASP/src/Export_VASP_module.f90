@@ -1536,6 +1536,8 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine gkSort()
+    !! <h2>Walkthrough</h2>
+    !!
 
     implicit none
 
@@ -1576,14 +1578,18 @@ module wfcExportVASPMod
 
 
     gMagMax = ( sqrt( sum(xk_local(:)**2) ) + sqrt( vcut_local ) )**2
+      !! * Calculate the upper bound for \(|G|\)
    
     ngk = 0
     igk(:) = 0
     gkMod(:) = 0.0_dp
    
     DO ig = 1, ngm
+      !! * For each G-vector:
+      !!    * Calculate \(|G+k|\)
 
       q = sum( ( xk_local(:) + g(:,ig) )**2 )
+        ! Calculate \(|G+k|\)
 
       IF(q <= eps8) q = 0.d0
       
