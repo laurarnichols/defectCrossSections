@@ -1544,8 +1544,14 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: xk_local(3)
       !! Position of k-point in reciprocal space
 
+    integer, intent(in) :: npwx
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points
+
 
     ! Output variables:
+    integer, intent(out) :: igk(npwx)
+      !! Index map from \(G\) to \(G+k\)
     integer, intent(out) :: ngk
       !! Number of \(G+k\) vectors within vector cutoff
 
