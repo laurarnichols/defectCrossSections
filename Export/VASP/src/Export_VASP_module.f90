@@ -1552,8 +1552,9 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    real(kind=dp), intent(out) :: gk(npwx)
-      !! \(|G+k|\)
+    real(kind=dp), intent(out) :: gkMod(npwx)
+      !! \(|G+k|\);
+      !! only stored if less than `vcut_local`
 
     integer, intent(out) :: igk(npwx)
       !! Index map from \(G\) to \(G+k\)
@@ -1564,6 +1565,9 @@ module wfcExportVASPMod
     ! Local variables:
     real(kind=dp) :: gMagMax
       !! Upper bound for \(|G|\)
+    real(kind=dp) :: q
+      !! \(|G+k\);
+      !! stored in `gkMod` if less than `vcut_local`
 
     integer :: ig
       !! Loop index
@@ -1578,6 +1582,7 @@ module wfcExportVASPMod
     DO ig = 1, ngm
 
       q = sum( ( xk_local(:) + g(:,ig) )**2 )
+
       IF(q<=eps8) q=0.d0
       
       ! ... here if |k+G|^2 <= Ecut
