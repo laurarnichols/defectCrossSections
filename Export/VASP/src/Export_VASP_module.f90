@@ -1552,6 +1552,9 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    real(kind=dp), intent(out) :: gk(npwx)
+      !! \(|G+k|\)
+
     integer, intent(out) :: igk(npwx)
       !! Index map from \(G\) to \(G+k\)
     integer, intent(out) :: ngk
@@ -1567,8 +1570,7 @@ module wfcExportVASPMod
    
     ngk = 0
     igk(:) = 0
-    gk (:) = 0.0_dp
-      !! @todo Change this to `gkMod` and everywhere and add to variables @endtodo
+    gkMod(:) = 0.0_dp
    
     DO ng = 1, ngm
       q = sum( ( xk_local(:) + g(:,ng) )**2 )
@@ -1581,7 +1583,7 @@ module wfcExportVASPMod
         IF ( ngk > npwx ) &
           CALL errore( 'gk_sort', 'array gk out-of-bounds', 1 )
          
-          gk(ngk) = q
+          gkMod(ngk) = q
          
           ! set the initial value of index array
           igk(ngk) = ng
@@ -1596,12 +1598,12 @@ module wfcExportVASPMod
    
     ! ... order vector gk keeping initial position in index
    
-    CALL hpsort_eps( ngk, gk, igk, eps8 )
+    CALL hpsort_eps( ngk, gkMod, igk, eps8 )
    
     ! ... now order true |k+G|
    
     DO nk = 1, ngk
-      gk(nk) = sum( (xk_local(:) + g(:,igk(nk)) )**2 )
+      gkMod(nk) = sum( (xk_local(:) + g(:,igk(nk)) )**2 )
     ENDDO
 
     return
