@@ -39,6 +39,7 @@ module wfcExportVASPMod
   real(kind = dp), parameter :: ryToHartree = 0.5_dp
     !! Conversion factor from Rydberg to Hartree
   real(kind = dp), parameter :: twoPiSquared = 39.47841760435743_dp
+    !! This is used in place of \(2\pi/a\) which assumes that \(a=1\)
 
   real(kind=dp) :: at_local(3,3)
     !! Real space lattice vectors
@@ -835,6 +836,8 @@ module wfcExportVASPMod
     real(kind=dp) :: b1mag, b2mag, b3mag
       !! Reciprocal vector magnitudes
     real(kind=dp) :: c = 0.26246582250210965422
+      !! \(2m/\hbar^2\) converted from J\(^{-1}\)m\(^{-2}\)
+      !! to eV\(^{-1}\)A\(^{-2}\)
     real(kind=dp) :: phi12, phi13, phi23
       !! Angle between vectors
     real(kind=dp) :: sinphi123
@@ -1154,7 +1157,8 @@ module wfcExportVASPMod
 
     ! Local variables:
     real(kind=dp) :: c = 0.26246582250210965422
-      !! \(2m/\hbar^2\)
+      !! \(2m/\hbar^2\) converted from J\(^{-1}\)m\(^{-2}\)
+      !! to eV\(^{-1}\)A\(^{-2}\)
     real(kind=dp) :: etot
       !! Total energy for a G-vector
     real(kind=dp) :: gtot
