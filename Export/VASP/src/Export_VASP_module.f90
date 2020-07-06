@@ -1353,12 +1353,23 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(npmax, mill_local, igStart, ngm_local, nkstot_local, nk_Pool, bg_local, &
-      vcut_local, xk_local, gCart_local, ngk_local, npwx_local)
+  subroutine getNumGkVectors()
 
     use gvect, only : ig_l2g
 
     implicit none
+
+    ! Input variables:
+
+
+    ! Output variables:
+
+
+    ! Local variables:
+
+
+
+
 
     ! Input variables:
     integer, intent(in) :: npmax
