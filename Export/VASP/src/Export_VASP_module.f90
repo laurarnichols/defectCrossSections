@@ -132,7 +132,8 @@ module wfcExportVASPMod
   integer, allocatable :: mill_local(:,:)
     !! Integer coefficients for G-vectors on each processor
   integer, allocatable :: igk_l2g(:,:)
-    !! ??Not sure what this is
+    !! Local to global indices for \(G+k\) vectors 
+    !! ordered by magnitude at a given k-point
   integer, allocatable :: itmp_g(:,:)
     !! Integer coefficients for G-vectors on all processors
   integer, allocatable :: ngk_g(:)
@@ -1459,6 +1460,9 @@ module wfcExportVASPMod
       ! Integer coefficients for G-vectors on each processor
 
     ! Output variables:
+    !integer, allocatable, intent(out) :: igk_l2g(:,:)
+      ! Local to global indices for \(G+k\) vectors 
+      ! ordered by magnitude at a given k-point
     !integer, allocatable, intent(out) :: itmp_g(:,:)
       ! Integer coefficients for G-vectors on all processors
 
@@ -1470,7 +1474,6 @@ module wfcExportVASPMod
       !! Index map from \(G\) to \(G+k\)
 
 
-    ! find out the global number of G vectors: ngm_g
     ngm_g = ngm
       !! @note
       !!  I think that the equivalent value for `ngm_g`  is set in `readWAVECAR`,
@@ -1495,7 +1498,6 @@ module wfcExportVASPMod
     !>  indices across all processors. `ig_l2g` takes the local index `ig` and converts to
     !>  a global index (`l2g` means local to global). 
     !> @endnote
-  
     ALLOCATE( itmp_g( 3, ngm_g ) )
 
     itmp_g = 0
@@ -1504,6 +1506,10 @@ module wfcExportVASPMod
       itmp_g( 2, ig_l2g( ig ) ) = mill(2,ig )
       itmp_g( 3, ig_l2g( ig ) ) = mill(3,ig )
     ENDDO
+      !! @note
+      !!  May not need to get `itmp_g` if just make `mill` global
+      !!  and use specific indices to access values for this process.
+      !! @endnote
   
     CALL mp_sum( itmp_g , intra_pool_comm_local )
       ! Combine all results into a single global array
