@@ -1447,7 +1447,7 @@ module wfcExportVASPMod
     !! @todo Add arguments to this and rearrange variables #thisbranch @endtodo
 
     use gvect, only : g, ngm, ngm_g, ig_l2g, mill
-    use wvfct, only : npwx, npw, g2kin
+    use wvfct, only : npwx, g2kin
     use klist, only : nks, xk, ngk
     use cell_base, only : tpiba2
 
@@ -1494,6 +1494,10 @@ module wfcExportVASPMod
       !! Loop indices
     integer, allocatable :: igk(:)
       !! Index map from \(G\) to \(G+k\)
+    integer :: ngk_tmp
+      !! Temporary local variable to store
+      !! `ngk(ik)` so that don't have to 
+      !! keep reading from array
 
 
     ngm_g = ngm
@@ -1542,23 +1546,22 @@ module wfcExportVASPMod
     ALLOCATE ( igk( npwx ) )
     DO ik = 1, nk_Pool
       igk = 0
-      CALL gk_sort (xk_local(1, ik+ikStart-1), ngm, g, vcut_local, npw, igk, g2kin)
+      CALL gk_sort (xk_local(1, ik+ikStart-1), ngm, g, vcut_local, ngk_tmp, igk, g2kin)
         !! @todo Figure out what `gk_sort` subroutine does #thisbranch @endtodo
-        !! @todo Change `npw` here to `ngk(ik)` #thisbranch @endtodo
         !! @todo Change `g2kin` to `gkMod` and assign `g2kin=gkMod` for QE #thisbranch @endtodo
         !! @todo Change `g` to `gCart_local` once extracted from QE #end @endtodo
 
       ! mapping between local and global G vector index, for this kpoint
      
-      DO ig = 1, npw
+      DO ig = 1, ngk_tmp
         
         igk_l2g(ig,ik) = ig_l2g( igk(ig) )
         
       ENDDO
      
-      igk_l2g( npw+1 : npwx, ik ) = 0
+      igk_l2g( ngk_tmp+1 : npwx, ik ) = 0
      
-      ngk (ik) = npw
+      ngk (ik) = ngk_tmp
 
     ENDDO
     DEALLOCATE(igk)
