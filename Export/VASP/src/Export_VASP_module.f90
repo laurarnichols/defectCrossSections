@@ -1355,6 +1355,9 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine getNumGkVectors(npmax, mill_local, igStart, ngm_local, nkstot_local, nk_Pool, bg_local, &
       vcut_local, xk_local, gCart_local, ngk_local, npwx_local)
+
+    use gvect, only : ig_l2g
+
     implicit none
 
     ! Input variables:
@@ -1363,6 +1366,8 @@ module wfcExportVASPMod
 
     integer, intent(in) :: mill_local(3,npmax)
       !! Integer coefficients for G-vectors
+    !integer, intent(in) :: ig_l2g(ngm_local)
+      ! Converts local index `ig` to global index
     integer, intent(in) :: igStart
       !! Starting index for G-vectors across processors 
     integer, intent(in) :: ngm_local
@@ -1376,6 +1381,9 @@ module wfcExportVASPMod
       !! Reciprocal lattice vectors
     real(kind=dp), intent(in) :: gCart_local(3,ngm_local)
       !! G-vectors in Cartesian coordinates
+    real(kind=dp), intent(out) :: gkMod(ngm_local)
+      !! \(|G+k|^2\);
+      !! only stored if less than `vcut_local`
     real(kind=dp), intent(in) :: vcut_local
       !! Energy cutoff converted to vector cutoff;
       !! assumes \(a=1\)
@@ -1384,6 +1392,9 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    integer, allocatable, intent(out) :: igk_l2g(:,:)
+      !! Local to global indices for \(G+k\) vectors 
+      !! ordered by magnitude at a given k-point
     integer, intent(out) :: ngk_local(nk_Pool)
       !! Number of \(G+k\) vectors with energy
       !! less than `ecutwfc_local`
@@ -1394,19 +1405,34 @@ module wfcExportVASPMod
 
 
     ! Local variables:
+    real(kind=dp) :: eps8 = 1.0E-8_dp
+      !! Double precision zero
     real(kind=dp) :: q2
       !! \(q^2\) where \(q = G+k\)
 
+    integer, allocatable :: igk_large(:)
+      !! Index map from \(G\) to \(G+k\)
+      !! indexed up to `npwx_local`
+    integer :: igk_large(nk,ngm_local)
+      !! Index map from \(G\) to \(G+k\);
+      !! indexed up to `ngm_local` which
+      !! is greater than `npwx_local` and
+      !! stored for each k-point
     integer :: nk, ng
       !! Loop indices
       !! @todo Change these to `ik` and `ig` for consistency @endtodo
+    integer :: ngk_tmp
+      !! Temporary variable to hold `ngk_local`
+      !! value so that don't have to keep accessing
+      !! array
 
     
     npwx_local = 0
+    ngk_local(:) = 0
 
     do nk = 1, nk_Pool
 
-      ngk_local(nk) = 0
+      ngk_tmp = 0
 
       do ng = 1, ngm_local
 
@@ -1414,11 +1440,17 @@ module wfcExportVASPMod
           ! Calculate \(|G+k|^2\)
 
         IF(q2 <= eps8) q = 0.d0
-
+   
+   
         if (q2 <= vcut_local ) then
 
-          ngk_local(nk) = ngk_local(nk) + 1
+          ngk_tmp = ngk_tmp + 1
             ! here if |k+G|^2 <= Ecut increase the number of G inside the sphere
+
+          gkMod(ngk_tmp) = q2
+
+          igk_large(nk,ngk_tmp) = ng
+            ! set the initial value of index array
 
         else
 
@@ -1428,7 +1460,11 @@ module wfcExportVASPMod
 
         endif
       enddo
-100   npwx_local = max (npwx_local, ngk_local(nk) )
+
+100   npwx_local = max (npwx_local, ngk_tmp )
+      
+      ngk_local(nk) = ngk_tmp
+
     enddo
 
     if (npwx_local <= 0) call exitError('getNumGkVectors', &
@@ -1438,6 +1474,64 @@ module wfcExportVASPMod
     ! (you may run into trouble at restart otherwise)
 
     CALL mp_max ( npwx_local, inter_pool_comm_local )
+
+
+    !> @note 
+    !>  `mill` is the Miller indices to generate the G-vectors from the reciprocal vectors 
+    !>  that is local to each processor. `itmp_g` is an array that contains all Miller
+    !>  indices across all processors. `ig_l2g` takes the local index `ig` and converts to
+    !>  a global index (`l2g` means local to global). 
+    !> @endnote
+    allocate(itmp_g(3,ngm_g_local))
+
+    itmp_g = 0
+    DO  ig = 1, ngm_local
+      itmp_g(1, ig_l2g(ig)) = mill_local(1,ig)
+      itmp_g(2, ig_l2g(ig)) = mill_local(2,ig)
+      itmp_g(3, ig_l2g(ig)) = mill_local(3,ig)
+    ENDDO
+  
+    CALL mp_sum( itmp_g , intra_pool_comm_local )
+      ! Combine all results into a single global array
+
+    allocate(igk_l2g(npwx_local,nk_Pool))
+    allocate(igk(npwx_local))
+
+    do nk = 1, nk_Pool
+
+      ngk_tmp = ngk_local(nk)
+
+      igk(1:npwx_local) = igk_large(nk,1:ngk_tmp)
+
+      call hpsort_eps( ngk_tmp, gkMod, igk, eps8 )
+        !! Order vector gk keeping initial position in index
+
+      do ng = 1, ngk_tmp
+        
+        igk_l2g(ng,nk) = ig_l2g( igk(ng) )
+          !! @todo Generate own `ig_l2g` #thisbranch @endtodo
+        
+      enddo
+     
+      igk_l2g( ngk_tmp(nk)+1 : npwx_local, nk ) = 0
+
+    enddo
+
+    deallocate(igk)
+
+    ! compute the global number of G+k vectors for each k point
+    ALLOCATE( ngk_g( nkstot_local ) )
+    ngk_g = 0
+    ngk_g( ikStart:ikEnd ) = ngk( 1:nk_Pool )
+      !! @todo Make `ikStart` and `ikEnd` just global variables #thisbranch @endtodo
+    CALL mp_sum( ngk_g, world_comm_local )
+
+    ! compute the Maximum G vector index among all G+k and processors
+    npw_g = maxval( igk_l2g(:,:) )
+    CALL mp_max( npw_g, world_comm_local )
+
+    ! compute the Maximum number of G vector among all k points
+    npwx_g = maxval( ngk_g( 1:nkstot_local ) )
 
     return
   end subroutine getNumGkVectors
@@ -1483,9 +1577,6 @@ module wfcExportVASPMod
       ! Integer coefficients for G-vectors on each processor
 
     ! Output variables:
-    integer, allocatable, intent(out) :: igk_l2g(:,:)
-      !! Local to global indices for \(G+k\) vectors 
-      !! ordered by magnitude at a given k-point
     integer, allocatable, intent(out) :: itmp_g(:,:)
       !! Integer coefficients for G-vectors on all processors
 
@@ -1493,12 +1584,6 @@ module wfcExportVASPMod
     ! Local variables
     integer :: ig, ik
       !! Loop indices
-    integer, allocatable :: igk(:)
-      !! Index map from \(G\) to \(G+k\)
-    integer :: ngk_tmp
-      !! Temporary local variable to store
-      !! `ngk(ik)` so that don't have to 
-      !! keep reading from array
 
 
     ngm_g = ngm
@@ -1518,68 +1603,6 @@ module wfcExportVASPMod
     
     endif
 
-
-    !> @note 
-    !>  `mill` is the Miller indices to generate the G-vectors from the reciprocal vectors 
-    !>  that is local to each processor. `itmp_g` is an array that contains all Miller
-    !>  indices across all processors. `ig_l2g` takes the local index `ig` and converts to
-    !>  a global index (`l2g` means local to global). 
-    !> @endnote
-    ALLOCATE( itmp_g( 3, ngm_g ) )
-
-    itmp_g = 0
-    DO  ig = 1, ngm
-      itmp_g( 1, ig_l2g( ig ) ) = mill(1,ig )
-      itmp_g( 2, ig_l2g( ig ) ) = mill(2,ig )
-      itmp_g( 3, ig_l2g( ig ) ) = mill(3,ig )
-    ENDDO
-      !! @note
-      !!  May not need to get `itmp_g` if just make `mill` global
-      !!  and use specific indices to access values for this process.
-      !! @endnote
-  
-    CALL mp_sum( itmp_g , intra_pool_comm_local )
-      ! Combine all results into a single global array
-
-
-    ! build the G+k array indexes
-    ALLOCATE ( igk_l2g ( npwx, nk_Pool ) )
-    ALLOCATE ( igk( npwx ) )
-    DO ik = 1, nk_Pool
-      igk = 0
-      CALL gk_sort (xk_local(1, ik+ikStart-1), ngm, g, vcut_local, ngk_tmp, igk, g2kin)
-        !! @todo Figure out what `gk_sort` subroutine does #thisbranch @endtodo
-        !! @todo Remove `g2kin` once extracted from QE #end @endtodo
-        !! @todo Change `g` to `gCart_local` once extracted from QE #end @endtodo
-
-      ! mapping between local and global G vector index, for this kpoint
-     
-      DO ig = 1, ngk_tmp
-        
-        igk_l2g(ig,ik) = ig_l2g( igk(ig) )
-        
-      ENDDO
-     
-      igk_l2g( ngk_tmp+1 : npwx, ik ) = 0
-     
-      ngk (ik) = ngk_tmp
-
-    ENDDO
-    DEALLOCATE(igk)
-
-    ! compute the global number of G+k vectors for each k point
-    ALLOCATE( ngk_g( nkstot_local ) )
-    ngk_g = 0
-    ngk_g( ikStart:ikEnd ) = ngk( 1:nk_Pool )
-      !! @todo Make `ikStart` and `ikEnd` just global variables #thisbranch @endtodo
-    CALL mp_sum( ngk_g, world_comm_local )
-
-    ! compute the Maximum G vector index among all G+k and processors
-    npw_g = maxval( igk_l2g(:,:) )
-    CALL mp_max( npw_g, world_comm_local )
-
-    ! compute the Maximum number of G vector among all k points
-    npwx_g = maxval( ngk_g( 1:nkstot_local ) )
 
     return 
   end subroutine reconstructMainGrid
