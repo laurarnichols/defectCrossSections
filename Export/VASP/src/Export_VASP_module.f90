@@ -1399,6 +1399,7 @@ module wfcExportVASPMod
 
     integer :: nk, ng
       !! Loop indices
+      !! @todo Change these to `ik` and `ig` for consistency @endtodo
 
     
     npwx_local = 0
