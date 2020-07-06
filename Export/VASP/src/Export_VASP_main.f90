@@ -69,7 +69,7 @@ program wfcExportVASPMain
 
   stop
 
-  call reconstructMainGrid(nk_Pool, igk_l2g, itmp_g)
+  call reconstructMainGrid(nk_Pool, nkstot_local, xk_local, igk_l2g, itmp_g)
 
   CALL write_export (mainOutputFile, exportDir)
 

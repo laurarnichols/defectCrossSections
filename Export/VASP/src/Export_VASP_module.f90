@@ -1442,7 +1442,7 @@ module wfcExportVASPMod
   end subroutine getNumGkVectors
 
 !----------------------------------------------------------------------------
-  subroutine reconstructMainGrid(nk_Pool, igk_l2g, itmp_g)
+  subroutine reconstructMainGrid(nk_Pool, nkstot_local, xk_local, igk_l2g, itmp_g)
     !! @todo Add arguments to this and rearrange variables #thisbranch @endtodo
 
     use gvect, only : g, ngm, ngm_g, ig_l2g, mill
@@ -1459,10 +1459,15 @@ module wfcExportVASPMod
       ! Global number of G-vectors
     integer, intent(in) :: nk_Pool
       !! Number of k-points in each pool
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
     !integer, intent(in) :: npwx_local
       ! Maximum number of \(G+k\) vectors
       ! across all k-points for just this 
       ! processor
+
+    real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
+      !! Position of k-points in reciprocal space
 
 
     !integer, intent(in) :: ig_l2g(ngm_local)
@@ -1533,7 +1538,7 @@ module wfcExportVASPMod
       igk = 0
       npw = npwx
         !! @todo Remove this because this variable is `intent(out)` in `gk_sort` #thisbranch @endtodo
-      CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, igk, g2kin)
+      CALL gk_sort (xk_local(1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, igk, g2kin)
         !! @todo Figure out what `gk_sort` subroutine does #thisbranch @endtodo
         !! @todo Change `ecutwfc_local/tpiba2` to `vcut_local` #thisbranch @endtodo
         !! @todo Change `npw` here to `ngk(ik)` #thisbranch @endtodo
