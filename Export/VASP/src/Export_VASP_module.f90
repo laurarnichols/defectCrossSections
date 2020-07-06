@@ -1542,8 +1542,6 @@ module wfcExportVASPMod
     ALLOCATE ( igk( npwx ) )
     DO ik = 1, nk_Pool
       igk = 0
-      npw = npwx
-        !! @todo Remove this because this variable is `intent(out)` in `gk_sort` #thisbranch @endtodo
       CALL gk_sort (xk_local(1, ik+ikStart-1), ngm, g, vcut_local, npw, igk, g2kin)
         !! @todo Figure out what `gk_sort` subroutine does #thisbranch @endtodo
         !! @todo Change `npw` here to `ngk(ik)` #thisbranch @endtodo
