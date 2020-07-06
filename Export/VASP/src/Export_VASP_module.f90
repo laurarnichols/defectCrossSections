@@ -1545,6 +1545,7 @@ module wfcExportVASPMod
         !! @todo Change `ecutwfc_local/tpiba2` to `vcut_local` #thisbranch @endtodo
         !! @todo Change `npw` here to `ngk(ik)` #thisbranch @endtodo
         !! @todo Change `g2kin` to `gkMod` and assign `g2kin=gkMod` for QE #thisbranch @endtodo
+        !! @todo Change `g` to `gCart_local` once extracted from QE #end @endtodo
 
       ! mapping between local and global G vector index, for this kpoint
      
