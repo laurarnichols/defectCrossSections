@@ -1410,6 +1410,8 @@ module wfcExportVASPMod
     real(kind=dp) :: q2
       !! \(q^2\) where \(q = G+k\)
 
+    integer :: ik, ig
+      !! Loop indices
     integer, allocatable :: igk_large(:)
       !! Index map from \(G\) to \(G+k\)
       !! indexed up to `npwx_local`
@@ -1418,9 +1420,6 @@ module wfcExportVASPMod
       !! indexed up to `ngm_local` which
       !! is greater than `npwx_local` and
       !! stored for each k-point
-    integer :: nk, ng
-      !! Loop indices
-      !! @todo Change these to `ik` and `ig` for consistency @endtodo
     integer :: ngk_tmp
       !! Temporary variable to hold `ngk_local`
       !! value so that don't have to keep accessing
@@ -1430,13 +1429,13 @@ module wfcExportVASPMod
     npwx_local = 0
     ngk_local(:) = 0
 
-    do nk = 1, nk_Pool
+    do ik = 1, nk_Pool
 
       ngk_tmp = 0
 
-      do ng = 1, ngm_local
+      do ig = 1, ngm_local
 
-        q2 = sum( ( xk_local(:,nk+ikStart-1) + gCart_local(:,ng) )**2 )
+        q2 = sum( ( xk_local(:,ik+ikStart-1) + gCart_local(:,ig) )**2 )
           ! Calculate \(|G+k|^2\)
 
         IF(q2 <= eps8) q = 0.d0
@@ -1449,13 +1448,13 @@ module wfcExportVASPMod
 
           gkMod(ngk_tmp) = q2
 
-          igk_large(nk,ngk_tmp) = ng
+          igk_large(ik,ngk_tmp) = ig
             ! set the initial value of index array
 
         else
 
-          if (sqrt (sum(gCart_local(:, ng)**2) .gt. &
-            sqrt (sum(xk_local(:,nk+ikStart-1)**2) + sqrt(vcut_local) ) goto 100
+          if (sqrt (sum(gCart_local(:, ig)**2) .gt. &
+            sqrt (sum(xk_local(:,ik+ikStart-1)**2) + sqrt(vcut_local) ) goto 100
             ! if |G| > |k| + sqrt(Ecut)  stop search
 
         endif
@@ -1497,23 +1496,23 @@ module wfcExportVASPMod
     allocate(igk_l2g(npwx_local,nk_Pool))
     allocate(igk(npwx_local))
 
-    do nk = 1, nk_Pool
+    do ik = 1, nk_Pool
 
-      ngk_tmp = ngk_local(nk)
+      ngk_tmp = ngk_local(ik)
 
-      igk(1:npwx_local) = igk_large(nk,1:ngk_tmp)
+      igk(1:npwx_local) = igk_large(ik,1:ngk_tmp)
 
       call hpsort_eps( ngk_tmp, gkMod, igk, eps8 )
         !! Order vector gk keeping initial position in index
 
-      do ng = 1, ngk_tmp
+      do ig = 1, ngk_tmp
         
-        igk_l2g(ng,nk) = ig_l2g( igk(ng) )
+        igk_l2g(ig,ik) = ig_l2g( igk(ig) )
           !! @todo Generate own `ig_l2g` #thisbranch @endtodo
         
       enddo
      
-      igk_l2g( ngk_tmp(nk)+1 : npwx_local, nk ) = 0
+      igk_l2g( ngk_tmp(ik)+1 : npwx_local, ik ) = 0
 
     enddo
 
