@@ -1438,7 +1438,7 @@ module wfcExportVASPMod
         q2 = sum( ( xk_local(:,ik+ikStart-1) + gCart_local(:,ig) )**2 )
           ! Calculate \(|G+k|^2\)
 
-        IF(q2 <= eps8) q = 0.d0
+        IF(q2 <= eps8) q2 = 0.d0
    
    
         if (q2 <= vcut_local ) then
@@ -1462,7 +1462,7 @@ module wfcExportVASPMod
 
 100   npwx_local = max (npwx_local, ngk_tmp )
       
-      ngk_local(nk) = ngk_tmp
+      ngk_local(ik) = ngk_tmp
 
     enddo
 
@@ -1512,7 +1512,7 @@ module wfcExportVASPMod
         
       enddo
      
-      igk_l2g( ngk_tmp(ik)+1 : npwx_local, ik ) = 0
+      igk_l2g( ngk_tmp+1 : npwx_local, ik ) = 0
 
     enddo
 
@@ -1521,7 +1521,7 @@ module wfcExportVASPMod
     ! compute the global number of G+k vectors for each k point
     ALLOCATE( ngk_g( nkstot_local ) )
     ngk_g = 0
-    ngk_g( ikStart:ikEnd ) = ngk( 1:nk_Pool )
+    ngk_g( ikStart:ikEnd ) = ngk_local( 1:nk_Pool )
       !! @todo Make `ikStart` and `ikEnd` just global variables #thisbranch @endtodo
     CALL mp_sum( ngk_g, world_comm_local )
 
@@ -1609,6 +1609,7 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine gkSort()
     !! @todo Add arguments to this #thisbranch @endtodo
+    !! @todo Figure out if need later call to `gk_sort` #thisbranch @endtodo
     !! <h2>Walkthrough</h2>
     !!
 
