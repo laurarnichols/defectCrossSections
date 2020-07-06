@@ -1353,10 +1353,12 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(npwx_local)
+  subroutine getNumGkVectors(ngk_local, npwx_local)
 
     use gvect, only : ig_l2g
     use wvfct, only : npwx
+    use klist, only : ngk
+      !! @todo Remove this once extracted from QE #end @endtodo
 
     implicit none
 
@@ -1364,6 +1366,9 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    integer, intent(out) :: ngk_local(nk_Pool)
+      !! Number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local`
     integer, intent(out) :: npwx_local
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this 
@@ -1411,9 +1416,6 @@ module wfcExportVASPMod
     integer, allocatable, intent(out) :: igk_l2g(:,:)
       !! Local to global indices for \(G+k\) vectors 
       !! ordered by magnitude at a given k-point
-    integer, intent(out) :: ngk_local(nk_Pool)
-      !! Number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local`
 
 
     ! Local variables:
@@ -1532,7 +1534,7 @@ module wfcExportVASPMod
     ! compute the global number of G+k vectors for each k point
     ALLOCATE( ngk_g( nkstot_local ) )
     ngk_g = 0
-    ngk_g( ikStart:ikEnd ) = ngk_local( 1:nk_Pool )
+    ngk_g( ikStart:ikEnd ) = ngk_local(1:nk_Pool)
       !! @todo Make `ikStart` and `ikEnd` just global variables #thisbranch @endtodo
     CALL mp_sum( ngk_g, world_comm_local )
 
@@ -1545,6 +1547,7 @@ module wfcExportVASPMod
 
 
     npwx = npwx_local
+    ngk = ngk_local
 
     return
   end subroutine getNumGkVectors
