@@ -1442,7 +1442,8 @@ module wfcExportVASPMod
   end subroutine getNumGkVectors
 
 !----------------------------------------------------------------------------
-  subroutine reconstructMainGrid(nk_Pool, nkstot_local, xk_local, igk_l2g, itmp_g)
+  subroutine reconstructMainGrid(nk_Pool, nkstot_local, vcut_local, xk_local, igk_l2g, &
+      itmp_g)
     !! @todo Add arguments to this and rearrange variables #thisbranch @endtodo
 
     use gvect, only : g, ngm, ngm_g, ig_l2g, mill
@@ -1468,6 +1469,9 @@ module wfcExportVASPMod
 
     !real(kind=dp), intent(in) :: gCart_local(3,ngm_local)
       ! G-vectors in Cartesian coordinates
+    real(kind=dp), intent(in) :: vcut_local
+      !! Energy cutoff converted to vector cutoff;
+      !! assumes \(a=1\)
     real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
       !! Position of k-points in reciprocal space
 
@@ -1540,9 +1544,8 @@ module wfcExportVASPMod
       igk = 0
       npw = npwx
         !! @todo Remove this because this variable is `intent(out)` in `gk_sort` #thisbranch @endtodo
-      CALL gk_sort (xk_local(1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, igk, g2kin)
+      CALL gk_sort (xk_local(1, ik+ikStart-1), ngm, g, vcut_local, npw, igk, g2kin)
         !! @todo Figure out what `gk_sort` subroutine does #thisbranch @endtodo
-        !! @todo Change `ecutwfc_local/tpiba2` to `vcut_local` #thisbranch @endtodo
         !! @todo Change `npw` here to `ngk(ik)` #thisbranch @endtodo
         !! @todo Change `g2kin` to `gkMod` and assign `g2kin=gkMod` for QE #thisbranch @endtodo
         !! @todo Change `g` to `gCart_local` once extracted from QE #end @endtodo
