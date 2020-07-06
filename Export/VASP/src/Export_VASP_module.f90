@@ -1212,10 +1212,10 @@ module wfcExportVASPMod
       !! processor
  
 
-   if(ionode_local) then
-     ngm_g_local = 0
+    if(ionode_local) then
+      ngm_g_local = 0
 
-     do ig3 = 0, 2*nb3max
+      do ig3 = 0, 2*nb3max
 
         ig3p = ig3
 
@@ -1273,6 +1273,8 @@ module wfcExportVASPMod
       !!  Could also leave global and just be careful about indices used. `mill_local`
       !!  actually matches `itmp_g` used in `reconstructMainGrid`.
       !! @endnote
+
+    allocate(gCart_local(3,ngm_local))
 
     do ig = 1, ngm_local
 
@@ -1372,7 +1374,7 @@ module wfcExportVASPMod
 
     real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
-    real(kind=dp), allocatable, intent(in) :: gCart_local(:,:)
+    real(kind=dp), intent(in) :: gCart_local(3,ngm_local)
       !! G-vectors in Cartesian coordinates
     real(kind=dp), intent(in) :: vcut_local
       !! Energy cutoff converted to vector cutoff;
@@ -1399,8 +1401,6 @@ module wfcExportVASPMod
       !! Loop indices
 
     
-    allocate(gCart_local(3,ngm_local))
-
     npwx_local = 0
 
     do nk = 1, nk_Pool
@@ -1466,6 +1466,8 @@ module wfcExportVASPMod
       ! across all k-points for just this 
       ! processor
 
+    !real(kind=dp), intent(in) :: gCart_local(3,ngm_local)
+      ! G-vectors in Cartesian coordinates
     real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
       !! Position of k-points in reciprocal space
 
