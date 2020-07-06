@@ -1410,9 +1410,10 @@ module wfcExportVASPMod
 
       do ng = 1, ngm_local
 
-        q2 = (xk_local(1, nk) + gCart_local(1, ng) ) **2 + &
-             (xk_local(2, nk) + gCart_local(2, ng) ) **2 + &
-             (xk_local(3, nk) + gCart_local(3, ng) ) **2
+        q2 = sum( ( xk_local(:,nk+ikStart-1) + gCart_local(:,ng) )**2 )
+          ! Calculate \(|G+k|^2\)
+
+        IF(q2 <= eps8) q = 0.d0
 
         if (q2 <= vcut_local ) then
 
@@ -1421,9 +1422,8 @@ module wfcExportVASPMod
 
         else
 
-          if (sqrt (gCart_local(1, ng) **2 + gCart_local(2, ng) **2 + gCart_local(3, ng) **2) &
-               .gt. sqrt (xk_local (1, nk) **2 + xk_local (2, nk) **2 + xk_local (3, nk) **2) &
-               + sqrt (vcut_local) ) goto 100
+          if (sqrt (sum(gCart_local(:, ng)**2) .gt. &
+            sqrt (sum(xk_local(:,nk+ikStart-1)**2) + sqrt(vcut_local) ) goto 100
             ! if |G| > |k| + sqrt(Ecut)  stop search
 
         endif
