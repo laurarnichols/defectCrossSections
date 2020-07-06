@@ -1548,7 +1548,7 @@ module wfcExportVASPMod
       igk = 0
       CALL gk_sort (xk_local(1, ik+ikStart-1), ngm, g, vcut_local, ngk_tmp, igk, g2kin)
         !! @todo Figure out what `gk_sort` subroutine does #thisbranch @endtodo
-        !! @todo Change `g2kin` to `gkMod` and assign `g2kin=gkMod` for QE #thisbranch @endtodo
+        !! @todo Remove `g2kin` once extracted from QE #end @endtodo
         !! @todo Change `g` to `gCart_local` once extracted from QE #end @endtodo
 
       ! mapping between local and global G vector index, for this kpoint
@@ -1607,6 +1607,7 @@ module wfcExportVASPMod
     real(kind=dp), intent(out) :: gkMod(npwx)
       !! \(|G+k|\);
       !! only stored if less than `vcut_local`
+      !! @todo Remove passing `gkMod` out once extracted from QE #end @endtodo
 
     integer, intent(out) :: igk(npwx)
       !! Index map from \(G\) to \(G+k\)
