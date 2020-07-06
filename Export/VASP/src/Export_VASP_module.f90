@@ -1606,7 +1606,7 @@ module wfcExportVASPMod
 
     ! Output variables:
     real(kind=dp), intent(out) :: gkMod(npwx)
-      !! \(|G+k|\);
+      !! \(|G+k|^2\);
       !! only stored if less than `vcut_local`
       !! @todo Remove passing `gkMod` out once extracted from QE #end @endtodo
 
@@ -1622,7 +1622,7 @@ module wfcExportVASPMod
     real(kind=dp) :: gMagMax
       !! Upper bound for \(|G|\)
     real(kind=dp) :: q
-      !! \(|G+k\);
+      !! \(|G+k|^2\);
       !! stored in `gkMod` if less than `vcut_local`
 
     integer :: ig
@@ -1641,7 +1641,7 @@ module wfcExportVASPMod
       !!    * Calculate \(|G+k|\)
 
       q = sum( ( xk_local(:) + g(:,ig) )**2 )
-        ! Calculate \(|G+k|\)
+        ! Calculate \(|G+k|^2\)
 
       IF(q <= eps8) q = 0.d0
       
