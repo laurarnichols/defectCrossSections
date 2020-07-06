@@ -1353,9 +1353,10 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors()
+  subroutine getNumGkVectors(npwx_local)
 
     use gvect, only : ig_l2g
+    use wvfct, only : npwx
 
     implicit none
 
@@ -1363,6 +1364,10 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    integer, intent(out) :: npwx_local
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points for just this 
+      !! processor
 
 
     ! Local variables:
@@ -1409,10 +1414,6 @@ module wfcExportVASPMod
     integer, intent(out) :: ngk_local(nk_Pool)
       !! Number of \(G+k\) vectors with energy
       !! less than `ecutwfc_local`
-    integer, intent(out) :: npwx_local
-      !! Maximum number of \(G+k\) vectors
-      !! across all k-points for just this 
-      !! processor
 
 
     ! Local variables:
@@ -1471,7 +1472,7 @@ module wfcExportVASPMod
         endif
       enddo
 
-100   npwx_local = max (npwx_local, ngk_tmp )
+100   npwx_local = max(npwx_local, ngk_tmp)
       
       ngk_local(ik) = ngk_tmp
 
@@ -1480,10 +1481,9 @@ module wfcExportVASPMod
     if (npwx_local <= 0) call exitError('getNumGkVectors', &
                 'No plane waves found: running on too many processors?', 1)
 
-    ! when using pools, set npwx_local to the maximum value across pools
-    ! (you may run into trouble at restart otherwise)
-
-    CALL mp_max ( npwx_local, inter_pool_comm_local )
+    CALL mp_max(npwx_local, inter_pool_comm_local)
+      !! When using pools, set `npwx_local` to the maximum value across pools
+      !! (you may run into trouble at restart otherwise)
 
 
     !> @note 
@@ -1542,6 +1542,9 @@ module wfcExportVASPMod
 
     ! compute the Maximum number of G vector among all k points
     npwx_g = maxval( ngk_g( 1:nkstot_local ) )
+
+
+    npwx = npwx_local
 
     return
   end subroutine getNumGkVectors
