@@ -126,8 +126,6 @@ module wfcExportVASPMod
     !! If this node is the root node
     !! @todo Change back to `ionode` once extracted from QE #end @endtodo
 
-  real(kind=dp), allocatable :: gCart_local(:,:)
-    !! G-vectors in Cartesian coordinates
   real(kind=dp), allocatable :: xk_local(:,:)
     !! Position of k-points in reciprocal space
 
@@ -579,7 +577,7 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, nspin_local, ecutwfc_local, vcut_local, at_local, &
       nkstot_local, nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, &
-      ngm_local, gCart_local, nk_Pool, itmp_g)
+      ngm_local, nk_Pool, itmp_g)
     !! Read data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -604,8 +602,6 @@ module wfcExportVASPMod
       !! Reciprocal lattice vectors
     real(kind=dp), intent(out) :: ecutwfc_local
       !! Plane wave energy cutoff in Ry
-    real(kind=dp), allocatable, intent(out) :: gCart_local(:,:)
-      !! G-vectors in Cartesian coordinates
     real(kind=dp), intent(out) :: omega_local
       !! Volume of unit cell
     real(kind=dp), intent(out) :: vcut_local
@@ -729,7 +725,7 @@ module wfcExportVASPMod
     call distributeKpointsInPools(nkstot_local, ikEnd, ikStart, nk_Pool)
 
     call readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, bg_local, &
-            ecutwfc_local, vcut_local, gCart_local, xk_local, ngm_g_local, ngm_local, &
+            ecutwfc_local, vcut_local, xk_local, ngm_g_local, ngm_local, &
             itmp_g)
 
     if(ionode_local) close(wavecarUnit)
@@ -1001,7 +997,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
-        bg_local, ecutwfc_local, vcut_local, gCart_local, xk_local, ngm_g_local, &
+        bg_local, ecutwfc_local, vcut_local, xk_local, ngm_g_local, &
         ngm_local, itmp_g)
 
     use klist, only : xk
@@ -1029,8 +1025,6 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: gCart_local(:,:)
-      !! G-vectors in Cartesian coordinates
     real(kind=dp), allocatable, intent(out) ::xk_local(:,:)
       !! Position of k-points in reciprocal space
 
@@ -1099,7 +1093,7 @@ module wfcExportVASPMod
 
           call calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
                   xk_local, bg_local, ecutwfc_local, vcut_local, ngm_g_local, ngm_local, *
-                  gCart_local, itmp_g)
+                  itmp_g)
             !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
 
           if(ionode_local) then
@@ -1145,7 +1139,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, xk_local, &
-        bg_local, ecutwfc_local, vcut_local, ngm_g_local, ngm_local, gCart_local, itmp_g)
+        bg_local, ecutwfc_local, vcut_local, ngm_g_local, ngm_local, itmp_g)
 
     implicit none
 
@@ -1173,8 +1167,6 @@ module wfcExportVASPMod
 
     
     ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: gCart_local(:,:)
-      !! G-vectors in Cartesian coordinates
 
     integer, allocatable, intent(out) :: itmp_g(:,:)
       !! Integer coefficients for G-vectors on all processors
@@ -1190,6 +1182,8 @@ module wfcExportVASPMod
       !! to eV\(^{-1}\)A\(^{-2}\)
     real(kind=dp) :: etot
       !! Total energy for a G-vector
+    real(kind=dp), allocatable :: gCart_local(:,:)
+      !! G-vectors in Cartesian coordinates
     real(kind=dp) :: gtot
       !! Magnitude of G-vector
     real(kind=dp) :: sumkg(3)
@@ -1276,7 +1270,6 @@ module wfcExportVASPMod
       !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
 
     allocate(gCart_local(3,ngm_local))
-      !1 @todo Make sure `gCart_local` is deallocated #thisbranch @endtodo
 
     do ig = 1, ngm_local
 
@@ -1292,6 +1285,8 @@ module wfcExportVASPMod
 
     call getNumGkVectors(ngm_local, ig_l2g, ikStart, nk_Pool, gCart_local, vcut_local, xk_local, ngk_local, npwx_local)
       !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
+
+    deallocate(gCart_local)
 
     return
   end subroutine calculateGvecs
@@ -1591,8 +1586,6 @@ module wfcExportVASPMod
       ! across all k-points for just this 
       ! processor
 
-    !real(kind=dp), intent(in) :: gCart_local(3,ngm_local)
-      ! G-vectors in Cartesian coordinates
     real(kind=dp), intent(in) :: vcut_local
       !! Energy cutoff converted to vector cutoff;
       !! assumes \(a=1\)
@@ -2186,7 +2179,15 @@ module wfcExportVASPMod
       
         local_pw = 0
         IF ( (ik >= ikStart) .and. (ik <= ikEnd) ) THEN
-          CALL gk_sort (xk_local(1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, igk, g2kin)
+          CALL gk_sort (xk_local(1, ik+ikStart-1), ngm_local, g, vcut_local, npw_local, igk, g2kin)
+            !! @note
+            !!  The call to `gk_sort` here returns values for `igk` and `g2kin` 
+            !! @endnote
+            !! @note 
+            !!  I am assuming that this call to `gk_sort` will not actually be needed. I think 
+            !!  I should be able to use values already calculated instead of calling `gk_sort`.
+            !!  If I'm wrong and this turns out to be needed, `g` should be `gCart_local` here 
+            !! @endnote
           CALL davcio (evc, nwordwfc, iunwfc, (ik-ikStart+1), - 1)
 
           CALL init_us_2(npw, igk, xk_local(1,ik), vkb)

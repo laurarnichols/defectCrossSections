@@ -64,7 +64,7 @@ program wfcExportVASPMain
   
   call readWAVECAR(VASPDir, nspin_local, ecutwfc_local, vcut_local, at_local, &
         nkstot_local, nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, &
-        ngm_local, gCart_local, nk_Pool, itmp_g)
+        ngm_local, nk_Pool, itmp_g)
     !! * Read data from the WAVECAR file
 
   stop
