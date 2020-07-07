@@ -92,8 +92,8 @@ module wfcExportVASPMod
     !! @todo Change back to `nbnd` once extracted from QE #end @endtodo
   integer, allocatable :: ngk_local(:)
     !! Number of \(G+k\) vectors with energy
-    !! less than `ecutwfc_local` on this 
-    !! processor
+    !! less than `ecutwfc_local` for each
+    !! k-point, on this processor
     !! @todo Change back to `ngk` once extracted from QE #end @endtodo
   integer :: ngm_local
     !! Local number of G-vectors on this processor
@@ -119,7 +119,8 @@ module wfcExportVASPMod
     !! Maximum G-vector index among all \(G+k\)
     !! and processors
   integer :: npwx_g
-    !! ??Not sure what this is
+    !! Max number of \(G+k\) vectors with energy
+    !! less than `ecutwfc_local` among all k-points
   integer :: nspin_local
     !! Number of spins
     !! @todo Change back to `nspin` once extracted from QE #end @endtodo
@@ -152,7 +153,7 @@ module wfcExportVASPMod
     !! Integer coefficients for G-vectors on all processors
   integer, allocatable :: ngk_g(:)
     !! Global number of \(G+k\) vectors with energy
-    !! less than `ecutwfc_local`
+    !! less than `ecutwfc_local` for each k-point
 
   NAMELIST /inputParams/ prefix, QEDir, VASPDir, exportDir
 
@@ -595,7 +596,7 @@ module wfcExportVASPMod
   subroutine readWAVECAR(VASPDir, nspin_local, ecutwfc_local, vcut_local, at_local, &
       nkstot_local, nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, &
       ngm_local, nk_Pool, itmp_g, igk_l2g, npwx_local, ngk_local, igk_large, ngk_g, &
-      ikStart, ikEnd, npw_g)
+      ikStart, ikEnd, npw_g, npwx_g)
     !! Read data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -647,11 +648,11 @@ module wfcExportVASPMod
       !! Total number of bands
     integer, allocatable, intent(out) :: ngk_local(:)
       !! Number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local` on this 
-      !! processor
+      !! less than `ecutwfc_local` for each
+      !! k-point, on this processor
     integer, allocatable, intent(out) :: ngk_g(:)
       !! Global number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local`
+      !! less than `ecutwfc_local` for each k-point
     integer, intent(out) :: ngm_local
       !! Local number of G-vectors on this processor
     integer, intent(out) :: ngm_g_local
@@ -663,6 +664,9 @@ module wfcExportVASPMod
     integer, intent(out) :: npw_g
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
+    integer, intent(out) :: npwx_g
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local` among all k-points
     integer, intent(out) :: npwx_local
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this
@@ -774,7 +778,7 @@ module wfcExportVASPMod
     call readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, bg_local, &
             ecutwfc_local, vcut_local, xk_local, ngm_g_local, ngm_local, &
             itmp_g, igk_l2g, npwx_local, ngk_local, igk_large, ngk_g, ikStart, ikEnd, &
-            npw_g)
+            npw_g, npwx_g)
 
     if(ionode_local) close(wavecarUnit)
 
@@ -1047,7 +1051,7 @@ module wfcExportVASPMod
   subroutine readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
         bg_local, ecutwfc_local, vcut_local, xk_local, ngm_g_local, ngm_local, &
         itmp_g, igk_l2g, npwx_local, ngk_local, igk_large, ngk_g, ikStart, ikEnd, &
-        npw_g)
+        npw_g, npwx_g)
 
     use klist, only : xk
       !! @todo Remove this once extracted from QE #end @endtodo
@@ -1093,11 +1097,11 @@ module wfcExportVASPMod
       !! Integer coefficients for G-vectors on all processors
     integer, intent(out) :: ngk_local(nk_Pool)
       !! Number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local` on this 
-      !! processor
+      !! less than `ecutwfc_local` for each
+      !! k-point, on this processor
     integer, allocatable, intent(out) :: ngk_g(:)
       !! Global number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local`
+      !! less than `ecutwfc_local` for each k-point
     integer, intent(out) :: ngm_local
       !! Local number of G-vectors on this processor
     integer, intent(out) :: ngm_g_local
@@ -1105,6 +1109,9 @@ module wfcExportVASPMod
     integer, intent(out) :: npw_g
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
+    integer, intent(out) :: npwx_g
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local` among all k-points
     integer, intent(out) :: npwx_local
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this
@@ -1169,7 +1176,7 @@ module wfcExportVASPMod
           call calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
                   xk_local, bg_local, ecutwfc_local, vcut_local, ngm_g_local, ngm_local, *
                   itmp_g, igk_l2g, npwx_local, ngk_local, igk_large, ngk_g, ikStart, ikEnd, &
-                  npw_g)
+                  npw_g, npwx_g)
             !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
 
           if(ionode_local) then
@@ -1216,7 +1223,7 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, xk_local, &
         bg_local, ecutwfc_local, vcut_local, ngm_g_local, ngm_local, itmp_g, igk_l2g, npwx_local, &
-        ngk_local, igk_large, ngk_g, ikStart, ikEnd, npw_g)
+        ngk_local, igk_large, ngk_g, ikStart, ikEnd, npw_g, npwx_g)
 
     implicit none
 
@@ -1264,11 +1271,11 @@ module wfcExportVASPMod
       !! Integer coefficients for G-vectors on all processors
     integer, intent(out) :: ngk_local(nk_Pool)
       !! Number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local` on this 
-      !! processor
+      !! less than `ecutwfc_local` for each
+      !! k-point, on this processor
     integer, allocatable, intent(out) :: ngk_g(:)
       !! Global number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local`
+      !! less than `ecutwfc_local` for each k-point
     integer, intent(out) :: ngm_local
       !! Local number of G-vectors on this processor
     integer, intent(out) :: ngm_g_local
@@ -1276,6 +1283,9 @@ module wfcExportVASPMod
     integer, intent(out) :: npw_g
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
+    integer, intent(out) :: npwx_g
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local` among all k-points
 
 
     ! Local variables:
@@ -1379,7 +1389,7 @@ module wfcExportVASPMod
     deallocate(mill_local)
     allocate(igk_large(nk_Pool,ngm_local))
 
-    call getNumGkVectors(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, npwx_local)
+    call getNumGkVectors(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, npwx_g, npwx_local)
       !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
 
     deallocate(gCart_local)
@@ -1473,8 +1483,7 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, npwx_local)
-    !! @todo Process `npwx_g` #thisbranch @endtodo
+  subroutine getNumGkVectors(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, npwx_g, npwx_local)
     !! @todo Process `ngm_g_local` #thisbranch @endtodo
     !! @todo Process `npmax` #thisbranch @endtodo
     !! @todo Merge `getNumGkVectors`, `reconstructMainGrid`, and `gkSort` #thisbranch @endtodo
@@ -1521,14 +1530,17 @@ module wfcExportVASPMod
       !! stored for each k-point
     integer, intent(out) :: ngk_local(nk_Pool)
       !! Number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local` on this 
-      !! processor
+      !! less than `ecutwfc_local` for each
+      !! k-point, on this processor
     integer, allocatable, intent(out) :: ngk_g(:)
       !! Global number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local`
+      !! less than `ecutwfc_local` for each k-point
     integer, intent(out) :: npw_g
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
+    integer, intent(out) :: npwx_g
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local` among all k-points
     integer, intent(out) :: npwx_local
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this 
@@ -1669,8 +1681,8 @@ module wfcExportVASPMod
       !!   among all \(G+k\) and processors
 
     npwx_g = maxval(ngk_g(1:nkstot_local))
-      !! * Calculate the maximum number of G-vector 
-      !!   among all k points
+      !! * Calculate the maximum number of G-vectors 
+      !!   among all k-points
 
     npwx = npwx_local
     ngk = ngk_local
