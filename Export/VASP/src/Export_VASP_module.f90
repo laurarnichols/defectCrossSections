@@ -1353,7 +1353,7 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(ikStart, ngm_local, nk_Pool, xk_local, ngk_local, npwx_local)
+  subroutine getNumGkVectors(ikStart, ngm_local, nk_Pool, gCart_local, xk_local, ngk_local, npwx_local)
 
     use gvect, only : ig_l2g
     use wvfct, only : npwx
@@ -1370,6 +1370,8 @@ module wfcExportVASPMod
     integer, intent(in) :: nk_Pool
       !! Number of k-points in each pool
 
+    real(kind=dp), intent(in) :: gCart_local(3,ngm_local)
+      !! G-vectors in Cartesian coordinates
     real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
       !! Position of k-points in reciprocal space
 
@@ -1412,8 +1414,6 @@ module wfcExportVASPMod
 
     real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
-    real(kind=dp), intent(in) :: gCart_local(3,ngm_local)
-      !! G-vectors in Cartesian coordinates
     real(kind=dp), intent(out) :: gkMod(ngm_local)
       !! \(|G+k|^2\);
       !! only stored if less than `vcut_local`
