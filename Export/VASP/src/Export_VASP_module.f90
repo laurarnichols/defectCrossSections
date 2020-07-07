@@ -1398,6 +1398,13 @@ module wfcExportVASPMod
     real(kind=dp) :: q2
       !! \(|q|^2\) where \(q = G+k\)
 
+    integer :: ik, ig
+      !! Loop indices
+    integer :: igk_large(nk_Pool,ngm_local)
+      !! Index map from \(G\) to \(G+k\);
+      !! indexed up to `ngm_local` which
+      !! is greater than `npwx_local` and
+      !! stored for each k-point
     integer :: ngk_tmp
       !! Temporary variable to hold `ngk_local`
       !! value so that don't have to keep accessing
@@ -1434,14 +1441,9 @@ module wfcExportVASPMod
 
     integer :: ik, ig
       !! Loop indices
-    integer, allocatable :: igk_large(:)
+    integer, allocatable :: igk(:)
       !! Index map from \(G\) to \(G+k\)
       !! indexed up to `npwx_local`
-    integer :: igk_large(nk,ngm_local)
-      !! Index map from \(G\) to \(G+k\);
-      !! indexed up to `ngm_local` which
-      !! is greater than `npwx_local` and
-      !! stored for each k-point
 
     
     npwx_local = 0
@@ -1517,7 +1519,7 @@ module wfcExportVASPMod
 
       ngk_tmp = ngk_local(ik)
 
-      igk(1:npwx_local) = igk_large(ik,1:ngk_tmp)
+      igk(1:ngk_tmp) = igk_large(ik,1:ngk_tmp)
 
       call hpsort_eps(ngk_tmp, gkMod(ik,:), igk, eps8)
         !! Order vector gk keeping initial position in index
