@@ -1353,7 +1353,7 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(ngm_local, nk_Pool, xk_local, ngk_local, npwx_local)
+  subroutine getNumGkVectors(ikStart, ngm_local, nk_Pool, xk_local, ngk_local, npwx_local)
 
     use gvect, only : ig_l2g
     use wvfct, only : npwx
@@ -1363,6 +1363,8 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ikStart
+      !! Starting index for k-points in single pool 
     integer, intent(in) :: ngm_local
       !! Number of G-vectors on this processor
     integer, intent(in) :: nk_Pool
@@ -1536,8 +1538,7 @@ module wfcExportVASPMod
     ! compute the global number of G+k vectors for each k point
     ALLOCATE( ngk_g( nkstot_local ) )
     ngk_g = 0
-    ngk_g( ikStart:ikEnd ) = ngk_local(1:nk_Pool)
-      !! @todo Make `ikStart` and `ikEnd` just global variables #thisbranch @endtodo
+    ngk_g(ikStart:ikEnd) = ngk_local(1:nk_Pool)
     CALL mp_sum( ngk_g, world_comm_local )
 
     ! compute the Maximum G vector index among all G+k and processors
