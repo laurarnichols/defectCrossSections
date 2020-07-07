@@ -1380,6 +1380,9 @@ module wfcExportVASPMod
 
 
     ! Local variables:
+    real(kind=dp) :: q2
+      !! \(|q|^2\) where \(q = G+k\)
+
     integer :: ngk_tmp
       !! Temporary variable to hold `ngk_local`
       !! value so that don't have to keep accessing
@@ -1425,8 +1428,6 @@ module wfcExportVASPMod
     ! Local variables:
     real(kind=dp) :: eps8 = 1.0E-8_dp
       !! Double precision zero
-    real(kind=dp) :: q2
-      !! \(q^2\) where \(q = G+k\)
 
     integer :: ik, ig
       !! Loop indices
@@ -1449,7 +1450,7 @@ module wfcExportVASPMod
 
       do ig = 1, ngm_local
 
-        q2 = sum( ( xk_local(:,ik+ikStart-1) + gCart_local(:,ig) )**2 )
+        q2 = sum((xk_local(:,ik+ikStart-1) + gCart_local(:,ig))**2 )
           ! Calculate \(|G+k|^2\)
 
         IF(q2 <= eps8) q2 = 0.d0
