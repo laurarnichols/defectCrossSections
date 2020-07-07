@@ -1199,6 +1199,8 @@ module wfcExportVASPMod
 
     integer :: ig1, ig2, ig3, ig1p, ig2p, ig3p, j, ig, ix
       !! Loop indices
+    integer, allocatable :: ig_l2g(:)
+      ! Converts local index `ig` to global index
     integer :: igEnd
       !! Ending index for G-vectors across processors 
     integer :: igStart
@@ -1267,7 +1269,7 @@ module wfcExportVASPMod
     call MPI_BCAST(ngm_g_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
     call MPI_BCAST(mill_local, size(mill_local), MPI_INTEGER, root, world_comm_local, ierr)
 
-    call distributeGvecsOverProcessors(ngm_g_local, ngm_local, igStart, igEnd)
+    call distributeGvecsOverProcessors(ngm_g_local, ig_l2g, ngm_local, igStart, igEnd)
       !! @note
       !!  To match QE, will need to make mill local to a processor rather than global.
       !!  Could also leave global and just be careful about indices used. `mill_local`
@@ -1295,7 +1297,7 @@ module wfcExportVASPMod
   end subroutine calculateGvecs
 
 !----------------------------------------------------------------------------
-  subroutine distributeGvecsOverProcessors(ngm_g_local, ngm_local, igStart, igEnd)
+  subroutine distributeGvecsOverProcessors(ngm_g_local, ig_l2g, ngm_local, igStart, igEnd)
     !! Figure out how many G-vectors there should be per processor
     !!
     !! <h2>Walkthrough</h2>
@@ -1308,6 +1310,8 @@ module wfcExportVASPMod
 
     
     ! Output variables:
+    integer, allocatable, intent(out) :: ig_l2g(:)
+      ! Converts local index `ig` to global index
     integer, intent(out) :: igEnd
       !! Ending index for G-vectors across processors 
     integer, intent(out) :: igStart
@@ -1317,6 +1321,8 @@ module wfcExportVASPMod
 
 
     ! Local variables:
+    integer :: ig
+      !! Loop index
     integer :: ngr
       !! Number of G-vectors left over after evenly divided across processors
 
@@ -1341,6 +1347,18 @@ module wfcExportVASPMod
       igEnd = igStart + ngm_local - 1
         !!  * Calculate the index of the last k point in this pool
 
+
+      !> * Generate an array to map a local index
+      !>   (that passed to `ig_l2g`) to a global
+      !>   index (the value stored at `ig_l2g(ig)`)
+      allocate(ig_l2g(ngm_local))
+
+      do ig = 1, ngm_local
+
+        ig_l2g(ig) = igStart + ig - 1 
+
+      enddo
+
     endif
 
 #else
@@ -1353,9 +1371,8 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(ikStart, ngm_local, nk_Pool, gCart_local, vcut_local, xk_local, itmp_g, ngk_local, npwx_local)
+  subroutine getNumGkVectors(ngm_local, ig_l2g, ikStart, nk_Pool, gCart_local, vcut_local, xk_local, itmp_g, ngk_local, npwx_local)
 
-    use gvect, only : ig_l2g
     use wvfct, only : npwx
     use klist, only : ngk
       !! @todo Remove this once extracted from QE #end @endtodo
@@ -1363,10 +1380,13 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ikStart
-      !! Starting index for k-points in single pool 
     integer, intent(in) :: ngm_local
       !! Number of G-vectors on this processor
+
+    integer, intent(in) :: ig_l2g(ngm_local)
+      ! Converts local index `ig` to global index
+    integer, intent(in) :: ikStart
+      !! Starting index for k-points in single pool 
     integer, intent(in) :: nk_Pool
       !! Number of k-points in each pool
 
@@ -1422,8 +1442,6 @@ module wfcExportVASPMod
 
     integer, intent(in) :: mill_local(3,npmax)
       !! Integer coefficients for G-vectors
-    !integer, intent(in) :: ig_l2g(ngm_local)
-      ! Converts local index `ig` to global index
     integer, intent(in) :: igStart
       !! Starting index for G-vectors across processors 
     integer, intent(in) :: nkstot_local
@@ -1528,8 +1546,7 @@ module wfcExportVASPMod
 
       do ig = 1, ngk_tmp
         
-        igk_l2g(ig,ik) = ig_l2g( igk(ig) )
-          !! @todo Generate own `ig_l2g` #thisbranch @endtodo
+        igk_l2g(ig,ik) = ig_l2g(igk(ig))
         
       enddo
      
@@ -1537,6 +1554,7 @@ module wfcExportVASPMod
 
     enddo
 
+    deallocate(ig_l2g)
     deallocate(igk)
 
     ! compute the global number of G+k vectors for each k point
