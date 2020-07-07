@@ -1433,7 +1433,6 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine getNumGkVectors(ngm_local, ig_l2g, ikStart, nk_Pool, gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, npwx_local)
-    !! @todo Process `igk` #thisbranch @endtodo
     !! @todo Process `ngk_g` #thisbranch @endtodo
     !! @todo Process `nkstot_local` #thisbranch @endtodo
     !! @todo Process `ikEnd` #thisbranch @endtodo
