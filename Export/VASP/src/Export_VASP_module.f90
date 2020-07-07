@@ -1378,6 +1378,10 @@ module wfcExportVASPMod
 
 
     ! Local variables:
+    integer :: ngk_tmp
+      !! Temporary variable to hold `ngk_local`
+      !! value so that don't have to keep accessing
+      !! array
 
 
 
@@ -1434,10 +1438,6 @@ module wfcExportVASPMod
       !! indexed up to `ngm_local` which
       !! is greater than `npwx_local` and
       !! stored for each k-point
-    integer :: ngk_tmp
-      !! Temporary variable to hold `ngk_local`
-      !! value so that don't have to keep accessing
-      !! array
 
     
     npwx_local = 0
@@ -1515,7 +1515,7 @@ module wfcExportVASPMod
 
       igk(1:npwx_local) = igk_large(ik,1:ngk_tmp)
 
-      call hpsort_eps( ngk_tmp, gkMod, igk, eps8 )
+      call hpsort_eps(ngk_tmp, gkMod, igk, eps8)
         !! Order vector gk keeping initial position in index
 
       do ig = 1, ngk_tmp
@@ -1525,7 +1525,7 @@ module wfcExportVASPMod
         
       enddo
      
-      igk_l2g( ngk_tmp+1 : npwx_local, ik ) = 0
+      igk_l2g(ngk_tmp+1:npwx_local, ik) = 0
 
     enddo
 
