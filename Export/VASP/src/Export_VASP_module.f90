@@ -1628,7 +1628,6 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine gkSort()
     !! @todo Add arguments to this #thisbranch @endtodo
-    !! @todo Figure out if need later call to `gk_sort` #thisbranch @endtodo
     !! <h2>Walkthrough</h2>
     !!
 
