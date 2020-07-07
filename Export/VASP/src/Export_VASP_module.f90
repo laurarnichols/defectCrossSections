@@ -1353,7 +1353,7 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(ikStart, ngm_local, nk_Pool, gCart_local, xk_local, ngk_local, npwx_local)
+  subroutine getNumGkVectors(ikStart, ngm_local, nk_Pool, gCart_local, vcut_local, xk_local, ngk_local, npwx_local)
 
     use gvect, only : ig_l2g
     use wvfct, only : npwx
@@ -1372,6 +1372,9 @@ module wfcExportVASPMod
 
     real(kind=dp), intent(in) :: gCart_local(3,ngm_local)
       !! G-vectors in Cartesian coordinates
+    real(kind=dp), intent(in) :: vcut_local
+      !! Energy cutoff converted to vector cutoff;
+      !! assumes \(a=1\)
     real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
       !! Position of k-points in reciprocal space
 
@@ -1419,9 +1422,6 @@ module wfcExportVASPMod
     real(kind=dp), intent(out) :: gkMod(ngm_local)
       !! \(|G+k|^2\);
       !! only stored if less than `vcut_local`
-    real(kind=dp), intent(in) :: vcut_local
-      !! Energy cutoff converted to vector cutoff;
-      !! assumes \(a=1\)
 
 
     ! Output variables:
@@ -1459,7 +1459,7 @@ module wfcExportVASPMod
         IF(q2 <= eps8) q2 = 0.d0
    
    
-        if (q2 <= vcut_local ) then
+        if (q2 <= vcut_local) then
 
           ngk_tmp = ngk_tmp + 1
             ! here if |k+G|^2 <= Ecut increase the number of G inside the sphere
