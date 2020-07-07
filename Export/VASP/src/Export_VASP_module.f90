@@ -1174,6 +1174,7 @@ module wfcExportVASPMod
               nkstot_local, npmax, bg_local, ecutwfc_local, vcut_local, xk_local, igk_l2g, &
               igk_large, npwx_local, itmp_g, ngk_local, ngk_g, ngm_local, ngm_g_local, &
               npw_g, npwx_g)
+              !! @todo See if call to `calculateGvecs` can be moved out to main @endtodo
 
           if(ionode_local) then
             !> Check that number of G-vectors are the same as the number of plane waves
@@ -1387,6 +1388,7 @@ module wfcExportVASPMod
     call reconstructFFTGrid(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, &
       gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, &
       npwx_g, npwx_local)
+      !! @todo See if call to `reconstructFFTGrid` can be moved out to main @endtodo
 
     deallocate(ig_l2g)
     deallocate(gCart_local)
