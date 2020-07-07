@@ -1387,6 +1387,8 @@ module wfcExportVASPMod
 
 
     ! Local variables:
+    real(kind=dp) :: eps8 = 1.0E-8_dp
+      !! Double precision zero
     real(kind=dp) :: q2
       !! \(|q|^2\) where \(q = G+k\)
 
@@ -1429,8 +1431,6 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    real(kind=dp) :: eps8 = 1.0E-8_dp
-      !! Double precision zero
 
     integer :: ik, ig
       !! Loop indices
