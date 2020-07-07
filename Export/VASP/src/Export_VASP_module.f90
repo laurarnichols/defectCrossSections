@@ -773,8 +773,6 @@ module wfcExportVASPMod
 
     call distributeKpointsInPools(nkstot_local, ikEnd, ikStart, nk_Pool)
 
-    allocate(ngk_local(nk_Pool))
-
     call readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, bg_local, &
             ecutwfc_local, vcut_local, xk_local, ngm_g_local, ngm_local, &
             itmp_g, igk_l2g, npwx_local, ngk_local, igk_large, ngk_g, ikStart, ikEnd, &
@@ -1095,7 +1093,7 @@ module wfcExportVASPMod
       !! stored for each k-point
     integer, allocatable, intent(out) :: itmp_g(:,:)
       !! Integer coefficients for G-vectors on all processors
-    integer, intent(out) :: ngk_local(nk_Pool)
+    integer, allocatable, intent(out) :: ngk_local(:)
       !! Number of \(G+k\) vectors with energy
       !! less than `ecutwfc_local` for each
       !! k-point, on this processor
@@ -1173,11 +1171,10 @@ module wfcExportVASPMod
 
           call MPI_BCAST(xk_local, size(xk_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
 
-          call calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
-                  xk_local, bg_local, ecutwfc_local, vcut_local, ngm_g_local, ngm_local, *
-                  itmp_g, igk_l2g, npwx_local, ngk_local, igk_large, ngk_g, ikStart, ikEnd, &
-                  npw_g, npwx_g)
-            !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
+          call calculateGvecs(ik, ikEnd, ikStart, nb1max, nb2max, nb3max, nk_Pool, &
+              nkstot_local, npmax, bg_local, ecutwfc_local, vcut_local, xk_local, igk_l2g, &
+              igk_large, npwx_local, itmp_g, ngk_local, ngk_g, ngm_local, ngm_g_local, &
+              npw_g, npwx_g
 
           if(ionode_local) then
             !> Check that number of G-vectors are the same as the number of plane waves
@@ -1221,9 +1218,10 @@ module wfcExportVASPMod
   end subroutine readWavefunction
 
 !----------------------------------------------------------------------------
-  subroutine calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, xk_local, &
-        bg_local, ecutwfc_local, vcut_local, ngm_g_local, ngm_local, itmp_g, igk_l2g, npwx_local, &
-        ngk_local, igk_large, ngk_g, ikStart, ikEnd, npw_g, npwx_g)
+  subroutine calculateGvecs(ik, ikEnd, ikStart, nb1max, nb2max, nb3max, nk_Pool, &
+      nkstot_local, npmax, bg_local, ecutwfc_local, vcut_local, xk_local, igk_l2g, &
+      igk_large, npwx_local, itmp_g, ngk_local, ngk_g, ngm_local, ngm_g_local, &
+      npw_g, npwx_g)
 
     implicit none
 
@@ -1269,7 +1267,7 @@ module wfcExportVASPMod
       !! processor
     integer, allocatable, intent(out) :: itmp_g(:,:)
       !! Integer coefficients for G-vectors on all processors
-    integer, intent(out) :: ngk_local(nk_Pool)
+    integer, allocatable, intent(out) :: ngk_local(:)
       !! Number of \(G+k\) vectors with energy
       !! less than `ecutwfc_local` for each
       !! k-point, on this processor
@@ -1524,7 +1522,7 @@ module wfcExportVASPMod
       !! indexed up to `ngm_local` which
       !! is greater than `npwx_local` and
       !! stored for each k-point
-    integer, intent(out) :: ngk_local(nk_Pool)
+    integer, allocatable, intent(out) :: ngk_local(:)
       !! Number of \(G+k\) vectors with energy
       !! less than `ecutwfc_local` for each
       !! k-point, on this processor
@@ -1562,6 +1560,7 @@ module wfcExportVASPMod
       !! value so that don't have to keep accessing
       !! array
 
+    allocate(ngk_local(nk_Pool))
     
     npwx_local = 0
     ngk_local(:) = 0
