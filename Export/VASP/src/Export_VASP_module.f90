@@ -1352,7 +1352,7 @@ module wfcExportVASPMod
     deallocate(mill_local)
     allocate(igk_large(nk_Pool,ngm_local))
 
-    call getNumGkVectors(ngm_local, ig_l2g, ikStart, nk_Pool, gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npwx_local)
+    call getNumGkVectors(ngm_local, ig_l2g, ikStart, nk_Pool, nkstot_local, gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npwx_local)
       !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
 
     deallocate(gCart_local)
@@ -1446,8 +1446,7 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(ngm_local, ig_l2g, ikStart, nk_Pool, gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npwx_local)
-    !! @todo Process `nkstot_local` #thisbranch @endtodo
+  subroutine getNumGkVectors(ngm_local, ig_l2g, ikStart, nk_Pool, nkstot_local, gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npwx_local)
     !! @todo Process `ikEnd` #thisbranch @endtodo
     !! @todo Process `npw_g` #thisbranch @endtodo
     !! @todo Process `npwx_g` #thisbranch @endtodo
@@ -1472,6 +1471,8 @@ module wfcExportVASPMod
       !! Starting index for k-points in single pool 
     integer, intent(in) :: nk_Pool
       !! Number of k-points in each pool
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
 
     real(kind=dp), intent(in) :: gCart_local(3,ngm_local)
       !! G-vectors in Cartesian coordinates
@@ -1530,8 +1531,6 @@ module wfcExportVASPMod
 
     integer, intent(in) :: igStart
       !! Starting index for G-vectors across processors 
-    integer, intent(in) :: nkstot_local
-      !! Total number of k-points
 
     real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
