@@ -577,7 +577,7 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, nspin_local, ecutwfc_local, vcut_local, at_local, &
       nkstot_local, nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, &
-      ngm_local, nk_Pool, itmp_g)
+      ngm_local, nk_Pool, itmp_g, igk_l2g)
     !! Read data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -610,6 +610,9 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) :: xk_local(:,:)
       !! Position of k-points in reciprocal space
 
+    integer, allocatable, intent(out) :: igk_l2g(:,:)
+      !! Local to global indices for \(G+k\) vectors 
+      !! ordered by magnitude at a given k-point
     integer, allocatable, intent(out) :: itmp_g(:,:)
       !! Integer coefficients for G-vectors on all processors
     integer, intent(out) :: nbnd_local
@@ -726,7 +729,7 @@ module wfcExportVASPMod
 
     call readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, bg_local, &
             ecutwfc_local, vcut_local, xk_local, ngm_g_local, ngm_local, &
-            itmp_g)
+            itmp_g, igk_l2g)
 
     if(ionode_local) close(wavecarUnit)
 
@@ -998,7 +1001,7 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
         bg_local, ecutwfc_local, vcut_local, xk_local, ngm_g_local, &
-        ngm_local, itmp_g)
+        ngm_local, itmp_g, igk_l2g)
 
     use klist, only : xk
       !! @todo Remove this once extracted from QE #end @endtodo
@@ -1028,6 +1031,9 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) ::xk_local(:,:)
       !! Position of k-points in reciprocal space
 
+    integer, allocatable, intent(out) :: igk_l2g(:,:)
+      !! Local to global indices for \(G+k\) vectors 
+      !! ordered by magnitude at a given k-point
     integer, allocatable, intent(out) :: itmp_g(:,:)
       !! Integer coefficients for G-vectors on all processors
     integer, intent(out) :: ngm_local
@@ -1093,7 +1099,7 @@ module wfcExportVASPMod
 
           call calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
                   xk_local, bg_local, ecutwfc_local, vcut_local, ngm_g_local, ngm_local, *
-                  itmp_g)
+                  itmp_g, igk_l2g)
             !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
 
           if(ionode_local) then
@@ -1139,7 +1145,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, xk_local, &
-        bg_local, ecutwfc_local, vcut_local, ngm_g_local, ngm_local, itmp_g)
+        bg_local, ecutwfc_local, vcut_local, ngm_g_local, ngm_local, itmp_g, igk_l2g)
 
     implicit none
 
@@ -1167,7 +1173,9 @@ module wfcExportVASPMod
 
     
     ! Output variables:
-
+    integer, allocatable, intent(out) :: igk_l2g(:,:)
+      !! Local to global indices for \(G+k\) vectors 
+      !! ordered by magnitude at a given k-point
     integer, allocatable, intent(out) :: itmp_g(:,:)
       !! Integer coefficients for G-vectors on all processors
     integer, intent(out) :: ngm_local
@@ -1283,7 +1291,7 @@ module wfcExportVASPMod
 
     deallocate(mill_local)
 
-    call getNumGkVectors(ngm_local, ig_l2g, ikStart, nk_Pool, gCart_local, vcut_local, xk_local, ngk_local, npwx_local)
+    call getNumGkVectors(ngm_local, ig_l2g, ikStart, nk_Pool, gCart_local, vcut_local, xk_local, igk_l2g, ngk_local, npwx_local)
       !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
 
     deallocate(gCart_local)
@@ -1377,7 +1385,17 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(ngm_local, ig_l2g, ikStart, nk_Pool, gCart_local, vcut_local, xk_local, ngk_local, npwx_local)
+  subroutine getNumGkVectors(ngm_local, ig_l2g, ikStart, nk_Pool, gCart_local, vcut_local, xk_local, igk_l2g, ngk_local, npwx_local)
+    !! @todo Process `igk` #thisbranch @endtodo
+    !! @todo Process `ngk_g` #thisbranch @endtodo
+    !! @todo Process `nkstot_local` #thisbranch @endtodo
+    !! @todo Process `ikEnd` #thisbranch @endtodo
+    !! @todo Process `npw_g` #thisbranch @endtodo
+    !! @todo Process `npwx_g` #thisbranch @endtodo
+    !! @todo Process `ngm_g_local` #thisbranch @endtodo
+    !! @todo Process `npmax` #thisbranch @endtodo
+    !! @todo Merge `getNumGkVectors`, `reconstructMainGrid`, and `gkSort` #thisbranch @endtodo
+    !! @todo Rename `getNumGkVectors` to `reconstructFFTGrid` #thisbranch @endtodo
 
     use wvfct, only : npwx
     use klist, only : ngk
@@ -1406,6 +1424,9 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    integer, allocatable, intent(out) :: igk_l2g(:,:)
+      !! Local to global indices for \(G+k\) vectors 
+      !! ordered by magnitude at a given k-point
     integer, intent(out) :: ngk_local(nk_Pool)
       !! Number of \(G+k\) vectors with energy
       !! less than `ecutwfc_local`
@@ -1454,9 +1475,6 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    integer, allocatable, intent(out) :: igk_l2g(:,:)
-      !! Local to global indices for \(G+k\) vectors 
-      !! ordered by magnitude at a given k-point
 
 
     ! Local variables:
@@ -1562,7 +1580,7 @@ module wfcExportVASPMod
   end subroutine getNumGkVectors
 
 !----------------------------------------------------------------------------
-  subroutine reconstructMainGrid(nk_Pool, nkstot_local, vcut_local, xk_local, igk_l2g, )
+  subroutine reconstructMainGrid(nk_Pool, nkstot_local, vcut_local, xk_local)
     !! @todo Add arguments to this and rearrange variables #thisbranch @endtodo
 
     use gvect, only : g, ngm, ngm_g, ig_l2g
@@ -2279,7 +2297,7 @@ module wfcExportVASPMod
     
     ENDIF
 
-    DEALLOCATE( igk_l2g )
+    deallocate(igk_l2g)
     DEALLOCATE( igwk )
     DEALLOCATE ( ngk_g )
 END SUBROUTINE write_export
