@@ -1392,6 +1392,9 @@ module wfcExportVASPMod
     ! Local variables:
     real(kind=dp) :: eps8 = 1.0E-8_dp
       !! Double precision zero
+    real(kind=dp) :: gkMod(nk_Pool,ngm_local)
+      !! \(|G+k|^2\);
+      !! only stored if less than `vcut_local`
     real(kind=dp) :: q2
       !! \(|q|^2\) where \(q = G+k\)
 
@@ -1419,9 +1422,6 @@ module wfcExportVASPMod
 
     real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
-    real(kind=dp), intent(out) :: gkMod(ngm_local)
-      !! \(|G+k|^2\);
-      !! only stored if less than `vcut_local`
 
 
     ! Output variables:
@@ -1464,7 +1464,7 @@ module wfcExportVASPMod
           ngk_tmp = ngk_tmp + 1
             ! here if |k+G|^2 <= Ecut increase the number of G inside the sphere
 
-          gkMod(ngk_tmp) = q2
+          gkMod(ik,ngk_tmp) = q2
 
           igk_large(ik,ngk_tmp) = ig
             ! set the initial value of index array
@@ -1519,7 +1519,7 @@ module wfcExportVASPMod
 
       igk(1:npwx_local) = igk_large(ik,1:ngk_tmp)
 
-      call hpsort_eps(ngk_tmp, gkMod, igk, eps8)
+      call hpsort_eps(ngk_tmp, gkMod(ik,:), igk, eps8)
         !! Order vector gk keeping initial position in index
 
       do ig = 1, ngk_tmp
