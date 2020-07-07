@@ -12,7 +12,6 @@ program wfcExportVASPMain
   !! <h2>Walkthrough</h2>
 
   use wfcExportVASPMod
-  use wvfct, only : ecutwfc, npwx
   
   implicit none
 

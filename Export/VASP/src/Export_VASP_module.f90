@@ -610,11 +610,6 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ikEnd
-      !! Ending index for kpoints in single pool 
-    integer, intent(in) :: ikStart
-      !! Starting index for k-points in single pool 
-
     character(len=256), intent(in) :: VASPDir
       !! Directory with VASP files
 
@@ -642,6 +637,10 @@ module wfcExportVASPMod
       !! indexed up to `ngm_local` which
       !! is greater than `npwx_local` and
       !! stored for each k-point
+    integer, intent(out) :: ikEnd
+      !! Ending index for kpoints in single pool 
+    integer, intent(out) :: ikStart
+      !! Starting index for k-points in single pool 
     integer, allocatable, intent(out) :: itmp_g(:,:)
       !! Integer coefficients for G-vectors on all processors
     integer, intent(out) :: nbnd_local
@@ -1174,7 +1173,7 @@ module wfcExportVASPMod
           call calculateGvecs(ik, ikEnd, ikStart, nb1max, nb2max, nb3max, nk_Pool, &
               nkstot_local, npmax, bg_local, ecutwfc_local, vcut_local, xk_local, igk_l2g, &
               igk_large, npwx_local, itmp_g, ngk_local, ngk_g, ngm_local, ngm_g_local, &
-              npw_g, npwx_g
+              npw_g, npwx_g)
 
           if(ionode_local) then
             !> Check that number of G-vectors are the same as the number of plane waves
@@ -1389,6 +1388,7 @@ module wfcExportVASPMod
       gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, &
       npwx_g, npwx_local)
 
+    deallocate(ig_l2g)
     deallocate(gCart_local)
 
     return
@@ -1562,7 +1562,7 @@ module wfcExportVASPMod
     
     npwx_local = 0
     ngk_local(:) = 0
-    igk_large(:) = 0
+    igk_large(:,:) = 0
 
     do ik = 1, nk_Pool
 
@@ -1588,8 +1588,8 @@ module wfcExportVASPMod
 
         else
 
-          if (sqrt (sum(gCart_local(:, ig)**2) .gt. &
-            sqrt (sum(xk_local(:,ik+ikStart-1)**2) + sqrt(vcut_local) ) goto 100
+          if (sqrt(sum(gCart_local(:, ig)**2)) .gt. &
+            sqrt(sum(xk_local(:,ik+ikStart-1)**2) + sqrt(vcut_local))) goto 100
             ! if |G| > |k| + sqrt(Ecut)  stop search
 
         endif
@@ -1634,7 +1634,6 @@ module wfcExportVASPMod
 
     enddo
 
-    deallocate(ig_l2g)
     deallocate(igk)
 
     allocate(ngk_g(nkstot_local))
@@ -1652,9 +1651,6 @@ module wfcExportVASPMod
     npwx_g = maxval(ngk_g(1:nkstot_local))
       !! * Calculate the maximum number of G-vectors 
       !!   among all k-points
-
-    npwx = npwx_local
-    ngk = ngk_local
 
     return
   end subroutine reconstructFFTGrid
@@ -2245,7 +2241,7 @@ module wfcExportVASPMod
       
         local_pw = 0
         IF ( (ik >= ikStart) .and. (ik <= ikEnd) ) THEN
-          CALL gk_sort (xk_local(1, ik+ikStart-1), ngm_local, g, vcut_local, npw_local, igk, g2kin)
+          CALL gk_sort (xk_local(1, ik+ikStart-1), ngm_local, g, vcut_local, npw, igk, g2kin)
             !! @note
             !!  The call to `gk_sort` here returns values for `igk` and `g2kin` 
             !! @endnote
