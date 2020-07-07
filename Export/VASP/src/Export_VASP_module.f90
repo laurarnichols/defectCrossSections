@@ -1486,6 +1486,7 @@ module wfcExportVASPMod
   subroutine getNumGkVectors(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, npwx_g, npwx_local)
     !! @todo Process `ngm_g_local` #thisbranch @endtodo
     !! @todo Process `npmax` #thisbranch @endtodo
+    !! @todo Review all variables in `getNumGkVectors` #thisbranch @endtodo
     !! @todo Merge `getNumGkVectors`, `reconstructMainGrid`, and `gkSort` #thisbranch @endtodo
     !! @todo Rename `getNumGkVectors` to `reconstructFFTGrid` #thisbranch @endtodo
 
