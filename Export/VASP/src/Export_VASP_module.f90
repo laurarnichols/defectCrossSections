@@ -1368,9 +1368,8 @@ module wfcExportVASPMod
     call MPI_BCAST(ngm_g_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
     call MPI_BCAST(itmp_g, size(itmp_g), MPI_INTEGER, root, world_comm_local, ierr)
 
-    call distributeGvecsOverProcessors(npmax, itmp_g, ngm_g_local, ig_l2g, ngm_local, &
-            mill_local, igStart, igEnd)
-      !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
+    call distributeGvecsOverProcessors(npmax, itmp_g, ngm_g_local, ig_l2g, igEnd, &
+            igStart, mill_local, ngm_local)
 
     allocate(gCart_local(3,ngm_local))
 
@@ -1398,8 +1397,8 @@ module wfcExportVASPMod
   end subroutine calculateGvecs
 
 !----------------------------------------------------------------------------
-  subroutine distributeGvecsOverProcessors(npmax, itmp_g, ngm_g_local, ig_l2g, ngm_local, &
-        mill_local, igStart, igEnd)
+  subroutine distributeGvecsOverProcessors(npmax, itmp_g, ngm_g_local, ig_l2g, igEnd, &
+        igStart, mill_local, ngm_local)
     !! Figure out how many G-vectors there should be per processor
     !!
     !! <h2>Walkthrough</h2>
