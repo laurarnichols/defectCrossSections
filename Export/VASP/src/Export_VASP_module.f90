@@ -1065,7 +1065,6 @@ module wfcExportVASPMod
     endif
 
     allocate(xk_local(3,nkstot_local))
-      !! @todo Make sure that these variables are also deallocated #thisbranch @endtodo
 
     if(ionode_local) irec=2
 
@@ -1096,9 +1095,12 @@ module wfcExportVASPMod
             write(stdout,*) 'Number of plane waves at k-point ', ik, ' (VASP): ', nplane
           endif
 
+          call MPI_BCAST(xk_local, size(xk_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
+
           call calculateGvecs(ik, nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
                   xk_local, bg_local, ecutwfc_local, vcut_local, ngm_g_local, ngm_local, *
                   gCart_local, itmp_g)
+            !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
 
           if(ionode_local) then
             !> Check that number of G-vectors are the same as the number of plane waves
@@ -1134,8 +1136,6 @@ module wfcExportVASPMod
       deallocate(cener)
       deallocate(coeff)
     endif
-
-    call MPI_BCAST(xk_local, size(xk_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
 
     xk = xk_local
       !! @todo Remove this once extracted from QE #end @endtodo
@@ -1273,6 +1273,7 @@ module wfcExportVASPMod
 
     call distributeGvecsOverProcessors(npmax, itmp_g, ngm_g_local, ig_l2g, ngm_local, &
             mill_local, igStart, igEnd)
+      !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
 
     allocate(gCart_local(3,ngm_local))
       !1 @todo Make sure `gCart_local` is deallocated #thisbranch @endtodo
@@ -1290,6 +1291,7 @@ module wfcExportVASPMod
     deallocate(mill_local)
 
     call getNumGkVectors(ngm_local, ig_l2g, ikStart, nk_Pool, gCart_local, vcut_local, xk_local, ngk_local, npwx_local)
+      !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
 
     return
   end subroutine calculateGvecs
@@ -2002,7 +2004,7 @@ module wfcExportVASPMod
     
       DEALLOCATE( itmp1 )
     
-      if ( ionode_local ) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk(ik), xk(1:3,ik)
+      if ( ionode_local ) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk(ik), xk_local(1:3,ik)
     
     ENDDO
   
@@ -2184,10 +2186,10 @@ module wfcExportVASPMod
       
         local_pw = 0
         IF ( (ik >= ikStart) .and. (ik <= ikEnd) ) THEN
-          CALL gk_sort (xk (1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, igk, g2kin)
+          CALL gk_sort (xk_local(1, ik+ikStart-1), ngm, g, ecutwfc_local / tpiba2, npw, igk, g2kin)
           CALL davcio (evc, nwordwfc, iunwfc, (ik-ikStart+1), - 1)
 
-          CALL init_us_2(npw, igk, xk(1, ik), vkb)
+          CALL init_us_2(npw, igk, xk_local(1,ik), vkb)
           local_pw = ngk(ik-ikStart+1)
 
           IF ( gamma_only ) THEN
@@ -2270,6 +2272,8 @@ module wfcExportVASPMod
       
         DEALLOCATE(l2g_new)
       ENDDO
+
+      deallocate(xk_local)
     
       CALL deallocate_bec_type ( becp )
     
