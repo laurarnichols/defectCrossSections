@@ -1353,7 +1353,7 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(ikStart, ngm_local, nk_Pool, gCart_local, vcut_local, xk_local, ngk_local, npwx_local)
+  subroutine getNumGkVectors(ikStart, ngm_local, nk_Pool, gCart_local, vcut_local, xk_local, itmp_g, ngk_local, npwx_local)
 
     use gvect, only : ig_l2g
     use wvfct, only : npwx
@@ -1380,6 +1380,8 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    integer, allocatable, intent(out) :: itmp_g(:,:)
+      !! Integer coefficients for G-vectors on all processors
     integer, intent(out) :: ngk_local(nk_Pool)
       !! Number of \(G+k\) vectors with energy
       !! less than `ecutwfc_local`
@@ -1598,8 +1600,6 @@ module wfcExportVASPMod
       ! Integer coefficients for G-vectors on each processor
 
     ! Output variables:
-    integer, allocatable, intent(out) :: itmp_g(:,:)
-      !! Integer coefficients for G-vectors on all processors
 
 
     ! Local variables
@@ -2126,6 +2126,8 @@ module wfcExportVASPMod
       enddo
     
     ENDIF
+      
+    deallocate(itmp_g)
 
 #ifdef __MPI
   CALL poolrecover (et, nbnd_local, nkstot_local, nk_Pool)
