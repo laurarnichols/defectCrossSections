@@ -1353,7 +1353,7 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(ngm_local, nk_Pool, ngk_local, npwx_local)
+  subroutine getNumGkVectors(ngm_local, nk_Pool, xk_local, ngk_local, npwx_local)
 
     use gvect, only : ig_l2g
     use wvfct, only : npwx
@@ -1367,6 +1367,9 @@ module wfcExportVASPMod
       !! Number of G-vectors on this processor
     integer, intent(in) :: nk_Pool
       !! Number of k-points in each pool
+
+    real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
+      !! Position of k-points in reciprocal space
 
 
     ! Output variables:
@@ -1415,8 +1418,6 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: vcut_local
       !! Energy cutoff converted to vector cutoff;
       !! assumes \(a=1\)
-    real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
-      !! Position of k-points in reciprocal space
 
 
     ! Output variables:
