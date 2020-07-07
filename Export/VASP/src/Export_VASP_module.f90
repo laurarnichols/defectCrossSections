@@ -1389,7 +1389,9 @@ module wfcExportVASPMod
     deallocate(mill_local)
     allocate(igk_large(nk_Pool,ngm_local))
 
-    call getNumGkVectors(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, npwx_g, npwx_local)
+    call reconstructFFTGrid(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, &
+      gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, &
+      npwx_g, npwx_local)
       !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
 
     deallocate(gCart_local)
@@ -1483,14 +1485,9 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, npwx_g, npwx_local)
-    !! @todo Review all variables in `getNumGkVectors` #thisbranch @endtodo
-    !! @todo Merge `getNumGkVectors`, `reconstructMainGrid`, and `gkSort` #thisbranch @endtodo
-    !! @todo Rename `getNumGkVectors` to `reconstructFFTGrid` #thisbranch @endtodo
-
-    use wvfct, only : npwx
-    use klist, only : ngk
-      !! @todo Remove this once extracted from QE #end @endtodo
+  subroutine reconstructFFTGrid(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, &
+      gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, &
+      npwx_g, npwx_local)
 
     implicit none
 
@@ -1557,34 +1554,13 @@ module wfcExportVASPMod
 
     integer :: ik, ig
       !! Loop indices
+    integer, allocatable :: igk(:)
+      !! Index map from \(G\) to \(G+k\)
+      !! indexed up to `npwx_local`
     integer :: ngk_tmp
       !! Temporary variable to hold `ngk_local`
       !! value so that don't have to keep accessing
       !! array
-
-
-
-
-
-    ! Input variables:
-
-    integer, intent(in) :: igStart
-      !! Starting index for G-vectors across processors 
-
-    real(kind=dp), intent(in) :: bg_local(3,3)
-      !! Reciprocal lattice vectors
-
-
-    ! Output variables:
-
-
-    ! Local variables:
-
-    integer :: ik, ig
-      !! Loop indices
-    integer, allocatable :: igk(:)
-      !! Index map from \(G\) to \(G+k\)
-      !! indexed up to `npwx_local`
 
     
     npwx_local = 0
@@ -1628,7 +1604,7 @@ module wfcExportVASPMod
 
     enddo
 
-    if (npwx_local <= 0) call exitError('getNumGkVectors', &
+    if (npwx_local <= 0) call exitError('reconstructFFTGrid', &
                 'No plane waves found: running on too many processors?', 1)
 
     CALL mp_max(npwx_local, inter_pool_comm_local)
@@ -1685,165 +1661,7 @@ module wfcExportVASPMod
     ngk = ngk_local
 
     return
-  end subroutine getNumGkVectors
-
-!----------------------------------------------------------------------------
-  subroutine reconstructMainGrid(nk_Pool, nkstot_local, vcut_local, xk_local)
-    !! @todo Add arguments to this and rearrange variables #thisbranch @endtodo
-
-    use gvect, only : g, ngm, ngm_g, ig_l2g
-    use wvfct, only : npwx, g2kin
-    use klist, only : nks, xk, ngk
-    use cell_base, only : tpiba2
-
-    implicit none
-
-    ! Input variables:
-    !integer, intent(in) :: ngm_local
-      ! Number of G-vectors on this processor
-    !integer, intent(in) :: ngm_g_local
-      ! Global number of G-vectors
-    integer, intent(in) :: nk_Pool
-      !! Number of k-points in each pool
-    integer, intent(in) :: nkstot_local
-      !! Total number of k-points
-    !integer, intent(in) :: npwx_local
-      ! Maximum number of \(G+k\) vectors
-      ! across all k-points for just this 
-      ! processor
-
-    real(kind=dp), intent(in) :: vcut_local
-      !! Energy cutoff converted to vector cutoff;
-      !! assumes \(a=1\)
-    real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
-      !! Position of k-points in reciprocal space
-
-
-    !integer, intent(in) :: ig_l2g(ngm_local)
-      ! Converts local index `ig` to global index
-
-    ! Output variables:
-
-
-    ! Local variables
-    integer :: ig, ik
-      !! Loop indices
-
-
-    ngm_g = ngm
-      !! @note
-      !!  I think that the equivalent value for `ngm_g`  is set in `readWAVECAR`,
-      !!  but I'm not going to change the global variable yet because of array
-      !!  allocation with this variable.
-      !! @endnote
-
-    call MPI_ALLREDUCE(ngm, ngm_g, 1, MPI_INTEGER, MPI_SUM, intra_pool_comm_local, ierr)
-      !! @note Don't think will need `MPI_SUM` to get `ngm_g` once extracted from QE @endtodo
-    if( ierr /= 0 ) call exitError( 'reconstructMainGrid', 'error in mpi_allreduce 1', ierr)
-
-    if( ionode_local ) then 
-    
-      write(stdout,*) "Reconstructing the main grid"
-    
-    endif
-
-
-    return 
-  end subroutine reconstructMainGrid
-
-!----------------------------------------------------------------------------
-  subroutine gkSort()
-    !! @todo Add arguments to this #thisbranch @endtodo
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    real(kind=dp), intent(in) :: vcut_local
-      !! Energy cutoff converted to vector cutoff;
-      !! assumes \(a=1\)
-    real(kind=dp), intent(in) :: xk_local(3)
-      !! Position of k-point in reciprocal space
-
-    integer, intent(in) :: npwx
-      !! Maximum number of \(G+k\) vectors
-      !! across all k-points
-
-
-    ! Output variables:
-    real(kind=dp), intent(out) :: gkMod(npwx)
-      !! \(|G+k|^2\);
-      !! only stored if less than `vcut_local`
-      !! @todo Remove passing `gkMod` out once extracted from QE #end @endtodo
-
-    integer, intent(out) :: igk(npwx)
-      !! Index map from \(G\) to \(G+k\)
-    integer, intent(out) :: ngk
-      !! Number of \(G+k\) vectors within vector cutoff
-
-
-    ! Local variables:
-    real(kind=dp) :: eps8 = 1.0E-8_dp
-      !! Double precision zero
-    real(kind=dp) :: gMagMax
-      !! Upper bound for \(|G|\)
-    real(kind=dp) :: q
-      !! \(|G+k|^2\);
-      !! stored in `gkMod` if less than `vcut_local`
-
-    integer :: ig
-      !! Loop index
-
-
-    gMagMax = ( sqrt( sum(xk_local(:)**2) ) + sqrt( vcut_local ) )**2
-      !! * Calculate the upper bound for \(|G|\)
-   
-    ngk = 0
-    igk(:) = 0
-    gkMod(:) = 0.0_dp
-   
-    DO ig = 1, ngm
-      !! * For each G-vector:
-      !!    * Calculate \(|G+k|\)
-
-      q = sum( ( xk_local(:) + g(:,ig) )**2 )
-        ! Calculate \(|G+k|^2\)
-
-      IF(q <= eps8) q = 0.d0
-      
-      ! ... here if |k+G|^2 <= Ecut
-      
-      IF ( q <= vcut_local ) THEN
-        ngk = ngk + 1
-        IF ( ngk > npwx ) &
-          CALL errore( 'gk_sort', 'array gk out-of-bounds', 1 )
-         
-          gkMod(ngk) = q
-         
-          ! set the initial value of index array
-          igk(ngk) = ig
-      ELSE
-        ! if |G| > |k| + SQRT( Ecut )  stop search and order vectors
-        IF ( sum( g(:,ig)**2 ) > ( gMagMax + eps8 ) ) exit
-      ENDIF
-    ENDDO
-   
-    IF ( ig > ngm ) &
-      CALL infomsg( 'gk_sort', 'unexpected exit from do-loop')
-   
-    ! ... order vector gk keeping initial position in index
-   
-    CALL hpsort_eps( ngk, gkMod, igk, eps8 )
-   
-    ! ... now order true |k+G|
-   
-    DO nk = 1, ngk
-      gkMod(nk) = sum( (xk_local(:) + g(:,igk(nk)) )**2 )
-    ENDDO
-
-    return
-  end subroutine gkSort
+  end subroutine reconstructFFTGrid
 
 !----------------------------------------------------------------------------
   subroutine subroutineTemplate()
