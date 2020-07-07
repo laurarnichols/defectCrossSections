@@ -1384,12 +1384,10 @@ module wfcExportVASPMod
     enddo
 
     deallocate(mill_local)
-    allocate(igk_large(nk_Pool,ngm_local))
 
     call reconstructFFTGrid(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, &
       gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, &
       npwx_g, npwx_local)
-      !! @todo Make sure that all processors have access to variables needed here #thisbranch @endtodo
 
     deallocate(gCart_local)
 
@@ -1516,7 +1514,7 @@ module wfcExportVASPMod
     integer, allocatable, intent(out) :: igk_l2g(:,:)
       !! Local to global indices for \(G+k\) vectors 
       !! ordered by magnitude at a given k-point
-    integer, intent(out) :: igk_large(nk_Pool,ngm_local)
+    integer, allocatable, intent(out) :: igk_large(:,:)
       !! Index map from \(G\) to \(G+k\);
       !! indexed up to `ngm_local` which
       !! is greater than `npwx_local` and
@@ -1560,6 +1558,7 @@ module wfcExportVASPMod
       !! array
 
     allocate(ngk_local(nk_Pool))
+    allocate(igk_large(nk_Pool,ngm_local))
     
     npwx_local = 0
     ngk_local(:) = 0
