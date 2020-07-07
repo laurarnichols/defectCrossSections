@@ -1353,7 +1353,7 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine getNumGkVectors(nk_Pool, ngk_local, npwx_local)
+  subroutine getNumGkVectors(ngm_local, nk_Pool, ngk_local, npwx_local)
 
     use gvect, only : ig_l2g
     use wvfct, only : npwx
@@ -1363,6 +1363,8 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ngm_local
+      !! Number of G-vectors on this processor
     integer, intent(in) :: nk_Pool
       !! Number of k-points in each pool
 
@@ -1397,8 +1399,6 @@ module wfcExportVASPMod
       ! Converts local index `ig` to global index
     integer, intent(in) :: igStart
       !! Starting index for G-vectors across processors 
-    integer, intent(in) :: ngm_local
-      !! Number of G-vectors on this processor
     integer, intent(in) :: nkstot_local
       !! Total number of k-points
 
