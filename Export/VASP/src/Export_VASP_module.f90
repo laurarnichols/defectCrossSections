@@ -702,8 +702,6 @@ module wfcExportVASPMod
 
       vcut_local = ecutwfc_local*alat**2/twoPiSquared
         !! * Calculate vector cutoff from energy cutoff
-        !! @todo Read in `alat` from `CONTCAR` or `POSCAR` @endtodo
-        !! @todo Calculate `tpiba` and `tpiba2` once get `alat` from `CONTCAR` or `POSCAR` @endtodo
 
       nkstot_local = nint(nkstot_real)
       nbnd_local = nint(nbnd_real)
@@ -738,10 +736,8 @@ module wfcExportVASPMod
       !!  QE uses the `alat` and `tpiba` scaling quite a bit though, so I
       !!  will have to be careful with the scaling/units.
       !! @endnote
-      !! @todo Add back scaling once read it in from `CONTCAR` or `POSCAR` @endtodo
 
       call estimateMaxNumPlanewaves(bg_local, nb1max, nb2max, nb3max, npmax)
-        !! @todo Figure out if other nodes need the output variables from here @endtodo
 
     endif
 
@@ -749,6 +745,10 @@ module wfcExportVASPMod
 
     if(ionode_local) close(wavecarUnit)
 
+    call MPI_BCAST(nb1max, 1, MPI_INTEGER, root, world_comm_local, ierr)
+    call MPI_BCAST(nb2max, 1, MPI_INTEGER, root, world_comm_local, ierr)
+    call MPI_BCAST(nb3max, 1, MPI_INTEGER, root, world_comm_local, ierr)
+    call MPI_BCAST(npmax, 1, MPI_INTEGER, root, world_comm_local, ierr)
     call MPI_BCAST(nspin_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
     call MPI_BCAST(nkstot_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
     call MPI_BCAST(nbnd_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
@@ -1083,12 +1083,6 @@ module wfcExportVASPMod
                  (cener(iband), occ(iband), iband=1,nbnd_local)
 
             nplane(ik) = nint(nplane_real)
-              !! @todo Figure out how to use `nplane` @endtodo
-              !! @note
-              !!  `nplane` doesn't seem to match up neatly with any of the QE variables at this point. 
-              !!  Will need to wait to see how projectors are indexed which might give an indication
-              !!  of how to use `nplane`.
-              !! @endnote
 
             write(stdout,*) 'Number of plane waves at k-point ', ik, ' (VASP): ', nplane
           endif
