@@ -68,7 +68,7 @@ program wfcExportVASPMain
   call distributeKpointsInPools(nkstot_local, ikEnd, ikStart, nk_Pool)
 
   call calculateGvecs(nb1max, nb2max, nb3max, npmax, bg_local, gCart_local, ig_l2g, itmp_g, &
-      ngm_local, ngm_g_local)
+      ngm_g_local, ngm_local)
 
   call reconstructFFTGrid(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, &
       gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, &

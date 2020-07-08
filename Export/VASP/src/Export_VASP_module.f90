@@ -38,10 +38,10 @@ module wfcExportVASPMod
     !! \(\pi\)
   real(kind = dp), parameter :: ryToHartree = 0.5_dp
     !! Conversion factor from Rydberg to Hartree
-  real(kind = dp), parameter :: twoPiSquared = 39.47841760435743_dp
+  real(kind = dp), parameter :: twoPiSquared = (2.0_dp*pi)**2
     !! This is used in place of \(2\pi/a\) which assumes that \(a=1\)
 
-  !! @todo Move non-parameter variables to main @endtodo
+  !! @todo Move non-parameter variables to main #end @endtodo
 
   real(kind=dp) :: at_local(3,3)
     !! Real space lattice vectors
@@ -62,11 +62,16 @@ module wfcExportVASPMod
   real(kind=dp) :: vcut_local
     !! Energy cutoff converted to vector cutoff;
     !! assumes \(a=1\)
+  real(kind=dp), allocatable :: xk_local(:,:)
+    !! Position of k-points in reciprocal space
   
   integer :: ierr
     !! Error returned by MPI
   integer, allocatable :: ig_l2g(:)
     !! Converts local index `ig` to global index
+  integer, allocatable :: igk_l2g(:,:)
+    !! Local to global indices for \(G+k\) vectors 
+    !! ordered by magnitude at a given k-point
   integer, allocatable :: igk_large(:,:)
     !! Index map from \(G\) to \(G+k\);
     !! indexed up to `ngm_local` which
@@ -86,29 +91,31 @@ module wfcExportVASPMod
   integer :: intra_pool_comm_local = 0
     !! Intra pool communicator
     !! @todo Change back to `intra_pool_comm` once extracted from QE #end @endtodo
-  integer :: nb1max, nb2max, nb3max
-    !! Not sure what this is??
-  integer :: npwx_local
-    !! Maximum number of \(G+k\) vectors
-    !! across all k-points for just this
-    !! processor
-    !! @todo Change back to `npwx` once extracted from QE #end @endtodo
+  integer, allocatable :: itmp_g(:,:)
+    !! Integer coefficients for G-vectors on all processors
+  integer :: myid
+    !! ID of this process
   integer :: myPoolId
     !! Pool index for this process
+  integer :: nb1max, nb2max, nb3max
+    !! Not sure what this is??
   integer :: nbnd_local
     !! Total number of bands
     !! @todo Change back to `nbnd` once extracted from QE #end @endtodo
+  integer, allocatable :: ngk_g(:)
+    !! Global number of \(G+k\) vectors with energy
+    !! less than `ecutwfc_local` for each k-point
   integer, allocatable :: ngk_local(:)
     !! Number of \(G+k\) vectors with energy
     !! less than `ecutwfc_local` for each
     !! k-point, on this processor
     !! @todo Change back to `ngk` once extracted from QE #end @endtodo
-  integer :: ngm_local
-    !! Local number of G-vectors on this processor
-    !! @todo Change back to `ngm` once extracted from QE #end @endtodo
   integer :: ngm_g_local
     !! Global number of G-vectors
     !! @todo Change back to `ngm_g` once extracted from QE #end @endtodo
+  integer :: ngm_local
+    !! Local number of G-vectors on this processor
+    !! @todo Change back to `ngm` once extracted from QE #end @endtodo
   integer :: nk_Pool
     !! Number of k-points in each pool
   integer :: nkstot_local
@@ -133,11 +140,14 @@ module wfcExportVASPMod
   integer :: npwx_g
     !! Max number of \(G+k\) vectors with energy
     !! less than `ecutwfc_local` among all k-points
+  integer :: npwx_local
+    !! Maximum number of \(G+k\) vectors
+    !! across all k-points for just this
+    !! processor
+    !! @todo Change back to `npwx` once extracted from QE #end @endtodo
   integer :: nspin_local
     !! Number of spins
     !! @todo Change back to `nspin` once extracted from QE #end @endtodo
-  integer :: myid
-    !! ID of this process
   integer :: world_comm_local
     !! World communicator
     !! @todo Change back to `world_comm` once extracted from QE #end @endtodo
@@ -155,20 +165,7 @@ module wfcExportVASPMod
     !! If this node is the root node
     !! @todo Change back to `ionode` once extracted from QE #end @endtodo
 
-  real(kind=dp), allocatable :: xk_local(:,:)
-    !! Position of k-points in reciprocal space
-
-  integer, allocatable :: igk_l2g(:,:)
-    !! Local to global indices for \(G+k\) vectors 
-    !! ordered by magnitude at a given k-point
-  integer, allocatable :: itmp_g(:,:)
-    !! Integer coefficients for G-vectors on all processors
-  integer, allocatable :: ngk_g(:)
-    !! Global number of \(G+k\) vectors with energy
-    !! less than `ecutwfc_local` for each k-point
-    !! @todo Move allocatable variables with other variables @endtodo
-
-  NAMELIST /inputParams/ prefix, QEDir, VASPDir, exportDir
+  namelist /inputParams/ prefix, QEDir, VASPDir, exportDir
 
 
   contains
@@ -1130,7 +1127,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(nb1max, nb2max, nb3max, npmax, bg_local, gCart_local, ig_l2g, &
-      itmp_g, ngm_local, ngm_g_local)
+      itmp_g, ngm_g_local, ngm_local)
 
     implicit none
 
@@ -1152,10 +1149,10 @@ module wfcExportVASPMod
       !! Converts local index `ig` to global index
     integer, allocatable, intent(out) :: itmp_g(:,:)
       !! Integer coefficients for G-vectors on all processors
-    integer, intent(out) :: ngm_local
-      !! Local number of G-vectors on this processor
     integer, intent(out) :: ngm_g_local
       !! Global number of G-vectors
+    integer, intent(out) :: ngm_local
+      !! Local number of G-vectors on this processor
 
 
     ! Local variables:
