@@ -52,6 +52,8 @@ module wfcExportVASPMod
   real(kind=dp) :: ecutwfc_local
     !! Plane wave energy cutoff in Ry
     !! @todo Change back to `ecutwfc` once extracted from QE #end @endtodo
+  real(kind=dp), allocatable :: gCart_local(:,:)
+    !! G-vectors in Cartesian coordinates
   real(kind=dp) :: omega_local
     !! Volume of unit cell
     !! @todo Change back to `omega` once extracted from QE #end @endtodo
@@ -63,6 +65,8 @@ module wfcExportVASPMod
   
   integer :: ierr
     !! Error returned by MPI
+  integer, allocatable :: ig_l2g(:)
+    !! Converts local index `ig` to global index
   integer, allocatable :: igk_large(:,:)
     !! Index map from \(G\) to \(G+k\);
     !! indexed up to `ngm_local` which
@@ -1125,79 +1129,38 @@ module wfcExportVASPMod
   end subroutine readWavefunction
 
 !----------------------------------------------------------------------------
-  subroutine calculateGvecs(ikEnd, ikStart, nb1max, nb2max, nb3max, nk_Pool, nkstot_local, nplane, &
-      npmax, bg_local, vcut_local, xk_local, igk_l2g, igk_large, itmp_g, ngk_local, ngk_g, ngm_local, &
-      ngm_g_local, npw_g, npwx_g, npwx_local)
+  subroutine calculateGvecs(nb1max, nb2max, nb3max, npmax, bg_local, gCart_local, ig_l2g, &
+      itmp_g, ngm_local, ngm_g_local)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ikEnd
-      !! Ending index for kpoints in single pool 
-    integer, intent(in) :: ikStart
-      !! Starting index for k-points in single pool 
     integer, intent(in) :: nb1max, nb2max, nb3max
       !! Not sure what this is??
-    integer, intent(in) :: nk_Pool
-      !! Number of k-points in each pool
-    integer, intent(in) :: nkstot_local
-      !! Total number of k-points
-    integer, intent(in) :: nplane(nkstot_local)
-      !! Input number of plane waves for a single k-point
     integer, intent(in) :: npmax
       !! Max number of plane waves
 
     real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
-    real(kind=dp), intent(in) :: vcut_local
-      !! Energy cutoff converted to vector cutoff;
-      !! assumes \(a=1\)
-    real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
-      !! Position of k-points in reciprocal space
 
 
     ! Output variables:
-    integer, allocatable, intent(out) :: igk_l2g(:,:)
-      !! Local to global indices for \(G+k\) vectors 
-      !! ordered by magnitude at a given k-point
-    integer, allocatable, intent(out) :: igk_large(:,:)
-      !! Index map from \(G\) to \(G+k\);
-      !! indexed up to `ngm_local` which
-      !! is greater than `npwx_local` and
-      !! stored for each k-point
+    real(kind=dp), allocatable, intent(out) :: gCart_local(:,:)
+      !! G-vectors in Cartesian coordinates
+
+    integer, allocatable, intent(out) :: ig_l2g(:)
+      !! Converts local index `ig` to global index
     integer, allocatable, intent(out) :: itmp_g(:,:)
       !! Integer coefficients for G-vectors on all processors
-    integer, allocatable, intent(out) :: ngk_local(:)
-      !! Number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local` for each
-      !! k-point, on this processor
-    integer, allocatable, intent(out) :: ngk_g(:)
-      !! Global number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local` for each k-point
     integer, intent(out) :: ngm_local
       !! Local number of G-vectors on this processor
     integer, intent(out) :: ngm_g_local
       !! Global number of G-vectors
-    integer, intent(out) :: npw_g
-      !! Maximum G-vector index among all \(G+k\)
-      !! and processors
-    integer, intent(out) :: npwx_g
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local` among all k-points
-    integer, intent(out) :: npwx_local
-      !! Maximum number of \(G+k\) vectors
-      !! across all k-points for just this
-      !! processor
 
 
     ! Local variables:
-    real(kind=dp), allocatable :: gCart_local(:,:)
-      !! G-vectors in Cartesian coordinates
-
     integer :: ig1, ig2, ig3, ig1p, ig2p, ig3p, ig, ix
       !! Loop indices
-    integer, allocatable :: ig_l2g(:)
-      ! Converts local index `ig` to global index
     integer :: igEnd
       !! Ending index for G-vectors across processors 
     integer :: igStart
@@ -1260,14 +1223,6 @@ module wfcExportVASPMod
     enddo
 
     deallocate(mill_local)
-
-    call reconstructFFTGrid(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, &
-      gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, &
-      npwx_g, npwx_local, nplane, npmax)
-      !! @todo See if call to `reconstructFFTGrid` can be moved out to main @endtodo
-
-    deallocate(ig_l2g)
-    deallocate(gCart_local)
 
     return
   end subroutine calculateGvecs

@@ -61,16 +61,21 @@ program wfcExportVASPMain
   CALL openfil_pp
     !! @todo Figure out what this subroutine does and what can be moved here @endtodo
   
-  call readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, omega_local, vcut_local, xk_local, &
-      nb1max, nb2max, nb3max, nbnd_local, nkstot_local, nplane, npmax, nspin_local)
+  call readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, omega_local, vcut_local, &
+      xk_local, nb1max, nb2max, nb3max, nbnd_local, nkstot_local, nplane, npmax, nspin_local)
     !! * Read data from the WAVECAR file
 
   call distributeKpointsInPools(nkstot_local, ikEnd, ikStart, nk_Pool)
 
-  call calculateGvecs(ikEnd, ikStart, nb1max, nb2max, nb3max, nk_Pool, nkstot_local, nplane, npmax, &
-      bg_local, vcut_local, xk_local, igk_l2g, igk_large, itmp_g, ngk_local, ngk_g, ngm_local, &
-      ngm_g_local, npw_g, npwx_g, npwx_local)
+  call calculateGvecs(nb1max, nb2max, nb3max, npmax, bg_local, gCart_local, ig_l2g, itmp_g, &
+      ngm_local, ngm_g_local)
 
+  call reconstructFFTGrid(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, &
+      gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, &
+      npwx_g, npwx_local, nplane, npmax)
+
+  deallocate(ig_l2g)
+  deallocate(gCart_local)
   deallocate(nplane)
 
   CALL write_export (mainOutputFile, exportDir)
