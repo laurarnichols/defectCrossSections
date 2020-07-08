@@ -41,6 +41,8 @@ module wfcExportVASPMod
   real(kind = dp), parameter :: twoPiSquared = 39.47841760435743_dp
     !! This is used in place of \(2\pi/a\) which assumes that \(a=1\)
 
+  !! @todo Move non-parameter variables to main @endtodo
+
   real(kind=dp) :: at_local(3,3)
     !! Real space lattice vectors
     !! @todo Change back to `at` once extracted from QE #end @endtodo
@@ -80,6 +82,8 @@ module wfcExportVASPMod
   integer :: intra_pool_comm_local = 0
     !! Intra pool communicator
     !! @todo Change back to `intra_pool_comm` once extracted from QE #end @endtodo
+  integer :: nb1max, nb2max, nb3max
+    !! Not sure what this is??
   integer :: npwx_local
     !! Maximum number of \(G+k\) vectors
     !! across all k-points for just this
@@ -106,6 +110,10 @@ module wfcExportVASPMod
   integer :: nkstot_local
     !! Total number of kpoints
     !! @todo Change back to `nkstot` once extracted from QE #end @endtodo
+  integer, allocatable :: nplane(:)
+    !! Input number of plane waves for a single k-point
+  integer :: npmax
+    !! Maximum number of plane waves
   integer :: npool_local = 1
     !! Number of pools for kpoint parallelization
     !! @todo Change back to `npool` once extracted from QE #end @endtodo
@@ -154,6 +162,7 @@ module wfcExportVASPMod
   integer, allocatable :: ngk_g(:)
     !! Global number of \(G+k\) vectors with energy
     !! less than `ecutwfc_local` for each k-point
+    !! @todo Move allocatable variables with other variables @endtodo
 
   NAMELIST /inputParams/ prefix, QEDir, VASPDir, exportDir
 
@@ -593,10 +602,8 @@ module wfcExportVASPMod
   end subroutine exitError
 
 !----------------------------------------------------------------------------
-  subroutine readWAVECAR(VASPDir, nspin_local, ecutwfc_local, vcut_local, at_local, &
-      nkstot_local, nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, &
-      ngm_local, nk_Pool, itmp_g, igk_l2g, npwx_local, ngk_local, igk_large, ngk_g, &
-      ikStart, ikEnd, npw_g, npwx_g)
+  subroutine readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, omega_local, vcut_local, xk_local, &
+        ikEnd, ikStart, nb1max, nb2max, nb3max, nbnd_local, nk_Pool, nkstot_local, nplane, npmax, nspin_local)
     !! Read data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -629,47 +636,22 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) :: xk_local(:,:)
       !! Position of k-points in reciprocal space
 
-    integer, allocatable, intent(out) :: igk_l2g(:,:)
-      !! Local to global indices for \(G+k\) vectors 
-      !! ordered by magnitude at a given k-point
-    integer, allocatable, intent(out) :: igk_large(:,:)
-      !! Index map from \(G\) to \(G+k\);
-      !! indexed up to `ngm_local` which
-      !! is greater than `npwx_local` and
-      !! stored for each k-point
     integer, intent(out) :: ikEnd
       !! Ending index for kpoints in single pool 
     integer, intent(out) :: ikStart
       !! Starting index for k-points in single pool 
-    integer, allocatable, intent(out) :: itmp_g(:,:)
-      !! Integer coefficients for G-vectors on all processors
+    integer, intent(out) :: nb1max, nb2max, nb3max
+      !! Not sure what this is??
     integer, intent(out) :: nbnd_local
       !! Total number of bands
-    integer, allocatable, intent(out) :: ngk_local(:)
-      !! Number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local` for each
-      !! k-point, on this processor
-    integer, allocatable, intent(out) :: ngk_g(:)
-      !! Global number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local` for each k-point
-    integer, intent(out) :: ngm_local
-      !! Local number of G-vectors on this processor
-    integer, intent(out) :: ngm_g_local
-      !! Global number of G-vectors
     integer, intent(out) :: nk_Pool
       !! Number of k-points in each pool
     integer, intent(out) :: nkstot_local
       !! Total number of k-points
-    integer, intent(out) :: npw_g
-      !! Maximum G-vector index among all \(G+k\)
-      !! and processors
-    integer, intent(out) :: npwx_g
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local` among all k-points
-    integer, intent(out) :: npwx_local
-      !! Maximum number of \(G+k\) vectors
-      !! across all k-points for just this
-      !! processor
+    integer, allocatable, intent(out) :: nplane(:)
+      !! Input number of plane waves for a single k-point
+    integer, intent(out) :: npmax
+      !! Maximum number of plane waves
     integer, intent(out) :: nspin_local
       !! Number of spins
 
@@ -682,14 +664,10 @@ module wfcExportVASPMod
 
     integer :: j
       !! Index used for reading lattice vectors
-    integer :: prec
-      !! Precision of plane wave coefficients
-    integer :: nb1max, nb2max, nb3max
-      !! Not sure what this is??
-    integer :: npmax
-      !! Maximum number of plane waves
     integer :: nRecords
       !! Number of records in WAVECAR file
+    integer :: prec
+      !! Precision of plane wave coefficients
 
     character(len=256) :: fileName
       !! Full WAVECAR file name including path
@@ -702,7 +680,7 @@ module wfcExportVASPMod
         ! Set a starting value for the number of records
 
       open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
-      if (ierr .ne. 0) write(stdout,*) 'open error - iostat =',ierr
+      if (ierr .ne. 0) write(stdout,*) 'open error - iostat =', ierr
 
       read(unit=wavecarUnit,rec=1) nRecords_real, nspin_real, prec_real
         !! @note Must read in as real first then convert to integer @endnote
@@ -717,7 +695,7 @@ module wfcExportVASPMod
       !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
       open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
-      if (ierr .ne. 0) write(stdout,*) 'open error - iostat =',ierr
+      if (ierr .ne. 0) write(stdout,*) 'open error - iostat =', ierr
 
       read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, ecutwfc_local,(at_local(j,1),j=1,3),&
           (at_local(j,2),j=1,3), (at_local(j,3),j=1,3)
@@ -729,7 +707,8 @@ module wfcExportVASPMod
 
       vcut_local = ecutwfc_local*alat**2/twoPiSquared
         !! * Calculate vector cutoff from energy cutoff
-        !! @todo Remove `alat**2` from `vcut_local` calculation once extracted from QE #end @endtodo
+        !! @todo Read in `alat` from `CONTCAR` or `POSCAR` @endtodo
+        !! @todo Calculate `tpiba` and `tpiba2` once get `alat` from `CONTCAR` or `POSCAR` @endtodo
 
       nkstot_local = nint(nkstot_real)
       nbnd_local = nint(nbnd_real)
@@ -764,6 +743,7 @@ module wfcExportVASPMod
       !!  QE uses the `alat` and `tpiba` scaling quite a bit though, so I
       !!  will have to be careful with the scaling/units.
       !! @endnote
+      !! @todo Add back scaling once read it in from `CONTCAR` or `POSCAR` @endtodo
 
       call estimateMaxNumPlanewaves(bg_local, nb1max, nb2max, nb3max, npmax)
         !! @todo Figure out if other nodes need the output variables from here @endtodo
@@ -771,11 +751,9 @@ module wfcExportVASPMod
     endif
 
     call distributeKpointsInPools(nkstot_local, ikEnd, ikStart, nk_Pool)
+      !! @todo Move `distributeKpointsInPools` to main #thisbranch @endtodo
 
-    call readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, bg_local, &
-            ecutwfc_local, vcut_local, xk_local, ngm_g_local, ngm_local, &
-            itmp_g, igk_l2g, npwx_local, ngk_local, igk_large, ngk_g, ikStart, ikEnd, &
-            npw_g, npwx_g)
+    call readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, xk_local, nplane)
 
     if(ionode_local) close(wavecarUnit)
 
@@ -1045,10 +1023,7 @@ module wfcExportVASPMod
   end subroutine distributeKpointsInPools
 
 !----------------------------------------------------------------------------
-  subroutine readWavefunction(nkstot_local, nk_Pool, nb1max, nb2max, nb3max, npmax, &
-        bg_local, ecutwfc_local, vcut_local, xk_local, ngm_g_local, ngm_local, &
-        itmp_g, igk_l2g, npwx_local, ngk_local, igk_large, ngk_g, ikStart, ikEnd, &
-        npw_g, npwx_g)
+  subroutine readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, xk_local, nplane)
 
     use klist, only : xk
       !! @todo Remove this once extracted from QE #end @endtodo
@@ -1056,63 +1031,22 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    real(kind=dp), intent(in) :: bg_local(3,3)
-      !! Reciprocal lattice vectors
-    real(kind=dp), intent(in) :: ecutwfc_local
-      !! Cutoff energy for plane waves
-    real(kind=dp), intent(in) :: vcut_local
-      !! Energy cutoff converted to vector cutoff;
-      !! assumes \(a=1\)
-
-    integer, intent(in) :: ikEnd
-      !! Ending index for kpoints in single pool 
-    integer, intent(in) :: ikStart
-      !! Starting index for k-points in single pool 
-    integer, intent(in) :: nb1max, nb2max, nb3max
-      !! Not sure what this is??
-    integer, intent(in) :: nk_Pool
-      !! Number of k-points in each pool
+    integer, intent(in) :: nbnd_local
+      !! Total number of bands
     integer, intent(in) :: nkstot_local
       !! Total number of k-points
     integer, intent(in) :: npmax
       !! Maximum number of plane waves
+    integer, intent(in) :: nspin_local
+      !! Number of spins
 
 
     ! Output variables:
-    real(kind=dp), allocatable, intent(out) ::xk_local(:,:)
+    real(kind=dp), allocatable, intent(out) :: xk_local(:,:)
       !! Position of k-points in reciprocal space
 
-    integer, allocatable, intent(out) :: igk_l2g(:,:)
-      !! Local to global indices for \(G+k\) vectors 
-      !! ordered by magnitude at a given k-point
-    integer, allocatable, intent(out) :: igk_large(:,:)
-      !! Index map from \(G\) to \(G+k\);
-      !! indexed up to `ngm_local` which
-      !! is greater than `npwx_local` and
-      !! stored for each k-point
-    integer, allocatable, intent(out) :: itmp_g(:,:)
-      !! Integer coefficients for G-vectors on all processors
-    integer, allocatable, intent(out) :: ngk_local(:)
-      !! Number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local` for each
-      !! k-point, on this processor
-    integer, allocatable, intent(out) :: ngk_g(:)
-      !! Global number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local` for each k-point
-    integer, intent(out) :: ngm_local
-      !! Local number of G-vectors on this processor
-    integer, intent(out) :: ngm_g_local
-      !! Global number of G-vectors
-    integer, intent(out) :: npw_g
-      !! Maximum G-vector index among all \(G+k\)
-      !! and processors
-    integer, intent(out) :: npwx_g
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `ecutwfc_local` among all k-points
-    integer, intent(out) :: npwx_local
-      !! Maximum number of \(G+k\) vectors
-      !! across all k-points for just this
-      !! processor
+    integer, allocatable, intent(out) :: nplane(:)
+      !! Input number of plane waves for a single k-point
 
 
     ! Local variables:
@@ -1122,13 +1056,11 @@ module wfcExportVASPMod
       !! Plane wave coefficients
     real(kind=dp), allocatable :: occ(:)
       !! Occupation of band
-    real(kind=dp) :: nPlane_real
+    real(kind=dp) :: nplane_real
       !! Real version of integers for reading from file
 
-    integer :: irec, isp, ik, i, ig1, ig2, ig3, iband, iplane
+    integer :: irec, isp, ik, i, iband, iplane
       !! Loop indices
-    integer :: nPlane
-      !! Input number of plane waves for a single k-point
 
 
     if(ionode_local) then
@@ -1138,6 +1070,7 @@ module wfcExportVASPMod
     endif
 
     allocate(xk_local(3,nkstot_local))
+    allocate(nplane(nkstot_local))
 
     if(ionode_local) irec=2
 
@@ -1154,10 +1087,10 @@ module wfcExportVASPMod
           if(ionode_local) then
             irec = irec + 1
        
-            read(unit=wavecarUnit,rec=irec) nPlane_real, (xk_local(i,ik),i=1,3), &
+            read(unit=wavecarUnit,rec=irec) nplane_real, (xk_local(i,ik),i=1,3), &
                  (cener(iband), occ(iband), iband=1,nbnd_local)
 
-            nplane = nint(nPlane_real)
+            nplane(ik) = nint(nplane_real)
               !! @todo Figure out how to use `nplane` @endtodo
               !! @note
               !!  `nplane` doesn't seem to match up neatly with any of the QE variables at this point. 
@@ -1168,32 +1101,13 @@ module wfcExportVASPMod
             write(stdout,*) 'Number of plane waves at k-point ', ik, ' (VASP): ', nplane
           endif
 
-          call MPI_BCAST(xk_local, size(xk_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
-
-          call calculateGvecs(ik, ikEnd, ikStart, nb1max, nb2max, nb3max, nk_Pool, &
-              nkstot_local, npmax, bg_local, ecutwfc_local, vcut_local, xk_local, igk_l2g, &
-              igk_large, npwx_local, itmp_g, ngk_local, ngk_g, ngm_local, ngm_g_local, &
-              npw_g, npwx_g)
-              !! @todo See if call to `calculateGvecs` can be moved out to main @endtodo
-
           if(ionode_local) then
-            !> Check that number of G-vectors are the same as the number of plane waves
-            if (ngm_g_local .ne. nplane) then
-               write(stdout,*) '*** error - computed no. of G-vectors != input no. of plane waves'
-               stop
-            endif
-
-            !> Make sure that number of G-vectors isn't higher than the calculated maximum
-            if (ngm_g_local .gt. npmax) then
-               write(stdout,*) '*** error - G-vector count exceeds estimate'
-               stop
-            endif
 
             do iband = 1, nbnd_local
 
               irec = irec + 1
 
-              read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nplane)
+              read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nplane(ik))
 
               write(45+ik,*) cener(iband)
                 !! @todo 
@@ -1211,6 +1125,8 @@ module wfcExportVASPMod
       deallocate(coeff)
     endif
 
+    call MPI_BCAST(xk_local, size(xk_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
+
     xk = xk_local
       !! @todo Remove this once extracted from QE #end @endtodo
 
@@ -1218,16 +1134,13 @@ module wfcExportVASPMod
   end subroutine readWavefunction
 
 !----------------------------------------------------------------------------
-  subroutine calculateGvecs(ik, ikEnd, ikStart, nb1max, nb2max, nb3max, nk_Pool, &
-      nkstot_local, npmax, bg_local, ecutwfc_local, vcut_local, xk_local, igk_l2g, &
-      igk_large, npwx_local, itmp_g, ngk_local, ngk_g, ngm_local, ngm_g_local, &
-      npw_g, npwx_g)
+  subroutine calculateGvecs(ikEnd, ikStart, nb1max, nb2max, nb3max, nk_Pool, nkstot_local, nplane, &
+      npmax, bg_local, vcut_local, xk_local, igk_l2g, igk_large, itmp_g, ngk_local, ngk_g, ngm_local, &
+      ngm_g_local, npw_g, npwx_g, npwx_local)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ik
-      !! Index for this k-point
     integer, intent(in) :: ikEnd
       !! Ending index for kpoints in single pool 
     integer, intent(in) :: ikStart
@@ -1238,20 +1151,20 @@ module wfcExportVASPMod
       !! Number of k-points in each pool
     integer, intent(in) :: nkstot_local
       !! Total number of k-points
+    integer, intent(in) :: nplane(nkstot_local)
+      !! Input number of plane waves for a single k-point
     integer, intent(in) :: npmax
       !! Max number of plane waves
 
     real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
-    real(kind=dp), intent(in) :: ecutwfc_local
-      !! Cutoff energy for plane waves
     real(kind=dp), intent(in) :: vcut_local
       !! Energy cutoff converted to vector cutoff;
       !! assumes \(a=1\)
     real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
       !! Position of k-points in reciprocal space
 
-    
+
     ! Output variables:
     integer, allocatable, intent(out) :: igk_l2g(:,:)
       !! Local to global indices for \(G+k\) vectors 
@@ -1261,10 +1174,6 @@ module wfcExportVASPMod
       !! indexed up to `ngm_local` which
       !! is greater than `npwx_local` and
       !! stored for each k-point
-    integer, intent(out) :: npwx_local
-      !! Maximum number of \(G+k\) vectors
-      !! across all k-points for just this
-      !! processor
     integer, allocatable, intent(out) :: itmp_g(:,:)
       !! Integer coefficients for G-vectors on all processors
     integer, allocatable, intent(out) :: ngk_local(:)
@@ -1284,22 +1193,17 @@ module wfcExportVASPMod
     integer, intent(out) :: npwx_g
       !! Max number of \(G+k\) vectors with energy
       !! less than `ecutwfc_local` among all k-points
+    integer, intent(out) :: npwx_local
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points for just this
+      !! processor
 
 
     ! Local variables:
-    real(kind=dp) :: c = 0.26246582250210965422
-      !! \(2m/\hbar^2\) converted from J\(^{-1}\)m\(^{-2}\)
-      !! to eV\(^{-1}\)A\(^{-2}\)
-    real(kind=dp) :: etot
-      !! Total energy for a G-vector
     real(kind=dp), allocatable :: gCart_local(:,:)
       !! G-vectors in Cartesian coordinates
-    real(kind=dp) :: gtot
-      !! Magnitude of G-vector
-    real(kind=dp) :: sumkg(3)
-      !! \(\vec{k} + \vec{G}\)
 
-    integer :: ig1, ig2, ig3, ig1p, ig2p, ig3p, j, ig, ix
+    integer :: ig1, ig2, ig3, ig1p, ig2p, ig3p, ig, ix
       !! Loop indices
     integer, allocatable :: ig_l2g(:)
       ! Converts local index `ig` to global index
@@ -1309,7 +1213,8 @@ module wfcExportVASPMod
       !! Starting index for G-vectors across processors 
     integer, allocatable :: mill_local(:,:)
       !! Integer coefficients for G-vectors
- 
+
+
     allocate(itmp_g(3,npmax))
 
     if(ionode_local) then
@@ -1334,32 +1239,12 @@ module wfcExportVASPMod
 
             if (ig1 .gt. nb1max) ig1p = ig1 - 2*nb1max - 1
 
-            do j = 1, 3
-              !! * Calculate \(\vec{k} + \vec{G}\)
+            ngm_g_local = ngm_g_local + 1
 
-              sumkg(j)=(xk_local(1,ik)+ig1p)*bg_local(j,1)+ &
-                       (xk_local(2,ik)+ig2p)*bg_local(j,2)+ &
-                       (xk_local(3,ik)+ig3p)*bg_local(j,3)
+            itmp_g(1,ngm_g_local) = ig1p
+            itmp_g(2,ngm_g_local) = ig2p
+            itmp_g(3,ngm_g_local) = ig3p
 
-            enddo
-
-            gtot = sqrt(sumkg(1)**2+sumkg(2)**2+sumkg(3)**2)
-             !! * Get magnitude of the G-vector
-            etot = gtot**2/c
-             !! * Get the energy
-
-            if (etot .lt. ecutwfc_local/eVToRy) then
-             !! * If the energy is less than the cutoff energy,
-             !!   increment the number of G-vectors and store
-             !!   the G-vector integer coefficients
-
-              ngm_g_local = ngm_g_local + 1
-
-              itmp_g(1,ngm_g_local) = ig1p
-              itmp_g(2,ngm_g_local) = ig2p
-              itmp_g(3,ngm_g_local) = ig3p
-
-            end if
           enddo
         enddo
       enddo
@@ -1387,7 +1272,7 @@ module wfcExportVASPMod
 
     call reconstructFFTGrid(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, &
       gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, &
-      npwx_g, npwx_local)
+      npwx_g, npwx_local, nplane, npmax)
       !! @todo See if call to `reconstructFFTGrid` can be moved out to main @endtodo
 
     deallocate(ig_l2g)
@@ -1484,7 +1369,7 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine reconstructFFTGrid(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, &
       gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, &
-      npwx_g, npwx_local)
+      npwx_g, npwx_local, nplane, npmax)
 
     implicit none
 
@@ -1502,6 +1387,10 @@ module wfcExportVASPMod
       !! Number of k-points in each pool
     integer, intent(in) :: nkstot_local
       !! Total number of k-points
+    integer, intent(in) :: nplane(nkstot_local)
+      !! Input number of plane waves for a single k-point
+    integer, intent(in) :: npmax
+      !! Max number of plane waves
 
     real(kind=dp), intent(in) :: gCart_local(3,ngm_local)
       !! G-vectors in Cartesian coordinates
@@ -1599,6 +1488,21 @@ module wfcExportVASPMod
 
 100   npwx_local = max(npwx_local, ngk_tmp)
       
+      if (ionode_local) then
+
+        !> Check that number of G-vectors are the same as the number of plane waves
+        if (ngk_tmp .ne. nplane(ik)) then
+          write(stdout,*) '*** error - computed no. of G-vectors != input no. of plane waves'
+          stop
+        endif
+
+        !> Make sure that number of G-vectors isn't higher than the calculated maximum
+        if (ngk_tmp .gt. npmax) then
+          write(stdout,*) '*** error - G-vector count exceeds estimate'
+          stop
+        endif
+      endif
+
       ngk_local(ik) = ngk_tmp
 
     enddo

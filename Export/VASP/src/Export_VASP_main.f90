@@ -61,15 +61,16 @@ program wfcExportVASPMain
   CALL openfil_pp
     !! @todo Figure out what this subroutine does and what can be moved here @endtodo
   
-  call readWAVECAR(VASPDir, nspin_local, ecutwfc_local, vcut_local, at_local, &
-        nkstot_local, nbnd_local, omega_local, bg_local, xk_local, ngm_g_local, &
-        ngm_local, nk_Pool, itmp_g, igk_l2g, npwx_local, ngk_local, igk_large, &
-        ngk_g, ikStart, ikEnd, npw_g, npwx_g)
+  call readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, omega_local, vcut_local, xk_local, &
+      ikEnd, ikStart, nb1max, nb2max, nb3max, nbnd_local, nk_Pool, nkstot_local, nplane, npmax, &
+      nspin_local)
     !! * Read data from the WAVECAR file
 
-  stop
+  call calculateGvecs(ikEnd, ikStart, nb1max, nb2max, nb3max, nk_Pool, nkstot_local, nplane, npmax, &
+      bg_local, vcut_local, xk_local, igk_l2g, igk_large, itmp_g, ngk_local, ngk_g, ngm_local, &
+      ngm_g_local, npw_g, npwx_g, npwx_local)
 
-  call reconstructMainGrid(nk_Pool, nkstot_local, vcut_local, xk_local, igk_l2g, itmp_g)
+  deallocate(nplane)
 
   CALL write_export (mainOutputFile, exportDir)
 
