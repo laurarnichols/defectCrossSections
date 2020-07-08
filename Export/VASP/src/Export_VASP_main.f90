@@ -62,9 +62,10 @@ program wfcExportVASPMain
     !! @todo Figure out what this subroutine does and what can be moved here @endtodo
   
   call readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, omega_local, vcut_local, xk_local, &
-      ikEnd, ikStart, nb1max, nb2max, nb3max, nbnd_local, nk_Pool, nkstot_local, nplane, npmax, &
-      nspin_local)
+      nb1max, nb2max, nb3max, nbnd_local, nkstot_local, nplane, npmax, nspin_local)
     !! * Read data from the WAVECAR file
+
+  call distributeKpointsInPools(nkstot_local, ikEnd, ikStart, nk_Pool)
 
   call calculateGvecs(ikEnd, ikStart, nb1max, nb2max, nb3max, nk_Pool, nkstot_local, nplane, npmax, &
       bg_local, vcut_local, xk_local, igk_l2g, igk_large, itmp_g, ngk_local, ngk_g, ngm_local, &

@@ -603,7 +603,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, omega_local, vcut_local, xk_local, &
-        ikEnd, ikStart, nb1max, nb2max, nb3max, nbnd_local, nk_Pool, nkstot_local, nplane, npmax, nspin_local)
+        nb1max, nb2max, nb3max, nbnd_local, nkstot_local, nplane, npmax, nspin_local)
     !! Read data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -636,16 +636,10 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) :: xk_local(:,:)
       !! Position of k-points in reciprocal space
 
-    integer, intent(out) :: ikEnd
-      !! Ending index for kpoints in single pool 
-    integer, intent(out) :: ikStart
-      !! Starting index for k-points in single pool 
     integer, intent(out) :: nb1max, nb2max, nb3max
       !! Not sure what this is??
     integer, intent(out) :: nbnd_local
       !! Total number of bands
-    integer, intent(out) :: nk_Pool
-      !! Number of k-points in each pool
     integer, intent(out) :: nkstot_local
       !! Total number of k-points
     integer, allocatable, intent(out) :: nplane(:)
@@ -749,9 +743,6 @@ module wfcExportVASPMod
         !! @todo Figure out if other nodes need the output variables from here @endtodo
 
     endif
-
-    call distributeKpointsInPools(nkstot_local, ikEnd, ikStart, nk_Pool)
-      !! @todo Move `distributeKpointsInPools` to main #thisbranch @endtodo
 
     call readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, xk_local, nplane)
 
