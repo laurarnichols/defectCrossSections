@@ -19,6 +19,7 @@ module wfcExportVASPMod
 
   implicit none
 
+  ! Parameters:
   integer, parameter :: dp = selected_real_kind(15, 307)
     !! Used to set real variables to double precision
   integer, parameter :: root = 0
@@ -41,8 +42,49 @@ module wfcExportVASPMod
   real(kind = dp), parameter :: twoPiSquared = (2.0_dp*pi)**2
     !! This is used in place of \(2\pi/a\) which assumes that \(a=1\)
 
-  !! @todo Move non-parameter variables to main #end @endtodo
 
+  ! Global variables not passed as arguments:
+  integer :: ierr
+    !! Error returned by MPI
+  integer :: ikEnd
+    !! Ending index for k-points in single pool 
+  integer :: ikStart
+    !! Starting index for k-points in single pool 
+  integer :: ios
+    !! Error for input/output
+  integer :: indexInPool
+    !! Process index within pool
+  integer :: inter_pool_comm_local = 0
+    !! Inter-pool communicator
+    !! @todo Change back to `inter_pool_comm` once extracted from QE #end @endtodo
+  integer :: intra_pool_comm_local = 0
+    !! Intra-pool communicator
+    !! @todo Change back to `intra_pool_comm` once extracted from QE #end @endtodo
+  integer :: myid
+    !! ID of this process
+  integer :: myPoolId
+    !! Pool index for this process
+  integer :: nk_Pool
+    !! Number of k-points in each pool
+  integer :: npool_local = 1
+    !! Number of pools for k-point parallelization
+    !! @todo Change back to `npool` once extracted from QE #end @endtodo
+  integer :: nproc_local
+    !! Number of processes
+    !! @todo Change back to `nproc` once extracted from QE #end @endtodo
+  integer :: nproc_pool_local
+    !! Number of processes per pool
+    !! @todo Change back to `nproc_pool` once extracted from QE #end @endtodo
+  integer :: world_comm_local
+    !! World communicator
+    !! @todo Change back to `world_comm` once extracted from QE #end @endtodo
+
+  logical :: ionode_local
+    !! If this node is the root node
+    !! @todo Change back to `ionode` once extracted from QE #end @endtodo
+
+
+  ! Variables that should be passed as arguments:
   real(kind=dp) :: at_local(3,3)
     !! Real space lattice vectors
     !! @todo Change back to `at` once extracted from QE #end @endtodo
@@ -65,8 +107,6 @@ module wfcExportVASPMod
   real(kind=dp), allocatable :: xk_local(:,:)
     !! Position of k-points in reciprocal space
   
-  integer :: ierr
-    !! Error returned by MPI
   integer, allocatable :: ig_l2g(:)
     !! Converts local index `ig` to global index
   integer, allocatable :: igk_l2g(:,:)
@@ -77,26 +117,8 @@ module wfcExportVASPMod
     !! indexed up to `ngm_local` which
     !! is greater than `npwx_local` and
     !! stored for each k-point
-  integer :: ikEnd
-    !! Ending index for kpoints in single pool 
-  integer :: ikStart
-    !! Starting index for kpoints in single pool 
-  integer :: ios
-    !! Error for input/output
-  integer :: indexInPool
-    !! Process index within pool
-  integer :: inter_pool_comm_local = 0
-    !! Inter pool communicator
-    !! @todo Change back to `inter_pool_comm` once extracted from QE #end @endtodo
-  integer :: intra_pool_comm_local = 0
-    !! Intra pool communicator
-    !! @todo Change back to `intra_pool_comm` once extracted from QE #end @endtodo
   integer, allocatable :: itmp_g(:,:)
     !! Integer coefficients for G-vectors on all processors
-  integer :: myid
-    !! ID of this process
-  integer :: myPoolId
-    !! Pool index for this process
   integer :: nb1max, nb2max, nb3max
     !! Not sure what this is??
   integer :: nbnd_local
@@ -116,24 +138,13 @@ module wfcExportVASPMod
   integer :: ngm_local
     !! Local number of G-vectors on this processor
     !! @todo Change back to `ngm` once extracted from QE #end @endtodo
-  integer :: nk_Pool
-    !! Number of k-points in each pool
   integer :: nkstot_local
-    !! Total number of kpoints
+    !! Total number of k-points
     !! @todo Change back to `nkstot` once extracted from QE #end @endtodo
   integer, allocatable :: nplane(:)
     !! Input number of plane waves for a single k-point
   integer :: npmax
     !! Maximum number of plane waves
-  integer :: npool_local = 1
-    !! Number of pools for kpoint parallelization
-    !! @todo Change back to `npool` once extracted from QE #end @endtodo
-  integer :: nproc_local
-    !! Number of processes
-    !! @todo Change back to `nproc` once extracted from QE #end @endtodo
-  integer :: nproc_pool_local
-    !! Number of processes per pool
-    !! @todo Change back to `nproc_pool` once extracted from QE #end @endtodo
   integer :: npw_g
     !! Maximum G-vector index among all \(G+k\)
     !! and processors
@@ -148,9 +159,6 @@ module wfcExportVASPMod
   integer :: nspin_local
     !! Number of spins
     !! @todo Change back to `nspin` once extracted from QE #end @endtodo
-  integer :: world_comm_local
-    !! World communicator
-    !! @todo Change back to `world_comm` once extracted from QE #end @endtodo
   
   character(len=256) :: exportDir
     !! Directory to be used for export
@@ -161,10 +169,6 @@ module wfcExportVASPMod
   character(len=256) :: VASPDir
     !! Directory with VASP files
 
-  logical :: ionode_local
-    !! If this node is the root node
-    !! @todo Change back to `ionode` once extracted from QE #end @endtodo
-
   namelist /inputParams/ prefix, QEDir, VASPDir, exportDir
 
 
@@ -172,11 +176,35 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine mpiInitialization()
-    !! Initialize MPI processes and split into pools
+    !! Generate MPI processes and communicators 
     !!
     !! <h2>Walkthrough</h2>
+    !!
 
     implicit none
+
+    ! Output variables:
+    !logical, intent(out) :: ionode_local
+      ! If this node is the root node
+    !integer, intent(out) :: inter_pool_comm_local = 0
+      ! Inter-pool communicator
+    !integer, intent(out) :: intra_pool_comm_local = 0
+      ! Intra-pool communicator
+    !integer, intent(out) :: indexInPool
+      ! Process index within pool
+    !integer, intent(out) :: myid
+      ! ID of this process
+    !integer, intent(out) :: myPoolId
+      ! Pool index for this process
+    !integer, intent(out) :: npool_local
+      ! Number of pools for k-point parallelization
+    !integer, intent(out) :: nproc_local
+      ! Number of processes
+    !integer, intent(out) :: nproc_pool_local
+      ! Number of processes per pool
+    !integer, intent(out) :: world_comm_local
+      ! World communicator
+
 
     call MPI_Init(ierr)
     if (ierr /= 0) call mpiExitError( 8001 )
@@ -191,27 +219,51 @@ module wfcExportVASPMod
       !! * Determine the size of the MPI pool (i.e., the number of processes)
 
     ionode_local = (myid == root)
+      ! Set a boolean for if this is the root process
 
     call getCommandLineArguments()
+      !! * Get the number of pools from the command line
 
     call setUpImages()
+      ! This sets up variables only used by QE, so it will be removed
+      ! once extracted from QE. Only one image will be used.
 
     call setUpPools()
+      !! * Split up processors between pools and generate MPI
+      !!   communicators for pools
 
     call setUpBands()
+      ! This sets up variables only used by QE, so it will be removed
+      ! once extracted from QE. 
 
     call setUpDiag()
+      ! This sets up variables only used by QE, so it will be removed
+      ! once extracted from QE. 
 
     call setGlobalVariables()
+      ! This sets up variables only used by QE, so it will be removed
+      ! once extracted from QE.
+
 
     return
   end subroutine mpiInitialization
 
 !----------------------------------------------------------------------------
   subroutine getCommandLineArguments()
+    !! Get the command line arguments. This currently
+    !! only processes the number of pools
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
 
     implicit none
 
+    ! Output variables:
+    !integer, intent(out) :: npool_local
+      ! Number of pools for k-point parallelization
+
+
+    ! Local variables:
     integer :: narg = 0
       !! Arguments processed
     integer :: nargs
@@ -224,6 +276,7 @@ module wfcExportVASPMod
     character(len=256) :: command_line = ' '
       !! Command line arguments that were not processed
 
+
     nargs = command_argument_count()
       !! * Get the number of arguments input at command line
 
@@ -233,7 +286,12 @@ module wfcExportVASPMod
 
       do while (narg <= nargs)
         call get_command_argument(narg, arg)
-          !! * Get the flag (currently only processes number of pools)
+          !! * Get the flag
+          !! @note
+          !!  This program only currently processes the number of pools,
+          !!  represented by `-nk`/`-npool`/`-npools`. All other flags 
+          !!  will be ignored.
+          !! @endnote
 
         narg = narg + 1
 
@@ -260,9 +318,55 @@ module wfcExportVASPMod
   end subroutine getCommandLineArguments
 
 !----------------------------------------------------------------------------
-  subroutine setUpPools()
+  subroutine setUpImages()
+    !! @todo Remove this once extracted from QE #end @endtodo
+
+    use mp_images, only : nproc_image, me_image, intra_image_comm
 
     implicit none
+
+    intra_image_comm = world_comm_local
+
+    nproc_image = nproc_local
+      !! * Calculate how many processes there are per image
+
+    me_image = myid
+      !! * Get the index of the process within the image
+
+    return
+  end subroutine setUpImages
+
+!----------------------------------------------------------------------------
+  subroutine setUpPools()
+    !! Split up processors between pools and generate MPI
+    !! communicators for pools
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    !integer, intent(in) :: myid
+      ! ID of this process
+    !integer, intent(in) :: npool_local
+      ! Number of pools for k-point parallelization
+    !integer, intent(in) :: nproc_local
+      ! Number of processes
+
+
+    ! Output variables:
+    !integer, intent(out) :: inter_pool_comm_local = 0
+      ! Inter-pool communicator
+    !integer, intent(out) :: intra_pool_comm_local = 0
+      ! Intra-pool communicator
+    !integer, intent(out) :: indexInPool
+      ! Process index within pool
+    !integer, intent(out) :: myPoolId
+      ! Pool index for this process
+    !integer, intent(out) :: nproc_pool_local
+      ! Number of processes per pool
+
 
     if(npool_local < 1 .or. npool_local > nproc_local) call exitError('mpiInitialization', &
       'invalid number of pools, out of range', 1)
@@ -286,36 +390,17 @@ module wfcExportVASPMod
 
     call MPI_COMM_SPLIT(world_comm_local, myPoolId, myid, intra_pool_comm_local, ierr)
     if(ierr /= 0) call mpiExitError(8008)
-      !! * Create intra pool communicator
+      !! * Create intra-pool communicator
 
     call MPI_BARRIER(world_comm_local, ierr)
     if(ierr /= 0) call mpiExitError(8009)
 
     call MPI_COMM_SPLIT(world_comm_local, indexInPool, myid, inter_pool_comm_local, ierr)
     if(ierr /= 0) call mpiExitError(8010)
-      !! * Create inter pool communicator
+      !! * Create inter-pool communicator
 
     return
   end subroutine setUpPools
-
-!----------------------------------------------------------------------------
-  subroutine setUpImages()
-    !! @todo Remove this once extracted from QE #end @endtodo
-
-    use mp_images, only : nproc_image, me_image, intra_image_comm
-
-    implicit none
-
-    intra_image_comm = world_comm_local
-
-    nproc_image = nproc_local
-      !! * Calculate how many processes there are per image
-
-    me_image = myid
-      !! * Get the index of the process within the image
-
-    return
-  end subroutine setUpImages
 
 !----------------------------------------------------------------------------
   subroutine setUpBands()
@@ -335,14 +420,12 @@ module wfcExportVASPMod
 
     call MPI_COMM_SPLIT(intra_pool_comm_local, my_bgrp_id, myid, intra_bgrp_comm, ierr)
     if(ierr /= 0) call mpiExitError(8011)
-      !! * Create intra pool communicator
 
     call MPI_BARRIER(intra_pool_comm_local, ierr)
     if(ierr /= 0) call mpiExitError(8012)
 
     call MPI_COMM_SPLIT(intra_pool_comm_local, me_bgrp, myid, inter_bgrp_comm, ierr)
     if(ierr /= 0) call mpiExitError(8013)
-      !! * Create inter pool communicator
 
     return
   end subroutine setUpBands
@@ -463,6 +546,7 @@ module wfcExportVASPMod
     !! and start timer
     !!
     !! <h2>Walkthrough</h2>
+    !!
 
     use io_files, only : nd_nmbr
       !! @todo Remove this once extracted from QE #end @endtodo
@@ -483,14 +567,14 @@ module wfcExportVASPMod
     exportDir = './Export'
 
 #ifdef __INTEL_COMPILER
-    call remove_stack_limit ( )
+    call remove_stack_limit()
       !! * Removed the stack limit because Intel compiler allocates a lot of stack space
       !!   which leads to seg faults and crash. This always works unlike `ulimit -s unlimited`
 #endif
 
     call cpu_time(tStart)
 
-    call date_and_time( cdate, ctime )
+    call date_and_time(cdate, ctime)
 
 #ifdef __MPI
     nd_nmbr = trim(int_to_char(myid+1))
@@ -500,20 +584,20 @@ module wfcExportVASPMod
 
     if(ionode_local) then
 
-      write( stdout, '(/5X,"VASP wavefunction export program starts on ",A9," at ",A9)' ) &
+      write(stdout, '(/5X,"VASP wavefunction export program starts on ",A9," at ",A9)') &
              cdate, ctime
 
 #ifdef __MPI
-      write( stdout, '(/5X,"Parallel version (MPI), running on ",I5," processors")' ) nproc_local
+      write(stdout, '(/5X,"Parallel version (MPI), running on ",I5," processors")') nproc_local
 
-      if(npool_local > 1) write( stdout, '(5X,"K-points division:     npool_local     = ",I7)' ) npool_local
+      if(npool_local > 1) write(stdout, '(5X,"K-points division:     npool_local     = ",I7)') npool_local
 #else
-      write( stdout, '(/5X,"Serial version")' )
+      write(stdout, '(/5X,"Serial version")')
 #endif
 
     else
 
-      open( unit = stdout, file='/dev/null', status='unknown' )
+      open(unit = stdout, file='/dev/null', status='unknown')
         ! Make the stdout unit point to null for non-root processors
         ! to avoid tons of duplicate output
 
@@ -547,6 +631,7 @@ module wfcExportVASPMod
     !! passing abs(ierror)
     !!
     !! <h2>Walkthrough</h2>
+    !!
     
     implicit none
 
@@ -605,9 +690,10 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, omega_local, vcut_local, xk_local, &
         nb1max, nb2max, nb3max, nbnd_local, nkstot_local, nplane, npmax, nspin_local)
-    !! Read data from the WAVECAR file
+    !! Read cell and wavefunction data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
+    !!
 
     use cell_base, only : at, bg, omega, alat, tpiba
     use wvfct, only : ecutwfc, nbnd
@@ -694,54 +780,65 @@ module wfcExportVASPMod
 
       read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, ecutwfc_local,(at_local(j,1),j=1,3),&
           (at_local(j,2),j=1,3), (at_local(j,3),j=1,3)
-        !! * Read total number of kpoints, plane wave cutoff energy, and real
+        !! * Read total number of k-points, plane wave cutoff energy, and real
         !!   space lattice vectors
 
       ecutwfc_local = ecutwfc_local*eVToRy
-        !! * Convert energy from VASP to Rydberg to match QE/TME expectation
+        !! * Convert energy from VASP from eV to Rydberg to match QE/TME expectation
 
       vcut_local = ecutwfc_local*alat**2/twoPiSquared
         !! * Calculate vector cutoff from energy cutoff
+        !! @todo Figure out if we need to read in `alat` @endtodo
 
       nkstot_local = nint(nkstot_real)
       nbnd_local = nint(nbnd_real)
         ! Convert input variables to integers
 
+      call calculateOmega(at_local, omega_local)
+        !! * Calculate the cell volume as \(a_1\cdot a_2\times a_3\)
+
+      call getReciprocalVectors(at_local, omega_local, bg_local)
+        !! * Calculate the reciprocal lattice vectors from the real-space
+        !!   lattice vectors and the cell volume
+
+      call estimateMaxNumPlanewaves(bg_local, nb1max, nb2max, nb3max, npmax)
+        !! * Get the maximum number of plane waves
+
+      !> * Write out total number of k-points, number of bands, 
+      !>   the energy cutoff, the real-space-lattice vectors,
+      !>   the cell volume, and the reciprocal lattice vectors
       write(stdout,*) 'no. k points =', nkstot_local
       write(stdout,*) 'no. bands =', nbnd_local
       write(stdout,*) 'max. energy =', sngl(ecutwfc_local/eVToRy)
+        !! @note 
+        !!  The energy cutoff is currently output in eV to compare
+        !!  with output from WaveTrans.
+        !! @endnote
       write(stdout,*) 'real space lattice vectors:'
       write(stdout,*) 'a1 =', (sngl(at_local(j,1)),j=1,3)
       write(stdout,*) 'a2 =', (sngl(at_local(j,2)),j=1,3)
       write(stdout,*) 'a3 =', (sngl(at_local(j,3)),j=1,3)
       write(stdout,*) 
-
-      call calculateOmega(at_local, omega_local)
-        !! * Calculate unit cell volume
-
       write(stdout,*) 'volume unit cell =', sngl(omega_local)
       write(stdout,*) 
-
-      call getReciprocalVectors(at_local, omega_local, bg_local)
-
       write(stdout,*) 'reciprocal lattice vectors:'
       write(stdout,*) 'b1 =', (sngl(bg_local(j,1)),j=1,3)
       write(stdout,*) 'b2 =', (sngl(bg_local(j,2)),j=1,3)
       write(stdout,*) 'b3 =', (sngl(bg_local(j,3)),j=1,3)
       write(stdout,*) 
-
-      !! @note
-      !!  I made an intentional choice to stick with the unscaled lattice
-      !!  vectors until I see if it will be convenient to scale them down.
-      !!  QE uses the `alat` and `tpiba` scaling quite a bit though, so I
-      !!  will have to be careful with the scaling/units.
-      !! @endnote
-
-      call estimateMaxNumPlanewaves(bg_local, nb1max, nb2max, nb3max, npmax)
+        !! @note
+        !!  I made an intentional choice to stick with the unscaled lattice
+        !!  vectors until I see if it will be convenient to scale them down.
+        !!  QE uses the `alat` and `tpiba` scaling quite a bit though, so I
+        !!  will have to be careful with the scaling/units.
+        !! @endnote
 
     endif
 
     call readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, xk_local, nplane)
+      !! Get the position of each k-point in reciprocal space 
+      !! and the number of \(G+k) vectors below the cutoff 
+      !! energy for each k-point
 
     if(ionode_local) close(wavecarUnit)
 
@@ -771,6 +868,8 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateOmega(at_local, omega_local)
+    !! Calculate the cell volume as \(a_1\cdot a_2\times a_3\)
+
     implicit none
 
     ! Input variables:
@@ -790,13 +889,16 @@ module wfcExportVASPMod
 
     call vcross(at_local(:,2), at_local(:,3), vtmp)
 
-    omega_local = at_local(1,1)*vtmp(1) + at_local(2,1)*vtmp(2) + at_local(3,1)*vtmp(3)
+    omega_local = sum(at_local(:,1)*vtmp(:))
 
     return
   end subroutine calculateOmega
 
 !----------------------------------------------------------------------------
   subroutine getReciprocalVectors(at_local, omega_local, bg_local)
+    !! Calculate the reciprocal lattice vectors from the real-space
+    !! lattice vectors and the cell volume
+
     implicit none
 
     ! Input variables:
@@ -829,6 +931,9 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine vcross(vec1, vec2, crossProd)
+    !! Calculate the cross product `crossProd` of 
+    !! two vectors `vec1` and `vec2`
+
     implicit none
 
     ! Input variables:
@@ -850,6 +955,15 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine estimateMaxNumPlanewaves(bg_local, nb1max, nb2max, nb3max, npmax)
+    !! Get the maximum number of plane waves. I'm not sure how 
+    !! this is done completely. It seems to be just basic vector
+    !! stuff, but I haven't been able to make sense of it.
+    !! 
+    !! @todo Figure out how `estimateMaxNumPlanewaves` works @endtodo
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
     implicit none
 
     ! Input variables:
@@ -889,22 +1003,21 @@ module wfcExportVASPMod
       !! Not sure what this is??
 
 
-    b1mag = sqrt(bg_local(1,1)**2 + bg_local(2,1)**2 + bg_local(3,1)**2)
-    b2mag = sqrt(bg_local(1,2)**2 + bg_local(2,2)**2 + bg_local(3,2)**2)
-    b3mag = sqrt(bg_local(1,3)**2 + bg_local(2,3)**2 + bg_local(3,3)**2)
-      !! * Calculate reciprocal vector magnitudes
+    b1mag = sqrt(sum(bg_local(:,1)**2))
+    b2mag = sqrt(sum(bg_local(:,2)**2))
+    b3mag = sqrt(sum(bg_local(:,3)**2))
 
     write(stdout,*) 'reciprocal lattice vector magnitudes:'
     write(stdout,*) sngl(b1mag),sngl(b2mag),sngl(b3mag)
+      !! * Calculate and output reciprocal vector magnitudes
 
-    phi12 = acos((bg_local(1,1)*bg_local(1,2) + bg_local(2,1)*bg_local(2,2) + &
-        bg_local(3,1)*bg_local(3,2))/(b1mag*b2mag))
+
+    phi12 = acos(sum(bg_local(:,1)*bg_local(:,2))/(b1mag*b2mag))
       !! * Calculate angle between \(b_1\) and \(b_2\)
 
     call vcross(bg_local(:,1), bg_local(:,2), vtmp)
-    vmag = sqrt(vtmp(1)**2 + vtmp(2)**2 + vtmp(3)**2)
-    sinphi123 = (bg_local(1,3)*vtmp(1) + bg_local(2,3)*vtmp(2) + &
-        bg_local(3,3)*vtmp(3))/(vmag*b3mag)
+    vmag = sqrt(sum(vtmp(:)**2))
+    sinphi123 = sum(bg_local(:,3)*vtmp(:))/(vmag*b3mag)
       !! * Get \(\sin\phi_{123}\)
 
     nb1maxA = (dsqrt(ecutwfc_local/eVToRy*c)/(b1mag*abs(sin(phi12)))) + 1
@@ -914,14 +1027,12 @@ module wfcExportVASPMod
       !! * Get first set of max values
 
 
-    phi13 = acos((bg_local(1,1)*bg_local(1,3) + bg_local(2,1)*bg_local(2,3) + &
-        bg_local(3,1)*bg_local(3,3))/(b1mag*b3mag))
+    phi13 = acos(sum(bg_local(:,1)*bg_local(:,3))/(b1mag*b3mag))
       !! * Calculate angle between \(b_1\) and \(b_3\)
 
     call vcross(bg_local(:,1), bg_local(:,3), vtmp)
-    vmag = sqrt(vtmp(1)**2 + vtmp(2)**2 + vtmp(3)**2)
-    sinphi123 = (bg_local(1,2)*vtmp(1) + bg_local(2,2)*vtmp(2) + &
-        bg_local(3,2)*vtmp(3))/(vmag*b3mag)
+    vmag = sqrt(sum(vtmp(:)**2))
+    sinphi123 = sum(bg_local(:,2)*vtmp(:))/(vmag*b2mag)
       !! * Get \(\sin\phi_{123}\)
 
     nb1maxB = (dsqrt(ecutwfc_local/eVToRy*c)/(b1mag*abs(sin(phi13)))) + 1
@@ -931,14 +1042,12 @@ module wfcExportVASPMod
       !! * Get first set of max values
 
 
-    phi23 = acos((bg_local(1,2)*bg_local(1,3) + bg_local(2,2)*bg_local(2,3) + &
-        bg_local(3,2)*bg_local(3,3))/(b2mag*b3mag))
+    phi23 = acos(sum(bg_local(:,2)*bg_local(:,3))/(b2mag*b3mag))
       !! * Calculate angle between \(b_2\) and \(b_3\)
 
     call vcross(bg_local(:,2), bg_local(:,3), vtmp)
-    vmag = sqrt(vtmp(1)**2 + vtmp(2)**2 + vtmp(3)**2)
-    sinphi123 = (bg_local(1,1)*vtmp(1) + bg_local(2,1)*vtmp(2) + &
-        bg_local(3,1)*vtmp(3))/(vmag*b1mag)
+    vmag = sqrt(sum(vtmp(:)**2))
+    sinphi123 = sum(bg_local(:,1)*vtmp(:))/(vmag*b1mag)
       !! * Get \(\sin\phi_{123}\)
 
     nb1maxC = (dsqrt(ecutwfc_local/eVToRy*c)/(b1mag*abs(sinphi123))) + 1
@@ -962,60 +1071,15 @@ module wfcExportVASPMod
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine distributeKpointsInPools(nkstot_local, ikEnd, ikStart, nk_Pool)
-    !! Figure out how many k-points there should be per pool
+  subroutine readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, xk_local, nplane)
+    !! For each spin and k-point, read the number of
+    !! \(G+k\) vectors below the energy cutoff, the
+    !! position of the k-point in reciprocal space, 
+    !! and the eigenvalue, occupation, and plane
+    !! wave coefficients for each band
     !!
     !! <h2>Walkthrough</h2>
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nkstot_local
-      !! Total number of k-points
-
-
-    ! Output variables:
-    integer, intent(out) :: ikEnd
-      !! Ending index for k-points in single pool 
-    integer, intent(out) :: ikStart
-      !! Starting index for k-points in single pool 
-    integer, intent(out) :: nk_Pool
-      !! Number of k-points in each pool
-
-
-    ! Local variables:
-    integer :: nkr
-      !! Number of k-points left over after evenly divided across pools
-
-
-    if( nkstot_local > 0 ) then
-
-      IF( ( nproc_pool_local > nproc_local ) .or. ( mod( nproc_local, nproc_pool_local ) /= 0 ) ) &
-        CALL exitError( 'distributeKpointsInPools','nproc_pool_local', 1 )
-
-      nk_Pool = nkstot_local / npool_local
-        !!  * Calculate k-points per pool
-
-      nkr = nkstot_local - nk_Pool * npool_local 
-        !! * Calculate the remainder
-
-      IF( myPoolId < nkr ) nk_Pool = nk_Pool + 1
-        !! * Assign the remainder to the first `nkr` pools
-
-      !>  * Calculate the index of the first k-point in this pool
-      ikStart = nk_Pool * myPoolId + 1
-      IF( myPoolId >= nkr ) ikStart = ikStart + nkr
-
-      ikEnd = ikStart + nk_Pool - 1
-        !!  * Calculate the index of the last k-point in this pool
-
-    endif
-
-    return
-  end subroutine distributeKpointsInPools
-
-!----------------------------------------------------------------------------
-  subroutine readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, xk_local, nplane)
+    !!
 
     use klist, only : xk
       !! @todo Remove this once extracted from QE #end @endtodo
@@ -1067,6 +1131,16 @@ module wfcExportVASPMod
     if(ionode_local) irec=2
 
     do isp = 1, nspin_local
+      !! * For each spin:
+      !!    * Go through each k-point
+      !!       * Read in the number of \(G+k\) plane wave
+      !!         vectors below the energy cutoff
+      !!       * Read the position of the k-point in 
+      !!         reciprocal space
+      !!       * Read in the eigenvalue and occupation for
+      !!         each band
+      !!       * Read in the plane wave coefficients for
+      !!         each band
 
        if(ionode_local) then
          write(stdout,*) ' '
@@ -1081,10 +1155,12 @@ module wfcExportVASPMod
        
             read(unit=wavecarUnit,rec=irec) nplane_real, (xk_local(i,ik),i=1,3), &
                  (cener(iband), occ(iband), iband=1,nbnd_local)
+              ! Read in the number of \(G+k\) plane wave vectors below the energy
+              ! cutoff, the position of the k-point in reciprocal space, and
+              ! the eigenvalue and occupation for each band
 
             nplane(ik) = nint(nplane_real)
 
-            write(stdout,*) 'Number of plane waves at k-point ', ik, ' (VASP): ', nplane
           endif
 
           if(ionode_local) then
@@ -1094,6 +1170,7 @@ module wfcExportVASPMod
               irec = irec + 1
 
               read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nplane(ik))
+                ! Read in the plane wave coefficients for each band
 
               write(45+ik,*) cener(iband)
                 !! @todo 
@@ -1105,6 +1182,10 @@ module wfcExportVASPMod
        enddo
     enddo
 
+    !> @note 
+    !>  The band eigenvalues and occupations and the plane
+    !>  wave coefficients are not currently used anywhere.
+    !> @endnote
     if(ionode_local) then
       deallocate(occ)
       deallocate(cener)
@@ -1120,8 +1201,67 @@ module wfcExportVASPMod
   end subroutine readWavefunction
 
 !----------------------------------------------------------------------------
+  subroutine distributeKpointsInPools(nkstot_local)
+    !! Figure out how many k-points there should be per pool
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
+
+
+    ! Output variables:
+    !integer, intent(out) :: ikEnd
+      ! Ending index for k-points in single pool 
+    !integer, intent(out) :: ikStart
+      ! Starting index for k-points in single pool 
+    !integer, intent(out) :: nk_Pool
+      ! Number of k-points in each pool
+
+
+    ! Local variables:
+    integer :: nkr
+      !! Number of k-points left over after evenly divided across pools
+
+
+    if( nkstot_local > 0 ) then
+
+      IF( ( nproc_pool_local > nproc_local ) .or. ( mod( nproc_local, nproc_pool_local ) /= 0 ) ) &
+        CALL exitError( 'distributeKpointsInPools','nproc_pool_local', 1 )
+
+      nk_Pool = nkstot_local / npool_local
+        !!  * Calculate k-points per pool
+
+      nkr = nkstot_local - nk_Pool * npool_local 
+        !! * Calculate the remainder
+
+      IF( myPoolId < nkr ) nk_Pool = nk_Pool + 1
+        !! * Assign the remainder to the first `nkr` pools
+
+      !>  * Calculate the index of the first k-point in this pool
+      ikStart = nk_Pool * myPoolId + 1
+      IF( myPoolId >= nkr ) ikStart = ikStart + nkr
+
+      ikEnd = ikStart + nk_Pool - 1
+        !!  * Calculate the index of the last k-point in this pool
+
+    endif
+
+    return
+  end subroutine distributeKpointsInPools
+
+!----------------------------------------------------------------------------
   subroutine calculateGvecs(nb1max, nb2max, nb3max, npmax, bg_local, gCart_local, ig_l2g, &
       itmp_g, ngm_g_local, ngm_local)
+    !! Calculate Miller indices and G-vectors and split
+    !! over processors
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
 
     implicit none
 
@@ -1189,6 +1329,7 @@ module wfcExportVASPMod
             itmp_g(1,ngm_g_local) = ig1p
             itmp_g(2,ngm_g_local) = ig2p
             itmp_g(3,ngm_g_local) = ig3p
+              !! * Calculate Miller indices
 
           enddo
         enddo
@@ -1200,6 +1341,7 @@ module wfcExportVASPMod
 
     call distributeGvecsOverProcessors(npmax, itmp_g, ngm_g_local, ig_l2g, igEnd, &
             igStart, mill_local, ngm_local)
+      !! * Split up the G-vectors and Miller indices over processors 
 
     allocate(gCart_local(3,ngm_local))
 
@@ -1224,6 +1366,7 @@ module wfcExportVASPMod
     !! Figure out how many G-vectors there should be per processor
     !!
     !! <h2>Walkthrough</h2>
+    !!
 
     implicit none
 
@@ -1304,9 +1447,14 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine reconstructFFTGrid(ngm_local, ig_l2g, ikEnd, ikStart, nk_Pool, nkstot_local, &
-      gCart_local, vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, &
-      npwx_g, npwx_local, nplane, npmax)
+  subroutine reconstructFFTGrid(ngm_local, ig_l2g, nkstot_local, gCart_local, vcut_local, &
+      xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, npwx_g, npwx_local, nplane, npmax)
+    !! Determine which G-vectors result in \(G+k\)
+    !! below the energy cutoff for each k-point and
+    !! sort the indices based on \(|G+k|^2\)
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
 
     implicit none
 
@@ -1316,12 +1464,12 @@ module wfcExportVASPMod
 
     integer, intent(in) :: ig_l2g(ngm_local)
       ! Converts local index `ig` to global index
-    integer, intent(in) :: ikEnd
-      !! Ending index for kpoints in single pool 
-    integer, intent(in) :: ikStart
-      !! Starting index for k-points in single pool 
-    integer, intent(in) :: nk_Pool
-      !! Number of k-points in each pool
+    !integer, intent(in) :: ikEnd
+      ! Ending index for k-points in single pool 
+    !integer, intent(in) :: ikStart
+      ! Starting index for k-points in single pool 
+    !integer, intent(in) :: nk_Pool
+      ! Number of k-points in each pool
     integer, intent(in) :: nkstot_local
       !! Total number of k-points
     integer, intent(in) :: nplane(nkstot_local)
@@ -1393,13 +1541,21 @@ module wfcExportVASPMod
     igk_large(:,:) = 0
 
     do ik = 1, nk_Pool
+      !! * For each \(G+k\) combination, calculate the 
+      !!   magnitude and, if it is less than the energy
+      !!   cutoff, store the G index and magnitude
+      !!   squared. Update the maximum number of \(G+k\)
+      !!   vectors and verify that the number of \(G+k\)
+      !!   vectors lines up with expectations from
+      !!   WAVECAR
+      !! @todo Figure out if `vcut_local` is defined properly @endtodo
 
       ngk_tmp = 0
 
       do ig = 1, ngm_local
 
-        q2 = sum((xk_local(:,ik+ikStart-1) + gCart_local(:,ig))**2 )
-          ! Calculate \(|G+k|^2\)
+        q2 = sum((xk_local(:,ik+ikStart-1) + gCart_local(:,ig))**2)
+          ! Calculate \(|G+k|^2\) ~ kinetic energy
 
         IF(q2 <= eps8) q2 = 0.d0
    
@@ -1448,8 +1604,8 @@ module wfcExportVASPMod
                 'No plane waves found: running on too many processors?', 1)
 
     CALL mp_max(npwx_local, inter_pool_comm_local)
-      !! When using pools, set `npwx_local` to the maximum value across pools
-      !! (you may run into trouble at restart otherwise)
+      ! When using pools, set `npwx_local` to the maximum value across pools
+      ! (you may run into trouble at restart otherwise)
 
 
     allocate(igk_l2g(npwx_local,nk_Pool))
@@ -1459,13 +1615,15 @@ module wfcExportVASPMod
     igk = 0
 
     do ik = 1, nk_Pool
+      !! * Reorder the indices of the G-vectors so that
+      !!   they are sorted by \(|G+k|^2\) for each k-point
 
       ngk_tmp = ngk_local(ik)
 
       igk(1:ngk_tmp) = igk_large(ik,1:ngk_tmp)
 
       call hpsort_eps(ngk_tmp, gkMod(ik,:), igk, eps8)
-        !! Order vector `gkMod` keeping initial position in `igk`
+        ! Order vector `gkMod` keeping initial position in `igk`
 
       do ig = 1, ngk_tmp
         
@@ -1500,34 +1658,38 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine hpsort_eps(n, ra, ind, eps)
-    ! sort an array ra(1:n) into ascending order using heapsort algorithm,
-    ! and considering two elements being equal if their values differ
-    ! for less than "eps".
-    ! n is input, ra is replaced on output by its sorted rearrangement.
-    ! create an index table (ind) by making an exchange in the index array
-    ! whenever an exchange is made on the sorted data array (ra).
-    ! in case of equal values in the data array (ra) the values in the
-    ! index array (ind) are used to order the entries.
-    ! if on input ind(1)  = 0 then indices are initialized in the routine,
-    ! if on input ind(1) != 0 then indices are assumed to have been
-    !                initialized before entering the routine and these
-    !                indices are carried around during the sorting process
-    !
-    ! no work space needed !
-    ! free us from machine-dependent sorting-routines !
-    !
-    ! adapted from Numerical Recipes pg. 329 (new edition)
-    !
-    use kinds, only : DP
+    !! Sort an array ra(1:n) into ascending order using heapsort algorithm,
+    !! considering two elements equal if their difference is less than `eps`
+    !!
+    !! n is input, ra is replaced on output by its sorted rearrangement.
+    !! Create an index table (ind) by making an exchange in the index array
+    !! whenever an exchange is made on the sorted data array (ra).
+    !! In case of equal values in the data array (ra) the values in the
+    !! index array (ind) are used to order the entries.
+    !!
+    !! if on input ind(1)  = 0 then indices are initialized in the routine,
+    !! if on input ind(1) != 0 then indices are assumed to have been
+    !!                initialized before entering the routine and these
+    !!                indices are carried around during the sorting process
+    !!
+    !!
+    !! adapted from Numerical Recipes pg. 329 (new edition)
+    !!
+
     implicit none
-    !-input/output variables
+
+    ! Input/Output variables:
+    real(kind=dp), intent(in) :: eps
     integer, intent(in) :: n
-    integer, intent(inout) :: ind (*)
-    real(DP), intent(inout) :: ra (*)
-    real(DP), intent(in) :: eps
-    !-local variables
+
+    integer, intent(inout) :: ind(:)
+    real(kind=dp), intent(inout) :: ra (:)
+
+
+    ! Local variables
     integer :: i, ir, j, l, iind
-    real(DP) :: rra
+    real(kind=dp) :: rra
+
     ! initialize index array
     if (ind (1) .eq.0) then
       do i = 1, n
