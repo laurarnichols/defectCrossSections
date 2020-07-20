@@ -5,7 +5,6 @@ module wfcExportVASPMod
   !USE pwcom
   USE constants, ONLY : e2, rytoev, tpi, fpi
   USE cell_base, ONLY : celldm, ibrav
-  USE klist, ONLY : wk
   USE ener, ONLY : ef
   USE wvfct, ONLY : et
   USE lsda_mod, ONLY : isk
@@ -117,6 +116,9 @@ module wfcExportVASPMod
     !! indexed up to `ngm_local` which
     !! is greater than `npwx_local` and
     !! stored for each k-point
+  integer, allocatable :: igwk(:,:)
+    !! Not sure what this is??
+    !! @todo Update this description #thisbranch @endtodo
   integer, allocatable :: itmp_g(:,:)
     !! Integer coefficients for G-vectors on all processors
   integer :: nb1max, nb2max, nb3max
@@ -1650,7 +1652,7 @@ module wfcExportVASPMod
       !! * Calculate the global number of \(G+k\) 
       !!   vectors for each k-point
 
-    npw_g = maxval( igk_l2g(:,:) )
+    npw_g = maxval(igk_l2g(:,:))
     CALL mp_max( npw_g, world_comm_local )
       !! * Calculate the maximum G-vector index 
       !!   among all \(G+k\) and processors
@@ -1786,31 +1788,86 @@ module wfcExportVASPMod
   end subroutine hpsort_eps
 
 !----------------------------------------------------------------------------
-  subroutine writeKInfo()
-    !! @todo Declare all variables #thisbranch @endtodo
-    !! @todo Add arguments #thisbranch @endtodo
+  subroutine writeKInfo(nkstot_local, npwx_local, igk_l2g, nbnd_local, ngk_g, ngk_local, &
+      npw_g, npwx_g, xk_local, igwk)
+
+    use wvfct, only : wg
+      !! @todo Figure out what `wg` is #thisbranch @endtodo
+      !! @todo Figure out how to move `wg` to a local variable #thisbranch @endtodo
+    use klist, only : wk
+      !! @todo Figure out what `wk` is #thisbranch @endtodo
+      !! @todo Figure out how to move `wk` to a local variable #thisbranch @endtodo
 
     implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
+    integer, intent(in) :: npwx_local
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points for just this 
+      !! processor
+
+    integer, intent(in) :: igk_l2g(npwx_local, nk_Pool)
+      !! Local to global indices for \(G+k\) vectors 
+      !! ordered by magnitude at a given k-point
+    integer, intent(in) :: nbnd_local
+      !! Total number of bands
+    integer, intent(in) :: ngk_g(nkstot_local)
+      !! Global number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local` for each k-point
+    integer, intent(in) :: ngk_local(nk_Pool)
+      !! Number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local` for each
+      !! k-point, on this processor
+    integer, intent(in) :: npw_g
+      !! Maximum G-vector index among all \(G+k\)
+      !! and processors
+    integer, intent(in) :: npwx_g
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local` among all k-points
+
+    real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
+      !! Position of k-points in reciprocal space
+
+
+    ! Output variables:
+    integer, allocatable, intent(out) :: igwk(:,:)
+      !! Not sure what this is??
+      !! @todo Figure out what `igwk` is #thisbranch @endtodo
+
+
+    ! Local variables:
+    integer, allocatable :: groundState(:)
+      !! Not sure what this is??
+      !! @todo Figure out what `groundState` is #thisbranch @endtodo
+    integer :: ik, ibnd, ig
+      !! Loop indices
+    integer, allocatable :: itmp1(:)
+      !! Not sure what this is??
+      !! @todo Figure out what `itmp1` is #thisbranch @endtodo
+    integer :: ngg 
+      !! Not sure what this is??
+      !! @todo Figure out what `ngg` is #thisbranch @endtodo
+
 
     if( ionode_local ) then
     
       write(mainout, '("# ik, groundState, ngk_g(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
     
-      allocate ( groundState(nkstot_local) )
-        !! @todo Figure out the meaning of `groundState` #thisbranch @endtodo
+      allocate(groundState(nkstot_local))
 
       !> @note
       !>  This loop seems like it could be setting the band index
       !>  for the defect at different k-points?
       !> @endnote
+      !> @todo Figure out what this loop is doing #thisbranch @endtodo
       groundState(:) = 0
       do ik = 1, nkstot_local
 
         do ibnd = 1, nbnd_local
 
           if (wg(ibnd,ik)/wk(ik) < 0.5_dp) then
-            !! @todo Figure out what `wg` is #thisbranch @endtodo
-            !! @todo Figure out what `wk` is #thisbranch @endtodo
           !if (et(ibnd,ik) > ef) then
 
             groundState(ik) = ibnd - 1
@@ -1825,7 +1882,6 @@ module wfcExportVASPMod
     endif
   
     allocate(igwk(npwx_g, nkstot_local))
-      !! @todo Figure out what `igwk` is #thisbranch @endtodo
   
     igwk(:,:) = 0
     do ik = 1, nkstot_local
@@ -1837,7 +1893,7 @@ module wfcExportVASPMod
       itmp1 = 0
       if(ik >= ikStart .and. ik <= ikEnd) then
 
-        do  ig = 1, ngk(ik-ikStart+1)
+        do  ig = 1, ngk_local(ik-ikStart+1)
 
           itmp1(igk_l2g(ig, ik-ikStart+1)) = igk_l2g(ig, ik-ikStart+1)
 
@@ -1870,6 +1926,8 @@ module wfcExportVASPMod
         !! @todo Figure out if other calculations are really needed since only write this stuff out #thisbranch @endtodo
     
     enddo
+
+    if (ionode_local) deallocate(groundState)
 
     return
   end subroutine writeKInfo
@@ -2037,7 +2095,7 @@ module wfcExportVASPMod
     USE iotk_module
 
     use gvect, only : g, ngm, ngm_g
-    use klist, only : nks, xk, ngk
+    use klist, only : nks, xk, ngk, wk
     use cell_base, only : tpiba2, alat
 
     USE kinds,          ONLY : DP
@@ -2079,8 +2137,6 @@ module wfcExportVASPMod
     real(DP) :: xyz(3), tmp(3)
     INTEGER :: im, ink, inb, ms
     INTEGER :: ispin, local_pw
-    INTEGER, ALLOCATABLE :: itmp1( : )
-    INTEGER, ALLOCATABLE :: igwk( :, : )
     INTEGER, ALLOCATABLE :: l2g_new( : )
   
     character(len = 300) :: text
@@ -2092,7 +2148,7 @@ module wfcExportVASPMod
     TYPE(pseudo_upf) :: upf       ! the pseudo data
     TYPE(radial_grid_type) :: grid
 
-    integer, allocatable :: nnTyp(:), groundState(:)
+    integer, allocatable :: nnTyp(:)
 
     integer, allocatable :: igk(:)
       !! Index map from \(G\) to \(G+k\)

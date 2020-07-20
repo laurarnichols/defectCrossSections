@@ -84,7 +84,8 @@ program wfcExportVASPMain
   deallocate(gCart_local)
   deallocate(nplane)
 
-  call writeKInfo()
+  call writeKInfo(nkstot_local, npwx_local, igk_l2g, nbnd_local, ngk_g, ngk_local, npw_g, npwx_g, &
+      xk_local, igwk)
 
   CALL write_export (mainOutputFile, exportDir)
 
