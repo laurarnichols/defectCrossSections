@@ -84,6 +84,8 @@ program wfcExportVASPMain
   deallocate(gCart_local)
   deallocate(nplane)
 
+  call writeKInfo()
+
   CALL write_export (mainOutputFile, exportDir)
 
   CALL stop_pp

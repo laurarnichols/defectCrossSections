@@ -1786,6 +1786,67 @@ module wfcExportVASPMod
   end subroutine hpsort_eps
 
 !----------------------------------------------------------------------------
+  subroutine writeKInfo()
+    implicit none
+
+    IF( ionode_local ) THEN
+    
+      write(mainout, '("# ik, groundState, ngk_g(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
+    
+      allocate ( groundState(nkstot_local) )
+
+      groundState(:) = 0
+      DO ik=1,nkstot_local
+        do ibnd = 1, nbnd_local
+          if ( wg(ibnd,ik)/wk(ik) < 0.5_dp ) then
+          !if (et(ibnd,ik) > ef) then
+            groundState(ik) = ibnd - 1
+            goto 10
+          endif
+        enddo
+10      continue
+      enddo
+    
+    endif
+  
+    ALLOCATE( igwk( npwx_g, nkstot_local ) )
+  
+    DO ik = 1, nkstot_local
+      igwk(:,ik) = 0
+    
+      ALLOCATE( itmp1( npw_g ), STAT= ierr )
+      IF ( ierr/=0 ) CALL exitError('pw_export','allocating itmp1', abs(ierr) )
+      itmp1 = 0
+    
+      IF( ik >= ikStart .and. ik <= ikEnd ) THEN
+        DO  ig = 1, ngk( ik-ikStart+1 )
+          itmp1( igk_l2g( ig, ik-ikStart+1 ) ) = igk_l2g( ig, ik-ikStart+1 )
+        ENDDO
+      ENDIF
+    
+      CALL mp_sum( itmp1, world_comm_local )
+    
+      ngg = 0
+      DO  ig = 1, npw_g
+        IF( itmp1( ig ) == ig ) THEN
+          ngg = ngg + 1
+          igwk( ngg , ik) = ig
+        ENDIF
+      ENDDO
+      IF( ngg /= ngk_g( ik ) ) THEN
+        if ( ionode_local ) WRITE(mainout, *) ' ik, ngg, ngk_g = ', ik, ngg, ngk_g( ik )
+      ENDIF
+    
+      DEALLOCATE( itmp1 )
+    
+      if ( ionode_local ) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk(ik), xk_local(1:3,ik)
+    
+    ENDDO
+
+    return
+  end subroutine writeKInfo
+
+!----------------------------------------------------------------------------
   subroutine subroutineTemplate()
     implicit none
 
@@ -2009,59 +2070,6 @@ module wfcExportVASPMod
       !! Index map from \(G\) to \(G+k\)
       !! indexed up to `npwx_local`
 
-    IF( ionode_local ) THEN
-    
-      write(mainout, '("# ik, groundState, ngk_g(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
-    
-      allocate ( groundState(nkstot_local) )
-
-      groundState(:) = 0
-      DO ik=1,nkstot_local
-        do ibnd = 1, nbnd_local
-          if ( wg(ibnd,ik)/wk(ik) < 0.5_dp ) then
-          !if (et(ibnd,ik) > ef) then
-            groundState(ik) = ibnd - 1
-            goto 10
-          endif
-        enddo
-10      continue
-      enddo
-    
-    endif
-  
-    ALLOCATE( igwk( npwx_g, nkstot_local ) )
-  
-    DO ik = 1, nkstot_local
-      igwk(:,ik) = 0
-    
-      ALLOCATE( itmp1( npw_g ), STAT= ierr )
-      IF ( ierr/=0 ) CALL exitError('pw_export','allocating itmp1', abs(ierr) )
-      itmp1 = 0
-    
-      IF( ik >= ikStart .and. ik <= ikEnd ) THEN
-        DO  ig = 1, ngk( ik-ikStart+1 )
-          itmp1( igk_l2g( ig, ik-ikStart+1 ) ) = igk_l2g( ig, ik-ikStart+1 )
-        ENDDO
-      ENDIF
-    
-      CALL mp_sum( itmp1, world_comm_local )
-    
-      ngg = 0
-      DO  ig = 1, npw_g
-        IF( itmp1( ig ) == ig ) THEN
-          ngg = ngg + 1
-          igwk( ngg , ik) = ig
-        ENDIF
-      ENDDO
-      IF( ngg /= ngk_g( ik ) ) THEN
-        if ( ionode_local ) WRITE(mainout, *) ' ik, ngg, ngk_g = ', ik, ngg, ngk_g( ik )
-      ENDIF
-    
-      DEALLOCATE( itmp1 )
-    
-      if ( ionode_local ) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk(ik), xk_local(1:3,ik)
-    
-    ENDDO
   
     if ( ionode_local ) then
     
