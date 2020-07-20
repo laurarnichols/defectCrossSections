@@ -1787,61 +1787,89 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine writeKInfo()
+    !! @todo Declare all variables #thisbranch @endtodo
+    !! @todo Add arguments #thisbranch @endtodo
+
     implicit none
 
-    IF( ionode_local ) THEN
+    if( ionode_local ) then
     
       write(mainout, '("# ik, groundState, ngk_g(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
     
       allocate ( groundState(nkstot_local) )
+        !! @todo Figure out the meaning of `groundState` #thisbranch @endtodo
 
+      !> @note
+      !>  This loop seems like it could be setting the band index
+      !>  for the defect at different k-points?
+      !> @endnote
       groundState(:) = 0
-      DO ik=1,nkstot_local
+      do ik = 1, nkstot_local
+
         do ibnd = 1, nbnd_local
-          if ( wg(ibnd,ik)/wk(ik) < 0.5_dp ) then
+
+          if (wg(ibnd,ik)/wk(ik) < 0.5_dp) then
+            !! @todo Figure out what `wg` is #thisbranch @endtodo
+            !! @todo Figure out what `wk` is #thisbranch @endtodo
           !if (et(ibnd,ik) > ef) then
+
             groundState(ik) = ibnd - 1
             goto 10
+
           endif
         enddo
+
 10      continue
+
       enddo
-    
     endif
   
-    ALLOCATE( igwk( npwx_g, nkstot_local ) )
+    allocate(igwk(npwx_g, nkstot_local))
+      !! @todo Figure out what `igwk` is #thisbranch @endtodo
   
-    DO ik = 1, nkstot_local
+    do ik = 1, nkstot_local
       igwk(:,ik) = 0
     
-      ALLOCATE( itmp1( npw_g ), STAT= ierr )
-      IF ( ierr/=0 ) CALL exitError('pw_export','allocating itmp1', abs(ierr) )
+      allocate(itmp1(npw_g), stat=ierr)
+      if ( ierr/=0 ) call exitError('pw_export','allocating itmp1', abs(ierr) )
+
+      !> @todo Figure out what this section is doing #thisbranch @endtodo
       itmp1 = 0
+      if(ik >= ikStart .and. ik <= ikEnd) then
+
+        do  ig = 1, ngk(ik-ikStart+1)
+
+          itmp1(igk_l2g(ig, ik-ikStart+1)) = igk_l2g(ig, ik-ikStart+1)
+
+        enddo
+      endif
     
-      IF( ik >= ikStart .and. ik <= ikEnd ) THEN
-        DO  ig = 1, ngk( ik-ikStart+1 )
-          itmp1( igk_l2g( ig, ik-ikStart+1 ) ) = igk_l2g( ig, ik-ikStart+1 )
-        ENDDO
-      ENDIF
+      call mp_sum( itmp1, world_comm_local )
+        !! @todo Change this to use actual `MPI_SUM` call #thisbranch @endtodo
+
     
-      CALL mp_sum( itmp1, world_comm_local )
-    
+      !> @todo Figure out what this section is doing #thisbranch @endtodo
       ngg = 0
-      DO  ig = 1, npw_g
-        IF( itmp1( ig ) == ig ) THEN
+      do  ig = 1, npw_g
+
+        if(itmp1(ig) == ig) then
+
           ngg = ngg + 1
-          igwk( ngg , ik) = ig
-        ENDIF
-      ENDDO
-      IF( ngg /= ngk_g( ik ) ) THEN
-        if ( ionode_local ) WRITE(mainout, *) ' ik, ngg, ngk_g = ', ik, ngg, ngk_g( ik )
-      ENDIF
+          igwk(ngg , ik) = ig
+
+        endif
+      enddo
+
+
+      if(ionode_local .and. ngg /= ngk_g(ik)) write(mainout, *) ' ik, ngg, ngk_g = ', ik, ngg, ngk_g(ik)
+        !! @todo Figure out what this is checking for #thisbranch @endtodo
     
-      DEALLOCATE( itmp1 )
+      deallocate( itmp1 )
     
-      if ( ionode_local ) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk(ik), xk_local(1:3,ik)
+      if (ionode_local) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk(ik), xk_local(1:3,ik)
+        !! @todo Figure out if other calculations are really needed since only write this stuff out #thisbranch @endtodo
     
-    ENDDO
+    enddo
 
     return
   end subroutine writeKInfo
