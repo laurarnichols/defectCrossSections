@@ -1827,11 +1827,11 @@ module wfcExportVASPMod
     allocate(igwk(npwx_g, nkstot_local))
       !! @todo Figure out what `igwk` is #thisbranch @endtodo
   
+    igwk(:,:) = 0
     do ik = 1, nkstot_local
-      igwk(:,ik) = 0
     
       allocate(itmp1(npw_g), stat=ierr)
-      if ( ierr/=0 ) call exitError('pw_export','allocating itmp1', abs(ierr) )
+      if ( ierr/= 0 ) call exitError('pw_export','allocating itmp1', abs(ierr) )
 
       !> @todo Figure out what this section is doing #thisbranch @endtodo
       itmp1 = 0
@@ -1855,7 +1855,7 @@ module wfcExportVASPMod
         if(itmp1(ig) == ig) then
 
           ngg = ngg + 1
-          igwk(ngg , ik) = ig
+          igwk(ngg, ik) = ig
 
         endif
       enddo
