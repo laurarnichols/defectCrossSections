@@ -105,6 +105,8 @@ module wfcExportVASPMod
     !! assumes \(a=1\)
   real(kind=dp), allocatable :: xk_local(:,:)
     !! Position of k-points in reciprocal space
+  real(kind=dp), allocatable :: wk_local(:,:)
+    !! Weight of k-points
   
   integer, allocatable :: ig_l2g(:)
     !! Converts local index `ig` to global index
@@ -1792,11 +1794,14 @@ module wfcExportVASPMod
       npw_g, npwx_g, xk_local, igwk)
 
     use wvfct, only : wg
-      !! @todo Figure out what `wg` is #thisbranch @endtodo
+      !! Weight of each k-point and band
       !! @todo Figure out how to move `wg` to a local variable #thisbranch @endtodo
     use klist, only : wk
-      !! @todo Figure out what `wk` is #thisbranch @endtodo
-      !! @todo Figure out how to move `wk` to a local variable #thisbranch @endtodo
+      !! Weight of k-points
+      !! @note
+      !!  Can either get `wk` from `OUTCAR` or `vasprun.xml` 
+      !! @endnote
+      !! @todo Implement reading `wk` from `OUTCAR` or `vasprun.xml` #thisbranch @endtodo
 
     implicit none
 
