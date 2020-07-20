@@ -833,6 +833,12 @@ module wfcExportVASPMod
         !!  will have to be careful with the scaling/units.
         !! @endnote
 
+      write(mainout, '("# Cell volume (a.u.)^3. Format: ''(ES24.15E3)''")')
+      write(mainout, '(ES24.15E3)' ) omega_local
+    
+      write(mainout, '("# Number of K-points. Format: ''(i10)''")')
+      write(mainout, '(i10)') nkstot_local
+
     endif
 
     call readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, xk_local, nplane)
@@ -2004,13 +2010,6 @@ module wfcExportVASPMod
       !! indexed up to `npwx_local`
 
     IF( ionode_local ) THEN
-    
-
-      write(mainout, '("# Cell volume (a.u.)^3. Format: ''(ES24.15E3)''")')
-      write(mainout, '(ES24.15E3)' ) omega_local
-    
-      write(mainout, '("# Number of K-points. Format: ''(i10)''")')
-      write(mainout, '(i10)') nkstot_local
     
       write(mainout, '("# ik, groundState, ngk_g(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
     
