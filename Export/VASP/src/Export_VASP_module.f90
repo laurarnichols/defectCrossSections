@@ -95,6 +95,8 @@ module wfcExportVASPMod
     !! @todo Change back to `ecutwfc` once extracted from QE #end @endtodo
   real(kind=dp), allocatable :: gCart_local(:,:)
     !! G-vectors in Cartesian coordinates
+  real(kind=dp), allocatable :: occ(:,:)
+    !! Occupation of band
   real(kind=dp) :: omega_local
     !! Volume of unit cell
     !! @todo Change back to `omega` once extracted from QE #end @endtodo
@@ -692,8 +694,8 @@ module wfcExportVASPMod
   end subroutine exitError
 
 !----------------------------------------------------------------------------
-  subroutine readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, omega_local, vcut_local, xk_local, &
-        nb1max, nb2max, nb3max, nbnd_local, nkstot_local, nplane, npmax, nspin_local)
+  subroutine readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, occ, omega_local, vcut_local, &
+        xk_local, nb1max, nb2max, nb3max, nbnd_local, nkstot_local, nplane, npmax, nspin_local)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -719,6 +721,8 @@ module wfcExportVASPMod
       !! Reciprocal lattice vectors
     real(kind=dp), intent(out) :: ecutwfc_local
       !! Plane wave energy cutoff in Ry
+    real(kind=dp), allocatable, intent(out) :: occ(:,:)
+      !! Occupation of band
     real(kind=dp), intent(out) :: omega_local
       !! Volume of unit cell
     real(kind=dp), intent(out) :: vcut_local
@@ -845,7 +849,7 @@ module wfcExportVASPMod
 
     endif
 
-    call readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, xk_local, nplane)
+    call readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, occ, xk_local, nplane)
       !! Get the position of each k-point in reciprocal space 
       !! and the number of \(G+k) vectors below the cutoff 
       !! energy for each k-point
@@ -1081,7 +1085,7 @@ module wfcExportVASPMod
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, xk_local, nplane)
+  subroutine readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, occ, xk_local, nplane)
     !! For each spin and k-point, read the number of
     !! \(G+k\) vectors below the energy cutoff, the
     !! position of the k-point in reciprocal space, 
@@ -1108,6 +1112,8 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: occ(:,:)
+      !! Occupation of band
     real(kind=dp), allocatable, intent(out) :: xk_local(:,:)
       !! Position of k-points in reciprocal space
 
@@ -1116,21 +1122,20 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    real(kind=dp), allocatable :: cener(:)
-      !! Band eigenvalues
-    real(kind=dp), allocatable :: coeff(:,:)
-      !! Plane wave coefficients
-    real(kind=dp), allocatable :: occ(:)
-      !! Occupation of band
     real(kind=dp) :: nplane_real
       !! Real version of integers for reading from file
+
+    complex*16, allocatable :: cener(:)
+      !! Band eigenvalues
+    complex*8, allocatable :: coeff(:,:)
+      !! Plane wave coefficients
 
     integer :: irec, isp, ik, i, iband, iplane
       !! Loop indices
 
 
     if(ionode_local) then
-      allocate(occ(nbnd_local))
+      allocate(occ(nbnd_local, nkstot_local))
       allocate(cener(nbnd_local))
       allocate(coeff(npmax,nbnd_local))
     endif
@@ -1164,16 +1169,12 @@ module wfcExportVASPMod
             irec = irec + 1
        
             read(unit=wavecarUnit,rec=irec) nplane_real, (xk_local(i,ik),i=1,3), &
-                 (cener(iband), occ(iband), iband=1,nbnd_local)
+                 (cener(iband), occ(iband, ik), iband=1,nbnd_local)
               ! Read in the number of \(G+k\) plane wave vectors below the energy
               ! cutoff, the position of the k-point in reciprocal space, and
               ! the eigenvalue and occupation for each band
 
             nplane(ik) = nint(nplane_real)
-
-          endif
-
-          if(ionode_local) then
 
             do iband = 1, nbnd_local
 
@@ -1187,7 +1188,9 @@ module wfcExportVASPMod
                 !!  Figure out how this and `eigF`/`eigI` relates to `et` @endtodo
 
             enddo
+
             write(45+ik,*) "--------------------------------------------------------"
+
           endif
        enddo
     enddo
@@ -1197,7 +1200,6 @@ module wfcExportVASPMod
     !>  wave coefficients are not currently used anywhere.
     !> @endnote
     if(ionode_local) then
-      deallocate(occ)
       deallocate(cener)
       deallocate(coeff)
     endif
@@ -1791,11 +1793,8 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine writeKInfo(nkstot_local, npwx_local, igk_l2g, nbnd_local, ngk_g, ngk_local, &
-      npw_g, npwx_g, xk_local, igwk)
+      npw_g, npwx_g, occ, xk_local, igwk)
 
-    use wvfct, only : wg
-      !! Weight of each k-point and band
-      !! @todo Figure out how to move `wg` to a local variable #thisbranch @endtodo
     use klist, only : wk
       !! Weight of k-points
       !! @note
@@ -1832,6 +1831,8 @@ module wfcExportVASPMod
       !! Max number of \(G+k\) vectors with energy
       !! less than `ecutwfc_local` among all k-points
 
+    real(kind=dp), intent(in) :: occ(nbnd_local, nkstot_local)
+      !! Occupation of band
     real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
       !! Position of k-points in reciprocal space
 
@@ -1862,17 +1863,15 @@ module wfcExportVASPMod
     
       allocate(groundState(nkstot_local))
 
-      !> @note
-      !>  This loop seems like it could be setting the band index
-      !>  for the defect at different k-points?
-      !> @endnote
-      !> @todo Figure out what this loop is doing #thisbranch @endtodo
+      !> * For each k-point, find the index of the 
+      !>   highest occupied band
       groundState(:) = 0
       do ik = 1, nkstot_local
 
         do ibnd = 1, nbnd_local
 
-          if (wg(ibnd,ik)/wk(ik) < 0.5_dp) then
+          if (occ(ibnd,ik) < 0.5_dp) then
+            !! @todo Figure out if this check should be 0.5 or less #thisbranch @endtodo
           !if (et(ibnd,ik) > ef) then
 
             groundState(ik) = ibnd - 1

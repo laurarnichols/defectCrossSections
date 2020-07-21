@@ -62,9 +62,11 @@ program wfcExportVASPMain
     !! * Read QE input files
     !! @todo Remove this once extracted from QE #end @endtodo
   
-  call readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, omega_local, vcut_local, &
+  call readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, occ, omega_local, vcut_local, &
       xk_local, nb1max, nb2max, nb3max, nbnd_local, nkstot_local, nplane, npmax, nspin_local)
     !! * Read cell and wavefunction data from the WAVECAR file
+
+  stop
 
   call distributeKpointsInPools(nkstot_local)
     !! * Figure out how many k-points there should be per pool
@@ -85,7 +87,9 @@ program wfcExportVASPMain
   deallocate(nplane)
 
   call writeKInfo(nkstot_local, npwx_local, igk_l2g, nbnd_local, ngk_g, ngk_local, npw_g, npwx_g, &
-      xk_local, igwk)
+      occ, xk_local, igwk)
+
+  deallocate(occ)
 
   CALL write_export (mainOutputFile, exportDir)
 
