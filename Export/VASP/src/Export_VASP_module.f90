@@ -1845,9 +1845,9 @@ module wfcExportVASPMod
 
     ! Local variables:
     integer, allocatable :: groundState(:)
-      !! Not sure what this is??
-      !! @todo Figure out what `groundState` is #thisbranch @endtodo
-    integer :: ik, ibnd, ig
+      !! Holds the highest occupied band
+      !! for each k-point
+    integer :: ik, ig
       !! Loop indices
     integer, allocatable :: itmp1(:)
       !! Not sure what this is??
@@ -1863,26 +1863,10 @@ module wfcExportVASPMod
     
       allocate(groundState(nkstot_local))
 
-      !> * For each k-point, find the index of the 
-      !>   highest occupied band
-      groundState(:) = 0
-      do ik = 1, nkstot_local
+      call getGroundState(nbnd_local, nkstot_local, occ, groundState)
+        !! * For each k-point, find the index of the 
+        !!   highest occupied band
 
-        do ibnd = 1, nbnd_local
-
-          if (occ(ibnd,ik) < 0.5_dp) then
-            !! @todo Figure out if this check should be 0.5 or less #thisbranch @endtodo
-          !if (et(ibnd,ik) > ef) then
-
-            groundState(ik) = ibnd - 1
-            goto 10
-
-          endif
-        enddo
-
-10      continue
-
-      enddo
     endif
   
     allocate(igwk(npwx_g, nkstot_local))
@@ -1935,6 +1919,56 @@ module wfcExportVASPMod
 
     return
   end subroutine writeKInfo
+
+!----------------------------------------------------------------------------
+  subroutine getGroundState(nbnd_local, nkstot_local, occ, groundState)
+    !! * For each k-point, find the index of the 
+    !!   highest occupied band
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nbnd_local
+      !! Total number of bands
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
+
+    real(kind=dp), intent(in) :: occ(nbnd_local, nkstot_local)
+      !! Occupation of band
+
+    
+    ! Output variables:
+    integer, intent(out) :: groundState(nkstot_local)
+      !! Holds the highest occupied band
+      !! for each k-point
+
+
+    ! Local variables:
+    integer :: ik, ibnd
+      !! Loop indices
+
+
+    groundState(:) = 0
+    do ik = 1, nkstot_local
+
+      do ibnd = 1, nbnd_local
+
+        if (occ(ibnd,ik) < 0.5_dp) then
+          !! @todo Figure out if this check should be 0.5 or less #thisbranch @endtodo
+        !if (et(ibnd,ik) > ef) then
+
+          groundState(ik) = ibnd - 1
+          goto 10
+
+        endif
+      enddo
+
+10    continue
+
+    enddo
+
+    return
+  end subroutine getGroundState
 
 !----------------------------------------------------------------------------
   subroutine subroutineTemplate()
