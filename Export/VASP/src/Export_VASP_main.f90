@@ -65,7 +65,7 @@ program wfcExportVASPMain
   if (ionode_local) write(stdout,*) "Reading WAVECAR"
 
   call readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, occ, omega_local, vcut_local, &
-      xk_local, nb1max, nb2max, nb3max, nbnd_local, nkstot_local, nplane, npmax, nspin_local)
+      xk_local, nb1max, nb2max, nb3max, nbnd_local, ngk_max, nkstot_local, nplane, nspin_local)
     !! * Read cell and wavefunction data from the WAVECAR file
 
   if (ionode_local) write(stdout,*) "Done reading WAVECAR"
@@ -75,7 +75,7 @@ program wfcExportVASPMain
 
   if (ionode_local) write(stdout,*) "Calculating G-vectors"
 
-  call calculateGvecs(nb1max, nb2max, nb3max, npmax, bg_local, gCart_local, ig_l2g, itmp_g, &
+  call calculateGvecs(nb1max, nb2max, nb3max, bg_local, gCart_local, ig_l2g, itmp_g, &
       ngm_g_local, ngm_local)
     !! * Calculate Miller indices and G-vectors and split
     !!   over processors
@@ -84,8 +84,8 @@ program wfcExportVASPMain
 
   if (ionode_local) write(stdout,*) "Reconstructing FFT grid"
 
-  call reconstructFFTGrid(ngm_local, ig_l2g, nkstot_local, gCart_local, vcut_local, xk_local, &
-      igk_l2g, igk_large, ngk_local, ngk_g, npw_g, npwx_g, npwx_local, nplane, npmax)
+  call reconstructFFTGrid(ngm_local, ig_l2g, ngk_max, nkstot_local, nplane, gCart_local, &
+      vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, npwx_g, npwx_local)
     !! * Determine which G-vectors result in \(G+k\)
     !!   below the energy cutoff for each k-point and
     !!   sort the indices based on \(|G+k|^2\)
