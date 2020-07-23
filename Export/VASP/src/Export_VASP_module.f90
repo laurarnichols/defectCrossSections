@@ -1148,74 +1148,70 @@ module wfcExportVASPMod
       !! Loop indices
 
 
-    if(ionode_local) then
-      allocate(cener(nbnd_local))
-      allocate(coeff(ngk_max,nbnd_local))
-    endif
-
     allocate(occ(nbnd_local, nkstot_local))
     allocate(xk_local(3,nkstot_local))
     allocate(nplane(nkstot_local))
 
-    if(ionode_local) irec=2
+    if(ionode_local) then
 
-    do isp = 1, nspin_local
-      !! * For each spin:
-      !!    * Go through each k-point
-      !!       * Read in the number of \(G+k\) plane wave
-      !!         vectors below the energy cutoff
-      !!       * Read the position of the k-point in 
-      !!         reciprocal space
-      !!       * Read in the eigenvalue and occupation for
-      !!         each band
-      !!       * Read in the plane wave coefficients for
-      !!         each band
+      allocate(cener(nbnd_local))
+      allocate(coeff(ngk_max,nbnd_local))
+    
+      irec=2
 
-       if(ionode_local) then
-         write(stdout,*) '  Reading spin ', isp
-       endif         
+      do isp = 1, nspin_local
+        !! * For each spin:
+        !!    * Go through each k-point
+        !!       * Read in the number of \(G+k\) plane wave
+        !!         vectors below the energy cutoff
+        !!       * Read the position of the k-point in 
+        !!         reciprocal space
+        !!       * Read in the eigenvalue and occupation for
+        !!         each band
+        !!       * Read in the plane wave coefficients for
+        !!         each band
+
+       write(stdout,*) '  Reading spin ', isp
 
        do ik = 1, nkstot_local
 
-          if(ionode_local) then
-            write(stdout,*) '    Reading k-point ', ik
+        write(stdout,*) '    Reading k-point ', ik
 
-            irec = irec + 1
+        irec = irec + 1
        
-            read(unit=wavecarUnit,rec=irec) nplane_real, (xk_local(i,ik),i=1,3), &
-                 (cener(iband), occ(iband, ik), iband=1,nbnd_local)
-              ! Read in the number of \(G+k\) plane wave vectors below the energy
-              ! cutoff, the position of the k-point in reciprocal space, and
-              ! the eigenvalue and occupation for each band
+        read(unit=wavecarUnit,rec=irec) nplane_real, (xk_local(i,ik),i=1,3), &
+               (cener(iband), occ(iband, ik), iband=1,nbnd_local)
+          ! Read in the number of \(G+k\) plane wave vectors below the energy
+          ! cutoff, the position of the k-point in reciprocal space, and
+          ! the eigenvalue and occupation for each band
 
-            nplane(ik) = nint(nplane_real)
+        nplane(ik) = nint(nplane_real)
 
-            do iband = 1, nbnd_local
+        do iband = 1, nbnd_local
 
-              irec = irec + 1
+          irec = irec + 1
 
-              read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nplane(ik))
-                ! Read in the plane wave coefficients for each band
+          read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nplane(ik))
+            ! Read in the plane wave coefficients for each band
 
-              write(45+ik,*) cener(iband)
-                !! @todo 
-                !!  Figure out how this and `eigF`/`eigI` relates to `et` @endtodo
+          write(45+ik,*) cener(iband)
+            !! @todo 
+            !!  Figure out how this and `eigF`/`eigI` relates to `et` @endtodo
 
-            enddo
+        enddo
 
-            write(45+ik,*) "--------------------------------------------------------"
+        write(45+ik,*) "--------------------------------------------------------"
 
-          endif
-       enddo
+      enddo
     enddo
 
-    !> @note 
-    !>  The band eigenvalues and occupations and the plane
-    !>  wave coefficients are not currently used anywhere.
-    !> @endnote
-    if(ionode_local) then
       deallocate(cener)
       deallocate(coeff)
+        !! @note 
+        !!  The band eigenvalues and occupations and the plane
+        !!  wave coefficients are not currently used anywhere.
+        !! @endnote
+
     endif
 
     call MPI_BCAST(xk_local, size(xk_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
