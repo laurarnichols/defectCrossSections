@@ -809,7 +809,7 @@ module wfcExportVASPMod
         !! * Calculate the reciprocal lattice vectors from the real-space
         !!   lattice vectors and the cell volume
 
-      call estimateMaxNumPlanewaves(bg_local, nb1max, nb2max, nb3max, npmax)
+      call estimateMaxNumPlanewaves(bg_local, ecutwfc_local, nb1max, nb2max, nb3max, npmax)
         !! * Get the maximum number of plane waves
 
       !> * Write out total number of k-points, number of bands, 
@@ -849,13 +849,6 @@ module wfcExportVASPMod
 
     endif
 
-    call readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, occ, xk_local, nplane)
-      !! Get the position of each k-point in reciprocal space 
-      !! and the number of \(G+k) vectors below the cutoff 
-      !! energy for each k-point
-
-    if(ionode_local) close(wavecarUnit)
-
     call MPI_BCAST(nb1max, 1, MPI_INTEGER, root, world_comm_local, ierr)
     call MPI_BCAST(nb2max, 1, MPI_INTEGER, root, world_comm_local, ierr)
     call MPI_BCAST(nb3max, 1, MPI_INTEGER, root, world_comm_local, ierr)
@@ -867,6 +860,13 @@ module wfcExportVASPMod
     call MPI_BCAST(omega_local, 1, MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
     call MPI_BCAST(at_local, size(at_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
     call MPI_BCAST(bg_local, size(bg_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
+
+    call readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, occ, xk_local, nplane)
+      !! Get the position of each k-point in reciprocal space 
+      !! and the number of \(G+k) vectors below the cutoff 
+      !! energy for each k-point
+
+    if(ionode_local) close(wavecarUnit)
 
     at = at_local/alat
     bg = bg_local/tpiba
@@ -968,7 +968,7 @@ module wfcExportVASPMod
   end subroutine vcross
 
 !----------------------------------------------------------------------------
-  subroutine estimateMaxNumPlanewaves(bg_local, nb1max, nb2max, nb3max, npmax)
+  subroutine estimateMaxNumPlanewaves(bg_local, ecutwfc_local, nb1max, nb2max, nb3max, npmax)
     !! Get the maximum number of plane waves. I'm not sure how 
     !! this is done completely. It seems to be just basic vector
     !! stuff, but I haven't been able to make sense of it.
@@ -983,6 +983,8 @@ module wfcExportVASPMod
     ! Input variables:
     real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
+    real(kind=dp), intent(in) :: ecutwfc_local
+      !! Plane wave energy cutoff in Ry
 
 
     ! Output variables:
@@ -1135,11 +1137,11 @@ module wfcExportVASPMod
 
 
     if(ionode_local) then
-      allocate(occ(nbnd_local, nkstot_local))
       allocate(cener(nbnd_local))
       allocate(coeff(npmax,nbnd_local))
     endif
 
+    allocate(occ(nbnd_local, nkstot_local))
     allocate(xk_local(3,nkstot_local))
     allocate(nplane(nkstot_local))
 
@@ -1205,6 +1207,8 @@ module wfcExportVASPMod
     endif
 
     call MPI_BCAST(xk_local, size(xk_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
+    call MPI_BCAST(occ, size(occ), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
+    call MPI_BCAST(nplane, size(nplane), MPI_INTEGER, root, world_comm_local, ierr)
 
     xk = xk_local
       !! @todo Remove this once extracted from QE #end @endtodo
@@ -1814,7 +1818,9 @@ module wfcExportVASPMod
 
     integer, intent(in) :: igk_l2g(npwx_local, nk_Pool)
       !! Local to global indices for \(G+k\) vectors 
-      !! ordered by magnitude at a given k-point
+      !! ordered by magnitude at a given k-point;
+      !! the first index goes up to `npwx_local`,
+      !! but only valid values are up to `ngk_local`
     integer, intent(in) :: nbnd_local
       !! Total number of bands
     integer, intent(in) :: ngk_g(nkstot_local)
@@ -1875,15 +1881,19 @@ module wfcExportVASPMod
     do ik = 1, nkstot_local
     
       allocate(itmp1(npw_g), stat=ierr)
-      if ( ierr/= 0 ) call exitError('pw_export','allocating itmp1', abs(ierr) )
+      if (ierr/= 0) call exitError('pw_export','allocating itmp1', abs(ierr))
 
       !> @todo Figure out what this section is doing #thisbranch @endtodo
       itmp1 = 0
       if(ik >= ikStart .and. ik <= ikEnd) then
 
-        do  ig = 1, ngk_local(ik-ikStart+1)
+        do ig = 1, ngk_local(ik-ikStart+1)
 
           itmp1(igk_l2g(ig, ik-ikStart+1)) = igk_l2g(ig, ik-ikStart+1)
+            !! @note
+            !!  This takes each processor's local to global indices and
+            !!  stores them in the same index in `itmp1`
+            !! @endnote
 
         enddo
       endif
@@ -1895,6 +1905,9 @@ module wfcExportVASPMod
       !> @todo Figure out what this section is doing #thisbranch @endtodo
       ngg = 0
       do  ig = 1, npw_g
+
+        if (ionode_local) write(87,*) ig, " ", itmp1(ig)
+          !! @todo Remove this write statement #thistask @endtodo
 
         if(itmp1(ig) == ig) then
 
