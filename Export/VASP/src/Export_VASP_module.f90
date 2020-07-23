@@ -867,7 +867,7 @@ module wfcExportVASPMod
       write(stdout,*) 'Starting to read wavefunction'
     endif
 
-    call readWavefunction(nbnd_local, nkstot_local, ngk_max, nspin_local, occ, xk_local, nplane)
+    call readWavefunction(nbnd_local, ngk_max, nkstot_local, nspin_local, occ, xk_local, nplane)
       !! Get the position of each k-point in reciprocal space 
       !! and the number of \(G+k) vectors below the cutoff 
       !! energy for each k-point
