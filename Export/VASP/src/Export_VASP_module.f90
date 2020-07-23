@@ -1343,7 +1343,7 @@ module wfcExportVASPMod
 
         if (ig3 .gt. nb3max) ig3p = ig3 - 2*nb3max - 1
 
-        write(stdout,*) " Outer miller index: ", ig3p
+        !write(stdout,*) " Outer miller index: ", ig3p
 
         do ig2 = 0, 2*nb2max
 
@@ -1390,7 +1390,10 @@ module wfcExportVASPMod
 
     allocate(gCart_local(3,ngm_local))
 
+    write(stdout,*) "  ngm_local = ", ngm_local
+
     do ig = 1, ngm_local
+      write(stdout,*) "    ig = ", ig
 
       do ix = 1, 3
         !! * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
