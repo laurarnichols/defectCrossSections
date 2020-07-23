@@ -861,12 +861,24 @@ module wfcExportVASPMod
     call MPI_BCAST(at_local, size(at_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
     call MPI_BCAST(bg_local, size(bg_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
 
+    if (ionode_local)
+      write(stdout,*) 
+      write(stdout,*) '******'
+      write(stdout,*) 'Starting to read wavefunction'
+    endif
+
     call readWavefunction(nbnd_local, nkstot_local, npmax, nspin_local, occ, xk_local, nplane)
       !! Get the position of each k-point in reciprocal space 
       !! and the number of \(G+k) vectors below the cutoff 
       !! energy for each k-point
 
     if(ionode_local) close(wavecarUnit)
+
+    if (ionode_local)
+      write(stdout,*) 'Finished reading wavefunction'
+      write(stdout,*) '******'
+      write(stdout,*) 
+    endif
 
     at = at_local/alat
     bg = bg_local/tpiba
@@ -1160,14 +1172,14 @@ module wfcExportVASPMod
       !!         each band
 
        if(ionode_local) then
-         write(stdout,*) ' '
-         write(stdout,*) '******'
-         write(stdout,*) 'Reading spin ', isp
+         write(stdout,*) '  Reading spin ', isp
        endif         
 
        do ik = 1, nkstot_local
 
           if(ionode_local) then
+            write(stdout,*) '    Reading k-point ', ik
+
             irec = irec + 1
        
             read(unit=wavecarUnit,rec=irec) nplane_real, (xk_local(i,ik),i=1,3), &
@@ -1316,9 +1328,15 @@ module wfcExportVASPMod
       !! Integer coefficients for G-vectors
 
 
-    allocate(itmp_g(3,npmax))
+    allocate(itmp_g(3,2*nb1max+2*nb2max+2*nb3max+3))
 
     if(ionode_local) then
+      write(stdout,*)
+      write(stdout,*) "***************"
+      write(stdout,*) "Calculating miller indices"
+
+      write(stdout,*) 2*nb1max+2*nb2max+2*nb3max+3
+
       ngm_g_local = 0
       itmp_g = 0
 
@@ -1342,6 +1360,8 @@ module wfcExportVASPMod
 
             ngm_g_local = ngm_g_local + 1
 
+            write(89,*) ngm_g_local, " ", ig1p, " ", ig2p, " ", ig3p
+
             itmp_g(1,ngm_g_local) = ig1p
             itmp_g(2,ngm_g_local) = ig2p
             itmp_g(3,ngm_g_local) = ig3p
@@ -1350,6 +1370,10 @@ module wfcExportVASPMod
           enddo
         enddo
       enddo
+
+      write(stdout,*) "Done calculating miller indices"
+      write(stdout,*) "***************"
+      write(stdout,*)
     endif
 
     call MPI_BCAST(ngm_g_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
@@ -1556,6 +1580,12 @@ module wfcExportVASPMod
     ngk_local(:) = 0
     igk_large(:,:) = 0
 
+    if (ionode_local) then
+      write(stdout,*)
+      write(stdout,*) "***************"
+      write(stdout,*) "Determining G+k combinations less than energy cutoff"
+    endif
+
     do ik = 1, nk_Pool
       !! * For each \(G+k\) combination, calculate the 
       !!   magnitude and, if it is less than the energy
@@ -1565,6 +1595,8 @@ module wfcExportVASPMod
       !!   vectors lines up with expectations from
       !!   WAVECAR
       !! @todo Figure out if `vcut_local` is defined properly @endtodo
+
+      if (ionode_local) write(stdout,*) "Processing k-point ", ik
 
       ngk_tmp = 0
 
@@ -1616,6 +1648,12 @@ module wfcExportVASPMod
 
     enddo
 
+    if (ionode_local) then
+      write(stdout,*) "Done determining G+k combinations less than energy cutoff"
+      write(stdout,*) "***************"
+      write(stdout,*)
+    endif
+
     if (npwx_local <= 0) call exitError('reconstructFFTGrid', &
                 'No plane waves found: running on too many processors?', 1)
 
@@ -1629,6 +1667,12 @@ module wfcExportVASPMod
 
     igk_l2g = 0
     igk = 0
+
+    if (ionode_local) then
+      write(stdout,*)
+      write(stdout,*) "***************"
+      write(stdout,*) "Sorting G+k combinations by magnitude"
+    endif
 
     do ik = 1, nk_Pool
       !! * Reorder the indices of the G-vectors so that
@@ -1650,6 +1694,12 @@ module wfcExportVASPMod
       igk_l2g(ngk_tmp+1:npwx_local, ik) = 0
 
     enddo
+
+    if (ionode_local) then
+      write(stdout,*) "Done sorting G+k combinations by magnitude"
+      write(stdout,*) "***************"
+      write(stdout,*)
+    endif
 
     deallocate(igk)
 
@@ -1863,7 +1913,11 @@ module wfcExportVASPMod
       !! @todo Figure out what `ngg` is #thisbranch @endtodo
 
 
-    if( ionode_local ) then
+    if(ionode_local) then
+
+      write(stdout,*)
+      write(stdout,*) "***************"
+      write(stdout,*) "Getting ground state bands"
     
       write(mainout, '("# ik, groundState, ngk_g(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
     
@@ -1872,6 +1926,10 @@ module wfcExportVASPMod
       call getGroundState(nbnd_local, nkstot_local, occ, groundState)
         !! * For each k-point, find the index of the 
         !!   highest occupied band
+
+      write(stdout,*) "Done getting ground state bands"
+      write(stdout,*) "***************"
+      write(stdout,*)
 
     endif
   
