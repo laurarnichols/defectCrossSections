@@ -1359,8 +1359,6 @@ module wfcExportVASPMod
 
             ngm_g_local = ngm_g_local + 1
 
-            write(89,*) ngm_g_local, " ", ig3p, " ", ig2p, " ", ig1p
-
             itmp_g(1,ngm_g_local) = ig1p
             itmp_g(2,ngm_g_local) = ig2p
             itmp_g(3,ngm_g_local) = ig3p
@@ -1370,6 +1368,13 @@ module wfcExportVASPMod
         enddo
       enddo
 
+      !> Check that number of G-vectors are the same as the number of plane waves
+      if (ngm_g_local .ne. npmax) then
+        !! @todo Change this error and exit to a call to `exitError` @endtodo
+        write(stdout,*) '*** error - computed no. of G-vectors != estimated number of plane waves'
+        stop
+      endif
+
       write(stdout,*) "Done calculating miller indices"
       write(stdout,*) "***************"
       write(stdout,*)
@@ -1378,22 +1383,24 @@ module wfcExportVASPMod
     call MPI_BCAST(ngm_g_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
     call MPI_BCAST(itmp_g, size(itmp_g), MPI_INTEGER, root, world_comm_local, ierr)
 
-    write(stdout,*)
-    write(stdout,*) "***************"
-    write(stdout,*) "Distributing G-vecs over processors"
+    if (ionode_local) then
+      write(stdout,*)
+      write(stdout,*) "***************"
+      write(stdout,*) "Distributing G-vecs over processors"
+    endif
 
-    call distributeGvecsOverProcessors(npmax, itmp_g, ngm_g_local, ig_l2g, igEnd, &
+    call distributeGvecsOverProcessors(ngm_g_local, itmp_g, ig_l2g, igEnd, &
             igStart, mill_local, ngm_local)
       !! * Split up the G-vectors and Miller indices over processors 
 
-    write(stdout,*) "Calculating G-vectors"
+    if (ionode_local) write(stdout,*) "Calculating G-vectors"
 
     allocate(gCart_local(3,ngm_local))
 
-    write(stdout,*) "  ngm_local = ", ngm_local
+    if (ionode_local) write(stdout,*) "  ngm_local = ", ngm_local
 
     do ig = 1, ngm_local
-      write(stdout,*) "    ig = ", ig
+      !if (ionode_local) write(stdout,*) "    ig = ", ig
 
       do ix = 1, 3
         !! * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
@@ -1403,16 +1410,18 @@ module wfcExportVASPMod
       enddo
     enddo
 
-    deallocate(mill_local)
+    if (ionode_local) then
+      write(stdout,*) "***************"
+      write(stdout,*)
+    endif
 
-    write(stdout,*) "***************"
-    write(stdout,*)
+    deallocate(mill_local)
 
     return
   end subroutine calculateGvecs
 
 !----------------------------------------------------------------------------
-  subroutine distributeGvecsOverProcessors(npmax, itmp_g, ngm_g_local, ig_l2g, igEnd, &
+  subroutine distributeGvecsOverProcessors(ngm_g_local, itmp_g, ig_l2g, igEnd, &
         igStart, mill_local, ngm_local)
     !! Figure out how many G-vectors there should be per processor
     !!
@@ -1422,13 +1431,11 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: npmax
-      !! Max number of plane waves
-      
-    integer, intent(in) :: itmp_g(3,npmax)
-      !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: ngm_g_local
       !! Global number of G-vectors
+      
+    integer, intent(in) :: itmp_g(3,ngm_g_local)
+      !! Integer coefficients for G-vectors on all processors
 
     
     ! Output variables:
@@ -1458,8 +1465,6 @@ module wfcExportVASPMod
       ngm_local = ngm_g_local / nproc_local
         !!  * Calculate number of G-vectors per processor
 
-      allocate(mill_local(3,ngm_local))
-
       ngr = ngm_g_local - ngm_local * nproc_local 
         !! * Calculate the remainder
 
@@ -1477,7 +1482,9 @@ module wfcExportVASPMod
       !> * Generate an array to map a local index
       !>   (that passed to `ig_l2g`) to a global
       !>   index (the value stored at `ig_l2g(ig)`)
+      !>   and get local miller indices
       allocate(ig_l2g(ngm_local))
+      allocate(mill_local(3,ngm_local))
 
       do ig = 1, ngm_local
 
@@ -1638,12 +1645,14 @@ module wfcExportVASPMod
 
         !> Check that number of G-vectors are the same as the number of plane waves
         if (ngk_tmp .ne. nplane(ik)) then
+          !! @todo Change this error and exit to a call to `exitError` @endtodo
           write(stdout,*) '*** error - computed no. of G-vectors != input no. of plane waves'
           stop
         endif
 
         !> Make sure that number of G-vectors isn't higher than the calculated maximum
         if (ngk_tmp .gt. ngk_max) then
+          !! @todo Change this error and exit to a call to `exitError` @endtodo
           write(stdout,*) '*** error - G-vector count exceeds estimate'
           stop
         endif
