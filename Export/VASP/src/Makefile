@@ -20,10 +20,12 @@ TLDEPS= bindir mods libs pw
 
 LIBOBJS = $(QE-5.3.0_Path)/flib/ptools.a $(QE-5.3.0_Path)/flib/flib.a $(QE-5.3.0_Path)/clib/clib.a $(QE-5.3.0_Path)/iotk/src/libiotk.a
 
+DEBUGFLAGS = -fcheck=all -Wall -Wextra -fbacktrace -Wconversion -pedantic -fbounds-check -ffpe-trap=zero,overflow,underflow,denormal,invalid -Og -g
+
 all : tldeps Export_VASP.x 
 
 Export_VASP.x : $(EXPORTOBJS) $(PPOBJS) $(MODULES) $(LIBOBJS)
-	$(LD) $(LDFLAGS) -o $@ \
+	$(LD) $(LDFLAGS) $(DEBUGFLAGS) -o $@ \
 		$(EXPORTOBJS) $(PPOBJS) $(MODULES) $(LIBOBJS) $(LIBS)
 	- ( cd $(Home_Path)/bin ; ln -fs $(Export_VASP_srcPath)/$@ . )
 	
