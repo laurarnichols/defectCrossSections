@@ -121,8 +121,8 @@ module wfcExportVASPMod
     !! is greater than `npwx_local` and
     !! stored for each k-point
   integer, allocatable :: igwk(:,:)
-    !! Not sure what this is??
-    !! @todo Update this description #thisbranch @endtodo
+    !! Indices of \(G+k\) vectors for each k-point
+    !! and all processors
   integer, allocatable :: itmp_g(:,:)
     !! Integer coefficients for G-vectors on all processors
   integer :: nb1max, nb2max, nb3max
@@ -1917,8 +1917,8 @@ module wfcExportVASPMod
 
     ! Output variables:
     integer, allocatable, intent(out) :: igwk(:,:)
-      !! Not sure what this is??
-      !! @todo Figure out what `igwk` is #thisbranch @endtodo
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
 
 
     ! Local variables:
@@ -1927,12 +1927,6 @@ module wfcExportVASPMod
       !! for each k-point
     integer :: ik, ig
       !! Loop indices
-    integer, allocatable :: itmp1(:)
-      !! Not sure what this is??
-      !! @todo Figure out what `itmp1` is #thisbranch @endtodo
-    integer :: ngg 
-      !! Not sure what this is??
-      !! @todo Figure out what `ngg` is #thisbranch @endtodo
 
 
     if(ionode_local) then
@@ -1954,59 +1948,36 @@ module wfcExportVASPMod
       write(stdout,*)
 
     endif
+
+    if(ionode_local) then
+
+      write(stdout,*)
+      write(stdout,*) "***************"
+      write(stdout,*) "Getting global G+k indices"
+
+    endif
   
     allocate(igwk(npwx_g, nkstot_local))
   
     igwk(:,:) = 0
     do ik = 1, nkstot_local
-    
-      allocate(itmp1(npw_g), stat=ierr)
-      if (ierr/= 0) call exitError('pw_export','allocating itmp1', abs(ierr))
 
-      !> @todo Figure out what this section is doing #thisbranch @endtodo
-      itmp1 = 0
-      if(ik >= ikStart .and. ik <= ikEnd) then
+      if (ionode_local) write(stdout,*) "Processing k-point ", ik
 
-        do ig = 1, ngk_local(ik-ikStart+1)
-
-          itmp1(igk_l2g(ig, ik-ikStart+1)) = igk_l2g(ig, ik-ikStart+1)
-            !! @note
-            !!  This takes each processor's local to global indices and
-            !!  stores them in the same index in `itmp1`
-            !! @endnote
-
-        enddo
-      endif
-    
-      call mp_sum( itmp1, world_comm_local )
-        !! @todo Change this to use actual `MPI_SUM` call #thisbranch @endtodo
-
-    
-      !> @todo Figure out what this section is doing #thisbranch @endtodo
-      ngg = 0
-      do  ig = 1, npw_g
-
-        if (ionode_local) write(87,*) ig, " ", itmp1(ig)
-          !! @todo Remove this write statement #thistask @endtodo
-
-        if(itmp1(ig) == ig) then
-
-          ngg = ngg + 1
-          igwk(ngg, ik) = ig
-
-        endif
-      enddo
-
-
-      if(ionode_local .and. ngg /= ngk_g(ik)) write(mainout, *) ' ik, ngg, ngk_g = ', ik, ngg, ngk_g(ik)
-        !! @todo Figure out what this is checking for #thisbranch @endtodo
-    
-      deallocate( itmp1 )
+      call getGlobalGkIndices(nkstot_local, npwx_local, igk_l2g, ik, ngk_g, ngk_local, npw_g, igwk)
     
       if (ionode_local) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk(ik), xk_local(1:3,ik)
         !! @todo Figure out if other calculations are really needed since only write this stuff out #thisbranch @endtodo
     
     enddo
+
+    if(ionode_local) then
+
+      write(stdout,*) "Done getting global G+k indices"
+      write(stdout,*) "***************"
+      write(stdout,*)
+
+    endif
 
     if (ionode_local) deallocate(groundState)
 
@@ -2062,6 +2033,107 @@ module wfcExportVASPMod
 
     return
   end subroutine getGroundState
+
+!----------------------------------------------------------------------------
+  subroutine getGlobalGkIndices(nkstot_local, npwx_local, igk_l2g, ik, ngk_g, ngk_local, npw_g, igwk)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
+    integer, intent(in) :: npwx_local
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points for just this 
+      !! processor
+
+    integer, intent(in) :: igk_l2g(npwx_local, nk_Pool)
+      !! Local to global indices for \(G+k\) vectors 
+      !! ordered by magnitude at a given k-point;
+      !! the first index goes up to `npwx_local`,
+      !! but only valid values are up to `ngk_local`
+    integer, intent(in) :: ik
+      !! Index of current k-point
+    integer, intent(in) :: ngk_g(nkstot_local)
+      !! Global number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local` for each k-point
+    integer, intent(in) :: ngk_local(nk_Pool)
+      !! Number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local` for each
+      !! k-point, on this processor
+    integer, intent(in) :: npw_g
+      !! Maximum G-vector index among all \(G+k\)
+      !! and processors
+
+
+    ! Output variables:
+    integer, allocatable, intent(out) :: igwk(:,:)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
+
+
+    ! Local variables:
+    integer :: ig
+    integer, allocatable :: itmp1(:)
+      !! Global \(G+k\) indices for single
+      !! k-point with zeros for G-vector indices
+      !! where \(G+k\) was greater than the cutoff
+    integer :: ngg 
+      !! Counter for \(G+k\) vectors for given
+      !! k-point; should equal `ngk_g`
+
+    
+    allocate(itmp1(npw_g), stat=ierr)
+    if (ierr/= 0) call exitError('pw_export','allocating itmp1', abs(ierr))
+
+    itmp1 = 0
+    if(ik >= ikStart .and. ik <= ikEnd) then
+
+      do ig = 1, ngk_local(ik-ikStart+1)
+
+        itmp1(igk_l2g(ig, ik-ikStart+1)) = igk_l2g(ig, ik-ikStart+1)
+          !! @note
+          !!  This takes each processor's local to global indices and
+          !!  stores them in the same index in `itmp1`. This will leave
+          !!  zeros in spots where the \(G+k\) combination for this
+          !!  k-point was greater than the energy cutoff.
+          !! @endnote
+
+      enddo
+    endif
+    
+    call mp_sum( itmp1, world_comm_local )
+      !! @todo Change this to use actual `MPI_SUM` call #thisbranch @endtodo
+
+    
+    ngg = 0
+    do  ig = 1, npw_g
+
+      if(itmp1(ig) == ig) then
+
+        ngg = ngg + 1
+          !! @note
+          !!  `ngg` should be the number of \(G+k\) vectors
+          !! @endnote
+        igwk(ngg, ik) = ig
+          !! @note
+          !!  Here we are generating an array that has all of the 
+          !!  indices of the \(G+k\) vectors on all processors
+          !!  stored in ascending order. This is the result of 
+          !!  `itmp1` from all processors will all of the zeros
+          !!  removed.
+          !! @endnote
+
+      endif
+    enddo
+
+
+    if(ionode_local .and. ngg /= ngk_g(ik)) call exitError('writeKInfo', 'Unexpected number of G+k vectors', 1)
+    
+    deallocate( itmp1 )
+
+    return
+  end subroutine getGlobalGkIndices
 
 !----------------------------------------------------------------------------
   subroutine subroutineTemplate()
