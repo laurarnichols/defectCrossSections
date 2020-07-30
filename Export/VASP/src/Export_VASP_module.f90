@@ -107,7 +107,7 @@ module wfcExportVASPMod
     !! assumes \(a=1\)
   real(kind=dp), allocatable :: xk_local(:,:)
     !! Position of k-points in reciprocal space
-  real(kind=dp), allocatable :: wk_local(:,:)
+  real(kind=dp), allocatable :: wk_local(:)
     !! Weight of k-points
   
   integer, allocatable :: ig_l2g(:)
@@ -1868,15 +1868,78 @@ module wfcExportVASPMod
   end subroutine hpsort_eps
 
 !----------------------------------------------------------------------------
-  subroutine writeKInfo(nkstot_local, npwx_local, igk_l2g, nbnd_local, ngk_g, ngk_local, &
-      npw_g, npwx_g, occ, xk_local, igwk)
+  subroutine getKPointWeights(nkstot_local, VASPDir, wk_local)
 
-    use klist, only : wk
-      !! Weight of k-points
-      !! @note
-      !!  Can either get `wk` from `OUTCAR` or `vasprun.xml` 
-      !! @endnote
-      !! @todo Implement reading `wk` from `OUTCAR` or `vasprun.xml` #thisbranch @endtodo
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
+
+    character(len=256), intent(in) :: VASPDir
+      !! Directory with VASP files
+
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: wk_local(:)
+      !! K-point weights
+
+
+    ! Local variables:
+    integer :: ik
+      !! Loop index
+
+    character(len=256) :: cDum
+      !! Dummy variable to ignore input
+    character(len=256) :: fileName
+      !! `vasprun.xml` with path
+    character(len=256) :: line
+      !! Line read from file
+
+    logical :: fileExists
+      !! If the `vasprun.xml` file exists
+    logical :: found
+      !! If the required tag was found
+
+    allocate(wk_local(nkstot_local))
+
+    if (ionode_local) then
+
+      fileName = trim(VASPDir)//'/vasprun.xml'
+
+      inquire(file = fileName, exist = fileExists)
+
+      if (.not. fileExists) call exitError('getKPointWeights', 'Required file vasprun.xml does not exist', 1)
+
+      open(57, file=fileName)
+
+      found = .false.
+      do while (.not. found)
+        
+        read(57, '(A)') line
+
+        if (index(line,'weights') /= 0) found = .true.
+        
+      enddo
+
+      do ik = 1, nkstot_local
+
+        read(57,*) cDum, wk_local(ik), cDum
+
+      enddo
+
+      write(stdout,*) "K-point weights: ", wk_local
+
+    endif
+
+    call MPI_BCAST(wk_local, size(wk_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
+
+    return
+  end subroutine getKpointWeights
+
+!----------------------------------------------------------------------------
+  subroutine writeKInfo(nkstot_local, npwx_local, igk_l2g, nbnd_local, ngk_g, ngk_local, &
+      npw_g, npwx_g, occ, wk_local, xk_local, igwk)
 
     implicit none
 
@@ -1911,6 +1974,8 @@ module wfcExportVASPMod
 
     real(kind=dp), intent(in) :: occ(nbnd_local, nkstot_local)
       !! Occupation of band
+    real(kind=dp), intent(in) :: wk_local(nkstot_local)
+      !! K-point weights
     real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
       !! Position of k-points in reciprocal space
 
@@ -1970,7 +2035,7 @@ module wfcExportVASPMod
 
       call getGlobalGkIndices(nkstot_local, npwx_local, igk_l2g, ik, ngk_g, ngk_local, npw_g, igwk)
     
-      if (ionode_local) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk(ik), xk_local(1:3,ik)
+      if (ionode_local) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk_local(ik), xk_local(1:3,ik)
     
     enddo
 
@@ -2105,7 +2170,7 @@ module wfcExportVASPMod
       enddo
     endif
     
-    call MPI_ALLREDUCE(itmp1, itmp1, size(itmp1), MPI_DOUBLE_PRECISION, MPI_SUM, world_comm_local, ierr)
+    call MPI_ALLREDUCE(MPI_IN_PLACE, itmp1, size(itmp1), MPI_DOUBLE_PRECISION, MPI_SUM, world_comm_local, ierr)
       !! @todo Figure out if this really needs to be `ALLREDUCE` or just `REDUCE` @endtodo
     
     ngg = 0

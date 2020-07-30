@@ -96,15 +96,22 @@ program wfcExportVASPMain
   deallocate(gCart_local)
   deallocate(nplane_g)
 
+  if (ionode_local) write(stdout,*) "Getting k-point weights"
+
+  call getKPointWeights(nkstot_local, VASPDir, wk_local)
+
+  if (ionode_local) write(stdout,*) "Done getting k-point weights"
+
   if (ionode_local) write(stdout,*) "Writing k-point info"
 
   call writeKInfo(nkstot_local, npwx_local, igk_l2g, nbnd_local, ngk_g, ngk_local, npw_g, npwx_g, &
-      occ, xk_local, igwk)
+      occ, wk_local, xk_local, igwk)
 
   if (ionode_local) write(stdout,*) "Done writing k-point info"
 
   stop
 
+  deallocate(wk_local)
   deallocate(occ)
 
   CALL write_export (mainOutputFile, exportDir)
