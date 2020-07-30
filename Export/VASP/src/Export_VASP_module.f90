@@ -1942,6 +1942,10 @@ module wfcExportVASPMod
       call getGroundState(nbnd_local, nkstot_local, occ, groundState)
         !! * For each k-point, find the index of the 
         !!   highest occupied band
+        !! @note
+        !!  Although `groundState` is written out in `Export`,
+        !!  it is not currently used by the `TME` program.
+        !! @endtodo
 
       write(stdout,*) "Done getting ground state bands"
       write(stdout,*) "***************"
@@ -1967,7 +1971,6 @@ module wfcExportVASPMod
       call getGlobalGkIndices(nkstot_local, npwx_local, igk_l2g, ik, ngk_g, ngk_local, npw_g, igwk)
     
       if (ionode_local) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk(ik), xk_local(1:3,ik)
-        !! @todo Figure out if other calculations are really needed since only write this stuff out #thisbranch @endtodo
     
     enddo
 
@@ -2018,7 +2021,7 @@ module wfcExportVASPMod
       do ibnd = 1, nbnd_local
 
         if (occ(ibnd,ik) < 0.5_dp) then
-          !! @todo Figure out if this check should be 0.5 or less #thisbranch @endtodo
+          !! @todo Figure out if this check should be 0.5 or less @endtodo
         !if (et(ibnd,ik) > ef) then
 
           groundState(ik) = ibnd - 1
@@ -2102,9 +2105,7 @@ module wfcExportVASPMod
       enddo
     endif
     
-    call mp_sum( itmp1, world_comm_local )
-      !! @todo Change this to use actual `MPI_SUM` call #thisbranch @endtodo
-
+    call MPI_ALLREDUCE(itmp1, itmp1, size(itmp1), MPI_DOUBLE_PRECISION, MPI_SUM, world_comm_local, ierr)
     
     ngg = 0
     do  ig = 1, npw_g
