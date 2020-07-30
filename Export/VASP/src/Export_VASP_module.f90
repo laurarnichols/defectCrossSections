@@ -2106,6 +2106,7 @@ module wfcExportVASPMod
     endif
     
     call MPI_ALLREDUCE(itmp1, itmp1, size(itmp1), MPI_DOUBLE_PRECISION, MPI_SUM, world_comm_local, ierr)
+      !! @todo Figure out if this really needs to be `ALLREDUCE` or just `REDUCE` @endtodo
     
     ngg = 0
     do  ig = 1, npw_g
