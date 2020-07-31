@@ -2033,7 +2033,8 @@ module wfcExportVASPMod
 
       if (ionode_local) write(stdout,*) "Processing k-point ", ik
 
-      call getGlobalGkIndices(nkstot_local, npwx_local, igk_l2g, ik, ngk_g, ngk_local, npw_g, igwk)
+      call getGlobalGkIndices(nkstot_local, npwx_local, igk_l2g, ik, ngk_g, ngk_local, npw_g, &
+          npwx_g, igwk)
     
       if (ionode_local) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk_local(ik), xk_local(1:3,ik)
     
@@ -2103,7 +2104,8 @@ module wfcExportVASPMod
   end subroutine getGroundState
 
 !----------------------------------------------------------------------------
-  subroutine getGlobalGkIndices(nkstot_local, npwx_local, igk_l2g, ik, ngk_g, ngk_local, npw_g, igwk)
+  subroutine getGlobalGkIndices(nkstot_local, npwx_local, igk_l2g, ik, ngk_g, ngk_local, npw_g, &
+      npwx_g, igwk)
 
     implicit none
 
@@ -2132,10 +2134,13 @@ module wfcExportVASPMod
     integer, intent(in) :: npw_g
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
+    integer, intent(in) :: npwx_g
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local` among all k-points
 
 
     ! Output variables:
-    integer, allocatable, intent(out) :: igwk(:,:)
+    integer, intent(out) :: igwk(npwx_g, nkstot_local)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors
 
@@ -2150,9 +2155,19 @@ module wfcExportVASPMod
       !! Counter for \(G+k\) vectors for given
       !! k-point; should equal `ngk_g`
 
+#if defined (__MPI)
+    integer :: ib
+      !! Loop index
+    integer, parameter :: maxb = 100000
+      !! Max buffer size for MPI
+    integer :: nbuf
+      !! Number of buffers needed
+
+    real(kind=dp) :: buff(maxb)
+#endif
     
     allocate(itmp1(npw_g), stat=ierr)
-    if (ierr/= 0) call exitError('pw_export','allocating itmp1', abs(ierr))
+    if (ierr/= 0) call exitError('getGlobalGkIndices','allocating itmp1', abs(ierr))
 
     itmp1 = 0
     if(ik >= ikStart .and. ik <= ikEnd) then
@@ -2169,9 +2184,20 @@ module wfcExportVASPMod
 
       enddo
     endif
+
+    if (ionode_local) write(stdout,*) "Max buffer: ", maxb
     
-    call MPI_ALLREDUCE(MPI_IN_PLACE, itmp1, size(itmp1), MPI_DOUBLE_PRECISION, MPI_SUM, world_comm_local, ierr)
-      !! @todo Figure out if this really needs to be `ALLREDUCE` or just `REDUCE` @endtodo
+    nbuf = size(itmp1)/maxb
+
+    if (ionode_local) write(stdout,*) "Number of  buffers: ", nbuf
+
+    do ib = 1, nbuf
+      call MPI_ALLREDUCE(itmp1(1+(ib-1)*maxb), buff, maxb, MPI_DOUBLE_PRECISION, MPI_SUM, world_comm_local, ierr)
+      if(ierr /= 0) call exitError('getGlobalGkIndices', 'error in mpi_allreduce 1', ierr)
+        !! @todo Figure out if this really needs to be `ALLREDUCE` or just `REDUCE` @endtodo
+
+      itmp1((1+(ib-1)*maxb):(ib*maxb)) = buff(1:maxb)
+    enddo
     
     ngg = 0
     do  ig = 1, npw_g
