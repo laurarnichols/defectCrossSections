@@ -99,6 +99,7 @@ program wfcExportVASPMain
   if (ionode_local) write(stdout,*) "Getting k-point weights"
 
   call getKPointWeights(nkstot_local, VASPDir, wk_local)
+    !! * Get weights for each k-point from `vasprun.xml`
 
   if (ionode_local) write(stdout,*) "Done getting k-point weights"
 
@@ -106,6 +107,8 @@ program wfcExportVASPMain
 
   call writeKInfo(nkstot_local, npwx_local, igk_l2g, nbnd_local, ngk_g, ngk_local, npw_g, npwx_g, &
       occ, wk_local, xk_local, igwk)
+    !! * Calculate ground state and global \(G+k\) indices
+    !!   and write out k-point information to `input` file
 
   if (ionode_local) write(stdout,*) "Done writing k-point info"
 
