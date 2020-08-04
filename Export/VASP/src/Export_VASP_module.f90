@@ -1415,7 +1415,6 @@ module wfcExportVASPMod
     allocate(gCart_local(3,ngm_local))
 
     do ig = 1, ngm_local
-      !if (ionode_local) write(stdout,*) "    ig = ", ig
 
       do ix = 1, 3
         !! * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
