@@ -865,9 +865,6 @@ module wfcExportVASPMod
 
       write(mainout, '("# Cell volume (a.u.)^3. Format: ''(ES24.15E3)''")')
       write(mainout, '(ES24.15E3)' ) omega_local
-    
-      write(mainout, '("# Number of K-points. Format: ''(i10)''")')
-      write(mainout, '(i10)') nkstot_local
 
     endif
 
@@ -2045,6 +2042,8 @@ module wfcExportVASPMod
       write(stdout,*) "***************"
       write(stdout,*) "Getting ground state bands"
     
+      write(mainout, '("# Number of K-points. Format: ''(i10)''")')
+      write(mainout, '(i10)') nkstot_local
       write(mainout, '("# ik, groundState, ngk_g(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
     
       allocate(groundState(nkstot_local))
