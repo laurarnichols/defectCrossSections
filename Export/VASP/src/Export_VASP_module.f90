@@ -546,7 +546,7 @@ module wfcExportVASPMod
   end subroutine setGlobalVariables
 
 !----------------------------------------------------------------------------
-  subroutine initialize()
+  subroutine initialize(exportDir, QEDir, VASPDir)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -566,12 +566,12 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    !character(len=256), intent(out) :: exportDir
-      ! Directory to be used for export
-    !character(len=256), intent(out) :: QEDir
-      ! Directory with QE files
-    !character(len=256), intent(out) :: VASPDir
-      ! Directory with VASP files
+    character(len=256), intent(out) :: exportDir
+      !! Directory to be used for export
+    character(len=256), intent(out) :: QEDir
+      !! Directory with QE files
+    character(len=256), intent(out) :: VASPDir
+      !! Directory with VASP files
 
 
     ! Local variables:
@@ -2282,8 +2282,45 @@ module wfcExportVASPMod
   end subroutine getGlobalGkIndices
 
 !----------------------------------------------------------------------------
-  subroutine writeGridInfo()
+  subroutine writeGridInfo(ngm_g_local, nkstot_local, npwx_g, igwk, itmp_g, ngk_g, npw_g, exportDir)
+    !!
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
     implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ngm_g_local
+      !! Global number of G-vectors
+    integer, intent(in) :: nkstot_local
+      !! Total number of k-points
+    integer, intent(in) :: npwx_g
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local` among all k-points
+
+    integer, intent(in) :: igwk(npwx_g, nkstot_local)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
+    integer, intent(in) :: itmp_g(3,ngm_g_local)
+      !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: ngk_g(nkstot_local)
+      !! Global number of \(G+k\) vectors with energy
+      !! less than `ecutwfc_local` for each k-point
+    integer, intent(in) :: npw_g
+      !! Maximum G-vector index among all \(G+k\)
+      !! and processors
+
+    character(len=256), intent(in) :: exportDir
+      !! Directory to be used for export
+
+
+    ! Output variables:
+
+
+    ! Local variables:
+    integer :: ik, ink
+      !! Loop indices
 
 
     if ( ionode_local ) then
@@ -2638,8 +2675,6 @@ module wfcExportVASPMod
       enddo
     
     ENDIF
-      
-    deallocate(itmp_g)
 
 #ifdef __MPI
   CALL poolrecover (et, nbnd_local, nkstot_local, nk_Pool)

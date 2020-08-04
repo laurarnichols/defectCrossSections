@@ -20,7 +20,7 @@ program wfcExportVASPMain
   call mpiInitialization()
 #endif
 
-  call initialize()
+  call initialize(exportDir, QEDir, VASPDir)
     !! * Set default values for input variables, open output file,
     !!   and start timers
 
@@ -121,7 +121,9 @@ program wfcExportVASPMain
   deallocate(wk_local)
   deallocate(occ)
 
-  call writeGridInfo()
+  call writeGridInfo(ngm_g_local, nkstot_local, npwx_g, igwk, itmp_g, ngk_g, npw_g, exportDir)
+      
+  deallocate(itmp_g)
 
   stop
 
