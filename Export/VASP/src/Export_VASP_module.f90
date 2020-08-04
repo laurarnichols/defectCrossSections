@@ -865,6 +865,7 @@ module wfcExportVASPMod
 
       write(mainout, '("# Cell volume (a.u.)^3. Format: ''(ES24.15E3)''")')
       write(mainout, '(ES24.15E3)' ) omega_local
+      flush(mainout)
 
     endif
 
@@ -2044,6 +2045,7 @@ module wfcExportVASPMod
       write(mainout, '("# Number of K-points. Format: ''(i10)''")')
       write(mainout, '(i10)') nkstot_local
       write(mainout, '("# ik, groundState, ngk_g(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
+      flush(mainout)
     
       allocate(groundState(nkstot_local))
 
@@ -2326,7 +2328,7 @@ module wfcExportVASPMod
       !! Loop indices
 
 
-    if ( ionode_local ) then
+    if (ionode_local) then
     
       write(mainout, '("# Number of G-vectors. Format: ''(i10)''")')
       write(mainout, '(i10)') ngm_g_local
@@ -2338,6 +2340,7 @@ module wfcExportVASPMod
       write(mainout, '(6i10)') minval(mill_g(1,1:ngm_g_local)), maxval(mill_g(1,1:ngm_g_local)), &
                           minval(mill_g(2,1:ngm_g_local)), maxval(mill_g(2,1:ngm_g_local)), &
                           minval(mill_g(3,1:ngm_g_local)), maxval(mill_g(3,1:ngm_g_local))
+      flush(mainout)
     
       do ik = 1, nkstot_local
         !! * For each k-point, write out the miller indices
@@ -2596,7 +2599,7 @@ module wfcExportVASPMod
       !! indexed up to `npwx_local`
 
   
-    if ( ionode_local ) then
+    if (ionode_local) then
     
       write(mainout, '("# Cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
       write(mainout, '("# a1 ",3ES24.15E3)') at_local(:,1)

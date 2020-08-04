@@ -129,6 +129,8 @@ program wfcExportVASPMain
       
   deallocate(mill_g)
 
+  close(mainout)
+
   stop
 
   CALL write_export (mainOutputFile, exportDir)
