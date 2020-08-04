@@ -1392,12 +1392,9 @@ module wfcExportVASPMod
         enddo
       enddo
 
-      !> * Check that number of G-vectors are the same as the number of plane waves
-      if (ngm_g_local .ne. npmax) then
-        !! @todo Change this error and exit to a call to `exitError` @endtodo
-        write(stdout,*) '*** error - computed no. of G-vectors != estimated number of plane waves'
-        stop
-      endif
+      if (ngm_g_local .ne. npmax) call exitError('calculateGvecs', & 
+        '*** error - computed no. of G-vectors != estimated number of plane waves', 1)
+        !! * Check that number of G-vectors are the same as the number of plane waves
 
       write(stdout,*) "Done calculating miller indices"
       write(stdout,*) "***************"
@@ -1502,7 +1499,7 @@ module wfcExportVASPMod
 
 
       !> * Generate an array to map a local index
-      !>   (that passed to `ig_l2g`) to a global
+      !>   (`ig` passed to `ig_l2g`) to a global
       !>   index (the value stored at `ig_l2g(ig)`)
       !>   and get local miller indices
       allocate(ig_l2g(ngm_local))
@@ -1627,12 +1624,15 @@ module wfcExportVASPMod
     do ik = 1, nk_Pool
       !! * For each \(G+k\) combination, calculate the 
       !!   magnitude and, if it is less than the energy
-      !!   cutoff, store the G index and magnitude
-      !!   squared. Update the maximum number of \(G+k\)
-      !!   vectors and verify that the number of \(G+k\)
-      !!   vectors lines up with expectations from
-      !!   WAVECAR
-      !! @todo Figure out if `vcut_local` is defined properly @endtodo
+      !!   cutoff, store the G index and magnitude and 
+      !!   increment the number of \(G+k\) vectors at
+      !!   this k-point. Also, keep track of the maximum 
+      !!   number of \(G+k\) vectors among all k-points
+      !!
+      !! @note
+      !!  All of the above calculations are local to a single
+      !!  processor.
+      !! @endnote
 
       if (ionode_local) write(stdout,*) "Processing k-point ", ik
 
@@ -1645,19 +1645,21 @@ module wfcExportVASPMod
       do ig = 1, ngm_local
 
         q = sqrt(sum((xkCart(:) + gCart_local(:,ig))**2))
-          ! Calculate \(|G+k|\) ~ kinetic energy
+          ! Calculate \(|G+k|\)
 
         if (q <= eps8) q = 0.d0
    
         if (q <= vcut_local) then
 
           ngk_tmp = ngk_tmp + 1
-            ! here if |k+G|^2 <= Ecut increase the number of G inside the sphere
+            ! If \(|G+k| \leq \) `vcut` increment the count for
+            ! this k-point
 
           gkMod(ik,ngk_tmp) = q
+            ! Store the modulus for sorting
 
           igk_large(ik,ngk_tmp) = ig
-            ! set the initial value of index array
+            ! Store the index for this G-vector
 
         !else
 
@@ -1670,8 +1672,12 @@ module wfcExportVASPMod
       enddo
 
 100   npwx_local = max(npwx_local, ngk_tmp)
+        ! Track the maximum number of \(G+k\)
+        ! vectors among all k-points
 
       ngk_local(ik) = ngk_tmp
+        ! Store the total number of \(G+k\)
+        ! vectors for this k-point
 
     enddo
 
@@ -1705,10 +1711,12 @@ module wfcExportVASPMod
 
     if (npwx_local <= 0) call exitError('reconstructFFTGrid', &
                 'No plane waves found: running on too many processors?', 1)
+      !! * Make sure that each processor gets some \(G+k\) vectors. If not,
+      !!   should rerun with fewer processors.
 
     CALL mp_max(npwx_local, inter_pool_comm_local)
-      ! When using pools, set `npwx_local` to the maximum value across pools
-      ! (you may run into trouble at restart otherwise)
+      !! * When using pools, set `npwx_local` to the maximum value across pools
+      !! @todo Change call to QE `mp_max` to actual call to `MPI_ALLREDUCE` here @endtodo
 
 
     allocate(igk_l2g(npwx_local,nk_Pool))
@@ -1753,9 +1761,11 @@ module wfcExportVASPMod
     deallocate(igk)
 
     npw_g = maxval(igk_l2g(:,:))
-    CALL mp_max( npw_g, world_comm_local )
+    call mp_max( npw_g, world_comm_local )
       !! * Calculate the maximum G-vector index 
       !!   among all \(G+k\) and processors
+      !! @todo Change call to QE `mp_max` to actual call to `MPI_ALLREDUCE` here @endtodo
+
 
     npwx_g = maxval(ngk_g(1:nkstot_local))
       !! * Calculate the maximum number of G-vectors 
@@ -1781,7 +1791,7 @@ module wfcExportVASPMod
     !!                indices are carried around during the sorting process
     !!
     !!
-    !! adapted from Numerical Recipes pg. 329 (new edition)
+    !! From QE code, adapted from Numerical Recipes pg. 329 (new edition)
     !!
 
     implicit none
@@ -1889,6 +1899,10 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine getKPointWeights(nkstot_local, VASPDir, wk_local)
+    !! Read the k-point weights from the `vasprun.xml` file
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
 
     implicit none
 
@@ -1932,9 +1946,13 @@ module wfcExportVASPMod
       if (.not. fileExists) call exitError('getKPointWeights', 'Required file vasprun.xml does not exist', 1)
 
       open(57, file=fileName)
+        !! * If root node, open `vasprun.xml`
 
       found = .false.
       do while (.not. found)
+        !! * Ignore everything until you get to a
+        !!   line with `'weights'`, indicating the
+        !!   tag surrounding the k-point weights
         
         read(57, '(A)') line
 
@@ -1943,12 +1961,14 @@ module wfcExportVASPMod
       enddo
 
       do ik = 1, nkstot_local
+        !! * Read in the weight for each k-point
 
         read(57,*) cDum, wk_local(ik), cDum
 
       enddo
 
       write(stdout,*) "K-point weights: ", wk_local
+        !! * Output the k-point weights to the `stdout` file
 
     endif
 
@@ -1960,6 +1980,12 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine writeKInfo(nkstot_local, npwx_local, igk_l2g, nbnd_local, ngk_g, ngk_local, &
       npw_g, npwx_g, occ, wk_local, xk_local, igwk)
+    !! Calculate the highest occupied band for each k-point,
+    !! gather the \(G+k\) vector indices in single, global 
+    !! array, and write out k-point information
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
 
     implicit none
 
@@ -2027,6 +2053,7 @@ module wfcExportVASPMod
       call getGroundState(nbnd_local, nkstot_local, occ, groundState)
         !! * For each k-point, find the index of the 
         !!   highest occupied band
+        !!
         !! @note
         !!  Although `groundState` is written out in `Export`,
         !!  it is not currently used by the `TME` program.
@@ -2055,6 +2082,8 @@ module wfcExportVASPMod
 
       call getGlobalGkIndices(nkstot_local, npwx_local, igk_l2g, ik, ngk_g, ngk_local, npw_g, &
           npwx_g, igwk)
+        !! * For each k-point, gather all of the \(G+k\) indices
+        !!   among all processors in a single global array
     
       if (ionode_local) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk_local(ik), xk_local(1:3,ik)
     
@@ -2107,7 +2136,7 @@ module wfcExportVASPMod
       do ibnd = 1, nbnd_local
 
         if (occ(ibnd,ik) < 0.5_dp) then
-          !! @todo Figure out if this check should be 0.5 or less @endtodo
+          !! @todo Figure out if boundary for "occupied" should be 0.5 or less @endtodo
         !if (et(ibnd,ik) > ef) then
 
           groundState(ik) = ibnd - 1
@@ -2126,6 +2155,11 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine getGlobalGkIndices(nkstot_local, npwx_local, igk_l2g, ik, ngk_g, ngk_local, npw_g, &
       npwx_g, igwk)
+    !! Gather the \(G+k\) vector indices in single, global 
+    !! array
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
 
     implicit none
 
@@ -2195,21 +2229,24 @@ module wfcExportVASPMod
       do ig = 1, ngk_local(ik-ikStart+1)
 
         itmp1(igk_l2g(ig, ik-ikStart+1)) = igk_l2g(ig, ik-ikStart+1)
+          !! * For each k-point and \(G+k\) vector for this processor,
+          !!   store the local to global indices (`igk_l2g`) in an
+          !!   array that will later be combined globally
+          !!
           !! @note
-          !!  This takes each processor's local to global indices and
-          !!  stores them in the same index in `itmp1`. This will leave
-          !!  zeros in spots where the \(G+k\) combination for this
-          !!  k-point was greater than the energy cutoff.
+          !!  This will leave zeros in spots where the \(G+k\) 
+          !!  combination for this k-point was greater than the energy 
+          !!  cutoff.
           !! @endnote
 
       enddo
     endif
 
-    if (ionode_local) write(stdout,*) "Max buffer: ", maxb
-    
     nbuf = size(itmp1)/maxb
+      ! Split `itmp` into various buffers to avoid too large of a message 
 
-    if (ionode_local) write(stdout,*) "Number of  buffers: ", nbuf
+    !if (ionode_local) write(stdout,*) "Max buffer: ", maxb
+    !if (ionode_local) write(stdout,*) "Number of  buffers: ", nbuf
 
     do ib = 1, nbuf
       call MPI_ALLREDUCE(itmp1(1+(ib-1)*maxb), buff, maxb, MPI_DOUBLE_PRECISION, MPI_SUM, world_comm_local, ierr)
@@ -2219,29 +2256,28 @@ module wfcExportVASPMod
       itmp1((1+(ib-1)*maxb):(ib*maxb)) = buff(1:maxb)
     enddo
     
+
     ngg = 0
     do  ig = 1, npw_g
 
       if(itmp1(ig) == ig) then
+        !! * Go through and find all of the non-zero
+        !!   indices in the now-global `itmp1` array,
+        !!   and store them in a new array that won't
+        !!   have the extra zeros
 
         ngg = ngg + 1
-          !! @note
-          !!  `ngg` should be the number of \(G+k\) vectors
-          !! @endnote
+
         igwk(ngg, ik) = ig
-          !! @note
-          !!  Here we are generating an array that has all of the 
-          !!  indices of the \(G+k\) vectors on all processors
-          !!  stored in ascending order. This is the result of 
-          !!  `itmp1` from all processors will all of the zeros
-          !!  removed.
-          !! @endnote
 
       endif
     enddo
 
 
     if(ionode_local .and. ngg /= ngk_g(ik)) call exitError('writeKInfo', 'Unexpected number of G+k vectors', 1)
+      !! * Make sure that the total number of non-zero
+      !!   indices matches the global number of \(G+k\)
+      !!   vectors for this k-point
     
     deallocate( itmp1 )
 
