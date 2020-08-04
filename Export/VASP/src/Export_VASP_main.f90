@@ -122,6 +122,10 @@ program wfcExportVASPMain
   deallocate(occ)
 
   call writeGridInfo(ngm_g_local, nkstot_local, npwx_g, igwk, mill_g, ngk_g, npw_g, exportDir)
+    !! * Write out grid boundaries and miller indices
+    !!   for just \(G+k\) combinations below cutoff energy
+    !!   in one file and all miller indices in another 
+    !!   file
       
   deallocate(mill_g)
 

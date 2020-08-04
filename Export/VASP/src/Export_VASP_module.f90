@@ -2283,7 +2283,10 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine writeGridInfo(ngm_g_local, nkstot_local, npwx_g, igwk, mill_g, ngk_g, npw_g, exportDir)
-    !!
+    !! Write out grid boundaries and miller indices
+    !! for just \(G+k\) combinations below cutoff energy
+    !! in one file and all miller indices in another 
+    !! file
     !!
     !! <h2>Walkthrough</h2>
     !!
@@ -2337,6 +2340,9 @@ module wfcExportVASPMod
                           minval(mill_g(3,1:ngm_g_local)), maxval(mill_g(3,1:ngm_g_local))
     
       do ik = 1, nkstot_local
+        !! * For each k-point, write out the miller indices
+        !!   resulting in \(G+k\) vectors less than the energy
+        !!   cutoff in a `grid.ik` file
       
         open(72, file=trim(exportDir)//"/grid"//iotk_index(ik))
           !! @todo Move `iotk_index` here #thisbranch @endtodo
@@ -2350,7 +2356,8 @@ module wfcExportVASPMod
         close(72)
       
       enddo
-    
+
+      !> * Output all miller indices
       open(72, file=trim(exportDir)//"/mgrid")
       write(72, '("# Full G-vectors grid")')
       write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
