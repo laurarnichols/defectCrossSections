@@ -842,8 +842,7 @@ module wfcExportVASPMod
       write(stdout,*) 'max. energy (eV) =', sngl(ecutwfc_local/eVToRy)
         !! @note 
         !!  The energy cutoff is currently output to the `stdout` file
-        !!  in eV to compare
-        !!  with output from WaveTrans.
+        !!  in eV to compare with output from WaveTrans.
         !! @endnote
       write(stdout,*) 'real space lattice vectors:'
       write(stdout,*) 'a1 =', (sngl(at_local(j,1)),j=1,3)
