@@ -2319,7 +2319,7 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: ik, ink
+    integer :: ik, ig, igk
       !! Loop indices
 
 
@@ -2339,11 +2339,12 @@ module wfcExportVASPMod
       do ik = 1, nkstot_local
       
         open(72, file=trim(exportDir)//"/grid"//iotk_index(ik))
+          !! @todo Move `iotk_index` here #thisbranch @endtodo
         write(72, '("# Wave function G-vectors grid")')
         write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
       
-        do ink = 1, ngk_g(ik)
-          write(72, '(4i10)') igwk(ink,ik), itmp_g(1:3,igwk(ink,ik))
+        do igk = 1, ngk_g(ik)
+          write(72, '(4i10)') igwk(igk,ik), itmp_g(1:3,igwk(igk,ik))
         enddo
       
         close(72)
@@ -2354,8 +2355,8 @@ module wfcExportVASPMod
       write(72, '("# Full G-vectors grid")')
       write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
     
-      do ink = 1, ngm_g_local
-        write(72, '(4i10)') ink, itmp_g(1:3,ink)
+      do ig = 1, ngm_g_local
+        write(72, '(4i10)') ig, itmp_g(1:3,ig)
       enddo
     
       close(72)
