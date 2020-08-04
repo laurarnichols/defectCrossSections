@@ -62,6 +62,7 @@ program wfcExportVASPMain
     !! * Read QE input files
     !! @todo Remove this once extracted from QE #end @endtodo
   
+
   if (ionode_local) write(stdout,*) "Reading WAVECAR"
 
   call readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, occ, omega_local, vcut_local, &
@@ -70,8 +71,10 @@ program wfcExportVASPMain
 
   if (ionode_local) write(stdout,*) "Done reading WAVECAR"
 
+
   call distributeKpointsInPools(nkstot_local)
     !! * Figure out how many k-points there should be per pool
+
 
   if (ionode_local) write(stdout,*) "Calculating G-vectors"
 
@@ -82,6 +85,7 @@ program wfcExportVASPMain
 
   if (ionode_local) write(stdout,*) "Done calculating G-vectors"
 
+
   if (ionode_local) write(stdout,*) "Reconstructing FFT grid"
 
   call reconstructFFTGrid(ngm_local, ig_l2g, ngk_max, nkstot_local, nplane_g, bg_local, gCart_local, &
@@ -91,6 +95,7 @@ program wfcExportVASPMain
     !!   sort the indices based on \(|G+k|^2\)
 
   if (ionode_local) write(stdout,*) "Done reconstructing FFT grid"
+
 
   deallocate(ig_l2g)
   deallocate(gCart_local)
@@ -103,6 +108,7 @@ program wfcExportVASPMain
 
   if (ionode_local) write(stdout,*) "Done getting k-point weights"
 
+
   if (ionode_local) write(stdout,*) "Writing k-point info"
 
   call writeKInfo(nkstot_local, npwx_local, igk_l2g, nbnd_local, ngk_g, ngk_local, npw_g, npwx_g, &
@@ -112,10 +118,26 @@ program wfcExportVASPMain
 
   if (ionode_local) write(stdout,*) "Done writing k-point info"
 
-  stop
-
   deallocate(wk_local)
   deallocate(occ)
+
+
+  if ( ionode_local ) then
+    
+    write(mainout, '("# Number of G-vectors. Format: ''(i10)''")')
+    write(mainout, '(i10)') ngm_g_local
+    
+    write(mainout, '("# Number of PW-vectors. Format: ''(i10)''")')
+    write(mainout, '(i10)') npw_g
+    
+    write(mainout, '("# Number of min - max values of fft grid in x, y and z axis. Format: ''(6i10)''")')
+    write(mainout, '(6i10)') minval(itmp_g(1,1:ngm_g_local)), maxval(itmp_g(1,1:ngm_g_local)), &
+                        minval(itmp_g(2,1:ngm_g_local)), maxval(itmp_g(2,1:ngm_g_local)), &
+                        minval(itmp_g(3,1:ngm_g_local)), maxval(itmp_g(3,1:ngm_g_local))
+
+  endif
+
+  stop
 
   CALL write_export (mainOutputFile, exportDir)
 

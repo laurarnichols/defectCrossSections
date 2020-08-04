@@ -2506,17 +2506,6 @@ module wfcExportVASPMod
   
     if ( ionode_local ) then
     
-      write(mainout, '("# Number of G-vectors. Format: ''(i10)''")')
-      write(mainout, '(i10)') ngm_g_local
-    
-      write(mainout, '("# Number of PW-vectors. Format: ''(i10)''")')
-      write(mainout, '(i10)') npw_g
-    
-      write(mainout, '("# Number of min - max values of fft grid in x, y and z axis. Format: ''(6i10)''")')
-      write(mainout, '(6i10)') minval(itmp_g(1,1:ngm_g_local)), maxval(itmp_g(1,1:ngm_g_local)), &
-                          minval(itmp_g(2,1:ngm_g_local)), maxval(itmp_g(2,1:ngm_g_local)), &
-                          minval(itmp_g(3,1:ngm_g_local)), maxval(itmp_g(3,1:ngm_g_local))
-    
       write(mainout, '("# Cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
       write(mainout, '("# a1 ",3ES24.15E3)') at_local(:,1)
       write(mainout, '("# a2 ",3ES24.15E3)') at_local(:,2)
