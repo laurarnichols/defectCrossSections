@@ -2282,6 +2282,53 @@ module wfcExportVASPMod
   end subroutine getGlobalGkIndices
 
 !----------------------------------------------------------------------------
+  subroutine writeGridInfo()
+    implicit none
+
+
+    if ( ionode_local ) then
+    
+      write(mainout, '("# Number of G-vectors. Format: ''(i10)''")')
+      write(mainout, '(i10)') ngm_g_local
+    
+      write(mainout, '("# Number of PW-vectors. Format: ''(i10)''")')
+      write(mainout, '(i10)') npw_g
+    
+      write(mainout, '("# Number of min - max values of fft grid in x, y and z axis. Format: ''(6i10)''")')
+      write(mainout, '(6i10)') minval(itmp_g(1,1:ngm_g_local)), maxval(itmp_g(1,1:ngm_g_local)), &
+                          minval(itmp_g(2,1:ngm_g_local)), maxval(itmp_g(2,1:ngm_g_local)), &
+                          minval(itmp_g(3,1:ngm_g_local)), maxval(itmp_g(3,1:ngm_g_local))
+    
+      do ik = 1, nkstot_local
+      
+        open(72, file=trim(exportDir)//"/grid"//iotk_index(ik))
+        write(72, '("# Wave function G-vectors grid")')
+        write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
+      
+        do ink = 1, ngk_g(ik)
+          write(72, '(4i10)') igwk(ink,ik), itmp_g(1:3,igwk(ink,ik))
+        enddo
+      
+        close(72)
+      
+      enddo
+    
+      open(72, file=trim(exportDir)//"/mgrid")
+      write(72, '("# Full G-vectors grid")')
+      write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
+    
+      do ink = 1, ngm_g_local
+        write(72, '(4i10)') ink, itmp_g(1:3,ink)
+      enddo
+    
+      close(72)
+
+    endif
+
+    return
+  end subroutine writeGridInfo
+
+!----------------------------------------------------------------------------
   subroutine subroutineTemplate()
     implicit none
 
@@ -2530,30 +2577,6 @@ module wfcExportVASPMod
     
       write(mainout, '("# Number of Bands. Format: ''(i10)''")')
       write(mainout, '(i10)') nbnd_local
-    
-      DO ik = 1, nkstot_local
-      
-        open(72, file=trim(exportDir)//"/grid"//iotk_index(ik))
-        write(72, '("# Wave function G-vectors grid")')
-        write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
-      
-        do ink = 1, ngk_g(ik)
-          write(72, '(4i10)') igwk(ink,ik), itmp_g(1:3,igwk(ink,ik))
-        enddo
-      
-        close(72)
-      
-      ENDDO
-    
-      open(72, file=trim(exportDir)//"/mgrid")
-      write(72, '("# Full G-vectors grid")')
-      write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
-    
-      do ink = 1, ngm_g_local
-        write(72, '(4i10)') ink, itmp_g(1:3,ink)
-      enddo
-    
-      close(72)
 
       write(mainout, '("# Spin. Format: ''(i10)''")')
       write(mainout, '(i10)') nspin_local
