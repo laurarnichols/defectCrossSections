@@ -103,8 +103,7 @@ module wfcExportVASPMod
   real(kind=dp) :: tStart
     !! Start time
   real(kind=dp) :: vcut_local
-    !! Energy cutoff converted to vector cutoff;
-    !! assumes \(a=1\)
+    !! Energy cutoff converted to vector cutoff
   real(kind=dp), allocatable :: xk_local(:,:)
     !! Position of k-points in reciprocal space
   real(kind=dp), allocatable :: wk_local(:)
@@ -559,6 +558,23 @@ module wfcExportVASPMod
     
     implicit none
 
+    ! Input variables:
+    !integer, intent(in) :: npool_local
+      ! Number of pools for k-point parallelization
+    !integer, intent(in) :: nproc_local
+      ! Number of processes
+
+
+    ! Output variables:
+    !character(len=256), intent(out) :: exportDir
+      ! Directory to be used for export
+    !character(len=256), intent(out) :: QEDir
+      ! Directory with QE files
+    !character(len=256), intent(out) :: VASPDir
+      ! Directory with VASP files
+
+
+    ! Local variables:
     character(len=8) :: cdate
       !! String for date
     character(len=10) :: ctime
@@ -567,7 +583,9 @@ module wfcExportVASPMod
     character(len=6), external :: int_to_char
       !! @todo Remove this once extracted from QE #end @endtodo
 
+
     prefix = ''
+      !! @todo Create local version of `prefix` #end @endtodo
     QEDir = './'
     VASPDir = './'
     exportDir = './Export'
@@ -584,6 +602,7 @@ module wfcExportVASPMod
 
 #ifdef __MPI
     nd_nmbr = trim(int_to_char(myid+1))
+      !! @todo Create local version of `nd_nmbr` #end @endtodo
 #else
     nd_nmbr = ' '
 #endif
@@ -726,8 +745,7 @@ module wfcExportVASPMod
     real(kind=dp), intent(out) :: omega_local
       !! Volume of unit cell
     real(kind=dp), intent(out) :: vcut_local
-      !! Energy cutoff converted to vector cutoff;
-      !! assumes \(a=1\)
+      !! Energy cutoff converted to vector cutoff
     real(kind=dp), allocatable, intent(out) :: xk_local(:,:)
       !! Position of k-points in reciprocal space
 
@@ -774,6 +792,7 @@ module wfcExportVASPMod
 
       open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
       if (ierr .ne. 0) write(stdout,*) 'open error - iostat =', ierr
+        !! * If root node, open the `WAVECAR` file
 
       read(unit=wavecarUnit,rec=1) nRecords_real, nspin_real, prec_real
         !! @note Must read in as real first then convert to integer @endnote
@@ -820,9 +839,10 @@ module wfcExportVASPMod
       !>   the cell volume, and the reciprocal lattice vectors
       write(stdout,*) 'no. k points =', nkstot_local
       write(stdout,*) 'no. bands =', nbnd_local
-      write(stdout,*) 'max. energy =', sngl(ecutwfc_local/eVToRy)
+      write(stdout,*) 'max. energy (eV) =', sngl(ecutwfc_local/eVToRy)
         !! @note 
-        !!  The energy cutoff is currently output in eV to compare
+        !!  The energy cutoff is currently output to the `stdout` file
+        !!  in eV to compare
         !!  with output from WaveTrans.
         !! @endnote
       write(stdout,*) 'real space lattice vectors:'
@@ -872,9 +892,9 @@ module wfcExportVASPMod
     endif
 
     call readWavefunction(nbnd_local, ngk_max, nkstot_local, nspin_local, occ, xk_local, nplane_g)
-      !! Get the position of each k-point in reciprocal space 
-      !! and the number of \(G+k) vectors below the cutoff 
-      !! energy for each k-point
+      !! * Get the position of each k-point in reciprocal space 
+      !!   and the number of \(G+k) vectors below the cutoff 
+      !!   energy for each k-point
 
     if(ionode_local) close(wavecarUnit)
 
@@ -891,7 +911,7 @@ module wfcExportVASPMod
     nbnd = nbnd_local
     nkstot = nkstot_local
     nspin = nspin_local
-      !! @todo Remove this once extracted from QE #end @endtodo
+      !! @todo Remove QE variable assignment once extracted from QE #end @endtodo
 
     return
   end subroutine readWAVECAR
@@ -1201,7 +1221,8 @@ module wfcExportVASPMod
 
           write(45+ik,*) cener(iband)
             !! @todo 
-            !!  Figure out how this and `eigF`/`eigI` relates to `et` @endtodo
+            !!  Figure out how `cener` and `eigF`/`eigI` relate to `et`
+            !! @endtodo
 
         enddo
 
@@ -1213,8 +1234,8 @@ module wfcExportVASPMod
       deallocate(cener)
       deallocate(coeff)
         !! @note 
-        !!  The band eigenvalues and occupations and the plane
-        !!  wave coefficients are not currently used anywhere.
+        !!  The band eigenvalues and the plane wave coefficients are 
+        !!  not currently used anywhere.
         !! @endnote
 
     endif
@@ -1266,7 +1287,7 @@ module wfcExportVASPMod
         !!  * Calculate k-points per pool
 
       nkr = nkstot_local - nk_Pool * npool_local 
-        !! * Calculate the remainder
+        !! * Calculate the remainder `nkr`
 
       IF( myPoolId < nkr ) nk_Pool = nk_Pool + 1
         !! * Assign the remainder to the first `nkr` pools
@@ -1371,7 +1392,7 @@ module wfcExportVASPMod
         enddo
       enddo
 
-      !> Check that number of G-vectors are the same as the number of plane waves
+      !> * Check that number of G-vectors are the same as the number of plane waves
       if (ngm_g_local .ne. npmax) then
         !! @todo Change this error and exit to a call to `exitError` @endtodo
         write(stdout,*) '*** error - computed no. of G-vectors != estimated number of plane waves'
@@ -1535,8 +1556,7 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: gCart_local(3,ngm_local)
       !! G-vectors in Cartesian coordinates
     real(kind=dp), intent(in) :: vcut_local
-      !! Energy cutoff converted to vector cutoff;
-      !! assumes \(a=1\)
+      !! Energy cutoff converted to vector cutoff
     real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
       !! Position of k-points in reciprocal space
 
