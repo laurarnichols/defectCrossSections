@@ -122,7 +122,7 @@ module wfcExportVASPMod
   integer, allocatable :: igwk(:,:)
     !! Indices of \(G+k\) vectors for each k-point
     !! and all processors
-  integer, allocatable :: itmp_g(:,:)
+  integer, allocatable :: mill_g(:,:)
     !! Integer coefficients for G-vectors on all processors
   integer :: nb1max, nb2max, nb3max
     !! Not sure what this is??
@@ -1301,7 +1301,7 @@ module wfcExportVASPMod
   end subroutine distributeKpointsInPools
 
 !----------------------------------------------------------------------------
-  subroutine calculateGvecs(nb1max, nb2max, nb3max, bg_local, gCart_local, ig_l2g, itmp_g, &
+  subroutine calculateGvecs(nb1max, nb2max, nb3max, bg_local, gCart_local, ig_l2g, mill_g, &
       ngm_g_local, ngm_local)
     !! Calculate Miller indices and G-vectors and split
     !! over processors
@@ -1325,7 +1325,7 @@ module wfcExportVASPMod
 
     integer, allocatable, intent(out) :: ig_l2g(:)
       !! Converts local index `ig` to global index
-    integer, allocatable, intent(out) :: itmp_g(:,:)
+    integer, allocatable, intent(out) :: mill_g(:,:)
       !! Integer coefficients for G-vectors on all processors
     integer, intent(out) :: ngm_g_local
       !! Global number of G-vectors
@@ -1347,7 +1347,7 @@ module wfcExportVASPMod
 
 
     npmax = (2*nb1max+1)*(2*nb2max+1)*(2*nb3max+1) 
-    allocate(itmp_g(3,npmax))
+    allocate(mill_g(3,npmax))
 
     if(ionode_local) then
       write(stdout,*)
@@ -1355,7 +1355,7 @@ module wfcExportVASPMod
       write(stdout,*) "Calculating miller indices"
 
       ngm_g_local = 0
-      itmp_g = 0
+      mill_g = 0
 
       do ig3 = 0, 2*nb3max
 
@@ -1379,9 +1379,9 @@ module wfcExportVASPMod
 
             ngm_g_local = ngm_g_local + 1
 
-            itmp_g(1,ngm_g_local) = ig1p
-            itmp_g(2,ngm_g_local) = ig2p
-            itmp_g(3,ngm_g_local) = ig3p
+            mill_g(1,ngm_g_local) = ig1p
+            mill_g(2,ngm_g_local) = ig2p
+            mill_g(3,ngm_g_local) = ig3p
               !! * Calculate Miller indices
 
           enddo
@@ -1398,7 +1398,7 @@ module wfcExportVASPMod
     endif
 
     call MPI_BCAST(ngm_g_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
-    call MPI_BCAST(itmp_g, size(itmp_g), MPI_INTEGER, root, world_comm_local, ierr)
+    call MPI_BCAST(mill_g, size(mill_g), MPI_INTEGER, root, world_comm_local, ierr)
 
     if (ionode_local) then
       write(stdout,*)
@@ -1406,7 +1406,7 @@ module wfcExportVASPMod
       write(stdout,*) "Distributing G-vecs over processors"
     endif
 
-    call distributeGvecsOverProcessors(ngm_g_local, itmp_g, ig_l2g, igEnd, igStart, &
+    call distributeGvecsOverProcessors(ngm_g_local, mill_g, ig_l2g, igEnd, igStart, &
         mill_local, ngm_local)
       !! * Split up the G-vectors and Miller indices over processors 
 
@@ -1436,7 +1436,7 @@ module wfcExportVASPMod
   end subroutine calculateGvecs
 
 !----------------------------------------------------------------------------
-  subroutine distributeGvecsOverProcessors(ngm_g_local, itmp_g, ig_l2g, igEnd, igStart, &
+  subroutine distributeGvecsOverProcessors(ngm_g_local, mill_g, ig_l2g, igEnd, igStart, &
       mill_local, ngm_local)
     !! Figure out how many G-vectors there should be per processor
     !!
@@ -1449,7 +1449,7 @@ module wfcExportVASPMod
     integer, intent(in) :: ngm_g_local
       !! Global number of G-vectors
       
-    integer, intent(in) :: itmp_g(3,ngm_g_local)
+    integer, intent(in) :: mill_g(3,ngm_g_local)
       !! Integer coefficients for G-vectors on all processors
 
     
@@ -1503,7 +1503,7 @@ module wfcExportVASPMod
       do ig = 1, ngm_local
 
         ig_l2g(ig) = igStart + ig - 1 
-        mill_local(:,ig) = itmp_g(:,ig_l2g(ig))
+        mill_local(:,ig) = mill_g(:,ig_l2g(ig))
 
       enddo
 
@@ -2282,7 +2282,7 @@ module wfcExportVASPMod
   end subroutine getGlobalGkIndices
 
 !----------------------------------------------------------------------------
-  subroutine writeGridInfo(ngm_g_local, nkstot_local, npwx_g, igwk, itmp_g, ngk_g, npw_g, exportDir)
+  subroutine writeGridInfo(ngm_g_local, nkstot_local, npwx_g, igwk, mill_g, ngk_g, npw_g, exportDir)
     !!
     !!
     !! <h2>Walkthrough</h2>
@@ -2302,7 +2302,7 @@ module wfcExportVASPMod
     integer, intent(in) :: igwk(npwx_g, nkstot_local)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors
-    integer, intent(in) :: itmp_g(3,ngm_g_local)
+    integer, intent(in) :: mill_g(3,ngm_g_local)
       !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: ngk_g(nkstot_local)
       !! Global number of \(G+k\) vectors with energy
@@ -2332,9 +2332,9 @@ module wfcExportVASPMod
       write(mainout, '(i10)') npw_g
     
       write(mainout, '("# Number of min - max values of fft grid in x, y and z axis. Format: ''(6i10)''")')
-      write(mainout, '(6i10)') minval(itmp_g(1,1:ngm_g_local)), maxval(itmp_g(1,1:ngm_g_local)), &
-                          minval(itmp_g(2,1:ngm_g_local)), maxval(itmp_g(2,1:ngm_g_local)), &
-                          minval(itmp_g(3,1:ngm_g_local)), maxval(itmp_g(3,1:ngm_g_local))
+      write(mainout, '(6i10)') minval(mill_g(1,1:ngm_g_local)), maxval(mill_g(1,1:ngm_g_local)), &
+                          minval(mill_g(2,1:ngm_g_local)), maxval(mill_g(2,1:ngm_g_local)), &
+                          minval(mill_g(3,1:ngm_g_local)), maxval(mill_g(3,1:ngm_g_local))
     
       do ik = 1, nkstot_local
       
@@ -2344,7 +2344,7 @@ module wfcExportVASPMod
         write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
       
         do igk = 1, ngk_g(ik)
-          write(72, '(4i10)') igwk(igk,ik), itmp_g(1:3,igwk(igk,ik))
+          write(72, '(4i10)') igwk(igk,ik), mill_g(1:3,igwk(igk,ik))
         enddo
       
         close(72)
@@ -2356,7 +2356,7 @@ module wfcExportVASPMod
       write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
     
       do ig = 1, ngm_g_local
-        write(72, '(4i10)') ig, itmp_g(1:3,ig)
+        write(72, '(4i10)') ig, mill_g(1:3,ig)
       enddo
     
       close(72)

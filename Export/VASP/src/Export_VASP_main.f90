@@ -78,7 +78,7 @@ program wfcExportVASPMain
 
   if (ionode_local) write(stdout,*) "Calculating G-vectors"
 
-  call calculateGvecs(nb1max, nb2max, nb3max, bg_local, gCart_local, ig_l2g, itmp_g, ngm_g_local, &
+  call calculateGvecs(nb1max, nb2max, nb3max, bg_local, gCart_local, ig_l2g, mill_g, ngm_g_local, &
       ngm_local)
     !! * Calculate Miller indices and G-vectors and split
     !!   over processors
@@ -121,9 +121,9 @@ program wfcExportVASPMain
   deallocate(wk_local)
   deallocate(occ)
 
-  call writeGridInfo(ngm_g_local, nkstot_local, npwx_g, igwk, itmp_g, ngk_g, npw_g, exportDir)
+  call writeGridInfo(ngm_g_local, nkstot_local, npwx_g, igwk, mill_g, ngk_g, npw_g, exportDir)
       
-  deallocate(itmp_g)
+  deallocate(mill_g)
 
   stop
 
