@@ -13,7 +13,7 @@ module wfcExportVASPMod
   USE ions_base, ONLY : ntype => nsp
   USE iotk_module
   use mpi
-  USE mp,        ONLY: mp_sum, mp_max, mp_get, mp_bcast, mp_rank
+  USE mp,        ONLY: mp_max, mp_get, mp_bcast, mp_rank
   USE mp_wave, ONLY : mergewf
 
   implicit none
@@ -1734,7 +1734,7 @@ module wfcExportVASPMod
     allocate(ngk_g(nkstot_local))
     ngk_g = 0
     ngk_g(ikStart:ikEnd) = ngk_local(1:nk_Pool)
-    CALL mp_sum(ngk_g, world_comm_local)
+    CALL mpiSumIntV(ngk_g, world_comm_local)
       !! * Calculate the global number of \(G+k\) 
       !!   vectors for each k-point
       
@@ -2430,6 +2430,7 @@ module wfcExportVASPMod
       ik, nk, ispin, nspin_local, scal, wf0, t0, wfm, tm, ngw, gamma_only, nbnd_local, igl, ngwl )
 !
 !
+      USE mp,             ONLY : mp_sum
       IMPLICIT NONE
 !
       INTEGER, INTENT(in) :: iuni
