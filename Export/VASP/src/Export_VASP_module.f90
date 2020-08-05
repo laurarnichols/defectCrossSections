@@ -631,6 +631,60 @@ module wfcExportVASPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
+  subroutine mpiSumIntV(msg, comm)
+    implicit none
+
+    ! Input/output variables:
+    integer, intent(in) :: comm
+      !! MPI communicator
+    integer, intent(inout) :: msg(:)
+      !! Message to be sent
+
+
+#if defined(__MPI)
+    ! Local variables:
+    integer, parameter :: maxb = 100000
+      !! Max buffer size
+
+    integer :: ib
+      !! Loop index
+    integer :: buff(maxb)
+      !! Buffer
+    integer :: msglen
+      !! Length of message to be sent
+    integer :: nbuf
+      !! Number of buffers
+
+    msglen = size(msg)
+
+    nbuf = msglen/maxb
+      !! * Get the number of buffers of size `maxb` needed
+  
+    do ib = 1, nbuf
+      !! * Send message in buffers of size `maxb`
+     
+        call MPI_ALLREDUCE(msg(1+(ib-1)*maxb), buff, maxb, MPI_INTEGER, MPI_SUM, comm, ierr)
+        if(ierr /= 0) call exitError('mpiSumIntV', 'error in mpi_allreduce 1', ierr)
+
+        msg((1+(ib-1)*maxb):(ib*maxb)) = buff(1:maxb)
+
+    enddo
+
+    if((msglen - nbuf*maxb) > 0 ) then
+      !! * Send any data left of size less than `maxb`
+
+        call MPI_ALLREDUCE(msg(1+nbuf*maxb), buff, (msglen-nbuf*maxb), MPI_INTEGER, MPI_SUM, comm, ierr)
+        if(ierr /= 0) call exitError('mpiSumIntV', 'error in mpi_allreduce 2', ierr)
+
+        msg((1+nbuf*maxb):msglen) = buff(1:(msglen-nbuf*maxb))
+    endif
+
+#endif
+
+    return
+  end subroutine mpiSumIntV
+
+!----------------------------------------------------------------------------
   subroutine mpiExitError(code)
     !! Exit on error with MPI communication
 
@@ -2085,6 +2139,7 @@ module wfcExportVASPMod
         !!   among all processors in a single global array
     
       if (ionode_local) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk_local(ik), xk_local(1:3,ik)
+      if (ionode_local) flush(mainout)
     
     enddo
 
@@ -2093,6 +2148,7 @@ module wfcExportVASPMod
       write(stdout,*) "Done getting global G+k indices"
       write(stdout,*) "***************"
       write(stdout,*)
+      flush(stdout)
 
     endif
 
@@ -2208,16 +2264,6 @@ module wfcExportVASPMod
       !! Counter for \(G+k\) vectors for given
       !! k-point; should equal `ngk_g`
 
-#if defined (__MPI)
-    integer :: ib
-      !! Loop index
-    integer, parameter :: maxb = 100000
-      !! Max buffer size for MPI
-    integer :: nbuf
-      !! Number of buffers needed
-
-    real(kind=dp) :: buff(maxb)
-#endif
     
     allocate(itmp1(npw_g), stat=ierr)
     if (ierr/= 0) call exitError('getGlobalGkIndices','allocating itmp1', abs(ierr))
@@ -2241,20 +2287,7 @@ module wfcExportVASPMod
       enddo
     endif
 
-    nbuf = size(itmp1)/maxb
-      ! Split `itmp` into various buffers to avoid too large of a message 
-
-    !if (ionode_local) write(stdout,*) "Max buffer: ", maxb
-    !if (ionode_local) write(stdout,*) "Number of  buffers: ", nbuf
-
-    do ib = 1, nbuf
-      call MPI_ALLREDUCE(itmp1(1+(ib-1)*maxb), buff, maxb, MPI_DOUBLE_PRECISION, MPI_SUM, world_comm_local, ierr)
-      if(ierr /= 0) call exitError('getGlobalGkIndices', 'error in mpi_allreduce 1', ierr)
-        !! @todo Figure out if this really needs to be `ALLREDUCE` or just `REDUCE` @endtodo
-
-      itmp1((1+(ib-1)*maxb):(ib*maxb)) = buff(1:maxb)
-    enddo
-    
+    call mpiSumIntV(itmp1, world_comm_local)
 
     ngg = 0
     do  ig = 1, npw_g
@@ -2354,6 +2387,7 @@ module wfcExportVASPMod
       
         do igk = 1, ngk_g(ik)
           write(72, '(4i10)') igwk(igk,ik), mill_g(1:3,igwk(igk,ik))
+          flush(72)
         enddo
       
         close(72)
@@ -2367,6 +2401,7 @@ module wfcExportVASPMod
     
       do ig = 1, ngm_g_local
         write(72, '(4i10)') ig, mill_g(1:3,ig)
+        flush(72)
       enddo
     
       close(72)
