@@ -10,7 +10,6 @@ module wfcExportVASPMod
   USE lsda_mod, ONLY : isk
 
   USE io_files,  ONLY : prefix, outdir, tmp_dir
-  USE ions_base, ONLY : ntype => nsp
   USE iotk_module
   use mpi
   USE mp,        ONLY: mp_max, mp_get, mp_bcast, mp_rank
@@ -100,6 +99,8 @@ module wfcExportVASPMod
   real(kind=dp) :: omega_local
     !! Volume of unit cell
     !! @todo Change back to `omega` once extracted from QE #end @endtodo
+  real(kind=dp), allocatable :: tau(:,:)
+    !! Atom positions
   real(kind=dp) :: tStart
     !! Start time
   real(kind=dp) :: vcut_local
@@ -122,10 +123,14 @@ module wfcExportVASPMod
   integer, allocatable :: igwk(:,:)
     !! Indices of \(G+k\) vectors for each k-point
     !! and all processors
+  integer :: ityp
+    !! Atom type index
   integer, allocatable :: mill_g(:,:)
     !! Integer coefficients for G-vectors on all processors
   integer :: nb1max, nb2max, nb3max
     !! Not sure what this is??
+  integer :: nat
+    !! Number of atoms
   integer :: nbnd_local
     !! Total number of bands
     !! @todo Change back to `nbnd` once extracted from QE #end @endtodo
@@ -148,6 +153,8 @@ module wfcExportVASPMod
   integer :: nkstot_local
     !! Total number of k-points
     !! @todo Change back to `nkstot` once extracted from QE #end @endtodo
+  integer, allocatable :: nnTyp(:)
+    !! Number of atoms of each type
   integer, allocatable :: nplane_g(:)
     !! Input number of plane waves for a single k-point for all processors
   integer :: npw_g
@@ -161,6 +168,8 @@ module wfcExportVASPMod
     !! across all k-points for just this
     !! processor
     !! @todo Change back to `npwx` once extracted from QE #end @endtodo
+  integer :: nsp
+    !! Number of types of atoms
   integer :: nspin_local
     !! Number of spins
     !! @todo Change back to `nspin` once extracted from QE #end @endtodo
@@ -2411,6 +2420,81 @@ module wfcExportVASPMod
     return
   end subroutine writeGridInfo
 
+
+!----------------------------------------------------------------------------
+  subroutine writeCellInfo(ityp, nat, nbnd_local, nsp, nspin_local, at_local, bg_local, tau, nnTyp)
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ityp
+      !! Atom type index
+    integer, intent(in) :: nat
+      !! Number of atoms
+    integer, intent(in) :: nbnd_local
+      !! Total number of bands
+    integer, intent(in) :: nsp
+      !! Number of types of atoms
+    integer, intent(in) :: nspin_local
+      !! Number of spins
+
+    real(kind=dp), intent(in) :: at_local(3,3)
+      !! Real space lattice vectors
+    real(kind=dp), intent(in) :: bg_local(3,3)
+      !! Reciprocal lattice vectors
+    real(kind=dp), intent(in) :: tau(3,nat)
+      !! Atom positions
+
+
+    ! Output variables:
+    integer, allocatable, intent(out) :: nnTyp(:)
+      !! Number of atoms of each type
+
+
+    ! Local variables:
+    integer :: i
+      !! Loop index
+
+
+    if (ionode_local) then
+    
+      write(mainout, '("# Cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
+      write(mainout, '("# a1 ",3ES24.15E3)') at_local(:,1)
+      write(mainout, '("# a2 ",3ES24.15E3)') at_local(:,2)
+      write(mainout, '("# a3 ",3ES24.15E3)') at_local(:,3)
+    
+      write(mainout, '("# Reciprocal cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
+      write(mainout, '("# b1 ",3ES24.15E3)') bg_local(:,1)
+      write(mainout, '("# b2 ",3ES24.15E3)') bg_local(:,2)
+      write(mainout, '("# b3 ",3ES24.15E3)') bg_local(:,3)
+    
+      write(mainout, '("# Number of Atoms. Format: ''(i10)''")')
+      write(mainout, '(i10)') nat
+    
+      write(mainout, '("# Number of Types. Format: ''(i10)''")')
+      write(mainout, '(i10)') nsp
+    
+      write(mainout, '("# Atoms type, position(1:3) (a.u.). Format: ''(i10,3ES24.15E3)''")')
+      do i = 1, nat
+        write(mainout,'(i10,3ES24.15E3)') ityp(i), tau(:,i)*alat
+      enddo
+    
+      write(mainout, '("# Number of Bands. Format: ''(i10)''")')
+      write(mainout, '(i10)') nbnd_local
+
+      write(mainout, '("# Spin. Format: ''(i10)''")')
+      write(mainout, '(i10)') nspin_local
+    
+      allocate( nnTyp(nsp) )
+      nnTyp = 0
+      do i = 1, nat
+        nnTyp(ityp(i)) = nnTyp(ityp(i)) + 1
+      enddo
+
+    endif
+
+    return
+  end subroutine writeCellInfo
+
 !----------------------------------------------------------------------------
   subroutine subroutineTemplate()
     implicit none
@@ -2636,42 +2720,6 @@ module wfcExportVASPMod
 
   
     if (ionode_local) then
-    
-      write(mainout, '("# Cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
-      write(mainout, '("# a1 ",3ES24.15E3)') at_local(:,1)
-      write(mainout, '("# a2 ",3ES24.15E3)') at_local(:,2)
-      write(mainout, '("# a3 ",3ES24.15E3)') at_local(:,3)
-    
-      write(mainout, '("# Reciprocal cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
-      write(mainout, '("# b1 ",3ES24.15E3)') bg_local(:,1)
-      write(mainout, '("# b2 ",3ES24.15E3)') bg_local(:,2)
-      write(mainout, '("# b3 ",3ES24.15E3)') bg_local(:,3)
-    
-      write(mainout, '("# Number of Atoms. Format: ''(i10)''")')
-      write(mainout, '(i10)') nat
-    
-      write(mainout, '("# Number of Types. Format: ''(i10)''")')
-      write(mainout, '(i10)') nsp
-    
-      write(mainout, '("# Atoms type, position(1:3) (a.u.). Format: ''(i10,3ES24.15E3)''")')
-      DO i = 1, nat
-        xyz = tau(:,i)
-        write(mainout,'(i10,3ES24.15E3)') ityp(i), tau(:,i)*alat
-      ENDDO
-    
-      write(mainout, '("# Number of Bands. Format: ''(i10)''")')
-      write(mainout, '(i10)') nbnd_local
-
-      write(mainout, '("# Spin. Format: ''(i10)''")')
-      write(mainout, '(i10)') nspin_local
-    
-      allocate( nnTyp(nsp) )
-      nnTyp = 0
-      do i = 1, nat
-        nnTyp(ityp(i)) = nnTyp(ityp(i)) + 1
-      enddo
-
-      !------------------------------------------------------------------------------------
 
       DO i = 1, nsp
       

@@ -135,6 +135,12 @@ program wfcExportVASPMain
 
   deallocate(mill_g)
 
+  if (ionode_local) write(stdout,*) "Writing cell info"
+
+  call writeCellInfo(ityp, nat, nbnd_local, nsp, nspin_local, at_local, bg_local, tau, nnTyp)
+
+  if (ionode_local) write(stdout,*) "Done writing cell info"
+
   close(mainout)
 
   call MPI_BARRIER(world_comm_local, ierr)
