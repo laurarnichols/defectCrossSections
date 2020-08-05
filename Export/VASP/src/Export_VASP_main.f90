@@ -118,18 +118,27 @@ program wfcExportVASPMain
 
   if (ionode_local) write(stdout,*) "Done writing k-point info"
 
+
   deallocate(wk_local)
   deallocate(occ)
+
+  if (ionode_local) write(stdout,*) "Writing grid info"
 
   call writeGridInfo(ngm_g_local, nkstot_local, npwx_g, igwk, mill_g, ngk_g, npw_g, exportDir)
     !! * Write out grid boundaries and miller indices
     !!   for just \(G+k\) combinations below cutoff energy
     !!   in one file and all miller indices in another 
     !!   file
+
+  if (ionode_local) write(stdout,*) "Done writing grid info"
       
+
   deallocate(mill_g)
 
   close(mainout)
+
+  call MPI_BARRIER(world_comm_local, ierr)
+    !! @todo Remove barrier once done testing #end @endtodo
 
   stop
 
