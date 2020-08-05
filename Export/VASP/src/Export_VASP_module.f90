@@ -2671,6 +2671,8 @@ module wfcExportVASPMod
         nnTyp(ityp(i)) = nnTyp(ityp(i)) + 1
       enddo
 
+      !------------------------------------------------------------------------------------
+
       DO i = 1, nsp
       
         call read_upf(upf, grid, ierr, 71, trim(outdir)//'/'//trim(prefix)//'.save/'//trim(psfile(i)))
@@ -2723,10 +2725,13 @@ module wfcExportVASPMod
     
     ENDIF
 
+      !------------------------------------------------------------------------------------
+
 #ifdef __MPI
   CALL poolrecover (et, nbnd_local, nkstot_local, nk_Pool)
 #endif
 
+      !------------------------------------------------------------------------------------
 
     WRITE(stdout,*) "Writing Eigenvalues"
 
@@ -2758,6 +2763,8 @@ module wfcExportVASPMod
       ENDDO
     
     endif
+
+      !------------------------------------------------------------------------------------
   
     if ( ionode_local ) WRITE(stdout,*) "Writing Wavefunctions"
   
@@ -2887,6 +2894,8 @@ module wfcExportVASPMod
       CALL deallocate_bec_type ( becp )
     
     ENDIF
+
+      !------------------------------------------------------------------------------------
 
     deallocate(xk_local)
     deallocate(igk_large)
