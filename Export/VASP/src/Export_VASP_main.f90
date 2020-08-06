@@ -103,8 +103,8 @@ program wfcExportVASPMain
 
   if (ionode_local) write(stdout,*) "Getting k-point weights"
 
-  call getKPointWeights(nkstot_local, VASPDir, wk_local)
-    !! * Get weights for each k-point from `vasprun.xml`
+  call read_vasprun_xml(at_local, nkstot_local, VASPDir, wk_local, ityp, nat, nsp)
+    !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
   if (ionode_local) write(stdout,*) "Done getting k-point weights"
 
@@ -140,6 +140,10 @@ program wfcExportVASPMain
   call writeCellInfo(ityp, nat, nbnd_local, nsp, nspin_local, at_local, bg_local, tau, nnTyp)
 
   if (ionode_local) write(stdout,*) "Done writing cell info"
+
+  
+  deallocate(ityp)
+  deallocate(tau)
 
   close(mainout)
 

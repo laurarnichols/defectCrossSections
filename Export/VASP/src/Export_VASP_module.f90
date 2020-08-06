@@ -123,7 +123,7 @@ module wfcExportVASPMod
   integer, allocatable :: igwk(:,:)
     !! Indices of \(G+k\) vectors for each k-point
     !! and all processors
-  integer :: ityp
+  integer, allocatable :: ityp(:)
     !! Atom type index
   integer, allocatable :: mill_g(:,:)
     !! Integer coefficients for G-vectors on all processors
@@ -1957,8 +1957,8 @@ module wfcExportVASPMod
   end subroutine hpsort_eps
 
 !----------------------------------------------------------------------------
-  subroutine getKPointWeights(nkstot_local, VASPDir, wk_local)
-    !! Read the k-point weights from the `vasprun.xml` file
+  subroutine read_vasprun_xml(at_local, nkstot_local, VASPDir, wk_local, ityp, nat, nsp)
+    !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
     !! <h2>Walkthrough</h2>
     !!
@@ -1966,6 +1966,9 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
+    real(kind=dp), intent(in) :: at_local(3,3)
+      !! Real space lattice vectors
+
     integer, intent(in) :: nkstot_local
       !! Total number of k-points
 
@@ -1977,10 +1980,20 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) :: wk_local(:)
       !! K-point weights
 
+    integer, allocatable, intent(out) :: ityp(:)
+      !! Atom type index
+    integer, intent(out) :: nat
+      !! Number of atoms
+    integer, intent(out) :: nsp
+      !! Number of types of atoms
+
 
     ! Local variables:
-    integer :: ik
-      !! Loop index
+    real(kind=dp) :: dir(3)
+      !! Direct coordinates read from file
+
+    integer :: ik, ia, i, ix
+      !! Loop indices
 
     character(len=256) :: cDum
       !! Dummy variable to ignore input
@@ -2007,6 +2020,7 @@ module wfcExportVASPMod
       open(57, file=fileName)
         !! * If root node, open `vasprun.xml`
 
+
       found = .false.
       do while (.not. found)
         !! * Ignore everything until you get to a
@@ -2026,15 +2040,98 @@ module wfcExportVASPMod
 
       enddo
 
-      write(stdout,*) "K-point weights: ", wk_local
-        !! * Output the k-point weights to the `stdout` file
+
+      found = .false.
+      do while (.not. found)
+        !! * Ignore everything until you get to a
+        !!   line with `'atominfo'`, indicating the
+        !!   tag surrounding the cell info
+        
+        read(57, '(A)') line
+
+        if (index(line,'atominfo') /= 0) found = .true.
+        
+      enddo
+
+      read(57,*) cDum, nat, cDum
+      read(57,*) cDum, nsp, cDum
+      read(57,*) 
+      read(57,*) 
+      read(57,*) 
+      read(57,*) 
+      read(57,*) 
+
+      allocate(ityp(nat))
+
+      do ia = 1, nat
+        !! * Read in the atom type index for each atom
+
+        read(57,'(a21,i3,a9)') cDum, ityp(ia), cDum
+
+      enddo
+
+
+      found = .false.
+      do while (.not. found)
+        !! * Ignore everything until you get to a
+        !!   line with `'finalpos'`, indicating the
+        !!   tag surrounding the final cell parameters
+        !!   and positions
+        
+        read(57, '(A)') line
+
+        if (index(line,'finalpos') /= 0) found = .true.
+        
+      enddo
+
+      found = .false.
+      do while (.not. found)
+        !! * Ignore everything until you get to a
+        !!   line with `'positions'`, indicating the
+        !!   tag surrounding the final positions
+        
+        read(57, '(A)') line
+
+        if (index(line,'positions') /= 0) found = .true.
+        
+      enddo
+
+      allocate(tau(3,nat))
+
+      do ia = 1, nat
+        !! * Read in the final position for each atom
+
+        read(57,*) cDum, (dir(i),i=1,3), cDum
+          !! @note
+          !!  I assume that the coordinates are always direct
+          !!  in the `vasprun.xml` file and that the scaling
+          !!  factor is already included as I cannot find it 
+          !!  listed anywhere in that file. Extensive testing
+          !!  needs to be done to confirm this assumption.
+          !! @endnote
+          
+
+        do ix = 1, 3
+          tau(ix,ia) = sum(dir(:)*at_local(ix,:))
+            !! @todo Test logic of direct to cartesian coordinates with scaling factor @endtodo
+        enddo
+
+      enddo
 
     endif
 
     call MPI_BCAST(wk_local, size(wk_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
+    call MPI_BCAST(nat, 1, MPI_INTEGER, root, world_comm_local, ierr)
+    call MPI_BCAST(nsp, 1, MPI_INTEGER, root, world_comm_local, ierr)
+
+    if (.not. ionode_local) allocate(ityp(nat))
+    if (.not. ionode_local) allocate(tau(3,nat))
+
+    call MPI_BCAST(ityp, size(ityp), MPI_INTEGER, root, world_comm_local, ierr)
+    call MPI_BCAST(tau, size(tau), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
 
     return
-  end subroutine getKpointWeights
+  end subroutine read_vasprun_xml
 
 !----------------------------------------------------------------------------
   subroutine writeKInfo(nkstot_local, npwx_local, igk_l2g, nbnd_local, ngk_g, ngk_local, &
@@ -2426,7 +2523,7 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ityp
+    integer, intent(in) :: ityp(nat)
       !! Atom type index
     integer, intent(in) :: nat
       !! Number of atoms
@@ -2475,7 +2572,7 @@ module wfcExportVASPMod
     
       write(mainout, '("# Atoms type, position(1:3) (a.u.). Format: ''(i10,3ES24.15E3)''")')
       do i = 1, nat
-        write(mainout,'(i10,3ES24.15E3)') ityp(i), tau(:,i)*alat
+        write(mainout,'(i10,3ES24.15E3)') ityp(i), tau(:,i)
       enddo
     
       write(mainout, '("# Number of Bands. Format: ''(i10)''")')
