@@ -101,12 +101,23 @@ program wfcExportVASPMain
   deallocate(gCart_local)
   deallocate(nplane_g)
 
-  if (ionode_local) write(stdout,*) "Getting k-point weights"
+  if (ionode_local) write(stdout,*) "Reading vasprun.xml"
 
   call read_vasprun_xml(at_local, nkstot_local, VASPDir, wk_local, ityp, nat, nsp)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
-  if (ionode_local) write(stdout,*) "Done getting k-point weights"
+  if (ionode_local) write(stdout,*) "Done reading vasprun.xml"
+
+
+  allocate(ps(nat))
+
+
+  if (ionode_local) write(stdout,*) "Reading POTCAR"
+
+  call readPOTCAR(nsp, VASPDir, ps)
+    !! * Read in pseudopotential information from POTCAR
+
+  if (ionode_local) write(stdout,*) "Done reading POTCAR"
 
 
   if (ionode_local) write(stdout,*) "Writing k-point info"

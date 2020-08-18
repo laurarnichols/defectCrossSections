@@ -26,6 +26,8 @@ module wfcExportVASPMod
     !! Index of the root process within each pool
   integer, parameter :: mainout = 50
     !! Main output file unit
+  integer, parameter :: potcarUnit = 86
+    !! POTCAR unit for I/O
   integer, parameter :: stdout = 6
     !! Standard output unit
   integer, parameter :: wavecarUnit = 86
@@ -182,6 +184,30 @@ module wfcExportVASPMod
     !! Directory with QE files
   character(len=256) :: VASPDir
     !! Directory with VASP files
+
+  type pseudo
+    integer :: lmmax
+      !! Total number of nlm channels
+    integer :: nChannels
+      !! Number of l channels
+    integer :: nmax
+      !! Number of radial grid points
+
+    real(kind=dp), allocatable :: radGrid(:)
+      !! Radial grid points
+    real(kind=dp) :: rAugMax
+      !! Maximum radius of augmentation sphere
+    real(kind=dp) :: recipProj(16,100)
+      !! Reciprocal-space projectors
+    real(kind=dp) :: realProj(16,100)
+      !! Real-space projectors
+    real(kind=dp), allocatable :: wae(:,:)
+      !! AE wavefunction
+    real(kind=dp), allocatable :: wps(:,:)
+      !! PS wavefunction
+  end type pseudo
+
+  type (pseudo), allocatable :: ps(:)
 
   namelist /inputParams/ prefix, QEDir, VASPDir, exportDir
 
@@ -2132,6 +2158,314 @@ module wfcExportVASPMod
 
     return
   end subroutine read_vasprun_xml
+
+!----------------------------------------------------------------------------
+  subroutine readPOTCAR(nsp, VASPDir, ps)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nsp
+      !! Number of types of atoms
+
+    character(len=256), intent(in) :: VASPDir
+      !! Directory with VASP files
+
+    
+    ! Output variables:
+    type (pseudo) :: ps(nsp)
+
+
+    ! Local variables:
+    real(kind=dp) :: dummyD(1000)
+      !! Dummy variable to ignore input
+    real(kind=dp), allocatable :: dummyDA1(:), dummyDA2(:,:)
+      !! Allocatable dummy variable to ignore input
+
+    integer :: angMom
+      !! Angular momentum of projectors
+    integer :: ityp, i, j, ip
+      !! Loop indices
+    integer :: nProj
+      !! Number of projectors with given angular momentum
+
+    character(len=1) :: charSwitch
+      !! Switch to determine what section reading
+    character(len=256) :: dummyC
+      !! Dummy character to ignore input
+    character(len=256) :: fileName
+      !! Full WAVECAR file name including path
+
+    logical :: found
+      !! If the required tag was found
+
+
+    if(ionode_local) then
+      fileName = trim(VASPDir)//'/POTCAR'
+
+      open(unit=potcarUnit, file=fileName, iostat=ierr, status='old')
+      if (ierr .ne. 0) write(stdout,*) 'open error - iostat =', ierr
+        !! * If root node, open the `POTCAR` file
+
+      do ityp = 1, nsp
+
+        ps(ityp)%nChannels = 0
+        ps(ityp)%lmmax = 0
+
+        read(potcarUnit,'(A40)') dummyC
+          !! * Read in the header
+        read(potcarUnit,*)
+          !! * Ignore the valence line
+        read(potcarUnit,'(1X,A1)') charSwitch
+          !! * Read in character switch to determine if there is a 
+          !!   PSCRT section (switch not used)
+          !! @note
+          !!  Some of the switches do not actually seem to be used
+          !!  as a switch because the following code does not include
+          !!  any logic to process the switch. If the POTCAR files 
+          !!  ever have a different form than assumed here, the logic
+          !!  will need to be updated.
+          !! @endnote
+
+        found = .false.
+        do while (.not. found)
+          !! * Ignore all lines until you get to the `END` of
+          !!   the PSCRT section
+        
+          read(potcarUnit, '(A)') dummyC
+
+          if (dummyC(1:3) == 'END') found = .true.
+        
+        enddo
+
+        read(potcarUnit,'(1X,A1)') charSwitch
+          !! * Read character switch (switch not used)
+        read(potcarUnit,*)
+          !! * Ignore the max G for local potential
+        read(potcarUnit,*) (dummyD(i), i=1,1000)
+          !! * Ignore the local pseudopotential in reciprocal
+          !!   space
+        read(potcarUnit,'(1X,A1)') charSwitch
+          !! * Read character switch
+
+        if (charSwitch == 'g') then
+          !! * Ignore gradient correction
+
+          read(potcarUnit,*)
+          read(potcarUnit,'(1X,A1)') charSwitch
+          
+        endif
+
+        if (charSwitch == 'c') then
+          !! * Ignore core charge density
+
+          read(potcarUnit,*) (dummyD(i), i=1,1000)
+          read(potcarUnit,'(1X,A1)') charSwitch
+          
+        endif
+
+        if (charSwitch == 'k') then
+          !! * Ignore partial kinetic energy density
+
+          read(potcarUnit,*) (dummyD(i), i=1,1000)
+          read(potcarUnit,'(1X,A1)') charSwitch
+          
+        endif
+
+        if (charSwitch == 'K') then
+          !! * Ignore kinetic energy density
+
+          read(potcarUnit,*) (dummyD(i), i=1,1000)
+          read(potcarUnit,'(1X,A1)') charSwitch
+          
+        endif
+
+        read(potcarUnit,*) (dummyD(i), i=1,1000)
+          !! * Ignore the atomic pseudo charge density
+
+        read(potcarUnit,*) 
+          !! * Ignore the max G for non-local potential and 
+          !!   unused boolean (`LDUM` in VASP)
+        read(potcarUnit,'(1X,A1)') charSwitch
+          !! * Read character switch
+
+        do while (charSwitch /= 'D' .and. charSwitch /= 'A' .and. charSwitch /= 'P' &
+          .and. charSwitch /= 'E')
+            !! * Until you have read in all of the momentum channels
+            !!   (i.e. you get to a character switch that is not `'N'`)
+            !!     * Read in the angular momentum and the number of 
+            !!       projectors at this angular momentum
+            !!     * Increment the number of nlm channels
+            !!     * Ignore non-local strength multipliers
+            !!     * Read in the reciprocal-space and real-space
+            !!       projectors
+            !!     * Increment the number of l channels
+            !!     * Read the next character switch
+
+          read(potcarUnit,*) angMom, nProj, dummyC
+            ! Read in angular momentum and the number of projectors
+            ! at this angular momentum
+
+          ps(ityp)%lmmax = ps(ityp)%lmmax + (2*angMom+1)*nProj
+            ! Increment the number of nlm channels
+
+          allocate(dummyDA2(nProj,nProj))
+
+          read(potcarUnit,*) dummyDA2(:,:)
+            ! Ignore non-local strength multipliers
+
+          do ip = 1, nProj
+            ! Read in the reciprocal-space and real-space
+            ! projectors
+
+            read(potcarUnit,*) 
+            read(potcarUnit,*) (ps(ityp)%recipProj(ps(ityp)%nChannels+ip,i), i=1,100)
+            read(potcarUnit,*) 
+            read(potcarUnit,*) (ps(ityp)%realProj(ps(ityp)%nChannels+ip,i), i=1,100)
+
+          enddo
+
+          ps(ityp)%nChannels = ps(ityp)%nChannels + nProj
+            ! Increment the number of l channels
+
+          deallocate(dummyDA2)
+
+          read(potcarUnit,'(1X,A1)') charSwitch
+            ! Read character switch
+
+        enddo
+
+        if (charSwitch /= 'P') then
+          !! * Ignore depletion charges
+
+          read(potcarUnit,*)
+          read(potcarUnit,*)
+          
+        else
+
+          read(potcarUnit,*) ps(ityp)%nmax, ps(ityp)%rAugMax  
+            !! * Read the number of mesh grid points and
+            !!   the maximum radius in the augmentation sphere
+          read(potcarUnit,*)
+            !! * Ignore format specifier
+          read(potcarUnit,'(1X,A1)') charSwitch
+            !! * Read character switch (not used)
+
+          allocate(ps(ityp)%radGrid(ps(ityp)%nmax))
+          allocate(ps(ityp)%wps(ps(ityp)%nChannels,ps(ityp)%nmax))
+          allocate(ps(ityp)%wae(ps(ityp)%nChannels,ps(ityp)%nmax))
+          allocate(dummyDA2(ps(ityp)%nChannels, ps(ityp)%nChannels))
+
+          read(potcarUnit,*) dummyDA2(:,:)
+            !! * Ignore augmentation charges
+          read(potcarUnit,'(1X,A1)') charSwitch
+            !! * Read character switch
+
+          if (charSwitch == 't') then
+            !! * Ignore total charge in each channel 
+
+            read(potcarUnit,*) dummyDA2(:,:)
+            read(potcarUnit,*) 
+
+          endif
+
+          read(potcarUnit,*) dummyDA2
+            !! * Ignore initial occupancies in atom
+
+          read(potcarUnit,'(1X,A1)') charSwitch
+            !! * Read character switch
+          if (charSwitch /= 'g') call exitError('readPOTCAR', 'expected grid section', 1)
+
+          read(potcarUnit,*) (ps(ityp)%radGrid(i), i=1,ps(ityp)%nmax)
+
+          read(potcarUnit,'(1X,A1)') charSwitch
+            !! * Read character switch
+          if (charSwitch /= 'a') call exitError('readPOTCAR', 'expected aepotential section', 1)
+
+          allocate(dummyDA1(ps(ityp)%nmax))
+
+          read(potcarUnit,*) dummyDA1(:)
+            !! * Ignore AE potential
+
+          read(potcarUnit,'(1X,A1)') charSwitch
+            !! * Read character switch
+          if (charSwitch /= 'c') call exitError('readPOTCAR', 'expected core charge-density section', 1)
+
+          read(potcarUnit,*) dummyDA1(:)
+            !! * Ignore the frozen core charge
+          read(potcarUnit,'(1X,A1)') charSwitch
+            !! * Read character switch
+
+          if (charSwitch == 'k') then
+            !! * Ignore kinetic energy density
+
+            read(potcarUnit,*) dummyDA1(:)
+            read(potcarUnit,'(1X,A1)') charSwitch
+
+          endif
+
+          if (charSwitch == 'm') then
+            !! * Ignore pseudo-ized kinetic energy density
+
+            read(potcarUnit,*) dummyDA1(:)
+            read(potcarUnit,'(1X,A1)') charSwitch
+
+          endif
+
+          if (charSwitch == 'l') then
+            !! * Ignore local pseudopotential core
+
+            read(potcarUnit,*) dummyDA1(:)
+            read(potcarUnit,'(1X,A1)') charSwitch
+
+          endif
+
+          if (charSwitch /= 'p') call exitError('readPOTCAR', 'expected pspotential section', 1)
+          
+          read(potcarUnit,*) dummyDA1(:)
+            !! * Ignore PS potential
+
+          read(potcarUnit,'(1X,A1)') charSwitch
+            !! * Read character switch
+          if (charSwitch /= 'c') call exitError('readPOTCAR', 'expected core charge-density section', 1)
+          
+          read(potcarUnit,*) dummyDA1(:)
+            !! * Ignore core charge density
+
+          do ip = 1, ps(ityp)%nChannels
+            
+            read(potcarUnit,'(1X,A1)') charSwitch
+            if (charSwitch /= 'p') call exitError('readPOTCAR', 'expected pseudowavefunction section', 1)
+            read(potcarUnit,*) (ps(ityp)%wps(ip,i), i=1,ps(ityp)%nmax)
+
+            read(potcarUnit,'(1X,A1)') charSwitch
+            if (charSwitch /= 'a') call exitError('readPOTCAR', 'expected aewavefunction section', 1)
+            read(potcarUnit,*) (ps(ityp)%wae(ip,i), i=1,ps(ityp)%nmax)
+
+          enddo
+
+          deallocate(dummyDA1)
+          deallocate(dummyDA2)
+
+        endif
+
+        found = .false.
+        do while (.not. found)
+          !! * Ignore all lines until you get to the `END` of
+          !!   the PSCRT section
+        
+          read(potcarUnit, '(A)') dummyC
+
+          if (index(dummyC,'End of Dataset') /= 0) found = .true.
+        
+        enddo
+
+      enddo
+
+    endif    
+
+    return
+  end subroutine readPOTCAR
 
 !----------------------------------------------------------------------------
   subroutine writeKInfo(nkstot_local, npwx_local, igk_l2g, nbnd_local, ngk_g, ngk_local, &
