@@ -186,6 +186,8 @@ module wfcExportVASPMod
     !! Directory with VASP files
 
   type pseudo
+    integer :: angmom(16) = 0
+      !! Angular momentum of projectors
     integer :: lmmax
       !! Total number of nlm channels
     integer :: nChannels
@@ -2321,6 +2323,8 @@ module wfcExportVASPMod
             ! Read in the reciprocal-space and real-space
             ! projectors
 
+            ps(ityp)%angmom(ps(ityp)%nChannels+ip) = angmom
+
             read(potcarUnit,*) 
             read(potcarUnit,*) (ps(ityp)%recipProj(ps(ityp)%nChannels+ip,i), i=1,100)
             read(potcarUnit,*) 
@@ -2965,8 +2969,9 @@ module wfcExportVASPMod
         
         write(mainout, '("# Angular momentum, index of the projectors. Format: ''(2i10)''")')
         do ip = 1, ps(ityp)%nChannels
+
           write(mainout, '(2i10)') ps(ityp)%angmom(ip), ip
-            !! @todo Go back and store angular momentum of projectors #thistask @endtodo
+
         enddo
         
         write(mainout, '("# Number of channels. Format: ''(i10)''")')
