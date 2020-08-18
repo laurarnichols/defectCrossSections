@@ -109,7 +109,7 @@ program wfcExportVASPMain
   if (ionode_local) write(stdout,*) "Done reading vasprun.xml"
 
 
-  allocate(ps(nat))
+  allocate(ps(nsp))
 
 
   if (ionode_local) write(stdout,*) "Reading POTCAR"
