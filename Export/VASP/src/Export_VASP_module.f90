@@ -189,7 +189,8 @@ module wfcExportVASPMod
     integer :: lmmax
       !! Total number of nlm channels
     integer :: nChannels
-      !! Number of l channels
+      !! Number of l channels;
+      !! also number of projectors
     integer :: nmax
       !! Number of radial grid points
 
@@ -2927,6 +2928,76 @@ module wfcExportVASPMod
   end subroutine writeCellInfo
 
 !----------------------------------------------------------------------------
+  subroutine writePseudoInfo(nsp, nnTyp, ps)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nsp
+      !! Number of types of atoms
+
+    integer, intent(in) :: nnTyp(nsp)
+      !! Number of atoms of each type
+
+    type (pseudo) :: ps(nsp)
+
+
+    ! Output variables:
+
+
+    ! Local variables:
+    integer :: ityp, ip, ir
+      !! Loop index
+
+  
+    if (ionode_local) then
+
+      do ityp = 1, nsp
+        
+        write(mainout, '("# Element")')
+        write(mainout, *) trim(atm(ityp))
+          !! @todo Get element names from `POTCAR` #thistask @endtodo
+        write(mainout, '("# Number of Atoms of this type. Format: ''(i10)''")')
+        write(mainout, '(i10)') nnTyp(ityp)
+        write(mainout, '("# Number of projectors. Format: ''(i10)''")')
+        write(mainout, '(i10)') ps(ityp)%nChannels
+        
+        write(mainout, '("# Angular momentum, index of the projectors. Format: ''(2i10)''")')
+        do ip = 1, ps(ityp)%nChannels
+          write(mainout, '(2i10)') ps(ityp)%angmom(ip), ip
+            !! @todo Go back and store angular momentum of projectors #thistask @endtodo
+        enddo
+        
+        write(mainout, '("# Number of channels. Format: ''(i10)''")')
+        write(mainout, '(i10)') ps(ityp)%lmmax
+        
+        write(mainout, '("# Number of radial mesh points. Format: ''(2i10)''")')
+        write(mainout, '(2i10)') ps(ityp)%nmax, ps(ityp)%iRAugMax
+          ! Number of points in the radial mesh, number of point inside the aug sphere
+          !! @todo Calculate the number of points in the aug sphere #thistask @endtodo
+        
+        write(mainout, '("# Radial grid, Integratable grid. Format: ''(2ES24.15E3)''")')
+        do ir = 1, ps(ityp)%nmax
+          write(mainout, '(2ES24.15E3)') ps(ityp)%radGrid(ir), ps(ityp)%dRadGrid(ir) 
+            ! radGrid(nmax) radial grid, dRadGrid(nmax) dr(x)/dx (x=linear grid)
+            !! @todo Calculate derivative of radial grid #thistask @endtodo
+        enddo
+        
+        write(mainout, '("# AE, PS radial wfc for each beta function. Format: ''(2ES24.15E3)''")')
+        do ip = 1, ps(ityp)%nChannels
+          do ir = 1, ps(ityp)%nmax
+            write(mainout, '(2ES24.15E3)') ps(ityp)%wae(ip,ir), ps(ityp)%wps(ip,ir)
+          enddo
+        enddo
+      
+      enddo
+    
+    endif
+
+    return
+  end subroutine writePseudoInfo
+
+!----------------------------------------------------------------------------
   subroutine subroutineTemplate()
     implicit none
 
@@ -3149,60 +3220,6 @@ module wfcExportVASPMod
       !! Index map from \(G\) to \(G+k\)
       !! indexed up to `npwx_local`
 
-  
-    if (ionode_local) then
-
-      DO i = 1, nsp
-      
-        call read_upf(upf, grid, ierr, 71, trim(outdir)//'/'//trim(prefix)//'.save/'//trim(psfile(i)))
-      
-        if (  upf%typ == 'PAW' ) then
-        
-          write(stdout, *) ' PAW type pseudopotential found !'
-        
-          write(mainout, '("# Element")')
-          write(mainout, *) trim(atm(i))
-          write(mainout, '("# Number of Atoms of this type. Format: ''(i10)''")')
-          write(mainout, '(i10)') nnTyp(i)
-          write(mainout, '("# Number of projectors. Format: ''(i10)''")')
-          write(mainout, '(i10)') upf%nbeta              ! number of projectors
-        
-          write(mainout, '("# Angular momentum, index of the projectors. Format: ''(2i10)''")')
-          ms = 0
-          do inb = 1, upf%nbeta
-            write(mainout, '(2i10)') upf%lll(inb), inb
-            ms = ms + 2*upf%lll(inb) + 1
-          enddo
-        
-          write(mainout, '("# Number of channels. Format: ''(i10)''")')
-          write(mainout, '(i10)') ms
-        
-          write(mainout, '("# Number of radial mesh points. Format: ''(2i10)''")')
-          write(mainout, '(2i10)') upf%mesh, upf%kkbeta ! number of points in the radial mesh, number of point inside the aug sphere
-        
-          write(mainout, '("# Radial grid, Integratable grid. Format: ''(2ES24.15E3)''")')
-          do im = 1, upf%mesh
-            write(mainout, '(2ES24.15E3)') upf%r(im), upf%rab(im) ! r(mesh) radial grid, rab(mesh) dr(x)/dx (x=linear grid)
-          enddo
-        
-          write(mainout, '("# AE, PS radial wfc for each beta function. Format: ''(2ES24.15E3)''")')
-          if ( upf%has_wfc ) then   ! if true, UPF contain AE and PS wfc for each beta
-            do inb = 1, upf%nbeta
-              do im = 1, upf%mesh
-                write(mainout, '(2ES24.15E3)') upf%aewfc(im, inb), upf%pswfc(im, inb)
-                                          ! wfc(mesh,nbeta) AE wfc, wfc(mesh,nbeta) PS wfc
-              enddo
-            enddo
-          else
-            write(mainout, *) 'UPF does not contain AE and PS wfcs!!'
-            stop
-          endif
-        
-        endif
-      
-      enddo
-    
-    ENDIF
 
       !------------------------------------------------------------------------------------
 
