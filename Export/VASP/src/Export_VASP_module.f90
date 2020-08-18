@@ -206,6 +206,8 @@ module wfcExportVASPMod
       !! AE wavefunction
     real(kind=dp), allocatable :: wps(:,:)
       !! PS wavefunction
+
+    character(len=2) :: element
   end type pseudo
 
   type (pseudo), allocatable :: ps(:)
@@ -2213,7 +2215,7 @@ module wfcExportVASPMod
         ps(ityp)%nChannels = 0
         ps(ityp)%lmmax = 0
 
-        read(potcarUnit,'(A40)') dummyC
+        read(potcarUnit,*) dummyC, ps(ityp)%element, dummyC
           !! * Read in the header
         read(potcarUnit,*)
           !! * Ignore the valence line
@@ -2955,8 +2957,7 @@ module wfcExportVASPMod
       do ityp = 1, nsp
         
         write(mainout, '("# Element")')
-        write(mainout, *) trim(atm(ityp))
-          !! @todo Get element names from `POTCAR` #thistask @endtodo
+        write(mainout, *) trim(ps(ityp)%element)
         write(mainout, '("# Number of Atoms of this type. Format: ''(i10)''")')
         write(mainout, '(i10)') nnTyp(ityp)
         write(mainout, '("# Number of projectors. Format: ''(i10)''")')
