@@ -2189,7 +2189,7 @@ module wfcExportVASPMod
 
     integer :: angMom
       !! Angular momentum of projectors
-    integer :: ityp, i, j, ip
+    integer :: ityp, i, j, ip, ir
       !! Loop indices
     integer :: nProj
       !! Number of projectors with given angular momentum
@@ -2384,6 +2384,16 @@ module wfcExportVASPMod
           if (charSwitch /= 'g') call exitError('readPOTCAR', 'expected grid section', 1)
 
           read(potcarUnit,*) (ps(ityp)%radGrid(i), i=1,ps(ityp)%nmax)
+          
+          do ir = 1, ps(ityp)%nmax
+
+            if (ps(ityp)%radGrid(ir) > ps(ityp)%rAugMax) then
+
+              ps(ityp)%iRAugMax = ir - 1
+              stop
+
+            endif
+          enddo
 
           read(potcarUnit,'(1X,A1)') charSwitch
             !! * Read character switch
@@ -2980,7 +2990,6 @@ module wfcExportVASPMod
         write(mainout, '("# Number of radial mesh points. Format: ''(2i10)''")')
         write(mainout, '(2i10)') ps(ityp)%nmax, ps(ityp)%iRAugMax
           ! Number of points in the radial mesh, number of point inside the aug sphere
-          !! @todo Calculate the number of points in the aug sphere #thistask @endtodo
         
         write(mainout, '("# Radial grid, Integratable grid. Format: ''(2ES24.15E3)''")')
         do ir = 1, ps(ityp)%nmax
