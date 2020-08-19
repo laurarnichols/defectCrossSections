@@ -2400,11 +2400,16 @@ module wfcExportVASPMod
             !!  derivative as \(dR_i = R_0He^{H(i-1)}\)
             !! @endnote
           
+          found = .false.
           do ir = 1, ps(ityp)%nmax
             !! * Calculate the max index of the augmentation sphere and
             !!   the derivative of the radial grid
 
-            if (ps(ityp)%radGrid(ir) > ps(ityp)%rAugMax) ps(ityp)%iRAugMax = ir - 1
+            if (.not. found .and. ps(ityp)%radGrid(ir) > ps(ityp)%rAugMax) then
+              ps(ityp)%iRAugMax = ir - 1
+              found = .true.
+            endif
+
             ps(ityp)%dRadGrid(ir) = ps(ityp)%radGrid(1)*H*exp(H*(ir-1))
 
           enddo
