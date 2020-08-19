@@ -196,6 +196,8 @@ module wfcExportVASPMod
     integer :: nmax
       !! Number of radial grid points
 
+    real(kind=dp), allocatable :: dRadGrid(:)
+      !! Derivative of radial grid
     real(kind=dp), allocatable :: radGrid(:)
       !! Radial grid points
     real(kind=dp) :: rAugMax
@@ -2186,6 +2188,9 @@ module wfcExportVASPMod
       !! Dummy variable to ignore input
     real(kind=dp), allocatable :: dummyDA1(:), dummyDA2(:,:)
       !! Allocatable dummy variable to ignore input
+    real(kind=dp) :: H
+      !! Factor for generating derivative of 
+      !! radial grid
 
     integer :: angMom
       !! Angular momentum of projectors
@@ -2384,15 +2389,21 @@ module wfcExportVASPMod
           if (charSwitch /= 'g') call exitError('readPOTCAR', 'expected grid section', 1)
 
           read(potcarUnit,*) (ps(ityp)%radGrid(i), i=1,ps(ityp)%nmax)
+
+          H = log(ps(ityp)%radGrid(ps(ityp)%nmax)/ps(ityp)%radGrid(1))/(ps(ityp)%nmax - 1)
+            !! * Calculate \(H\) which is used to generate the derivative of the grid
+            !! @note
+            !!  The grid in VASP is defined as \(R_i = R_0e^{H(i-1)}\), so we define the
+            !!  derivative as \(dR_i = R_0He^{H(i-1)}\)
+            !! @endnote
           
           do ir = 1, ps(ityp)%nmax
+            !! * Calculate the max index of the augmentation sphere and
+            !!   the derivative of the radial grid
 
-            if (ps(ityp)%radGrid(ir) > ps(ityp)%rAugMax) then
+            if (ps(ityp)%radGrid(ir) > ps(ityp)%rAugMax) ps(ityp)%iRAugMax = ir - 1
+            ps(ityp)%dRadGrid(ir) = ps(ityp)%radGrid(1)*H*exp(H*(ir-1))
 
-              ps(ityp)%iRAugMax = ir - 1
-              stop
-
-            endif
           enddo
 
           read(potcarUnit,'(1X,A1)') charSwitch
@@ -2989,13 +3000,12 @@ module wfcExportVASPMod
         
         write(mainout, '("# Number of radial mesh points. Format: ''(2i10)''")')
         write(mainout, '(2i10)') ps(ityp)%nmax, ps(ityp)%iRAugMax
-          ! Number of points in the radial mesh, number of point inside the aug sphere
+          ! Number of points in the radial mesh, number of points inside the aug sphere
         
         write(mainout, '("# Radial grid, Integratable grid. Format: ''(2ES24.15E3)''")')
         do ir = 1, ps(ityp)%nmax
           write(mainout, '(2ES24.15E3)') ps(ityp)%radGrid(ir), ps(ityp)%dRadGrid(ir) 
-            ! radGrid(nmax) radial grid, dRadGrid(nmax) dr(x)/dx (x=linear grid)
-            !! @todo Calculate derivative of radial grid #thistask @endtodo
+            ! Radial grid, derivative of radial grid
         enddo
         
         write(mainout, '("# AE, PS radial wfc for each beta function. Format: ''(2ES24.15E3)''")')
