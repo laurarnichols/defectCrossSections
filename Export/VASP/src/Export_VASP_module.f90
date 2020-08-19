@@ -188,6 +188,8 @@ module wfcExportVASPMod
   type pseudo
     integer :: angmom(16) = 0
       !! Angular momentum of projectors
+    integer :: iRAugMax
+      !! Max index of augmentation sphere
     integer :: lmmax
       !! Total number of nlm channels
     integer :: nChannels

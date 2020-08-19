@@ -156,6 +156,12 @@ program wfcExportVASPMain
   deallocate(ityp)
   deallocate(tau)
 
+  if (ionode_local) write(stdout,*) "Writing pseudo info"
+
+  call writePseudoInfo(nsp, nnTyp, ps)
+
+  if (ionode_local) write(stdout,*) "Done writing pseudo info"
+
   close(mainout)
 
   call MPI_BARRIER(world_comm_local, ierr)
