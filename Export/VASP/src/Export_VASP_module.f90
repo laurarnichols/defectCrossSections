@@ -2366,6 +2366,7 @@ module wfcExportVASPMod
             !! * Read character switch (not used)
 
           allocate(ps(ityp)%radGrid(ps(ityp)%nmax))
+          allocate(ps(ityp)%dRadGrid(ps(ityp)%nmax))
           allocate(ps(ityp)%wps(ps(ityp)%nChannels,ps(ityp)%nmax))
           allocate(ps(ityp)%wae(ps(ityp)%nChannels,ps(ityp)%nmax))
           allocate(dummyDA2(ps(ityp)%nChannels, ps(ityp)%nChannels))
