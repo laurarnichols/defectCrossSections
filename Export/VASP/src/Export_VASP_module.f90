@@ -1433,12 +1433,17 @@ module wfcExportVASPMod
 
 
     ! Local variables:
+    real(kind=dp) :: eps8 = 1.0E-8_dp
+      !! Double precision zero
+    real(kind=dp), allocatable :: millSum(:)
+      !! Sum of integer coefficients for G-vectors
+
     integer :: ig1, ig2, ig3, ig1p, ig2p, ig3p, ig, ix
       !! Loop indices
-    integer :: igEnd
-      !! Ending index for G-vectors across processors 
-    integer :: igStart
-      !! Starting index for G-vectors across processors 
+    integer, allocatable :: iMill(:)
+      !! Indices of miller indices after sorting
+    integer, allocatable :: mill_g_tmp(:,:)
+      !! Integer coefficients for G-vectors on all processors
     integer, allocatable :: mill_local(:,:)
       !! Integer coefficients for G-vectors
     integer :: npmax
@@ -1447,14 +1452,18 @@ module wfcExportVASPMod
 
     npmax = (2*nb1max+1)*(2*nb2max+1)*(2*nb3max+1) 
     allocate(mill_g(3,npmax))
+    allocate(millSum(npmax))
 
     if(ionode_local) then
+
+      allocate(mill_g_tmp(3,npmax))
+
       write(stdout,*)
       write(stdout,*) "***************"
       write(stdout,*) "Calculating miller indices"
 
       ngm_g_local = 0
-      mill_g = 0
+      mill_g_tmp = 0
 
       do ig3 = 0, 2*nb3max
 
@@ -1478,10 +1487,14 @@ module wfcExportVASPMod
 
             ngm_g_local = ngm_g_local + 1
 
-            mill_g(1,ngm_g_local) = ig1p
-            mill_g(2,ngm_g_local) = ig2p
-            mill_g(3,ngm_g_local) = ig3p
+            mill_g_tmp(1,ngm_g_local) = ig1p
+            mill_g_tmp(2,ngm_g_local) = ig2p
+            mill_g_tmp(3,ngm_g_local) = ig3p
               !! * Calculate Miller indices
+
+            millSum(ngm_g_local) = sqrt(real(ig1p**2 + ig2p**2 + ig3p**2))
+              !! * Calculate the sum of the Miller indices
+              !!   for sorting
 
           enddo
         enddo
@@ -1491,7 +1504,23 @@ module wfcExportVASPMod
         '*** error - computed no. of G-vectors != estimated number of plane waves', 1)
         !! * Check that number of G-vectors are the same as the number of plane waves
 
-      write(stdout,*) "Done calculating miller indices"
+      write(stdout,*) "Sorting miller indices"
+
+      allocate(iMill(ngm_g_local))
+
+      call hpsort_eps(ngm_g_local, millSum, iMill, eps8)
+        !! * Order vector `millSum` keeping initial position in `iMill`
+
+      do ig = 1, ngm_g_local
+
+        mill_g(:,ig) = mill_g_tmp(:,iMill(ig))
+
+      enddo
+
+      deallocate(iMill)
+      deallocate(mill_g_tmp)
+
+      write(stdout,*) "Done calculating and sorting miller indices"
       write(stdout,*) "***************"
       write(stdout,*)
     endif
@@ -1505,8 +1534,7 @@ module wfcExportVASPMod
       write(stdout,*) "Distributing G-vecs over processors"
     endif
 
-    call distributeGvecsOverProcessors(ngm_g_local, mill_g, ig_l2g, igEnd, igStart, &
-        mill_local, ngm_local)
+    call distributeGvecsOverProcessors(ngm_g_local, mill_g, ig_l2g, mill_local, ngm_local)
       !! * Split up the G-vectors and Miller indices over processors 
 
     if (ionode_local) write(stdout,*) "Calculating G-vectors"
@@ -1535,8 +1563,7 @@ module wfcExportVASPMod
   end subroutine calculateGvecs
 
 !----------------------------------------------------------------------------
-  subroutine distributeGvecsOverProcessors(ngm_g_local, mill_g, ig_l2g, igEnd, igStart, &
-      mill_local, ngm_local)
+  subroutine distributeGvecsOverProcessors(ngm_g_local, mill_g, ig_l2g, mill_local, ngm_local)
     !! Figure out how many G-vectors there should be per processor
     !!
     !! <h2>Walkthrough</h2>
@@ -1555,10 +1582,6 @@ module wfcExportVASPMod
     ! Output variables:
     integer, allocatable, intent(out) :: ig_l2g(:)
       ! Converts local index `ig` to global index
-    integer, intent(out) :: igEnd
-      !! Ending index for G-vectors across processors 
-    integer, intent(out) :: igStart
-      !! Starting index for G-vectors across processors 
     integer, allocatable, intent(out) :: mill_local(:,:)
       !! Integer coefficients for G-vectors
     integer, intent(out) :: ngm_local
@@ -1566,8 +1589,8 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: ig
-      !! Loop index
+    integer :: ig_l, ig_g
+      !! Loop indices
     integer :: ngr
       !! Number of G-vectors left over after evenly divided across processors
 
@@ -1581,16 +1604,8 @@ module wfcExportVASPMod
       ngr = ngm_g_local - ngm_local*nproc_local 
         !! * Calculate the remainder
 
-      IF( myid < ngr ) ngm_local = ngm_local + 1
+      if( myid < ngr ) ngm_local = ngm_local + 1
         !! * Assign the remainder to the first `ngr` processors
-
-      !>  * Calculate the index of the first k point in this pool
-      igStart = ngm_local * myid + 1
-      IF( myid >= ngr ) igStart = igStart + ngr
-
-      igEnd = igStart + ngm_local - 1
-        !!  * Calculate the index of the last k point in this pool
-
 
       !> * Generate an array to map a local index
       !>   (`ig` passed to `ig_l2g`) to a global
@@ -1599,12 +1614,20 @@ module wfcExportVASPMod
       allocate(ig_l2g(ngm_local))
       allocate(mill_local(3,ngm_local))
 
-      do ig = 1, ngm_local
+      ig_l = 0
+      do ig_g = 1, ngm_g_local
 
-        ig_l2g(ig) = igStart + ig - 1 
-        mill_local(:,ig) = mill_g(:,ig_l2g(ig))
+        if (myid == mod(ig_g-1,nproc_local)) then
+        
+          ig_l = ig_l + 1
+          ig_l2g(ig_l) = ig_g
+          mill_local(:,ig_l) = mill_g(:,ig_g)
+
+        endif
 
       enddo
+
+      if (ig_l /= ngm_local) call exitError('distributeGvecsOverProcessors', 'unexpected number of G-vecs for this processor', 1)
 
     endif
 
@@ -1742,7 +1765,7 @@ module wfcExportVASPMod
           ! Calculate \(|G+k|\)
 
         if (q <= eps8) q = 0.d0
-   
+
         if (q <= vcut_local) then
 
           ngk_tmp = ngk_tmp + 1
@@ -1764,6 +1787,8 @@ module wfcExportVASPMod
 
         endif
       enddo
+
+      if (ngk_tmp == 0) call exitError('reconstructFFTGrid', 'no G+k vectors on this processor', 1) 
 
 100   npwx_local = max(npwx_local, ngk_tmp)
         ! Track the maximum number of \(G+k\)
@@ -2615,6 +2640,7 @@ module wfcExportVASPMod
         !!   among all processors in a single global array
     
       if (ionode_local) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk_local(ik), xk_local(1:3,ik)
+        !! @todo Double check values of `ngk_g` #thisbranch @endtodo
       if (ionode_local) flush(mainout)
     
     enddo
