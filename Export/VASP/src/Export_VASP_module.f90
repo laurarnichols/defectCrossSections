@@ -597,6 +597,7 @@ module wfcExportVASPMod
     !! <h2>Walkthrough</h2>
     !!
 
+    use miscUtilities
     use io_files, only : nd_nmbr
       !! @todo Remove this once extracted from QE #end @endtodo
     
@@ -624,9 +625,6 @@ module wfcExportVASPMod
     character(len=10) :: ctime
       !! String for time
 
-    character(len=6), external :: int_to_char
-      !! @todo Remove this once extracted from QE #end @endtodo
-
 
     prefix = ''
       !! @todo Create local version of `prefix` #end @endtodo
@@ -645,7 +643,8 @@ module wfcExportVASPMod
     call date_and_time(cdate, ctime)
 
 #ifdef __MPI
-    nd_nmbr = trim(int_to_char(myid+1))
+    call int2str(myid+1, nd_nmbr)
+    nd_nmbr  = trim(nd_nmbr)
       !! @todo Create local version of `nd_nmbr` #end @endtodo
 #else
     nd_nmbr = ' '
@@ -2827,6 +2826,8 @@ module wfcExportVASPMod
     !! <h2>Walkthrough</h2>
     !!
 
+    use miscUtilities
+
     implicit none
 
     ! Input variables:
@@ -2861,6 +2862,9 @@ module wfcExportVASPMod
     integer :: ik, ig, igk
       !! Loop indices
 
+    character(len=300) :: indexC
+      !! Character index
+
 
     if (ionode_local) then
     
@@ -2881,8 +2885,8 @@ module wfcExportVASPMod
         !!   resulting in \(G+k\) vectors less than the energy
         !!   cutoff in a `grid.ik` file
       
-        open(72, file=trim(exportDir)//"/grid"//iotk_index(ik))
-          !! @todo Move `iotk_index` here #thisbranch @endtodo
+        call int2str(ik, indexC)
+        open(72, file=trim(exportDir)//"/grid."//trim(indexC))
         write(72, '("# Wave function G-vectors grid")')
         write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
       
