@@ -675,6 +675,12 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine mpiSumIntV(msg, comm)
+    !! Perform `MPI_ALLREDUCE` for an integer vector
+    !! using a max buffer size
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
     implicit none
 
     ! Input/output variables:
@@ -1470,8 +1476,6 @@ module wfcExportVASPMod
 
         if (ig3 .gt. nb3max) ig3p = ig3 - 2*nb3max - 1
 
-        !write(stdout,*) " Outer miller index: ", ig3p
-
         do ig2 = 0, 2*nb2max
 
           ig2p = ig2
@@ -1511,6 +1515,7 @@ module wfcExportVASPMod
         !! * Order vector `millSum` keeping initial position in `iMill`
 
       do ig = 1, ngm_g_local
+        !! * Rearrange the miller indices to match order of `millSum`
 
         mill_g(:,ig) = mill_g_tmp(:,iMill(ig))
 
