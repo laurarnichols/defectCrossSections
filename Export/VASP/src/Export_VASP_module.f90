@@ -597,7 +597,6 @@ module wfcExportVASPMod
     !! <h2>Walkthrough</h2>
     !!
 
-    use miscUtilities
     use io_files, only : nd_nmbr
       !! @todo Remove this once extracted from QE #end @endtodo
     
