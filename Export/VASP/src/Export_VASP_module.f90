@@ -2640,7 +2640,6 @@ module wfcExportVASPMod
         !!   among all processors in a single global array
     
       if (ionode_local) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk_local(ik), xk_local(1:3,ik)
-        !! @todo Double check values of `ngk_g` #thisbranch @endtodo
       if (ionode_local) flush(mainout)
     
     enddo
