@@ -2203,6 +2203,11 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readPOTCAR(nsp, VASPDir, ps)
+    !! Read PAW pseudopotential information from POTCAR
+    !! file
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
 
     implicit none
 
@@ -2216,6 +2221,7 @@ module wfcExportVASPMod
     
     ! Output variables:
     type (pseudo) :: ps(nsp)
+      !! Holds all information needed from pseudopotential
 
 
     ! Local variables:
@@ -2428,6 +2434,7 @@ module wfcExportVASPMod
 
           H = log(ps(ityp)%radGrid(ps(ityp)%nmax)/ps(ityp)%radGrid(1))/(ps(ityp)%nmax - 1)
             !! * Calculate \(H\) which is used to generate the derivative of the grid
+            !!
             !! @note
             !!  The grid in VASP is defined as \(R_i = R_0e^{H(i-1)}\), so we define the
             !!  derivative as \(dR_i = R_0He^{H(i-1)}\)
@@ -2502,6 +2509,7 @@ module wfcExportVASPMod
             !! * Ignore core charge density
 
           do ip = 1, ps(ityp)%nChannels
+            !! * Read the AE and PS partial waves for each projector
             
             read(potcarUnit,'(1X,A1)') charSwitch
             if (charSwitch /= 'p') call exitError('readPOTCAR', 'expected pseudowavefunction section', 1)
@@ -2520,8 +2528,7 @@ module wfcExportVASPMod
 
         found = .false.
         do while (.not. found)
-          !! * Ignore all lines until you get to the `END` of
-          !!   the PSCRT section
+          !! * Ignore all lines until you get to the `End of Dataset`
         
           read(potcarUnit, '(A)') dummyC
 
@@ -2649,6 +2656,9 @@ module wfcExportVASPMod
     
       if (ionode_local) write(mainout, '(3i10,4ES24.15E3)') ik, groundState(ik), ngk_g(ik), wk_local(ik), xk_local(1:3,ik)
       if (ionode_local) flush(mainout)
+        !! * Write the k-point index, the ground state band, and
+        !!   the number of G-vectors, weight, and position for this 
+        !!   k-point
     
     enddo
 
@@ -2877,6 +2887,8 @@ module wfcExportVASPMod
 
     if (ionode_local) then
     
+      !> * Write the global number of G-vectors, the maximum
+      !>   G-vector index, and the max/min miller indices
       write(mainout, '("# Number of G-vectors. Format: ''(i10)''")')
       write(mainout, '(i10)') ngm_g_local
     
@@ -2908,7 +2920,7 @@ module wfcExportVASPMod
       
       enddo
 
-      !> * Output all miller indices
+      !> * Output all miller indices in `mgrid` file
       open(72, file=trim(exportDir)//"/mgrid")
       write(72, '("# Full G-vectors grid")')
       write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
@@ -2928,6 +2940,11 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine writeCellInfo(ityp, nat, nbnd_local, nsp, nspin_local, at_local, bg_local, tau, nnTyp)
+    !! Write out the real- and reciprocal-space lattice vectors, 
+    !! the number of atoms, the number of types of atoms, the
+    !! final atom positions, number of bands, and number of spins,
+    !! then calculate the number of atoms of each type
+
     implicit none
 
     ! Input variables:
@@ -3002,6 +3019,9 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine writePseudoInfo(nsp, nnTyp, ps)
+    !! For each atom type, write out the element name,
+    !! number of atoms of this type, projector info,
+    !! radial grid info, and partial waves
 
     implicit none
 
@@ -3013,6 +3033,7 @@ module wfcExportVASPMod
       !! Number of atoms of each type
 
     type (pseudo) :: ps(nsp)
+      !! Holds all information needed from pseudopotential
 
 
     ! Output variables:
@@ -3291,8 +3312,6 @@ module wfcExportVASPMod
       !! Index map from \(G\) to \(G+k\)
       !! indexed up to `npwx_local`
 
-
-      !------------------------------------------------------------------------------------
 
 #ifdef __MPI
   CALL poolrecover (et, nbnd_local, nkstot_local, nk_Pool)
