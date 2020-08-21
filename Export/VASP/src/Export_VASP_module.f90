@@ -3117,13 +3117,10 @@ module wfcExportVASPMod
         write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') ispin
         write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
       
-        !> @todo Change `wg`/`wg/wk` to `occ` #thistask @endtodo
         do ibnd = 1, nbnd_local
-          if ( wk(ik) == 0.D0 ) then
-              write(72, '(2ES24.15E3)') et(ibnd,ik)*ryToHartree, wg(ibnd,ik)
-           else
-            write(72, '(2ES24.15E3)') et(ibnd,ik)*ryToHartree, wg(ibnd,ik)/wk(ik)
-          endif
+
+          write(72, '(2ES24.15E3)') et(ibnd,ik)*ryToHartree, occ(ibnd,ik)
+
         enddo
       
         close(72)
