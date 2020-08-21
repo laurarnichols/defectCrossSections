@@ -114,7 +114,7 @@ module wfcExportVASPMod
   real(kind=dp), allocatable :: wk_local(:)
     !! Weight of k-points
 
-  complex*16, allocatable :: eigenE(:)
+  complex*16, allocatable :: eigenE(:,:,:)
     !! Band eigenvalues
   
   integer, allocatable :: ig_l2g(:)
@@ -873,7 +873,7 @@ module wfcExportVASPMod
     integer, intent(out) :: nspin_local
       !! Number of spins
 
-    complex*16, allocatable, intent(out) :: eigenE(:)
+    complex*16, allocatable, intent(out) :: eigenE(:,:,:)
       !! Band eigenvalues
 
 
@@ -1269,7 +1269,7 @@ module wfcExportVASPMod
       !! Input number of plane waves for a single k-point 
       !! for all processors
 
-    complex*16, allocatable, intent(out) :: eigenE(:)
+    complex*16, allocatable, intent(out) :: eigenE(:,:,:)
       !! Band eigenvalues
 
 
@@ -1287,7 +1287,7 @@ module wfcExportVASPMod
     allocate(occ(nbnd_local, nkstot_local))
     allocate(xk_local(3,nkstot_local))
     allocate(nplane_g(nkstot_local))
-    allocate(eigenE(nbnd_local))
+    allocate(eigenE(nspin_local,nkstot_local,nbnd_local))
 
     if(ionode_local) then
 
@@ -1307,41 +1307,37 @@ module wfcExportVASPMod
         !!       * Read in the plane wave coefficients for
         !!         each band
 
-       write(stdout,*) '  Reading spin ', isp
+        write(stdout,*) '  Reading spin ', isp
 
-       do ik = 1, nkstot_local
+        do ik = 1, nkstot_local
 
-        write(stdout,*) '    Reading k-point ', ik
-
-        irec = irec + 1
-       
-        read(unit=wavecarUnit,rec=irec) nplane_g_real, (xk_local(i,ik),i=1,3), &
-               (eigenE(iband), occ(iband, ik), iband=1,nbnd_local)
-          ! Read in the number of \(G+k\) plane wave vectors below the energy
-          ! cutoff, the position of the k-point in reciprocal space, and
-          ! the eigenvalue and occupation for each band
-
-        nplane_g(ik) = nint(nplane_g_real)
-        eigenE(:) = eigenE(:)*eVToRy
-
-        do iband = 1, nbnd_local
+          write(stdout,*) '    Reading k-point ', ik
 
           irec = irec + 1
+       
+          read(unit=wavecarUnit,rec=irec) nplane_g_real, (xk_local(i,ik),i=1,3), &
+                 (eigenE(isp,ik,iband), occ(iband, ik), iband=1,nbnd_local)
+            ! Read in the number of \(G+k\) plane wave vectors below the energy
+            ! cutoff, the position of the k-point in reciprocal space, and
+            ! the eigenvalue and occupation for each band
 
-          read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nplane_g(ik))
-            ! Read in the plane wave coefficients for each band
+          nplane_g(ik) = nint(nplane_g_real)
 
-          write(45+ik,*) eigenE(iband)
-            !! @todo 
-            !!  Figure out how `eigenE` and `eigF`/`eigI` relate to `et`
-            !! @endtodo
+          do iband = 1, nbnd_local
+
+            irec = irec + 1
+
+            read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nplane_g(ik))
+              ! Read in the plane wave coefficients for each band
+
+          enddo
+
+          write(45+ik,*) "--------------------------------------------------------"
 
         enddo
-
-        write(45+ik,*) "--------------------------------------------------------"
-
       enddo
-    enddo
+
+      eigenE(:,:,:) = eigenE(:,:,:)*eVToRy
 
       deallocate(coeff)
         !! @note 
@@ -2161,13 +2157,7 @@ module wfcExportVASPMod
         
       enddo
 
-      write(stdout,*) "Line: ", line
-
       read(line,*) cDum, cDum, eFermi, cDum
-      write(stdout,*) eFermi
-      flush(stdout)
-        !! @todo Remove these write statements #thistask @endtodo
-
       eFermi = eFermi*eVToRy
 
       found = .false.
@@ -3121,25 +3111,27 @@ module wfcExportVASPMod
   end subroutine writePseudoInfo
 
 !----------------------------------------------------------------------------
-  subroutine writeEigenvalues(nbnd_local, nkstot_local, eFermi, occ, eigenE)
-    !! @todo Add comments to this subroutine #thistask @endtodo
+  subroutine writeEigenvalues(nbnd_local, nkstot_local, nspin_local, eFermi, occ, eigenE)
+    !! Write Fermi energy and eigenvalues and occupations for each band
 
     use miscUtilities
 
     implicit none
 
     ! Input variables:
-    integer :: nbnd_local
+    integer, intent(in) :: nbnd_local
       !! Total number of bands
-    integer :: nkstot_local
+    integer, intent(in) :: nkstot_local
       !! Total number of k-points
+    integer, intent(in) :: nspin_local
+      !! Number of spins
       
-    real(kind=dp) :: eFermi
+    real(kind=dp), intent(in) :: eFermi
       !! Fermi energy
-    real(kind=dp) :: occ(nbnd_local,nkstot_local)
+    real(kind=dp), intent(in) :: occ(nbnd_local,nkstot_local)
       !! Occupation of band
 
-    complex*16 :: eigenE(nbnd_local)
+    complex*16, intent(in) :: eigenE(nspin_local,nkstot_local,nbnd_local)
       !! Band eigenvalues
 
 
@@ -3156,8 +3148,6 @@ module wfcExportVASPMod
       !! Character index
 
 
-    write(stdout,*) "Writing Eigenvalues"
-
     if (ionode_local ) then
     
       write(mainout, '("# Fermi Energy (Hartree). Format: ''(ES24.15E3)''")')
@@ -3166,8 +3156,9 @@ module wfcExportVASPMod
     
       do ik = 1, nkstot_local
       
-        ispin = isk(ik)
-          !! @todo Figure out what `isk` is #thistask @endtodo
+        !ispin = isk(ik)
+        ispin = 1
+          !! @todo Figure out if spin needs to be incorporated for eigenvalues @endtodo
       
         call int2str(ik, indexC)
         open(72, file=trim(exportDir)//"/eigenvalues."//trim(indexC))
@@ -3177,7 +3168,8 @@ module wfcExportVASPMod
       
         do ib = 1, nbnd_local
 
-          write(72, '(2ES24.15E3)') eigenE(ib)*ryToHartree, occ(ib,ik)
+          write(72, '(2ES24.15E3)') real(eigenE(ispin,ik,ib))*ryToHartree, occ(ib,ik)
+          flush(72)
 
         enddo
       
