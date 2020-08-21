@@ -3312,10 +3312,6 @@ module wfcExportVASPMod
       !! indexed up to `npwx_local`
 
 
-#ifdef __MPI
-  CALL poolrecover (et, nbnd_local, nkstot_local, nk_Pool)
-#endif
-
       !------------------------------------------------------------------------------------
 
     WRITE(stdout,*) "Writing Eigenvalues"

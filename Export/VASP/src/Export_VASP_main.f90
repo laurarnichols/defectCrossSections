@@ -162,6 +162,10 @@ program wfcExportVASPMain
 
   if (ionode_local) write(stdout,*) "Done writing pseudo info"
 
+#ifdef __MPI
+  call poolrecover(et, nbnd_local, nkstot_local, nk_Pool)
+#endif
+
   close(mainout)
 
   call MPI_BARRIER(world_comm_local, ierr)
