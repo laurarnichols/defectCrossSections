@@ -3094,6 +3094,8 @@ module wfcExportVASPMod
     !! @todo Add call to this subroutine to main #thistask @endtodo
     !! @todo Add variables and arguments #thistask @endtodo
 
+    use miscUtilities
+
     implicit none
 
     write(stdout,*) "Writing Eigenvalues"
@@ -3111,8 +3113,8 @@ module wfcExportVASPMod
         ispin = isk( ik )
           !! @todo Figure out what `isk` is #thistask @endtodo
       
-        open(72, file=trim(exportDir)//"/eigenvalues"//iotk_index(ik))
-          !! @todo Change this to call to `int2str` #thistask @endtodo
+        call int2str(ik, indexC)
+        open(72, file=trim(exportDir)//"/eigenvalues."//trim(indexC))
       
         write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') ispin
         write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
