@@ -132,7 +132,6 @@ program wfcExportVASPMain
 
 
   deallocate(wk_local)
-  deallocate(occ)
 
   if (ionode_local) write(stdout,*) "Writing grid info"
 
@@ -150,6 +149,10 @@ program wfcExportVASPMain
   if (ionode_local) write(stdout,*) "Writing cell info"
 
   call writeCellInfo(ityp, nat, nbnd_local, nsp, nspin_local, at_local, bg_local, tau, nnTyp)
+    !! * Write out the real- and reciprocal-space lattice vectors, 
+    !!   the number of atoms, the number of types of atoms, the
+    !!   final atom positions, number of bands, and number of spins,
+    !!   then calculate the number of atoms of each type
 
   if (ionode_local) write(stdout,*) "Done writing cell info"
 
@@ -160,25 +163,31 @@ program wfcExportVASPMain
   if (ionode_local) write(stdout,*) "Writing pseudo info"
 
   call writePseudoInfo(nsp, nnTyp, ps)
+    !! * For each atom type, write out the element name,
+    !!   number of atoms of this type, projector info,
+    !!   radial grid info, and partial waves
 
   if (ionode_local) write(stdout,*) "Done writing pseudo info"
 
 
 #ifdef __MPI
   call poolrecover(et, nbnd_local, nkstot_local, nk_Pool)
+    !! @todo Remove this once extracted from QE #end @todo
 #endif
 
 
   if (ionode_local) write(stdout,*) "Writing eigenvalues"
 
-  call writeEigenvalues(nbnd_local, nkstot_local, eFermi, occ, eigenE)
+  call writeEigenvalues(nbnd_local, nkstot_local, nspin_local, eFermi, occ, eigenE)
+    !! * Write Fermi energy and eigenvalues and occupations for each band
 
   if (ionode_local) write(stdout,*) "Done writing eigenvalues"
 
 
   deallocate(eigenE)
+  deallocate(occ)
 
-  close(mainout)
+  if (ionode_local) close(mainout)
 
   call MPI_BARRIER(world_comm_local, ierr)
     !! @todo Remove barrier once done testing #end @endtodo
