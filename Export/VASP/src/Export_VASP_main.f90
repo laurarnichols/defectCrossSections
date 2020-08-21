@@ -104,7 +104,7 @@ program wfcExportVASPMain
 
   if (ionode_local) write(stdout,*) "Reading vasprun.xml"
 
-  call read_vasprun_xml(at_local, nkstot_local, VASPDir, wk_local, ityp, nat, nsp)
+  call read_vasprun_xml(at_local, nkstot_local, VASPDir, eFermi, wk_local, ityp, nat, nsp)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
   if (ionode_local) write(stdout,*) "Done reading vasprun.xml"

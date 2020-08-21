@@ -94,6 +94,8 @@ module wfcExportVASPMod
   real(kind=dp) :: ecutwfc_local
     !! Plane wave energy cutoff in Ry
     !! @todo Change back to `ecutwfc` once extracted from QE #end @endtodo
+  real(kind=dp) :: eFermi
+    !! Fermi energy
   real(kind=dp), allocatable :: gCart_local(:,:)
     !! G-vectors in Cartesian coordinates
   real(kind=dp), allocatable :: occ(:,:)
@@ -2032,7 +2034,7 @@ module wfcExportVASPMod
   end subroutine hpsort_eps
 
 !----------------------------------------------------------------------------
-  subroutine read_vasprun_xml(at_local, nkstot_local, VASPDir, wk_local, ityp, nat, nsp)
+  subroutine read_vasprun_xml(at_local, nkstot_local, VASPDir, eFermi, wk_local, ityp, nat, nsp)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
     !! <h2>Walkthrough</h2>
@@ -2052,6 +2054,8 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    real(kind=dp), intent(out) :: eFermi
+      !! Fermi energy
     real(kind=dp), allocatable, intent(out) :: wk_local(:)
       !! K-point weights
 
@@ -2145,6 +2149,26 @@ module wfcExportVASPMod
 
       enddo
 
+      found = .false.
+      do while (.not. found)
+        !! * Ignore everything until you get to a
+        !!   line with `'efermi'`, indicating the
+        !!   tag with the Fermi energy
+        
+        read(57, '(A)') line
+
+        if (index(line,'efermi') /= 0) found = .true.
+        
+      enddo
+
+      write(stdout,*) "Line: ", line
+
+      read(line,*) cDum, cDum, eFermi, cDum
+      write(stdout,*) eFermi
+      flush(stdout)
+        !! @todo Remove these write statements #thistask @endtodo
+
+      eFermi = eFermi*eVToRy
 
       found = .false.
       do while (.not. found)
@@ -3111,10 +3135,8 @@ module wfcExportVASPMod
     if (ionode_local ) then
     
       write(mainout, '("# Fermi Energy (Hartree). Format: ''(ES24.15E3)''")')
-      write(mainout, '(ES24.15E3)') ef*ryToHartree
+      write(mainout, '(ES24.15E3)') eFermi*ryToHartree
       flush(mainout)
-        !! @todo Add reading `ef` from `vasprun.xml` ('efermi') #thistask @endtodo
-        !! @todo Verify unit conversions for `ef` and `et` #thistask @endtodo
     
       do ik = 1, nkstot_local
       
