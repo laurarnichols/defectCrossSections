@@ -3122,9 +3122,10 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine writeEigenvalues()
-    !! @todo Add comments to this subroutine #thistask @endtodo
-    !! @todo Add call to this subroutine to main #thistask @endtodo
     !! @todo Add variables and arguments #thistask @endtodo
+    !! @todo Add call to this subroutine to main #thistask @endtodo
+    !! @todo Make sure that `eigenE` is deallocated after this subroutine #thistask @endtodo
+    !! @todo Add comments to this subroutine #thistask @endtodo
 
     use miscUtilities
 
@@ -3152,7 +3153,6 @@ module wfcExportVASPMod
         do ib = 1, nbnd_local
 
           write(72, '(2ES24.15E3)') eigenE(ib)*ryToHartree, occ(ib,ik)
-            !! @todo Make sure that `eigenE` is deallocated after this subroutine #thistask @endtodo
 
         enddo
       
