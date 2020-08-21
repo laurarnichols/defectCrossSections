@@ -3120,6 +3120,7 @@ module wfcExportVASPMod
         do ibnd = 1, nbnd_local
 
           write(72, '(2ES24.15E3)') et(ibnd,ik)*ryToHartree, occ(ibnd,ik)
+            !! @todo Change this to what is read from `WAVECAR` #thistask @endtodo
 
         enddo
       
