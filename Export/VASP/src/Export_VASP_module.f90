@@ -111,6 +111,9 @@ module wfcExportVASPMod
     !! Position of k-points in reciprocal space
   real(kind=dp), allocatable :: wk_local(:)
     !! Weight of k-points
+
+  complex*16, allocatable :: eigenE(:)
+    !! Band eigenvalues
   
   integer, allocatable :: ig_l2g(:)
     !! Converts local index `ig` to global index
@@ -818,7 +821,8 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, occ, omega_local, vcut_local, &
-        xk_local, nb1max, nb2max, nb3max, nbnd_local, ngk_max, nkstot_local, nplane_g, nspin_local)
+        xk_local, nb1max, nb2max, nb3max, nbnd_local, ngk_max, nkstot_local, nplane_g, nspin_local, &
+        eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -866,6 +870,9 @@ module wfcExportVASPMod
       !! for all processors
     integer, intent(out) :: nspin_local
       !! Number of spins
+
+    complex*16, allocatable, intent(out) :: eigenE(:)
+      !! Band eigenvalues
 
 
     ! Local variables:
@@ -992,7 +999,7 @@ module wfcExportVASPMod
       write(stdout,*) 'Starting to read wavefunction'
     endif
 
-    call readWavefunction(nbnd_local, ngk_max, nkstot_local, nspin_local, occ, xk_local, nplane_g)
+    call readWavefunction(nbnd_local, ngk_max, nkstot_local, nspin_local, occ, xk_local, nplane_g, eigenE)
       !! * Get the position of each k-point in reciprocal space 
       !!   and the number of \(G+k) vectors below the cutoff 
       !!   energy for each k-point
@@ -1224,7 +1231,7 @@ module wfcExportVASPMod
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine readWavefunction(nbnd_local, ngk_max, nkstot_local, nspin_local, occ, xk_local, nplane_g)
+  subroutine readWavefunction(nbnd_local, ngk_max, nkstot_local, nspin_local, occ, xk_local, nplane_g, eigenE)
     !! For each spin and k-point, read the number of
     !! \(G+k\) vectors below the energy cutoff, the
     !! position of the k-point in reciprocal space, 
@@ -1260,13 +1267,14 @@ module wfcExportVASPMod
       !! Input number of plane waves for a single k-point 
       !! for all processors
 
+    complex*16, allocatable, intent(out) :: eigenE(:)
+      !! Band eigenvalues
+
 
     ! Local variables:
     real(kind=dp) :: nplane_g_real
       !! Real version of integers for reading from file
 
-    complex*16, allocatable :: cener(:)
-      !! Band eigenvalues
     complex*8, allocatable :: coeff(:,:)
       !! Plane wave coefficients
 
@@ -1277,10 +1285,10 @@ module wfcExportVASPMod
     allocate(occ(nbnd_local, nkstot_local))
     allocate(xk_local(3,nkstot_local))
     allocate(nplane_g(nkstot_local))
+    allocate(eigenE(nbnd_local))
 
     if(ionode_local) then
 
-      allocate(cener(nbnd_local))
       allocate(coeff(ngk_max,nbnd_local))
     
       irec=2
@@ -1306,12 +1314,13 @@ module wfcExportVASPMod
         irec = irec + 1
        
         read(unit=wavecarUnit,rec=irec) nplane_g_real, (xk_local(i,ik),i=1,3), &
-               (cener(iband), occ(iband, ik), iband=1,nbnd_local)
+               (eigenE(iband), occ(iband, ik), iband=1,nbnd_local)
           ! Read in the number of \(G+k\) plane wave vectors below the energy
           ! cutoff, the position of the k-point in reciprocal space, and
           ! the eigenvalue and occupation for each band
 
         nplane_g(ik) = nint(nplane_g_real)
+        eigenE(:) = eigenE(:)*eVToRy
 
         do iband = 1, nbnd_local
 
@@ -1320,9 +1329,9 @@ module wfcExportVASPMod
           read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nplane_g(ik))
             ! Read in the plane wave coefficients for each band
 
-          write(45+ik,*) cener(iband)
+          write(45+ik,*) eigenE(iband)
             !! @todo 
-            !!  Figure out how `cener` and `eigF`/`eigI` relate to `et`
+            !!  Figure out how `eigenE` and `eigF`/`eigI` relate to `et`
             !! @endtodo
 
         enddo
@@ -1332,17 +1341,16 @@ module wfcExportVASPMod
       enddo
     enddo
 
-      deallocate(cener)
       deallocate(coeff)
         !! @note 
-        !!  The band eigenvalues and the plane wave coefficients are 
-        !!  not currently used anywhere.
+        !!  The plane wave coefficients are not currently used anywhere.
         !! @endnote
 
     endif
 
     call MPI_BCAST(xk_local, size(xk_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
     call MPI_BCAST(occ, size(occ), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
+    call MPI_BCAST(eigenE, size(eigenE), MPI_COMPLEX, root, world_comm_local, ierr)
     call MPI_BCAST(nplane_g, size(nplane_g), MPI_INTEGER, root, world_comm_local, ierr)
 
     xk = xk_local
@@ -3106,7 +3114,7 @@ module wfcExportVASPMod
       write(mainout, '(ES24.15E3)') ef*ryToHartree
       flush(mainout)
         !! @todo Add reading `ef` from `vasprun.xml` ('efermi') #thistask @endtodo
-        !! @todo Verify unit conversions for `ef` and `et`
+        !! @todo Verify unit conversions for `ef` and `et` #thistask @endtodo
     
       do ik = 1, nkstot_local
       
@@ -3119,10 +3127,10 @@ module wfcExportVASPMod
         write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') ispin
         write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
       
-        do ibnd = 1, nbnd_local
+        do ib = 1, nbnd_local
 
-          write(72, '(2ES24.15E3)') et(ibnd,ik)*ryToHartree, occ(ibnd,ik)
-            !! @todo Change this to what is read from `WAVECAR` #thistask @endtodo
+          write(72, '(2ES24.15E3)') eigenE(ib)*ryToHartree, occ(ib,ik)
+            !! @todo Make sure that `eigenE` is deallocated after this subroutine #thistask @endtodo
 
         enddo
       

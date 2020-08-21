@@ -66,7 +66,8 @@ program wfcExportVASPMain
   if (ionode_local) write(stdout,*) "Reading WAVECAR"
 
   call readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, occ, omega_local, vcut_local, &
-      xk_local, nb1max, nb2max, nb3max, nbnd_local, ngk_max, nkstot_local, nplane_g, nspin_local)
+      xk_local, nb1max, nb2max, nb3max, nbnd_local, ngk_max, nkstot_local, nplane_g, nspin_local, &
+      eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 
   if (ionode_local) write(stdout,*) "Done reading WAVECAR"
