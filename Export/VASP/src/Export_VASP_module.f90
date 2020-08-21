@@ -3089,6 +3089,53 @@ module wfcExportVASPMod
   end subroutine writePseudoInfo
 
 !----------------------------------------------------------------------------
+  subroutine writeEigenvalues()
+    !! @todo Add comments to this subroutine #thistask @endtodo
+    !! @todo Add call to this subroutine to main #thistask @endtodo
+    !! @todo Add variables and arguments #thistask @endtodo
+
+    implicit none
+
+    write(stdout,*) "Writing Eigenvalues"
+
+    if (ionode_local ) then
+    
+      write(mainout, '("# Fermi Energy (Hartree). Format: ''(ES24.15E3)''")')
+      write(mainout, '(ES24.15E3)') ef*ryToHartree
+      flush(mainout)
+        !! @todo Add reading `ef` from `vasprun.xml` ('efermi') #thistask @endtodo
+        !! @todo Verify unit conversions for `ef` and `et`
+    
+      do ik = 1, nkstot_local
+      
+        ispin = isk( ik )
+          !! @todo Figure out what `isk` is #thistask @endtodo
+      
+        open(72, file=trim(exportDir)//"/eigenvalues"//iotk_index(ik))
+          !! @todo Change this to call to `int2str` #thistask @endtodo
+      
+        write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') ispin
+        write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
+      
+        !> @todo Change `wg`/`wg/wk` to `occ` #thistask @endtodo
+        do ibnd = 1, nbnd_local
+          if ( wk(ik) == 0.D0 ) then
+              write(72, '(2ES24.15E3)') et(ibnd,ik)*ryToHartree, wg(ibnd,ik)
+           else
+            write(72, '(2ES24.15E3)') et(ibnd,ik)*ryToHartree, wg(ibnd,ik)/wk(ik)
+          endif
+        enddo
+      
+        close(72)
+      
+      enddo
+    
+    endif
+
+    return
+  end subroutine writeEigenvalues
+
+!----------------------------------------------------------------------------
   subroutine subroutineTemplate()
     implicit none
 
@@ -3312,40 +3359,6 @@ module wfcExportVASPMod
       !! indexed up to `npwx_local`
 
 
-      !------------------------------------------------------------------------------------
-
-    WRITE(stdout,*) "Writing Eigenvalues"
-
-    IF( ionode_local ) THEN
-    
-      write(mainout, '("# Fermi Energy (Hartree). Format: ''(ES24.15E3)''")')
-      write(mainout, '(ES24.15E3)') ef*ryToHartree
-      flush(mainout)
-    
-      DO ik = 1, nkstot_local
-      
-        ispin = isk( ik )
-      
-        open(72, file=trim(exportDir)//"/eigenvalues"//iotk_index(ik))
-      
-        write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') ispin
-        write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
-      
-        do ibnd = 1, nbnd_local
-          if ( wk(ik) == 0.D0 ) then
-              write(72, '(2ES24.15E3)') et(ibnd,ik)*ryToHartree, wg(ibnd,ik)
-           else
-            write(72, '(2ES24.15E3)') et(ibnd,ik)*ryToHartree, wg(ibnd,ik)/wk(ik)
-          endif
-        enddo
-      
-        close(72)
-      
-      ENDDO
-    
-    endif
-
-      !------------------------------------------------------------------------------------
   
     if ( ionode_local ) WRITE(stdout,*) "Writing Wavefunctions"
   
