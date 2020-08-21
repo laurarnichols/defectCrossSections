@@ -3121,15 +3121,40 @@ module wfcExportVASPMod
   end subroutine writePseudoInfo
 
 !----------------------------------------------------------------------------
-  subroutine writeEigenvalues()
-    !! @todo Add variables and arguments #thistask @endtodo
-    !! @todo Add call to this subroutine to main #thistask @endtodo
-    !! @todo Make sure that `eigenE` is deallocated after this subroutine #thistask @endtodo
+  subroutine writeEigenvalues(nbnd_local, nkstot_local, eFermi, occ, eigenE)
     !! @todo Add comments to this subroutine #thistask @endtodo
 
     use miscUtilities
 
     implicit none
+
+    ! Input variables:
+    integer :: nbnd_local
+      !! Total number of bands
+    integer :: nkstot_local
+      !! Total number of k-points
+      
+    real(kind=dp) :: eFermi
+      !! Fermi energy
+    real(kind=dp) :: occ(nbnd_local,nkstot_local)
+      !! Occupation of band
+
+    complex*16 :: eigenE(nbnd_local)
+      !! Band eigenvalues
+
+
+    ! Output variables:
+
+
+    ! Local variables:
+    integer :: ik, ib
+      !! Loop indices
+    integer :: ispin
+      !! Spin index
+
+    character(len=300) :: indexC
+      !! Character index
+
 
     write(stdout,*) "Writing Eigenvalues"
 
@@ -3141,7 +3166,7 @@ module wfcExportVASPMod
     
       do ik = 1, nkstot_local
       
-        ispin = isk( ik )
+        ispin = isk(ik)
           !! @todo Figure out what `isk` is #thistask @endtodo
       
         call int2str(ik, indexC)

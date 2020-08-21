@@ -163,9 +163,20 @@ program wfcExportVASPMain
 
   if (ionode_local) write(stdout,*) "Done writing pseudo info"
 
+
 #ifdef __MPI
   call poolrecover(et, nbnd_local, nkstot_local, nk_Pool)
 #endif
+
+
+  if (ionode_local) write(stdout,*) "Writing eigenvalues"
+
+  call writeEigenvalues(nbnd_local, nkstot_local, eFermi, occ, eigenE)
+
+  if (ionode_local) write(stdout,*) "Done writing eigenvalues"
+
+
+  deallocate(eigenE)
 
   close(mainout)
 
