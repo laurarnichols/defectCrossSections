@@ -33,8 +33,10 @@ module wfcExportVASPMod
   integer, parameter :: wavecarUnit = 86
     !! WAVECAR unit for I/O
 
+  real(kind = dp), parameter :: angToBohr = 1.889725989_dp
+    !! Conversion factor from Angstrom to Bohr
   real(kind = dp), parameter :: eVToRy = 0.073498618_dp
-    !! Conversion factor from eV Rydberg
+    !! Conversion factor from eV to Rydberg
   real(kind = dp), parameter :: pi = 3.141592653589793_dp
     !! \(\pi\)
   real(kind = dp), parameter :: ryToHartree = 0.5_dp
@@ -2396,6 +2398,7 @@ module wfcExportVASPMod
             read(potcarUnit,*) (ps(ityp)%recipProj(ps(ityp)%nChannels+ip,i), i=1,100)
             read(potcarUnit,*) 
             read(potcarUnit,*) (ps(ityp)%realProj(ps(ityp)%nChannels+ip,i), i=1,100)
+              !! @todo Figure out if you actually need to read these projectors @endtodo
 
           enddo
 
@@ -2452,6 +2455,9 @@ module wfcExportVASPMod
           if (charSwitch /= 'g') call exitError('readPOTCAR', 'expected grid section', 1)
 
           read(potcarUnit,*) (ps(ityp)%radGrid(i), i=1,ps(ityp)%nmax)
+
+          ps(ityp)%rAugMax = ps(ityp)%rAugMax*angToBohr 
+          ps(ityp)%radGrid(:) = ps(ityp)%radGrid(:)*angToBohr
 
           H = log(ps(ityp)%radGrid(ps(ityp)%nmax)/ps(ityp)%radGrid(1))/(ps(ityp)%nmax - 1)
             !! * Calculate \(H\) which is used to generate the derivative of the grid
@@ -2541,6 +2547,10 @@ module wfcExportVASPMod
             read(potcarUnit,*) (ps(ityp)%wae(ip,i), i=1,ps(ityp)%nmax)
 
           enddo
+
+          ps(ityp)%wps(ip,:) = ps(ityp)%wps(ip,:)/sqrt(angToBohr)
+          ps(ityp)%wae(ip,:) = ps(ityp)%wae(ip,:)/sqrt(angToBohr)
+            !! @todo Make sure that partial wave unit conversion makes sense @endtodo
 
           deallocate(dummyDA1)
           deallocate(dummyDA2)
