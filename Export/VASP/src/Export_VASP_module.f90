@@ -207,6 +207,8 @@ module wfcExportVASPMod
 
     real(kind=dp), allocatable :: dRadGrid(:)
       !! Derivative of radial grid
+    real(kind=dp) :: psRMax
+      !! Max r for non-local contribution
     real(kind=dp), allocatable :: radGrid(:)
       !! Radial grid points
     real(kind=dp) :: rAugMax
@@ -2367,8 +2369,9 @@ module wfcExportVASPMod
           .and. charSwitch /= 'E')
             !! * Until you have read in all of the momentum channels
             !!   (i.e. you get to a character switch that is not `'N'`)
-            !!     * Read in the angular momentum and the number of 
-            !!       projectors at this angular momentum
+            !!     * Read in the angular momentum, the number of 
+            !!       projectors at this angular momentum, and the max
+            !!       r for the non-local contribution
             !!     * Increment the number of nlm channels
             !!     * Ignore non-local strength multipliers
             !!     * Read in the reciprocal-space and real-space
@@ -2376,9 +2379,10 @@ module wfcExportVASPMod
             !!     * Increment the number of l channels
             !!     * Read the next character switch
 
-          read(potcarUnit,*) angMom, nProj, dummyC
-            ! Read in angular momentum and the number of projectors
-            ! at this angular momentum
+          read(potcarUnit,*) angMom, nProj, ps(ityp)%psRMax
+            ! Read in angular momentum, the number of projectors
+            ! at this angular momentum, and the max r for the 
+            ! non-local contribution
 
           ps(ityp)%lmmax = ps(ityp)%lmmax + (2*angMom+1)*nProj
             ! Increment the number of nlm channels
@@ -2548,8 +2552,8 @@ module wfcExportVASPMod
 
           enddo
 
-          ps(ityp)%wps(ip,:) = ps(ityp)%wps(ip,:)/sqrt(angToBohr)
-          ps(ityp)%wae(ip,:) = ps(ityp)%wae(ip,:)/sqrt(angToBohr)
+          ps(ityp)%wps(:,:) = ps(ityp)%wps(:,:)/sqrt(angToBohr)
+          ps(ityp)%wae(:,:) = ps(ityp)%wae(:,:)/sqrt(angToBohr)
             !! @todo Make sure that partial wave unit conversion makes sense @endtodo
 
           deallocate(dummyDA1)
@@ -3191,6 +3195,105 @@ module wfcExportVASPMod
 
     return
   end subroutine writeEigenvalues
+
+!----------------------------------------------------------------------------
+  subroutine writeProjections()
+
+    implicit none
+
+    IF ( nkb > 0 ) THEN
+      !! @todo Add calculation of total number of projectors #thistask @endtodo
+      !! @todo Add `nkb` as a local variable #thistask @endtodo
+    
+      CALL init_us_1
+        !   This routine performs the following tasks:
+        !   a) For each non vanderbilt pseudopotential it computes the D and
+        !      the betar in the same form of the Vanderbilt pseudopotential.
+        !   b) It computes the indices indv which establish the correspondence
+        !      nh <-> beta in the atom
+        !   c) It computes the indices nhtol which establish the correspondence
+        !      nh <-> angular momentum of the beta function
+        !   d) It computes the indices nhtolm which establish the correspondence
+        !      nh <-> combined (l,m) index for the beta function.
+        !   e) It computes the coefficients c_{LM}^{nm} which relates the
+        !      spherical harmonics in the Q expansion
+        !   f) It computes the radial fourier transform of the Q function on
+        !      all the g vectors
+        !   g) It computes the q terms which define the S matrix.
+        !   h) It fills the interpolation table for the beta functions
+        !
+        ! `nh` is found in the `uspp_param` module and is the number of beta
+        ! functions per atom type which corresponds to `ps(ityp)%nChannels` I think
+
+      CALL init_at_1
+        ! This routine computes a table with the radial Fourier transform of the 
+        ! atomic wavefunctions
+    
+      CALL allocate_bec_type (nkb,nbnd_local, becp)
+        ! `nkb` may be the total number of projectors over all atom types 
+        !
+        ! This routine allocates space for the projections \(<\beta|\psi>\),
+        ! and since we are ignoring noncollinear calculations for now, we
+        ! will either have `becp%r(nkb,nbnd)` (real) or `becp%k(nkb,nbnd)`
+        ! (complex)
+
+      allocate(igk(npwx_local))
+        !! @todo Add `npwx_local` as an input variable #thistask @endtodo
+      
+      igk = 0
+    
+      DO ik = 1, nkstot_local
+        !! @todo Add `ik` as a local variable #thistask @endtodo
+        !! @todo Add `nkstot_local` as an input variable #thistask @endtodo
+      
+        local_pw = 0
+          !! @todo Figure out the meaning of `local_pw` #thistask @endtodo
+        IF ( (ik >= ikStart) .and. (ik <= ikEnd) ) THEN
+          CALL davcio (evc, nwordwfc, iunwfc, (ik-ikStart+1), - 1)
+            ! Read the wavefunction for this k-point
+            !! @todo Figure out what the "wavefunction" is here #thistask @endtodo
+
+          igk(1:ngk_local(ik-ikStart+1)) = igk_large(ik-ikStart+1,1:ngk_local(ik-ikStart+1))
+            !! @todo Add `igk` as a local variable #thistask @endtodo
+            !! @todo Add `igk_large` as an input variable #thistask @endtodo
+
+          CALL init_us_2(npw, igk, xk_local(1,ik), vkb)
+          local_pw = ngk(ik-ikStart+1)
+
+          IF ( gamma_only ) THEN
+            !! @todo Figure out if need to have `gamma_only` variable here and how to set @endtodo
+            CALL calbec ( ngk_g(ik), vkb, evc, becp )
+            WRITE(0,*) 'Gamma only PW_EXPORT not yet tested'
+              !! @todo Figure out what about `gamma_only` makes the rest of the program break @endtodo
+          ELSE
+            CALL calbec ( npw, vkb, evc, becp )
+            if ( ionode_local ) then
+
+              WRITE(stdout,*) "Writing projectors of kpt", ik
+
+              file_exists = .false.
+              inquire(file =trim(exportDir)//"/projections"//iotk_index(ik), exist = file_exists)
+              if ( .not. file_exists ) then
+                open(72, file=trim(exportDir)//"/projections"//iotk_index(ik))
+                write(72, '("# Complex projections <beta|psi>. Format: ''(2ES24.15E3)''")')
+                do j = 1,  nbnd_local ! number of bands
+                  !! @todo Verify that `nbnd_local` is equal to `becp%nbnd` #thistask @endtodo
+                  do i = 1, nkb      ! number of projections
+                    write(72,'(2ES24.15E3)') becp%k(i,j)
+                  enddo
+                enddo
+              
+                close(72)
+              
+              endif
+            endif
+          ENDIF
+        ENDIF
+      enddo
+    endif
+
+    return
+  end subroutine writeProjections
 
 !----------------------------------------------------------------------------
   subroutine subroutineTemplate()
