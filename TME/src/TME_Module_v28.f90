@@ -933,7 +933,7 @@ contains
     integer :: ig, iDum, iGx, iGy, iGz
     !
     open(72, file=trim(solidDefect%exportDir)//"/mgrid")
-      !! * Open the `mgrid` file from Export directory from [[pw_export_for_tme(program)]]
+      !! * Open the `mgrid` file from Export directory
     !
     !> * Ignore the first two lines as they are comments
     read(72, * )

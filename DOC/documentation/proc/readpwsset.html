@@ -240,7 +240,7 @@ public subroutine readPWsSet()
 <p><h2>Walkthrough</h2></p>
 <ul>
 <li>
-<p>Open the <code>mgrid</code> file from Export directory from <a>pw_export_for_tme</a></p>
+<p>Open the <code>mgrid</code> file from Export directory</p>
 </li>
 <li>
 <p>Ignore the first two lines as they are comments</p>
@@ -450,7 +450,7 @@ public subroutine readPWsSet()
     <span class="kt">integer</span> <span class="kd">::</span> <span class="n">ig</span><span class="p">,</span> <span class="n">iDum</span><span class="p">,</span> <span class="n">iGx</span><span class="p">,</span> <span class="n">iGy</span><span class="p">,</span> <span class="n">iGz</span>
     <span class="c">!</span>
     <span class="k">open</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">exportDir</span><span class="p">)</span><span class="o">//</span><span class="s2">&quot;/mgrid&quot;</span><span class="p">)</span>
-      <span class="c">!! * Open the `mgrid` file from Export directory from [[pw_export_for_tme(program)]]</span>
+      <span class="c">!! * Open the `mgrid` file from Export directory</span>
     <span class="c">!</span>
     <span class="c">!&gt; * Ignore the first two lines as they are comments</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
