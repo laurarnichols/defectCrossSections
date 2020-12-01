@@ -1,5 +1,5 @@
 
--include ../../../../make.sys
+-include ../../../make.sys
 -include $(QE-6.3_Path)/make.inc
 
 # location of needed modules
@@ -37,7 +37,7 @@ TLDEPS= bindir mods libs pw
 
 # LIBOBJS = $(QE-6.3_Path)/flib/ptools.a $(QE-6.3_Path)/flib/flib.a $(QE-6.3_Path)/clib/clib.a $(QE-6.3_Path)/iotk/src/libiotk.a
 	
-DEBUGFLAGS = -fcheck=all -Wall -Wextra -fbacktrace -Wconversion -pedantic -fbounds-check -ffpe-trap=zero,overflow,underflow,denormal,invalid -Og -c -g
+DEBUGFLAGS = -fcheck=all -Wall -Wextra -fbacktrace -Wconversion -pedantic -fbounds-check -ffpe-trap=zero,overflow,underflow,denormal,invalid -Og -g
 
 all : tldeps Export_QE-6.3.x 
 

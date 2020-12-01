@@ -15,6 +15,7 @@
 
   USE io_global,  ONLY : stdout
   USE kinds
+  USE parameters, ONLY: nsx
 
   IMPLICIT NONE
   SAVE
@@ -36,10 +37,9 @@
       ik, nk, kunit, ispin, nspin, scal, wf0, t0, wfm, tm, ngw, gamma_only, nbnd, igl, ngwl )
 !
       USE mp_wave
-      USE mp, ONLY: mp_sum, mp_get, mp_max
-      USE mp_pools, ONLY: me_pool, my_pool_id, &
-        nproc_pool, intra_pool_comm, root_pool
-      USE mp_world,  ONLY: mpime, nproc, root, world_comm
+      USE mp, ONLY: mp_sum, mp_get, mp_bcast, mp_max
+      USE mp_global, ONLY: mpime, nproc, root, me_pool, my_pool_id, &
+        nproc_pool, intra_pool_comm, root_pool, world_comm
       USE io_global, ONLY: ionode, ionode_id
       USE iotk_module
 !
@@ -109,7 +109,7 @@
           IF( ( ikt >= iks ) .and. ( ikt <= ike ) ) THEN
             IF( me_pool == root_pool ) ipmask( mpime + 1 ) = 1
           ENDIF
-          CALL mp_sum( ipmask, world_comm )
+          CALL mp_sum( ipmask )
           DO i = 1, nproc
             IF( ipmask(i) == 1 ) ipsour = ( i - 1 )
           ENDDO
@@ -131,13 +131,13 @@
 
         ! now notify all procs if an error has been found
         !
-        CALL mp_max( ierr, world_comm )
+        CALL mp_max( ierr )
 
         IF( ierr > 0 ) &
           CALL errore(' write_restart_wfc ',' wrong size ngl ', ierr )
 
         IF( ipsour /= ionode_id ) THEN
-          CALL mp_get( igwx, igwx, mpime, ionode_id, ipsour, 1, world_comm )
+          CALL mp_get( igwx, igwx, mpime, ionode_id, ipsour, 1 )
         ENDIF
 
         ALLOCATE( wtmp( max(igwx,1) ) )
@@ -223,25 +223,19 @@ PROGRAM pw_export_for_TME
   !                output files are put there. All the data
   !                are accessible through the ""exportDir"/input" file.
   !
-
-
-  USE wrappers,      ONLY : f_mkdir_safe
+  USE wrappers,      ONLY : f_mkdir
   USE pwcom
-
-  USE io_global, ONLY : ionode, ionode_id
-  USE io_files,  ONLY : prefix, tmp_dir
+  USE io_global,     ONLY : ionode, ionode_id
+  USE io_files,      ONLY : prefix, tmp_dir, outdir
   USE ions_base, ONLY : ntype => nsp
   USE iotk_module
-  USE mp_global, ONLY : mp_startup
-  USE mp_pools,  ONLY : kunit
-  USE mp_world,  ONLY: world_comm
-  USE mp,        ONLY: mp_bcast
+  USE mp_global,     ONLY : mp_startup, kunit
+  USE mp,            ONLY : mp_bcast
   USE environment,   ONLY : environment_start
   !
   IMPLICIT NONE
   !
   CHARACTER(LEN=256), EXTERNAL :: trimcheck
-  CHARACTER(LEN=256) :: outdir
   !
   INTEGER :: ik, i, kunittmp, ios
   !
@@ -254,7 +248,7 @@ PROGRAM pw_export_for_TME
   !
   ! initialise environment
   !
-#if defined(__MPI)
+#ifdef __MPI
   CALL mp_startup ( )
 #endif
   CALL environment_start ( 'PW_EXPORT' )
@@ -262,7 +256,7 @@ PROGRAM pw_export_for_TME
   !   set default values for variables in namelist
   !
   prefix = ''
-  CALL get_environment_variable( 'ESPRESSO_TMPDIR', outdir )
+  CALL get_env( 'ESPRESSO_TMPDIR', outdir )
   IF ( trim( outdir ) == ' ' ) outdir = './'
   exportDir = './Export'
   !
@@ -279,7 +273,7 @@ PROGRAM pw_export_for_TME
     !
     IF (ios /= 0) CALL errore ('pw_export', 'reading inputpp namelist', abs(ios) )
     !
-    ios = f_mkdir_safe( trim(exportDir) )
+    ios = f_mkdir( trim(exportDir) )
     !
     pp_file = trim(exportDir)//"/input"
     !
@@ -289,9 +283,9 @@ PROGRAM pw_export_for_TME
   ! ... Broadcasting variables
   !
   tmp_dir = trimcheck( outdir )
-  CALL mp_bcast( outdir, ionode_id, world_comm )
-  CALL mp_bcast( tmp_dir, ionode_id, world_comm )
-  CALL mp_bcast( prefix, ionode_id, world_comm )
+  CALL mp_bcast( outdir, ionode_id )
+  CALL mp_bcast( tmp_dir, ionode_id )
+  CALL mp_bcast( prefix, ionode_id )
   !
   !   Now allocate space for pwscf variables, read and check them.
   !
@@ -321,26 +315,22 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
 
 
   USE kinds,          ONLY : DP
-  USE gvect,          ONLY : ngm, ngm_g, mill, ig_l2g
   USE pwcom
   USE start_k,        ONLY : nk1, nk2, nk3, k1, k2, k3
   USE control_flags,  ONLY : gamma_only
   USE global_version, ONLY : version_number
   USE becmod,         ONLY : bec_type, becp, calbec, &
                              allocate_bec_type, deallocate_bec_type
-
   USE uspp,          ONLY : nkb, vkb
   USE wavefunctions_module,  ONLY : evc
-  USE io_files,       ONLY : prefix, iunwfc, nwordwfc
+  USE io_files,       ONLY : outdir, prefix, iunwfc, nwordwfc
   USE io_files,       ONLY : psfile
   USE io_base_export, ONLY : write_restart_wfc
   USE io_global,      ONLY : ionode, stdout
   USE ions_base,      ONLY : atm, nat, ityp, tau, nsp
-  USE cell_base,      ONLY : at, bg, alat, omega, tpiba, tpiba2
-  USE mp_pools,       ONLY : my_pool_id, intra_pool_comm, inter_pool_comm, &
-                             nproc_pool
+  USE mp_global,      ONLY : nproc, nproc_pool, mpime
+  USE mp_global,      ONLY : my_pool_id, intra_pool_comm, inter_pool_comm
   USE mp,             ONLY : mp_sum, mp_max
-  USE mp_world,       ONLY : world_comm, nproc, mpime
   !
   USE upf_module,     ONLY : read_upf
   !
@@ -353,7 +343,7 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
   USE paw_onecenter,        ONLY : PAW_potential
   USE paw_symmetry,         ONLY : PAW_symmetrize_ddd
   USE uspp_param,           ONLY : nh, nhm ! used for PAW
-  USE uspp,                 ONLY : qq_so, dvan_so, dvan
+  USE uspp,                 ONLY : qq_so, dvan_so, qq, dvan
   USE scf,                  ONLY : rho
   !
   IMPLICIT NONE
@@ -365,7 +355,7 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
   CHARACTER(256), INTENT(in) :: pp_file, exportDir
 
   INTEGER :: i, j, k, ig, ik, ibnd, na, ngg,ig_, ierr
-  !INTEGER, ALLOCATABLE :: kisort(:)
+  INTEGER, ALLOCATABLE :: kisort(:)
   real(DP) :: xyz(3), tmp(3)
   INTEGER :: npool, nkbl, nkl, nkr, npwx_g, im, ink, inb, ms
   INTEGER :: ike, iks, npw_g, ispin, local_pw
@@ -382,7 +372,6 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
 
   !
   character(len = 300) :: text
-  CHARACTER(LEN=256) :: outdir
   !
 
   real(DP) :: wfc_scal
@@ -391,7 +380,7 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
   TYPE(pseudo_upf) :: upf       ! the pseudo data
   TYPE(radial_grid_type) :: grid
 
-  integer, allocatable :: nnTyp(:), groundState(:)
+  integer, allocatable :: nTyp(:), groundState(:)
 
   IF( nkstot > 0 ) THEN
 
@@ -472,37 +461,35 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
 
   ! build the G+k array indexes
   ALLOCATE ( igk_l2g ( npwx, nks ) )
-  !ALLOCATE ( kisort( npwx ) )
+  ALLOCATE ( kisort( npwx ) )
   DO ik = 1, nks
-     !kisort = 0
-     !npw = npwx
-     !CALL gk_sort (xk (1, ik+iks-1), ngm, g, ecutwfc / tpiba2, npw, kisort(1), g2kin)
+     kisort = 0
+     npw = npwx
+     CALL gk_sort (xk (1, ik+iks-1), ngm, g, ecutwfc / tpiba2, npw, kisort(1), g2kin)
      !
      ! mapping between local and global G vector index, for this kpoint
      !
-     npw = ngk(ik)
      DO ig = 1, npw
         !
-        !igk_l2g(ig,ik) = ig_l2g( kisort(ig) )
-        igk_l2g(ig,ik) = ig_l2g( igk_k(ig,ik) )
+        igk_l2g(ig,ik) = ig_l2g( kisort(ig) )
         !
      ENDDO
      !
      igk_l2g( npw+1 : npwx, ik ) = 0
      !
-     !ngk (ik) = npw
+     ngk (ik) = npw
   ENDDO
-  !DEALLOCATE (kisort)
+  DEALLOCATE (kisort)
 
   ! compute the global number of G+k vectors for each k point
   ALLOCATE( ngk_g( nkstot ) )
   ngk_g = 0
   ngk_g( iks:ike ) = ngk( 1:nks )
-  CALL mp_sum( ngk_g, world_comm )
+  CALL mp_sum( ngk_g )
 
   ! compute the Maximum G vector index among all G+k and processors
   npw_g = maxval( igk_l2g(:,:) )
-  CALL mp_max( npw_g, world_comm )
+  CALL mp_max( npw_g )
 
   ! compute the Maximum number of G vector among all k points
   npwx_g = maxval( ngk_g( 1:nkstot ) )
@@ -520,7 +507,7 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
     !
     allocate ( groundState(nkstot) )
     !
-    groundState(:) = 0
+    groundState = 0
     DO ik=1,nkstot
       do ibnd = 1, nbnd
         if ( wg(ibnd,ik)/wk(ik) < 0.5_dp ) then
@@ -549,7 +536,7 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
       ENDDO
     ENDIF
     !
-    CALL mp_sum( itmp1, world_comm )
+    CALL mp_sum( itmp1 )
     !
     ngg = 0
     DO  ig = 1, npw_g
@@ -635,10 +622,10 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
     write(50, '("# Spin. Format: ''(i10)''")')
     write(50, '(i10)') nspin
     !
-    allocate( nnTyp(nsp) )
-    nnTyp = 0
+    allocate( nTyp(nsp) )
+    nTyp = 0
     do i = 1, nat
-      nnTyp(ityp(i)) = nnTyp(ityp(i)) + 1
+      nTyp(ityp(i)) = nTyp(ityp(i)) + 1
     enddo
     !
     DO i = 1, nsp
@@ -652,7 +639,7 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
         write(50, '("# Element")')
         write(50, *) trim(atm(i))
         write(50, '("# Number of Atoms of this type. Format: ''(i10)''")')
-        write(50, '(i10)') nnTyp(i)
+        write(50, '(i10)') nTyp(i)
         write(50, '("# Number of projectors. Format: ''(i10)''")')
         write(50, '(i10)') upf%nbeta              ! number of projectors
         !
@@ -695,7 +682,47 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
   !
   DEALLOCATE( rtmp_gg )
 
-#if defined(__MPI)
+!  ! for each k point build and write the global G+k indexes array
+!  ALLOCATE( igwk( npwx_g,nkstot ) )
+!  !WRITE(0,*) "Writing grids for wfc"
+!  !CALL iotk_write_attr (attr,"npwx",npwx_g,first=.true.)
+!  !IF(ionode) CALL iotk_write_begin(50,"Wfc_grids",ATTR=attr)
+!
+!
+!  DO ik = 1, nkstot
+!    igwk(:,ik) = 0
+!    !
+!    ALLOCATE( itmp1( npw_g ), STAT= ierr )
+!    IF ( ierr/=0 ) CALL errore('pw_export','allocating itmp1', abs(ierr) )
+!    itmp1 = 0
+!    !
+!    IF( ik >= iks .and. ik <= ike ) THEN
+!      DO  ig = 1, ngk( ik-iks+1 )
+!        itmp1( igk_l2g( ig, ik-iks+1 ) ) = igk_l2g( ig, ik-iks+1 )
+!      ENDDO
+!    ENDIF
+!    !
+!    CALL mp_sum( itmp1 )
+!    !
+!    ngg = 0
+!    DO  ig = 1, npw_g
+!      IF( itmp1( ig ) == ig ) THEN
+!        ngg = ngg + 1
+!        igwk( ngg , ik) = ig
+!      ENDIF
+!    ENDDO
+!    IF( ngg /= ngk_g( ik ) ) THEN
+!      WRITE( stdout,*) ' ik, ngg, ngk_g = ', ik, ngg, ngk_g( ik )
+!    ENDIF
+!    !
+!    DEALLOCATE( itmp1 )
+!    !
+!  ENDDO
+!
+!  DEALLOCATE( itmp_g )
+!
+!
+#ifdef __MPI
   CALL poolrecover (et, nbnd, nkstot, nks)
 #endif
 
@@ -748,18 +775,14 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
       !
       local_pw = 0
       IF ( (ik >= iks) .and. (ik <= ike) ) THEN
-        !CALL gk_sort (xk (1, ik+iks-1), ngm, g, ecutwfc / tpiba2, npw, igk, g2kin)
+        CALL gk_sort (xk (1, ik+iks-1), ngm, g, ecutwfc / tpiba2, npw, igk, g2kin)
         CALL davcio (evc, nwordwfc, iunwfc, (ik-iks+1), - 1)
 
-        !CALL init_us_2(npw, igk, xk(1, ik), vkb)
-        !local_pw = ngk(ik-iks+1)
-        npw = ngk(ik-iks+1)
-        local_pw = npw
-        CALL init_us_2(npw, igk_k(1,ik-iks+1), xk(1, ik), vkb)
+        CALL init_us_2(npw, igk, xk(1, ik), vkb)
+        local_pw = ngk(ik-iks+1)
 
         IF ( gamma_only ) THEN
-          !CALL calbec ( ngk_g(ik), vkb, evc, becp )
-          CALL calbec ( npw, vkb, evc, becp )
+          CALL calbec ( ngk_g(ik), vkb, evc, becp )
           WRITE(0,*) 'Gamma only PW_EXPORT not yet tested'
         ELSE
           CALL calbec ( npw, vkb, evc, becp )
@@ -852,7 +875,7 @@ SUBROUTINE write_export (pp_file, exportDir, kunit )
         endif
       endif
       !
-      CALL mp_bcast( file_exists, ionode_id, world_comm )
+      CALL mp_bcast( file_exists, ionode_id )
       !
       if ( .not. file_exists ) then
         CALL write_restart_wfc(72, exportDir, ik, nkstot, kunit, ispin, nspin, &
