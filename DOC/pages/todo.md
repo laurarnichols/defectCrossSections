@@ -1,6 +1,6 @@
 title: Todo
 author: Laura Nichols
-date: 05/01/2020
+date: 12/01/2020
 
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:107:` Redo the loop for less than 5 phonons to be more clear and streamlined
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:166:` Change this to have `size(iEbinsByBands)`
@@ -48,10 +48,10 @@ date: 05/01/2020
 * `../Mj/src/Mj_Module_v1.f90:381:` Make this loop more clear 
 * `../Sigma/src/Sigma_Module_v4.f90:176:` Merge these dummy characters
 * `../Sigma/src/Sigma_Module_v4.f90:224:` Merge dummy variables
-* `../Sigma/src/Sigma_Module_v4.f90:288:` Figure out where this file is opened
-* `../Sigma/src/Sigma_Module_v4.f90:299:` Figure out where this file is opened
-* `../Sigma/src/Sigma_Module_v4.f90:325:` Figure out where this file is opened
-* `../Sigma/src/Sigma_Module_v4.f90:329:` Figure out what `abCM` is
+* `../Sigma/src/Sigma_Module_v4.f90:290:` Figure out where this file is opened
+* `../Sigma/src/Sigma_Module_v4.f90:301:` Figure out where this file is opened
+* `../Sigma/src/Sigma_Module_v4.f90:327:` Figure out where this file is opened
+* `../Sigma/src/Sigma_Module_v4.f90:331:` Figure out what `abCM` is
 * `../TME/src/TME_Main_v9.f90:2:` Add detailed math derivation and summary for main program
 * `../TME/src/TME_Main_v9.f90:47:` Figure out if need to allocate space for arrays so soon
 * `../TME/src/TME_Main_v9.f90:64:` Figure out if SD and PC `numOfGvecs` should be the same

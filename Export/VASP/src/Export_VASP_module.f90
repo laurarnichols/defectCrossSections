@@ -917,6 +917,8 @@ module wfcExportVASPMod
           (at_local(j,2),j=1,3), (at_local(j,3),j=1,3)
         !! * Read total number of k-points, plane wave cutoff energy, and real
         !!   space lattice vectors
+      !read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, ecutwfc_local,((at_local(i,j),j=1,3),i=1,3)
+        !! @todo Test this more compact form @endtodo
 
       ecutwfc_local = ecutwfc_local*eVToRy
         !! * Convert energy from VASP from eV to Rydberg to match QE/TME expectation
