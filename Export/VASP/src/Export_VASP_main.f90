@@ -27,18 +27,11 @@ program wfcExportVASPMain
 
   if ( ionode_local ) then
     
-    call input_from_file()
-      !! @todo Remove this once extracted from QE #end @endtodo
-    
     read(5, inputParams, iostat=ios)
       !! * Read input variables
     
     if (ios /= 0) call exitError('export main', 'reading inputParams namelist', abs(ios))
       !! * Exit calculation if there's an error
-
-    outdir = QEDir
-      !! * Convert the QEDir to outdir to match what QE uses
-      !! @todo Remove this once extracted from QE #end @endtodo
     
     ios = f_mkdir_safe(trim(exportDir))
       !! * Make the export directory
@@ -52,17 +45,6 @@ program wfcExportVASPMain
 
   endif
 
-  tmp_dir = trim(outdir)
-  CALL mp_bcast( outdir, root, world_comm_local )
-  CALL mp_bcast( tmp_dir, root, world_comm_local )
-  CALL mp_bcast( prefix, root, world_comm_local )
-    !! @todo Remove this once extracted from QE #end @endtodo
-
-  CALL read_file
-  CALL openfil_pp
-    !! * Read QE input files
-    !! @todo Remove this once extracted from QE #end @endtodo
-  
 
   if (ionode_local) write(stdout,*) "Reading WAVECAR"
 
@@ -171,12 +153,6 @@ program wfcExportVASPMain
   if (ionode_local) write(stdout,*) "Done writing pseudo info"
 
 
-#ifdef __MPI
-  call poolrecover(et, nbnd_local, nkstot_local, nk_Pool)
-    !! @todo Remove this once extracted from QE #end @todo
-#endif
-
-
   if (ionode_local) write(stdout,*) "Writing eigenvalues"
 
   call writeEigenvalues(nbnd_local, nkstot_local, nspin_local, eFermi, occ, eigenE)
@@ -189,16 +165,6 @@ program wfcExportVASPMain
   deallocate(occ)
 
   if (ionode_local) close(mainout)
-
-  call MPI_BARRIER(world_comm_local, ierr)
-    !! @todo Remove barrier once done testing #end @endtodo
-
-  stop
-
-  CALL write_export (mainOutputFile, exportDir)
-
-  CALL stop_pp
-    !! @todo Figure out what this subroutine does and what can be moved here @endtodo
  
   if (ionode_local) write(stdout,*) "************ VASP Export complete! ************"
 
