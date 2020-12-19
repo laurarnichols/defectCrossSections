@@ -2,9 +2,10 @@ program wfcExportVASPMain
   !! Export scf output from VASP to form usable for TME
   !!
   !! input:  namelist "&inputParams", with variables
-  !!   prefix       prefix of input files saved by program pwscf
-  !!   outdir       temporary directory where files resides
-  !!   exportDir    output directory. 
+  !!   prefix      prefix of input files saved by program pwscf
+  !!   QEDir       temporary directory where QE files reside
+  !!   VASPDir     temporary directory where VASP files reside
+  !!   exportDir   output directory. 
   !! A directory "exportDir" is created and
   !! output files are put there. All the data
   !! are accessible through the ""exportDir"/input" file.
