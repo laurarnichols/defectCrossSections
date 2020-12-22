@@ -1,20 +1,32 @@
 # Calculate Carrier Cross Sections
 ## Installation
 ### Dependencies
-Install all of the required dependencies (commands given for Unix environment):
+#### HPC System
+The code is compiled using GNU-based compilers mpif90 and gfortran. If your system uses wrappers for those compilers, you will need to designate that in the main Makefile.
+You will also need to have a GNU environment and an OpenMPI module loaded.
+
+#### Local machine 
+Code dependencies and git (commands given for Unix environment):
 ```
-sudo apt-get update
+sudo apt-get update 
 sudo apt install gfortran
 sudo apt install libmpich-dev
 sudo apt install libopenmpi-dev
-sudo apt-get install python-pip python-dev build-essential
-sudo pip install ford
-sudo apt-get install graphviz
-sudo wget https://github.com/QEF/q-e/archive/qe-5.3.tar.gz
 sudo apt-get install git
 ```
 
+Documentation dependencies:
+```
+sudo apt-get install python-pip python-dev build-essential
+sudo pip install ford
+sudo apt-get install graphviz
+```
+
 ### Set up Quantum Espresso
+On your local system, you can use, `sudo wget https://github.com/QEF/q-e/archive/qe-5.3.tar.gz` to download QE 5.3. For other versions, you will need to change the link
+acccordingly. On an HPC system, you will need to download the source directly and use some form of `scp` or a file-transfer client to get the source to the HPC system.
+
+Once you have the code downloaded:
 * Change to whatever directory you saved the QE tar file in on the CLI
 * Decompress the tar file using `tar -xvzf q-e-qe-5.3.tar.gz`
 * Change into the `q-e-qe-5.3` directory and run `./configure`
