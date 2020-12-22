@@ -26,25 +26,44 @@ sudo apt-get install graphviz
 On your local system, you can use, `sudo wget https://github.com/QEF/q-e/archive/qe-5.3.tar.gz` to download QE 5.3. For other versions, you will need to change the link
 acccordingly. On an HPC system, you will need to download the source directly and use some form of `scp` or a file-transfer client to get the source to the HPC system.
 
-Once you have the code downloaded:
+Once you have the code downloaded (example commands given for QE 5.3 only):
 * Change to whatever directory you saved the QE tar file in on the CLI
 * Decompress the tar file using `tar -xvzf q-e-qe-5.3.tar.gz`
-* Change into the `q-e-qe-5.3` directory and run `./configure`
+* Confirm modules: `PrgEnv-gnu`, some version of OpenMPI, some version of fftw
+* Change into the QE directory and run `./configure`
 * Confirm that the last line of output is `configure: success`
-* Run `make pw pp ph` to build the PW, PP, and PHonon packages
+* Edit the `make.sys` file:
+  * `DFLAGS = -D__FFTW -D__MPI`
+  * Make sure `MPIF90`, `F90`, and `CPP` match your system's wrappers for `mpif90`, `gfortran`, and `cc`
+  * Add `-dynamic` (and `-fopenmp` if you want OpenMP enabled) to `FFLAGS` and `LDFLAGS`
+  * Vreify paths for `BLAS_LIBS` and `LAPACK_LIBS`
+* Run `make pw pp ph` to build the PW, PP, and PHonon packages. You need `pw` and `pp` for the Export program dependencies, and LSF calculations require input from the 
+  `ph` package.
 
-### Compile Source
-* Clone the repository using
-```
-git clone https://github.com/laurarnichols/carrierCrossSections.git
-```
+### Download and Compile Source
 
-* Change into the `carrierCrossSections` directory
-* Open the `Makefile` and edit the path to Quantum Espresso to match your system 
+#### Connecting to Git using an SSH Key
+* Log in to the machine you want the local copy of the repo to live on
+* Generate an SSH key using `ssh-keygen`, hitting enter at each of the prompts
+* Your public SSH key will be stored in `~/.ssh/id_rsa.pub`
+* Log in to your profile on a web browser and go to settings
+* Select "SSH and GPG keys"
+* Click new SSH key and copy and paste the contents of the `~/.ssh/id_rsa.pub` file into the large text box, adding a name to the smaller box above, if desired
+* You can now clone a git repo from this machine using ssh (see section below)
+
+#### Forking and Cloning the Repo and Compiling
+* First, go the the main repo on a web browser and fork it using the fork button at the top right
+* You will now have a copy of the repo under your username
+* Clone the repo on the machine of your choice using ssh (must have ssh key set up; see section above):
+```
+git clone git@github.com:<your git username>/defectCrossSections.git
+```
+* Change into the `defectCrossSections` directory
+* Open the `Makefile` and edit the path(s) to Quantum Espresso and the compilers to match your system 
 
 _Note: Make sure that your path does not have a `/` at the end or there will be an error_
-* You should now be able to make the target you want (e.g., to compile everything, use `make all_QE-5.3.0`)
-* For a list of some possible targets, read through the `Makefile` or type `make`
+* You should now be able to make the target you want (e.g., to compile everything, use `make`)
+* For a list of some possible targets, read through the `Makefile` or type `make help`
 
 ## Documentation
 
