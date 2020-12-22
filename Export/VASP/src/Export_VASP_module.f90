@@ -1,5 +1,7 @@
 module wfcExportVASPMod
 
+  use constants, ONLY: dp, iostd, angToBohr, eVToRy, ryToHartree, pi
+
   USE wrappers,      ONLY : f_mkdir_safe
 
   !USE pwcom
@@ -17,8 +19,6 @@ module wfcExportVASPMod
   implicit none
 
   ! Parameters:
-  integer, parameter :: dp = selected_real_kind(15, 307)
-    !! Used to set real variables to double precision
   integer, parameter :: root = 0
     !! ID of the root node
   integer, parameter :: root_pool = 0
@@ -27,19 +27,9 @@ module wfcExportVASPMod
     !! Main output file unit
   integer, parameter :: potcarUnit = 86
     !! POTCAR unit for I/O
-  integer, parameter :: stdout = 6
-    !! Standard output unit
   integer, parameter :: wavecarUnit = 86
     !! WAVECAR unit for I/O
 
-  real(kind = dp), parameter :: angToBohr = 1.889725989_dp
-    !! Conversion factor from Angstrom to Bohr
-  real(kind = dp), parameter :: eVToRy = 0.073498618_dp
-    !! Conversion factor from eV to Rydberg
-  real(kind = dp), parameter :: pi = 3.141592653589793_dp
-    !! \(\pi\)
-  real(kind = dp), parameter :: ryToHartree = 0.5_dp
-    !! Conversion factor from Rydberg to Hartree
   real(kind = dp), parameter :: twoPiSquared = (2.0_dp*pi)**2
     !! This is used in place of \(2\pi/a\) which assumes that \(a=1\)
 
@@ -363,7 +353,7 @@ module wfcExportVASPMod
         end select
       enddo
 
-      write(stdout,*) 'Unprocessed command line arguments: ' // trim(command_line)
+      write(iostd,*) 'Unprocessed command line arguments: ' // trim(command_line)
     endif
 
     call MPI_BCAST(npool_, 1, MPI_INTEGER, root, world_comm_local, ierr)
@@ -661,21 +651,21 @@ module wfcExportVASPMod
 
     if(ionode_local) then
 
-      write(stdout, '(/5X,"VASP wavefunction export program starts on ",A9," at ",A9)') &
+      write(iostd, '(/5X,"VASP wavefunction export program starts on ",A9," at ",A9)') &
              cdate, ctime
 
 #ifdef __MPI
-      write(stdout, '(/5X,"Parallel version (MPI), running on ",I5," processors")') nproc_local
+      write(iostd, '(/5X,"Parallel version (MPI), running on ",I5," processors")') nproc_local
 
-      if(npool_local > 1) write(stdout, '(5X,"K-points division:     npool_local     = ",I7)') npool_local
+      if(npool_local > 1) write(iostd, '(5X,"K-points division:     npool_local     = ",I7)') npool_local
 #else
-      write(stdout, '(/5X,"Serial version")')
+      write(iostd, '(/5X,"Serial version")')
 #endif
 
     else
 
-      open(unit = stdout, file='/dev/null', status='unknown')
-        ! Make the stdout unit point to null for non-root processors
+      open(unit = iostd, file='/dev/null', status='unknown')
+        ! Make the iostd unit point to null for non-root processors
         ! to avoid tons of duplicate output
 
     endif
@@ -750,8 +740,8 @@ module wfcExportVASPMod
     
     integer, intent(in) :: code
 
-    write( stdout, '( "*** MPI error ***")' )
-    write( stdout, '( "*** error code: ",I5, " ***")' ) code
+    write( iostd, '( "*** MPI error ***")' )
+    write( iostd, '( "*** error code: ",I5, " ***")' ) code
 
     call MPI_ABORT(world_comm_local,code,ierr)
     
@@ -805,7 +795,7 @@ module wfcExportVASPMod
 
     write( *, '("     stopping ...")' )
   
-    call flush( stdout )
+    call flush( iostd )
 
 #if defined (__MPI)
   
@@ -907,7 +897,7 @@ module wfcExportVASPMod
         ! Set a starting value for the number of records
 
       open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
-      if (ierr .ne. 0) write(stdout,*) 'open error - iostat =', ierr
+      if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
         !! * If root node, open the `WAVECAR` file
 
       read(unit=wavecarUnit,rec=1) nRecords_real, nspin_real, prec_real
@@ -923,7 +913,7 @@ module wfcExportVASPMod
       !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
       open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
-      if (ierr .ne. 0) write(stdout,*) 'open error - iostat =', ierr
+      if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
 
       read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, ecutwfc_local,(at_local(j,1),j=1,3),&
           (at_local(j,2),j=1,3), (at_local(j,3),j=1,3)
@@ -955,25 +945,25 @@ module wfcExportVASPMod
       !> * Write out total number of k-points, number of bands, 
       !>   the energy cutoff, the real-space-lattice vectors,
       !>   the cell volume, and the reciprocal lattice vectors
-      write(stdout,*) 'no. k points =', nkstot_local
-      write(stdout,*) 'no. bands =', nbnd_local
-      write(stdout,*) 'max. energy (eV) =', sngl(ecutwfc_local/eVToRy)
+      write(iostd,*) 'no. k points =', nkstot_local
+      write(iostd,*) 'no. bands =', nbnd_local
+      write(iostd,*) 'max. energy (eV) =', sngl(ecutwfc_local/eVToRy)
         !! @note 
-        !!  The energy cutoff is currently output to the `stdout` file
+        !!  The energy cutoff is currently output to the `iostd` file
         !!  in eV to compare with output from WaveTrans.
         !! @endnote
-      write(stdout,*) 'real space lattice vectors:'
-      write(stdout,*) 'a1 =', (sngl(at_local(j,1)),j=1,3)
-      write(stdout,*) 'a2 =', (sngl(at_local(j,2)),j=1,3)
-      write(stdout,*) 'a3 =', (sngl(at_local(j,3)),j=1,3)
-      write(stdout,*) 
-      write(stdout,*) 'volume unit cell =', sngl(omega_local)
-      write(stdout,*) 
-      write(stdout,*) 'reciprocal lattice vectors:'
-      write(stdout,*) 'b1 =', (sngl(bg_local(j,1)),j=1,3)
-      write(stdout,*) 'b2 =', (sngl(bg_local(j,2)),j=1,3)
-      write(stdout,*) 'b3 =', (sngl(bg_local(j,3)),j=1,3)
-      write(stdout,*) 
+      write(iostd,*) 'real space lattice vectors:'
+      write(iostd,*) 'a1 =', (sngl(at_local(j,1)),j=1,3)
+      write(iostd,*) 'a2 =', (sngl(at_local(j,2)),j=1,3)
+      write(iostd,*) 'a3 =', (sngl(at_local(j,3)),j=1,3)
+      write(iostd,*) 
+      write(iostd,*) 'volume unit cell =', sngl(omega_local)
+      write(iostd,*) 
+      write(iostd,*) 'reciprocal lattice vectors:'
+      write(iostd,*) 'b1 =', (sngl(bg_local(j,1)),j=1,3)
+      write(iostd,*) 'b2 =', (sngl(bg_local(j,2)),j=1,3)
+      write(iostd,*) 'b3 =', (sngl(bg_local(j,3)),j=1,3)
+      write(iostd,*) 
         !! @note
         !!  I made an intentional choice to stick with the unscaled lattice
         !!  vectors until I see if it will be convenient to scale them down.
@@ -1001,9 +991,9 @@ module wfcExportVASPMod
     call MPI_BCAST(bg_local, size(bg_local), MPI_DOUBLE_PRECISION, root, world_comm_local, ierr)
 
     if (ionode_local) then
-      write(stdout,*) 
-      write(stdout,*) '******'
-      write(stdout,*) 'Starting to read wavefunction'
+      write(iostd,*) 
+      write(iostd,*) '******'
+      write(iostd,*) 'Starting to read wavefunction'
     endif
 
     call readWavefunction(nbnd_local, ngk_max, nkstot_local, nspin_local, occ, xk_local, nplane_g, eigenE)
@@ -1014,9 +1004,9 @@ module wfcExportVASPMod
     if(ionode_local) close(wavecarUnit)
 
     if (ionode_local) then
-      write(stdout,*) 'Finished reading wavefunction'
-      write(stdout,*) '******'
-      write(stdout,*) 
+      write(iostd,*) 'Finished reading wavefunction'
+      write(iostd,*) '******'
+      write(iostd,*) 
     endif
 
     at = at_local/alat
@@ -1174,8 +1164,8 @@ module wfcExportVASPMod
     b2mag = sqrt(sum(bg_local(:,2)**2))
     b3mag = sqrt(sum(bg_local(:,3)**2))
 
-    write(stdout,*) 'reciprocal lattice vector magnitudes:'
-    write(stdout,*) sngl(b1mag),sngl(b2mag),sngl(b3mag)
+    write(iostd,*) 'reciprocal lattice vector magnitudes:'
+    write(iostd,*) sngl(b1mag),sngl(b2mag),sngl(b3mag)
       !! * Calculate and output reciprocal vector magnitudes
 
 
@@ -1229,10 +1219,10 @@ module wfcExportVASPMod
     nb3max = max0(nb3maxA,nb3maxB,nb3maxC)
     ngk_max = min0(npmaxA,npmaxB,npmaxC)
 
-    write(stdout,*) 'max. no. G values; 1,2,3 =', nb1max, nb2max, nb3max
-    write(stdout,*) ' '
+    write(iostd,*) 'max. no. G values; 1,2,3 =', nb1max, nb2max, nb3max
+    write(iostd,*) ' '
 
-    write(stdout,*) 'estimated max. no. plane waves =', ngk_max
+    write(iostd,*) 'estimated max. no. plane waves =', ngk_max
 
     return
   end subroutine estimateMaxNumPlanewaves
@@ -1312,11 +1302,11 @@ module wfcExportVASPMod
         !!       * Read in the plane wave coefficients for
         !!         each band
 
-        write(stdout,*) '  Reading spin ', isp
+        write(iostd,*) '  Reading spin ', isp
 
         do ik = 1, nkstot_local
 
-          write(stdout,*) '    Reading k-point ', ik
+          write(iostd,*) '    Reading k-point ', ik
 
           irec = irec + 1
        
@@ -1472,9 +1462,9 @@ module wfcExportVASPMod
 
       allocate(mill_g_tmp(3,npmax))
 
-      write(stdout,*)
-      write(stdout,*) "***************"
-      write(stdout,*) "Calculating miller indices"
+      write(iostd,*)
+      write(iostd,*) "***************"
+      write(iostd,*) "Calculating miller indices"
 
       ngm_g_local = 0
       mill_g_tmp = 0
@@ -1516,7 +1506,7 @@ module wfcExportVASPMod
         '*** error - computed no. of G-vectors != estimated number of plane waves', 1)
         !! * Check that number of G-vectors are the same as the number of plane waves
 
-      write(stdout,*) "Sorting miller indices"
+      write(iostd,*) "Sorting miller indices"
 
       allocate(iMill(ngm_g_local))
 
@@ -1541,24 +1531,24 @@ module wfcExportVASPMod
       deallocate(iMill)
       deallocate(mill_g_tmp)
 
-      write(stdout,*) "Done calculating and sorting miller indices"
-      write(stdout,*) "***************"
-      write(stdout,*)
+      write(iostd,*) "Done calculating and sorting miller indices"
+      write(iostd,*) "***************"
+      write(iostd,*)
     endif
 
     call MPI_BCAST(ngm_g_local, 1, MPI_INTEGER, root, world_comm_local, ierr)
     call MPI_BCAST(mill_g, size(mill_g), MPI_INTEGER, root, world_comm_local, ierr)
 
     if (ionode_local) then
-      write(stdout,*)
-      write(stdout,*) "***************"
-      write(stdout,*) "Distributing G-vecs over processors"
+      write(iostd,*)
+      write(iostd,*) "***************"
+      write(iostd,*) "Distributing G-vecs over processors"
     endif
 
     call distributeGvecsOverProcessors(ngm_g_local, mill_g, ig_l2g, mill_local, ngm_local)
       !! * Split up the G-vectors and Miller indices over processors 
 
-    if (ionode_local) write(stdout,*) "Calculating G-vectors"
+    if (ionode_local) write(iostd,*) "Calculating G-vectors"
 
     allocate(gCart_local(3,ngm_local))
 
@@ -1574,8 +1564,8 @@ module wfcExportVASPMod
     enddo
 
     if (ionode_local) then
-      write(stdout,*) "***************"
-      write(stdout,*)
+      write(iostd,*) "***************"
+      write(iostd,*)
     endif
 
     deallocate(mill_local)
@@ -1753,9 +1743,9 @@ module wfcExportVASPMod
     igk_large(:,:) = 0
 
     if (ionode_local) then
-      write(stdout,*)
-      write(stdout,*) "***************"
-      write(stdout,*) "Determining G+k combinations less than energy cutoff"
+      write(iostd,*)
+      write(iostd,*) "***************"
+      write(iostd,*) "Determining G+k combinations less than energy cutoff"
     endif
 
 
@@ -1772,7 +1762,7 @@ module wfcExportVASPMod
       !!  processor.
       !! @endnote
 
-      if (ionode_local) write(stdout,*) "Processing k-point ", ik
+      if (ionode_local) write(iostd,*) "Processing k-point ", ik
 
       do ix = 1, 3
         xkCart(ix) = sum(xk_local(:,ik+ikStart-1)*bg_local(ix,:))
@@ -1846,9 +1836,9 @@ module wfcExportVASPMod
     endif
 
     if (ionode_local) then
-      write(stdout,*) "Done determining G+k combinations less than energy cutoff"
-      write(stdout,*) "***************"
-      write(stdout,*)
+      write(iostd,*) "Done determining G+k combinations less than energy cutoff"
+      write(iostd,*) "***************"
+      write(iostd,*)
     endif
 
     if (npwx_local <= 0) call exitError('reconstructFFTGrid', &
@@ -1868,9 +1858,9 @@ module wfcExportVASPMod
     igk = 0
 
     if (ionode_local) then
-      write(stdout,*)
-      write(stdout,*) "***************"
-      write(stdout,*) "Sorting G+k combinations by magnitude"
+      write(iostd,*)
+      write(iostd,*) "***************"
+      write(iostd,*) "Sorting G+k combinations by magnitude"
     endif
 
     do ik = 1, nk_Pool
@@ -1895,9 +1885,9 @@ module wfcExportVASPMod
     enddo
 
     if (ionode_local) then
-      write(stdout,*) "Done sorting G+k combinations by magnitude"
-      write(stdout,*) "***************"
-      write(stdout,*)
+      write(iostd,*) "Done sorting G+k combinations by magnitude"
+      write(iostd,*) "***************"
+      write(iostd,*)
     endif
 
     deallocate(igk)
@@ -2287,7 +2277,7 @@ module wfcExportVASPMod
       fileName = trim(VASPDir)//'/POTCAR'
 
       open(unit=potcarUnit, file=fileName, iostat=ierr, status='old')
-      if (ierr .ne. 0) write(stdout,*) 'open error - iostat =', ierr
+      if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
         !! * If root node, open the `POTCAR` file
 
       do ityp = 1, nsp
@@ -2650,9 +2640,9 @@ module wfcExportVASPMod
 
     if(ionode_local) then
 
-      write(stdout,*)
-      write(stdout,*) "***************"
-      write(stdout,*) "Getting ground state bands"
+      write(iostd,*)
+      write(iostd,*) "***************"
+      write(iostd,*) "Getting ground state bands"
     
       write(mainout, '("# Number of K-points. Format: ''(i10)''")')
       write(mainout, '(i10)') nkstot_local
@@ -2670,17 +2660,17 @@ module wfcExportVASPMod
         !!  it is not currently used by the `TME` program.
         !! @endtodo
 
-      write(stdout,*) "Done getting ground state bands"
-      write(stdout,*) "***************"
-      write(stdout,*)
+      write(iostd,*) "Done getting ground state bands"
+      write(iostd,*) "***************"
+      write(iostd,*)
 
     endif
 
     if(ionode_local) then
 
-      write(stdout,*)
-      write(stdout,*) "***************"
-      write(stdout,*) "Getting global G+k indices"
+      write(iostd,*)
+      write(iostd,*) "***************"
+      write(iostd,*) "Getting global G+k indices"
 
     endif
   
@@ -2689,7 +2679,7 @@ module wfcExportVASPMod
     igwk(:,:) = 0
     do ik = 1, nkstot_local
 
-      if (ionode_local) write(stdout,*) "Processing k-point ", ik
+      if (ionode_local) write(iostd,*) "Processing k-point ", ik
 
       call getGlobalGkIndices(nkstot_local, npwx_local, igk_l2g, ik, ngk_g, ngk_local, npw_g, &
           npwx_g, igwk)
@@ -2706,10 +2696,10 @@ module wfcExportVASPMod
 
     if(ionode_local) then
 
-      write(stdout,*) "Done getting global G+k indices"
-      write(stdout,*) "***************"
-      write(stdout,*)
-      flush(stdout)
+      write(iostd,*) "Done getting global G+k indices"
+      write(iostd,*) "***************"
+      write(iostd,*)
+      flush(iostd)
 
     endif
 
@@ -2887,7 +2877,7 @@ module wfcExportVASPMod
     !! <h2>Walkthrough</h2>
     !!
 
-    use miscUtilities
+    use miscUtilities, only: int2str
 
     implicit none
 
@@ -3276,7 +3266,7 @@ module wfcExportVASPMod
 !            CALL calbec ( npw, vkb, evc, becp )
 !            if ( ionode_local ) then
 !
-!              WRITE(stdout,*) "Writing projectors of kpt", ik
+!              WRITE(iostd,*) "Writing projectors of kpt", ik
 !
 !              file_exists = .false.
 !              inquire(file =trim(exportDir)//"/projections"//iotk_index(ik), exist = file_exists)
@@ -3526,7 +3516,7 @@ module wfcExportVASPMod
 
 
   
-    if ( ionode_local ) WRITE(stdout,*) "Writing Wavefunctions"
+    if ( ionode_local ) WRITE(iostd,*) "Writing Wavefunctions"
   
     wfc_scal = 1.0d0
     twf0 = .true.
@@ -3575,7 +3565,7 @@ module wfcExportVASPMod
             CALL calbec ( npw, vkb, evc, becp )
             if ( ionode_local ) then
 
-              WRITE(stdout,*) "Writing projectors of kpt", ik
+              WRITE(iostd,*) "Writing projectors of kpt", ik
 
               file_exists = .false.
               inquire(file =trim(exportDir)//"/projections"//iotk_index(ik), exist = file_exists)
@@ -3622,7 +3612,7 @@ module wfcExportVASPMod
             open(73, file=trim(exportDir)//"/projectors"//iotk_index(ik))
             write(73, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
             write(73,'(2i10)') nkb, ngk_g(ik)
-!            WRITE(stdout,*) "Writing Wavefunctions of kpt", ik
+!            WRITE(iostd,*) "Writing Wavefunctions of kpt", ik
 !            open(74, file=trim(exportDir)//"/evc"//iotk_index(ik))
 !            write(74, '("# Spin : ",i10, " Format: ''(a9, i10)''")') ispin
 !            write(74, '("# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: ''(2ES24.15E3)''")')
