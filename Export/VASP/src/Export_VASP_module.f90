@@ -3,7 +3,6 @@ module wfcExportVASPMod
   USE wrappers,      ONLY : f_mkdir_safe
 
   !USE pwcom
-  USE constants, ONLY : e2, rytoev, tpi, fpi
   USE cell_base, ONLY : celldm, ibrav
   USE ener, ONLY : ef
   USE wvfct, ONLY : et
