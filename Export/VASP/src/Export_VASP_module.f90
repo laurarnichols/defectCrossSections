@@ -2209,11 +2209,12 @@ module wfcExportVASPMod
           !!  listed anywhere in that file. Extensive testing
           !!  needs to be done to confirm this assumption.
           !! @endnote
-          
 
         do ix = 1, 3
+
           tau(ix,ia) = sum(dir(:)*at_local(ix,:))
             !! @todo Test logic of direct to cartesian coordinates with scaling factor @endtodo
+
         enddo
 
       enddo
