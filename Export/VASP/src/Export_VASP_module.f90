@@ -1519,6 +1519,14 @@ module wfcExportVASPMod
 
       allocate(iMill(ngm_g_local))
 
+      do ig = 1, ngm_g_local
+        !! * Initialize the index array that will track elements
+        !!   after sorting
+
+        iMill(ig) = ig
+
+      enddo
+
       call hpsort_eps(ngm_g_local, millSum, iMill, eps8)
         !! * Order vector `millSum` keeping initial position in `iMill`
 
