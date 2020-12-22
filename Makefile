@@ -26,7 +26,7 @@ mpif90 = ftn
 
 all : initialize QE-5.0.2_dependent QE-5.3.0_dependent QE-6.3_dependent VASP_dependent TME LSF0 Mj LSF1 Sigma
 
-menu :
+help :
 
 	@echo ""
 	@echo ""
