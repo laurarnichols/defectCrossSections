@@ -1335,9 +1335,6 @@ module wfcExportVASPMod
               ! Read in the plane wave coefficients for each band
 
           enddo
-
-          write(45+ik,*) "--------------------------------------------------------"
-
         enddo
       enddo
 
@@ -1355,7 +1352,7 @@ module wfcExportVASPMod
     call MPI_BCAST(eigenE, size(eigenE), MPI_COMPLEX, root, world_comm_local, ierr)
     call MPI_BCAST(nplane_g, size(nplane_g), MPI_INTEGER, root, world_comm_local, ierr)
 
-    xk = xk_local
+    xk(:,1:nkstot_local) = xk_local
       !! @todo Remove this once extracted from QE #end @endtodo
 
     return
