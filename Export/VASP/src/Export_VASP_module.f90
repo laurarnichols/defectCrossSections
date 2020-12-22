@@ -937,6 +937,8 @@ module wfcExportVASPMod
       vcut_local = sqrt(ecutwfc_local/evToRy*c)
         !! * Calculate vector cutoff from energy cutoff
 
+      at_local = at_local*angToBohr;
+
       nkstot_local = nint(nkstot_real)
       nbnd_local = nint(nbnd_real)
         ! Convert input variables to integers
