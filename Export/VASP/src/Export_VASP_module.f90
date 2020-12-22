@@ -18,7 +18,7 @@ module wfcExportVASPMod
   implicit none
 
   ! Parameters:
-  integer, parameter :: dpl = selected_real_kind(15, 307)
+  integer, parameter :: dp = selected_real_kind(15, 307)
     !! Used to set real variables to double precision
   integer, parameter :: root = 0
     !! ID of the root node
@@ -33,15 +33,15 @@ module wfcExportVASPMod
   integer, parameter :: wavecarUnit = 86
     !! WAVECAR unit for I/O
 
-  real(kind = dpl), parameter :: angToBohr = 1.889725989_dpl
+  real(kind = dp), parameter :: angToBohr = 1.889725989_dp
     !! Conversion factor from Angstrom to Bohr
-  real(kind = dpl), parameter :: eVToRy = 0.073498618_dpl
+  real(kind = dp), parameter :: eVToRy = 0.073498618_dp
     !! Conversion factor from eV to Rydberg
-  real(kind = dpl), parameter :: pi = 3.141592653589793_dpl
+  real(kind = dp), parameter :: pi = 3.141592653589793_dp
     !! \(\pi\)
-  real(kind = dpl), parameter :: ryToHartree = 0.5_dpl
+  real(kind = dp), parameter :: ryToHartree = 0.5_dp
     !! Conversion factor from Rydberg to Hartree
-  real(kind = dpl), parameter :: twoPiSquared = (2.0_dpl*pi)**2
+  real(kind = dp), parameter :: twoPiSquared = (2.0_dp*pi)**2
     !! This is used in place of \(2\pi/a\) which assumes that \(a=1\)
 
 
@@ -87,33 +87,33 @@ module wfcExportVASPMod
 
 
   ! Variables that should be passed as arguments:
-  real(kind=dpl) :: at_local(3,3)
+  real(kind=dp) :: at_local(3,3)
     !! Real space lattice vectors
     !! @todo Change back to `at` once extracted from QE #end @endtodo
-  real(kind=dpl) :: bg_local(3,3)
+  real(kind=dp) :: bg_local(3,3)
     !! Reciprocal lattice vectors
     !! @todo Change back to `bg` once extracted from QE #end @endtodo
-  real(kind=dpl) :: ecutwfc_local
+  real(kind=dp) :: ecutwfc_local
     !! Plane wave energy cutoff in Ry
     !! @todo Change back to `ecutwfc` once extracted from QE #end @endtodo
-  real(kind=dpl) :: eFermi
+  real(kind=dp) :: eFermi
     !! Fermi energy
-  real(kind=dpl), allocatable :: gCart_local(:,:)
+  real(kind=dp), allocatable :: gCart_local(:,:)
     !! G-vectors in Cartesian coordinates
-  real(kind=dpl), allocatable :: occ(:,:)
+  real(kind=dp), allocatable :: occ(:,:)
     !! Occupation of band
-  real(kind=dpl) :: omega_local
+  real(kind=dp) :: omega_local
     !! Volume of unit cell
     !! @todo Change back to `omega` once extracted from QE #end @endtodo
-  real(kind=dpl), allocatable :: tau(:,:)
+  real(kind=dp), allocatable :: tau(:,:)
     !! Atom positions
-  real(kind=dpl) :: tStart
+  real(kind=dp) :: tStart
     !! Start time
-  real(kind=dpl) :: vcut_local
+  real(kind=dp) :: vcut_local
     !! Energy cutoff converted to vector cutoff
-  real(kind=dpl), allocatable :: xk_local(:,:)
+  real(kind=dp), allocatable :: xk_local(:,:)
     !! Position of k-points in reciprocal space
-  real(kind=dpl), allocatable :: wk_local(:)
+  real(kind=dp), allocatable :: wk_local(:)
     !! Weight of k-points
 
   complex*16, allocatable :: eigenE(:,:,:)
@@ -205,21 +205,21 @@ module wfcExportVASPMod
     integer :: nmax
       !! Number of radial grid points
 
-    real(kind=dpl), allocatable :: dRadGrid(:)
+    real(kind=dp), allocatable :: dRadGrid(:)
       !! Derivative of radial grid
-    real(kind=dpl) :: psRMax
+    real(kind=dp) :: psRMax
       !! Max r for non-local contribution
-    real(kind=dpl), allocatable :: radGrid(:)
+    real(kind=dp), allocatable :: radGrid(:)
       !! Radial grid points
-    real(kind=dpl) :: rAugMax
+    real(kind=dp) :: rAugMax
       !! Maximum radius of augmentation sphere
-    real(kind=dpl) :: recipProj(16,100)
+    real(kind=dp) :: recipProj(16,100)
       !! Reciprocal-space projectors
-    real(kind=dpl) :: realProj(16,100)
+    real(kind=dp) :: realProj(16,100)
       !! Real-space projectors
-    real(kind=dpl), allocatable :: wae(:,:)
+    real(kind=dp), allocatable :: wae(:,:)
       !! AE wavefunction
-    real(kind=dpl), allocatable :: wps(:,:)
+    real(kind=dp), allocatable :: wps(:,:)
       !! PS wavefunction
 
     character(len=2) :: element
@@ -848,19 +848,19 @@ module wfcExportVASPMod
 
     
     ! Output variables:
-    real(kind=dpl), intent(out) :: at_local(3,3)
+    real(kind=dp), intent(out) :: at_local(3,3)
       !! Real space lattice vectors
-    real(kind=dpl), intent(out) :: bg_local(3,3)
+    real(kind=dp), intent(out) :: bg_local(3,3)
       !! Reciprocal lattice vectors
-    real(kind=dpl), intent(out) :: ecutwfc_local
+    real(kind=dp), intent(out) :: ecutwfc_local
       !! Plane wave energy cutoff in Ry
-    real(kind=dpl), allocatable, intent(out) :: occ(:,:)
+    real(kind=dp), allocatable, intent(out) :: occ(:,:)
       !! Occupation of band
-    real(kind=dpl), intent(out) :: omega_local
+    real(kind=dp), intent(out) :: omega_local
       !! Volume of unit cell
-    real(kind=dpl), intent(out) :: vcut_local
+    real(kind=dp), intent(out) :: vcut_local
       !! Energy cutoff converted to vector cutoff
-    real(kind=dpl), allocatable, intent(out) :: xk_local(:,:)
+    real(kind=dp), allocatable, intent(out) :: xk_local(:,:)
       !! Position of k-points in reciprocal space
 
     integer, intent(out) :: nb1max, nb2max, nb3max
@@ -882,12 +882,12 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    real(kind=dpl) :: c = 0.26246582250210965422
+    real(kind=dp) :: c = 0.26246582250210965422
       !! \(2m/\hbar^2\) converted from J\(^{-1}\)m\(^{-2}\)
       !! to eV\(^{-1}\)A\(^{-2}\)
-    real(kind=dpl) :: nRecords_real, nspin_real, prec_real, nkstot_real 
+    real(kind=dp) :: nRecords_real, nspin_real, prec_real, nkstot_real 
       !! Real version of integers for reading from file
-    real(kind=dpl) :: nbnd_real
+    real(kind=dp) :: nbnd_real
       !! Real version of integers for reading from file
 
     integer :: j
@@ -1039,17 +1039,17 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    real(kind=dpl), intent(in) :: at_local(3,3)
+    real(kind=dp), intent(in) :: at_local(3,3)
       !! Real space lattice vectors
 
 
     ! Output variables:
-    real(kind=dpl), intent(out) :: omega_local
+    real(kind=dp), intent(out) :: omega_local
       !! Volume of unit cell
 
 
     ! Local variables:
-    real(kind=dpl) :: vtmp(3)
+    real(kind=dp) :: vtmp(3)
       !! \(a_2\times a_3\)
 
 
@@ -1068,14 +1068,14 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    real(kind=dpl), intent(in) :: at_local(3,3)
+    real(kind=dp), intent(in) :: at_local(3,3)
       !! Real space lattice vectors
-    real(kind=dpl), intent(in) :: omega_local
+    real(kind=dp), intent(in) :: omega_local
       !! Volume of unit cell
 
 
     ! Output variables:
-    real(kind=dpl), intent(out) :: bg_local(3,3)
+    real(kind=dp), intent(out) :: bg_local(3,3)
       !! Reciprocal lattice vectors
 
 
@@ -1103,12 +1103,12 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    real(kind=dpl), intent(in) :: vec1(3), vec2(3)
+    real(kind=dp), intent(in) :: vec1(3), vec2(3)
       !! Input vectors
 
 
     ! Output variables:
-    real(kind=dpl), intent(out) :: crossProd(3)
+    real(kind=dp), intent(out) :: crossProd(3)
       !! Cross product of input vectors
 
 
@@ -1133,9 +1133,9 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    real(kind=dpl), intent(in) :: bg_local(3,3)
+    real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
-    real(kind=dpl), intent(in) :: ecutwfc_local
+    real(kind=dp), intent(in) :: ecutwfc_local
       !! Plane wave energy cutoff in Ry
 
 
@@ -1147,18 +1147,18 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    real(kind=dpl) :: b1mag, b2mag, b3mag
+    real(kind=dp) :: b1mag, b2mag, b3mag
       !! Reciprocal vector magnitudes
-    real(kind=dpl) :: c = 0.26246582250210965422
+    real(kind=dp) :: c = 0.26246582250210965422
       !! \(2m/\hbar^2\) converted from J\(^{-1}\)m\(^{-2}\)
       !! to eV\(^{-1}\)A\(^{-2}\)
-    real(kind=dpl) :: phi12, phi13, phi23
+    real(kind=dp) :: phi12, phi13, phi23
       !! Angle between vectors
-    real(kind=dpl) :: sinphi123
+    real(kind=dp) :: sinphi123
       !! \(\sin\phi_{123}\)
-    real(kind=dpl) :: vmag
+    real(kind=dp) :: vmag
       !! Magnitude of temporary vector
-    real(kind=dpl) :: vtmp(3)
+    real(kind=dp) :: vtmp(3)
       !! Temporary vector for calculating angles
 
     integer :: nb1maxA, nb2maxA, nb3maxA
@@ -1266,9 +1266,9 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    real(kind=dpl), allocatable, intent(out) :: occ(:,:)
+    real(kind=dp), allocatable, intent(out) :: occ(:,:)
       !! Occupation of band
-    real(kind=dpl), allocatable, intent(out) :: xk_local(:,:)
+    real(kind=dp), allocatable, intent(out) :: xk_local(:,:)
       !! Position of k-points in reciprocal space
 
     integer, allocatable, intent(out) :: nplane_g(:)
@@ -1280,7 +1280,7 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    real(kind=dpl) :: nplane_g_real
+    real(kind=dp) :: nplane_g_real
       !! Real version of integers for reading from file
 
     complex*8, allocatable :: coeff(:,:)
@@ -1429,12 +1429,12 @@ module wfcExportVASPMod
     integer, intent(in) :: nb1max, nb2max, nb3max
       !! Not sure what this is??
 
-    real(kind=dpl), intent(in) :: bg_local(3,3)
+    real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
 
 
     ! Output variables:
-    real(kind=dpl), allocatable, intent(out) :: gCart_local(:,:)
+    real(kind=dp), allocatable, intent(out) :: gCart_local(:,:)
       !! G-vectors in Cartesian coordinates
 
     integer, allocatable, intent(out) :: ig_l2g(:)
@@ -1448,9 +1448,9 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    real(kind=dpl) :: eps8 = 1.0E-8_dpl
+    real(kind=dp) :: eps8 = 1.0E-8_dp
       !! Double precision zero
-    real(kind=dpl), allocatable :: millSum(:)
+    real(kind=dp), allocatable :: millSum(:)
       !! Sum of integer coefficients for G-vectors
 
     integer :: ig1, ig2, ig3, ig1p, ig2p, ig3p, ig, ix
@@ -1687,13 +1687,13 @@ module wfcExportVASPMod
     integer, intent(in) :: nplane_g(nkstot_local)
       !! Input number of plane waves for a single k-point
 
-    real(kind=dpl), intent(in) :: bg_local(3,3)
+    real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
-    real(kind=dpl), intent(in) :: gCart_local(3,ngm_local)
+    real(kind=dp), intent(in) :: gCart_local(3,ngm_local)
       !! G-vectors in Cartesian coordinates
-    real(kind=dpl), intent(in) :: vcut_local
+    real(kind=dp), intent(in) :: vcut_local
       !! Energy cutoff converted to vector cutoff
-    real(kind=dpl), intent(in) :: xk_local(3,nkstot_local)
+    real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
       !! Position of k-points in reciprocal space
 
 
@@ -1726,14 +1726,14 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    real(kind=dpl) :: eps8 = 1.0E-8_dpl
+    real(kind=dp) :: eps8 = 1.0E-8_dp
       !! Double precision zero
-    real(kind=dpl) :: gkMod(nk_Pool,ngm_local)
+    real(kind=dp) :: gkMod(nk_Pool,ngm_local)
       !! \(|G+k|^2\);
       !! only stored if less than `vcut_local`
-    real(kind=dpl) :: q
+    real(kind=dp) :: q
       !! \(|q|^2\) where \(q = G+k\)
-    real(kind=dpl) :: xkCart(3)
+    real(kind=dp) :: xkCart(3)
       !! Cartesian coordinates for given k-point
 
     integer :: ik, ig, ix
@@ -1940,16 +1940,16 @@ module wfcExportVASPMod
     implicit none
 
     ! Input/Output variables:
-    real(kind=dpl), intent(in) :: eps
+    real(kind=dp), intent(in) :: eps
     integer, intent(in) :: n
 
     integer, intent(inout) :: ind(:)
-    real(kind=dpl), intent(inout) :: ra (:)
+    real(kind=dp), intent(inout) :: ra (:)
 
 
     ! Local variables
     integer :: i, ir, j, l, iind
-    real(kind=dpl) :: rra
+    real(kind=dp) :: rra
 
     ! initialize index array
     if (ind (1) .eq.0) then
@@ -2050,7 +2050,7 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    real(kind=dpl), intent(in) :: at_local(3,3)
+    real(kind=dp), intent(in) :: at_local(3,3)
       !! Real space lattice vectors
 
     integer, intent(in) :: nkstot_local
@@ -2061,9 +2061,9 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    real(kind=dpl), intent(out) :: eFermi
+    real(kind=dp), intent(out) :: eFermi
       !! Fermi energy
-    real(kind=dpl), allocatable, intent(out) :: wk_local(:)
+    real(kind=dp), allocatable, intent(out) :: wk_local(:)
       !! K-point weights
 
     integer, allocatable, intent(out) :: ityp(:)
@@ -2075,7 +2075,7 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    real(kind=dpl) :: dir(3)
+    real(kind=dp) :: dir(3)
       !! Direct coordinates read from file
 
     integer :: ik, ia, i, ix
@@ -2258,11 +2258,11 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    real(kind=dpl) :: dummyD(1000)
+    real(kind=dp) :: dummyD(1000)
       !! Dummy variable to ignore input
-    real(kind=dpl), allocatable :: dummyDA1(:), dummyDA2(:,:)
+    real(kind=dp), allocatable :: dummyDA1(:), dummyDA2(:,:)
       !! Allocatable dummy variable to ignore input
-    real(kind=dpl) :: H
+    real(kind=dp) :: H
       !! Factor for generating derivative of 
       !! radial grid
 
@@ -2627,11 +2627,11 @@ module wfcExportVASPMod
       !! Max number of \(G+k\) vectors with energy
       !! less than `ecutwfc_local` among all k-points
 
-    real(kind=dpl), intent(in) :: occ(nbnd_local, nkstot_local)
+    real(kind=dp), intent(in) :: occ(nbnd_local, nkstot_local)
       !! Occupation of band
-    real(kind=dpl), intent(in) :: wk_local(nkstot_local)
+    real(kind=dp), intent(in) :: wk_local(nkstot_local)
       !! K-point weights
-    real(kind=dpl), intent(in) :: xk_local(3,nkstot_local)
+    real(kind=dp), intent(in) :: xk_local(3,nkstot_local)
       !! Position of k-points in reciprocal space
 
 
@@ -2732,7 +2732,7 @@ module wfcExportVASPMod
     integer, intent(in) :: nkstot_local
       !! Total number of k-points
 
-    real(kind=dpl), intent(in) :: occ(nbnd_local, nkstot_local)
+    real(kind=dp), intent(in) :: occ(nbnd_local, nkstot_local)
       !! Occupation of band
 
     
@@ -2752,7 +2752,7 @@ module wfcExportVASPMod
 
       do ibnd = 1, nbnd_local
 
-        if (occ(ibnd,ik) < 0.5_dpl) then
+        if (occ(ibnd,ik) < 0.5_dp) then
           !! @todo Figure out if boundary for "occupied" should be 0.5 or less @endtodo
         !if (et(ibnd,ik) > ef) then
 
@@ -3002,11 +3002,11 @@ module wfcExportVASPMod
     integer, intent(in) :: nspin_local
       !! Number of spins
 
-    real(kind=dpl), intent(in) :: at_local(3,3)
+    real(kind=dp), intent(in) :: at_local(3,3)
       !! Real space lattice vectors
-    real(kind=dpl), intent(in) :: bg_local(3,3)
+    real(kind=dp), intent(in) :: bg_local(3,3)
       !! Reciprocal lattice vectors
-    real(kind=dpl), intent(in) :: tau(3,nat)
+    real(kind=dp), intent(in) :: tau(3,nat)
       !! Atom positions
 
 
@@ -3148,9 +3148,9 @@ module wfcExportVASPMod
     integer, intent(in) :: nspin_local
       !! Number of spins
       
-    real(kind=dpl), intent(in) :: eFermi
+    real(kind=dp), intent(in) :: eFermi
       !! Fermi energy
-    real(kind=dpl), intent(in) :: occ(nbnd_local,nkstot_local)
+    real(kind=dp), intent(in) :: occ(nbnd_local,nkstot_local)
       !! Occupation of band
 
     complex*16, intent(in) :: eigenE(nspin_local,nkstot_local,nbnd_local)
@@ -3328,20 +3328,20 @@ module wfcExportVASPMod
       INTEGER, INTENT(in) :: iuni
       character(len = 256), intent(in) :: exportDir
       INTEGER, INTENT(in) :: ik, nk, ispin, nspin_local
-      COMPLEX(DP), INTENT(in) :: wf0(:,:)
-      COMPLEX(DP), INTENT(in) :: wfm(:,:)
+      COMPLEX(kind=dp), INTENT(in) :: wf0(:,:)
+      COMPLEX(kind=dp), INTENT(in) :: wfm(:,:)
       INTEGER, INTENT(in) :: ngw   !
       LOGICAL, INTENT(in) :: gamma_only
       INTEGER, INTENT(in) :: nbnd_local
       INTEGER, INTENT(in) :: ngwl
       INTEGER, INTENT(in) :: igl(:)
-      REAL(DP), INTENT(in) :: scal
+      REAL(kind=dp), INTENT(in) :: scal
       LOGICAL, INTENT(in) :: t0, tm
 
       INTEGER :: i, j, ierr, idum = 0
       INTEGER :: nkt, ikt, igwx, ig
       INTEGER :: ipmask( nproc_local ), ipsour
-      COMPLEX(DP), ALLOCATABLE :: wtmp(:)
+      COMPLEX(kind=dp), ALLOCATABLE :: wtmp(:)
       INTEGER, ALLOCATABLE :: igltot(:)
 
       CHARACTER(len=20) :: section_name = 'wfc'
@@ -3399,7 +3399,7 @@ module wfcExportVASPMod
         ENDIF
 
         ALLOCATE( wtmp( max(igwx,1) ) )
-        wtmp = cmplx(0.0_dpl, 0.0_dpl, kind=dpl)
+        wtmp = cmplx(0.0_dp, 0.0_dp, kind=dp)
 
         DO j = 1, nbnd_local
           IF( t0 ) THEN
@@ -3470,7 +3470,6 @@ module wfcExportVASPMod
     use klist, only : nks, xk, ngk, wk
     use cell_base, only : tpiba2, alat
 
-    USE kinds,          ONLY : DP
     USE start_k,        ONLY : nk1, nk2, nk3, k1, k2, k3
     USE control_flags,  ONLY : gamma_only
     USE global_version, ONLY : version_number
@@ -3506,7 +3505,7 @@ module wfcExportVASPMod
     CHARACTER(256), INTENT(in) :: mainOutputFile, exportDir
 
     INTEGER :: i, j, k, ig, ik, ibnd, na, ngg,ig_, ierr
-    real(DP) :: xyz(3), tmp(3)
+    real(kind=dp) :: xyz(3), tmp(3)
     INTEGER :: im, ink, inb, ms
     INTEGER :: ispin, local_pw
     INTEGER, ALLOCATABLE :: l2g_new( : )
@@ -3514,7 +3513,7 @@ module wfcExportVASPMod
     character(len = 300) :: text
   
 
-    real(DP) :: wfc_scal
+    real(kind=dp) :: wfc_scal
     LOGICAL :: twf0, twfm, file_exists
     CHARACTER(iotk_attlenx) :: attr
     TYPE(pseudo_upf) :: upf       ! the pseudo data
