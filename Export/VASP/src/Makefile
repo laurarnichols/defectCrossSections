@@ -3,8 +3,8 @@
 -include $(QE-5.3.0_Path)/make.sys
 
 # location of needed modules
-MODFLAGS= $(MOD_FLAG)$(QE-5.3.0_Path)/iotk/src $(MOD_FLAG)$(QE-5.3.0_Path)/Modules \
-          $(MOD_FLAG)$(QE-5.3.0_Path)/PW/src $(MOD_FLAG)$(CommonModules_srcPath) $(MOD_FLAG).
+MODFLAGS= $(MOD_FLAG)$(CommonModules_srcPath) $(MOD_FLAG)$(QE-5.3.0_Path)/iotk/src \
+          $(MOD_FLAG)$(QE-5.3.0_Path)/Modules $(MOD_FLAG)$(QE-5.3.0_Path)/PW/src $(MOD_FLAG).
 
 PPOBJS = \
 $(QE-5.3.0_Path)/PP/src/openfil_pp.o\
