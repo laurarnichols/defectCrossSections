@@ -24,7 +24,7 @@ all : tldeps Export_QE-5.0.2.x
 Export_QE-5.0.2.x : Export_QE-5.0.2_v3.o $(PPOBJS) $(MODULES) $(LIBOBJS)
 	$(LD) $(LDFLAGS) -o $@ \
 		Export_QE-5.0.2_v3.o $(PPOBJS) $(MODULES) $(LIBOBJS) $(LIBS)
-	- ( cd $(Home_Path)/bin ; ln -fs $(Home_Path)/$(Export_QE-5.0.2_srcPath)/$@ . )
+	- ( cd $(Home_Path)/bin ; ln -fs $(Export_QE-5.0.2_srcPath)/$@ . )
 	
 	@echo "" ; \
 	echo "" ; \
