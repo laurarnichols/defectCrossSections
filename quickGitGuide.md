@@ -16,3 +16,34 @@
 git clone git@github.com:<your git username>/defectCrossSections.git
 ```
 * You now have a local copy of your fork on your machine
+
+## Contributing
+1. Before you start a project, get an up-to-date version of the code (see [this Git documentation on merging from upstream repos](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/merging-an-upstream-repository-into-your-fork))
+2. To make changes, first create a new branch using `git checkout -b NAME-OF-BRANCH`. You can also switch to an existing branch
+   using `git checkout NAME-OF-BRANCH`.
+3. You can now make changes to files and git will track the changes. At any point, you can use `git status` to see what files you have changed.
+4. Each time you make an isolated change, create a commit:
+	* Stage the file or folder using `git add FILE OR FOLDER`. 
+	* Complete commit using `git commit -m "COMMENT TO DESCRIBE THE INTENTION OF THE COMMIT"`. 
+  * If you mistakely commit something, you can revert (undo) the last commit using `git revert HEAD`.
+	* Push the changes from your local clone to the origin (what you see online) using `git push origin NAME-OF-BRANCH`.
+6. To merge your code, get online and submit a pull request from your branch in your fork to the main repo (see [this Git documentation for merging across forks](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork))
+7. To make new changes, 
+
+### Useful commands
+Here is a simple list of useful commands when contributing with git:
+* `git pull origin` gets updates from the online version of your fork
+* `git checkout NAME-OF-BRANCH` changes to an existing branch
+* `git checkout -b NAME-OF-BRANCH` creates a new branch and changes to it
+* `git status` shows all files that have been changed or added to be committed
+* `git add FILE OR FOLDER` stages changes to be committed
+* `git commit -m "COMMENT TO DESCRIBE THE INTENTION OF THE COMMIT"` makes the change official on your local copy
+* `git push origin NAME-OF-BRANCH` updates the the online version of your fork
+* `git revert HEAD` undoes the last commit on a branch
+* `git branch` lists the branches you have on your local copy; there will be a star by the branch your are currently on
+* `git branch -d NAME-OF-BRANCH` will delete a given branch
+* `git diff` shows the difference between local, unstaged changes and the official (committed) version
+* `git checkout -- NAME-OF-FILE` deletes changes to a given file that have not been staged to commit
+* `git checkout .` deletes all local changes in the repository that have not been added to the staging area
+* `git clean -f` deletes untracked changes
+* `git reset .` removes files from staging area before they have been committed
