@@ -71,7 +71,7 @@
 ! (except for native 64-bit-REAL machines like CRAY style machines)
 !**********************************************************************
 
-module VASPExportMod
+program VASPExportMod
       USE prec
 
       USE charge
@@ -2562,4 +2562,4 @@ module VASPExportMod
       CALL STOP_XML
       CALLMPI_C(M_exit())
 
-end VASPExportMod
+end program VASPExport
