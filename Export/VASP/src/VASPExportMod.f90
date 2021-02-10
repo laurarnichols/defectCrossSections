@@ -71,7 +71,7 @@
 ! (except for native 64-bit-REAL machines like CRAY style machines)
 !**********************************************************************
 
-program VASPExportMod
+program VASPExport
       USE prec
 
       USE charge
