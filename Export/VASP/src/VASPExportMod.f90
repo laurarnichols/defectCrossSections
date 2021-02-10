@@ -2441,36 +2441,6 @@
 
       DWRITE0 'non local setup done'
 !=======================================================================
-! set the coefficients of the plane wave basis states to zero before
-! initialising the wavefunctions by calling WFINIT (usually random)
-!=======================================================================
-      IF (INFO%ISTART<=0) THEN
-        W%CPTWFP=0
-        CALL WFINIT(WDES, W, INFO%ENINI)
-      IF (INFO%INIWAV==1 .AND. INFO%NELMDL==0 .AND. INFO%INICHG/=0) THEN
-        IF (IO%IU0>=0) &
-        WRITE(TIU0,*) 'WARNING: random wavefunctions but no delay for ', &
-                        'mixing, default for NELMDL'
-        INFO%NELMDL=-5
-        IF (INFO%LRMM .AND. .NOT. INFO%LDAVID) INFO%NELMDL=-12
-      ENDIF
-
-      ! initialize the occupancies, in the spin polarized case
-      ! we try to set up and down occupancies individually
-      ELEKTR=INFO%NELECT
-      CALL DENINI(W%FERTOT(1,1,1),WDES%NB_TOT,KPOINTS%NKPTS,ELEKTR,WDES%LNONCOLLINEAR)
-
-      IF (WDES%ISPIN==2) THEN
-        RHOMAG=RHO0(GRIDC,CHTOT(1,2))
-        ELEKTR=INFO%NELECT+RHOMAG
-        CALL DENINI(W%FERTOT(1,1,1),WDES%NB_TOT,KPOINTS%NKPTS,ELEKTR,WDES%LNONCOLLINEAR)
-        ELEKTR=INFO%NELECT-RHOMAG
-        CALL DENINI(W%FERTOT(1,1,2),WDES%NB_TOT,KPOINTS%NKPTS,ELEKTR,WDES%LNONCOLLINEAR)
-      ENDIF
-
-      ENDIF
-      DWRITE0 'wavefunctions initialized'
-!=======================================================================
 ! INFO%LONESW initialize W_F%CELEN fermi-weights and augmentation charge
 !=======================================================================
       E%EENTROPY=0
