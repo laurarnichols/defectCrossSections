@@ -2542,6 +2542,18 @@ program VASPExport
       CALL PROALL (GRID,LATT_CUR,NONLR_S,NONL_S,W)
       DWRITE0 'proall done'
  
+!=======================================================================
+! Write out projectors, projections, and wave functions
+!=======================================================================
+
+      !! @todo Get function to return string value for `ik` @endtodo
+
+      !! @todo Open files @endtodo
+
+      !! @todo Write variables @endtodo
+
+      !! @todo Close files @endtodo
+      
 
 !=======================================================================
 ! breath a sigh of relief - you have finished
