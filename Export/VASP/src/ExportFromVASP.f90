@@ -72,6 +72,9 @@
 !**********************************************************************
 
 program VASPExport
+      use miscUtilities
+
+
       USE prec
 
       USE charge
@@ -186,6 +189,11 @@ program VASPExport
 #endif
       IMPLICIT COMPLEX(q) (C)
       IMPLICIT REAL(q) (A-B,D-H,O-Z)
+
+
+      character(len = 300) :: ikStr
+        !! String version of k-point index for
+        !! output files
 
 !=======================================================================
 !  a small set of parameters might be set here
@@ -2546,15 +2554,17 @@ program VASPExport
 ! Write out projectors, projections, and wave functions
 !=======================================================================
 
-      !! @todo Get function to return string value for `ik` @endtodo
+      do ik = 1, KPOINTS%NKPTS
+        int2str(ik, ikStr)
 
       !! @todo Open files @endtodo
 
       !! @todo Write variables @endtodo
 
       !! @todo Close files @endtodo
-      
 
+      enddo
+      
 !=======================================================================
 ! breath a sigh of relief - you have finished
 ! this jump is just a jump to the END statement
