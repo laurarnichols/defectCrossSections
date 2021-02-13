@@ -2542,14 +2542,6 @@ program VASPExport
       CALL PROALL (GRID,LATT_CUR,NONLR_S,NONL_S,W)
       DWRITE0 'proall done'
  
-      CALL ORTHCH(WDES,W, INFO%LOVERL, LMDIM,CQIJ)
-      CALL REDIS_PW_OVER_BANDS(WDES, W)
-      DWRITE0 'orthch done'
-
-      IF (IO%IU6>=0) WRITE(TIU6,130)
-
-      ! strictly required for HF, since SET_CHARGE fails for ISYM=3
-      CALL KPAR_SYNC_ALL(WDES,W)
 
 !=======================================================================
 ! breath a sigh of relief - you have finished
