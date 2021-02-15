@@ -2585,14 +2585,26 @@ program VASPExport
           inquire(file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr), exist=projectionsFileExists)
           if (.not. projectionFileExists) open(84, file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr)) 
 
-
-
-          !! @todo Write variables @endtodo
           !! @todo Figure out the best order for loops and combine @endtodo
-          !! @todo Add estimate for projectors loop @endtodo
+          
+          do iA = 1, T_INFO%NIONS
+            !! @todo Define `iA` @endtodo
+
+            iT = atomTypeIndex(iA)
+              !! @todo Define `iT` @endtodo
+              !! @todo Find array for `atomTypeIndex(iA)` @endtodo
+
+            do ilm = 1, LMMAX_TOT
+              
+              do ipw = 1, NRPLWV
+
+                write(82,*) NONL_S%QPROJ(ipw,ilm*iA,iT,ik,1)*CREXP(ipw,iA)*CQFAK(ilm*iA,iT)
+
+              enddo
+            enddo
+          enddo
 
           do ib = 1, WDES%NB_TOT
-
 
             do ipw = 1, NRPLWV 
 
