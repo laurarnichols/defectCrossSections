@@ -192,7 +192,7 @@ program VASPExport
 
 
       ! Define custom variables:
-      integer :: ib, ipw, ipr, ik
+      integer :: ib, ipw, ipr, ik, iT, iA
       character(len = 300) :: ikStr
         !! String version of k-point index for
         !! output files
@@ -2588,11 +2588,8 @@ program VASPExport
           !! @todo Figure out the best order for loops and combine @endtodo
           
           do iA = 1, T_INFO%NIONS
-            !! @todo Define `iA` @endtodo
 
-            iT = atomTypeIndex(iA)
-              !! @todo Define `iT` @endtodo
-              !! @todo Find array for `atomTypeIndex(iA)` @endtodo
+            iT = T_INFO%ITYP(iA)
 
             do ilm = 1, LMMAX_TOT
               
