@@ -2595,7 +2595,7 @@ program VASPExport
               
               do ipw = 1, NRPLWV
 
-                write(82,*) NONL_S%QPROJ(ipw,ilm*iA,iT,ik,1)*NONL_S%CREXP(ipw,iA)*NONL_SCQFAK(ilm*iA,iT)
+                write(82,*) NONL_S%QPROJ(ipw,ilm*iA,iT,ik,1)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm*iA,iT)
 
               enddo
 
