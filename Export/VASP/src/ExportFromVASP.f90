@@ -2584,6 +2584,7 @@ program VASPExport
 
 
           !! @todo Write variables @endtodo
+          !! @todo Figure out the best order for loops @endtodo
 
 
           if (.not. projectorFileExists) close(82) 
