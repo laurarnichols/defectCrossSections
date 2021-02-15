@@ -2601,7 +2601,9 @@ program VASPExport
                 write(82,*) NONL_S%QPROJ(ipw,ilm*iA,iT,ik,1)*CREXP(ipw,iA)*CQFAK(ilm*iA,iT)
 
               enddo
+
             enddo
+
           enddo
 
           do ib = 1, WDES%NB_TOT
@@ -2611,18 +2613,16 @@ program VASPExport
               write(83,*) W*CPTWFP(ipw,ib,ik,1)
 
             enddo
-          enddo
-            
 
-          do ib = 1, WDES%NB_TOT
-            do ipr = 1, T_INFO%NIONS*LMMAX_TOT
-              !! @note `LMMAX_TOT` doesn't exist @endnote
-              !! @todo Reformulate loop based on my understanding and send to Georgios for confirmation @endtodo
+            do ipr = 1, WDES%NPRO
+              !! @todo Validate loop variables with Georgios @endtodo
 
               write(84,*) W%CPROJ(ipr,ib,ik,1)
-            enddo
-          enddo
 
+            enddo
+
+          enddo
+            
           if (.not. projectorFileExists) close(82) 
           if (.not. wfcFileExists) close(83) 
           if (.not. projectionFileExists) close(84) 
