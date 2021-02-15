@@ -2589,10 +2589,10 @@ program VASPExport
 
           !! @todo Write variables @endtodo
           !! @todo Figure out the best order for loops and combine @endtodo
+          !! @todo Add estimate for projectors loop @endtodo
 
           do ib = 1, WDES%NB_TOT
 
-            !! @todo Add estimate for projectors loop @endtodo
 
             do ipw = 1, NRPLWV 
 
