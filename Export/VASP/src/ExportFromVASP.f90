@@ -2586,6 +2586,7 @@ program VASPExport
           if (.not. projectionFileExists) open(84, file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr)) 
 
           !! @todo Figure out the best order for loops and combine @endtodo
+          !! @todo Update loops based on Georgios's email @endtodo
           
           do iA = 1, T_INFO%NIONS
 
