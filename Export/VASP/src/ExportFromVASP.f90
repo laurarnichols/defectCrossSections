@@ -191,9 +191,17 @@ program VASPExport
       IMPLICIT REAL(q) (A-B,D-H,O-Z)
 
 
+      ! Define custom variables:
       character(len = 300) :: ikStr
         !! String version of k-point index for
         !! output files
+
+      logical :: projectionFileExists
+        !! If the `projections.ik` file already exists
+      logical :: projectorFileExists
+        !! If the `projectors.ik` file already exists
+      logical :: wfcFileExists
+        !! If the `wfc.ik` file already exists
 
 !=======================================================================
 !  a small set of parameters might be set here
@@ -2557,11 +2565,32 @@ program VASPExport
       do ik = 1, KPOINTS%NKPTS
         int2str(ik, ikStr)
 
-      !! @todo Open files @endtodo
+        io_begin
+          !! Start io environment (needed for parallelism)
+          !! @todo Figure out how variables are stored across processors @endtodo
 
-      !! @todo Write variables @endtodo
+          projectorFileExists = .false.
+          inquire(file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr), exist=projectorFileExists)
+          if (.not. projectorFileExists) open(82, file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr)) 
 
-      !! @todo Close files @endtodo
+          wfcFileExists = .false.
+          inquire(file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr), exist=wfcFileExists)
+          if (.not. wfcFileExists) open(83, file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr)) 
+
+          projectionFileExists = .false.
+          inquire(file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr), exist=projectionsFileExists)
+          if (.not. projectionFileExists) open(84, file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr)) 
+
+
+
+          !! @todo Write variables @endtodo
+
+
+          if (.not. projectorFileExists) close(82) 
+          if (.not. wfcFileExists) close(83) 
+          if (.not. projectionFileExists) close(84) 
+
+        io_end
 
       enddo
       
