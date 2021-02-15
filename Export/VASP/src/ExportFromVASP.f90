@@ -192,6 +192,7 @@ program VASPExport
 
 
       ! Define custom variables:
+      integer :: ib, ipw, ipr, ik
       character(len = 300) :: ikStr
         !! String version of k-point index for
         !! output files
@@ -2563,6 +2564,7 @@ program VASPExport
 !=======================================================================
 
       !! @todo Add spin loop and figure out how to best handle output @endtodo
+      !! @note This only currently works for a single spin channel @endnote
 
       do ik = 1, KPOINTS%NKPTS
         int2str(ik, ikStr)
@@ -2586,9 +2588,28 @@ program VASPExport
 
 
           !! @todo Write variables @endtodo
-          !! @todo Write down loops as Georgios sent them @endtodo
           !! @todo Figure out the best order for loops and combine @endtodo
 
+          do ib = 1, NB_TOT
+            !! @todo Find `NB_TOT` @endtodo
+
+            do ipw = 1, NRPLWV 
+              !! @todo Frind `NRPLWV` @endtodo
+
+              write(83,*) W*CPTWFP(ipw,ib,ik,1)
+
+            enddo
+          enddo
+            
+
+          do ib = 1, NB_TOT
+            do ipr = 1, NIONS*LMMAX_TOT
+              !! @todo Find `NIONS` @endtodo
+              !! @todo Find `LMMAX_TOT` @endtodo
+
+              write(84,*) W%CPROJ(ipr,ib,ik,1)
+            enddo
+          enddo
 
           if (.not. projectorFileExists) close(82) 
           if (.not. wfcFileExists) close(83) 
