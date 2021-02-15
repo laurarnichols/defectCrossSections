@@ -2593,8 +2593,10 @@ program VASPExport
           do ib = 1, NB_TOT
             !! @todo Find `NB_TOT` @endtodo
 
+            !! @todo Add estimate for projectors loop @endtodo
+
             do ipw = 1, NRPLWV 
-              !! @todo Frind `NRPLWV` @endtodo
+              !! @todo Find `NRPLWV` @endtodo
 
               write(83,*) W*CPTWFP(ipw,ib,ik,1)
 
