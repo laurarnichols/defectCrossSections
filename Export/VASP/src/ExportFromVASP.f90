@@ -2590,13 +2590,11 @@ program VASPExport
           !! @todo Write variables @endtodo
           !! @todo Figure out the best order for loops and combine @endtodo
 
-          do ib = 1, NB_TOT
-            !! @todo Find `NB_TOT` @endtodo
+          do ib = 1, WDES%NB_TOT
 
             !! @todo Add estimate for projectors loop @endtodo
 
             do ipw = 1, NRPLWV 
-              !! @todo Find `NRPLWV` @endtodo
 
               write(83,*) W*CPTWFP(ipw,ib,ik,1)
 
@@ -2604,10 +2602,10 @@ program VASPExport
           enddo
             
 
-          do ib = 1, NB_TOT
-            do ipr = 1, NIONS*LMMAX_TOT
-              !! @todo Find `NIONS` @endtodo
-              !! @todo Find `LMMAX_TOT` @endtodo
+          do ib = 1, WDES%NB_TOT
+            do ipr = 1, T_INFO%NIONS*LMMAX_TOT
+              !! @note `LMMAX_TOT` doesn't exist @endnote
+              !! @todo Reformulate loop based on my understanding and send to Georgios for confirmation @endtodo
 
               write(84,*) W%CPROJ(ipr,ib,ik,1)
             enddo
