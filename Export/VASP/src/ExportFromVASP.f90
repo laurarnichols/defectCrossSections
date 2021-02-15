@@ -2562,6 +2562,8 @@ program VASPExport
 ! Write out projectors, projections, and wave functions
 !=======================================================================
 
+      !! @todo Add spin loop and figure out how to best handle output @endtodo
+
       do ik = 1, KPOINTS%NKPTS
         int2str(ik, ikStr)
 
