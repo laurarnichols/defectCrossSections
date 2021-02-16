@@ -2584,8 +2584,6 @@ program VASPExport
               !! @todo Consider different output files for different spins. @endtodo
              
             open(82, file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr)) 
-
-            writeProjectors = .true.
           
             do ipw = 1, WDES%NGVECTOR(ik)
 
