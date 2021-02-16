@@ -2568,20 +2568,25 @@ program VASPExport
 ! Write out projectors, projections, and wave functions
 !=======================================================================
 
-      !! @todo Add spin loop and figure out how to best handle output @endtodo
-      !! @note This only currently works for a single spin channel @endnote
+      do isp = 1, ISPIN
+        !! @todo Define `isp` @endtodo
 
-      do ik = 1, KPOINTS%NKPTS
-        int2str(ik, ikStr)
+        do ik = 1, KPOINTS%NKPTS
+          int2str(ik, ikStr)
 
-        io_begin
-          !! Start io environment (needed for parallelism)
-          !! @todo Figure out how variables are stored across processors @endtodo
+          io_begin
+            !! Start io environment (needed for parallelism)
+            !! @todo Figure out how variables are stored across processors @endtodo
 
-          projectorFileExists = .false.
-          inquire(file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr), exist=projectorFileExists)
-          if (.not. projectorFileExists) then 
+            !projectorFileExists = .false.
+            !inquire(file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr), exist=projectorFileExists)
+            !if (.not. projectorFileExists) then 
+              !! @todo Figure out a way to test if the file already exists with spin. @enddo
+              !! @todo Consider different output files for different spins. @endtodo
+             
             open(82, file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr)) 
+
+            writeProjectors = .true.
           
             do ipw = 1, WDES%NGVECTOR(ik)
 
@@ -2593,7 +2598,7 @@ program VASPExport
 
                 do ilm = 1, WDES%LMMAX(iT)
 
-                  beta = beta + NONL_S%QPROJ(ipw,ilm*iA,iT,ik,1)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm*iA,iT)
+                  beta = beta + NONL_S%QPROJ(ipw,ilm*iA,iT,ik,isp)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm*iA,iT)
 
                 enddo
 
@@ -2603,44 +2608,46 @@ program VASPExport
 
             enddo
 
-          endif
+            !wfcFileExists = .false.
+            !inquire(file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr), exist=wfcFileExists)
+            !if (.not. wfcFileExists) then
 
-          wfcFileExists = .false.
-          inquire(file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr), exist=wfcFileExists)
-          if (.not. wfcFileExists) open(83, file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr)) 
+            open(83, file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr)) 
 
-          projectionFileExists = .false.
-          inquire(file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr), exist=projectionsFileExists)
-          if (.not. projectionFileExists) open(84, file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr)) 
-
-          do ib = 1, WDES%NB_TOT
-
-            if (.not. wfcFileExists) then
-              do ipw = 1, NRPLWV 
-
-                write(83,*) W%CPTWFP(ipw,ib,ik,1)
-
-              enddo
-
-            endif
-
-            if (.not. projectionFileExists) then
-              do ipr = 1, WDES%NPRO
-                !! @todo Validate loop variables with Georgios @endtodo
-
-                write(84,*) W%CPROJ(ipr,ib,ik,1)
-
-              enddo
-            endif
-
-          enddo
+            !projectionFileExists = .false.
+            !inquire(file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr), exist=projectionsFileExists)
+            !if (.not. projectionFileExists) then 
             
-          if (.not. projectorFileExists) close(82) 
-          if (.not. wfcFileExists) close(83) 
-          if (.not. projectionFileExists) close(84) 
+            open(84, file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr)) 
 
-        io_end
+            do ib = 1, WDES%NB_TOT
 
+                do ipw = 1, NRPLWV 
+
+                  write(83,*) W%CPTWFP(ipw,ib,ik,1)
+
+                enddo
+
+                do ipr = 1, WDES%NPRO
+                  !! @todo Validate loop variables with Georgios @endtodo
+
+                  write(84,*) W%CPROJ(ipr,ib,ik,1)
+  
+                enddo
+
+            enddo
+            
+            !if (.not. projectorFileExists) close(82) 
+            !if (.not. wfcFileExists) close(83) 
+            !if (.not. projectionFileExists) close(84) 
+            close(82)
+            close(83)
+            close(84)
+
+          io_end
+
+        enddo
+        
       enddo
       
 !=======================================================================
