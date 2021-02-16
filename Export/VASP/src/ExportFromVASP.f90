@@ -2597,37 +2597,37 @@ program VASPExport
               !! \(G+k\) vectors at this k-point below the energy 
               !! cutoff
 
-            allocate(beta(WDES%NPRO,WDES%NGVECTOR(ik)))
+            allocate(beta(WDES%NGVECTOR(ik),WDES%NPRO))
             beta = 0.0_q
               !! Allocate space for `beta` at this k-point and 
               !! initialize to zero
 
-          
-            do ipw = 1, WDES%NGVECTOR(ik)
-              !! Calculate \(|\beta\rangle\) at this k-point
-              !! and plane wave
 
-              lmbase = 0
-                !! Initialize the offset for looping through the
-                !! projectors of different atoms
+            lmbase = 0
+              !! Initialize the offset for looping through the
+              !! projectors of different atoms
 
-              do iA = 1, T_INFO%NIONS
+            do iA = 1, T_INFO%NIONS
                 
-                iT = T_INFO%ITYP(iA)
-                  !! Store the index of the type for this atom
+              iT = T_INFO%ITYP(iA)
+                !! Store the index of the type for this atom
 
-                do ilm = 1, WDES%LMMAX(iT)
+              do ilm = 1, WDES%LMMAX(iT)
+          
+                do ipw = 1, WDES%NGVECTOR(ik)
+                  !! Calculate \(|\beta\rangle\) at this k-point
+                  !! and plane wave
 
-                  beta(lmbase+ilm,ipw) = beta(lmbase+ipw,ipw) + NONL_S%QPROJ(ipw,lmbase+ilm,iT,ik,isp)* &
+                  beta(ipw,lmbase+ilm) = beta(ipw,lmbase+ilm) + NONL_S%QPROJ(ipw,lmbase+ilm,iT,ik,isp)* &
                                          NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(lmbase+ilm,iT)
 
                 enddo
 
-                lmbase = lmbase + WDES%LMMAX(iT)
-                  !! Increment `lmbase` to loop over the projectors
-                  !! of the next atom
-
               enddo
+
+              lmbase = lmbase + WDES%LMMAX(iT)
+                !! Increment `lmbase` to loop over the projectors
+                !! of the next atom
 
             enddo
 
