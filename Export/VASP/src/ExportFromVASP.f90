@@ -194,8 +194,10 @@ program VASPExport
       ! Define custom variables:
       integer :: ib, ipw, ipr, ik, iT, iA, isp
         !! Loop indices
+      integer :: lmbase
+        !! Base for indexing through all projectors
 
-      complex(q) :: beta
+      complex(q), allocatable :: beta(:,:)
         !! Projectors
 
       character(len = 300) :: ikStr
@@ -2594,24 +2596,38 @@ program VASPExport
               !! Write out the number of projectors and number of 
               !! \(G+k\) vectors at this k-point below the energy 
               !! cutoff
+
+            allocate(beta(WDES%NPRO,WDES%NGVECTOR(ik)))
+            beta = 0.0_q
+              !! Allocate space for `beta` at this k-point and 
+              !! initialize to zero
+
           
             do ipw = 1, WDES%NGVECTOR(ik)
+              !! Calculate \(|\beta\rangle\) at this k-point
+              !! and plane wave
 
-              beta = 0.0_q
+              lmbase = 0
+                !! Initialize the offset for looping through the
+                !! projectors of different atoms
 
               do iA = 1, T_INFO%NIONS
-              
+                
                 iT = T_INFO%ITYP(iA)
+                  !! Store the index of the type for this atom
 
                 do ilm = 1, WDES%LMMAX(iT)
 
-                  beta = beta + NONL_S%QPROJ(ipw,ilm*iA,iT,ik,isp)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm*iA,iT)
+                  beta(lmbase+ilm,ipw) = beta(lmbase+ipw,ipw) + NONL_S%QPROJ(ipw,lmbase+ilm,iT,ik,isp)* &
+                                         NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(lmbase+ilm,iT)
 
                 enddo
 
-              enddo
+                lmbase = lmbase + WDES%LMMAX(iT)
+                  !! Increment `lmbase` to loop over the projectors
+                  !! of the next atom
 
-              write(82,*) beta
+              enddo
 
             enddo
 
