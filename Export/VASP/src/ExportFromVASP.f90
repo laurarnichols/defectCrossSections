@@ -2580,7 +2580,30 @@ program VASPExport
 
           projectorFileExists = .false.
           inquire(file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr), exist=projectorFileExists)
-          if (.not. projectorFileExists) open(82, file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr)) 
+          if (.not. projectorFileExists) then 
+            open(82, file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr)) 
+          
+            do ipw = 1, WDES%NGVECTOR(ik)
+
+              beta = 0.0_q
+
+              do iA = 1, T_INFO%NIONS
+              
+                iT = T_INFO%ITYP(iA)
+
+                do ilm = 1, WDES%LMMAX(iT)
+
+                  beta = beta + NONL_S%QPROJ(ipw,ilm*iA,iT,ik,1)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm*iA,iT)
+
+                enddo
+
+              enddo
+
+              write(82,*) beta
+
+            enddo
+
+          endif
 
           wfcFileExists = .false.
           inquire(file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr), exist=wfcFileExists)
@@ -2589,41 +2612,26 @@ program VASPExport
           projectionFileExists = .false.
           inquire(file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr), exist=projectionsFileExists)
           if (.not. projectionFileExists) open(84, file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr)) 
-          
-          do ipw = 1, WDES%NGVECTOR(ik)
-
-            beta = 0.0_q
-
-            do iA = 1, T_INFO%NIONS
-              
-              iT = T_INFO%ITYP(iA)
-
-              do ilm = 1, WDES%LMMAX(iT)
-
-                beta = beta + NONL_S%QPROJ(ipw,ilm*iA,iT,ik,1)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm*iA,iT)
-
-              enddo
-
-            enddo
-
-            write(82,*) beta
-
-          enddo
 
           do ib = 1, WDES%NB_TOT
 
-            do ipw = 1, NRPLWV 
+            if (.not. wfcFileExists) then
+              do ipw = 1, NRPLWV 
 
-              write(83,*) W%CPTWFP(ipw,ib,ik,1)
+                write(83,*) W%CPTWFP(ipw,ib,ik,1)
 
-            enddo
+              enddo
 
-            do ipr = 1, WDES%NPRO
-              !! @todo Validate loop variables with Georgios @endtodo
+            endif
 
-              write(84,*) W%CPROJ(ipr,ib,ik,1)
+            if (.not. projectionFileExists) then
+              do ipr = 1, WDES%NPRO
+                !! @todo Validate loop variables with Georgios @endtodo
 
-            enddo
+                write(84,*) W%CPROJ(ipr,ib,ik,1)
+
+              enddo
+            endif
 
           enddo
             
