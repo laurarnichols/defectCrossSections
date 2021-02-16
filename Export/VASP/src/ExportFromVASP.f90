@@ -2615,8 +2615,7 @@ program VASPExport
               do ilm = 1, WDES%LMMAX(iT)
           
                 do ipw = 1, WDES%NGVECTOR(ik)
-                  !! Calculate \(|\beta\rangle\) at this k-point
-                  !! and plane wave
+                  !! Calculate \(|\beta\rangle\)
 
                   beta(ipw,lmbase+ilm) = beta(ipw,lmbase+ilm) + NONL_S%QPROJ(ipw,lmbase+ilm,iT,ik,isp)* &
                                          NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(lmbase+ilm,iT)
