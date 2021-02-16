@@ -192,7 +192,7 @@ program VASPExport
 
 
       ! Define custom variables:
-      integer :: ib, ipw, ipr, ik, iT, iA
+      integer :: ib, ipw, ipr, ik, iT, iA, isp
         !! Loop indices
 
       complex(q) :: beta
@@ -2569,7 +2569,6 @@ program VASPExport
 !=======================================================================
 
       do isp = 1, ISPIN
-        !! @todo Define `isp` @endtodo
 
         do ik = 1, KPOINTS%NKPTS
           int2str(ik, ikStr)
@@ -2624,14 +2623,14 @@ program VASPExport
 
                 do ipw = 1, NRPLWV 
 
-                  write(83,*) W%CPTWFP(ipw,ib,ik,1)
+                  write(83,*) W%CPTWFP(ipw,ib,ik,isp)
 
                 enddo
 
                 do ipr = 1, WDES%NPRO
                   !! @todo Validate loop variables with Georgios @endtodo
 
-                  write(84,*) W%CPROJ(ipr,ib,ik,1)
+                  write(84,*) W%CPROJ(ipr,ib,ik,isp)
   
                 enddo
 
