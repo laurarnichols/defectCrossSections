@@ -2569,9 +2569,13 @@ program VASPExport
 !=======================================================================
 
       do isp = 1, ISPIN
+        !! Loop over spin
 
         do ik = 1, KPOINTS%NKPTS
+          !! Loop over k-points
+
           int2str(ik, ikStr)
+            !! Convert k-point index to string for file names
 
           io_begin
             !! Start io environment (needed for parallelism)
@@ -2584,6 +2588,12 @@ program VASPExport
               !! @todo Consider different output files for different spins. @endtodo
              
             open(82, file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr)) 
+              !! Open projectors file
+
+            write(82,*) WDES%NPRO, WDES%NGVECTOR(ik)
+              !! Write out the number of projectors and number of 
+              !! \(G+k\) vectors at this k-point below the energy 
+              !! cutoff
           
             do ipw = 1, WDES%NGVECTOR(ik)
 
