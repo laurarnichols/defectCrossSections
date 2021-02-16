@@ -193,6 +193,11 @@ program VASPExport
 
       ! Define custom variables:
       integer :: ib, ipw, ipr, ik, iT, iA
+        !! Loop indices
+
+      complex(q) :: beta
+        !! Projectors
+
       character(len = 300) :: ikStr
         !! String version of k-point index for
         !! output files
@@ -2584,23 +2589,24 @@ program VASPExport
           projectionFileExists = .false.
           inquire(file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr), exist=projectionsFileExists)
           if (.not. projectionFileExists) open(84, file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr)) 
-
-          !! @todo Figure out the best order for loops and combine @endtodo
-          !! @todo Update loops based on Georgios's email @endtodo
           
-          do iA = 1, T_INFO%NIONS
+          do ipw = 1, WDES%NGVECTOR(ik)
 
-            iT = T_INFO%ITYP(iA)
+            beta = 0.0_q
 
-            do ilm = 1, LMMAX_TOT
+            do iA = 1, T_INFO%NIONS
               
-              do ipw = 1, NRPLWV
+              iT = T_INFO%ITYP(iA)
 
-                write(82,*) NONL_S%QPROJ(ipw,ilm*iA,iT,ik,1)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm*iA,iT)
+              do ilm = 1, WDES%LMMAX(iT)
+
+                beta = beta + NONL_S%QPROJ(ipw,ilm*iA,iT,ik,1)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm*iA,iT)
 
               enddo
 
             enddo
+
+            write(82,*) beta
 
           enddo
 
