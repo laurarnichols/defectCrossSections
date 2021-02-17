@@ -2620,6 +2620,9 @@ program VASPExport
 
             enddo
 
+            !if (.not. projectorFileExists) close(82) 
+            close(82)
+
             !wfcFileExists = .false.
             !inquire(file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr), exist=wfcFileExists)
             !if (.not. wfcFileExists) then
@@ -2634,7 +2637,7 @@ program VASPExport
 
             do ib = 1, WDES%NB_TOT
 
-                do ipw = 1, NRPLWV 
+                do ipw = 1, WDES%NGVECTOR(ik)
 
                   write(83,*) W%CPTWFP(ipw,ib,ik,isp)
 
@@ -2649,10 +2652,8 @@ program VASPExport
 
             enddo
             
-            !if (.not. projectorFileExists) close(82) 
             !if (.not. wfcFileExists) close(83) 
             !if (.not. projectionFileExists) close(84) 
-            close(82)
             close(83)
             close(84)
 
