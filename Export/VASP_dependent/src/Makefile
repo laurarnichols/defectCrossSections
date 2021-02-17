@@ -7,7 +7,6 @@ all :
 	mv main.F origMain ; \
 	mv ExportFromVASP.f90 main.F ; \
 	cd ../ ; \
-	make veryclean ; \
 	make std ; \
 	cp bin/vasp_std $(Export_VASPDep_srcPath)/ExportFromVASP.x  ; \
 	cd $(Home_Path)/bin ; \
@@ -15,7 +14,6 @@ all :
 	cd $(VASP_Path)/src ; \
 	mv origMain main.F ; \
 	cd ../ ; \
-	make veryclean ; \
 	make std ; \
 	echo "" ; \
 	echo "" ; \
