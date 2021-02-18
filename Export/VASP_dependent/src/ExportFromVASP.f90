@@ -2572,7 +2572,7 @@ program VASPExport
         do ik = 1, KPOINTS%NKPTS
           !! Loop over k-points
 
-          int2str(ik, ikStr)
+          call int2str(ik, ikStr)
             !! Convert k-point index to string for file names
 
           io_begin
