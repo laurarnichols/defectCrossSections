@@ -111,6 +111,7 @@ initialize :
 	echo "QE-5.0.2_Path           = " $(QE-5.0.2_Path) >> make.sys ; \
 	echo "QE-5.3.0_Path           = " $(QE-5.3.0_Path) >> make.sys ; \
 	echo "QE-6.3_Path           = " $(QE-6.3_Path) >> make.sys ; \
+  echo "VASP_Path = " $(VASP_Path) >> make.sys ; \
 	echo "Export_QE-5.0.2_srcPath = " $(PWD)/$(Export_QE-5.0.2_srcPath) >> make.sys ; \
 	echo "Export_QE-5.3.0_srcPath = " $(PWD)/$(Export_QE-5.3.0_srcPath) >> make.sys ; \
 	echo "Export_QE-6.3_srcPath = " $(PWD)/$(Export_QE-6.3_srcPath) >> make.sys ; \
