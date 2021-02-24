@@ -1,21 +1,5 @@
 module wfcExportVASPMod
 
-  use constants, ONLY: dp, iostd, angToBohr, eVToRy, ryToHartree, pi
-
-  USE wrappers,      ONLY : f_mkdir_safe
-
-  !USE pwcom
-  USE cell_base, ONLY : celldm, ibrav
-  USE ener, ONLY : ef
-  USE wvfct, ONLY : et
-  USE lsda_mod, ONLY : isk
-
-  USE io_files,  ONLY : prefix, outdir, tmp_dir
-  USE iotk_module
-  use mpi
-  USE mp,        ONLY: mp_max, mp_get, mp_bcast, mp_rank
-  USE mp_wave, ONLY : mergewf
-
   implicit none
 
   ! Parameters:
@@ -453,9 +437,6 @@ module wfcExportVASPMod
   subroutine setUpBands()
     !! @todo Remove this once extracted from QE #end @endtodo
 
-    use mp_bands, only : nproc_bgrp, me_bgrp, intra_bgrp_comm, inter_bgrp_comm, &
-        my_bgrp_id
-
     implicit none
 
     nproc_bgrp = nproc_local
@@ -480,10 +461,6 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine setUpDiag()
     !! @todo Remove this once extracted from QE #end @endtodo
-
-    use mp_diag, only : np_ortho, me_ortho, nproc_ortho, leg_ortho, &
-        ortho_comm, ortho_parent_comm, me_ortho1, ortho_comm_id, &
-        ortho_row_comm, ortho_col_comm
 
     implicit none
 
@@ -565,10 +542,6 @@ module wfcExportVASPMod
   subroutine setGlobalVariables()
     !! @todo Remove this once extracted from QE #end @endtodo
 
-    use mp_world, only : world_comm, nproc, mpime
-    use mp_pools, only : npool, nproc_pool, me_pool, my_pool_id, intra_pool_comm, inter_pool_comm
-    use io_global, only : ionode, meta_ionode, meta_ionode_id
-
     implicit none
 
     ionode = ionode_local
@@ -594,9 +567,6 @@ module wfcExportVASPMod
     !!
     !! <h2>Walkthrough</h2>
     !!
-
-    use io_files, only : nd_nmbr
-      !! @todo Remove this once extracted from QE #end @endtodo
     
     implicit none
 
@@ -822,12 +792,6 @@ module wfcExportVASPMod
     !!
     !! <h2>Walkthrough</h2>
     !!
-
-    use cell_base, only : at, bg, omega, alat, tpiba
-    use wvfct, only : ecutwfc, nbnd
-    use klist, only : nkstot
-    use lsda_mod, only : nspin
-      !! @todo Remove this once extracted from QE #end @endtodo
 
     implicit none
 
@@ -1237,9 +1201,6 @@ module wfcExportVASPMod
     !!
     !! <h2>Walkthrough</h2>
     !!
-
-    use klist, only : xk
-      !! @todo Remove this once extracted from QE #end @endtodo
 
     implicit none
 
