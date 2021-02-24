@@ -237,10 +237,6 @@ module wfcExportVASPMod
     call getCommandLineArguments()
       !! * Get the number of pools from the command line
 
-    call setUpImages()
-      ! This sets up variables only used by QE, so it will be removed
-      ! once extracted from QE. Only one image will be used.
-
     call setUpPools()
       !! * Split up processors between pools and generate MPI
       !!   communicators for pools
@@ -329,25 +325,6 @@ module wfcExportVASPMod
 
     return
   end subroutine getCommandLineArguments
-
-!----------------------------------------------------------------------------
-  subroutine setUpImages()
-    !! @todo Remove this once extracted from QE #end @endtodo
-
-    use mp_images, only : nproc_image, me_image, intra_image_comm
-
-    implicit none
-
-    intra_image_comm = worldComm
-
-    nproc_image = nProcs
-      !! * Calculate how many processes there are per image
-
-    me_image = myid
-      !! * Get the index of the process within the image
-
-    return
-  end subroutine setUpImages
 
 !----------------------------------------------------------------------------
   subroutine setUpPools()
