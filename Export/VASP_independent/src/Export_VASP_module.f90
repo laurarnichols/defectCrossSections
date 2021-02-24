@@ -423,13 +423,9 @@ module wfcExportVASPMod
       write(iostd, '(/5X,"VASP wavefunction export program starts on ",A9," at ",A9)') &
              cdate, ctime
 
-#ifdef __MPI
       write(iostd, '(/5X,"Parallel version (MPI), running on ",I5," processors")') nProcs
 
       if(nPools > 1) write(iostd, '(5X,"K-points division:     nPools     = ",I7)') nPools
-#else
-      write(iostd, '(/5X,"Serial version")')
-#endif
 
     else
 
@@ -458,7 +454,6 @@ module wfcExportVASPMod
       !! Message to be sent
 
 
-#if defined(__MPI)
     ! Local variables:
     integer, parameter :: maxb = 100000
       !! Max buffer size
@@ -495,8 +490,6 @@ module wfcExportVASPMod
 
         msg((1+nbuf*maxb):msglen) = buff(1:(msglen-nbuf*maxb))
     endif
-
-#endif
 
     return
   end subroutine mpiSumIntV
@@ -565,8 +558,6 @@ module wfcExportVASPMod
     write( *, '("     stopping ...")' )
   
     call flush( iostd )
-
-#if defined (__MPI)
   
     id = 0
   
@@ -574,8 +565,6 @@ module wfcExportVASPMod
     call MPI_COMM_RANK( worldComm, id, mpierr )
     call MPI_ABORT( worldComm, mpierr, ierr )
     call MPI_FINALIZE( mpierr )
-
-#endif
 
     stop 2
 
@@ -1354,8 +1343,6 @@ module wfcExportVASPMod
       !! Number of G-vectors left over after evenly divided across processors
 
 
-#if defined (__MPI)
-
     if( nGVecsGlobal > 0 ) then
       nGVecsLocal = nGVecsGlobal/nProcs
         !!  * Calculate number of G-vectors per processor
@@ -1389,12 +1376,6 @@ module wfcExportVASPMod
       if (ig_l /= nGVecsLocal) call exitError('distributeGvecsOverProcessors', 'unexpected number of G-vecs for this processor', 1)
 
     endif
-
-#else
-
-    nGVecsLocal = nGVecsGlobal
-
-#endif
 
     return
   end subroutine distributeGvecsOverProcessors

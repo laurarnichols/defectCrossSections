@@ -15,9 +15,7 @@ program wfcExportVASPMain
   
   implicit none
 
-#ifdef __MPI
   call mpiInitialization()
-#endif
 
   call initialize(exportDir, VASPDir)
     !! * Set default values for input variables, open output file,

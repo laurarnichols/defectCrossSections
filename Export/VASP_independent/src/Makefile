@@ -24,7 +24,7 @@ mods :
 	make
 
 %.o : %.f90
-	$(mpif90) $(MODFLAGS) -O3 -c -fpp -D__MPI $<
+	$(mpif90) $(MODFLAGS) -O3 -c -fpp $<
 
 clean :
 
