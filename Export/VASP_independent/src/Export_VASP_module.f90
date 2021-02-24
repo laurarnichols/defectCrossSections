@@ -1,4 +1,6 @@
 module wfcExportVASPMod
+  
+  use constants, only: dp, iostd, angToBohr, eVToRy, ryToHartree, pi
 
   implicit none
 
