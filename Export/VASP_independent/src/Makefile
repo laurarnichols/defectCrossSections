@@ -25,6 +25,9 @@ mods :
 	cd $(CommonModules_srcPath) ; \
 	make
 
+%.o : %.f90
+	$(mpif90) $(MODFLAGS) -O3 -c $<
+
 clean :
 
 	@echo "" ; \
