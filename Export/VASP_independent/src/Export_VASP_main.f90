@@ -60,7 +60,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Calculating G-vectors"
 
-  call calculateGvecs(nb1max, nb2max, nb3max, recipSpaceLatticeVectors, gVecInCart, gIndexLocalToGlobal, gVecMillerIndices, nGVecsGlobal, &
+  call calculateGvecs(nb1max, nb2max, nb3max, recipSpaceLatticeVectors, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, nGVecsGlobal, &
       nGVecsLocal)
     !! * Calculate Miller indices and G-vectors and split
     !!   over processors
