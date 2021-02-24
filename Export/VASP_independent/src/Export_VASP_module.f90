@@ -182,7 +182,7 @@ module wfcExportVASPMod
 
   type (pseudo), allocatable :: ps(:)
 
-  namelist /inputParams/ prefix, QEDir, VASPDir, exportDir
+  namelist /inputParams/ QEDir, VASPDir, exportDir
 
 
   contains
@@ -412,8 +412,6 @@ module wfcExportVASPMod
       !! String for time
 
 
-    prefix = ''
-      !! @todo Create local version of `prefix` #end @endtodo
     QEDir = './'
     VASPDir = './'
     exportDir = './Export'
