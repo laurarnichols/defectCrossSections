@@ -2565,6 +2565,7 @@ program VASPExport
 !=======================================================================
 ! Write out projectors, projections, and wave functions
 !=======================================================================
+      write(IO%IU6,*) "Writing out projectors, wave functions, and projections"
 
       do isp = 1, INFO%ISPIN
         !! Loop over spin
