@@ -89,7 +89,7 @@ module wfcExportVASPMod
   integer, allocatable :: gToGkIndexMap(:,:)
     !! Index map from \(G\) to \(G+k\);
     !! indexed up to `nGVecsLocal` which
-    !! is greater than `maxNumPWsLocal` and
+    !! is greater than `maxNumPWsPool` and
     !! stored for each k-point
   integer, allocatable :: gKIndexGlobal(:,:)
     !! Indices of \(G+k\) vectors for each k-point
@@ -129,10 +129,10 @@ module wfcExportVASPMod
   integer :: maxNumPWsGlobal
     !! Max number of \(G+k\) vectors with energy
     !! less than `wfcECut` among all k-points
-  integer :: maxNumPWsLocal
+  integer :: maxNumPWsPool
     !! Maximum number of \(G+k\) vectors
     !! across all k-points for just this
-    !! processor
+    !! ppool
   integer :: nAtomTypes
     !! Number of types of atoms
   integer :: nSpins
@@ -446,7 +446,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine mpiSumIntV(msg, comm)
-    !! Perform `MPI_ALLREDUCE` for an integer vector
+    !! Perform `MPI_ALLREDUCE` sum for an integer vector
     !! using a max buffer size
     !!
     !! <h2>Walkthrough</h2>
@@ -1404,7 +1404,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, maxGkNum, nKPoints, nPWs1kGlobal, recipSpaceLatticeVectors, gVecInCart, &
-      wfcVecCut, kPosition, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsLocal)
+      wfcVecCut, kPosition, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
     !! sort the indices based on \(|G+k|^2\)
@@ -1444,7 +1444,7 @@ module wfcExportVASPMod
     integer, allocatable, intent(out) :: gToGkIndexMap(:,:)
       !! Index map from \(G\) to \(G+k\);
       !! indexed up to `nGVecsLocal` which
-      !! is greater than `maxNumPWsLocal` and
+      !! is greater than `maxNumPWsPool` and
       !! stored for each k-point
     integer, allocatable, intent(out) :: nGkLessECutLocal(:)
       !! Number of \(G+k\) vectors with energy
@@ -1459,10 +1459,10 @@ module wfcExportVASPMod
     integer, intent(out) :: maxNumPWsGlobal
       !! Max number of \(G+k\) vectors with energy
       !! less than `wfcECut` among all k-points
-    integer, intent(out) :: maxNumPWsLocal
+    integer, intent(out) :: maxNumPWsPool
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this 
-      !! processor
+      !! pool
 
 
     ! Local variables:
@@ -1480,11 +1480,15 @@ module wfcExportVASPMod
       !! Loop indices
     integer, allocatable :: igk(:)
       !! Index map from \(G\) to \(G+k\)
-      !! indexed up to `maxNumPWsLocal`
+      !! indexed up to `maxNumPWsPool`
     integer :: ngk_tmp
       !! Temporary variable to hold `nGkLessECutLocal`
       !! value so that don't have to keep accessing
       !! array
+    integer :: maxNumPWsLocal
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points for just this 
+      !! processor
 
     allocate(nGkLessECutLocal(nkPerPool))
     allocate(gToGkIndexMap(nkPerPool,nGVecsLocal))
@@ -1597,13 +1601,14 @@ module wfcExportVASPMod
       !! * Make sure that each processor gets some \(G+k\) vectors. If not,
       !!   should rerun with fewer processors.
 
-    CALL mp_max(maxNumPWsLocal, interPoolComm)
-      !! * When using pools, set `maxNumPWsLocal` to the maximum value across pools
-      !! @todo Change call to QE `mp_max` to actual call to `MPI_ALLREDUCE` here @endtodo
+    call MPI_ALLREDUCE(maxNumPWsLocal, maxNumPWsPool, 1, MPI_INTEGER, MPI_MAX, interPoolComm, ierr)
+    if(ierr /= 0) call exitError('reconstructFFTGrid', 'error in mpi_allreduce', ierr)
+      !! * When using pools, set `maxNumPWsPool` to the maximum value of `maxNumPWsLocal` 
+      !!   in the pool 
 
 
-    allocate(gKIndexLocalToGlobal(maxNumPWsLocal,nkPerPool))
-    allocate(igk(maxNumPWsLocal))
+    allocate(gKIndexLocalToGlobal(maxNumPWsPool,nkPerPool))
+    allocate(igk(maxNumPWsPool))
 
     gKIndexLocalToGlobal = 0
     igk = 0
@@ -1631,7 +1636,7 @@ module wfcExportVASPMod
         
       enddo
      
-      gKIndexLocalToGlobal(ngk_tmp+1:maxNumPWsLocal, ik) = 0
+      gKIndexLocalToGlobal(ngk_tmp+1:maxNumPWsPool, ik) = 0
 
     enddo
 
@@ -2327,7 +2332,7 @@ module wfcExportVASPMod
   end subroutine readPOTCAR
 
 !----------------------------------------------------------------------------
-  subroutine writeKInfo(nKPoints, maxNumPWsLocal, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, &
+  subroutine writeKInfo(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, &
       maxGIndexGlobal, maxNumPWsGlobal, bandOccupation, kWeight, kPosition, gKIndexGlobal)
     !! Calculate the highest occupied band for each k-point,
     !! gather the \(G+k\) vector indices in single, global 
@@ -2341,15 +2346,15 @@ module wfcExportVASPMod
     ! Input variables:
     integer, intent(in) :: nKPoints
       !! Total number of k-points
-    integer, intent(in) :: maxNumPWsLocal
+    integer, intent(in) :: maxNumPWsPool
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this 
       !! processor
 
-    integer, intent(in) :: gKIndexLocalToGlobal(maxNumPWsLocal, nkPerPool)
+    integer, intent(in) :: gKIndexLocalToGlobal(maxNumPWsPool, nkPerPool)
       !! Local to global indices for \(G+k\) vectors 
       !! ordered by magnitude at a given k-point;
-      !! the first index goes up to `maxNumPWsLocal`,
+      !! the first index goes up to `maxNumPWsPool`,
       !! but only valid values are up to `nGkLessECutLocal`
     integer, intent(in) :: nBands
       !! Total number of bands
@@ -2432,7 +2437,7 @@ module wfcExportVASPMod
 
       if (ionode) write(iostd,*) "Processing k-point ", ik
 
-      call getGlobalGkIndices(nKPoints, maxNumPWsLocal, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
+      call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
           maxNumPWsGlobal, gKIndexGlobal)
         !! * For each k-point, gather all of the \(G+k\) indices
         !!   among all processors in a single global array
@@ -2510,7 +2515,7 @@ module wfcExportVASPMod
   end subroutine getGroundState
 
 !----------------------------------------------------------------------------
-  subroutine getGlobalGkIndices(nKPoints, maxNumPWsLocal, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
+  subroutine getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
       maxNumPWsGlobal, gKIndexGlobal)
     !! Gather the \(G+k\) vector indices in single, global 
     !! array
@@ -2523,15 +2528,15 @@ module wfcExportVASPMod
     ! Input variables:
     integer, intent(in) :: nKPoints
       !! Total number of k-points
-    integer, intent(in) :: maxNumPWsLocal
+    integer, intent(in) :: maxNumPWsPool
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this 
       !! processor
 
-    integer, intent(in) :: gKIndexLocalToGlobal(maxNumPWsLocal, nkPerPool)
+    integer, intent(in) :: gKIndexLocalToGlobal(maxNumPWsPool, nkPerPool)
       !! Local to global indices for \(G+k\) vectors 
       !! ordered by magnitude at a given k-point;
-      !! the first index goes up to `maxNumPWsLocal`,
+      !! the first index goes up to `maxNumPWsPool`,
       !! but only valid values are up to `nGkLessECutLocal`
     integer, intent(in) :: ik
       !! Index of current k-point
@@ -2985,8 +2990,8 @@ module wfcExportVASPMod
 !        ! will either have `becp%r(nkb,nbnd)` (real) or `becp%k(nkb,nbnd)`
 !        ! (complex)
 !
-!      allocate(igk(maxNumPWsLocal))
-!        !! @todo Add `maxNumPWsLocal` as an input variable #thistask @endtodo
+!      allocate(igk(maxNumPWsPool))
+!        !! @todo Add `maxNumPWsPool` as an input variable #thistask @endtodo
 !      
 !      igk = 0
 !    

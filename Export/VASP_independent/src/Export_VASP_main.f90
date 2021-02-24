@@ -71,7 +71,7 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Reconstructing FFT grid"
 
   call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, maxGkNum, nKPoints, nPWs1kGlobal, recipSpaceLatticeVectors, gVecInCart, &
-      wfcVecCut, kPosition, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsLocal)
+      wfcVecCut, kPosition, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
     !! * Determine which G-vectors result in \(G+k\)
     !!   below the energy cutoff for each k-point and
     !!   sort the indices based on \(|G+k|^2\)
@@ -104,7 +104,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Writing k-point info"
 
-  call writeKInfo(nKPoints, maxNumPWsLocal, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, maxNumPWsGlobal, &
+  call writeKInfo(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, maxNumPWsGlobal, &
       bandOccupation, kWeight, kPosition, gKIndexGlobal)
     !! * Calculate ground state and global \(G+k\) indices
     !!   and write out k-point information to `input` file
