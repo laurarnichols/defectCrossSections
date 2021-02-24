@@ -2634,6 +2634,7 @@ program VASPExport
             !if (.not. projectionFileExists) then 
             
             open(84, file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr)) 
+            write(84, '("# Complex projections <beta|psi>. Format: ''(2ES24.15E3)''")')
 
             do ib = 1, WDES%NB_TOT
 
@@ -2646,7 +2647,7 @@ program VASPExport
                 do ipr = 1, WDES%NPRO
                   !! @todo Validate loop variables with Georgios @endtodo
 
-                  write(84,*) W%CPROJ(ipr,ib,ik,isp)
+                  write(84,'(2ES24.15E3)') W%CPROJ(ipr,ib,ik,isp)
   
                 enddo
 
