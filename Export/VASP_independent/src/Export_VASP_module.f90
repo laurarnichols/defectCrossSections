@@ -414,12 +414,6 @@ module wfcExportVASPMod
     VASPDir = './'
     exportDir = './Export'
 
-#ifdef __INTEL_COMPILER
-    call remove_stack_limit()
-      !! * Removed the stack limit because Intel compiler allocates a lot of stack space
-      !!   which leads to seg faults and crash. This always works unlike `ulimit -s unlimited`
-#endif
-
     call cpu_time(tStart)
 
     call date_and_time(cdate, ctime)
