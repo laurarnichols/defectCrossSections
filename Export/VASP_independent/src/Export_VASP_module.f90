@@ -411,9 +411,6 @@ module wfcExportVASPMod
     character(len=10) :: ctime
       !! String for time
 
-    character(len=6), external :: int_to_char
-      !! @todo Remove this once extracted from QE #end @endtodo
-
 
     prefix = ''
       !! @todo Create local version of `prefix` #end @endtodo
@@ -430,13 +427,6 @@ module wfcExportVASPMod
     call cpu_time(tStart)
 
     call date_and_time(cdate, ctime)
-
-#ifdef __MPI
-    nd_nmbr  = trim(int_to_char(myid+1))
-      !! @todo Create local version of `nd_nmbr` #end @endtodo
-#else
-    nd_nmbr = ' '
-#endif
 
     if(ionode) then
 
