@@ -241,11 +241,6 @@ module wfcExportVASPMod
       !! * Split up processors between pools and generate MPI
       !!   communicators for pools
 
-    call setGlobalVariables()
-      ! This sets up variables only used by QE, so it will be removed
-      ! once extracted from QE.
-
-
     return
   end subroutine mpiInitialization
 
@@ -383,24 +378,6 @@ module wfcExportVASPMod
 
     return
   end subroutine setUpPools
-
-!----------------------------------------------------------------------------
-  subroutine setGlobalVariables()
-    !! @todo Remove this once extracted from QE #end @endtodo
-
-    implicit none
-
-    ionode = ionode
-    meta_ionode = (myid == root)
-    meta_ionode_id = root
-    worldComm = worldComm
-    mpime = myid
-    nProcPerPool = nProcPerPool
-    me_pool = indexInPool
-    my_pool_id = myPoolId
-
-    return
-  end subroutine setGlobalVariables
 
 !----------------------------------------------------------------------------
   subroutine initialize(exportDir, QEDir, VASPDir)
