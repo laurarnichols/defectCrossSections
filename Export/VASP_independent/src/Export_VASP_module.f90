@@ -142,8 +142,6 @@ module wfcExportVASPMod
     !! Directory to be used for export
   character(len=256) :: mainOutputFile
     !! Main output file
-  character(len=256) :: QEDir
-    !! Directory with QE files
   character(len=256) :: VASPDir
     !! Directory with VASP files
 
@@ -182,7 +180,7 @@ module wfcExportVASPMod
 
   type (pseudo), allocatable :: ps(:)
 
-  namelist /inputParams/ QEDir, VASPDir, exportDir
+  namelist /inputParams/ VASPDir, exportDir
 
 
   contains
@@ -380,7 +378,7 @@ module wfcExportVASPMod
   end subroutine setUpPools
 
 !----------------------------------------------------------------------------
-  subroutine initialize(exportDir, QEDir, VASPDir)
+  subroutine initialize(exportDir, VASPDir)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -399,8 +397,6 @@ module wfcExportVASPMod
     ! Output variables:
     character(len=256), intent(out) :: exportDir
       !! Directory to be used for export
-    character(len=256), intent(out) :: QEDir
-      !! Directory with QE files
     character(len=256), intent(out) :: VASPDir
       !! Directory with VASP files
 
@@ -412,7 +408,6 @@ module wfcExportVASPMod
       !! String for time
 
 
-    QEDir = './'
     VASPDir = './'
     exportDir = './Export'
 
