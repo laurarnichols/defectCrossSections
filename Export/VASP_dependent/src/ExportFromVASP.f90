@@ -2645,7 +2645,6 @@ program VASPExport
                 enddo
 
                 do ipr = 1, WDES%NPRO
-                  !! @todo Validate loop variables with Georgios @endtodo
 
                   write(84,'(2ES24.15E3)') W%CPROJ(ipr,ib,ik,isp)
   
