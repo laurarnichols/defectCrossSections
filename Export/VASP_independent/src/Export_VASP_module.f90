@@ -1097,9 +1097,6 @@ module wfcExportVASPMod
     call MPI_BCAST(eigenE, size(eigenE), MPI_COMPLEX, root, worldComm, ierr)
     call MPI_BCAST(nPWs1kGlobal, size(nPWs1kGlobal), MPI_INTEGER, root, worldComm, ierr)
 
-    xk(:,1:nKPoints) = kPosition
-      !! @todo Remove this once extracted from QE #end @endtodo
-
     return
   end subroutine readWavefunction
 
