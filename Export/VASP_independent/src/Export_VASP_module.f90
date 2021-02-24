@@ -775,15 +775,6 @@ module wfcExportVASPMod
       write(iostd,*) 
     endif
 
-    at = realSpaceLatticeVectors/alat
-    bg = recipSpaceLatticeVectors/tpiba
-    omega = omega
-    ecutwfc = wfcECut
-    nbnd = nBands
-    nkstot = nKPoints
-    nspin = nSpins
-      !! @todo Remove QE variable assignment once extracted from QE #end @endtodo
-
     return
   end subroutine readWAVECAR
 
