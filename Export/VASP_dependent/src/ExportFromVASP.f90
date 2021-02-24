@@ -2566,7 +2566,7 @@ program VASPExport
 ! Write out projectors, projections, and wave functions
 !=======================================================================
 
-      do isp = 1, ISPIN
+      do isp = 1, INFO%ISPIN
         !! Loop over spin
 
         do ik = 1, KPOINTS%NKPTS
