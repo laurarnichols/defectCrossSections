@@ -241,10 +241,6 @@ module wfcExportVASPMod
       !! * Split up processors between pools and generate MPI
       !!   communicators for pools
 
-    call setUpBands()
-      ! This sets up variables only used by QE, so it will be removed
-      ! once extracted from QE. 
-
     call setUpDiag()
       ! This sets up variables only used by QE, so it will be removed
       ! once extracted from QE. 
@@ -391,31 +387,6 @@ module wfcExportVASPMod
 
     return
   end subroutine setUpPools
-
-!----------------------------------------------------------------------------
-  subroutine setUpBands()
-    !! @todo Remove this once extracted from QE #end @endtodo
-
-    implicit none
-
-    nproc_bgrp = nProcs
-
-    me_bgrp = myid
-
-    call MPI_BARRIER(intraPoolComm, ierr)
-    if(ierr /= 0) call mpiExitError(8010)
-
-    call MPI_COMM_SPLIT(intraPoolComm, my_bgrp_id, myid, intra_bgrp_comm, ierr)
-    if(ierr /= 0) call mpiExitError(8011)
-
-    call MPI_BARRIER(intraPoolComm, ierr)
-    if(ierr /= 0) call mpiExitError(8012)
-
-    call MPI_COMM_SPLIT(intraPoolComm, me_bgrp, myid, inter_bgrp_comm, ierr)
-    if(ierr /= 0) call mpiExitError(8013)
-
-    return
-  end subroutine setUpBands
 
 !----------------------------------------------------------------------------
   subroutine setUpDiag()
