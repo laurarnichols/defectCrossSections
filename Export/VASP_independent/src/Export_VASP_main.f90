@@ -129,7 +129,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Writing cell info"
 
-  call writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realSpaceLatticeVectors, recipSpaceLatticeVectors, atomPositions, nAtomEachType)
+  call writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realSpaceLatticeVectors, recipSpaceLatticeVectors, atomPositions, nAtomsEachType)
     !! * Write out the real- and reciprocal-space lattice vectors, 
     !!   the number of atoms, the number of types of atoms, the
     !!   final atom positions, number of bands, and number of spins,
@@ -143,7 +143,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Writing pseudo info"
 
-  call writePseudoInfo(nAtomTypes, nAtomEachType, ps)
+  call writePseudoInfo(nAtomTypes, nAtomsEachType, ps)
     !! * For each atom type, write out the element name,
     !!   number of atoms of this type, projector info,
     !!   radial grid info, and partial waves
