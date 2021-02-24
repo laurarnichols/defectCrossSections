@@ -2612,6 +2612,7 @@ program VASPExport
                   !! Calculate \(|\beta\rangle\)
 
                   write(82,'(2ES24.15E3)') NONL_S%QPROJ(ipw,lmbase+ilm,iT,ik,isp)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(lmbase+ilm,iT)
+                    !! @todo Figure out if projectors are sorted differently and if that matters @endtodo
 
                 enddo
 
