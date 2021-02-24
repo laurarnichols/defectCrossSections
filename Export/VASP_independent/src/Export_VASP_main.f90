@@ -25,7 +25,7 @@ program wfcExportVASPMain
     !! * Set default values for input variables, open output file,
     !!   and start timers
 
-  if ( ionode_local ) then
+  if ( ionode ) then
     
     read(5, inputParams, iostat=ios)
       !! * Read input variables
@@ -40,133 +40,133 @@ program wfcExportVASPMain
       !! * Set the name of the main output file for export
     
     write(iostd,*) "Opening file "//trim(mainOutputFile)
-    open(mainout, file=trim(mainOutputFile))
+    open(mainOutFileUnit, file=trim(mainOutputFile))
       !! * Open main output file
 
   endif
 
 
-  if (ionode_local) write(iostd,*) "Reading WAVECAR"
+  if (ionode) write(iostd,*) "Reading WAVECAR"
 
-  call readWAVECAR(VASPDir, at_local, bg_local, ecutwfc_local, occ, omega_local, vcut_local, &
-      xk_local, nb1max, nb2max, nb3max, nbnd_local, ngk_max, nkstot_local, nplane_g, nspin_local, &
+  call readWAVECAR(VASPDir, realSpaceLatticeVectors, recipSpaceLatticeVectors, wfcECut, bandOccupation, omega, wfcVecCut, &
+      kPosition, nb1max, nb2max, nb3max, nBands, maxGkNum, nKPoints, nPWs1kGlobal, nSpins, &
       eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 
-  if (ionode_local) write(iostd,*) "Done reading WAVECAR"
+  if (ionode) write(iostd,*) "Done reading WAVECAR"
 
 
-  call distributeKpointsInPools(nkstot_local)
+  call distributeKpointsInPools(nKPoints)
     !! * Figure out how many k-points there should be per pool
 
 
-  if (ionode_local) write(iostd,*) "Calculating G-vectors"
+  if (ionode) write(iostd,*) "Calculating G-vectors"
 
-  call calculateGvecs(nb1max, nb2max, nb3max, bg_local, gCart_local, ig_l2g, mill_g, ngm_g_local, &
-      ngm_local)
+  call calculateGvecs(nb1max, nb2max, nb3max, recipSpaceLatticeVectors, gVecInCart, gIndexLocalToGlobal, gVecMillerIndices, nGVecsGlobal, &
+      nGVecsLocal)
     !! * Calculate Miller indices and G-vectors and split
     !!   over processors
 
-  if (ionode_local) write(iostd,*) "Done calculating G-vectors"
+  if (ionode) write(iostd,*) "Done calculating G-vectors"
 
 
-  if (ionode_local) write(iostd,*) "Reconstructing FFT grid"
+  if (ionode) write(iostd,*) "Reconstructing FFT grid"
 
-  call reconstructFFTGrid(ngm_local, ig_l2g, ngk_max, nkstot_local, nplane_g, bg_local, gCart_local, &
-      vcut_local, xk_local, igk_l2g, igk_large, ngk_local, ngk_g, npw_g, npwx_g, npwx_local)
+  call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, maxGkNum, nKPoints, nPWs1kGlobal, recipSpaceLatticeVectors, gVecInCart, &
+      wfcVecCut, kPosition, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsLocal)
     !! * Determine which G-vectors result in \(G+k\)
     !!   below the energy cutoff for each k-point and
     !!   sort the indices based on \(|G+k|^2\)
 
-  if (ionode_local) write(iostd,*) "Done reconstructing FFT grid"
+  if (ionode) write(iostd,*) "Done reconstructing FFT grid"
 
 
-  deallocate(ig_l2g)
-  deallocate(gCart_local)
-  deallocate(nplane_g)
+  deallocate(gIndexLocalToGlobal)
+  deallocate(gVecInCart)
+  deallocate(nPWs1kGlobal)
 
-  if (ionode_local) write(iostd,*) "Reading vasprun.xml"
+  if (ionode) write(iostd,*) "Reading vasprun.xml"
 
-  call read_vasprun_xml(at_local, nkstot_local, VASPDir, eFermi, wk_local, ityp, nat, nsp)
+  call read_vasprun_xml(realSpaceLatticeVectors, nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
-  if (ionode_local) write(iostd,*) "Done reading vasprun.xml"
+  if (ionode) write(iostd,*) "Done reading vasprun.xml"
 
 
-  allocate(ps(nsp))
+  allocate(ps(nAtomTypes))
 
 
-  if (ionode_local) write(iostd,*) "Reading POTCAR"
+  if (ionode) write(iostd,*) "Reading POTCAR"
 
-  call readPOTCAR(nsp, VASPDir, ps)
+  call readPOTCAR(nAtomTypes, VASPDir, ps)
     !! * Read in pseudopotential information from POTCAR
 
-  if (ionode_local) write(iostd,*) "Done reading POTCAR"
+  if (ionode) write(iostd,*) "Done reading POTCAR"
 
 
-  if (ionode_local) write(iostd,*) "Writing k-point info"
+  if (ionode) write(iostd,*) "Writing k-point info"
 
-  call writeKInfo(nkstot_local, npwx_local, igk_l2g, nbnd_local, ngk_g, ngk_local, npw_g, npwx_g, &
-      occ, wk_local, xk_local, igwk)
+  call writeKInfo(nKPoints, maxNumPWsLocal, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, maxNumPWsGlobal, &
+      bandOccupation, kWeight, kPosition, gKIndexGlobal)
     !! * Calculate ground state and global \(G+k\) indices
     !!   and write out k-point information to `input` file
 
-  if (ionode_local) write(iostd,*) "Done writing k-point info"
+  if (ionode) write(iostd,*) "Done writing k-point info"
 
 
-  deallocate(wk_local)
+  deallocate(kWeight)
 
-  if (ionode_local) write(iostd,*) "Writing grid info"
+  if (ionode) write(iostd,*) "Writing grid info"
 
-  call writeGridInfo(ngm_g_local, nkstot_local, npwx_g, igwk, mill_g, ngk_g, npw_g, exportDir)
+  call writeGridInfo(nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndices, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
     !! * Write out grid boundaries and miller indices
     !!   for just \(G+k\) combinations below cutoff energy
     !!   in one file and all miller indices in another 
     !!   file
 
-  if (ionode_local) write(iostd,*) "Done writing grid info"
+  if (ionode) write(iostd,*) "Done writing grid info"
       
 
-  deallocate(mill_g)
+  deallocate(gVecMillerIndices)
 
-  if (ionode_local) write(iostd,*) "Writing cell info"
+  if (ionode) write(iostd,*) "Writing cell info"
 
-  call writeCellInfo(ityp, nat, nbnd_local, nsp, nspin_local, at_local, bg_local, tau, nnTyp)
+  call writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realSpaceLatticeVectors, recipSpaceLatticeVectors, atomPositions, nAtomEachType)
     !! * Write out the real- and reciprocal-space lattice vectors, 
     !!   the number of atoms, the number of types of atoms, the
     !!   final atom positions, number of bands, and number of spins,
     !!   then calculate the number of atoms of each type
 
-  if (ionode_local) write(iostd,*) "Done writing cell info"
+  if (ionode) write(iostd,*) "Done writing cell info"
 
   
-  deallocate(ityp)
-  deallocate(tau)
+  deallocate(iType)
+  deallocate(atomPositions)
 
-  if (ionode_local) write(iostd,*) "Writing pseudo info"
+  if (ionode) write(iostd,*) "Writing pseudo info"
 
-  call writePseudoInfo(nsp, nnTyp, ps)
+  call writePseudoInfo(nAtomTypes, nAtomEachType, ps)
     !! * For each atom type, write out the element name,
     !!   number of atoms of this type, projector info,
     !!   radial grid info, and partial waves
 
-  if (ionode_local) write(iostd,*) "Done writing pseudo info"
+  if (ionode) write(iostd,*) "Done writing pseudo info"
 
 
-  if (ionode_local) write(stdout,*) "Writing eigenvalues"
+  if (ionode) write(stdout,*) "Writing eigenvalues"
 
-  call writeEigenvalues(nbnd_local, nkstot_local, nspin_local, eFermi, occ, eigenE)
+  call writeEigenvalues(nBands, nKPoints, nSpins, eFermi, bandOccupation, eigenE)
     !! * Write Fermi energy and eigenvalues and occupations for each band
 
-  if (ionode_local) write(iostd,*) "Done writing eigenvalues"
+  if (ionode) write(iostd,*) "Done writing eigenvalues"
 
 
   deallocate(eigenE)
-  deallocate(occ)
+  deallocate(bandOccupation)
 
-  if (ionode_local) close(mainout)
+  if (ionode) close(mainOutFileUnit)
  
-  if (ionode_local) write(iostd,*) "************ VASP Export complete! ************"
+  if (ionode) write(iostd,*) "************ VASP Export complete! ************"
 
 END PROGRAM wfcExportVASPMain
 
