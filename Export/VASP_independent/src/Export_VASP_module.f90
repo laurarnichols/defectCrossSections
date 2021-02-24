@@ -1485,6 +1485,9 @@ module wfcExportVASPMod
       !! Temporary variable to hold `nGkLessECutLocal`
       !! value so that don't have to keep accessing
       !! array
+    integer :: maxGIndexLocal
+      !! Maximum G-vector index among all \(G+k\)
+      !! for just this processor
     integer :: maxNumPWsLocal
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this 
@@ -1602,7 +1605,7 @@ module wfcExportVASPMod
       !!   should rerun with fewer processors.
 
     call MPI_ALLREDUCE(maxNumPWsLocal, maxNumPWsPool, 1, MPI_INTEGER, MPI_MAX, interPoolComm, ierr)
-    if(ierr /= 0) call exitError('reconstructFFTGrid', 'error in mpi_allreduce', ierr)
+    if(ierr /= 0) call exitError('reconstructFFTGrid', 'error in mpi_allreduce 1', ierr)
       !! * When using pools, set `maxNumPWsPool` to the maximum value of `maxNumPWsLocal` 
       !!   in the pool 
 
@@ -1648,12 +1651,11 @@ module wfcExportVASPMod
 
     deallocate(igk)
 
-    maxGIndexGlobal = maxval(gKIndexLocalToGlobal(:,:))
-    call mp_max( maxGIndexGlobal, worldComm )
+    maxGIndexLocal = maxval(gKIndexLocalToGlobal(:,:))
+    call MPI_ALLREDUCE(maxGIndexLocal, maxGIndexGlobal, 1, MPI_INTEGER, MPI_MAX, worldComm, ierr)
+    if(ierr /= 0) call exitError('reconstructFFTGrid', 'error in mpi_allreduce 2', ierr)
       !! * Calculate the maximum G-vector index 
       !!   among all \(G+k\) and processors
-      !! @todo Change call to QE `mp_max` to actual call to `MPI_ALLREDUCE` here @endtodo
-
 
     maxNumPWsGlobal = maxval(nGkLessECutGlobal(1:nKPoints))
       !! * Calculate the maximum number of G-vectors 
