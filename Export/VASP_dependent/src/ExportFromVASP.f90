@@ -2589,7 +2589,10 @@ program VASPExport
             open(82, file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr)) 
               !! Open projectors file
 
-            write(82,*) WDES%NPRO, WDES%NGVECTOR(ik)
+            write(82, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
+              !! Write header for projectors file
+
+            write(82,'(2i10)') WDES%NPRO, WDES%NGVECTOR(ik)
               !! Write out the number of projectors and number of 
               !! \(G+k\) vectors at this k-point below the energy 
               !! cutoff
@@ -2608,7 +2611,7 @@ program VASPExport
                 do ipw = 1, WDES%NGVECTOR(ik)
                   !! Calculate \(|\beta\rangle\)
 
-                  write(82,*) NONL_S%QPROJ(ipw,lmbase+ilm,iT,ik,isp)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(lmbase+ilm,iT)
+                  write(82,'(2ES24.15E3)') NONL_S%QPROJ(ipw,lmbase+ilm,iT,ik,isp)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(lmbase+ilm,iT)
 
                 enddo
 
