@@ -241,10 +241,6 @@ module wfcExportVASPMod
       !! * Split up processors between pools and generate MPI
       !!   communicators for pools
 
-    call setUpDiag()
-      ! This sets up variables only used by QE, so it will be removed
-      ! once extracted from QE. 
-
     call setGlobalVariables()
       ! This sets up variables only used by QE, so it will be removed
       ! once extracted from QE.
@@ -387,86 +383,6 @@ module wfcExportVASPMod
 
     return
   end subroutine setUpPools
-
-!----------------------------------------------------------------------------
-  subroutine setUpDiag()
-    !! @todo Remove this once extracted from QE #end @endtodo
-
-    implicit none
-
-    integer :: nproc_all, color, key
-
-    call MPI_COMM_SIZE(intraPoolComm, nproc_all, ierr)
-    if (ierr /= 0) call mpiExitError( 8014 )
-
-    np_ortho = 1 
-
-    if( nproc_all >= 4*nproc_ortho ) then
-       !  Here we choose a processor every 4, in order not to stress memory BW
-       !  on multi core procs, for which further performance enhancements are
-       !  possible using OpenMP BLAS inside regter/cegter/rdiaghg/cdiaghg
-       !  (to be implemented)
-
-       color = 0
-       if( indexInPool < 4*nproc_ortho .AND. MOD( indexInPool, 4 ) == 0 ) color = 1
-       
-       leg_ortho = 4
-       
-    else if( nproc_all >= 2*nproc_ortho ) then
-       !  here we choose a processor every 2, in order not to stress memory BW
-       
-       color = 0
-       if( indexInPool < 2*nproc_ortho .AND. MOD( indexInPool, 2 ) == 0 ) color = 1
-       
-       leg_ortho = 2
-       
-    else
-       !  here we choose the first processors
-       
-       color = 0
-       if( indexInPool < nproc_ortho ) color = 1
-       !
-       leg_ortho = 1
-       !
-    end if
-
-    key = indexInPool
-    
-    call MPI_COMM_SPLIT(intraPoolComm, color, key, ortho_comm, ierr)
-    if(ierr /= 0) call mpiExitError(8015)
-      !  initialize the communicator for the new group by splitting the input communicator
-    
-    ortho_parent_comm = intraPoolComm
-      ! and remember where it comes from
-    
-    me_ortho1 = mp_rank( ortho_comm )
-      !  Computes coordinates of the processors, in row maior order
-    
-    IF( indexInPool == 0 .AND. me_ortho1 /= 0 ) &
-         CALL exitError( " init_ortho_group ", " wrong root task in ortho group ", ierr )
-    !
-    if( color == 1 ) then
-      ortho_comm_id = 1
-      CALL GRID2D_COORDS( 'R', me_ortho1, np_ortho(1), np_ortho(2), me_ortho(1), me_ortho(2) )
-      CALL GRID2D_RANK( 'R', np_ortho(1), np_ortho(2), me_ortho(1), me_ortho(2), ierr )
-      if( ierr /= me_ortho1 ) &
-          CALL exitError( " init_ortho_group ", " wrong task coordinates in ortho group ", ierr )
-      if( me_ortho1*leg_ortho /= indexInPool ) &
-          CALL exitError( " init_ortho_group ", " wrong rank assignment in ortho group ", ierr )
-
-      call MPI_COMM_SPLIT(ortho_comm, me_ortho(2), me_ortho(1), ortho_col_comm, ierr)
-      if(ierr /= 0) call mpiExitError(8017)
-      call MPI_COMM_SPLIT(ortho_comm, me_ortho(1), me_ortho(2), ortho_row_comm, ierr)
-      if(ierr /= 0) call mpiExitError(8018)
-
-    else
-       ortho_comm_id = 0
-       me_ortho(1) = me_ortho1
-       me_ortho(2) = me_ortho1
-    endif
-
-    return
-  end subroutine setUpDiag
 
 !----------------------------------------------------------------------------
   subroutine setGlobalVariables()
