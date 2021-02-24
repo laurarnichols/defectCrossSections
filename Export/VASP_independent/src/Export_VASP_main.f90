@@ -31,7 +31,7 @@ program wfcExportVASPMain
     if (ios /= 0) call exitError('export main', 'reading inputParams namelist', abs(ios))
       !! * Exit calculation if there's an error
     
-    ios = f_mkdir_safe(trim(exportDir))
+    call execute_command_line('mkdir -p '//trim(exportDir))
       !! * Make the export directory
     
     mainOutputFile = trim(exportDir)//"/input"
