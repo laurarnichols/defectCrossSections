@@ -7,12 +7,10 @@ MODFLAGS= -I$(CommonModules_srcPath) -I.
 EXPORTOBJS = Export_VASP_module.o Export_VASP_main.o
 COMMONMODS = $(CommonModules_srcPath)/commonmodules.a
 
-DEBUGFLAGS = -fcheck=all -Wall -Wextra -fbacktrace -Wconversion -pedantic -fbounds-check -ffpe-trap=zero,overflow,underflow,denormal,invalid -Og -g
-
 all : Export_VASPInd.x 
 
 Export_VASPInd.x : mods $(COMMONMODS) $(EXPORTOBJS)
-	$(mpif90) $(DEBUGFLAGS) $(MODFLAGS) -o $@	$(EXPORTOBJS) $(COMMONMODS)
+	$(mpif90) $(MODFLAGS) -o $@	$(EXPORTOBJS) $(COMMONMODS)
 	- ( cd $(Home_Path)/bin ; ln -fs $(Export_VASPInd_srcPath)/$@ . )
 	
 	@echo "" ; \
@@ -26,7 +24,7 @@ mods :
 	make
 
 %.o : %.f90
-	$(mpif90) $(MODFLAGS) -O3 -c -fpp $<
+	$(mpif90) $(MODFLAGS) -O3 -c -fpp -D__MPI $<
 
 clean :
 
