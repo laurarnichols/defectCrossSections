@@ -2632,6 +2632,8 @@ program VASPExport
             !if (.not. wfcFileExists) then
 
             open(83, file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr)) 
+            write(83, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
+            write(83, '("# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: ''(2ES24.15E3)''")')
 
             !projectionFileExists = .false.
             !inquire(file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr), exist=projectionsFileExists)
@@ -2644,7 +2646,7 @@ program VASPExport
 
                 do ipw = 1, WDES%NGVECTOR(ik)
 
-                  write(83,*) W%CPTWFP(ipw,ib,ik,isp)
+                  write(83,'(2ES24.15E3)') W%CPTWFP(ipw,ib,ik,isp)
 
                 enddo
 
