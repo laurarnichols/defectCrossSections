@@ -149,7 +149,7 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Done writing pseudo info"
 
 
-  if (ionode) write(mainOutFileUnit,*) "Writing eigenvalues"
+  if (ionode) write(iostd,*) "Writing eigenvalues"
 
   call writeEigenvalues(nBands, nKPoints, nSpins, eFermi, bandOccupation, eigenE)
     !! * Write Fermi energy and eigenvalues and occupations for each band
