@@ -7,6 +7,8 @@ MODFLAGS= -I$(CommonModules_srcPath) -I.
 EXPORTOBJS = Export_VASP_module.o Export_VASP_main.o
 COMMONMODS = $(CommonModules_srcPath)/commonmodules.a
 
+DEBUGFLAGS = -check -traceback -gen-interfaces 
+
 all : Export_VASPInd.x 
 
 Export_VASPInd.x : mods $(COMMONMODS) $(EXPORTOBJS)
@@ -15,7 +17,7 @@ Export_VASPInd.x : mods $(COMMONMODS) $(EXPORTOBJS)
 	
 	@echo "" ; \
 	echo "" ; \
-	echo "Module 'Export_QE-VASP' compiled successfully ! " ; \
+	echo "Module 'Export_VASPInd' compiled successfully ! " ; \
 	echo "" ; \
 	echo "" ;
 
@@ -24,7 +26,7 @@ mods :
 	make
 
 %.o : %.f90
-	$(mpif90) $(MODFLAGS) -O3 -c -fpp $<
+	$(mpif90) $(MODFLAGS) -O3 -c -assume byterecl -fpp $<
 
 clean :
 
