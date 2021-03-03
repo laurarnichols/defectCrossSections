@@ -675,10 +675,10 @@ module wfcExportVASPMod
       wfcECut = wfcECut*eVToRy
         !! * Convert energy from VASP from eV to Rydberg to match QE/TME expectation
 
-      wfcVecCut = sqrt(wfcECut/evToRy*c)
+      wfcVecCut = sqrt(wfcECut/evToRy*c)/angToBohr
         !! * Calculate vector cutoff from energy cutoff
 
-      realSpaceLatticeVectors = realSpaceLatticeVectors*angToBohr;
+      realSpaceLatticeVectors = realSpaceLatticeVectors*angToBohr
 
       nKPoints = nint(nkstot_real)
       nBands = nint(nbnd_real)
@@ -1483,7 +1483,6 @@ module wfcExportVASPMod
       write(iostd,*) "***************"
       write(iostd,*) "Determining G+k combinations less than energy cutoff"
     endif
-
 
     do ik = 1, nkPerPool
       !! * For each \(G+k\) combination, calculate the 
