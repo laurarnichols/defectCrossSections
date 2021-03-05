@@ -40,6 +40,7 @@ help :
 	@echo ""
 	@echo " Please use one of the following commands :"
 	@echo ""
+	@echo "    make all_QE-5.0.2             to built all the modules of the package using Quantum Espresso 5.0.2."
 	@echo "    make all_QE-5.3.0             to built all the modules of the package using Quantum Espresso 5.3.0."
 	@echo "    make all_QE-6.3             to built all the modules of the package using Quantum Espresso 6.3."
 	@echo "    make QE-5.3.0_dependent       to built all the Quantum Espresso 5.3.0 dependent modules."
