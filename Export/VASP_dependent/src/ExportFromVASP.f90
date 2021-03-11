@@ -193,6 +193,9 @@ program VASPExport
       ! Define custom variables:
       integer :: ib, ipw, ipr, ik, iT, iA, isp
         !! Loop indices
+      integer :: kStart
+        !! Initial k-point; used for restart
+        
       integer :: lmbase
         !! Base for indexing through all projectors
 
@@ -2565,20 +2568,22 @@ program VASPExport
 !=======================================================================
 ! Write out projectors, projections, and wave functions
 !=======================================================================
-      write(IO%IU6,*) "Writing out projectors, wave functions, and projections"
+      do_io write(IO%IU6,*) "Getting command line arguments"
+
+      call getCommandLineArguments(kStart)
+
+      do_io write(IO%IU6,*) "Writing out projectors, wave functions, and projections"
 
       do isp = 1, INFO%ISPIN
         !! Loop over spin
 
-        do ik = 1, KPOINTS%NKPTS
+        do ik = kStart, KPOINTS%NKPTS
           !! Loop over k-points
-
-          call int2str(ik, ikStr)
-            !! Convert k-point index to string for file names
-
+          
           io_begin
-            !! Start io environment (needed for parallelism)
-            !! @todo Figure out how variables are stored across processors @endtodo
+
+            call int2str(ik, ikStr)
+              !! Convert k-point index to string for file names
 
             !projectorFileExists = .false.
             !inquire(file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr), exist=projectorFileExists)
@@ -2668,6 +2673,7 @@ program VASPExport
         enddo
         
       enddo
+
       
 !=======================================================================
 ! breath a sigh of relief - you have finished
@@ -2681,6 +2687,81 @@ program VASPExport
       CALLMPI_C(M_exit())
 
   contains
+
+!----------------------------------------------------------------------------
+  subroutine getCommandLineArguments(kStart)
+    !! Get the command line arguments. This currently
+    !! only processes the number of pools
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Output variables:
+    integer, intent(out) :: kStart
+      !! Initial k-point; used for restart
+
+
+    ! Local variables:
+    integer :: ierr
+      !! Error return value
+    integer :: narg = 0
+      !! Arguments processed
+    integer :: nargs
+      !! Total number of command line arguments
+    integer :: kStart_ = 1
+      !! Input value for the initial k-point
+
+    character(len=256) :: arg = ' '
+      !! Command line argument
+    character(len=256) :: command_line = ' '
+      !! Command line arguments that were not processed
+
+
+    nargs = command_argument_count()
+      !! * Get the number of arguments input at command line
+
+    io_begin
+
+      do while (narg <= nargs)
+        call get_command_argument(narg, arg)
+          !! * Get the flag
+        write(IO%IU6,*) arg
+
+        narg = narg + 1
+
+        !> * Process the flag and store the following value
+        select case (trim(arg))
+          case('-ks', '-kStart') 
+            call get_command_argument(narg, arg)
+            write(IO%IU6,*) arg
+            read(arg, *) kStart_
+            narg = narg + 1
+          case default
+            command_line = trim(command_line) // ' ' // trim(arg)
+        end select
+      enddo
+
+      write(*,*) 'Unprocessed command line arguments: ' // trim(command_line)
+
+      if (kStart_ > 0) then
+        kStart = kStart_
+      else
+        write(*,*) 'WARNING: No value or invalid value for initial k-point: ', kStart_
+        write(*,*) 'Using default value for initial k-point of 1'
+
+        kStart = 1
+      endif
+    
+    io_end
+
+    CALLMPI( M_bcast_i( COMM_WORLD, kStart, 1))
+    
+    !if(ierr /= 0) call mpiExitError(8005)
+
+    return
+  end subroutine getCommandLineArguments
 
   !---------------------------------------------------------------------------------------------------------------------------------
   subroutine int2str(integ, string)
