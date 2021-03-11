@@ -11,7 +11,7 @@ module constants
     !! Conversion factor from Angstrom to Bohr
   real(kind = dp), parameter :: eVToHartree  = 1.0_dp/27.21138386_dp
     !! Conversion factor from eV to Hartree
-  real(kind = dp), parameter :: eVToRy = 0.073498618_dp
+  real(kind = dp), parameter :: eVToRy = 1.0_dp/13.60569301_dp
     !! Conversion factor from eV to Rydberg
   real(kind = dp), parameter :: HartreeToEv  = 27.21138386_dp
     !! Conversion factor from Hartree to eV

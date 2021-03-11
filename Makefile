@@ -12,9 +12,11 @@ QE-5.3.0_Path = ${HOME}/q-e-qe-5.3
 
 QE-6.3_Path = ${HOME}/qe-6.3
 
-f90 = ftn
+VASP_Path = ${HOME}/vasp.5.4.4
 
-mpif90 = ftn
+f90 = ifort
+
+mpif90 = mpif90
 
 
 ########################################################################
@@ -24,7 +26,7 @@ mpif90 = ftn
 ########################################################################
 
 
-all : initialize QE-5.0.2_dependent QE-5.3.0_dependent QE-6.3_dependent VASP_dependent TME LSF0 Mj LSF1 Sigma
+all : initialize QE-5.0.2_dependent QE-5.3.0_dependent QE-6.3_dependent VASP_independent VASP_dependent TME LSF0 Mj LSF1 Sigma
 
 help :
 
@@ -49,6 +51,8 @@ help :
 	@echo "    make Export_QE-5.0.2          to built the Quantum Espresso 5.0.2 dependent Export module."
 	@echo "    make Export_QE-5.3.0          to built the Quantum Espresso 5.3.0 dependent Export module."
 	@echo "    make Export_QE-6.3          to built the Quantum Espresso 6.3 dependent Export module."
+	@echo "    make Export_VASP_independent   to built the VASP independent Export from VASP module."
+	@echo "    make Export_VASP_dependent   to built the VASP dependent Export from VASP module."
 	@echo "    make TME                      to built the Transition Matrix Elements (TME) module."
 	@echo "    make Mj                       to built the Mj module."
 	@echo "    make LSF                      to built the Line Shape Function (LSF) module."
@@ -72,7 +76,8 @@ help :
 Export_QE-5.0.2_srcPath = Export/QE-5.0.2/src
 Export_QE-5.3.0_srcPath = Export/QE-5.3/src
 Export_QE-6.3_srcPath = Export/QE-6.3/src
-Export_VASP_srcPath = Export/VASP/src
+Export_VASPInd_srcPath = Export/VASP_independent/src
+Export_VASPDep_srcPath = Export/VASP_dependent/src
 TME_srcPath    = TME/src
 Mj_srcPath     = Mj/src
 LSF_srcPath    = LSF/src
@@ -89,7 +94,7 @@ all_QE-5.3.0 : initialize QE-5.3.0_dependent TME LSF0 Mj LSF1 Sigma
 
 all_QE-6.3 : initialize QE-6.3_dependent TME LSF0 Mj LSF1 Sigma
 
-all_VASP : initialize VASP_dependent TME LSF0 Mj LSF1 Sigma
+all_VASP : initialize VASP_independent VASP_dependent TME LSF0 Mj LSF1 Sigma
 
 QE-5.0.2_dependent : initialize Export_QE-5.0.2
 
@@ -97,7 +102,9 @@ QE-5.3.0_dependent : initialize Export_QE-5.3.0
 
 QE-6.3_dependent : initialize Export_QE-6.3
 
-VASP_dependent : initialize Export_VASP
+VASP_independent : initialize Export_VASP_independent
+
+VASP_dependent : initialize Export_VASP_dependent
 
 initialize :
 
@@ -106,10 +113,12 @@ initialize :
 	echo "QE-5.0.2_Path           = " $(QE-5.0.2_Path) >> make.sys ; \
 	echo "QE-5.3.0_Path           = " $(QE-5.3.0_Path) >> make.sys ; \
 	echo "QE-6.3_Path           = " $(QE-6.3_Path) >> make.sys ; \
+  echo "VASP_Path = " $(VASP_Path) >> make.sys ; \
 	echo "Export_QE-5.0.2_srcPath = " $(PWD)/$(Export_QE-5.0.2_srcPath) >> make.sys ; \
 	echo "Export_QE-5.3.0_srcPath = " $(PWD)/$(Export_QE-5.3.0_srcPath) >> make.sys ; \
 	echo "Export_QE-6.3_srcPath = " $(PWD)/$(Export_QE-6.3_srcPath) >> make.sys ; \
-	echo "Export_VASP_srcPath = " $(PWD)/$(Export_VASP_srcPath) >> make.sys ; \
+	echo "Export_VASPInd_srcPath = " $(PWD)/$(Export_VASPInd_srcPath) >> make.sys ; \
+	echo "Export_VASPDep_srcPath = " $(PWD)/$(Export_VASPDep_srcPath) >> make.sys ; \
 	echo "TME_srcPath    = " $(PWD)/$(TME_srcPath) >> make.sys ; \
 	echo "Mj_srcPath    = " $(PWD)/$(Mj_srcPath) >> make.sys ; \
 	echo "LSF_srcPath = " $(PWD)/$(LSF_srcPath) >> make.sys ; \
@@ -150,9 +159,14 @@ Export_QE-6.3 : initialize
 	@cd $(Export_QE-6.3_srcPath) ; \
 		make all
 
-Export_VASP : initialize
+Export_VASP_independent : initialize
 
-	@cd $(Export_VASP_srcPath) ; \
+	@cd $(Export_VASPInd_srcPath) ; \
+		make all
+
+Export_VASP_dependent : initialize
+
+	@cd $(Export_VASPDep_srcPath) ; \
 		make all
 
 TME : initialize
