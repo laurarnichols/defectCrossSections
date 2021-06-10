@@ -2602,10 +2602,6 @@ program VASPExport
               !! \(G+k\) vectors at this k-point below the energy 
               !! cutoff
 
-            lmbase = 0
-              !! Initialize the offset for looping through the
-              !! projectors of different atoms
-
             do iA = 1, T_INFO%NIONS
                 
               iT = T_INFO%ITYP(iA)
@@ -2616,16 +2612,16 @@ program VASPExport
                 do ipw = 1, WDES%NGVECTOR(ik)
                   !! Calculate \(|\beta\rangle\)
 
-                  write(82,'(2ES24.15E3)') NONL_S%QPROJ(ipw,lmbase+ilm,iT,ik,isp)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(lmbase+ilm,iT)
+                  write(82,'(2ES24.15E3)') NONL_S%QPROJ(ipw,ilm,iT,ik,1)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm,iT)
                     !! @todo Figure out if projectors are sorted differently and if that matters @endtodo
+                    !! @note
+                    !! The last index of `NONL_S%QPROJ` is only used if `LREAL=.FALSE.`
+                    !! and `LSPIRAL=.TRUE.`. This index is *not* over spin.
+                    !! @endnote
 
                 enddo
 
               enddo
-
-              lmbase = lmbase + WDES%LMMAX(iT)
-                !! Increment `lmbase` to loop over the projectors
-                !! of the next atom
 
             enddo
 
@@ -2658,6 +2654,14 @@ program VASPExport
                 do ipr = 1, WDES%NPRO
 
                   write(84,'(2ES24.15E3)') W%CPROJ(ipr,ib,ik,isp)
+                    !! @note
+                    !! The first index of the projections is over the 
+                    !! projectors. This index ranges from 1 to `WDES%NPRO`.
+                    !! You can also index this by using `ilm+lmbase` where
+                    !! `ilm` goes from 1 to `WDES%LMMAX(iT)` and `lmbase`
+                    !! gets incremented by that max value at the end of each
+                    !! loop over atom type `iT`.
+                    !! @endnote
   
                 enddo
 
