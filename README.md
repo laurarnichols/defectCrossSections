@@ -52,7 +52,7 @@ _Note: Make sure that your path does not have a `/` at the end or there will be 
 ## Contributing
 * First, make sure that you have the repo forked and cloned (see [Forking and Cloning the Repo and Compiling](#forking-and-cloning-the-repo-and-compiling))
 * You will make changes on your local copy, push them to your origin, and submit a pull request to the main repo
-* For more information on using git, see [Quick Git Guide](quickGitGuide.md)
+* For more detailed instructions and tips for using git, see [Quick Git Guide](quickGitGuide.md)
 
 ## Documentation
 
