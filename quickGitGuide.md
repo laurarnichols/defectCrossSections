@@ -25,8 +25,8 @@ git clone git@github.com:<your git username>/defectCrossSections.git
 4. Each time you make an isolated change, create a commit:
 	* Stage the file or folder using `git add FILE OR FOLDER`. 
 	* Complete commit using `git commit -m "COMMENT TO DESCRIBE THE INTENTION OF THE COMMIT"`. 
-  * If you mistakely commit something, you can revert (undo) the last commit using `git revert HEAD`.
-	* Push the changes from your local clone to the origin (what you see online) using `git push origin NAME-OF-BRANCH`.
+  	* If you mistakely commit something, you can revert (undo) the last commit using `git revert HEAD`.
+5. Push the changes from your local clone to the origin (what you see online) using `git push origin NAME-OF-BRANCH`.
 6. To merge your code, get online and submit a pull request from your branch in your fork to the main repo (see [this Git documentation for merging across forks](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork))
 7. To make new changes, 
 
