@@ -40,7 +40,7 @@ Here is a simple list of useful commands when contributing with git:
 * `git commit -m "COMMENT TO DESCRIBE THE INTENTION OF THE COMMIT"` makes the change official on your local copy
 * `git push origin NAME-OF-BRANCH` updates the the online version of your fork
 * `git revert HEAD` undoes the last commit on a branch
-* `git branch` lists the branches you have on your local copy; there will be a star by the branch your are currently on
+* `git branch` lists the branches you have on your local copy; there will be a star by the branch you are currently on
 * `git branch -d NAME-OF-BRANCH` will delete a given branch
 * `git diff` shows the difference between local, unstaged changes and the official (committed) version
 * `git checkout -- NAME-OF-FILE` deletes changes to a given file that have not been staged to commit
