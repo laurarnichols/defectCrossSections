@@ -22,13 +22,13 @@ git clone git@github.com:<your git username>/defectCrossSections.git
 2. To make changes, first create a new branch using `git checkout -b NAME-OF-BRANCH`. You can also switch to an existing branch
    using `git checkout NAME-OF-BRANCH`.
 3. You can now make changes to files and git will track the changes. At any point, you can use `git status` to see what files you have changed.
-4. Each time you make an isolated change, create a commit:
+4. A single project will have many tasks representing isolated changes. Each time you make an isolated change, create a commit:
 	* Stage the file or folder using `git add FILE OR FOLDER`. 
 	* Complete commit using `git commit -m "COMMENT TO DESCRIBE THE INTENTION OF THE COMMIT"`. 
   	* If you mistakely commit something, you can revert (undo) the last commit using `git revert HEAD`.
-5. Push the changes from your local clone to the origin (what you see online) using `git push origin NAME-OF-BRANCH`.
+5. Once your project is complete, push the changes from your local clone to the origin (what you see online) using `git push origin NAME-OF-BRANCH`.
 6. To merge your code, get online and submit a pull request from your branch in your fork to the main repo (see [this Git documentation for merging across forks](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork))
-7. To make new changes, 
+7. To start a new project, go back to the `main` branch and start back at step 1
 
 ### Useful commands
 Here is a simple list of useful commands when contributing with git:
