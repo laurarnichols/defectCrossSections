@@ -1,0 +1,226 @@
+1022c1022
+<     allocate(bandOccupation(nBands, nKPoints))
+---
+>     allocate(bandOccupation(nBands, nSpins*nKPoints))! nKPoints+1..2*nKPoints for spin component 2
+1054c1054
+<                  (eigenE(isp,ik,iband), bandOccupation(iband, ik), iband=1,nBands)
+---
+>                  (eigenE(isp,ik,iband), bandOccupation(iband, ik+(isp-1)*nKPoints), iband=1,nBands)
+2314,2315c2316,2317
+<   subroutine writeKInfo(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, &
+<       maxGIndexGlobal, maxNumPWsGlobal, bandOccupation, kWeight, kPosition, gKIndexGlobal)
+---
+>   subroutine writeKInfo(nSpins, nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, &
+>       nGkLessECutLocal, maxGIndexGlobal, maxNumPWsGlobal, bandOccupation, kWeight, kPosition, gKIndexGlobal)
+2325a2328,2329
+>     integer, intent(in) :: nSpins
+>       !! Total number of spins 
+2354c2358
+<     real(kind=dp), intent(in) :: bandOccupation(nBands, nKPoints)
+---
+>     real(kind=dp), intent(in) :: bandOccupation(nBands, nSpins*nKPoints)
+2372c2376
+<     integer :: ik, ig
+---
+>     integer :: ik, ig, isp
+2383c2387
+<       write(mainOutFileUnit, '(i10)') nKPoints
+---
+>       write(mainOutFileUnit, '(i10)') nSpins*nKPoints ! To work with QE tme program, the K-points written down should be multipled by number of spins.
+2387c2391
+<       allocate(groundState(nKPoints))
+---
+>       allocate(groundState(nSpins*nKPoints))
+2389c2393
+<       call getGroundState(nBands, nKPoints, bandOccupation, groundState)
+---
+>       call getGroundState(nSpins, nBands, nKPoints, bandOccupation, groundState)
+2415c2419,2420
+<     do ik = 1, nKPoints
+---
+>     do isp = 1, nSpins
+>       do ik = 1, nKPoints
+2417c2422
+<       if (ionode) write(iostd,*) "Processing k-point ", ik
+---
+>         if (ionode) write(iostd,*) "Processing k-point ", ik, " Spin ", isp
+2419,2428c2424,2433
+<       call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
+<           maxNumPWsGlobal, gKIndexGlobal)
+<         !! * For each k-point, gather all of the \(G+k\) indices
+<         !!   among all processors in a single global array
+<     
+<       if (ionode) write(mainOutFileUnit, '(3i10,4ES24.15E3)') ik, groundState(ik), nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
+<       if (ionode) flush(mainOutFileUnit)
+<         !! * Write the k-point index, the ground state band, and
+<         !!   the number of G-vectors, weight, and position for this 
+<         !!   k-point
+---
+>         call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
+>             maxNumPWsGlobal, gKIndexGlobal)
+>           !! * For each k-point, gather all of the \(G+k\) indices
+>           !!   among all processors in a single global array
+>     
+>         if (ionode) write(mainOutFileUnit, '(3i10,4ES24.15E3)') ik, groundState(ik+(isp-1)*nKpoints), nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
+>         if (ionode) flush(mainOutFileUnit)
+>           !! * Write the k-point index, the ground state band, and
+>           !!   the number of G-vectors, weight, and position for this 
+>           !!   k-point
+2429a2435
+>       enddo
+2447c2453
+<   subroutine getGroundState(nBands, nKPoints, bandOccupation, groundState)
+---
+>   subroutine getGroundState(nSpins, nBands, nKPoints, bandOccupation, groundState)
+2453a2460,2461
+>     integer, intent(in) :: nSpins
+>       !! Total number of spins
+2459c2467
+<     real(kind=dp), intent(in) :: bandOccupation(nBands, nKPoints)
+---
+>     real(kind=dp), intent(in) :: bandOccupation(nBands, nSpins*nKPoints)
+2464c2472
+<     integer, intent(out) :: groundState(nKPoints)
+---
+>     integer, intent(out) :: groundState(nSpins*nKPoints)
+2470c2478
+<     integer :: ik, ibnd
+---
+>     integer :: ik, ibnd, isp
+2475c2483,2484
+<     do ik = 1, nKPoints
+---
+>     do isp = 1, nSpins
+>       do ik = 1, nKPoints
+2477c2486
+<       do ibnd = 1, nBands
+---
+>         do ibnd = 1, nBands
+2479,2481c2488,2490
+<         if (bandOccupation(ibnd,ik) < 0.5_dp) then
+<           !! @todo Figure out if boundary for "occupied" should be 0.5 or less @endtodo
+<         !if (et(ibnd,ik) > ef) then
+---
+>           if (bandOccupation(ibnd,ik+(isp-1)*nKpoints) < 0.5_dp) then
+>             !! @todo Figure out if boundary for "occupied" should be 0.5 or less @endtodo
+>           !if (et(ibnd,ik) > ef) then
+2483,2484c2492,2493
+<           groundState(ik) = ibnd - 1
+<           goto 10
+---
+>             groundState(ik+(isp-1)*nKpoints) = ibnd - 1
+>             goto 10
+2486,2487c2495,2496
+<         endif
+<       enddo
+---
+>           endif
+>         enddo
+2489c2498
+< 10    continue
+---
+> 10      continue
+2490a2500
+>       enddo
+2606c2616
+<   subroutine writeGridInfo(nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
+---
+>   subroutine writeGridInfo(nSpins, nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
+2619a2630,2631
+>     integer, intent(in) :: nSpins
+>       !! Number of spins
+2648c2660
+<     integer :: ik, ig, igk
+---
+>     integer :: ik, ig, igk, isp
+2670,2674c2682,2686
+<     
+<       do ik = 1, nKPoints
+<         !! * For each k-point, write out the miller indices
+<         !!   resulting in \(G+k\) vectors less than the energy
+<         !!   cutoff in a `grid.ik` file
+---
+>       do isp = 1, nSpins
+>         do ik = 1, nKPoints
+>           !! * For each k-point, write out the miller indices
+>           !!   resulting in \(G+k\) vectors less than the energy
+>           !!   cutoff in a `grid.ik` file
+2676,2679c2688,2691
+<         call int2str(ik, indexC)
+<         open(72, file=trim(exportDir)//"/grid."//trim(indexC))
+<         write(72, '("# Wave function G-vectors grid")')
+<         write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
+---
+>           call int2str(ik+(isp-1)*nKpoints, indexC)
+>           open(72, file=trim(exportDir)//"/grid."//trim(indexC))
+>           write(72, '("# Wave function G-vectors grid")')
+>           write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
+2681,2684c2693,2696
+<         do igk = 1, nGkLessECutGlobal(ik)
+<           write(72, '(4i10)') gKIndexGlobal(igk,ik), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ik))
+<           flush(72)
+<         enddo
+---
+>           do igk = 1, nGkLessECutGlobal(ik)
+>             write(72, '(4i10)') gKIndexGlobal(igk,ik), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ik))
+>             flush(72)
+>           enddo
+2686c2698
+<         close(72)
+---
+>           close(72)
+2687a2700
+>         enddo
+2877c2890
+<     real(kind=dp), intent(in) :: bandOccupation(nBands,nKPoints)
+---
+>     real(kind=dp), intent(in) :: bandOccupation(nBands,nSpins*nKPoints)
+2888c2901
+<     integer :: ik, ib
+---
+>     integer :: ik, ib, isp
+2903c2916,2917
+<       do ik = 1, nKPoints
+---
+>       do isp = 1, nSpins
+>         do ik = 1, nKPoints
+2905,2907c2919,2921
+<         !ispin = isk(ik)
+<         ispin = 1
+<           !! @todo Figure out if spin needs to be incorporated for eigenvalues @endtodo
+---
+>           !ispin = isk(ik)
+>           !ispin = 1
+>             !! @todo Figure out if spin needs to be incorporated for eigenvalues @endtodo
+2909,2910c2923,2924
+<         call int2str(ik, indexC)
+<         open(72, file=trim(exportDir)//"/eigenvalues."//trim(indexC))
+---
+>           call int2str(ik+(isp-1)*nKpoints, indexC)
+>           open(72, file=trim(exportDir)//"/eigenvalues."//trim(indexC))
+2912,2913c2926,2927
+<         write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') ispin
+<         write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
+---
+>           write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
+>           write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
+2915c2929
+<         do ib = 1, nBands
+---
+>           do ib = 1, nBands
+2917,2918c2931,2932
+<           write(72, '(2ES24.15E3)') real(eigenE(ispin,ik,ib))*ryToHartree, bandOccupation(ib,ik)
+<           flush(72)
+---
+>             write(72, '(2ES24.15E3)') real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(ib,ik+(isp-1)*nKpoints)
+>             flush(72)
+2920c2934
+<         enddo
+---
+>           enddo
+2922c2936
+<         close(72)
+---
+>           close(72)
+2923a2938
+>         enddo
