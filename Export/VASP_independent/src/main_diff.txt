@@ -1,7 +1,3 @@
-105c105
-<   call writeKInfo(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, maxNumPWsGlobal, &
----
->   call writeKInfo(nSpins, nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, maxNumPWsGlobal, &
 117c117
 <   call writeGridInfo(nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
 ---

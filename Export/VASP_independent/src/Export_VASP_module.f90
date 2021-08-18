@@ -2368,9 +2368,9 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer, allocatable :: groundState(:)
+    integer, allocatable :: groundState(:,:)
       !! Holds the highest occupied band
-      !! for each k-point
+      !! for each k-point and spin
     integer :: ik, ig
       !! Loop indices
 
@@ -2386,7 +2386,7 @@ module wfcExportVASPMod
       write(mainOutFileUnit, '("# ik, groundState, nGkLessECutGlobal(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
       flush(mainOutFileUnit)
     
-      allocate(groundState(nKPoints))
+      allocate(groundState(nSpins,nKPoints))
 
       call getGroundState(nBands, nKPoints, bandOccupation, groundState)
         !! * For each k-point, find the index of the 
@@ -2400,10 +2400,6 @@ module wfcExportVASPMod
       write(iostd,*) "Done getting ground state bands"
       write(iostd,*) "***************"
       write(iostd,*)
-
-    endif
-
-    if(ionode) then
 
       write(iostd,*)
       write(iostd,*) "***************"
@@ -2423,7 +2419,7 @@ module wfcExportVASPMod
         !! * For each k-point, gather all of the \(G+k\) indices
         !!   among all processors in a single global array
     
-      if (ionode) write(mainOutFileUnit, '(3i10,4ES24.15E3)') ik, groundState(ik), nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
+      if (ionode) write(mainOutFileUnit, '(3i10,4ES24.15E3)') ik, groundState(1,ik), nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
       if (ionode) flush(mainOutFileUnit)
         !! * Write the k-point index, the ground state band, and
         !!   the number of G-vectors, weight, and position for this 
