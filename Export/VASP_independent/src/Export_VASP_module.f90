@@ -2463,7 +2463,7 @@ module wfcExportVASPMod
     ! Output variables:
     integer, intent(out) :: groundState(nSpins, nKPoints)
       !! Holds the highest occupied band
-      !! for each k-point
+      !! for each k-point and spin
 
 
     ! Local variables:
