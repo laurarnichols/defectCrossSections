@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title="20.7% of total for programs.">230 statements</a>
+    title="31.6% of total for programs.">231 statements</a>
      </li> 
      
      
@@ -693,7 +693,7 @@
     <span class="c">!</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">istat</span> <span class="o">/=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">close</span><span class="p">(</span><span class="n">un</span><span class="p">)</span>
     <span class="c">!</span>
-    <span class="c">! allocate ( lsfbyPhononsPerProc(-nEnergies:nEnergies) )</span>
+    <span class="k">allocate</span> <span class="p">(</span> <span class="n">lsfbyPhononsPerProc</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">)</span> <span class="p">)</span>
     <span class="c">!</span>
     <span class="k">if</span> <span class="p">(</span> <span class="n">minimumNumberOfPhonons</span> <span class="o">&lt;</span> <span class="mi">6</span> <span class="p">)</span> <span class="n">minimumNumberOfPhonons</span> <span class="o">=</span> <span class="mi">5</span>
     <span class="k">do </span><span class="n">m</span> <span class="o">=</span> <span class="n">minimumNumberOfPhonons</span><span class="p">,</span> <span class="n">maximumNumberOfPhonons</span>
@@ -766,8 +766,6 @@
       <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
       <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
       <span class="c">!</span>
-      <span class="c">!write(6,*) myid, iModeIs(myid), iModeFs(myid)</span>
-      <span class="c">!</span>
       <span class="k">do </span><span class="n">l</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">m</span>
         <span class="c">!! @todo Move this to a subroutine @endtodo</span>
         <span class="c">!</span>
@@ -806,7 +804,7 @@
         <span class="n">lsfbyPhononsPerProc</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
         <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">lsfVsEbyBands</span><span class="p">,</span> <span class="n">lsfbyPhononsPerProc</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">lsfbyPhononsPerProc</span><span class="p">),</span> <span class="p">&amp;</span>
                                                             <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
-
+        <span class="c">!</span>
         <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
           <span class="c">!</span>
           <span class="n">weight</span> <span class="o">=</span> <span class="n">nModes</span>
@@ -936,7 +934,7 @@
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">

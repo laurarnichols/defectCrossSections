@@ -254,7 +254,7 @@ program lineShapeFunction
     !
     if (istat /= 0) close(un)
     !
-    ! allocate ( lsfbyPhononsPerProc(-nEnergies:nEnergies) )
+    allocate ( lsfbyPhononsPerProc(-nEnergies:nEnergies) )
     !
     if ( minimumNumberOfPhonons < 6 ) minimumNumberOfPhonons = 5
     do m = minimumNumberOfPhonons, maximumNumberOfPhonons
@@ -327,8 +327,6 @@ program lineShapeFunction
       call MPI_BCAST(iModeIs, size(iModeIs), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
       call MPI_BCAST(iModeFs, size(iModeFs), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
       !
-      !write(6,*) myid, iModeIs(myid), iModeFs(myid)
-      !
       do l = 4, m
         !! @todo Move this to a subroutine @endtodo
         !
@@ -367,7 +365,7 @@ program lineShapeFunction
         lsfbyPhononsPerProc(:) = 0.0_dp
         CALL MPI_REDUCE(lsfVsEbyBands, lsfbyPhononsPerProc, size(lsfbyPhononsPerProc), &
                                                             MPI_DOUBLE_PRECISION, MPI_SUM, root, MPI_COMM_WORLD, ierr)
-
+        !
         if ( myid == root ) then
           !
           weight = nModes

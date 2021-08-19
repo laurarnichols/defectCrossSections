@@ -218,7 +218,7 @@ contains
     !
     integer :: i, iE0, iE
     real(kind = dp) :: dummyD1, dummyD2, Ee, VfiOfE, VfiOfE0, eBin
-    character(len =  1) :: dummyC1
+    ! character(len =  1) :: dummyC1
     character(len = 32) :: dummyC32
     character(len = 35) :: dummyC35
       !! @todo Merge dummy variables @endtodo
@@ -254,7 +254,8 @@ contains
     energy(:) = 0.0_dp
     lsf(:) = 0.0_dp
     !
-    read(1, '(3ES24.15E3)' ) Ee, VfiOfE0, dummyD1
+    !read(1, '(3ES24.15E3)' ) Ee, VfiOfE0, dummyD1
+    read(1, *) Ee, VfiOfE0, dummyD1
     Vfis(1) = VfiOfE0
     energy(1) = Ee
       !! * Read in the initial values of energy and `Vfis`
@@ -272,7 +273,8 @@ contains
       !
       iE0 = iE ! int(energy(i-1)/deltaE) + 1 !  iE
       !
-      read(1, '(3ES24.15E3)') Ee, VfiOfE, dummyD2
+      !read(1, '(3ES24.15E3)') Ee, VfiOfE, dummyD2
+      read(1, *) Ee, VfiOfE, dummyD2
       !
       energy(i) = Ee
       !
@@ -314,7 +316,7 @@ contains
     integer :: iE
     real(kind = dp) :: vg, sigma0
     !
-    allocate( sigma(numOfVfis) ) ! , sigmaByPhonon(-nEnergies:nEnergies) )
+    allocate( sigma(0:numOfVfis) ) ! , sigmaByPhonon(-nEnergies:nEnergies) )
     !allocate( sigma(-nEnergies:nEnergies), sigmaByPhonon(-nEnergies:nEnergies) )
     !
     iE = int(eifMin/de) + 1

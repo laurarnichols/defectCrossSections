@@ -10,7 +10,7 @@
     <meta name="author" content="" >
     <link rel="icon" href="../favicon.png">
 
-    <title>io_base_export &ndash; Carrier Cross Sections</title>
+    <title>findloc &ndash; Carrier Cross Sections</title>
 
     <link href="../css/bootstrap.min.css" rel="stylesheet">
     <link href="../css/pygments.css" rel="stylesheet">
@@ -114,8 +114,8 @@
     
   
   <div class="row">
-    <h1>io_base_export 
-    <small>Module</small>
+    <h1>findloc
+      <small>Function</small>
     
     </h1>
     
@@ -132,22 +132,24 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 2.5% of total for modules and submodules.">103 statements</a>
+    title=" 0.3% of total for procedures.">11 statements</a>
      </li> 
      
      
      
-    <li><i class="fa fa-code"></i><a href="../src/Export_QE-5.3.0_v3.f90"> Source File</a></li>
+    <li><i class="fa fa-code"></i><a href="../src/miscUtilities.f90"> Source File</a></li>
      
      
   </ul>
   <ol class="breadcrumb in-well text-right">
   
     
-     <li><a href='../sourcefile/export_qe-5.3.0_v3.f90.html'>Export_QE-5.3.0_v3.f90</a></li>
+     <li><a href='../sourcefile/miscutilities.f90.html'>miscUtilities.f90</a></li>
+    
+     <li><a href='../module/miscutilities.html'>miscUtilities</a></li>
     
   
-     <li class="active">io_base_export</li>
+     <li class="active">findloc</li>
   </ol>
 </div>
 </div>
@@ -175,13 +177,18 @@
   <div id="vars-0" class="panel-collapse collapse">
     <div class="list-group">
       
-      <a class="list-group-item" href="../module/io_base_export.html#variable-file_version">file_version</a>
-      
-      <a class="list-group-item" href="../module/io_base_export.html#variable-restart_module_verbosity">restart_module_verbosity</a>
+      <a class="list-group-item" href="../proc/findloc.html#variable-i%7E17">i</a>
       
     </div>
   </div>
 </div>
+
+
+
+
+
+
+
 
 
 
@@ -196,22 +203,11 @@
 
 
 <div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-0">Subroutines</a></h3></div>
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
   <div class="list-group">
-    <div id="subs-0" class="panel-collapse collapse">
-      
-      <a class="list-group-item" href="../module/io_base_export.html#proc-write_restart_wfc">write_restart_wfc</a>
-      
-    </div>
+    <a class="list-group-item" href="../proc/findloc.html#src">findloc</a>
   </div>
 </div>
-
-
-
-
-
-
-
 
 
 
@@ -220,173 +216,23 @@
     </div>
     
     <div class="col-md-9" id='text'>
-    
-      <br>
-    
-  
-    <div class="panel panel-default">
-      <div class="panel-heading">
-  <h3 class="panel-title">Uses</h3>
-      </div>
-      <ul class="list-group">
-      
-      <li class="list-group-item">
-  <ul class="list-inline">
-    
-    <li>io_global</li>
-    
-    <li>kinds</li>
-    
-    <li>parameters</li>
-    
-  </ul>
-      </li>
-      
-      
-      
-      </ul>
-    </div>
-    
-
-    
-    
-
-    <br>
-
-    <section class="visible-xs visible-sm hidden-md">
-      
-<h3>Contents</h3>
- 
-
-
-
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
-  <div id="vars-1" class="panel-collapse collapse">
-    <div class="list-group">
-      
-      <a class="list-group-item" href="../module/io_base_export.html#variable-file_version">file_version</a>
-      
-      <a class="list-group-item" href="../module/io_base_export.html#variable-restart_module_verbosity">restart_module_verbosity</a>
-      
-    </div>
-  </div>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div class="panel panel-primary">
-  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#subs-1">Subroutines</a></h3></div>
-  <div class="list-group">
-    <div id="subs-1" class="panel-collapse collapse">
-      
-      <a class="list-group-item" href="../module/io_base_export.html#proc-write_restart_wfc">write_restart_wfc</a>
-      
-    </div>
-  </div>
-</div>
-
-
-
-
-
-
-
-
-
-
-    </section>
-    <br class="visible-xs visible-sm hidden-md">
-
-    
-
-    
-    <section>
-    <h2>Variables</h2>
-    
-<table class="table table-striped varlist">
-<thead><tr><th>Type</th><th>Visibility</th>
-
-<th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
-
-
-
-<tbody>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-file_version"></span>integer,</td>
-  
-  <td>public,</td>
-  <td>parameter</td><td>::</td>
-  <td><strong>file_version</strong></td><td> =</td><td>202</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" id="variable-restart_module_verbosity"></span>integer,</td>
-  
-  <td>public</td>
-  <td></td><td>::</td>
-  <td><strong>restart_module_verbosity</strong></td><td> =</td><td>0</td><td></td>
-  
-</tr>
-
-</tbody>
-</table>
-
-    </section>
-    <br>
-    
-    
-    
-    
-    
-
-    
-    
-    
-    
-    
-
-    
-    <section>
-    <h2>Subroutines</h2>
-    
-    
-  <div class="panel panel-default">
-  <div class="panel-heading codesum"><span class="anchor" id="proc-write_restart_wfc"></span><h3>
-public subroutine <a href='../proc/write_restart_wfc.html'>write_restart_wfc</a>(iuni, exportDir, ik, nk, kunit, ispin, nspin, scal, wf0, t0, wfm, tm, ngw, gamma_only, nbnd, igl, ngwl)
+    <h2>
+public function findloc(stringArr, searchString) result(loc)
     
     
    
-</h3></div>
-  <div class="panel-body">
-       
+</h2>
     
+  
+
+
     
-    <h4>Arguments</h4>
+    <p>Find the first instance of a search string in
+ an array of strings</p>
     
-      
+
+    <h3>Arguments</h3>
+    
       
 <table class="table table-striped varlist">
 <thead><tr><th>Type</th>
@@ -403,12 +249,12 @@ public subroutine <a href='../proc/write_restart_wfc.html'>write_restart_wfc</a>
   
 <tr>
   
-  <td><span class="anchor" ></span>integer,</td>
+  <td><span class="anchor" id="variable-stringarr"></span>character(len=*),</td>
   <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>iuni</strong></td><td></td>
+  <td><strong>stringArr</strong>(:)</td><td></td>
   
 </tr>
 
@@ -418,266 +264,172 @@ public subroutine <a href='../proc/write_restart_wfc.html'>write_restart_wfc</a>
   
 <tr>
   
-  <td><span class="anchor" ></span>character(len=256),</td>
+  <td><span class="anchor" id="variable-searchstring"></span>character(len=*),</td>
   <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>exportDir</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>ik</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>nk</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>kunit</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>ispin</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>nspin</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>real(kind=DP),</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>scal</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>complex(kind=DP),</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>wf0</strong>(:,:)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>logical,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>t0</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>complex(kind=DP),</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>wfm</strong>(:,:)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>logical,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>tm</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>ngw</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>logical,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>gamma_only</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>nbnd</strong></td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>igl</strong>(:)</td><td></td>
-  
-</tr>
-
-  
-  
-  
-  
-<tr>
-  
-  <td><span class="anchor" ></span>integer,</td>
-  <td>intent(in)</td>
-  <td></td>
-  
-  <td></td><td>::</td>
-  <td><strong>ngwl</strong></td><td></td>
+  <td><strong>searchString</strong></td><td></td>
   
 </tr>
 
 </tbody>
 </table>
 
+    
+    
+    
+    
+    
+    
+    
+   <h3>Return Value <small><span class="anchor" id="variable-loc"></span>integer
+  </small></h3>
+    
+    
+    
+    
+     
+    <br>
+
+    <section class="visible-xs visible-sm hidden-md">
       
-    
+<h3>Contents</h3>
+ 
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title"><a data-toggle="collapse" href="#vars-1">Variables</a></h3></div>
+  <div id="vars-1" class="panel-collapse collapse">
+    <div class="list-group">
+      
+      <a class="list-group-item" href="../proc/findloc.html#variable-i%7E17">i</a>
+      
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading text-left"><h3 class="panel-title">Source Code</h3></div>
+  <div class="list-group">
+    <a class="list-group-item" href="../proc/findloc.html#src">findloc</a>
+  </div>
+</div>
+
+
+
+    </section>
+    <br class="visible-xs visible-sm hidden-md">
+
     
 
-  </div>
-  </div>
-
     
-    </section>    
+    <section>    
+      <h2>Variables</h2>
+    
+<table class="table table-striped varlist">
+<thead><tr><th>Type</th><th>Visibility</th>
+
+<th>Attributes</th><th></th><th>Name</th><th></th><th>Initial</th><th></th></thead>
+
+
+
+<tbody>
+
+  
+  
+  
+  
+<tr>
+  
+  <td><span class="anchor" id="variable-i%7E17"></span>integer,</td>
+  
+  <td>public</td>
+  <td></td><td>::</td>
+  <td><strong>i</strong></td><td></td><td></td><td></td>
+  
+</tr>
+
+</tbody>
+</table>
+
+    </section>
     <br>
     
+    
+    
+    
+    
+
+    
+    
+    
+    
+    
+
+
+    
+    
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="highlight"><pre><span></span>  <span class="k">function </span><span class="nb">findloc</span><span class="p">(</span><span class="n">stringArr</span><span class="p">,</span> <span class="n">searchString</span><span class="p">)</span> <span class="k">result</span><span class="p">(</span><span class="nb">loc</span><span class="p">)</span>
+    <span class="c">!! Find the first instance of a search string in</span>
+    <span class="c">!! an array of strings</span>
+    <span class="c">!!</span>
+    <span class="k">implicit none</span>
+    <span class="c">!</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="n">i</span>
+    <span class="kt">integer</span> <span class="kd">::</span> <span class="nb">loc</span>
+    <span class="c">!</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=*</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">searchString</span>
+    <span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=*</span><span class="p">),</span> <span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span> <span class="kd">::</span> <span class="n">stringArr</span><span class="p">(:)</span>
+    <span class="c">!</span>
+    <span class="nb">loc</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="c">!</span>
+    <span class="k">do </span><span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">stringArr</span><span class="p">)</span>
+      <span class="c">!</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">stringArr</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">==</span> <span class="n">searchString</span><span class="p">)</span> <span class="nb">loc</span> <span class="o">=</span> <span class="n">i</span>   
+      <span class="c">!</span>
+    <span class="n">enddo</span>
+    <span class="c">!</span>
+  <span class="k">end function </span><span class="nb">findloc</span>
+</pre></div>
+
+    </section>
+    <br>
     
     
     </div>
   </div>
 
-  
+
     <hr>    
     </div> <!-- /container -->
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">

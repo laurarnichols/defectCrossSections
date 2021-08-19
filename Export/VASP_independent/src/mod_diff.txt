@@ -1,19 +1,15 @@
-2385c2387
-<       write(mainOutFileUnit, '(i10)') nKPoints
----
->       write(mainOutFileUnit, '(i10)') nSpins*nKPoints ! To work with QE tme program, the K-points written down should be multipled by number of spins.
-2608c2616
+2612c2616
 <   subroutine writeGridInfo(nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
 ---
 >   subroutine writeGridInfo(nSpins, nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
-2621a2630,2631
+2625a2630,2631
 >     integer, intent(in) :: nSpins
 >       !! Number of spins
-2650c2660
+2654c2660
 <     integer :: ik, ig, igk
 ---
 >     integer :: ik, ig, igk, isp
-2672,2676c2682,2686
+2676,2680c2682,2686
 <     
 <       do ik = 1, nKPoints
 <         !! * For each k-point, write out the miller indices
@@ -25,7 +21,7 @@
 >           !! * For each k-point, write out the miller indices
 >           !!   resulting in \(G+k\) vectors less than the energy
 >           !!   cutoff in a `grid.ik` file
-2678,2681c2688,2691
+2682,2685c2688,2691
 <         call int2str(ik, indexC)
 <         open(72, file=trim(exportDir)//"/grid."//trim(indexC))
 <         write(72, '("# Wave function G-vectors grid")')
@@ -35,7 +31,7 @@
 >           open(72, file=trim(exportDir)//"/grid."//trim(indexC))
 >           write(72, '("# Wave function G-vectors grid")')
 >           write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
-2683,2686c2693,2696
+2687,2690c2693,2696
 <         do igk = 1, nGkLessECutGlobal(ik)
 <           write(72, '(4i10)') gKIndexGlobal(igk,ik), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ik))
 <           flush(72)
@@ -45,66 +41,30 @@
 >             write(72, '(4i10)') gKIndexGlobal(igk,ik), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ik))
 >             flush(72)
 >           enddo
-2688c2698
+2692c2698
 <         close(72)
 ---
 >           close(72)
-2689a2700
+2693a2700
 >         enddo
-2879c2890
+2883c2890
 <     real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands,nKPoints)
 ---
 >     real(kind=dp), intent(in) :: bandOccupation(nBands,nSpins*nKPoints)
-2890c2901
-<     integer :: ik, ib
----
->     integer :: ik, ib, isp
-2892c2903
-<     integer :: isp
----
+2895a2903,2904
 >     integer :: ispin
-2905c2916,2917
-<       do ik = 1, nKPoints
----
->       do isp = 1, nSpins
->         do ik = 1, nKPoints
-2907,2909c2919,2921
-<         !ispin = isk(ik)
-<         isp = 1
-<           !! @todo Add spin loop here to match Guanzhi's code @endtodo
+>       !! Spin index
+2910c2919,2923
+<           call int2str(ik+(isp-1)*nKPoints, indexC)
 ---
 >           !ispin = isk(ik)
 >           !ispin = 1
 >             !! @todo Figure out if spin needs to be incorporated for eigenvalues @endtodo
-2911,2912c2923,2924
-<         call int2str(ik, indexC)
-<         open(72, file=trim(exportDir)//"/eigenvalues."//trim(indexC))
----
+>       
 >           call int2str(ik+(isp-1)*nKpoints, indexC)
->           open(72, file=trim(exportDir)//"/eigenvalues."//trim(indexC))
-2914,2915c2926,2927
-<         write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') ispin
-<         write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
----
->           write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
->           write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
-2917c2929
-<         do ib = 1, nBands
----
->           do ib = 1, nBands
-2919,2920c2931,2932
-<           write(72, '(2ES24.15E3)') real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(isp,ib,ik)
-<           flush(72)
+2918c2931
+<             write(72, '(2ES24.15E3)') real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(isp,ib,ik)
 ---
 >             write(72, '(2ES24.15E3)') real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(ib,ik+(isp-1)*nKpoints)
->             flush(72)
-2922c2934
-<         enddo
----
->           enddo
-2924c2936
-<         close(72)
----
->           close(72)
-2925a2938
->         enddo
+2926d2938
+< 

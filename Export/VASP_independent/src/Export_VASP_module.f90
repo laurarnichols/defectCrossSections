@@ -2371,7 +2371,7 @@ module wfcExportVASPMod
     integer, allocatable :: groundState(:,:)
       !! Holds the highest occupied band
       !! for each k-point and spin
-    integer :: ik, ig
+    integer :: ik, ig, isp
       !! Loop indices
 
 
@@ -2382,13 +2382,14 @@ module wfcExportVASPMod
       write(iostd,*) "Getting ground state bands"
     
       write(mainOutFileUnit, '("# Number of K-points. Format: ''(i10)''")')
-      write(mainOutFileUnit, '(i10)') nKPoints
+      write(mainOutFileUnit, '(i10)') nSpins*nKPoints
+        !! @todo Change `nSpins*nKpoints` back to `nKpoints` after spin polarization is implemented in `TME` #spin @endtodo
       write(mainOutFileUnit, '("# ik, groundState, nGkLessECutGlobal(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
       flush(mainOutFileUnit)
     
       allocate(groundState(nSpins,nKPoints))
 
-      call getGroundState(nBands, nKPoints, bandOccupation, groundState)
+      call getGroundState(nBands, nKPoints, nSpins, bandOccupation, groundState)
         !! * For each k-point, find the index of the 
         !!   highest occupied band
         !!
@@ -2410,21 +2411,24 @@ module wfcExportVASPMod
     allocate(gKIndexGlobal(maxNumPWsGlobal, nKPoints))
   
     gKIndexGlobal(:,:) = 0
-    do ik = 1, nKPoints
+    do isp = 1, nSpins
+      do ik = 1, nKPoints
 
-      if (ionode) write(iostd,*) "Processing k-point ", ik
+        if (ionode) write(iostd,*) "Processing k-point ", ik, " Spin ", isp
 
-      call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
-          maxNumPWsGlobal, gKIndexGlobal)
-        !! * For each k-point, gather all of the \(G+k\) indices
-        !!   among all processors in a single global array
+        call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
+            maxNumPWsGlobal, gKIndexGlobal)
+          !! * For each k-point, gather all of the \(G+k\) indices
+          !!   among all processors in a single global array
     
-      if (ionode) write(mainOutFileUnit, '(3i10,4ES24.15E3)') ik, groundState(1,ik), nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
-      if (ionode) flush(mainOutFileUnit)
-        !! * Write the k-point index, the ground state band, and
-        !!   the number of G-vectors, weight, and position for this 
-        !!   k-point
+        if (ionode) write(mainOutFileUnit, '(3i10,4ES24.15E3)') ik, groundState(isp,ik), nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
+        if (ionode) flush(mainOutFileUnit)
+          !! * Write the k-point index, the ground state band, and
+          !!   the number of G-vectors, weight, and position for this 
+          !!   k-point
     
+      enddo
+
     enddo
 
     if(ionode) then
@@ -2887,10 +2891,8 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: ik, ib
+    integer :: ik, ib, isp
       !! Loop indices
-    integer :: isp
-      !! Spin index
 
     character(len=300) :: indexC
       !! Character index
@@ -2902,27 +2904,26 @@ module wfcExportVASPMod
       write(mainOutFileUnit, '(ES24.15E3)') eFermi*ryToHartree
       flush(mainOutFileUnit)
     
-      do ik = 1, nKPoints
+      do isp = 1, nSpins
+        do ik = 1, nKPoints
       
-        !ispin = isk(ik)
-        isp = 1
-          !! @todo Add spin loop here to match Guanzhi's code @endtodo
+          call int2str(ik+(isp-1)*nKPoints, indexC)
+          open(72, file=trim(exportDir)//"/eigenvalues."//trim(indexC))
       
-        call int2str(ik, indexC)
-        open(72, file=trim(exportDir)//"/eigenvalues."//trim(indexC))
+          write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
+          write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
       
-        write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') ispin
-        write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
-      
-        do ib = 1, nBands
+          do ib = 1, nBands
 
-          write(72, '(2ES24.15E3)') real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(isp,ib,ik)
-          flush(72)
+            write(72, '(2ES24.15E3)') real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(isp,ib,ik)
+            flush(72)
 
+          enddo
+      
+          close(72)
+      
         enddo
-      
-        close(72)
-      
+
       enddo
     
     endif

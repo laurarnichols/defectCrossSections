@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.4% of total for procedures.">56 statements</a>
+    title=" 1.5% of total for procedures.">56 statements</a>
      </li> 
      
      
@@ -191,7 +191,7 @@
       
       <a class="list-group-item" href="../proc/pawcorrectionwfc.html#variable-mprime">mPrime</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionwfc.html#variable-ispin%7E3">ispin</a>
+      <a class="list-group-item" href="../proc/pawcorrectionwfc.html#variable-ispin">ispin</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionwfc.html#variable-lmbase">LMBASE</a>
       
@@ -361,7 +361,7 @@ public subroutine pawCorrectionWfc(system)
       
       <a class="list-group-item" href="../proc/pawcorrectionwfc.html#variable-mprime">mPrime</a>
       
-      <a class="list-group-item" href="../proc/pawcorrectionwfc.html#variable-ispin%7E3">ispin</a>
+      <a class="list-group-item" href="../proc/pawcorrectionwfc.html#variable-ispin">ispin</a>
       
       <a class="list-group-item" href="../proc/pawcorrectionwfc.html#variable-lmbase">LMBASE</a>
       
@@ -535,7 +535,7 @@ public subroutine pawCorrectionWfc(system)
   
 <tr>
   
-  <td><span class="anchor" id="variable-ispin%7E3"></span>integer,</td>
+  <td><span class="anchor" id="variable-ispin"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -776,7 +776,7 @@ public subroutine pawCorrectionWfc(system)
                 <span class="c">!</span>
                 <span class="n">atomicOverlap</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">system</span><span class="p">%</span><span class="n">atoms</span><span class="p">(</span><span class="n">iAtomType</span><span class="p">)%</span><span class="n">F1</span><span class="p">(:,</span><span class="n">iProj</span><span class="p">,</span> <span class="n">jProj</span><span class="p">))</span>
                 <span class="c">!</span>
-                <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+                <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandL</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandH</span>
                   <span class="c">!</span>
                   <span class="c">!&gt; @todo Figure out why the difference between SD and PC @endtodo</span>
                   <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
@@ -789,7 +789,7 @@ public subroutine pawCorrectionWfc(system)
                     <span class="c">!</span>
                   <span class="n">endif</span>
                   <span class="c">!</span>
-                  <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+                  <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandL</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandH</span>
                     <span class="c">!</span>
                     <span class="c">!&gt; @todo Figure out why the difference between SD and PC @endtodo</span>
                     <span class="k">if</span> <span class="p">(</span> <span class="nb">system</span><span class="p">%</span><span class="n">crystalType</span> <span class="o">==</span> <span class="s1">&#39;PC&#39;</span> <span class="p">)</span> <span class="k">then</span>
@@ -840,7 +840,7 @@ public subroutine pawCorrectionWfc(system)
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">

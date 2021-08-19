@@ -222,9 +222,12 @@ All Procedures &ndash; Carrier Cross Sections
 			 
 			   <tr><td><a href='../proc/finalizecalculation.html'>finalizeCalculation</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Stop timer, write out total time taken, and close the output file</p></td></tr>
 			 
+			   <tr><td><a href='../proc/findloc.html'>findloc</a></td><td><a href='../module/miscutilities.html'>miscUtilities</a></td><td>Function</td><td><p>Find the first instance of a search string in
+ an array of strings</p></td></tr>
+			 
 			   <tr><td><a href='../proc/iknb%7E2.html'>iknb</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
-			   <tr><td><a href='../proc/iknb.html'>iknb</a></td><td><a href='../module/generalcomputations.html'>generalComputations</a></td><td>Subroutine</td><td><p><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong><em>*</em></strong><strong>*</strong>72</p><a href="../proc/iknb.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
+			   <tr><td><a href='../proc/iknb.html'>iknb</a></td><td><a href='../module/generalcomputations.html'>generalComputations</a></td><td>Subroutine</td><td><p>IKNB compute Bessel function In(x) and Kn(x).</p><a href="../proc/iknb.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/iknb2.html'>iknb2</a></td><td><a href='../module/lsf%7E2.html'>lsf</a></td><td>Subroutine</td><td></td></tr>
 			 
@@ -336,7 +339,7 @@ All Procedures &ndash; Carrier Cross Sections
 			   <tr><td><a href='../proc/readatomicpositions.html'>readAtomicPositions</a></td><td><a href='../module/mjmodule.html'>MjModule</a></td><td>Subroutine</td><td><p>Read in the element and equilibrium position for 
  each atom</p><a href="../proc/readatomicpositions.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
-			   <tr><td><a href='../proc/readeigenvalues.html'>readEigenvalues</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Read in the eigenvalues output from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p><a href="../proc/readeigenvalues.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
+			   <tr><td><a href='../proc/readeigenvalues.html'>readEigenvalues</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Read in the eigenvalues output from <a>pw_export_for_tme</a></p><a href="../proc/readeigenvalues.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/readinput.html'>readInput</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Delete any previous output, initialize input variables,
  start a timer, and read in the input files</p><a href="../proc/readinput.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
@@ -371,14 +374,14 @@ All Procedures &ndash; Carrier Cross Sections
  using reciprocal lattice vectors</p><a href="../proc/readpwsset.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/readqeexport.html'>readQEExport</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Read input files in the Export directory created by
- <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p><a href="../proc/readqeexport.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
+ <a>pw_export_for_tme</a></p><a href="../proc/readqeexport.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/readufis.html'>readUfis</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Read in matrix elements for a given k point</p><a href="../proc/readufis.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
 			   <tr><td><a href='../proc/readvfis.html'>readVfis</a></td><td><a href='../module/sigma_module.html'>sigma_module</a></td><td>Subroutine</td><td><p>Read TME output, get <code>Vfis</code> and <code>lsf</code> using the same index,
  and output the results to two output files</p><a href="../proc/readvfis.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
-			   <tr><td><a href='../proc/readwfc.html'>readWfc</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Open the <code>grid.ki</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a>
+			   <tr><td><a href='../proc/readwfc.html'>readWfc</a></td><td><a href='../module/tmemodule.html'>TMEModule</a></td><td>Subroutine</td><td><p>Open the <code>grid.ki</code> file from <a>pw_export_for_tme</a>
  to get the indices for the wavefunction to be stored in, then
  open the <code>wfc.ki</code> file and read in the wavefunction for the 
  proper bands and store in the proper indices in the system's <code>wfc</code></p><a href="../proc/readwfc.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
@@ -396,10 +399,6 @@ All Procedures &ndash; Carrier Cross Sections
  so this program assumes that if you pass in the logical <code>abortExecution</code>
  then the variable is required and causes the program to abort 
  if missing.</p><a href="../proc/wasread%7E2.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
-			 
-			   <tr><td><a href='../proc/write_export.html'>write_export</a></td><td><a href='../program/pw_export_for_tme.html'>pw_export_for_TME</a></td><td>Subroutine</td><td></td></tr>
-			 
-			   <tr><td><a href='../proc/write_restart_wfc.html'>write_restart_wfc</a></td><td><a href='../module/io_base_export.html'>io_base_export</a></td><td>Subroutine</td><td></td></tr>
 			 
 			   <tr><td><a href='../proc/writelsfandcrosssection.html'>writeLSFandCrossSection</a></td><td><a href='../module/lsf.html'>lsf</a></td><td>Subroutine</td><td><p>Write out the line shape function versus energy</p><a href="../proc/writelsfandcrosssection.html" class="pull-right"><emph>Read more&hellip;</emph></a></td></tr>
 			 
@@ -426,7 +425,7 @@ All Procedures &ndash; Carrier Cross Sections
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">
