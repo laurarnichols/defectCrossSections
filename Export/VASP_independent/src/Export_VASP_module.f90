@@ -2383,7 +2383,7 @@ module wfcExportVASPMod
     
       write(mainOutFileUnit, '("# Number of K-points. Format: ''(i10)''")')
       write(mainOutFileUnit, '(i10)') nSpins*nKPoints
-        !! @todo Change `nSpins*nKpoints` back to `nKpoints` after spin polarization is implemented in `TME` #spin @endtodo
+        !! @todo Change `nSpins*nKPoints` back to `nKPoints` after spin polarization is implemented in `TME` #spin @endtodo
       write(mainOutFileUnit, '("# ik, groundState, nGkLessECutGlobal(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
       flush(mainOutFileUnit)
     
