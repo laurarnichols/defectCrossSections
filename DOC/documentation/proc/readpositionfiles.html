@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 1.3% of total for procedures.">53 statements</a>
+    title=" 1.7% of total for procedures.">64 statements</a>
      </li> 
      
      
@@ -226,6 +226,25 @@ public subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, 
 </h2>
     
   
+    <div class="panel panel-default">
+      <div class="panel-heading">
+  <h3 class="panel-title">Uses</h3>
+      </div>
+      <ul class="list-group">
+      
+      <li class="list-group-item">
+  <ul class="list-inline">
+    
+    <li><a href='../module/miscutilities.html'>miscUtilities</a></li>
+    
+  </ul>
+      </li>
+      
+      
+      
+      </ul>
+    </div>
+    
 
 
     
@@ -322,12 +341,12 @@ public subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, 
   
 <tr>
   
-  <td><span class="anchor" id="variable-atommasses%7E2"></span>character(len=256),</td>
+  <td><span class="anchor" id="variable-atommasses%7E2"></span>real(kind=dp),</td>
   <td>intent(in)</td>
   <td></td>
   
   <td></td><td>::</td>
-  <td><strong>atomMasses</strong>(ntyp)</td><td></td>
+  <td><strong>atomMasses</strong>(ntyp)</td><td><p>Atom masses from input file</p></td>
   
 </tr>
 
@@ -338,7 +357,7 @@ public subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, 
 <tr>
   
   <td><span class="anchor" id="variable-natoms"></span>integer,</td>
-  <td>intent(in)</td>
+  <td>intent(out)</td>
   <td></td>
   
   <td></td><td>::</td>
@@ -514,7 +533,7 @@ public subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, 
   
 <tr>
   
-  <td><span class="anchor" id="variable-elementname"></span>character,</td>
+  <td><span class="anchor" id="variable-elementname"></span>character(len=2),</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -528,7 +547,7 @@ public subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, 
   
 <tr>
   
-  <td><span class="anchor" id="variable-dummyc"></span>character,</td>
+  <td><span class="anchor" id="variable-dummyc"></span>character(len=256),</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -567,7 +586,7 @@ public subroutine readPositionFiles(neutralPositionsFile, chargedPositionsFile, 
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">

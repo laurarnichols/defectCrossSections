@@ -66,7 +66,7 @@ module wfcExportVASPMod
     !! Fermi energy
   real(kind=dp), allocatable :: gVecInCart(:,:)
     !! G-vectors in Cartesian coordinates
-  real(kind=dp), allocatable :: bandOccupation(:,:)
+  real(kind=dp), allocatable :: bandOccupation(:,:,:)
     !! Occupation of band
   real(kind=dp) :: omega
     !! Volume of unit cell
@@ -595,7 +595,7 @@ module wfcExportVASPMod
       !! Reciprocal lattice vectors
     real(kind=dp), intent(out) :: wfcECut
       !! Plane wave energy cutoff in Ry
-    real(kind=dp), allocatable, intent(out) :: bandOccupation(:,:)
+    real(kind=dp), allocatable, intent(out) :: bandOccupation(:,:,:)
       !! Occupation of band
     real(kind=dp), intent(out) :: omega
       !! Volume of unit cell
@@ -995,7 +995,7 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: bandOccupation(:,:)
+    real(kind=dp), allocatable, intent(out) :: bandOccupation(:,:,:)
       !! Occupation of band
     real(kind=dp), allocatable, intent(out) :: kPosition(:,:)
       !! Position of k-points in reciprocal space
@@ -1019,7 +1019,7 @@ module wfcExportVASPMod
       !! Loop indices
 
 
-    allocate(bandOccupation(nBands, nKPoints))
+    allocate(bandOccupation(nSpins, nBands, nKPoints))
     allocate(kPosition(3,nKPoints))
     allocate(nPWs1kGlobal(nKPoints))
     allocate(eigenE(nSpins,nKPoints,nBands))
@@ -1051,7 +1051,7 @@ module wfcExportVASPMod
           irec = irec + 1
        
           read(unit=wavecarUnit,rec=irec) nPWs1kGlobal_real, (kPosition(i,ik),i=1,3), &
-                 (eigenE(isp,ik,iband), bandOccupation(iband, ik), iband=1,nBands)
+                 (eigenE(isp,ik,iband), bandOccupation(isp, iband, ik), iband=1,nBands)
             ! Read in the number of \(G+k\) plane wave vectors below the energy
             ! cutoff, the position of the k-point in reciprocal space, and
             ! the eigenvalue and occupation for each band
@@ -2312,7 +2312,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine writeKInfo(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, &
-      maxGIndexGlobal, maxNumPWsGlobal, bandOccupation, kWeight, kPosition, gKIndexGlobal)
+      nSpins, maxGIndexGlobal, maxNumPWsGlobal, bandOccupation, kWeight, kPosition, gKIndexGlobal)
     !! Calculate the highest occupied band for each k-point,
     !! gather the \(G+k\) vector indices in single, global 
     !! array, and write out k-point information
@@ -2344,6 +2344,8 @@ module wfcExportVASPMod
       !! Number of \(G+k\) vectors with energy
       !! less than `wfcECut` for each
       !! k-point, on this processor
+    integer, intent(in) :: nSpins
+      !! Number of spins
     integer, intent(in) :: maxGIndexGlobal
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
@@ -2351,7 +2353,7 @@ module wfcExportVASPMod
       !! Max number of \(G+k\) vectors with energy
       !! less than `wfcECut` among all k-points
 
-    real(kind=dp), intent(in) :: bandOccupation(nBands, nKPoints)
+    real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands, nKPoints)
       !! Occupation of band
     real(kind=dp), intent(in) :: kWeight(nKPoints)
       !! K-point weights
@@ -2366,10 +2368,10 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer, allocatable :: groundState(:)
+    integer, allocatable :: groundState(:,:)
       !! Holds the highest occupied band
-      !! for each k-point
-    integer :: ik, ig
+      !! for each k-point and spin
+    integer :: ik, ig, isp
       !! Loop indices
 
 
@@ -2380,13 +2382,14 @@ module wfcExportVASPMod
       write(iostd,*) "Getting ground state bands"
     
       write(mainOutFileUnit, '("# Number of K-points. Format: ''(i10)''")')
-      write(mainOutFileUnit, '(i10)') nKPoints
+      write(mainOutFileUnit, '(i10)') nSpins*nKPoints
+        !! @todo Change `nSpins*nKPoints` back to `nKPoints` after spin polarization is implemented in `TME` #spin @endtodo
       write(mainOutFileUnit, '("# ik, groundState, nGkLessECutGlobal(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
       flush(mainOutFileUnit)
     
-      allocate(groundState(nKPoints))
+      allocate(groundState(nSpins,nKPoints))
 
-      call getGroundState(nBands, nKPoints, bandOccupation, groundState)
+      call getGroundState(nBands, nKPoints, nSpins, bandOccupation, groundState)
         !! * For each k-point, find the index of the 
         !!   highest occupied band
         !!
@@ -2399,10 +2402,6 @@ module wfcExportVASPMod
       write(iostd,*) "***************"
       write(iostd,*)
 
-    endif
-
-    if(ionode) then
-
       write(iostd,*)
       write(iostd,*) "***************"
       write(iostd,*) "Getting global G+k indices"
@@ -2412,21 +2411,24 @@ module wfcExportVASPMod
     allocate(gKIndexGlobal(maxNumPWsGlobal, nKPoints))
   
     gKIndexGlobal(:,:) = 0
-    do ik = 1, nKPoints
+    do isp = 1, nSpins
+      do ik = 1, nKPoints
 
-      if (ionode) write(iostd,*) "Processing k-point ", ik
+        if (ionode) write(iostd,*) "Processing k-point ", ik, " Spin ", isp
 
-      call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
-          maxNumPWsGlobal, gKIndexGlobal)
-        !! * For each k-point, gather all of the \(G+k\) indices
-        !!   among all processors in a single global array
+        call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
+            maxNumPWsGlobal, gKIndexGlobal)
+          !! * For each k-point, gather all of the \(G+k\) indices
+          !!   among all processors in a single global array
     
-      if (ionode) write(mainOutFileUnit, '(3i10,4ES24.15E3)') ik, groundState(ik), nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
-      if (ionode) flush(mainOutFileUnit)
-        !! * Write the k-point index, the ground state band, and
-        !!   the number of G-vectors, weight, and position for this 
-        !!   k-point
+        if (ionode) write(mainOutFileUnit, '(3i10,4ES24.15E3)') ik, groundState(isp,ik), nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
+        if (ionode) flush(mainOutFileUnit)
+          !! * Write the k-point index, the ground state band, and
+          !!   the number of G-vectors, weight, and position for this 
+          !!   k-point
     
+      enddo
+
     enddo
 
     if(ionode) then
@@ -2444,7 +2446,7 @@ module wfcExportVASPMod
   end subroutine writeKInfo
 
 !----------------------------------------------------------------------------
-  subroutine getGroundState(nBands, nKPoints, bandOccupation, groundState)
+  subroutine getGroundState(nBands, nKPoints, nSpins, bandOccupation, groundState)
     !! * For each k-point, find the index of the 
     !!   highest occupied band
 
@@ -2455,39 +2457,43 @@ module wfcExportVASPMod
       !! Total number of bands
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+    integer, intent(in) :: nSpins
+      !! Number of spins
 
-    real(kind=dp), intent(in) :: bandOccupation(nBands, nKPoints)
+    real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands, nKPoints)
       !! Occupation of band
 
     
     ! Output variables:
-    integer, intent(out) :: groundState(nKPoints)
+    integer, intent(out) :: groundState(nSpins, nKPoints)
       !! Holds the highest occupied band
-      !! for each k-point
+      !! for each k-point and spin
 
 
     ! Local variables:
-    integer :: ik, ibnd
+    integer :: ik, ibnd, isp
       !! Loop indices
 
 
-    groundState(:) = 0
-    do ik = 1, nKPoints
+    groundState(:,:) = 0
+    do isp = 1, nSpins
+      do ik = 1, nKPoints
 
-      do ibnd = 1, nBands
+        do ibnd = 1, nBands
 
-        if (bandOccupation(ibnd,ik) < 0.5_dp) then
-          !! @todo Figure out if boundary for "occupied" should be 0.5 or less @endtodo
-        !if (et(ibnd,ik) > ef) then
+          if (bandOccupation(isp,ibnd,ik) < 0.5_dp) then
+            !! @todo Figure out if boundary for "occupied" should be 0.5 or less @endtodo
+          !if (et(ibnd,ik) > ef) then
 
-          groundState(ik) = ibnd - 1
-          goto 10
+            groundState(isp,ik) = ibnd - 1
+            goto 10
 
-        endif
+          endif
+        enddo
+
+10      continue
+
       enddo
-
-10    continue
-
     enddo
 
     return
@@ -2603,7 +2609,7 @@ module wfcExportVASPMod
   end subroutine getGlobalGkIndices
 
 !----------------------------------------------------------------------------
-  subroutine writeGridInfo(nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
+  subroutine writeGridInfo(nGVecsGlobal, nKPoints, nSpins, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
     !! Write out grid boundaries and miller indices
     !! for just \(G+k\) combinations below cutoff energy
     !! in one file and all miller indices in another 
@@ -2621,6 +2627,8 @@ module wfcExportVASPMod
       !! Global number of G-vectors
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+    integer, intent(in) :: nSpins
+      !! Number of spins
     integer, intent(in) :: maxNumPWsGlobal
       !! Max number of \(G+k\) vectors with energy
       !! less than `wfcECut` among all k-points
@@ -2645,7 +2653,7 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: ik, ig, igk
+    integer :: ik, ig, igk, isp
       !! Loop indices
 
     character(len=300) :: indexC
@@ -2668,23 +2676,28 @@ module wfcExportVASPMod
                           minval(gVecMillerIndicesGlobal(3,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobal(3,1:nGVecsGlobal))
       flush(mainOutFileUnit)
     
-      do ik = 1, nKPoints
-        !! * For each k-point, write out the miller indices
-        !!   resulting in \(G+k\) vectors less than the energy
-        !!   cutoff in a `grid.ik` file
+      do isp = 1, nSpins
+        !! @todo Remove this loop after spin after spin polarization is implemented in `TME` #spin @endtodo
+        do ik = 1, nKPoints
+          !! * For each k-point, write out the miller indices
+          !!   resulting in \(G+k\) vectors less than the energy
+          !!   cutoff in a `grid.ik` file
       
-        call int2str(ik, indexC)
-        open(72, file=trim(exportDir)//"/grid."//trim(indexC))
-        write(72, '("# Wave function G-vectors grid")')
-        write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
+          call int2str(ik+(isp-1)*nKPoints, indexC)
+            !! @todo Change indexing back to just k-points after add spin in `TME` #spin @endtodo
+          open(72, file=trim(exportDir)//"/grid."//trim(indexC))
+          write(72, '("# Wave function G-vectors grid")')
+          write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
       
-        do igk = 1, nGkLessECutGlobal(ik)
-          write(72, '(4i10)') gKIndexGlobal(igk,ik), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ik))
-          flush(72)
+          do igk = 1, nGkLessECutGlobal(ik)
+            write(72, '(4i10)') gKIndexGlobal(igk,ik), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ik))
+            flush(72)
+          enddo
+      
+          close(72)
+      
         enddo
-      
-        close(72)
-      
+
       enddo
 
       !> * Output all miller indices in `mgrid` file
@@ -2874,7 +2887,7 @@ module wfcExportVASPMod
       
     real(kind=dp), intent(in) :: eFermi
       !! Fermi energy
-    real(kind=dp), intent(in) :: bandOccupation(nBands,nKPoints)
+    real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands,nKPoints)
       !! Occupation of band
 
     complex*16, intent(in) :: eigenE(nSpins,nKPoints,nBands)
@@ -2885,10 +2898,8 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: ik, ib
+    integer :: ik, ib, isp
       !! Loop indices
-    integer :: ispin
-      !! Spin index
 
     character(len=300) :: indexC
       !! Character index
@@ -2900,27 +2911,26 @@ module wfcExportVASPMod
       write(mainOutFileUnit, '(ES24.15E3)') eFermi*ryToHartree
       flush(mainOutFileUnit)
     
-      do ik = 1, nKPoints
+      do isp = 1, nSpins
+        do ik = 1, nKPoints
       
-        !ispin = isk(ik)
-        ispin = 1
-          !! @todo Figure out if spin needs to be incorporated for eigenvalues @endtodo
+          call int2str(ik+(isp-1)*nKPoints, indexC)
+          open(72, file=trim(exportDir)//"/eigenvalues."//trim(indexC))
       
-        call int2str(ik, indexC)
-        open(72, file=trim(exportDir)//"/eigenvalues."//trim(indexC))
+          write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
+          write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
       
-        write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') ispin
-        write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
-      
-        do ib = 1, nBands
+          do ib = 1, nBands
 
-          write(72, '(2ES24.15E3)') real(eigenE(ispin,ik,ib))*ryToHartree, bandOccupation(ib,ik)
-          flush(72)
+            write(72, '(2ES24.15E3)') real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(isp,ib,ik)
+            flush(72)
 
+          enddo
+      
+          close(72)
+      
         enddo
-      
-        close(72)
-      
+
       enddo
     
     endif

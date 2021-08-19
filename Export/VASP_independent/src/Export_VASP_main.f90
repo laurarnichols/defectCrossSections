@@ -102,7 +102,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Writing k-point info"
 
-  call writeKInfo(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, maxNumPWsGlobal, &
+  call writeKInfo(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, nSpins, maxGIndexGlobal, maxNumPWsGlobal, &
       bandOccupation, kWeight, kPosition, gKIndexGlobal)
     !! * Calculate ground state and global \(G+k\) indices
     !!   and write out k-point information to `input` file
@@ -114,7 +114,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Writing grid info"
 
-  call writeGridInfo(nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
+  call writeGridInfo(nGVecsGlobal, nKPoints, nSpins, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
     !! * Write out grid boundaries and miller indices
     !!   for just \(G+k\) combinations below cutoff energy
     !!   in one file and all miller indices in another 

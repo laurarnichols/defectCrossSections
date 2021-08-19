@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.8% of total for procedures.">33 statements</a>
+    title=" 0.9% of total for procedures.">33 statements</a>
      </li> 
      
      
@@ -187,7 +187,7 @@
       
       <a class="list-group-item" href="../proc/writeresults.html#variable-t2%7E3">t2</a>
       
-      <a class="list-group-item" href="../proc/writeresults.html#variable-text%7E2">text</a>
+      <a class="list-group-item" href="../proc/writeresults.html#variable-text">text</a>
       
       <a class="list-group-item" href="../proc/writeresults.html#variable-uelements%7E2">Uelements</a>
       
@@ -249,7 +249,7 @@ public subroutine writeResults(ik)
 <p>Start a timer</p>
 </li>
 <li>
-<p>Read eigenvalues from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
+<p>Read eigenvalues from <a>pw_export_for_tme</a></p>
 </li>
 <li>
 <p>Write out a header to <code>output</code> file</p>
@@ -307,7 +307,7 @@ public subroutine writeResults(ik)
   
 <tr>
   
-  <td><span class="anchor" id="variable-ik%7E9"></span>integer,</td>
+  <td><span class="anchor" id="variable-ik%7E7"></span>integer,</td>
   <td>intent(in)</td>
   <td></td>
   
@@ -348,7 +348,7 @@ public subroutine writeResults(ik)
       
       <a class="list-group-item" href="../proc/writeresults.html#variable-t2%7E3">t2</a>
       
-      <a class="list-group-item" href="../proc/writeresults.html#variable-text%7E2">text</a>
+      <a class="list-group-item" href="../proc/writeresults.html#variable-text">text</a>
       
       <a class="list-group-item" href="../proc/writeresults.html#variable-uelements%7E2">Uelements</a>
       
@@ -480,7 +480,7 @@ public subroutine writeResults(ik)
   
 <tr>
   
-  <td><span class="anchor" id="variable-text%7E2"></span>character(len=300),</td>
+  <td><span class="anchor" id="variable-text"></span>character(len=300),</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -591,16 +591,18 @@ public subroutine writeResults(ik)
     <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span><span class="s1">&#39;(a, &quot; Format : &#39;&#39;(5i10)&#39;&#39;&quot;)&#39;</span><span class="p">)</span> <span class="nb">trim</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
       <span class="c">! * Output header for next section</span>
     <span class="c">!</span>
-    <span class="n">totalNumberOfElements</span> <span class="o">=</span> <span class="p">(</span><span class="n">iBandIfinal</span> <span class="o">-</span> <span class="n">iBandIinit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">iBandFfinal</span> <span class="o">-</span> <span class="n">iBandFinit</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">totalNumberOfElements</span> <span class="o">=</span> <span class="p">(</span><span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandH</span> <span class="o">-</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandL</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">*</span> <span class="p">&amp;</span>
+                            <span class="p">(</span><span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandH</span> <span class="o">-</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandL</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
       <span class="c">!! * Calculate the total number of matrix elements</span>
-    <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span><span class="s1">&#39;(5i10)&#39;</span><span class="p">)</span> <span class="n">totalNumberOfElements</span><span class="p">,</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span><span class="p">,</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
+    <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span><span class="s1">&#39;(5i10)&#39;</span><span class="p">)</span> <span class="n">totalNumberOfElements</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandL</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandH</span><span class="p">,</span> <span class="p">&amp;</span>
+                       <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandL</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandH</span>
       <span class="c">!! * Output the total number of elements and band limits</span>
     <span class="c">!</span>
     <span class="k">write</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="s1">&#39;(&quot;# Final Band, Initial Band, Delta energy, Complex &lt;f|U|i&gt;, |&lt;f|U|i&gt;|^2 Format : &#39;&#39;(2i10,4ES24.15E3)&#39;&#39;&quot;)&#39;</span><span class="p">)</span>
       <span class="c">! * Output header for next section</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">iBandFinit</span><span class="p">,</span> <span class="n">iBandFfinal</span>
-      <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+    <span class="k">do </span><span class="n">ibf</span> <span class="o">=</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandL</span><span class="p">,</span> <span class="n">solidDefect</span><span class="p">%</span><span class="n">iBandH</span>
+      <span class="k">do </span><span class="n">ibi</span> <span class="o">=</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandL</span><span class="p">,</span> <span class="n">perfectCrystal</span><span class="p">%</span><span class="n">iBandH</span>
         <span class="c">!! * Loop through the bands to output the change </span>
         <span class="c">!!   in eigenvalues, matrix element, and norm </span>
         <span class="c">!!   squared matrix element</span>
@@ -640,7 +642,7 @@ public subroutine writeResults(ik)
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">

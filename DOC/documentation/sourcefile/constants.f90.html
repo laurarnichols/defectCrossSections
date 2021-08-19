@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.2% of total for source files.">11 statements</a>
+    title=" 0.3% of total for source files.">14 statements</a>
      </li> 
      
      
@@ -276,13 +276,21 @@
 <a name="ln-7"></a>    <span class="c">!! Unit number for output file</span>
 <a name="ln-8"></a>  <span class="c">!</span>
 <a name="ln-9"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span>         <span class="n">abCM</span> <span class="o">=</span> <span class="mf">0.529177219217e-8_dp</span>
-<a name="ln-10"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">eVToHartree</span>  <span class="o">=</span> <span class="mf">1.0_dp</span><span class="o">/</span><span class="mi">2</span><span class="mf">7.21138386_dp</span>
-<a name="ln-11"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">HartreeToEv</span>  <span class="o">=</span> <span class="mi">2</span><span class="mf">7.21138386_dp</span>
-<a name="ln-12"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span>           <span class="n">pi</span> <span class="o">=</span> <span class="mf">3.1415926535897932_dp</span>
-<a name="ln-13"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">THzToHartree</span> <span class="o">=</span> <span class="mf">1.0_dp</span><span class="o">/</span><span class="mi">657</span><span class="mf">9.683920729_dp</span>
-<a name="ln-14"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span>        <span class="n">twopi</span> <span class="o">=</span> <span class="mf">2.0_dp</span><span class="o">*</span><span class="n">pi</span>
-<a name="ln-15"></a>  <span class="c">!</span>
-<a name="ln-16"></a><span class="k">end module </span><span class="n">constants</span>
+<a name="ln-10"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">angToBohr</span> <span class="o">=</span> <span class="mf">1.889725989_dp</span>
+<a name="ln-11"></a>    <span class="c">!! Conversion factor from Angstrom to Bohr</span>
+<a name="ln-12"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">eVToHartree</span>  <span class="o">=</span> <span class="mf">1.0_dp</span><span class="o">/</span><span class="mi">2</span><span class="mf">7.21138386_dp</span>
+<a name="ln-13"></a>    <span class="c">!! Conversion factor from eV to Hartree</span>
+<a name="ln-14"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">eVToRy</span> <span class="o">=</span> <span class="mf">1.0_dp</span><span class="o">/</span><span class="mi">1</span><span class="mf">3.60569301_dp</span>
+<a name="ln-15"></a>    <span class="c">!! Conversion factor from eV to Rydberg</span>
+<a name="ln-16"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">HartreeToEv</span>  <span class="o">=</span> <span class="mi">2</span><span class="mf">7.21138386_dp</span>
+<a name="ln-17"></a>    <span class="c">!! Conversion factor from Hartree to eV</span>
+<a name="ln-18"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span>           <span class="n">pi</span> <span class="o">=</span> <span class="mf">3.1415926535897932_dp</span>
+<a name="ln-19"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">ryToHartree</span> <span class="o">=</span> <span class="mf">0.5_dp</span>
+<a name="ln-20"></a>    <span class="c">!! Conversion factor from Rydberg to Hartree</span>
+<a name="ln-21"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span> <span class="n">THzToHartree</span> <span class="o">=</span> <span class="mf">1.0_dp</span><span class="o">/</span><span class="mi">657</span><span class="mf">9.683920729_dp</span>
+<a name="ln-22"></a>  <span class="kt">real</span><span class="p">(</span><span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">),</span> <span class="k">parameter</span> <span class="kd">::</span>        <span class="n">twopi</span> <span class="o">=</span> <span class="mf">2.0_dp</span><span class="o">*</span><span class="n">pi</span>
+<a name="ln-23"></a>  <span class="c">!</span>
+<a name="ln-24"></a><span class="k">end module </span><span class="n">constants</span>
 </pre></div>
 
     </section>
@@ -295,7 +303,7 @@
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">

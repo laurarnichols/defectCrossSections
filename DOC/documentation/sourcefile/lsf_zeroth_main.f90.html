@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 4.4% of total for source files.">230 statements</a>
+    title=" 4.8% of total for source files.">231 statements</a>
      </li> 
      
      
@@ -523,7 +523,7 @@
 <a name="ln-254"></a>    <span class="c">!</span>
 <a name="ln-255"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">istat</span> <span class="o">/=</span> <span class="mi">0</span><span class="p">)</span> <span class="k">close</span><span class="p">(</span><span class="n">un</span><span class="p">)</span>
 <a name="ln-256"></a>    <span class="c">!</span>
-<a name="ln-257"></a>    <span class="c">! allocate ( lsfbyPhononsPerProc(-nEnergies:nEnergies) )</span>
+<a name="ln-257"></a>    <span class="k">allocate</span> <span class="p">(</span> <span class="n">lsfbyPhononsPerProc</span><span class="p">(</span><span class="o">-</span><span class="n">nEnergies</span><span class="p">:</span><span class="n">nEnergies</span><span class="p">)</span> <span class="p">)</span>
 <a name="ln-258"></a>    <span class="c">!</span>
 <a name="ln-259"></a>    <span class="k">if</span> <span class="p">(</span> <span class="n">minimumNumberOfPhonons</span> <span class="o">&lt;</span> <span class="mi">6</span> <span class="p">)</span> <span class="n">minimumNumberOfPhonons</span> <span class="o">=</span> <span class="mi">5</span>
 <a name="ln-260"></a>    <span class="k">do </span><span class="n">m</span> <span class="o">=</span> <span class="n">minimumNumberOfPhonons</span><span class="p">,</span> <span class="n">maximumNumberOfPhonons</span>
@@ -596,162 +596,160 @@
 <a name="ln-327"></a>      <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeIs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
 <a name="ln-328"></a>      <span class="k">call </span><span class="n">MPI_BCAST</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iModeFs</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span><span class="n">root</span><span class="p">,</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="n">ierr</span><span class="p">)</span>
 <a name="ln-329"></a>      <span class="c">!</span>
-<a name="ln-330"></a>      <span class="c">!write(6,*) myid, iModeIs(myid), iModeFs(myid)</span>
-<a name="ln-331"></a>      <span class="c">!</span>
-<a name="ln-332"></a>      <span class="k">do </span><span class="n">l</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">m</span>
-<a name="ln-333"></a>        <span class="c">!! @todo Move this to a subroutine @endtodo</span>
-<a name="ln-334"></a>        <span class="c">!</span>
-<a name="ln-335"></a>        <span class="c">!write(iostd,*) &quot;---------------------------------&quot;</span>
-<a name="ln-336"></a>        <span class="c">!write(iostd,*) m, &quot; by &quot;, l</span>
-<a name="ln-337"></a>        <span class="c">!flush(iostd)</span>
-<a name="ln-338"></a>        <span class="c">!</span>
-<a name="ln-339"></a>        <span class="c">!&gt; @todo Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)` @endtodo</span>
-<a name="ln-340"></a>        <span class="n">times</span> <span class="o">=</span> <span class="mf">1.0_dp</span>
-<a name="ln-341"></a>        <span class="n">mi</span> <span class="o">=</span> <span class="n">l</span><span class="o">-</span><span class="mi">1</span>
-<a name="ln-342"></a>        <span class="c">!</span>
-<a name="ln-343"></a>        <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="n">m</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">m</span> <span class="o">-</span> <span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
-<a name="ln-344"></a>          <span class="c">!</span>
-<a name="ln-345"></a>          <span class="n">times</span> <span class="o">=</span> <span class="n">times</span><span class="o">*</span><span class="nb">dble</span><span class="p">(</span><span class="n">ni</span><span class="p">)</span><span class="o">/</span><span class="nb">dble</span><span class="p">(</span><span class="n">mi</span><span class="p">)</span>
-<a name="ln-346"></a>          <span class="n">mi</span> <span class="o">=</span> <span class="n">mi</span> <span class="o">-</span> <span class="mi">1</span>
-<a name="ln-347"></a>          <span class="c">!</span>
-<a name="ln-348"></a>        <span class="n">enddo</span>
+<a name="ln-330"></a>      <span class="k">do </span><span class="n">l</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">m</span>
+<a name="ln-331"></a>        <span class="c">!! @todo Move this to a subroutine @endtodo</span>
+<a name="ln-332"></a>        <span class="c">!</span>
+<a name="ln-333"></a>        <span class="c">!write(iostd,*) &quot;---------------------------------&quot;</span>
+<a name="ln-334"></a>        <span class="c">!write(iostd,*) m, &quot; by &quot;, l</span>
+<a name="ln-335"></a>        <span class="c">!flush(iostd)</span>
+<a name="ln-336"></a>        <span class="c">!</span>
+<a name="ln-337"></a>        <span class="c">!&gt; @todo Replace this with `binomialCoefficient(kPhonons-1, kPhonons-nBands)` @endtodo</span>
+<a name="ln-338"></a>        <span class="n">times</span> <span class="o">=</span> <span class="mf">1.0_dp</span>
+<a name="ln-339"></a>        <span class="n">mi</span> <span class="o">=</span> <span class="n">l</span><span class="o">-</span><span class="mi">1</span>
+<a name="ln-340"></a>        <span class="c">!</span>
+<a name="ln-341"></a>        <span class="k">do </span><span class="n">ni</span> <span class="o">=</span> <span class="n">m</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">m</span> <span class="o">-</span> <span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+<a name="ln-342"></a>          <span class="c">!</span>
+<a name="ln-343"></a>          <span class="n">times</span> <span class="o">=</span> <span class="n">times</span><span class="o">*</span><span class="nb">dble</span><span class="p">(</span><span class="n">ni</span><span class="p">)</span><span class="o">/</span><span class="nb">dble</span><span class="p">(</span><span class="n">mi</span><span class="p">)</span>
+<a name="ln-344"></a>          <span class="n">mi</span> <span class="o">=</span> <span class="n">mi</span> <span class="o">-</span> <span class="mi">1</span>
+<a name="ln-345"></a>          <span class="c">!</span>
+<a name="ln-346"></a>        <span class="n">enddo</span>
+<a name="ln-347"></a>        <span class="c">!</span>
+<a name="ln-348"></a>        <span class="k">allocate</span><span class="p">(</span> <span class="n">pj0s</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">times</span> <span class="o">+</span> <span class="mf">1.e-3_dp</span><span class="p">),</span> <span class="n">l</span><span class="p">)</span> <span class="p">)</span>
 <a name="ln-349"></a>        <span class="c">!</span>
-<a name="ln-350"></a>        <span class="k">allocate</span><span class="p">(</span> <span class="n">pj0s</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">times</span> <span class="o">+</span> <span class="mf">1.e-3_dp</span><span class="p">),</span> <span class="n">l</span><span class="p">)</span> <span class="p">)</span>
+<a name="ln-350"></a>        <span class="n">pj0s</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mi">0</span>
 <a name="ln-351"></a>        <span class="c">!</span>
-<a name="ln-352"></a>        <span class="n">pj0s</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mi">0</span>
-<a name="ln-353"></a>        <span class="c">!</span>
-<a name="ln-354"></a>        <span class="c">!write(6,*) &#39;distrubutePhononsInBands&#39;, m, l, times, int(times + 1.e-3_dp)</span>
-<a name="ln-355"></a>        <span class="k">call </span><span class="n">distrubutePhononsInBands</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> 
+<a name="ln-352"></a>        <span class="c">!write(6,*) &#39;distrubutePhononsInBands&#39;, m, l, times, int(times + 1.e-3_dp)</span>
+<a name="ln-353"></a>        <span class="k">call </span><span class="n">distrubutePhononsInBands</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> 
+<a name="ln-354"></a>        <span class="c">!</span>
+<a name="ln-355"></a>        <span class="k">allocate</span><span class="p">(</span> <span class="n">pms</span><span class="p">(</span> <span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="o">**</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span> <span class="p">)</span> <span class="p">)</span>
 <a name="ln-356"></a>        <span class="c">!</span>
-<a name="ln-357"></a>        <span class="k">allocate</span><span class="p">(</span> <span class="n">pms</span><span class="p">(</span> <span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="o">**</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span> <span class="p">)</span> <span class="p">)</span>
+<a name="ln-357"></a>        <span class="n">pms</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mi">0</span>
 <a name="ln-358"></a>        <span class="c">!</span>
-<a name="ln-359"></a>        <span class="n">pms</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-359"></a>        <span class="k">call </span><span class="n">calculatePlusMinusStates</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
 <a name="ln-360"></a>        <span class="c">!</span>
-<a name="ln-361"></a>        <span class="k">call </span><span class="n">calculatePlusMinusStates</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+<a name="ln-361"></a>        <span class="n">lsfVsEbyBands</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
 <a name="ln-362"></a>        <span class="c">!</span>
-<a name="ln-363"></a>        <span class="n">lsfVsEbyBands</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+<a name="ln-363"></a>        <span class="k">call </span><span class="n">lsfWithMphonons</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">times</span> <span class="o">+</span> <span class="mf">1.e-3_dp</span><span class="p">))</span>
 <a name="ln-364"></a>        <span class="c">!</span>
-<a name="ln-365"></a>        <span class="k">call </span><span class="n">lsfWithMphonons</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">times</span> <span class="o">+</span> <span class="mf">1.e-3_dp</span><span class="p">))</span>
-<a name="ln-366"></a>        <span class="c">!</span>
-<a name="ln-367"></a>        <span class="n">lsfbyPhononsPerProc</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
-<a name="ln-368"></a>        <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">lsfVsEbyBands</span><span class="p">,</span> <span class="n">lsfbyPhononsPerProc</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">lsfbyPhononsPerProc</span><span class="p">),</span> <span class="p">&amp;</span>
-<a name="ln-369"></a>                                                            <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
-<a name="ln-370"></a>
-<a name="ln-371"></a>        <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-365"></a>        <span class="n">lsfbyPhononsPerProc</span><span class="p">(:)</span> <span class="o">=</span> <span class="mf">0.0_dp</span>
+<a name="ln-366"></a>        <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">lsfVsEbyBands</span><span class="p">,</span> <span class="n">lsfbyPhononsPerProc</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">lsfbyPhononsPerProc</span><span class="p">),</span> <span class="p">&amp;</span>
+<a name="ln-367"></a>                                                            <span class="n">MPI_DOUBLE_PRECISION</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+<a name="ln-368"></a>        <span class="c">!</span>
+<a name="ln-369"></a>        <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-370"></a>          <span class="c">!</span>
+<a name="ln-371"></a>          <span class="n">weight</span> <span class="o">=</span> <span class="n">nModes</span>
 <a name="ln-372"></a>          <span class="c">!</span>
-<a name="ln-373"></a>          <span class="n">weight</span> <span class="o">=</span> <span class="n">nModes</span>
-<a name="ln-374"></a>          <span class="c">!</span>
-<a name="ln-375"></a>          <span class="k">do </span><span class="n">iMode</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">l</span>
+<a name="ln-373"></a>          <span class="k">do </span><span class="n">iMode</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">l</span>
+<a name="ln-374"></a>            <span class="c">!</span>
+<a name="ln-375"></a>            <span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span><span class="o">*</span><span class="p">(</span><span class="n">nModes</span> <span class="o">-</span> <span class="n">iMode</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="n">iMode</span>
 <a name="ln-376"></a>            <span class="c">!</span>
-<a name="ln-377"></a>            <span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span><span class="o">*</span><span class="p">(</span><span class="n">nModes</span> <span class="o">-</span> <span class="n">iMode</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="n">iMode</span>
-<a name="ln-378"></a>            <span class="c">!</span>
-<a name="ln-379"></a>          <span class="n">enddo</span>
-<a name="ln-380"></a>          <span class="c">!</span>
-<a name="ln-381"></a>          <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span> <span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">times</span><span class="o">*</span><span class="n">weight</span>
-<a name="ln-382"></a>          <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="mi">102</span><span class="p">)</span> <span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="kt">real</span><span class="p">(</span><span class="n">nMC</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
-<a name="ln-383"></a>          <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="mi">103</span><span class="p">)</span> <span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">times</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">nMC</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
-<a name="ln-384"></a>          <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="mi">104</span><span class="p">)</span> <span class="n">weight</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">nMC</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
-<a name="ln-385"></a>          <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+<a name="ln-377"></a>          <span class="n">enddo</span>
+<a name="ln-378"></a>          <span class="c">!</span>
+<a name="ln-379"></a>          <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span> <span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">times</span><span class="o">*</span><span class="n">weight</span>
+<a name="ln-380"></a>          <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="mi">102</span><span class="p">)</span> <span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="kt">real</span><span class="p">(</span><span class="n">nMC</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
+<a name="ln-381"></a>          <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="mi">103</span><span class="p">)</span> <span class="n">m</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">times</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">nMC</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
+<a name="ln-382"></a>          <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span> <span class="mi">104</span><span class="p">)</span> <span class="n">weight</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">nMC</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
+<a name="ln-383"></a>          <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+<a name="ln-384"></a>          <span class="c">!</span>
+<a name="ln-385"></a>          <span class="n">lsfVsEbyPhonons</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(:)</span> <span class="o">+</span> <span class="n">lsfbyPhononsPerProc</span><span class="p">(:)</span><span class="o">*</span><span class="n">weight</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">nMC</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
 <a name="ln-386"></a>          <span class="c">!</span>
-<a name="ln-387"></a>          <span class="n">lsfVsEbyPhonons</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(:)</span> <span class="o">+</span> <span class="n">lsfbyPhononsPerProc</span><span class="p">(:)</span><span class="o">*</span><span class="n">weight</span><span class="o">/</span><span class="kt">real</span><span class="p">(</span><span class="n">nMC</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span>
-<a name="ln-388"></a>          <span class="c">!</span>
-<a name="ln-389"></a>          <span class="c">!do iE = -nEnergies, nEnergies</span>
-<a name="ln-390"></a>          <span class="c">!  write(1000 + 10*m + l, *) real(iE, dp)*deltaE*HartreeToEv, lsfVsEbyBands(iE)*(weight/real(nMC, dp))</span>
-<a name="ln-391"></a>          <span class="c">!enddo</span>
-<a name="ln-392"></a>          <span class="c">!close(1000 + 10*m + l)</span>
-<a name="ln-393"></a>          <span class="c">!</span>
-<a name="ln-394"></a>        <span class="n">endif</span>
+<a name="ln-387"></a>          <span class="c">!do iE = -nEnergies, nEnergies</span>
+<a name="ln-388"></a>          <span class="c">!  write(1000 + 10*m + l, *) real(iE, dp)*deltaE*HartreeToEv, lsfVsEbyBands(iE)*(weight/real(nMC, dp))</span>
+<a name="ln-389"></a>          <span class="c">!enddo</span>
+<a name="ln-390"></a>          <span class="c">!close(1000 + 10*m + l)</span>
+<a name="ln-391"></a>          <span class="c">!</span>
+<a name="ln-392"></a>        <span class="n">endif</span>
+<a name="ln-393"></a>        <span class="c">!</span>
+<a name="ln-394"></a>        <span class="k">deallocate</span><span class="p">(</span> <span class="n">pj0s</span><span class="p">,</span> <span class="n">pms</span> <span class="p">)</span>
 <a name="ln-395"></a>        <span class="c">!</span>
-<a name="ln-396"></a>        <span class="k">deallocate</span><span class="p">(</span> <span class="n">pj0s</span><span class="p">,</span> <span class="n">pms</span> <span class="p">)</span>
-<a name="ln-397"></a>        <span class="c">!</span>
-<a name="ln-398"></a>      <span class="n">enddo</span>
-<a name="ln-399"></a>      <span class="c">!</span>
-<a name="ln-400"></a>      <span class="n">iEbinsByPhonons</span> <span class="o">=</span> <span class="mi">0</span>
-<a name="ln-401"></a>      <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">iEbinsByBands</span><span class="p">,</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iEbinsByBands</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
-<a name="ln-402"></a>      <span class="c">!</span>
-<a name="ln-403"></a>      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-404"></a>        <span class="c">! </span>
-<a name="ln-405"></a>        <span class="k">call </span><span class="n">calculateDE</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">de</span><span class="p">)</span>
-<a name="ln-406"></a>        <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">+</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(:)</span><span class="o">/</span><span class="n">de</span>
-<a name="ln-407"></a>        <span class="c">!</span>
-<a name="ln-408"></a>        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;DE&#39;</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span>  <span class="n">de</span>
-<a name="ln-409"></a>        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
-<a name="ln-410"></a>        <span class="c">!</span>
-<a name="ln-411"></a>        <span class="k">if</span> <span class="p">(</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-396"></a>      <span class="n">enddo</span>
+<a name="ln-397"></a>      <span class="c">!</span>
+<a name="ln-398"></a>      <span class="n">iEbinsByPhonons</span> <span class="o">=</span> <span class="mi">0</span>
+<a name="ln-399"></a>      <span class="k">CALL </span><span class="n">MPI_REDUCE</span><span class="p">(</span><span class="n">iEbinsByBands</span><span class="p">,</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">size</span><span class="p">(</span><span class="n">iEbinsByBands</span><span class="p">),</span> <span class="n">MPI_INTEGER</span><span class="p">,</span> <span class="n">MPI_SUM</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">MPI_COMM_WORLD</span><span class="p">,</span> <span class="n">ierr</span><span class="p">)</span>
+<a name="ln-400"></a>      <span class="c">!</span>
+<a name="ln-401"></a>      <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-402"></a>        <span class="c">! </span>
+<a name="ln-403"></a>        <span class="k">call </span><span class="n">calculateDE</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">de</span><span class="p">)</span>
+<a name="ln-404"></a>        <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">=</span> <span class="n">lsfVsE</span><span class="p">(:)</span> <span class="o">+</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(:)</span><span class="o">/</span><span class="n">de</span>
+<a name="ln-405"></a>        <span class="c">!</span>
+<a name="ln-406"></a>        <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="o">*</span><span class="p">)</span> <span class="s1">&#39;DE&#39;</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span>  <span class="n">de</span>
+<a name="ln-407"></a>        <span class="nb">flush</span><span class="p">(</span><span class="n">iostd</span><span class="p">)</span>
+<a name="ln-408"></a>        <span class="c">!</span>
+<a name="ln-409"></a>        <span class="k">if</span> <span class="p">(</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">10</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-410"></a>          <span class="c">!</span>
+<a name="ln-411"></a>          <span class="k">write</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span><span class="s1">&#39;(&quot;lsfVsEwithUpTo&quot;, i1, &quot;phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">m</span>
 <a name="ln-412"></a>          <span class="c">!</span>
-<a name="ln-413"></a>          <span class="k">write</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span><span class="s1">&#39;(&quot;lsfVsEwithUpTo&quot;, i1, &quot;phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">m</span>
+<a name="ln-413"></a>        <span class="n">elseif</span> <span class="p">(</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">100</span> <span class="p">)</span> <span class="k">then</span>
 <a name="ln-414"></a>          <span class="c">!</span>
-<a name="ln-415"></a>        <span class="n">elseif</span> <span class="p">(</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">100</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-415"></a>          <span class="k">write</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span><span class="s1">&#39;(&quot;lsfVsEwithUpTo&quot;, i2, &quot;phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">m</span>
 <a name="ln-416"></a>          <span class="c">!</span>
-<a name="ln-417"></a>          <span class="k">write</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span><span class="s1">&#39;(&quot;lsfVsEwithUpTo&quot;, i2, &quot;phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">m</span>
+<a name="ln-417"></a>        <span class="n">elseif</span> <span class="p">(</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">1000</span> <span class="p">)</span> <span class="k">then</span>
 <a name="ln-418"></a>          <span class="c">!</span>
-<a name="ln-419"></a>        <span class="n">elseif</span> <span class="p">(</span> <span class="n">m</span> <span class="o">&lt;</span> <span class="mi">1000</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-419"></a>          <span class="k">write</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span><span class="s1">&#39;(&quot;lsfVsEwithUpTo&quot;, i3, &quot;phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">m</span>
 <a name="ln-420"></a>          <span class="c">!</span>
-<a name="ln-421"></a>          <span class="k">write</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span><span class="s1">&#39;(&quot;lsfVsEwithUpTo&quot;, i3, &quot;phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">m</span>
+<a name="ln-421"></a>        <span class="k">else</span>
 <a name="ln-422"></a>          <span class="c">!</span>
-<a name="ln-423"></a>        <span class="k">else</span>
+<a name="ln-423"></a>          <span class="k">write</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span><span class="s1">&#39;(&quot;lsfVsEwithUpTo&quot;, i4, &quot;phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">m</span>
 <a name="ln-424"></a>          <span class="c">!</span>
-<a name="ln-425"></a>          <span class="k">write</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span><span class="s1">&#39;(&quot;lsfVsEwithUpTo&quot;, i4, &quot;phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">m</span>
-<a name="ln-426"></a>          <span class="c">!</span>
-<a name="ln-427"></a>        <span class="n">endif</span>
+<a name="ln-425"></a>        <span class="n">endif</span>
+<a name="ln-426"></a>        <span class="c">!</span>
+<a name="ln-427"></a>        <span class="k">open</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">fn</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
 <a name="ln-428"></a>        <span class="c">!</span>
-<a name="ln-429"></a>        <span class="k">open</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="k">file</span><span class="o">=</span><span class="nb">trim</span><span class="p">(</span><span class="n">fn</span><span class="p">),</span> <span class="n">status</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
-<a name="ln-430"></a>        <span class="c">!</span>
-<a name="ln-431"></a>        <span class="c">!write(5000,&#39;(&quot;# &quot;, i5, &quot; phonons&quot;)&#39;) m</span>
-<a name="ln-432"></a>        <span class="k">write</span><span class="p">(</span><span class="mi">5000</span><span class="p">,</span><span class="s1">&#39;(&quot;#&quot;, i10, &quot; energies&quot;, i5, &quot; phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">nEnergies</span><span class="p">,</span> <span class="n">m</span>
-<a name="ln-433"></a>        <span class="c">!</span>
-<a name="ln-434"></a>        <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="o">-</span><span class="n">nEnergies</span><span class="p">,</span> <span class="n">nEnergies</span>
+<a name="ln-429"></a>        <span class="c">!write(5000,&#39;(&quot;# &quot;, i5, &quot; phonons&quot;)&#39;) m</span>
+<a name="ln-430"></a>        <span class="k">write</span><span class="p">(</span><span class="mi">5000</span><span class="p">,</span><span class="s1">&#39;(&quot;#&quot;, i10, &quot; energies&quot;, i5, &quot; phonons&quot;)&#39;</span><span class="p">)</span> <span class="n">nEnergies</span><span class="p">,</span> <span class="n">m</span>
+<a name="ln-431"></a>        <span class="c">!</span>
+<a name="ln-432"></a>        <span class="k">do </span><span class="n">iE</span> <span class="o">=</span> <span class="o">-</span><span class="n">nEnergies</span><span class="p">,</span> <span class="n">nEnergies</span>
+<a name="ln-433"></a>          <span class="c">!</span>
+<a name="ln-434"></a>          <span class="n">E</span> <span class="o">=</span> <span class="kt">real</span><span class="p">(</span><span class="n">iE</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="n">deltaE</span>
 <a name="ln-435"></a>          <span class="c">!</span>
-<a name="ln-436"></a>          <span class="n">E</span> <span class="o">=</span> <span class="kt">real</span><span class="p">(</span><span class="n">iE</span><span class="p">,</span> <span class="n">dp</span><span class="p">)</span><span class="o">*</span><span class="n">deltaE</span>
-<a name="ln-437"></a>          <span class="c">!</span>
-<a name="ln-438"></a>          <span class="c">!vg = 1.0_dp</span>
-<a name="ln-439"></a>          <span class="c">!if (E &gt; 0.0_dp) vg = sqrt(2.0_dp*E)</span>
-<a name="ln-440"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">5000</span><span class="p">,</span><span class="s1">&#39;(F16.8,2E18.6e3)&#39;</span><span class="p">)</span> <span class="n">E</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE</span><span class="p">),</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">de</span>
-<a name="ln-441"></a>          <span class="c">!twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg</span>
+<a name="ln-436"></a>          <span class="c">!vg = 1.0_dp</span>
+<a name="ln-437"></a>          <span class="c">!if (E &gt; 0.0_dp) vg = sqrt(2.0_dp*E)</span>
+<a name="ln-438"></a>          <span class="k">write</span><span class="p">(</span><span class="mi">5000</span><span class="p">,</span><span class="s1">&#39;(F16.8,2E18.6e3)&#39;</span><span class="p">)</span> <span class="n">E</span><span class="o">*</span><span class="n">HartreeToEv</span><span class="p">,</span> <span class="n">lsfVsE</span><span class="p">(</span><span class="n">iE</span><span class="p">),</span> <span class="n">lsfVsEbyPhonons</span><span class="p">(</span><span class="n">iE</span><span class="p">)</span><span class="o">/</span><span class="n">de</span>
+<a name="ln-439"></a>          <span class="c">!twoPi*abCM**2*volume*Vfis(iE)*lsfVsE(iE)/vg</span>
+<a name="ln-440"></a>          <span class="c">!</span>
+<a name="ln-441"></a>          <span class="c">!write(5000, *) real(iE, dp)*deltaE*HartreeToEv, lsfVsE(iE), lsfVsEbyPhonons(iE)/de</span>
 <a name="ln-442"></a>          <span class="c">!</span>
-<a name="ln-443"></a>          <span class="c">!write(5000, *) real(iE, dp)*deltaE*HartreeToEv, lsfVsE(iE), lsfVsEbyPhonons(iE)/de</span>
-<a name="ln-444"></a>          <span class="c">!</span>
-<a name="ln-445"></a>        <span class="n">enddo</span>
+<a name="ln-443"></a>        <span class="n">enddo</span>
+<a name="ln-444"></a>        <span class="c">!</span>
+<a name="ln-445"></a>        <span class="k">close</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span>
 <a name="ln-446"></a>        <span class="c">!</span>
-<a name="ln-447"></a>        <span class="k">close</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span>
-<a name="ln-448"></a>        <span class="c">!</span>
-<a name="ln-449"></a>      <span class="n">endif</span>
-<a name="ln-450"></a>      <span class="c">!</span>
-<a name="ln-451"></a>    <span class="n">enddo</span>
+<a name="ln-447"></a>      <span class="n">endif</span>
+<a name="ln-448"></a>      <span class="c">!</span>
+<a name="ln-449"></a>    <span class="n">enddo</span>
+<a name="ln-450"></a>    <span class="c">!</span>
+<a name="ln-451"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">istat</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">close</span><span class="p">(</span><span class="n">un</span><span class="p">)</span>
 <a name="ln-452"></a>    <span class="c">!</span>
-<a name="ln-453"></a>    <span class="k">if</span> <span class="p">(</span><span class="n">istat</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">close</span><span class="p">(</span><span class="n">un</span><span class="p">)</span>
-<a name="ln-454"></a>    <span class="c">!</span>
-<a name="ln-455"></a>  <span class="n">endif</span>
-<a name="ln-456"></a>  <span class="c">!</span>
-<a name="ln-457"></a>  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
-<a name="ln-458"></a>    <span class="c">!! * Write out the configuration with the most phonons</span>
+<a name="ln-453"></a>  <span class="n">endif</span>
+<a name="ln-454"></a>  <span class="c">!</span>
+<a name="ln-455"></a>  <span class="k">if</span> <span class="p">(</span> <span class="n">myid</span> <span class="o">==</span> <span class="n">root</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-456"></a>    <span class="c">!! * Write out the configuration with the most phonons</span>
+<a name="ln-457"></a>    <span class="c">!</span>
+<a name="ln-458"></a>    <span class="k">call </span><span class="n">writeLSFandCrossSection</span><span class="p">()</span>
 <a name="ln-459"></a>    <span class="c">!</span>
-<a name="ln-460"></a>    <span class="k">call </span><span class="n">writeLSFandCrossSection</span><span class="p">()</span>
+<a name="ln-460"></a>    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">tf</span><span class="p">)</span>
 <a name="ln-461"></a>    <span class="c">!</span>
-<a name="ln-462"></a>    <span class="k">call </span><span class="nb">cpu_time</span><span class="p">(</span><span class="n">tf</span><span class="p">)</span>
+<a name="ln-462"></a>    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="s1">&#39;(&quot; Time needed: &quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">tf</span><span class="o">-</span><span class="n">ti</span>
 <a name="ln-463"></a>    <span class="c">!</span>
-<a name="ln-464"></a>    <span class="k">write</span><span class="p">(</span><span class="n">iostd</span><span class="p">,</span><span class="s1">&#39;(&quot; Time needed: &quot;, f10.2, &quot; secs.&quot;)&#39;</span><span class="p">)</span> <span class="n">tf</span><span class="o">-</span><span class="n">ti</span>
-<a name="ln-465"></a>    <span class="c">!</span>
-<a name="ln-466"></a>  <span class="n">endif</span>
-<a name="ln-467"></a>  <span class="c">!</span>
-<a name="ln-468"></a>  <span class="mi">101</span> <span class="k">format</span><span class="p">(</span><span class="s2">&quot;   Total number of configurations of &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; phonons by &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; bands : &quot;</span><span class="p">,</span> <span class="n">E20</span><span class="p">.</span><span class="mi">1</span><span class="mf">0E3</span><span class="p">)</span>
-<a name="ln-469"></a>  <span class="mi">102</span> <span class="k">format</span><span class="p">(</span><span class="s2">&quot;   Total number of configurations of &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; phonons by &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; bands sampled : &quot;</span><span class="p">,</span> <span class="n">E20</span><span class="p">.</span><span class="mi">1</span><span class="mf">0E3</span><span class="p">)</span>
-<a name="ln-470"></a>  <span class="mi">103</span> <span class="k">format</span><span class="p">(</span><span class="s2">&quot;   Total number of configurations of &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; phonons by &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; bands calculated : &quot;</span><span class="p">,</span> <span class="n">E20</span><span class="p">.</span><span class="mi">1</span><span class="mf">0E3</span><span class="p">)</span>
-<a name="ln-471"></a>  <span class="mi">104</span> <span class="k">format</span><span class="p">(</span><span class="s2">&quot;   Each sampled configuration will be weighted by : &quot;</span><span class="p">,</span> <span class="n">E20</span><span class="p">.</span><span class="mi">1</span><span class="mf">0E3</span><span class="p">)</span>
+<a name="ln-464"></a>  <span class="n">endif</span>
+<a name="ln-465"></a>  <span class="c">!</span>
+<a name="ln-466"></a>  <span class="mi">101</span> <span class="k">format</span><span class="p">(</span><span class="s2">&quot;   Total number of configurations of &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; phonons by &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; bands : &quot;</span><span class="p">,</span> <span class="n">E20</span><span class="p">.</span><span class="mi">1</span><span class="mf">0E3</span><span class="p">)</span>
+<a name="ln-467"></a>  <span class="mi">102</span> <span class="k">format</span><span class="p">(</span><span class="s2">&quot;   Total number of configurations of &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; phonons by &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; bands sampled : &quot;</span><span class="p">,</span> <span class="n">E20</span><span class="p">.</span><span class="mi">1</span><span class="mf">0E3</span><span class="p">)</span>
+<a name="ln-468"></a>  <span class="mi">103</span> <span class="k">format</span><span class="p">(</span><span class="s2">&quot;   Total number of configurations of &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; phonons by &quot;</span><span class="p">,</span> <span class="n">i4</span><span class="p">,</span> <span class="s2">&quot; bands calculated : &quot;</span><span class="p">,</span> <span class="n">E20</span><span class="p">.</span><span class="mi">1</span><span class="mf">0E3</span><span class="p">)</span>
+<a name="ln-469"></a>  <span class="mi">104</span> <span class="k">format</span><span class="p">(</span><span class="s2">&quot;   Each sampled configuration will be weighted by : &quot;</span><span class="p">,</span> <span class="n">E20</span><span class="p">.</span><span class="mi">1</span><span class="mf">0E3</span><span class="p">)</span>
+<a name="ln-470"></a>  <span class="c">!</span>
+<a name="ln-471"></a>  <span class="k">deallocate</span><span class="p">(</span> <span class="n">lsfVsEbyBands</span><span class="p">,</span> <span class="n">iEbinsByBands</span><span class="p">,</span> <span class="n">pj</span> <span class="p">)</span>
 <a name="ln-472"></a>  <span class="c">!</span>
-<a name="ln-473"></a>  <span class="k">deallocate</span><span class="p">(</span> <span class="n">lsfVsEbyBands</span><span class="p">,</span> <span class="n">iEbinsByBands</span><span class="p">,</span> <span class="n">pj</span> <span class="p">)</span>
-<a name="ln-474"></a>  <span class="c">!</span>
-<a name="ln-475"></a>  <span class="k">if</span> <span class="p">(</span> <span class="mi">3</span> <span class="o">&lt;=</span> <span class="n">maximumNumberOfPhonons</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-473"></a>  <span class="k">if</span> <span class="p">(</span> <span class="mi">3</span> <span class="o">&lt;=</span> <span class="n">maximumNumberOfPhonons</span> <span class="p">)</span> <span class="k">then</span>
+<a name="ln-474"></a>    <span class="c">!</span>
+<a name="ln-475"></a>    <span class="k">deallocate</span><span class="p">(</span> <span class="n">iModeIs</span><span class="p">,</span> <span class="n">iModeFs</span> <span class="p">)</span>
 <a name="ln-476"></a>    <span class="c">!</span>
-<a name="ln-477"></a>    <span class="k">deallocate</span><span class="p">(</span> <span class="n">iModeIs</span><span class="p">,</span> <span class="n">iModeFs</span> <span class="p">)</span>
+<a name="ln-477"></a>    <span class="k">deallocate</span> <span class="p">(</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">lsfVsEbyPhonons</span> <span class="p">)</span>
 <a name="ln-478"></a>    <span class="c">!</span>
-<a name="ln-479"></a>    <span class="k">deallocate</span> <span class="p">(</span> <span class="n">iEbinsByPhonons</span><span class="p">,</span> <span class="n">lsfVsEbyPhonons</span> <span class="p">)</span>
-<a name="ln-480"></a>    <span class="c">!</span>
-<a name="ln-481"></a>  <span class="k">end if</span>
+<a name="ln-479"></a>  <span class="k">end if</span>
+<a name="ln-480"></a>  <span class="c">!</span>
+<a name="ln-481"></a>  <span class="k">call </span><span class="n">MPI_FINALIZE</span><span class="p">(</span><span class="n">ierr</span><span class="p">)</span>
 <a name="ln-482"></a>  <span class="c">!</span>
-<a name="ln-483"></a>  <span class="k">call </span><span class="n">MPI_FINALIZE</span><span class="p">(</span><span class="n">ierr</span><span class="p">)</span>
-<a name="ln-484"></a>  <span class="c">!</span>
-<a name="ln-485"></a><span class="k">end program </span><span class="n">lineShapeFunction</span>
+<a name="ln-483"></a><span class="k">end program </span><span class="n">lineShapeFunction</span>
 </pre></div>
 
     </section>
@@ -764,7 +762,7 @@
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">

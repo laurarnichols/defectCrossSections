@@ -132,7 +132,7 @@
      <li><i class="fa fa-list-ol"></i>
        <a data-toggle="tooltip"
     data-placement="bottom" data-html="true"
-    title=" 0.9% of total for procedures.">37 statements</a>
+    title=" 1.0% of total for procedures.">37 statements</a>
      </li> 
      
      
@@ -179,7 +179,7 @@
       
       <a class="list-group-item" href="../proc/readwfc.html#variable-ib">ib</a>
       
-      <a class="list-group-item" href="../proc/readwfc.html#variable-ig%7E4">ig</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-ig%7E2">ig</a>
       
       <a class="list-group-item" href="../proc/readwfc.html#variable-idumv">iDumV</a>
       
@@ -237,7 +237,7 @@ public subroutine readWfc(ik, system)
 
 
     
-    <p>Open the <code>grid.ki</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a>
+    <p>Open the <code>grid.ki</code> file from <a>pw_export_for_tme</a>
  to get the indices for the wavefunction to be stored in, then
  open the <code>wfc.ki</code> file and read in the wavefunction for the 
  proper bands and store in the proper indices in the system's <code>wfc</code></p>
@@ -247,7 +247,7 @@ public subroutine readWfc(ik, system)
 <p>Convert the k point index to a string</p>
 </li>
 <li>
-<p>Open the <code>grid.ki</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
+<p>Open the <code>grid.ki</code> file from <a>pw_export_for_tme</a></p>
 </li>
 <li>
 <p>Ignore the first two lines as they are comments</p>
@@ -264,16 +264,16 @@ public subroutine readWfc(ik, system)
 <p>Close the <code>grid.ki</code> file</p>
 </li>
 <li>
-<p>Open the <code>wfc.ki</code> file from <a href="../program/pw_export_for_tme.html">pw_export_for_TME</a></p>
+<p>Open the <code>wfc.ki</code> file from <a>pw_export_for_tme</a></p>
 </li>
 </ul>
 <p>Ignore the first two lines because they are comments
- * For each band before <code>iBandInit</code>, ignore all of the
+ * For each band before <code>iBandL</code>, ignore all of the
    plane waves for the given k point
  * Initialize the wavefunction to complex double zero</p>
 <ul>
 <li>
-<p>For bands between <code>iBandIinit</code> and <code>iBandIfinal</code>,
+<p>For bands between <code>iBandL</code> and <code>iBandH</code>,
    read in all of the plane waves for the given k point
    and store them in the proper index of the system's <code>wfc</code></p>
 </li>
@@ -304,7 +304,7 @@ public subroutine readWfc(ik, system)
   
 <tr>
   
-  <td><span class="anchor" id="variable-ik%7E6"></span>integer,</td>
+  <td><span class="anchor" id="variable-ik%7E4"></span>integer,</td>
   <td>intent(in)</td>
   <td></td>
   
@@ -353,7 +353,7 @@ public subroutine readWfc(ik, system)
       
       <a class="list-group-item" href="../proc/readwfc.html#variable-ib">ib</a>
       
-      <a class="list-group-item" href="../proc/readwfc.html#variable-ig%7E4">ig</a>
+      <a class="list-group-item" href="../proc/readwfc.html#variable-ig%7E2">ig</a>
       
       <a class="list-group-item" href="../proc/readwfc.html#variable-idumv">iDumV</a>
       
@@ -433,7 +433,7 @@ public subroutine readWfc(ik, system)
   
 <tr>
   
-  <td><span class="anchor" id="variable-ig%7E4"></span>integer,</td>
+  <td><span class="anchor" id="variable-ig%7E2"></span>integer,</td>
   
   <td>public</td>
   <td></td><td>::</td>
@@ -582,9 +582,9 @@ public subroutine readWfc(ik, system)
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span> <span class="p">)</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iBandIinit</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">iBandL</span> <span class="o">-</span> <span class="mi">1</span>
       <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
-        <span class="c">!! * For each band before `iBandInit`, ignore all of the</span>
+        <span class="c">!! * For each band before `iBandL`, ignore all of the</span>
         <span class="c">!!   plane waves for the given k point</span>
         <span class="k">read</span><span class="p">(</span><span class="mi">72</span><span class="p">,</span> <span class="o">*</span><span class="p">)</span>
         <span class="c">!</span>
@@ -594,9 +594,9 @@ public subroutine readWfc(ik, system)
     <span class="nb">system</span><span class="p">%</span><span class="n">wfc</span><span class="p">(:,:)</span> <span class="o">=</span> <span class="nb">cmplx</span><span class="p">(</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="mf">0.0_dp</span><span class="p">,</span> <span class="nb">kind</span> <span class="o">=</span> <span class="n">dp</span><span class="p">)</span>
       <span class="c">!! * Initialize the wavefunction to complex double zero</span>
     <span class="c">!</span>
-    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="n">iBandIinit</span><span class="p">,</span> <span class="n">iBandIfinal</span>
+    <span class="k">do </span><span class="n">ib</span> <span class="o">=</span> <span class="nb">system</span><span class="p">%</span><span class="n">iBandL</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">iBandH</span>
       <span class="k">do </span><span class="n">ig</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">system</span><span class="p">%</span><span class="n">npws</span><span class="p">(</span><span class="n">ik</span><span class="p">)</span>
-        <span class="c">!! * For bands between `iBandIinit` and `iBandIfinal`,</span>
+        <span class="c">!! * For bands between `iBandL` and `iBandH`,</span>
         <span class="c">!!   read in all of the plane waves for the given k point</span>
         <span class="c">!!   and store them in the proper index of the system&#39;s `wfc`</span>
         <span class="c">!</span>
@@ -630,7 +630,7 @@ public subroutine readWfc(ik, system)
     <footer>
       <div class="container">
       <div class="row">
-        <div class="col-xs-6 col-md-4"><p>&copy; 2019 
+        <div class="col-xs-6 col-md-4"><p>&copy; 2021 
                                           </p></div>
         <div class="col-xs-6 col-md-4 col-md-push-4">
           <p class="text-right">
