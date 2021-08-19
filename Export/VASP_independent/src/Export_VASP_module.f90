@@ -2609,7 +2609,7 @@ module wfcExportVASPMod
   end subroutine getGlobalGkIndices
 
 !----------------------------------------------------------------------------
-  subroutine writeGridInfo(nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
+  subroutine writeGridInfo(nGVecsGlobal, nKPoints, nSpins, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
     !! Write out grid boundaries and miller indices
     !! for just \(G+k\) combinations below cutoff energy
     !! in one file and all miller indices in another 
@@ -2627,6 +2627,8 @@ module wfcExportVASPMod
       !! Global number of G-vectors
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+    integer, intent(in) :: nSpins
+      !! Number of spins
     integer, intent(in) :: maxNumPWsGlobal
       !! Max number of \(G+k\) vectors with energy
       !! less than `wfcECut` among all k-points
@@ -2651,7 +2653,7 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: ik, ig, igk
+    integer :: ik, ig, igk, isp
       !! Loop indices
 
     character(len=300) :: indexC
@@ -2674,23 +2676,28 @@ module wfcExportVASPMod
                           minval(gVecMillerIndicesGlobal(3,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobal(3,1:nGVecsGlobal))
       flush(mainOutFileUnit)
     
-      do ik = 1, nKPoints
-        !! * For each k-point, write out the miller indices
-        !!   resulting in \(G+k\) vectors less than the energy
-        !!   cutoff in a `grid.ik` file
+      do isp = 1, nSpins
+        !! @todo Remove this loop after spin after spin polarization is implemented in `TME` #spin @endtodo
+        do ik = 1, nKPoints
+          !! * For each k-point, write out the miller indices
+          !!   resulting in \(G+k\) vectors less than the energy
+          !!   cutoff in a `grid.ik` file
       
-        call int2str(ik, indexC)
-        open(72, file=trim(exportDir)//"/grid."//trim(indexC))
-        write(72, '("# Wave function G-vectors grid")')
-        write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
+          call int2str(ik+(isp-1)*nKPoints, indexC)
+            !! @todo Change indexing back to just k-points after add spin in `TME` #spin @endtodo
+          open(72, file=trim(exportDir)//"/grid."//trim(indexC))
+          write(72, '("# Wave function G-vectors grid")')
+          write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
       
-        do igk = 1, nGkLessECutGlobal(ik)
-          write(72, '(4i10)') gKIndexGlobal(igk,ik), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ik))
-          flush(72)
+          do igk = 1, nGkLessECutGlobal(ik)
+            write(72, '(4i10)') gKIndexGlobal(igk,ik), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ik))
+            flush(72)
+          enddo
+      
+          close(72)
+      
         enddo
-      
-        close(72)
-      
+
       enddo
 
       !> * Output all miller indices in `mgrid` file

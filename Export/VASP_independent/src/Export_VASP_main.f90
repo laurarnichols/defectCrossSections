@@ -114,7 +114,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Writing grid info"
 
-  call writeGridInfo(nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
+  call writeGridInfo(nGVecsGlobal, nKPoints, nSpins, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
     !! * Write out grid boundaries and miller indices
     !!   for just \(G+k\) combinations below cutoff energy
     !!   in one file and all miller indices in another 
