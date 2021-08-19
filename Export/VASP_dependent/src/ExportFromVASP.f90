@@ -2576,23 +2576,30 @@ program VASPExport
 
       do isp = 1, INFO%ISPIN
         !! Loop over spin
+        !! @todo 
+        !!    Check if we need to loop over spin or if it can be a function call that
+        !!    can be parallelized since the output files are independent.
+        !! @endtodo
 
         do ik = kStart, KPOINTS%NKPTS
           !! Loop over k-points
           
           io_begin
 
-            call int2str(ik, ikStr)
+            !! Check if `NONL_S%CREXP` stores the phases for current k-point
+            IF (ik /= NONL_S%NK) THEN
+              CALL PHASE(WDES,NONL_S,ik)
+            ENDIF
+
+            call int2str(ik+(isp-1)*KPOINTS%NKPTS, ikStr)
               !! Convert k-point index to string for file names
 
-            !projectorFileExists = .false.
-            !inquire(file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr), exist=projectorFileExists)
-            !if (.not. projectorFileExists) then 
-              !! @todo Figure out a way to test if the file already exists with spin. @enddo
-              !! @todo Consider different output files for different spins. @endtodo
-             
-            open(82, file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr)) 
-              !! Open projectors file
+            !> Open the projectors file if it doesn't exist
+            projectorFileExists = .false.
+            inquire(file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr), exist=projectorFileExists)
+            if (.not. projectorFileExists) then 
+              open(82, file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr)) 
+            endif
 
             write(82, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
               !! Write header for projectors file
@@ -2612,12 +2619,16 @@ program VASPExport
                 do ipw = 1, WDES%NGVECTOR(ik)
                   !! Calculate \(|\beta\rangle\)
 
-                  write(82,'(2ES24.15E3)') NONL_S%QPROJ(ipw,ilm,iT,ik,1)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm,iT)
-                    !! @todo Figure out if projectors are sorted differently and if that matters @endtodo
-                    !! @note
-                    !! The last index of `NONL_S%QPROJ` is only used if `LREAL=.FALSE.`
-                    !! and `LSPIRAL=.TRUE.`. This index is *not* over spin.
-                    !! @endnote
+                  write(82,'(2ES24.15E3)') conjg(NONL_S%QPROJ(ipw,ilm,iT,ik,1)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm,iT))
+                  !! @note
+                  !!    The projectors are stored as \(\langle\beta|\), so need to take the complex conjugate
+                  !!    to output \(|\beta\rangle.
+                  !! @endnote
+                  !! @note
+                  !!    `NONL_S%LSPIRAL = .FALSE.`, so spin spirals are not calculated, which makes 
+                  !!    `NONL_S%QPROJ` spin-independent. This is why it is indexed as `NONL_S%QPROJ(ipw,ilm,iT,ik,1)`
+                  !!    and not `NONL_S%QPROJ(ipw,lmbase+ilm,iT,ik,isp)`.
+                  !! @endnote
 
                 enddo
 
@@ -2625,22 +2636,23 @@ program VASPExport
 
             enddo
 
-            !if (.not. projectorFileExists) close(82) 
             close(82)
 
-            !wfcFileExists = .false.
-            !inquire(file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr), exist=wfcFileExists)
-            !if (.not. wfcFileExists) then
+            wfcFileExists = .false.
+            inquire(file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr), exist=wfcFileExists)
+            if (.not. wfcFileExists) then
+              open(83, file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr)) 
+            endif
 
-            open(83, file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr)) 
             write(83, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
             write(83, '("# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: ''(2ES24.15E3)''")')
 
-            !projectionFileExists = .false.
-            !inquire(file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr), exist=projectionsFileExists)
-            !if (.not. projectionFileExists) then 
-            
-            open(84, file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr)) 
+            projectionFileExists = .false.
+            inquire(file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr), exist=projectionsFileExists)
+            if (.not. projectionFileExists) then 
+              open(84, file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr)) 
+            endif
+
             write(84, '("# Complex projections <beta|psi>. Format: ''(2ES24.15E3)''")')
 
             do ib = 1, WDES%NB_TOT
@@ -2667,8 +2679,6 @@ program VASPExport
 
             enddo
             
-            !if (.not. wfcFileExists) close(83) 
-            !if (.not. projectionFileExists) close(84) 
             close(83)
             close(84)
 

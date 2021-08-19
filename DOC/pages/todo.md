@@ -1,6 +1,6 @@
 title: Todo
 author: Laura Nichols
-date: 06/10/2021
+date: 08/19/2021
 
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:107:` Redo the loop for less than 5 phonons to be more clear and streamlined
 * `../LSF/src/zerothOrder/LSF_zeroth_Main.f90:166:` Change this to have `size(iEbinsByBands)`
