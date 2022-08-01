@@ -36,7 +36,7 @@ Once you have the code downloaded (example commands given for QE 5.3 only):
   * `DFLAGS = -D__FFTW -D__MPI`
   * Make sure `MPIF90`, `F90`, and `CPP` match your system's wrappers for `mpif90`, `gfortran`, and `cc`
   * Add `-dynamic` (and `-fopenmp` if you want OpenMP enabled) to `FFLAGS` and `LDFLAGS`
-  * Vreify paths for `BLAS_LIBS` and `LAPACK_LIBS`
+  * Verify paths for `BLAS_LIBS` and `LAPACK_LIBS`
 * Run `make pw pp ph` to build the PW, PP, and PHonon packages. You need `pw` and `pp` for the Export program dependencies, and LSF calculations require input from the 
   `ph` package.
 
