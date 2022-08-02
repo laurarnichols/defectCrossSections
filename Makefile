@@ -76,8 +76,8 @@ help :
 Export_QE-5.0.2_srcPath = Export/QE-5.0.2/src
 Export_QE-5.3.0_srcPath = Export/QE-5.3/src
 Export_QE-6.3_srcPath = Export/QE-6.3/src
-Export_VASPInd_srcPath = Export/VASP_independent/src
-Export_VASPDep_srcPath = Export/VASP_dependent/src
+ExportFromVASPOutput_srcPath = Export/VASP/FromVASPOutput/src
+ExportFromVASPSrc_srcPath = Export/VASP/FromVASPSrc/src
 TME_srcPath    = TME/src
 Mj_srcPath     = Mj/src
 LSF_srcPath    = LSF/src
@@ -102,9 +102,9 @@ QE-5.3.0_dependent : initialize Export_QE-5.3.0
 
 QE-6.3_dependent : initialize Export_QE-6.3
 
-VASP_independent : initialize Export_VASP_independent
+FromVASPOutput : initialize ExportFromVASPOutput
 
-VASP_dependent : initialize Export_VASP_dependent
+VASPFromVASPSrc : initialize ExportFromVASPSrc
 
 initialize :
 
@@ -113,12 +113,12 @@ initialize :
 	echo "QE-5.0.2_Path           = " $(QE-5.0.2_Path) >> make.sys ; \
 	echo "QE-5.3.0_Path           = " $(QE-5.3.0_Path) >> make.sys ; \
 	echo "QE-6.3_Path           = " $(QE-6.3_Path) >> make.sys ; \
-  echo "VASP_Path = " $(VASP_Path) >> make.sys ; \
+	echo "VASP_Path = " $(VASP_Path) >> make.sys ; \
 	echo "Export_QE-5.0.2_srcPath = " $(PWD)/$(Export_QE-5.0.2_srcPath) >> make.sys ; \
 	echo "Export_QE-5.3.0_srcPath = " $(PWD)/$(Export_QE-5.3.0_srcPath) >> make.sys ; \
 	echo "Export_QE-6.3_srcPath = " $(PWD)/$(Export_QE-6.3_srcPath) >> make.sys ; \
-	echo "Export_VASPInd_srcPath = " $(PWD)/$(Export_VASPInd_srcPath) >> make.sys ; \
-	echo "Export_VASPDep_srcPath = " $(PWD)/$(Export_VASPDep_srcPath) >> make.sys ; \
+	echo "ExportFromVASPOutput_srcPath = " $(PWD)/$(ExportFromVASPOutput_srcPath) >> make.sys ; \
+	echo "ExportFromVASPSrc_srcPath = " $(PWD)/$(ExportFromVASPSrc_srcPath) >> make.sys ; \
 	echo "TME_srcPath    = " $(PWD)/$(TME_srcPath) >> make.sys ; \
 	echo "Mj_srcPath    = " $(PWD)/$(Mj_srcPath) >> make.sys ; \
 	echo "LSF_srcPath = " $(PWD)/$(LSF_srcPath) >> make.sys ; \
@@ -130,14 +130,14 @@ initialize :
 	echo "f90    = "$(f90) >> make.sys ; \
 	echo "mpif90 = "$(mpif90) >> make.sys ; \
 	echo "" >> make.sys ; \
-  echo "# ar command and flags - for most architectures: AR = ar, ARFLAGS = ruv" >> make.sys ; \
-  echo "" >> make.sys ; \
-  echo "AR = ar" >> make.sys ; \
-  echo "ARFLAGS = ruv" >> make.sys ; \
-  echo "" >> make.sys ; \
-  echo "# ranlib command" >> make.sys ; \
-  echo "" >> make.sys ; \
-  echo "RANLIB = ranlib" >> make.sys
+  	echo "# ar command and flags - for most architectures: AR = ar, ARFLAGS = ruv" >> make.sys ; \
+  	echo "" >> make.sys ; \
+  	echo "AR = ar" >> make.sys ; \
+  	echo "ARFLAGS = ruv" >> make.sys ; \
+  	echo "" >> make.sys ; \
+  	echo "# ranlib command" >> make.sys ; \
+  	echo "" >> make.sys ; \
+  	echo "RANLIB = ranlib" >> make.sys
 #
 	@if test ! -d $(bin) ; then \
 		mkdir $(bin) ; \
@@ -159,14 +159,14 @@ Export_QE-6.3 : initialize
 	@cd $(Export_QE-6.3_srcPath) ; \
 		make all
 
-Export_VASP_independent : initialize
+ExportFromVASPOutput : initialize
 
-	@cd $(Export_VASPInd_srcPath) ; \
+	@cd $(ExportFromVASPOutput_srcPath) ; \
 		make all
 
-Export_VASP_dependent : initialize
+ExportFromVASPSrc : initialize
 
-	@cd $(Export_VASPDep_srcPath) ; \
+	@cd $(ExportFromVASPSrc_srcPath) ; \
 		make all
 
 TME : initialize
@@ -197,7 +197,7 @@ Sigma : initialize
 	@cd $(Sigma_srcPath) ; \
         	make all
 
-clean : cleanExport_VASP clean_QE-5.0.2_dependent clean_QE-5.3.0_dependent clean_QE-6.3_dependent cleanTME cleanInitialization cleanMj cleanLSF0 cleanLSF1 cleanSigma
+clean : cleanExportFromVASPOutput cleanExportFromVASPSrc clean_QE-5.0.2_dependent clean_QE-5.3.0_dependent clean_QE-6.3_dependent cleanTME cleanInitialization cleanMj cleanLSF0 cleanLSF1 cleanSigma
 
 clean_all_QE-5.0.2 : clean_QE-5.0.2_dependent cleanTME cleanInitialization cleanMj cleanLSF0 cleanLSF1 cleanSigma
 
@@ -235,9 +235,14 @@ cleanExport_QE-6.3 :
 	@cd $(Export_QE-6.3_srcPath) ; \
         	make clean
 
-cleanExport_VASP :
+cleanExportFromVASPOutput :
 
-	@cd $(Export_VASP_srcPath) ; \
+	@cd $(ExportFromVASPOutput_srcPath) ; \
+        	make clean
+
+cleanExportFromVASPSrc :
+
+	@cd $(ExportFromVASPSrc_srcPath) ; \
         	make clean
 
 cleanTME :
