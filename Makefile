@@ -73,9 +73,9 @@ help :
 	@echo ""
 
 
-Export_QE-5.0.2_srcPath = Export/QE-5.0.2/src
-Export_QE-5.3.0_srcPath = Export/QE-5.3/src
-Export_QE-6.3_srcPath = Export/QE-6.3/src
+Export_QE-5.0.2_srcPath = Export/QE/5.0.2/src
+Export_QE-5.3.0_srcPath = Export/QE/5.3/src
+Export_QE-6.3_srcPath = Export/QE/6.3/src
 ExportFromVASPOutput_srcPath = Export/VASP/FromVASPOutput/src
 ExportFromVASPSrc_srcPath = Export/VASP/FromVASPSrc/src
 TME_srcPath    = TME/src
