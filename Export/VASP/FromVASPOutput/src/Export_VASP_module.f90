@@ -671,7 +671,7 @@ module wfcExportVASPMod
           (realSpaceLatticeVectors(j,2),j=1,3), (realSpaceLatticeVectors(j,3),j=1,3)
         !! * Read total number of k-points, plane wave cutoff energy, and real
         !!   space lattice vectors
-      !read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, ecutwfc_local,((at_local(i,j),j=1,3),i=1,3)
+      !read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, wfcECut,((realSpaceLatticeVectors(i,j),j=1,3),i=1,3)
         !! @todo Test this more compact form @endtodo
 
       wfcECut = wfcECut*eVToRy
