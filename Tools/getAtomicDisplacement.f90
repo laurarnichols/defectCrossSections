@@ -28,7 +28,7 @@ program getAtomicDisplacement
   real(kind=dp) :: scalingFactor
     !! Lattice scaling factor
 
-  integer :: nArguments
+  integer :: nargs
     !! Number of command-line arguments
   integer :: nAtoms
     !! Number of atoms in the system
@@ -41,11 +41,10 @@ program getAtomicDisplacement
 
   write(*,*) "Checking that we have 2 command-line arguments"
 
-  nArguments = command_argument_count()
+  nargs = command_argument_count()
 
-  if(nargs /= 2) call exitError()
+  if(nargs /= 2) call exitError("getAtomicDisplacement", "invalid number of arguments, expected 2", 1)
     !! Make sure that there are two arguments
-    !! @todo Copy over exitError() subroutine @endtodo
 
   write(*,*) "2 command-line arguments found."
 
@@ -53,7 +52,9 @@ program getAtomicDisplacement
   call get_command_argument(2, file2)
     !! Get POSCAR/CONTCAR file names from command line
 
-  write(*,*) "Checking compatibility of ", file1, " and ", file2
+  write(*,*) "Checking compatibility of ", trim(file1), " and ", trim(file2)
+
+  return 
 
   call checkCompatibility()
     !! Check that the number of atoms of each type is the same
@@ -86,3 +87,49 @@ end program getAtomicDisplacement
 
 !==============================================================================
 
+subroutine exitError(calledFrom, message, ierr)
+  !! Output error message and abort if ierr > 0
+  !!
+  !! Can ensure that error will cause abort by
+  !! passing abs(ierror)
+  !!
+  !! <h2>Walkthrough</h2>
+  !!
+    
+  implicit none
+
+  integer, intent(in) :: ierr
+    !! Error code
+
+  character(len=*), intent(in) :: calledFrom
+    !! Place where this subroutine was called from
+  character(len=*), intent(in) :: message
+    !! Error message
+
+  character(len=6) :: cerr
+    !! String version of error
+
+
+  if ( ierr <= 0 ) return
+    !! * Do nothing if the error is less than or equal to zero
+
+  write( cerr, fmt = '(I6)' ) ierr
+    !! * Write ierr to a string
+  write(unit=*, fmt = '(/,1X,78("%"))' )
+    !! * Output a dividing line
+  write(unit=*, fmt = '(5X,"Error in ",A," (",A,"):")' ) trim(calledFrom), trim(adjustl(cerr))
+    !! * Output where the error occurred and the error
+  write(unit=*, fmt = '(5X,A)' ) TRIM(message)
+    !! * Output the error message
+  write(unit=*, fmt = '(1X,78("%"),/)' )
+    !! * Output a dividing line
+
+  write( *, '("     stopping ...")' )
+  
+  call flush( 16 )
+
+  stop 2
+
+  return
+
+end subroutine exitError
