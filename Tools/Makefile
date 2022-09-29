@@ -1,8 +1,17 @@
 
 -include ../make.sys
 
-all : kpointBinningByEnergy
+all : getAtomicDisplacement kpointBinningByEnergy
 	
+getAtomicDisplacement : getAtomicDisplacement.o
+	$(f90) -o getAtomicDisplacement.x getAtomicDisplacement.o
+
+	@echo "" ;\
+	echo "" ;\
+	echo "getAtomicDisplacement compiled successfully ! " ;\
+	echo "" ;\
+	echo "" ;
+
 kpointBinningByEnergy : kpointBinningByEnergy.o
 	$(f90) -o kpointBinningByEnergy.x kpointBinningByEnergy.o
 

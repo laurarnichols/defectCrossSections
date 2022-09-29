@@ -1,7 +1,7 @@
 program kpointBinningByEnergy
   !! Take in eigenvalue files for each kpoint
   !! and energy bins from the VfisVsE file, bin
-  !! each bands for each kpoint by energy, and
+  !! each band for each kpoint by energy, and
   !! output the results
   !!
   !! All energies are in Hartree
