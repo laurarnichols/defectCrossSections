@@ -1,28 +1,24 @@
 
--include ../../../make.sys
+-include ../../../../make.sys
 
 all : 
-	mv $(VASP_Path)/src/main.F $(VASP_Path)/src/origMain ; \
-	cp $(Export_VASPDep_srcPath)/ExportFromVASP.f90 $(VASP_Path)/src/main.F ; \
-	cd $(VASP_Path) ; \
-	make std || (mv $(VASP_Path)/src/origMain $(VASP_Path)/src/main.F; exit 1); \
+	cp $(ExportFromVASPSrc_srcPath)/Export_FromVASPSrc.f90 $(VASPCompilation_Path)/src/main.F ; \
+	cd $(VASPCompilation_Path) ; \
+	make std || exit 1; \
 
-	@mv $(VASP_Path)/src/origMain $(VASP_Path)/src/main.F ; \
-	cp $(VASP_Path)/bin/vasp_std $(Export_VASPDep_srcPath)/ExportFromVASP.x  ; \
+	@cp $(VASPCompilation_Path)/bin/vasp_std $(ExportFromVASPSrc_srcPath)/Export_FromVASPSrc.x  ; \
 	cd $(Home_Path)/bin ; \
-	ln -fs $(Export_VASPDep_srcPath)/ExportFromVASP.x . ; \
-	cd $(VASP_Path) ; \
-	make std ; \
+	ln -fs $(Export_FromVASPSrc_srcPath)/Export_FromVASPSrc.x . ; \
 	echo "" ; \
 	echo "" ; \
-	echo "Module 'ExportFromVASP' compiled successfully ! " ; \
+	echo "Module 'ExportFromVASPSrc' compiled successfully ! " ; \
 	echo "" ; \
 	echo "" ;
 
 clean :
 
 	@echo "" ; \
-	echo "Cleaning module 'ExportFromVASP' ... " ; \
+	echo "Cleaning module 'ExportFromVASPSrc' ... " ; \
 	/bin/rm -f *.x *.o *.mod *~ .DS_Store ; \
-	echo "Cleaning module 'ExportFromVASP' done !" ; \
+	echo "Cleaning module 'ExportFromVASPSrc' done !" ; \
 	echo "" ;

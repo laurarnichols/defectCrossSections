@@ -203,7 +203,7 @@ program VASPExport
         !! String version of k-point index for
         !! output files
 
-      logical :: projectionFileExists
+      logical :: projectionsFileExists
         !! If the `projections.ik` file already exists
       logical :: projectorFileExists
         !! If the `projectors.ik` file already exists
@@ -2647,9 +2647,9 @@ program VASPExport
             write(83, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
             write(83, '("# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: ''(2ES24.15E3)''")')
 
-            projectionFileExists = .false.
+            projectionsFileExists = .false.
             inquire(file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr), exist=projectionsFileExists)
-            if (.not. projectionFileExists) then 
+            if (.not. projectionsFileExists) then 
               open(84, file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr)) 
             endif
 

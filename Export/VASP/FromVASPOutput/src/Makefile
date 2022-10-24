@@ -1,23 +1,23 @@
 
--include ../../../make.sys
+-include ../../../../make.sys
 
 # location of needed modules
 MODFLAGS= -I$(CommonModules_srcPath) -I.
 
-EXPORTOBJS = Export_VASP_module.o Export_VASP_main.o
+EXPORTOBJS = Export_FromVASPOutput_module.o Export_FromVASPOutput_main.o
 COMMONMODS = $(CommonModules_srcPath)/commonmodules.a
 
 DEBUGFLAGS = -check -traceback -gen-interfaces 
 
-all : Export_VASPInd.x 
+all : Export_FromVASPOutput.x 
 
-Export_VASPInd.x : mods $(COMMONMODS) $(EXPORTOBJS)
+Export_FromVASPOutput.x : mods $(COMMONMODS) $(EXPORTOBJS)
 	$(mpif90) $(MODFLAGS) -o $@	$(EXPORTOBJS) $(COMMONMODS)
 	- ( cd $(Home_Path)/bin ; ln -fs $(Export_VASPInd_srcPath)/$@ . )
 	
 	@echo "" ; \
 	echo "" ; \
-	echo "Module 'Export_VASPInd' compiled successfully ! " ; \
+	echo "Module 'Export_FromVASPOutput' compiled successfully ! " ; \
 	echo "" ; \
 	echo "" ;
 
@@ -31,7 +31,7 @@ mods :
 clean :
 
 	@echo "" ; \
-	echo "Cleaning module 'Export_VASPInd' ... " ; \
+	echo "Cleaning module 'Export_FromVASPOutput' ... " ; \
 	/bin/rm -f *.x *.o *.mod *~ .DS_Store ; \
-	echo "Cleaning module 'Export_VASPInd' done !" ; \
+	echo "Cleaning module 'Export_FromVASPOutput' done !" ; \
 	echo "" ;
