@@ -97,6 +97,11 @@ module wfcExportVASPMod
   integer, allocatable :: gKIndexGlobal(:,:)
     !! Indices of \(G+k\) vectors for each k-point
     !! and all processors
+  integer :: ikStart = 1, ikEnd = -1
+    !! Start and end k-points
+    !! Useful for restarting or running multiple
+    !! instances of the code at the same time, since
+    !! the code is not currently parallelized
   integer, allocatable :: iType(:)
     !! Atom type index
   integer, allocatable :: gVecMillerIndicesGlobal(:,:)
@@ -183,7 +188,7 @@ module wfcExportVASPMod
 
   type (pseudo), allocatable :: ps(:)
 
-  namelist /inputParams/ VASPDir, exportDir
+  namelist /inputParams/ ikStart, ikEnd, VASPDir, exportDir
 
 
   contains
@@ -541,7 +546,7 @@ module wfcExportVASPMod
       !! String version of error
 
 
-    if ( ierr <= 0 ) return
+    if ( ierror <= 0 ) return
       !! * Do nothing if the error is less than or equal to zero
 
     write( cerr, fmt = '(I6)' ) ierror
