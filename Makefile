@@ -26,7 +26,7 @@ mpif90 = mpif90
 ########################################################################
 
 
-all : initialize QE-5.0.2_dependent QE-5.3.0_dependent QE-6.3_dependent VASP_independent VASP_dependent TME LSF0 Mj LSF1 Sigma
+all : initialize QE-5.0.2_dependent QE-5.3.0_dependent QE-6.3_dependent ExportFromVASPOutput ExportFromVASPSrc TME LSF0 Mj LSF1 Sigma
 
 help :
 
@@ -51,8 +51,8 @@ help :
 	@echo "    make Export_QE-5.0.2          to built the Quantum Espresso 5.0.2 dependent Export module."
 	@echo "    make Export_QE-5.3.0          to built the Quantum Espresso 5.3.0 dependent Export module."
 	@echo "    make Export_QE-6.3          to built the Quantum Espresso 6.3 dependent Export module."
-	@echo "    make Export_VASP_independent   to built the VASP independent Export from VASP module."
-	@echo "    make Export_VASP_dependent   to built the VASP dependent Export from VASP module."
+	@echo "    make Export_FromVASPOutput   to built the VASP independent Export from VASP module."
+	@echo "    make Export_FromVASPSrc   to built the VASP dependent Export from VASP module."
 	@echo "    make TME                      to built the Transition Matrix Elements (TME) module."
 	@echo "    make Mj                       to built the Mj module."
 	@echo "    make LSF                      to built the Line Shape Function (LSF) module."
@@ -104,7 +104,7 @@ QE-6.3_dependent : initialize Export_QE-6.3
 
 FromVASPOutput : initialize ExportFromVASPOutput
 
-VASPFromVASPSrc : initialize ExportFromVASPSrc
+FromVASPSrc : initialize ExportFromVASPSrc
 
 initialize :
 
