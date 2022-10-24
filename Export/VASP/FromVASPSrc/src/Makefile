@@ -8,7 +8,7 @@ all :
 
 	@cp $(VASPCompilation_Path)/bin/vasp_std $(ExportFromVASPSrc_srcPath)/Export_FromVASPSrc.x  ; \
 	cd $(Home_Path)/bin ; \
-	ln -fs $(Export_FromVASPSrc_srcPath)/Export_FromVASPSrc.x . ; \
+	ln -fs $(ExportFromVASPSrc_srcPath)/Export_FromVASPSrc.x . ; \
 	echo "" ; \
 	echo "" ; \
 	echo "Module 'ExportFromVASPSrc' compiled successfully ! " ; \

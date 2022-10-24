@@ -13,7 +13,7 @@ all : Export_FromVASPOutput.x
 
 Export_FromVASPOutput.x : mods $(COMMONMODS) $(EXPORTOBJS)
 	$(mpif90) $(MODFLAGS) -o $@	$(EXPORTOBJS) $(COMMONMODS)
-	- ( cd $(Home_Path)/bin ; ln -fs $(Export_VASPInd_srcPath)/$@ . )
+	- ( cd $(Home_Path)/bin ; ln -fs $(ExportFromVASPOutput_srcPath)/$@ . )
 	
 	@echo "" ; \
 	echo "" ; \
