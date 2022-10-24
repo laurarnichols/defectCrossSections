@@ -3,7 +3,7 @@ module constants
   !
   integer, parameter :: dp    = selected_real_kind(15, 307)
     !! Used to make reals double precision
-  integer, parameter :: iostd = 16
+  integer, parameter :: iostd = 6
     !! Unit number for output file
   !
   real(kind = dp), parameter ::         abCM = 0.529177219217e-8_dp
