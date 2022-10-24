@@ -2,6 +2,8 @@ program wfcExportVASPMain
   !! Export scf output from VASP to form usable for TME
   !!
   !! input:  namelist "&inputParams", with variables
+  !!   ikStart     starting k-point
+  !!   ikEnd       ending k-point
   !!   VASPDir     temporary directory where VASP files reside
   !!   exportDir   output directory. 
   !! A directory "exportDir" is created and
@@ -17,7 +19,7 @@ program wfcExportVASPMain
 
   call mpiInitialization()
 
-  call initialize(exportDir, VASPDir)
+  call initialize(ikStart, ikEnd, exportDir, VASPDir)
     !! * Set default values for input variables, open output file,
     !!   and start timers
 

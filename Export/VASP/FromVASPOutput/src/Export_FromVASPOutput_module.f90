@@ -97,7 +97,7 @@ module wfcExportVASPMod
   integer, allocatable :: gKIndexGlobal(:,:)
     !! Indices of \(G+k\) vectors for each k-point
     !! and all processors
-  integer :: ikStart = 1, ikEnd = -1
+  integer :: ikStart, ikEnd
     !! Start and end k-points
     !! Useful for restarting or running multiple
     !! instances of the code at the same time, since
@@ -386,7 +386,7 @@ module wfcExportVASPMod
   end subroutine setUpPools
 
 !----------------------------------------------------------------------------
-  subroutine initialize(exportDir, VASPDir)
+  subroutine initialize(ikStart, ikEnd, exportDir, VASPDir)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -403,6 +403,9 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    integer, intent(out) :: ikStart, ikEnd
+      !! Start and end k-points
+
     character(len=256), intent(out) :: exportDir
       !! Directory to be used for export
     character(len=256), intent(out) :: VASPDir
@@ -416,6 +419,8 @@ module wfcExportVASPMod
       !! String for time
 
 
+    ikStart = 1
+    ikEnd = -1
     VASPDir = './'
     exportDir = './Export'
 
