@@ -24,9 +24,9 @@ module wfcExportVASPMod
   ! Global variables not passed as arguments:
   integer :: ierr
     !! Error returned by MPI
-  integer :: ikEnd
+  integer :: ikEnd_pool
     !! Ending index for k-points in single pool 
-  integer :: ikStart
+  integer :: ikStart_pool
     !! Starting index for k-points in single pool 
   integer :: ios
     !! Error for input/output
@@ -1103,9 +1103,9 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    !integer, intent(out) :: ikEnd
+    !integer, intent(out) :: ikEnd_pool
       ! Ending index for k-points in single pool 
-    !integer, intent(out) :: ikStart
+    !integer, intent(out) :: ikStart_pool
       ! Starting index for k-points in single pool 
     !integer, intent(out) :: nkPerPool
       ! Number of k-points in each pool
@@ -1131,10 +1131,10 @@ module wfcExportVASPMod
         !! * Assign the remainder to the first `nkr` pools
 
       !>  * Calculate the index of the first k-point in this pool
-      ikStart = nkPerPool * myPoolId + 1
-      IF( myPoolId >= nkr ) ikStart = ikStart + nkr
+      ikStart_pool = nkPerPool * myPoolId + 1
+      IF( myPoolId >= nkr ) ikStart_pool = ikStart_pool + nkr
 
-      ikEnd = ikStart + nkPerPool - 1
+      ikEnd_pool = ikStart_pool + nkPerPool - 1
         !!  * Calculate the index of the last k-point in this pool
 
     endif
@@ -1502,7 +1502,7 @@ module wfcExportVASPMod
       if (ionode) write(iostd,*) "Processing k-point ", ik
 
       do ix = 1, 3
-        xkCart(ix) = sum(kPosition(:,ik+ikStart-1)*recipSpaceLatticeVectors(ix,:))
+        xkCart(ix) = sum(kPosition(:,ik+ikStart_pool-1)*recipSpaceLatticeVectors(ix,:))
       enddo
 
       ngk_tmp = 0
@@ -1514,7 +1514,7 @@ module wfcExportVASPMod
 
         if (q <= eps8) q = 0.d0
 
-        !if (ionode) write(89,*) ik+ikStart-1, ig, q <= wfcVecCut
+        !if (ionode) write(89,*) ik+ikStart_pool-1, ig, q <= wfcVecCut
 
         if (q <= wfcVecCut) then
 
@@ -1531,7 +1531,7 @@ module wfcExportVASPMod
         !else
 
           !if (sqrt(sum(gVecInCart(:, ig)**2)) .gt. &
-            !sqrt(sum(kPosition(:,ik+ikStart-1)**2) + sqrt(wfcVecCut))) goto 100
+            !sqrt(sum(kPosition(:,ik+ikStart_pool-1)**2) + sqrt(wfcVecCut))) goto 100
             ! if |G| > |k| + sqrt(Ecut)  stop search
             !! @todo Figure out if there is valid exit check for `ig` loop @endtodo
 
@@ -1552,7 +1552,7 @@ module wfcExportVASPMod
 
     allocate(nGkLessECutGlobal(nKPoints))
     nGkLessECutGlobal = 0
-    nGkLessECutGlobal(ikStart:ikEnd) = nGkLessECutLocal(1:nkPerPool)
+    nGkLessECutGlobal(ikStart_pool:ikEnd_pool) = nGkLessECutLocal(1:nkPerPool)
     CALL mpiSumIntV(nGkLessECutGlobal, worldComm)
       !! * Calculate the global number of \(G+k\) 
       !!   vectors for each k-point
@@ -2563,11 +2563,11 @@ module wfcExportVASPMod
     if (ierr/= 0) call exitError('getGlobalGkIndices','allocating itmp1', abs(ierr))
 
     itmp1 = 0
-    if(ik >= ikStart .and. ik <= ikEnd) then
+    if(ik >= ikStart_pool .and. ik <= ikEnd_pool) then
 
-      do ig = 1, nGkLessECutLocal(ik-ikStart+1)
+      do ig = 1, nGkLessECutLocal(ik-ikStart_pool+1)
 
-        itmp1(gKIndexLocalToGlobal(ig, ik-ikStart+1)) = gKIndexLocalToGlobal(ig, ik-ikStart+1)
+        itmp1(gKIndexLocalToGlobal(ig, ik-ikStart_pool+1)) = gKIndexLocalToGlobal(ig, ik-ikStart_pool+1)
           !! * For each k-point and \(G+k\) vector for this processor,
           !!   store the local to global indices (`gKIndexLocalToGlobal`) in an
           !!   array that will later be combined globally
@@ -2992,17 +2992,17 @@ module wfcExportVASPMod
 !      
 !        local_pw = 0
 !          !! @todo Figure out the meaning of `local_pw` #thistask @endtodo
-!        IF ( (ik >= ikStart) .and. (ik <= ikEnd) ) THEN
-!          CALL davcio (evc, nwordwfc, iunwfc, (ik-ikStart+1), - 1)
+!        IF ( (ik >= ikStart_pool) .and. (ik <= ikEnd_pool) ) THEN
+!          CALL davcio (evc, nwordwfc, iunwfc, (ik-ikStart_pool+1), - 1)
 !            ! Read the wavefunction for this k-point
 !            !! @todo Figure out what the "wavefunction" is here #thistask @endtodo
 !
-!          igk(1:nGkLessECutLocal(ik-ikStart+1)) = gToGkIndexMap(ik-ikStart+1,1:nGkLessECutLocal(ik-ikStart+1))
+!          igk(1:nGkLessECutLocal(ik-ikStart_pool+1)) = gToGkIndexMap(ik-ikStart_pool+1,1:nGkLessECutLocal(ik-ikStart_pool+1))
 !            !! @todo Add `igk` as a local variable #thistask @endtodo
 !            !! @todo Add `gToGkIndexMap` as an input variable #thistask @endtodo
 !
 !          CALL init_us_2(npw, igk, kPosition(1,ik), vkb)
-!          local_pw = ngk(ik-ikStart+1)
+!          local_pw = ngk(ik-ikStart_pool+1)
 !
 !          IF ( gamma_only ) THEN
 !            !! @todo Figure out if need to have `gamma_only` variable here and how to set @endtodo
