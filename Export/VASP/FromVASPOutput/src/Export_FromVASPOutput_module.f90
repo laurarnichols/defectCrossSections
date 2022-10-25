@@ -281,6 +281,10 @@ module wfcExportVASPMod
 
     if(ionode) then
 
+      call get_command_argument(narg, arg)
+        !! Ignore executable
+      narg = narg + 1
+
       do while (narg <= nargs)
         call get_command_argument(narg, arg)
           !! * Get the flag
@@ -303,7 +307,11 @@ module wfcExportVASPMod
         end select
       enddo
 
-      write(iostd,*) 'Unprocessed command line arguments: ' // trim(command_line)
+      !> Write out unprocessed command line arguments, if there are any
+      if(len_trim(command_line) /= 0) then
+        write(*,*) 'Unprocessed command line arguments: ' // trim(command_line)
+      endif
+
     endif
 
     call MPI_BCAST(nPools_, 1, MPI_INTEGER, root, worldComm, ierr)

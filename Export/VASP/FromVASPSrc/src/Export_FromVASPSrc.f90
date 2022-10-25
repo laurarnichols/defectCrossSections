@@ -2745,10 +2745,13 @@ program VASPExport
 
     io_begin
 
+      call get_command_argument(narg, arg)
+        !! Ignore executable
+      narg = narg + 1
+
       do while (narg <= nargs)
         call get_command_argument(narg, arg)
           !! * Get the flag
-        write(IO%IU6,*) arg
 
         narg = narg + 1
 
@@ -2756,7 +2759,6 @@ program VASPExport
         select case (trim(arg))
           case('-ks', '-kStart') 
             call get_command_argument(narg, arg)
-            write(IO%IU6,*) arg
             read(arg, *) kStart_
             narg = narg + 1
           case default
@@ -2764,10 +2766,15 @@ program VASPExport
         end select
       enddo
 
-      write(*,*) 'Unprocessed command line arguments: ' // trim(command_line)
+      !> Write out unprocessed command line arguments, if there are any
+      if(len_trim(command_line) /= 0) then
+        write(*,*) 'Unprocessed command line arguments: ' // trim(command_line)
+      endif
 
       if (kStart_ > 0) then
         kStart = kStart_
+        
+        write(IO%IU6,*) 'Starting with k-point ', kStart
       else
         write(*,*) 'WARNING: No value or invalid value for initial k-point: ', kStart_
         write(*,*) 'Using default value for initial k-point of 1'
