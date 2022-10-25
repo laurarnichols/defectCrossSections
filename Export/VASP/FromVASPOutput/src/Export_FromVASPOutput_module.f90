@@ -2408,7 +2408,7 @@ module wfcExportVASPMod
         !! @note
         !!  Although `groundState` is written out in `Export`,
         !!  it is not currently used by the `TME` program.
-        !! @endtodo
+        !! @endnote
 
       write(iostd,*) "Done getting ground state bands"
       write(iostd,*) "***************"
