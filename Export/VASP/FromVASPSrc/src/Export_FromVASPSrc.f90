@@ -2586,6 +2586,8 @@ program VASPExport
           
           io_begin
 
+            write(IO%IU6,*) "   Processing k-point ", ik
+
             !! Check if `NONL_S%CREXP` stores the phases for current k-point
             IF (ik /= NONL_S%NK) THEN
               CALL PHASE(WDES,NONL_S,ik)
@@ -2593,6 +2595,8 @@ program VASPExport
 
             call int2str(ik+(isp-1)*KPOINTS%NKPTS, ikStr)
               !! Convert k-point index to string for file names
+
+            write(IO%IU6,*) "      Writing projectors"
 
             !> Open the projectors file if it doesn't exist
             projectorFileExists = .false.
@@ -2637,6 +2641,8 @@ program VASPExport
             enddo
 
             close(82)
+
+            write(IO%IU6,*) "      Writing wave function and projections"
 
             wfcFileExists = .false.
             inquire(file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr), exist=wfcFileExists)
@@ -2688,6 +2694,7 @@ program VASPExport
         
       enddo
 
+      do_io write(IO%IU6,*) "Export complete!"
       
 !=======================================================================
 ! breath a sigh of relief - you have finished
