@@ -12,4 +12,6 @@ The input file should look like
 
 The default values are `VASPDir = './'` and `exportDir = './Export'`. If the directory used for the exported files does not exist, it will be created.
 
+To run the code, use something like `aprun -n num-procs path-to-package/bin/Export_FromVASPOutput.x < exportFromOutput.in > exportFromOutput.out`. 
+
 Currently, the I/O is only done by the root node (`ionode`), but the processing of the data is split across all processes.
