@@ -97,11 +97,6 @@ module wfcExportVASPMod
   integer, allocatable :: gKIndexGlobal(:,:)
     !! Indices of \(G+k\) vectors for each k-point
     !! and all processors
-  integer :: ikStart, ikEnd
-    !! Start and end k-points
-    !! Useful for restarting or running multiple
-    !! instances of the code at the same time, since
-    !! the code is not currently parallelized
   integer, allocatable :: iType(:)
     !! Atom type index
   integer, allocatable :: gVecMillerIndicesGlobal(:,:)
@@ -188,7 +183,7 @@ module wfcExportVASPMod
 
   type (pseudo), allocatable :: ps(:)
 
-  namelist /inputParams/ ikStart, ikEnd, VASPDir, exportDir
+  namelist /inputParams/ VASPDir, exportDir
 
 
   contains
@@ -386,7 +381,7 @@ module wfcExportVASPMod
   end subroutine setUpPools
 
 !----------------------------------------------------------------------------
-  subroutine initialize(ikStart, ikEnd, exportDir, VASPDir)
+  subroutine initialize(exportDir, VASPDir)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -403,9 +398,6 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    integer, intent(out) :: ikStart, ikEnd
-      !! Start and end k-points
-
     character(len=256), intent(out) :: exportDir
       !! Directory to be used for export
     character(len=256), intent(out) :: VASPDir
@@ -418,9 +410,6 @@ module wfcExportVASPMod
     character(len=10) :: ctime
       !! String for time
 
-
-    ikStart = 1
-    ikEnd = -1
     VASPDir = './'
     exportDir = './Export'
 

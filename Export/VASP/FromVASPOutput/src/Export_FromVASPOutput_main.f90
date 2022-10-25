@@ -2,8 +2,6 @@ program wfcExportVASPMain
   !! Export scf output from VASP to form usable for TME
   !!
   !! input:  namelist "&inputParams", with variables
-  !!   ikStart     starting k-point
-  !!   ikEnd       ending k-point
   !!   VASPDir     temporary directory where VASP files reside
   !!   exportDir   output directory. 
   !! A directory "exportDir" is created and
@@ -19,7 +17,7 @@ program wfcExportVASPMain
 
   call mpiInitialization()
 
-  call initialize(ikStart, ikEnd, exportDir, VASPDir)
+  call initialize(exportDir, VASPDir)
     !! * Set default values for input variables, open output file,
     !!   and start timers
 
@@ -31,12 +29,6 @@ program wfcExportVASPMain
     if (ios /= 0) call exitError('export main', 'reading inputParams namelist', abs(ios))
       !! * Exit calculation if there's an error
 
-    write(iostd, '(/5X,"iostd = ",I2)') iostd
-    write(iostd, '(/5X,"ikStart = ",I2)') ikStart
-    write(iostd, '(/5X,"ikEnd = ",I2)') ikEnd
-
-    call exitError('export main', 'program halt for debugging', 1)
-    
     call execute_command_line('mkdir -p '//trim(exportDir))
       !! * Make the export directory
     
@@ -168,7 +160,7 @@ program wfcExportVASPMain
   deallocate(bandOccupation)
 
   if (ionode) close(mainOutFileUnit)
-  
+
   call MPI_Barrier(worldComm, ierr)
  
   if (ionode) write(iostd,*) "************ VASP Export complete! ************"
