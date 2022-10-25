@@ -1,0 +1,4 @@
+&inputParams
+  VASPDir = '../'
+  exportDir = './'
+/
