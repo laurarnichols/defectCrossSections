@@ -2570,7 +2570,7 @@ program VASPExport
 !=======================================================================
       do_io write(IO%IU6,*) "Getting command line arguments"
 
-      call getCommandLineArguments(kStart)
+      call getCommandLineArguments(KPOINTS%NKPTS, kStart, kEnd)
 
       do_io write(IO%IU6,*) "Writing out projectors, wave functions, and projections"
 
@@ -2581,7 +2581,7 @@ program VASPExport
         !!    can be parallelized since the output files are independent.
         !! @endtodo
 
-        do ik = kStart, KPOINTS%NKPTS
+        do ik = kStart, kEnd
           !! Loop over k-points
           
           io_begin
@@ -2710,7 +2710,7 @@ program VASPExport
   contains
 
 !----------------------------------------------------------------------------
-  subroutine getCommandLineArguments(kStart)
+  subroutine getCommandLineArguments(nKPoints, kStart, kEnd)
     !! Get the command line arguments. This currently
     !! only processes the number of pools
     !!
@@ -2719,9 +2719,15 @@ program VASPExport
 
     implicit none
 
+    ! Input variables:
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+
     ! Output variables:
     integer, intent(out) :: kStart
       !! Initial k-point; used for restart
+    integer, intent(out) :: kEnd
+      !! Final k-point; used for restart
 
 
     ! Local variables:
@@ -2731,8 +2737,10 @@ program VASPExport
       !! Arguments processed
     integer :: nargs
       !! Total number of command line arguments
-    integer :: kStart_ = 1
+    integer :: kStart_ = -1
       !! Input value for the initial k-point
+    integer :: kEnd_ = -1
+      !! Input value for the  k-point
 
     character(len=256) :: arg = ' '
       !! Command line argument
@@ -2761,6 +2769,10 @@ program VASPExport
             call get_command_argument(narg, arg)
             read(arg, *) kStart_
             narg = narg + 1
+          case('-ke', '-kEnd') 
+            call get_command_argument(narg, arg)
+            read(arg, *) kEnd_
+            narg = narg + 1
           case default
             command_line = trim(command_line) // ' ' // trim(arg)
         end select
@@ -2771,7 +2783,7 @@ program VASPExport
         write(*,*) 'Unprocessed command line arguments: ' // trim(command_line)
       endif
 
-      if (kStart_ > 0) then
+      if (kStart_ > 0 .and. kStart_ <= nKPoints) then
         kStart = kStart_
         
         write(IO%IU6,*) 'Starting with k-point ', kStart
@@ -2781,10 +2793,22 @@ program VASPExport
 
         kStart = 1
       endif
+
+      if (kEnd_ >= kStart .and. kEnd_ <= nKPoints) then
+        kEnd = kEnd_
+        
+        write(IO%IU6,*) 'Ending with k-point ', kEnd
+      else
+        write(*,*) 'WARNING: No value or invalid value for final k-point: ', kEnd_
+        write(*,*) 'Using default value for final k-point of ', nKPoints
+
+        kEnd = nKPoints
+      endif
     
     io_end
 
     CALLMPI( M_bcast_i( COMM_WORLD, kStart, 1))
+    CALLMPI( M_bcast_i( COMM_WORLD, kEnd, 1))
     
     !if(ierr /= 0) call mpiExitError(8005)
 
