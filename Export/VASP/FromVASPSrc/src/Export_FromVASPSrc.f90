@@ -195,10 +195,18 @@ program VASPExport
         !! Loop indices
       integer :: kStart
         !! Initial k-point; used for restart
+      integer :: kEnd
+        !! Final k-point; used for restart
         
       integer :: lmbase
         !! Base for indexing through all projectors
 
+      character(len = 256) :: exportDir
+        !! Path to input files
+      character(len = 256) :: inputDir
+        !! Path to input files
+      character(len = 256) :: outputDir
+        !! Path to output files
       character(len = 300) :: ikStr
         !! String version of k-point index for
         !! output files
@@ -447,6 +455,24 @@ program VASPExport
       NPAR=1
       IUXML_SET=20
 
+!-----------------------------------------------------------------------
+!  Get command line arguments
+!-----------------------------------------------------------------------
+      do_io write(*,*) "Getting command line arguments"
+
+      call getCommandLineArguments(kStart, kEnd, exportDir, inputDir, outputDir)
+
+      call execute_command_line('mkdir -p '//trim(exportDir))
+      call execute_command_line('mkdir -p '//trim(outputDir))
+        !! Make the output and export directories (only if they don't already exist)
+
+      INCAR = trim(inputDir)//'/'//INCAR
+      KPOINTS_FNAME = trim(inputDir)//'/'//KPOINTS_FNAME
+      POSCAR_FNAME = trim(inputDir)//'/'//POSCAR_FNAME
+      WAVECAR = trim(inputDir)//'/'//WAVECAR
+      POTCAR_FNAME = trim(inputDir)//'/'//POTCAR_FNAME
+        !! Update the path to the INCAR, POSCAR, WAVECAR, and POTCAR files
+
 !$!-----------------------------------------------------------------------
 !$!  initialise openMP
 !$!-----------------------------------------------------------------------
@@ -469,7 +495,7 @@ program VASPExport
 
       TIU6 = IO%IU6
       TIU0 = IO%IU0
-      CALL START_XML( IUXML_SET, "vasprun.xml" )
+      CALL START_XML( IUXML_SET, trim(outputDir)//'/'//"vasprun.xml" )
 
 !-----------------------------------------------------------------------
 !  open Files
@@ -477,17 +503,17 @@ program VASPExport
       IF (IO%IU0>=0) WRITE(TIU0,*) VASP
 #if defined(makeparam)
       IF (IO%IU6/=6 .AND. IO%IU6>0) &
-      OPEN(UNIT=IO%IU6,FILE=DIR_APP(1:DIR_LEN)//'OUTPAR',STATUS='UNKNOWN')
+      OPEN(UNIT=IO%IU6,FILE=DIR_APP(1:DIR_LEN)//trim(outputDir)//'/OUTPAR',STATUS='UNKNOWN')
 #elif defined(makekpoints)
       IF (IO%IU6/=6 .AND. IO%IU6>0) &
-      OPEN(UNIT=IO%IU6,FILE=DIR_APP(1:DIR_LEN)//'OUTKPT',STATUS='UNKNOWN')
+      OPEN(UNIT=IO%IU6,FILE=DIR_APP(1:DIR_LEN)//trim(outputDir)//'/OUTKPT',STATUS='UNKNOWN')
 #else
       IF (IO%IU6/=6 .AND. IO%IU6>0) &
-      OPEN(UNIT=IO%IU6,FILE=DIR_APP(1:DIR_LEN)//'OUTCAR',STATUS='UNKNOWN')
+      OPEN(UNIT=IO%IU6,FILE=DIR_APP(1:DIR_LEN)//trim(outputDir)//'/OUTCAR',STATUS='UNKNOWN')
 #endif
-      OPEN(UNIT=18,FILE=DIR_APP(1:DIR_LEN)//'CHGCAR',STATUS='UNKNOWN')
+      OPEN(UNIT=18,FILE=DIR_APP(1:DIR_LEN)//trim(inputDir)//'/CHGCAR',STATUS='UNKNOWN')
 #ifdef logflow
-      OPEN(UNIT=19,FILE=DIR_APP(1:DIR_LEN)//'JOBFLOW',ACCESS='APPEND',STATUS='UNKNOWN')
+      OPEN(UNIT=19,FILE=DIR_APP(1:DIR_LEN)//trim(outputDir)//'/JOBFLOW',ACCESS='APPEND',STATUS='UNKNOWN')
       WRITE(19,'(A)') 'SECTION = "----------------------------------------------------------------------------------------------------"'
 #endif
 
@@ -497,15 +523,15 @@ program VASPExport
 #ifndef makeparam
       io_begin
       IF (KIMAGES==0) THEN
-      OPEN(UNIT=22,FILE=DIR_APP(1:DIR_LEN)//'EIGENVAL',STATUS='UNKNOWN')
-      OPEN(UNIT=13,FILE=DIR_APP(1:DIR_LEN)//'CONTCAR',STATUS='UNKNOWN')
-      OPEN(UNIT=16,FILE=DIR_APP(1:DIR_LEN)//'DOSCAR',STATUS='UNKNOWN')
-      OPEN(UNIT=17,FILE=DIR_APP(1:DIR_LEN)//'OSZICAR',STATUS='UNKNOWN')
-      OPEN(UNIT=60,FILE=DIR_APP(1:DIR_LEN)//'PCDAT',STATUS='UNKNOWN')
-      OPEN(UNIT=61,FILE=DIR_APP(1:DIR_LEN)//'XDATCAR',STATUS='UNKNOWN')
-      OPEN(UNIT=70,FILE=DIR_APP(1:DIR_LEN)//'CHG',STATUS='UNKNOWN')
+      OPEN(UNIT=22,FILE=DIR_APP(1:DIR_LEN)//trim(outputDir)//'/EIGENVAL',STATUS='UNKNOWN')
+      OPEN(UNIT=13,FILE=DIR_APP(1:DIR_LEN)//trim(outputDir)//'/CONTCAR',STATUS='UNKNOWN')
+      OPEN(UNIT=16,FILE=DIR_APP(1:DIR_LEN)//trim(outputDir)//'/DOSCAR',STATUS='UNKNOWN')
+      OPEN(UNIT=17,FILE=DIR_APP(1:DIR_LEN)//trim(outputDir)//'/OSZICAR',STATUS='UNKNOWN')
+      OPEN(UNIT=60,FILE=DIR_APP(1:DIR_LEN)//trim(outputDir)//'/PCDAT',STATUS='UNKNOWN')
+      OPEN(UNIT=61,FILE=DIR_APP(1:DIR_LEN)//trim(outputDir)//'/XDATCAR',STATUS='UNKNOWN')
+      OPEN(UNIT=70,FILE=DIR_APP(1:DIR_LEN)//trim(outputDir)//'/CHG',STATUS='UNKNOWN')
 #ifdef tbdyn
-      OPEN(UNIT=g_io%REPORT,FILE=DIR_APP(1:DIR_LEN)//'REPORT',STATUS='UNKNOWN')
+      OPEN(UNIT=g_io%REPORT,FILE=DIR_APP(1:DIR_LEN)//trim(outputDir)//'/REPORT',STATUS='UNKNOWN')
 #endif
       ENDIF
       io_end
@@ -2568,11 +2594,23 @@ program VASPExport
 !=======================================================================
 ! Write out projectors, projections, and wave functions
 !=======================================================================
-      do_io write(IO%IU6,*) "Getting command line arguments"
-
-      call getCommandLineArguments(KPOINTS%NKPTS, kStart, kEnd)
-
       do_io write(IO%IU6,*) "Writing out projectors, wave functions, and projections"
+
+      !> Test `kStart` and `kEnd` to make sure that they are both less
+      !> than the total number of k-points and that `kEnd >= kStart`
+      if(kStart > KPOINTS%NKPTS) then
+        do_io write(IO%IU6,*) "Invalid choice for kStart: ", kStart
+        do_io write(IO%IU6,*) "Using default value of 1."
+
+        kStart = 1
+      endif
+
+      if(kEnd > KPOINTS%NKPTS .or. kEnd < kStart) then
+        do_io write(IO%IU6,*) "Invalid choice for kEnd: ", kEnd
+        do_io write(IO%IU6,*) "Using default value of final k-point."
+
+        kEnd = KPOINTS%NKPTS
+      endif
 
       do isp = 1, INFO%ISPIN
         !! Loop over spin
@@ -2600,9 +2638,9 @@ program VASPExport
 
             !> Open the projectors file if it doesn't exist
             projectorFileExists = .false.
-            inquire(file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr), exist=projectorFileExists)
+            inquire(file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/projectors."//trim(ikStr), exist=projectorFileExists)
             if (.not. projectorFileExists) then 
-              open(82, file=DIR_APP(1:DIR_LEN)//"projectors."//trim(ikStr)) 
+              open(82, file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/projectors."//trim(ikStr)) 
             endif
 
             write(82, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
@@ -2645,18 +2683,18 @@ program VASPExport
             write(IO%IU6,*) "      Writing wave function and projections"
 
             wfcFileExists = .false.
-            inquire(file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr), exist=wfcFileExists)
+            inquire(file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/wfc."//trim(ikStr), exist=wfcFileExists)
             if (.not. wfcFileExists) then
-              open(83, file=DIR_APP(1:DIR_LEN)//"wfc."//trim(ikStr)) 
+              open(83, file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/wfc."//trim(ikStr)) 
             endif
 
             write(83, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
             write(83, '("# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: ''(2ES24.15E3)''")')
 
             projectionsFileExists = .false.
-            inquire(file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr), exist=projectionsFileExists)
+            inquire(file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/projections."//trim(ikStr), exist=projectionsFileExists)
             if (.not. projectionsFileExists) then 
-              open(84, file=DIR_APP(1:DIR_LEN)//"projections."//trim(ikStr)) 
+              open(84, file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/projections."//trim(ikStr)) 
             endif
 
             write(84, '("# Complex projections <beta|psi>. Format: ''(2ES24.15E3)''")')
@@ -2710,24 +2748,29 @@ program VASPExport
   contains
 
 !----------------------------------------------------------------------------
-  subroutine getCommandLineArguments(nKPoints, kStart, kEnd)
+  subroutine getCommandLineArguments(kStart, kEnd, exportDir, inputDir, outputDir)
     !! Get the command line arguments. This currently
-    !! only processes the number of pools
+    !! processes initial and final k-points, input 
+    !! directory, regular output directory, and export
+    !! directory
     !!
     !! <h2>Walkthrough</h2>
     !!
 
     implicit none
 
-    ! Input variables:
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-
     ! Output variables:
     integer, intent(out) :: kStart
       !! Initial k-point; used for restart
     integer, intent(out) :: kEnd
       !! Final k-point; used for restart
+
+    character(len=256), intent(out) :: exportDir
+      !! Path to export files
+    character(len=256), intent(out) :: inputDir
+      !! Path to input files
+    character(len=256), intent(out) :: outputDir
+      !! Path to output files
 
 
     ! Local variables:
@@ -2746,71 +2789,92 @@ program VASPExport
       !! Command line argument
     character(len=256) :: command_line = ' '
       !! Command line arguments that were not processed
+    character(len=256) :: exportDir_ = './'
+      !! Input value for path to export files
+    character(len=256) :: inputDir_ = './'
+      !! Input value for path to input files
+    character(len=256) :: outputDir_ = './'
+      !! Input value for path to output files
 
 
     nargs = command_argument_count()
       !! * Get the number of arguments input at command line
 
-    io_begin
+    call get_command_argument(narg, arg)
+      !! Ignore executable
+    narg = narg + 1
 
+    do while (narg <= nargs)
       call get_command_argument(narg, arg)
-        !! Ignore executable
+        !! * Get the flag
+
       narg = narg + 1
 
-      do while (narg <= nargs)
-        call get_command_argument(narg, arg)
-          !! * Get the flag
+      !> * Process the flag and store the following value
+      select case (trim(arg))
+        case('-ks', '-kStart') 
+          call get_command_argument(narg, arg)
+          read(arg, *) kStart_
+          narg = narg + 1
+        case('-ke', '-kEnd') 
+          call get_command_argument(narg, arg)
+          read(arg, *) kEnd_
+          narg = narg + 1
+        case('-ed', '-exportDir') 
+          call get_command_argument(narg, arg)
+          exportDir_ = trim(arg)
+          narg = narg + 1
+        case('-id', '-inputDir') 
+          call get_command_argument(narg, arg)
+          inputDir_ = trim(arg)
+          narg = narg + 1
+        case('-od', '-outputDir') 
+          call get_command_argument(narg, arg)
+          outputDir_ = trim(arg)
+          narg = narg + 1
+        case default
+          command_line = trim(command_line) // ' ' // trim(arg)
+      end select
+    enddo
 
-        narg = narg + 1
+    !> Write out unprocessed command line arguments, if there are any
+    if(len_trim(command_line) /= 0) then
+      do_io write(*,*) 'Unprocessed command line arguments: ' // trim(command_line)
+    endif
 
-        !> * Process the flag and store the following value
-        select case (trim(arg))
-          case('-ks', '-kStart') 
-            call get_command_argument(narg, arg)
-            read(arg, *) kStart_
-            narg = narg + 1
-          case('-ke', '-kEnd') 
-            call get_command_argument(narg, arg)
-            read(arg, *) kEnd_
-            narg = narg + 1
-          case default
-            command_line = trim(command_line) // ' ' // trim(arg)
-        end select
-      enddo
+    exportDir = trim(exportDir_)
+    inputDir = trim(inputDir_)
+    outputDir = trim(outputDir_)
+    do_io write(*,*) 'exportDir = ', trim(exportDir)
+    do_io write(*,*) 'inputDir = ', trim(inputDir)
+    do_io write(*,*) 'outputDir = ', trim(outputDir)
 
-      !> Write out unprocessed command line arguments, if there are any
-      if(len_trim(command_line) /= 0) then
-        write(*,*) 'Unprocessed command line arguments: ' // trim(command_line)
-      endif
-
-      if (kStart_ > 0 .and. kStart_ <= nKPoints) then
-        kStart = kStart_
+    !> @note
+    !>   The value of `kStart` and `kEnd` are not tested against the total number 
+    !>   of k-points here because we don't have that yet. It is tested before 
+    !>   entering the loop over k-points when writing out the files.
+    !> @endnote
+    if (kStart_ > 0) then
+      kStart = kStart_
         
-        write(IO%IU6,*) 'Starting with k-point ', kStart
-      else
-        write(*,*) 'WARNING: No value or invalid value for initial k-point: ', kStart_
-        write(*,*) 'Using default value for initial k-point of 1'
+      do_io write(*,*) 'Starting with k-point ', kStart
+    else
+      do_io write(*,*) 'WARNING: No value or invalid value for initial k-point: ', kStart_
+      do_io write(*,*) 'Using default value for initial k-point of 1'
 
-        kStart = 1
-      endif
+      kStart = 1
+    endif
 
-      if (kEnd_ >= kStart .and. kEnd_ <= nKPoints) then
-        kEnd = kEnd_
+    if (kEnd_ >= kStart) then
+      kEnd = kEnd_
         
-        write(IO%IU6,*) 'Ending with k-point ', kEnd
-      else
-        write(*,*) 'WARNING: No value or invalid value for final k-point: ', kEnd_
-        write(*,*) 'Using default value for final k-point of ', nKPoints
+      do_io write(*,*) 'Ending with k-point ', kEnd
+    else
+      do_io write(*,*) 'WARNING: No value or invalid value for final k-point: ', kEnd_
+      do_io write(*,*) 'Using default value of final k-point as the total number of k-points'
 
-        kEnd = nKPoints
-      endif
-    
-    io_end
-
-    CALLMPI( M_bcast_i( COMM_WORLD, kStart, 1))
-    CALLMPI( M_bcast_i( COMM_WORLD, kEnd, 1))
-    
-    !if(ierr /= 0) call mpiExitError(8005)
+      kEnd = -1
+    endif
 
     return
   end subroutine getCommandLineArguments
