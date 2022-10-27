@@ -1,916 +1,487 @@
-module TMEModule
+module declarations
   !
-  !! Declare all global variables
-  !! and house all subroutines
-  !!
   implicit none
   !
-  ! Declare integer parameters
   integer, parameter :: dp = selected_real_kind(15, 307)
-    !! Used to set real variables to double precision
   integer, parameter :: iostd = 16
-    !! Unit number for output file
   integer, parameter :: root  = 0
-    !! ID of the root process
   !
-  ! Declare real parameters
-  real(kind = dp), parameter :: evToHartree = 0.03674932538878_dp
-    !! Conversion factor from eV to Hartree
-  real(kind = dp), parameter :: HartreeToEv = 27.21138386_dp
-    !! Conversion factor from Hartree to eV
-  real(kind = dp), parameter :: pi = 3.141592653589793_dp
-    !! Pi
-  real(kind = dp), parameter :: sq4pi = 3.544907701811032_dp
-    !! \(\sqrt{4\pi}\)
-  !
-  ! Declare complex parameter
-  complex(kind = dp), parameter ::    ii = cmplx(0.0_dp, 1.0_dp, kind = dp)
-    !! Complex \(i\)
-  !
-  ! Declare character parameter 
   character(len = 6), parameter ::      output = 'output'
-    !! Name of the output file;
-    !! used in [[TMEModule(module):readInput(subroutine)]]
-    !! @todo Change I/O from file to console so that usage matches that of QE @endtodo
   !
-  ! 
-  ! Declare scalar integers
-  integer :: gx
-  integer :: gy
-  integer :: gz
-  integer :: i
-  integer :: ibf
-  integer :: ibi
-  integer :: id
-  integer :: ierr
-    !! Error code returned from MPI
-  integer :: ig
-  integer :: ik
-  integer :: ind2
-  integer :: ios
-    !! Status returned from I/O commands
-  integer :: iPn
-  integer :: iTypes
-  integer :: j
-  integer :: JMAX
-    !! \(2*L_{\text{max}} + 1\)
-  integer :: kf
-  integer :: ki
-  integer :: maxL
-    !! Maximum angular momentum of projector from any atom type
-  integer :: myid
-    !! ID for each MPI process
-  integer :: n
-  integer :: n1
-  integer :: n2
-  integer :: n3
-  integer :: n4
-  integer :: nF
-  integer :: nGf
-  integer :: nGi
-  integer :: nGvsF
-  integer :: nGvsI
-  integer :: nI
-  integer :: np
-  integer :: nPP
-  integer :: npw
-  integer :: npwMf
-  integer :: npwMi
-  integer :: npwNf
-  integer :: npwNi
-  integer :: nSquareProcs
-  integer :: numOfPWs
-  integer :: numOfUsedGvecsPP
-  integer :: numprocs
-    !! Number of processes in the MPI pool
+  real(kind = dp), parameter ::          pi = 3.141592653589793_dp
+  real(kind = dp), parameter ::       sq4pi = 3.544907701811032_dp
+  real(kind = dp), parameter :: evToHartree = 0.03674932538878_dp
   !
-  ! Declare scalar reals
-  real(kind = dp) :: eBin
-  real(kind = dp) t0
-    !! Start time for program
-  real(kind = dp) tf
-    !! End time for program
-  real(kind = dp) :: threej
+  complex(kind = dp), parameter ::    ii = cmplx(0.0_dp, 1.0_dp, kind = dp)
   !
-  ! Declare scalar complex numbers
-  complex(kind = dp) :: paw
-  complex(kind = dp) :: paw2
-  complex(kind = dp) :: pseudo1
-  complex(kind = dp) :: pseudo2
-  !
-  ! Define scalar logicals
-  logical :: calculateVfis
-  logical :: coulomb
-  logical :: gamma_only
-  logical :: master
-  logical :: tmes_file_exists
-  !
-  ! Declare scalar characters
-  character(len = 300) :: elementsPath
+  character(len = 200) :: exportDirSD, exportDirPC, VfisOutput
+  character(len = 300) :: input, inputPC, textDum, elementsPath
   character(len = 320) :: mkdir
-    !! Command for creating the elements path directory
-  character(len = 300) :: textDum
-    !! Dummy variable to hold unneeded lines from input file
-  character(len = 200) :: VfisOutput
-    !! Output file for ??
   !
+  integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ik, ki, kf, ig, ibi, ibf
+  integer :: JMAX, maxL, iTypes, iPn
+  integer :: numOfGvecs, numOfPWsPC, numOfPWsSD, nIonsSD, nIonsPC, nKptsPC, nProjsPC, numOfTypesPC
+  integer :: numOfPWs, numOfTypes, nBands, nKpts, nSpins, nProjsSD
+  integer :: numOfUsedGvecsPP, ios, npwNi, npwNf, npwMi, npwMf
+  integer :: fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
+  integer :: gx, gy, gz, nGvsI, nGvsF, nGi, nGf
+  integer :: myid, numprocs, nSquareProcs, np, nI, nF, nPP, ind2, ierr
+  integer :: i, j, n1, n2, n3, n4, n, id, npw
   !
-  ! Declare matrix/vector integers
-  integer, allocatable :: counts(:)
-  !integer, allocatable :: displmnt(:)
-  integer, allocatable :: igvs(:,:,:)
-  integer, allocatable :: iqs(:)
-  integer, allocatable :: nFs(:,:)
-  integer, allocatable :: ngs(:,:)
-  integer, allocatable :: nIs(:,:)
-  integer, allocatable :: nPWsI(:)
-  integer, allocatable :: nPWsF(:)
-  integer, allocatable :: pwGvecs(:,:)
-  integer, allocatable :: pwGs(:,:)
+  integer, allocatable :: counts(:), displmnt(:), nPWsI(:), nPWsF(:)
   !
-  ! Declare matrix/vector reals
-  real(kind = dp), allocatable :: absVfi2(:,:)
-  real(kind = dp), allocatable :: DE(:,:)
-  real(kind = dp), allocatable :: eigvF(:)
-  real(kind = dp), allocatable :: eigvI(:)
-  real(kind = dp), allocatable :: gvecs(:,:)
+  real(kind = dp) t0, tf, at(3,3), bg(3,3)
   !
-  ! Declare matrix/vector complex numbers
-  complex(kind = dp), allocatable :: paw_id(:,:)
-  complex(kind = dp), allocatable :: paw_fi(:,:)
-  complex(kind = dp), allocatable :: pawPsiPC(:,:)
-  complex(kind = dp), allocatable :: pawSDPhi(:,:)
-  complex(kind = dp), allocatable :: paw_SDKKPC(:,:)
-  complex(kind = dp), allocatable :: Ufi(:,:,:)
+  real(kind = dp) :: omega, threej
   !
+  real(kind = dp), allocatable :: eigvI(:), eigvF(:), gvecs(:,:), posIonSD(:,:), posIonPC(:,:)
+  real(kind = dp), allocatable :: wk(:), xk(:,:)
+  real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
   !
+  complex(kind = dp), allocatable :: wfcPC(:,:), wfcSD(:,:), Ufi(:,:,:), paw_SDKKPC(:,:), paw_id(:,:)
+  complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
+  complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:), paw_fi(:,:)
+  complex(kind = dp), allocatable :: paw_PsiPC(:,:), paw_SDPhi(:,:)
+  complex(kind = dp), allocatable :: betaPC(:,:), cProjBetaPCPsiSD(:,:,:)
+  complex(kind = dp), allocatable :: betaSD(:,:), cProjBetaSDPhiPC(:,:,:)
+  !
+  integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:), groundState(:)
+  integer, allocatable :: npwsSD(:), pwGindPC(:), pwGindSD(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
+  integer, allocatable :: npwsPC(:)
+  real(kind = dp), allocatable :: wkPC(:), xkPC(:,:)
   !
   type :: atom
-    !! Define a new type to represent an atom in the structure. 
-    !! Each different type of atom in the structure will be another
-    !! variable with the type `atom`. 
-    !! @todo Consider changing `atom` type to `element` since it holds more than one atom @endtodo
-    !
-    ! Define scalar integers
-    integer :: iRAugMax
-      !! Maximum radius of beta projector (outer radius to integrate);
-      !! for PAW augmentation charge may extend a bit further; I think this
-      !! is the max index for the augmentation sphere, so I'm changing the 
-      !! name; last name was `iRc`
-    integer :: numOfAtoms
-      !! Number of atoms of a specific type in the structure
-    integer :: numProjs
-      !! Number of projectors
-    integer :: lmMax
-      !! Number of channels
-    integer :: nMax
-      !! Number of radial mesh points
-    ! 
-    ! Define scalar character
     character(len = 2) :: symbol
-      !! Element name for the given atom type
-    !
-    ! Define matrix/vector integer
-    integer, allocatable :: projAngMom(:)
-      !! Angular momentum of each projector
-    !
-    ! Define matrix/vector reals
-    real(kind = dp), allocatable :: bes_J_qr(:,:)
-    real(kind = dp), allocatable :: F(:,:)
-    real(kind = dp), allocatable :: F1(:,:,:)
-    real(kind = dp), allocatable :: F2(:,:,:)
-    real(kind = dp), allocatable :: r(:)
-      !! Radial mesh
-    real(kind = dp), allocatable :: rab(:)
-      !! Derivative of radial mesh
-    real(kind = dp), allocatable :: wae(:,:)
-      !! All electron wavefunction
-    real(kind = dp), allocatable :: wps(:,:)
-      !! Psuedowavefunction
-    !
+    integer :: numOfAtoms, lMax, lmMax, nMax, iRc
+    integer, allocatable :: lps(:)
+    real(kind = dp), allocatable :: r(:), rab(:), wae(:,:), wps(:,:), F(:,:), F1(:,:,:), F2(:,:,:), bes_J_qr(:,:)
   end type atom
   !
-  !
-  type :: crystal
-    integer :: iBandL
-      !! Lower band
-    integer :: iBandH
-      !! Higher band
-    integer :: nKpts
-      !! Number of k points
-    integer :: numOfPWs
-      !! Total number of plane waves
-    integer :: nIons
-      !! Total number of atoms in system
-    integer :: numOfTypes
-      !! Number of different types of atoms
-    integer :: nProjs
-      !! Number of projectors
-    integer :: numOfGvecs
-      !! Number of G vectors
-    !integer :: fftxMax, fftxMin, fftyMax, fftyMin, fftzMax, fftzMin
-      !! FFT grid was read from `input` file but not used, so removed
-    integer :: nBands
-      !! Number of bands
-    integer :: nSpins
-      !! Number of spins
-    integer, allocatable :: npws(:)
-      !! Number of plane waves per k point
-    integer, allocatable :: atomTypeIndex(:)
-      !! Index of the given atom type
-    !integer, allocatable :: groundState(:)
-      ! Was read from `input` file but not used, so removed
-    !
-    real(kind = dp) :: omega
-      !! Cell volume
-    !real(kind = dp) :: at(3,3)
-      ! Was read from `input` file but not used, so removed
-    real(kind = dp) :: bg(3,3)
-    real(kind = dp), allocatable :: wk(:)
-    real(kind = dp), allocatable :: xk(:, :)
-    real(kind = dp), allocatable :: posIon(:,:)
-    !
-    complex(kind = dp), allocatable :: wfc(:,:)
-    complex(kind = dp), allocatable :: beta(:,:)
-    complex(kind = dp), allocatable :: cProj(:,:,:)
-    complex(kind = dp), allocatable :: cCrossProj(:,:,:)
-    complex(kind = dp), allocatable :: paw_Wfc(:,:)
-    complex(kind = dp), allocatable :: pawK(:,:,:)
-    !
-    character(len = 2) crystalType
-      !! 'PC' for pristine crystal and 'SD' for solid defect
-    character(len = 200) :: exportDir
-      !! Export directory from [[pw_export_for_tme(program)]]
-    !
-    TYPE(atom), allocatable :: atoms(:)
-    !
-!    integer :: Jmax, maxL, iTypes, nn, nm
-!    integer :: i, j, n1, n2, n3, n4, n, id
-!    !
-!    !
-!    real(kind = dp), allocatable :: eigvI(:), eigvF(:)
-!    real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
-!    !
-!    complex(kind = dp), allocatable :: Ufi(:,:,:)
-!    !
-!    integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:)
-!    integer, allocatable :: pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
-!
-  end type crystal
-  !
-  TYPE(crystal) :: perfectCrystal
-    !! Structure that holds all of the information on the perfect crystal
-  !
-  TYPE(crystal) :: solidDefect
-    !! Structure that holds all of the information on the solid defect
+  TYPE(atom), allocatable :: atoms(:), atomsPC(:)
   !
   type :: vec
-    !
     integer :: ind
-    integer, allocatable :: igN(:)
-    integer, allocatable :: igM(:)
+    integer, allocatable :: igN(:), igM(:)
   end type vec
   !
-  ! Define vectors of vecs
-  TYPE(vec), allocatable :: vecs(:)
-  TYPE(vec), allocatable :: newVecs(:)
+  TYPE(vec), allocatable :: vecs(:), newVecs(:)
+  !
+  real(kind = dp) :: eBin
+  complex(kind = dp) :: paw, pseudo1, pseudo2, paw2
+  !
+  logical :: gamma_only, master, calculateVfis, coulomb, tmes_file_exists
+  !
+  NAMELIST /TME_Input/ exportDirSD, exportDirPC, elementsPath, &
+                       iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
+                       ki, kf, calculateVfis, VfisOutput, eBin
   !
   !
-!=====================================================================================================
 contains
   !
-  !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine initializeCalculation(solidDefect, perfectCrystal, elementsPath, VFisOutput, ki, kf, eBin, &
-                                   calculateVFis, t0)
-    !! Initialize the calculation by starting timer,
-    !! setting start values for variables to be read from
-    !! `.in` file, removing any existing output in the output directory,
-    !! and opening a clean output file
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
+  !
+  subroutine readInput()
+    !
     implicit none
     !
-    integer, intent(out) :: ki, kf
-    !
-    real(kind = dp), intent(out) :: eBin, t0
-    !
-    character(len = 200), intent(out) :: VfisOutput
-    character(len = 300), intent(out) :: elementsPath
-    !
-    logical, intent(out) :: calculateVfis
-    logical :: fileExists
-      !! Whether or not the output file already exists
-    TYPE(crystal), intent(inout) :: solidDefect, perfectCrystal
-    !
-    solidDefect%exportDir = ''
-    perfectCrystal%exportDir = ''
-    elementsPath = ''
-    VfisOutput = ''
-    !
-    ki = -1
-    kf = -1
-    !
-    eBin = -1.0_dp
-    !
-    solidDefect%iBandL  = -1
-    solidDefect%iBandH = -1
-    perfectCrystal%iBandL  = -1
-    perfectCrystal%iBandH = -1
-    !
-    calculateVfis = .false.
-    !
-    perfectCrystal%crystalType = 'PC'
-    solidDefect%crystalType = 'SD'
+    logical :: file_exists
     !
     call cpu_time(t0)
-        !! * Start a timer
     !
-    inquire(file = output, exist = fileExists)
-        !! * Check if file output exists,
-    if ( fileExists ) then
-        !! and delete it if it does
+    ! Check if file output exists. If it does, delete it.
+    !
+    inquire(file = output, exist = file_exists)
+    if ( file_exists ) then
       open (unit = 11, file = output, status = "old")
       close(unit = 11, status = "delete")
     endif
     !
+    ! Open new output file.
+    !
     open (iostd, file = output, status='new')
-        !! * Open new output file
     !
-    return
-    !
-  end subroutine initializeCalculation
-  !
-  !
-  !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readInput(perfectCrystal, solidDefect, elementsPath, ki, kf, calculateVfis, VfisOutput)
-    !! Delete any previous output, initialize input variables,
-    !! start a timer, and read in the input files
-    !!
-    implicit none
-    !
-    integer, intent(inout) :: ki, kf
-    integer :: iBandL_SD
-    integer :: iBandH_SD
-    integer :: iBandL_PC
-    integer :: iBandH_PC
-    !
-    character(len = 300), intent(inout) :: elementsPath
-    character(len = 200), intent(inout) :: VfisOutput
-    character(len = 200) :: exportDirSD
-    character(len = 200) :: exportDirPC
-    !
-    logical, intent(inout) :: calculateVfis
-    !
-    TYPE(crystal), intent(inout) :: perfectCrystal
-      !! Holds all of the information on the perfect crystal
-    TYPE(crystal), intent(inout) :: solidDefect
-      !! Holds all of the information on the defective crystal
-    !
-    NAMELIST /TME_Input/ exportDirSD, exportDirPC, elementsPath, &
-                       iBandL_SD, iBandH_SD, iBandL_PC, iBandH_PC, &
-                       ki, kf, calculateVfis, VfisOutput, eBin
-                       !! Used to group the variables read in from the .in file
-    !
+    call initialize()
     !
     READ (5, TME_Input, iostat = ios)
-        !! * Read input from command line (or input file if use `< TME_Input.md`)
-    solidDefect%exportDir = exportDirSD
-    perfectCrystal%exportDir = exportDirPC
-    !
-    solidDefect%iBandL = iBandL_SD
-    solidDefect%iBandH = iBandH_SD
-    perfectCrystal%iBandL = iBandL_PC
-    perfectCrystal%iBandH = iBandH_PC
     !
     call checkInitialization()
-        !! * Check that all required variables were input and have values that make sense
     !
-    call readQEExport(perfectCrystal)
-        !! * Read perfect crystal inputs
-    call readQEExport(solidDefect)
-        !! * Read solid defect inputs
+    call readInputPC()
+    call readInputSD()
     !
-    numOfPWs = max( perfectCrystal%numOfPWs, solidDefect%numOfPWs )
-        !! * Calculate the number of plane waves as the maximum of the number of PC and SD plane waves
+    numOfPWs = max( numOfPWsPC, numOfPWsSD )
     !
     return
     !
   end subroutine readInput
   !
   !
-  !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine checkInitialization()
-    !! Check to see if variables from .in file still
-    !! have the values set in [[TMEModule(module):initializeCalculation(subroutine)]]
-    !! or if they have values that aren't allowed
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    !! @todo Change `checkInitialization()` to have arguments to make clear that these variables are getting changed @endtodo
-    !!
+  subroutine initialize()
+    !
     implicit none
     !
-    logical :: fileExists
-      !! Whether or not the exported directory from [[pw_export_for_TME(program)]]
-      !! exists
-    logical:: abortExecution
+    exportDirSD = ''
+    exportDirPC = ''
+    elementsPath = ''
+    VfisOutput = ''
+    !
+    ki = -1
+    kf = -1
+    nKpts = -1
+    !
+    eBin = -1.0_dp
+    !
+    iBandIinit  = -1
+    iBandIfinal = -1
+    iBandFinit  = -1
+    iBandFfinal = -1
+    !
+    calculateVfis = .false.
+    !
+    return
+    !
+  end subroutine initialize
+  !
+  !
+  subroutine checkInitialization()
+    !
+    implicit none
+    !
+    logical :: file_exists, abortExecution
     !
     abortExecution = .false.
-      !! * Set the default value of abort execution so that the program
-      !! will only abort if there is an issue with the inputs
     !
     write(iostd, '(" Inputs : ")')
-      !! * Write out a header to the output file
     !
-    if ( wasRead(LEN(trim(solidDefect%exportDir))-1, 'exportDirSD', 'exportDirSD = ''./Export/''', abortExecution) ) then
-      !! * If the SD export directory variable was read
-      !!    * Check if the SD export directory exists
-      !!    * If the SD export directory doesn't exist
-      !!       * Output an error message and set `abortExecution` to true
-      !!    * Output the given SD export directory
+    if ( trim(exportDirSD) == '' ) then
+      write(iostd, *)
+      write(iostd, '(" Variable : ""exportDirSD"" is not defined!")')
+      write(iostd, '(" usage : exportDirSD = ''./Export/''")')
+      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+      abortExecution = .true.
+    else
+      input = trim(trim(exportDirSD)//'/input')
       !
-      inquire(file= trim(solidDefect%exportDir), exist = fileExists)
+      inquire(file =trim(input), exist = file_exists)
       !
-      if ( fileExists .eqv. .false. ) then
-        !
-        write(iostd, '(" exportDirSD :", a, " does not exist !")') trim(solidDefect%exportDir)
+      if ( file_exists .eqv. .false. ) then
+        write(iostd, '(" File : ", a, " , does not exist!")') trim(input)
+        write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirSD)
         write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
         abortExecution = .true.
-        !
       endif
-      !
-      write(iostd, '("exportDirSD = ''", a, "''")') trim(solidDefect%exportDir)
-      !
     endif
     !
+    write(iostd, '("exportDirSD = ''", a, "''")') trim(exportDirSD)
     !
-    if ( wasRead(LEN(trim(perfectCrystal%exportDir))-1, 'exportDirPC', 'exportDirPC = ''./Export/''', abortExecution) ) then
-      !! * If the PC export directory variable was read
-      !!    * Check if the PC export directory exists
-      !!    * If the PC export directory doesn't exist
-      !!       * Output an error message and set `abortExecution` to true
-      !!    * Output the given PC export directory
+    if ( trim(exportDirPC) == '' ) then
+      write(iostd, *)
+      write(iostd, '(" Variable : ""exportDirPC"" is not defined!")')
+      write(iostd, '(" usage : exportDirPC = ''./Export/''")')
+      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+      abortExecution = .true.
+    else
+      inputPC = trim(trim(exportDirPC)//'/input')
       !
-      inquire(file= trim(perfectCrystal%exportDir), exist = fileExists)
+      inquire(file =trim(inputPC), exist = file_exists)
       !
-      if ( fileExists .eqv. .false. ) then
-        !
-        write(iostd, '(" exportDirPC :", a, " does not exist !")') trim(perfectCrystal%exportDir)
+      if ( file_exists .eqv. .false. ) then
+        write(iostd, '(" File : ", a, " , does not exist!")') trim(inputPC)
+        write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirPC)
         write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
         abortExecution = .true.
-        !
       endif
-      !
-      write(iostd, '("exportDirPC = ''", a, "''")') trim(perfectCrystal%exportDir)
-      !
     endif
     !
-    if( .not. wasRead(LEN(elementsPath)-1, 'elementsPath', 'elementsPath = ''./''') ) then
-      !! * If the elements path was not read, set the default value to `./`
-      !
-      write(iostd, '(" The current directory will be used as elementsPath.")')
-      elementsPath = './'
-      !
+    write(iostd, '("exportDirPC = ''", a, "''")') trim(exportDirPC)
+    !
+    if ( trim(elementsPath) == '' ) then
+      write(iostd, *)
+      write(iostd, '(" Variable : ""elementsPath"" is not defined!")')
+      write(iostd, '(" usage : elementsPath = ''./''")')
+      write(iostd, '(" The homepath will be used as elementsPath.")')
+      elementsPath = './TMEs'
     endif
-    !
-    inquire(file= trim(elementsPath), exist = fileExists)
-      !! * Check if the elements path folder exists already
-    !
-    if ( .not. fileExists ) then
-      !! * If the elements path folder doesn't already exist
-      !!    * Write the `mkdir` command to a string
-      !!    * Execute the command to create the directory
-      !
+    inquire(file= trim(elementsPath), exist = file_exists)
+      !! @note 
+      !!   `inquire` only works for directories using the `gfortran` compiler, not
+      !!   `ifort`. For portability, I updated the `inquire` check for `exportDirSD`
+      !!   and `exportDirPC` to check for the `input` file in those directories. 
+      !!   that test will work for both compilers. However, I can't change the `inquire`
+      !!   test for `elementsPath` in the same way because `elementsPath` is expected
+      !!   to be empty. With `ifort`, the `mkdir` command will always be run, but I
+      !!   don't think that will cause any issues. 
+      !! @endnote
+
+    if ( .not.file_exists ) then
       write(mkDir, '("mkdir -p ", a)') trim(elementsPath) 
-      !
       call system(mkDir)
-      !
     endif
     !
     write(iostd, '("elementsPath = ''", a, "''")') trim(elementsPath)
-      !! * Output the elements path
     !
-    if( wasRead(perfectCrystal%iBandL, 'iBandL_PC', 'iBandL_PC = 10', abortExecution) ) then
-      !! * If `iBandL_PC` was read, output its value
-      !
-      write(iostd, '("iBandL_PC = ", i4)') perfectCrystal%iBandL
-      !
-    endif
-    !
-    if( wasRead(perfectCrystal%iBandH, 'iBandH_PC', 'iBandH_PC = 20', abortExecution) ) then
-      !! * If `iBandH_PC` was read, output its value
-      !
-      write(iostd, '("iBandH_PC = ", i4)') perfectCrystal%iBandH
-      !
-    endif
-    !
-    if( wasRead(solidDefect%iBandL, 'iBandL_SD', 'iBandL_SD = 9', abortExecution) ) then
-      !! * If `iBandL_SD` was read, output its value
-      !
-      write(iostd, '("iBandL_SD = ", i4)') solidDefect%iBandL
-      !
-    endif
-    !
-    if( wasRead(solidDefect%iBandH, 'iBandH_SD', 'iBandH_SD = 9', abortExecution) ) then
-      !! * If `iBandH_SD` was read, output its value
-      !
-      write(iostd, '("iBandH_SD = ", i4)') solidDefect%iBandH
-      !
-    endif
-    !
-    !> * If `calculateVfis` is true and `iBandL_SD` and `iBandH_SD` are not equal
-    !>    * Output an error message and set `abortExecution` to true
-    if ( ( calculateVfis ) .and. ( solidDefect%iBandL /= solidDefect%iBandH ) ) then
-      !
+    if ( iBandIinit < 0 ) then
       write(iostd, *)
-      write(iostd, '(" Vfis can be calculated only if the final state is one and only one!")')
-      write(iostd, '(" ''iBandL_SD'' = ", i10)') solidDefect%iBandL
-      write(iostd, '(" ''iBandH_SD'' = ", i10)') solidDefect%iBandH
+      write(iostd, '(" Variable : ""iBandIinit"" is not defined!")')
+      write(iostd, '(" usage : iBandIinit = 10")')
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
-      !
     endif
     !
-    write(iostd, '("calculateVfis = ", l5 )') calculateVfis
-      !! * Output the value of `calculateVfis`
+    write(iostd, '("iBandIinit = ", i4)') iBandIinit
     !
-    !> * If the `VfisOutput` file name is blank
-    !>    * Output a warning message and set the default value to `VfisVsE`
+    if ( iBandIfinal < 0 ) then
+      write(iostd, *)
+      write(iostd, '(" Variable : ""iBandIfinal"" is not defined!")')
+      write(iostd, '(" usage : iBandIfinal = 20")')
+      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+      abortExecution = .true.
+    endif
+    !
+    write(iostd, '("iBandIfinal = ", i4)') iBandIfinal
+    !
+    if ( iBandFinit < 0 ) then
+      write(iostd, *)
+      write(iostd, '(" Variable : ""iBandFinit"" is not defined!")')
+      write(iostd, '(" usage : iBandFinit = 9")')
+      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+      abortExecution = .true.
+    endif
+    !
+    write(iostd, '("iBandFinit = ", i4)') iBandFinit
+    !
+    if ( iBandFfinal < 0 ) then
+      write(iostd, *)
+      write(iostd, '(" Variable : ""iBandFfinal"" is not defined!")')
+      write(iostd, '(" usage : iBandFfinal = 9")')
+      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+      abortExecution = .true.
+    endif
+    !
+    write(iostd, '("iBandFfinal = ", i4)') iBandFfinal
+    !
+    if ( ( calculateVfis ) .and. ( iBandFinit /= iBandFfinal ) ) then
+      write(iostd, *)
+      write(iostd, '(" Vfis can be calculated only if the final state is one and only one!")')
+      write(iostd, '(" ''iBandFInit'' = ", i10)') iBandFinit
+      write(iostd, '(" ''iBandFfinal'' = ", i10)') iBandFfinal
+      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+      abortExecution = .true.
+    endif
+    !
+    write(iostd, '("calculateVfis = ", l )') calculateVfis
+    !
     if ( trim(VfisOutput) == '' ) then
-      !
       write(iostd, *)
       write(iostd, '(" Variable : ""VfisOutput"" is not defined!")')
       write(iostd, '(" usage : VfisOutput = ''VfisVsE''")')
-      write(iostd, '(" The default value ''VfisVsE'' will be used.")')
+      write(iostd, '(" The default value ''VfisOutput'' will be used.")')
       VfisOutput = 'VfisVsE'
-      !
     endif
     !
     write(iostd, '("VfisOutput = ''", a, "''")') trim(VfisOutput)
-      !! * Output the value of `VfisOutput`
-    !> @todo Remove everything with `ki` and `kf` because never used @endtodo
     !
-    !if( .not. wasRead(ki, 'ki', 'ki = 1') ) then
-    !  !! * If `ki` wasn't read, set the default value to 1
-    !  !
-    !  write(iostd, '(" ki = 1 will be used.")')
-    !  ki = 1
-    !  !
-    !endif
-    !
-    !if( .not. wasRead(kf, 'kf', 'kf = 1') ) then
-    !  !! * If `kf` wasn't read, set the default value to the total 
-    !  !!   number of k points (actually done in [[TMEModeul(module):readQEInput(subroutine)]]
-    !  !!   where the total number of k points is read
-    !  !
-    !  write(iostd, '(" kf = total number of k-points will be used.")')
-    !  !
-    !endif
-    !
-    !if ( ki /= kf ) then
-    !  write(iostd, *)
-    !  write(iostd, '(" Initial k-point index ''ki'', should be equal to the Final k-point index ''kf'' !")')
-    !  write(iostd, '(" Calculation of transition matrix elements with momentum transfer is not implemented!")')
-    !  write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-    !  abortExecution = .true.
-    !endif
-    !
-    if ( .not. wasRead(INT(eBin), 'eBin', 'eBin = 0.01') ) then
-      !! * If the value of `eBin` was not read
-      !!    * Output a warning message and set the default value to 0.01 eV
-      !
-      write(iostd,'(" A default value of 0.01 eV will be used !")')
+    if ( eBin < 0.0_dp ) then
       eBin = 0.01_dp ! eV
-      !
+      write(iostd,'(" Variable : ""eBin"" is not defined!")')
+      write(iostd,'(" usage : eBin = 0.01")')
+      write(iostd,'(" A default value of 0.01 eV will be used !")')
     endif
     !
     write(iostd, '("eBin = ", f8.4, " (eV)")') eBin
-      !! * Output the value of eBin
     !
     eBin = eBin*evToHartree
-      !! * Convert `eBin` from eV to Hartree
     !
     if ( abortExecution ) then
-      !! * If `abortExecution` was ever set to true
-      !!    * Output an error message and stop the program
       write(iostd, '(" Program stops!")')
       stop
     endif
     !
     flush(iostd)
-      !! * Make the output file available for other processes
     !
     return
     !
   end subroutine checkInitialization
   !
-  !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine readQEExport(system)
-    !! Read input files in the Export directory created by
-    !! [[pw_export_for_tme(program)]]
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
+  !
+  subroutine readInputPC()
     !
     implicit none
     !
-    !integer, intent(in) :: id
+    integer :: i, j, l, ind, ik, iDum, iType, ni, irc
     !
-    TYPE(crystal), intent(inout) :: system
-      !! Holds the structure for the system you are working on
-      !! (either `perfectCrystal` or `solidDefect`
-    !
-    integer :: i, ik, iType, ni
-      !! Loop index
-    integer:: iRAugMax
-      !! Local value of `iRAugMax` for each atom so don't have to keep accessing in loop
-    integer :: l
-      !! Angular momentum of each projector read from input file
-    integer :: ind
-      !! Index of each projector read from input file
-    integer :: iDum
-      !! Dummy variable to hold trash from input file
-    !
-    real(kind = dp) :: t1
-      !! Local start time
-    real(kind = dp) :: t2
-      !! Local end time
+    real(kind = dp) :: t1, t2 
     !
     character(len = 300) :: textDum
-      !! Dummy variable to hold trash from input file
-    character(len = 300) :: input
-      !! The input file path
     !
-    logical :: fileExists
-      !! Whether or not the `input` file exists in the given 
-      !! Export directory
+    logical :: file_exists
     !
     call cpu_time(t1)
-      !! * Start a local timer
-    !
-    !> * Output header to output file based on the input crystal type
-    !> @note
-    !> The program will end if a crystal type other than `PC` or `SD` is used.
-    !> @endnote
-    write(iostd, *)
-    if ( system%crystalType == 'PC' ) then
-      !
-      write(iostd, '(" Reading perfect crystal inputs.")')
-      !
-    else if ( system%crystalType == 'SD' ) then
-      !
-      write(iostd, '(" Reading solid defect inputs.")')
-      !
-    else
-      !
-      write(iostd, '("Unknown crystal type", a, ".")') system%crystalType
-      write(iostd, '("Please only use PC for pristine crystal or SD for solid defect.")')
-      write(iostd, '(" Program stops!")')
-      flush(iostd)
-      stop
-      !
-    endif
     !
     write(iostd, *)
+    write(iostd, '(" Reading perfect crystal inputs.")')
+    write(iostd, *)
     !
-    input = trim(trim(system%exportDir)//'/input')
-      !! * Set the path for the input file from the PC export directory
+    inputPC = trim(trim(exportDirPC)//'/input')
     !
-    inquire(file =trim(input), exist = fileExists)
-      !! * Check if the input file from the PC export directory exists
+    inquire(file =trim(inputPC), exist = file_exists)
     !
-    !> * If the input file doesn't exist
-    !>    * Output an error message and end the program
-    if ( fileExists .eqv. .false. ) then
-      !
-      write(iostd, '(" File : ", a, " , does not exist!")') trim(input)
-      write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(system%exportDir)
+    if ( file_exists .eqv. .false. ) then
+      write(iostd, '(" File : ", a, " , does not exist!")') trim(inputPC)
+      write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirPC)
       write(iostd, '(" Program stops!")')
       flush(iostd)
-      stop
-      !
     endif
     !
-    !...............................................................................................
-    !> * Open and read the [input](../page/inputOutput/exportedInput.html) file
+    open(50, file=trim(inputPC), status = 'old')
     !
-    open(50, file=trim(input), status = 'old')
+    read(50, '(a)') textDum
+    read(50, * ) 
+    !
+    read(50, '(a)') textDum
+    read(50, '(i10)') nKptsPC
     !
     read(50, '(a)') textDum
     !
-    read(50, '(ES24.15E3)' ) system%omega
+    allocate ( npwsPC(nKptsPC), wkPC(nKptsPC), xkPC(3,nKptsPC) )
     !
-    read(50, '(a)') textDum
-    read(50, '(i10)') system%nKpts
-    !if ( kf < 0 ) kf = system%nKpts
-    !
-    read(50, '(a)') textDum
-    ! 
-    allocate ( system%npws(system%nKpts), system%wk(system%nKpts), system%xk(3,system%nKpts) )
-    ! 
-    !allocate( system%groundState(system%nKpts) ) 
-      ! Don't allocate space for groundState because it is never used
-    !
-    do ik = 1, system%nKpts
+    do ik = 1, nKptsPC
       !
-      !read(50, '(3i10,4ES24.15E3)') iDum, system%groundState(ik), system%npws(ik), system%wk(ik), system%xk(1:3,ik)
-        ! Don't read in groundState because it is never used
-      read(50, '(3i10,4ES24.15E3)') iDum, iDum, system%npws(ik), system%wk(ik), system%xk(1:3,ik)
+      read(50, '(3i10,4ES24.15E3)') iDum, iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
       !
     enddo
     !
     read(50, '(a)') textDum
-    !
-    read(50, * ) system%numOfGvecs
+    read(50, * ) ! numOfGvecs
     !
     read(50, '(a)') textDum
-    read(50, '(i10)') system%numOfPWs
+    read(50, '(i10)') numOfPWsPC
     !
     read(50, '(a)') textDum     
-    !
-    !read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
-      ! Don't read in FFT grid because it is never used
-    read(50,  * )
+    read(50, * ) ! fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
     !
     read(50, '(a)') textDum
-    !
-    !read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,1)
-    !read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,2)
-    !read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,3)
-      ! Don't read in `at` because it is never used
     read(50,  * )
     read(50,  * )
     read(50,  * )
     !
     read(50, '(a)') textDum
+    read(50, * )
+    read(50, * )
+    read(50, * )
     !
-    read(50, '(a5, 3ES24.15E3)') textDum, system%bg(1:3,1)
-    read(50, '(a5, 3ES24.15E3)') textDum, system%bg(1:3,2)
-    read(50, '(a5, 3ES24.15E3)') textDum, system%bg(1:3,3)
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') system%nIons
     !
     read(50, '(a)') textDum
-    read(50, '(i10)') system%numOfTypes
-    !
-    allocate( system%posIon(3,system%nIons), system%atomTypeIndex(system%nIons) )
+    read(50, '(i10)') nIonsPC
     !
     read(50, '(a)') textDum
+    read(50, '(i10)') numOfTypesPC
     !
-    do ni = 1, system%nIons
-      !
-      read(50,'(i10, 3ES24.15E3)') system%atomTypeIndex(ni), system%posIon(1:3,ni)
-      !
+    allocate( posIonPC(3,nIonsPC), TYPNIPC(nIonsPC) )
+    !
+    read(50, '(a)') textDum
+    do ni = 1, nIonsPC
+      read(50,'(i10, 3ES24.15E3)') TYPNIPC(ni), (posIonPC(j,ni) , j = 1,3)
     enddo
     !
     read(50, '(a)') textDum
-    !
-    read(50, '(i10)') system%nBands
+    read(50, * )
     !
     read(50, '(a)') textDum
+    read(50, * ) 
     !
-    read(50, '(i10)') system%nSpins
+    allocate ( atomsPC(numOfTypesPC) )
     !
-    allocate ( system%atoms(system%numOfTypes) )
-    !
-    system%nProjs = 0
-    !
-    do iType = 1, system%numOfTypes
+    nProjsPC = 0
+    do iType = 1, numOfTypesPC
       !
       read(50, '(a)') textDum
-      read(50, *) system%atoms(iType)%symbol
+      read(50, *) atomsPC(iType)%symbol
       !
       read(50, '(a)') textDum
-      read(50, '(i10)') system%atoms(iType)%numOfAtoms
+      read(50, '(i10)') atomsPC(iType)%numOfAtoms
       !
       read(50, '(a)') textDum
-      read(50, '(i10)') system%atoms(iType)%numProjs              ! number of projectors
+      read(50, '(i10)') atomsPC(iType)%lMax              ! number of projectors
       !
-      allocate ( system%atoms(iType)%projAngMom( system%atoms(iType)%numProjs ) )
+      allocate ( atomsPC(iType)%lps( atomsPC(iType)%lMax ) )
       !
       read(50, '(a)') textDum
-      do i = 1, system%atoms(iType)%numProjs 
-        !
+      do i = 1, atomsPC(iType)%lMax 
         read(50, '(2i10)') l, ind
-        system%atoms(iType)%projAngMom(ind) = l
-        !
+        atomsPC(iType)%lps(ind) = l
       enddo
       !
       read(50, '(a)') textDum
-      read(50, '(i10)') system%atoms(iType)%lmMax
+      read(50, '(i10)') atomsPC(iType)%lmMax
       !
       read(50, '(a)') textDum
-      read(50, '(2i10)') system%atoms(iType)%nMax, system%atoms(iType)%iRAugMax
+      read(50, '(2i10)') atomsPC(iType)%nMax, atomsPC(iType)%iRc
       !
-      allocate ( system%atoms(iType)%r(system%atoms(iType)%nMax), system%atoms(iType)%rab(system%atoms(iType)%nMax) )
+      allocate ( atomsPC(iType)%r(atomsPC(iType)%nMax), atomsPC(iType)%rab(atomsPC(iType)%nMax) )
       !
       read(50, '(a)') textDum
-      do i = 1, system%atoms(iType)%nMax
-        !
-        read(50, '(2ES24.15E3)') system%atoms(iType)%r(i), system%atoms(iType)%rab(i)
-        !
+      do i = 1, atomsPC(iType)%nMax
+        read(50, '(2ES24.15E3)') atomsPC(iType)%r(i), atomsPC(iType)%rab(i)
       enddo
       ! 
-      allocate ( system%atoms(iType)%wae(system%atoms(iType)%nMax, system%atoms(iType)%numProjs) )
-      allocate ( system%atoms(iType)%wps(system%atoms(iType)%nMax, system%atoms(iType)%numProjs) )
+      allocate ( atomsPC(iType)%wae(atomsPC(iType)%nMax, atomsPC(iType)%lMax) )
+      allocate ( atomsPC(iType)%wps(atomsPC(iType)%nMax, atomsPC(iType)%lMax) )
       !
       read(50, '(a)') textDum
-      do j = 1, system%atoms(iType)%numProjs
-        do i = 1, system%atoms(iType)%nMax
-          !
-          read(50, '(2ES24.15E3)') system%atoms(iType)%wae(i, j), system%atoms(iType)%wps(i, j) 
-          ! write(iostd, '(2i5, ES24.15E3)') j, i, abs(system%atoms(iType)%wae(i, j)-system%atoms(iType)%wps(i, j))
-          !
+      do j = 1, atomsPC(iType)%lMax
+        do i = 1, atomsPC(iType)%nMax
+          read(50, '(2ES24.15E3)') atomsPC(iType)%wae(i, j), atomsPC(iType)%wps(i, j) 
         enddo
       enddo
       !  
-      allocate ( system%atoms(iType)%F( system%atoms(iType)%iRAugMax, system%atoms(iType)%numProjs ) ) !, system%atoms(iType)%numProjs) )
-      allocate ( system%atoms(iType)%F1(system%atoms(iType)%iRAugMax, system%atoms(iType)%numProjs, system%atoms(iType)%numProjs ) )
-      allocate ( system%atoms(iType)%F2(system%atoms(iType)%iRAugMax, system%atoms(iType)%numProjs, system%atoms(iType)%numProjs ) )
+      allocate ( atomsPC(iType)%F( atomsPC(iType)%iRc, atomsPC(iType)%lMax ) )
+      allocate ( atomsPC(iType)%F1(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax ) )
+      allocate ( atomsPC(iType)%F2(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax ) )
       !
-      system%atoms(iType)%F = 0.0_dp
-      system%atoms(iType)%F1 = 0.0_dp
-      system%atoms(iType)%F2 = 0.0_dp
+      atomsPC(iType)%F = 0.0_dp
+      atomsPC(iType)%F1 = 0.0_dp
+      atomsPC(iType)%F2 = 0.0_dp
       !
-      !> * Calculate `F`, `F1`, and `F2` using the all-electron and psuedowvefunctions
-      !> @todo Look more into how AE and PS wavefunctions are combined to further understand this @endtodo
-      !> @todo Move this behavior to another subroutine for clarity @endtodo
-      do j = 1, system%atoms(iType)%numProjs
+      do j = 1, atomsPC(iType)%lMax
         !
-        iRAugMax = system%atoms(iType)%iRAugMax
+        irc = atomsPC(iType)%iRc
+        atomsPC(iType)%F(1:irc,j)=(atomsPC(iType)%wae(1:irc,j)-atomsPC(iType)%wps(1:irc,j))* &
+              atomsPC(iType)%r(1:irc)*atomsPC(iType)%rab(1:irc)
         !
-        system%atoms(iType)%F(1:iRAugMax,j)=(system%atoms(iType)%wae(1:iRAugMax,j)-system%atoms(iType)%wps(1:iRAugMax,j))* &
-              system%atoms(iType)%r(1:iRAugMax)*system%atoms(iType)%rab(1:iRAugMax)
-        !
-        do i = 1, system%atoms(iType)%numProjs
-          !> @todo Figure out if differences in PC and SD `F1` calculations are intentional @endtodo
-          !> @todo Figure out if should be `(wae_i wae_j - wps_i wps_j)r_{ab}` @endtodo
-          !> @todo Figure out if first term in each should be conjugated for inner product form @endtodo
-          !> @todo Figure out if `rab` plays role of \(dr\) within augmentation sphere @endtodo
-          if ( system%crystalType == 'PC' ) then
-            !
-            system%atoms(iType)%F1(1:iRAugMax,i,j) = (system%atoms(iType)%wps(1:iRAugMax,i)*system%atoms(iType)%wae(1:iRAugMax,j)-&
-                                                  system%atoms(iType)%wps(1:iRAugMax,i)*system%atoms(iType)%wps(1:iRAugMax,j))* &
-                                                  system%atoms(iType)%rab(1:iRAugMax)
-            !
-          else if ( system%crystalType == 'SD' ) then
-            !
-            system%atoms(iType)%F1(1:iRAugMax,i,j) = (system%atoms(iType)%wae(1:iRAugMax,i)*system%atoms(iType)%wps(1:iRAugMax,j)-&
-                                                  system%atoms(iType)%wps(1:iRAugMax,i)*system%atoms(iType)%wps(1:iRAugMax,j))* & 
-                                                  system%atoms(iType)%rab(1:iRAugMax)
-            !
-          endif
+        do i = 1, atomsPC(iType)%lMax
+          atomsPC(iType)%F1(1:irc,i,j) = ( atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wae(1:irc,j) - &
+    &                                      atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wps(1:irc,j))*atomsPC(iType)%rab(1:irc)
           !
-          system%atoms(iType)%F2(1:iRAugMax,i,j) = ( system%atoms(iType)%wae(1:iRAugMax,i)*system%atoms(iType)%wae(1:iRAugMax,j) - &
-                                           system%atoms(iType)%wae(1:iRAugMax,i)*system%atoms(iType)%wps(1:iRAugMax,j) - &
-                                           system%atoms(iType)%wps(1:iRAugMax,i)*system%atoms(iType)%wae(1:iRAugMax,j) + &
-                                           system%atoms(iType)%wps(1:iRAugMax,i)*system%atoms(iType)%wps(1:iRAugMax,j))* & 
-                                           system%atoms(iType)%rab(1:iRAugMax)
+          atomsPC(iType)%F2(1:irc,i,j) = ( atomsPC(iType)%wae(1:irc,i)*atomsPC(iType)%wae(1:irc,j) - &
+                                           atomsPC(iType)%wae(1:irc,i)*atomsPC(iType)%wps(1:irc,j) - &
+                                           atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wae(1:irc,j) + &
+    &                                      atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wps(1:irc,j))*atomsPC(iType)%rab(1:irc)
 
         enddo
       enddo
       !
-      system%nProjs = system%nProjs + system%atoms(iType)%numOfAtoms*system%atoms(iType)%lmMax
-      !
-      deallocate ( system%atoms(iType)%wae, system%atoms(iType)%wps )
-      !deallocate ( system%groundState )
-        ! Don't use because groundState is never used
+      nProjsPC = nProjsPC + atomsPC(iType)%numOfAtoms*atomsPC(iType)%lmMax
       !
     enddo
     !
-    !...............................................................................................
-    !
     close(50)
-      !! * Close the input file
     !
-    !> * Go through the `projAngMom` values for each projector for each atom
-    !> and find the max to store in `JMAX`
-    !> @todo Figure out if intentional to only use `JMAX` from SD input @endtodo
     JMAX = 0
-    do iType = 1, system%numOfTypes
-      !
-      do i = 1, system%atoms(iType)%numProjs
-        !
-        if ( system%atoms(iType)%projAngMom(i) > JMAX ) JMAX = system%atoms(iType)%projAngMom(i)
-        !
+    do iType = 1, numOfTypesPC
+      do i = 1, atomsPC(iType)%lMax
+        if ( atomsPC(iType)%lps(i) > JMAX ) JMAX = atomsPC(iType)%lps(i)
       enddo
-      !
     enddo
     !
     maxL = JMAX
     JMAX = 2*JMAX + 1
     !
-    do iType = 1, system%numOfTypes
-      !
-      allocate ( system%atoms(iType)%bes_J_qr( 0:JMAX, system%atoms(iType)%iRAugMax ) )
-      system%atoms(iType)%bes_J_qr(:,:) = 0.0_dp
+    do iType = 1, numOfTypesPC
+      allocate ( atomsPC(iType)%bes_J_qr( 0:JMAX, atomsPC(iType)%iRc ) )
+      atomsPC(iType)%bes_J_qr(:,:) = 0.0_dp
       !
     enddo
     !
-    !> * End the local timer and write out the total time to read the inputs
-    !> to the output file
     call cpu_time(t2)
     write(iostd, '(" Reading input files done in:                ", f10.2, " secs.")') t2-t1
     write(iostd, *)
@@ -918,164 +489,492 @@ contains
     !
     return
     !
-  end subroutine readQEExport
-  !
-  !
-  subroutine readPWsSet()
-    !! Read the g vectors in Miller indices from `mgrid` file and convert
-    !! using reciprocal lattice vectors
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    !
-    implicit none
-    !
-    integer :: ig, iDum, iGx, iGy, iGz
-    !
-    open(72, file=trim(solidDefect%exportDir)//"/mgrid")
-      !! * Open the `mgrid` file from Export directory
-    !
-    !> * Ignore the first two lines as they are comments
-    read(72, * )
-    read(72, * )
-    !
-    allocate ( gvecs(3, solidDefect%numOfGvecs ) )
-      !! * Allocate space for the g vectors
-    !
-    gvecs(:,:) = 0.0_dp
-      !! * Initialize all of the g vectors to zero
-    !
-    do ig = 1, solidDefect%numOfGvecs
-      !! * For each g vector
-      !!    * Read in the g vector in terms of Miller indices
-      !!    * Calculate the g vector using the reciprocal lattice vectors from input file
-      read(72, '(4i10)') iDum, iGx, iGy, iGz
-      gvecs(1,ig) = dble(iGx)*solidDefect%bg(1,1) + dble(iGy)*solidDefect%bg(1,2) + dble(iGz)*solidDefect%bg(1,3)
-      gvecs(2,ig) = dble(iGx)*solidDefect%bg(2,1) + dble(iGy)*solidDefect%bg(2,2) + dble(iGz)*solidDefect%bg(2,3)
-      gvecs(3,ig) = dble(iGx)*solidDefect%bg(3,1) + dble(iGy)*solidDefect%bg(3,2) + dble(iGz)*solidDefect%bg(3,3)
-    enddo
-    !
-    close(72)
-      !! Close the `mgrid` file
-    !
-    return
-    !
-  end subroutine readPWsSet
+  end subroutine readInputPC
   !
   !
   subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
-    !! Determine how many g vectors each process should get
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
     !
     implicit none
     !
-    integer, intent(in)  :: nOfPWs
-      !! Number of g vectors
-    integer, intent(in)  :: nOfBlocks
-      !! Number of processes
-    integer :: iStep
-      !! Number of g vectors per number of processes
-    integer :: iModu
-      !! Number of remaining g vectors after giving
-      !! each process the same number of g vectors
+    integer, intent(in)  :: nOfPWs, nOfBlocks
+    !
+    integer :: iStep, iModu
     !
     iStep = int(nOfPWs/nOfBlocks)
-      !! * Determine the base number of g vectors to give 
-      !!   to each process
     iModu = mod(nOfPWs,nOfBlocks)
-      !! * Determine the number of g vectors left over after that
     !
     do i = 0, nOfBlocks - 1
-      !! * For each process, give the base amount and an extra
-      !!   if there were any still left over
       counts(i) = iStep
-      !
       if ( iModu > 0 ) then
-        !
         counts(i) = counts(i) + 1
-        !
         iModu = iModu - 1
-        !
       endif
-      !
     enddo
     !
-    !displmnt(0) = 0
-    !do i = 1, nOfBlocks-1
-    !  displmnt(i) = displmnt(i-1) + counts(i)
-    !enddo
+    displmnt(0) = 0
+    do i = 1, nOfBlocks-1
+      displmnt(i) = displmnt(i-1) + counts(i)
+    enddo
     !
     return
     !
   end subroutine distributePWsToProcs
   !
   !
-  subroutine checkIfCalculated(ik, tmes_file_exists)
-    !! Determine if the output file for a given k point already exists
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
+  subroutine int2str(integ, string)
     !
     implicit none
+    integer :: integ
+    character(len = 300) :: string
     !
-    integer, intent(in) :: ik
-      !! K point index
-    logical, intent(out) :: tmes_file_exists
-      !! Whether or not the output file exists
+    if ( integ < 10 ) then
+      write(string, '(i1)') integ
+    else if ( integ < 100 ) then
+      write(string, '(i2)') integ
+    else if ( integ < 1000 ) then
+      write(string, '(i3)') integ
+    else if ( integ < 10000 ) then
+      write(string, '(i4)') integ
+    endif
     !
-    character(len = 300) :: Uelements
-      !! Output file name
-    character(len = 300) :: ikstr
-      !! String version of integer input `ik`
-    !
-    call int2str(ik, ikstr)
-    write(Uelements, '("/TMEs_kptI_",a,"_kptF_",a)') trim(ikstr), trim(ikstr)
-      !! * Determine what the file name should be based on the k point index
-    !
-    inquire(file = trim(elementsPath)//trim(Uelements), exist = tmes_file_exists)
-      !! * Check if that file already exists
+    string = trim(string)
     !
     return
     !
-  end subroutine checkIfCalculated
+  end subroutine int2str
   !
   !
-  subroutine calculatePWsOverlap(ik)
-    !! Read the wavefunctions and calculate the overlap
-    !! \(\langle\Phi_f|\Psi_i\rangle\)
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
+  subroutine finalizeCalculation()
+    !
+    implicit none
+    !
+    write(iostd,'("-----------------------------------------------------------------")')
+    !
+    call cpu_time(tf)
+    write(iostd, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
+    !
+    close(iostd)
+    !
+    return
+    !
+  end subroutine finalizeCalculation
+  !
+  !
+  subroutine readPWsSet()
+    !
+    implicit none
+    !
+    integer :: ig, iDum, iGx, iGy, iGz
+    !
+    open(72, file=trim(exportDirSD)//"/mgrid")
+    !
+    read(72, * )
+    read(72, * )
+    !
+    allocate ( gvecs(3, numOfGvecs ) )
+    !
+    gvecs(:,:) = 0.0_dp
+    !
+    do ig = 1, numOfGvecs
+      read(72, '(4i10)') iDum, iGx, iGy, iGz
+      gvecs(1,ig) = dble(iGx)*bg(1,1) + dble(iGy)*bg(1,2) + dble(iGz)*bg(1,3)
+      gvecs(2,ig) = dble(iGx)*bg(2,1) + dble(iGy)*bg(2,2) + dble(iGz)*bg(2,3)
+      gvecs(3,ig) = dble(iGx)*bg(3,1) + dble(iGy)*bg(3,2) + dble(iGz)*bg(3,3)
+    enddo
+    !
+    close(72)
+    !
+    return
+    !
+  end subroutine readPWsSet
+  !
+  !
+  subroutine readWfcPC(ik)
     !
     implicit none
     !
     integer, intent(in) :: ik
-      !! K point index
+    integer :: ib, ig, iDumV(3)
+    !
+    complex(kind = dp) :: wfc
+    !
+    character(len = 300) :: iks
+    !
+    call int2str(ik, iks)
+    !
+    open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    allocate ( pwGindPC(npwsPC(ik)) )
+    !
+    do ig = 1, npwsPC(ik)
+      read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
+    enddo
+    !
+    close(72)
+    !
+    open(72, file=trim(exportDirPC)//"/wfc."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    do ib = 1, iBandIinit - 1
+      do ig = 1, npwsPC(ik)
+        write(iostd, '("      ib = ", I3, " ig = ", I7)') ib, ig
+        read(72, *)
+      enddo
+    enddo
+    !
+    wfcPC(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    !
+    do ib = iBandIinit, iBandIfinal
+      do ig = 1, npwsPC(ik)
+        write(iostd, '("      ib = ", I5, "ig = ", I5)') ib, ig
+
+        read(72, '(2ES24.15E3)') wfc
+        wfcPC(pwGindPC(ig), ib) = wfc
+      enddo
+    enddo
+    !
+    close(72)
+    !
+    deallocate ( pwGindPC )
+    !
+    return
+    !
+  end subroutine readWfcPC
+  !
+  !
+  subroutine projectBetaPCwfcSD(ik)
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
+    integer :: ig, iDumV(3)
+    !
+    character(len = 300) :: iks
+    !
+    call int2str(ik, iks)
+    !
+    ! Reading PC projectors
+    !
+    open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    allocate ( pwGindPC(npwsPC(ik)) )
+    !
+    do ig = 1, npwsPC(ik)
+      read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
+    enddo
+    !
+    close(72)
+    !
+    allocate ( betaPC(numOfPWs, nProjsPC) )
+    !
+    betaPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    !
+    open(73, file=trim(exportDirPC)//"/projectors."//trim(iks))
+    !
+    read(73, '(a)') textDum
+    read(73, '(2i10)') nProjsPC, npw
+    !
+    do j = 1, nProjsPC 
+      do i = 1, npw
+        read(73,'(2ES24.15E3)') betaPC(pwGindPC(i),j)
+      enddo
+    enddo
+    !
+    close(73)
+    !
+    deallocate ( pwGindPC )
+    !
+    do j = iBandFinit, iBandFfinal
+      do i = 1, nProjsPC
+        cProjBetaPCPsiSD(i,j,1) = sum(conjg(betaPC(:,i))*wfcSD(:,j))
+      enddo
+    enddo
+    !
+    deallocate ( betaPC )
+    !
+    return
+    !
+  end subroutine projectBetaPCwfcSD
+  !
+  !
+  subroutine readWfcSD(ik)
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
+    integer :: ib, ig, iDumV(3)
+    !
+    complex(kind = dp) :: wfc
+    !
+    character(len = 300) :: iks
+    !
+    call int2str(ik, iks)
+    !
+    open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    allocate ( pwGindSD(npwsSD(ik)) )
+    !
+    do ig = 1, npwsSD(ik)
+      read(72, '(4i10)') pwGindSD(ig), iDumV(1:3)
+    enddo
+    !
+    close(72)
+    !
+    open(72, file=trim(exportDirSD)//"/wfc."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    do ib = 1, iBandFinit - 1
+      do ig = 1, npwsSD(ik)
+        read(72, *)
+      enddo
+    enddo
+    !
+    wfcSD(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    !
+    do ib = iBandFinit, iBandFfinal
+      do ig = 1, npwsSD(ik)
+        read(72, '(2ES24.15E3)') wfc
+        wfcSD(pwGindSD(ig), ib) = wfc
+      enddo
+    enddo
+    !
+    close(72)
+    !
+    deallocate ( pwGindSD )
+    !
+    return
+    !
+  end subroutine readWfcSD
+  !
+  !
+  subroutine readInputSD()
+    !
+    implicit none
+    !
+    integer :: i, j, l, ind, ik, iDum, iType, ni, irc
+    !
+    real(kind = dp) :: t1, t2
+    real(kind = dp) :: ef
+    !
+    character(len = 300) :: textDum
+    !
+    logical :: file_exists
+    !
+    call cpu_time(t1)
+    !
+    write(iostd, *)
+    write(iostd, '(" Reading solid defect inputs.")')
+    write(iostd, *)
+    !
+    input = trim(trim(exportDirSD)//'/input')
+    !
+    inquire(file = trim(input), exist = file_exists)
+    !
+    if ( file_exists .eqv. .false. ) then
+      write(iostd, '(" File : ", a, " , does not exist!")') trim(input)
+      write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirSD)
+      write(iostd, '(" Program stops!")')
+      flush(iostd)
+    endif
+    !
+    open(50, file=trim(input), status = 'old')
+    !
+    read(50, '(a)') textDum
+    read(50, '(ES24.15E3)' ) omega
+    !
+    read(50, '(a)') textDum
+    read(50, '(i10)') nKpts
+    !
+    read(50, '(a)') textDum
+    !
+    allocate ( groundState(nKpts), npwsSD(nKpts), wk(nKpts), xk(3,nKpts) )
+    !
+    do ik = 1, nKpts
+      !
+      read(50, '(3i10,4ES24.15E3)') iDum, groundState(ik), npwsSD(ik), wk(ik), xk(1:3,ik)
+      !
+    enddo
+    !
+    read(50, '(a)') textDum
+    read(50, '(i10)') numOfGvecs
+    !
+    read(50, '(a)') textDum
+    read(50, '(i10)') numOfPWsSD
+    !
+    read(50, '(a)') textDum     
+    read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
+    !
+    read(50, '(a)') textDum
+    read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,1)
+    read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,2)
+    read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,3)
+    !
+    read(50, '(a)') textDum
+    read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,1)
+    read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,2)
+    read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,3)
+    !
+    !
+    read(50, '(a)') textDum
+    read(50, '(i10)') nIonsSD
+    !
+    read(50, '(a)') textDum
+    read(50, '(i10)') numOfTypes
+    !
+    allocate( posIonSD(3,nIonsSD), TYPNISD(nIonsSD) )
+    !
+    read(50, '(a)') textDum
+    do ni = 1, nIonsSD
+      read(50,'(i10, 3ES24.15E3)') TYPNISD(ni), (posIonSD(j,ni), j = 1,3)
+    enddo
+    !
+    read(50, '(a)') textDum
+    read(50, '(i10)') nBands
+    !
+    read(50, '(a)') textDum
+    read(50, '(i10)') nSpins
+    !
+    allocate ( atoms(numOfTypes) )
+    !
+    nProjsSD = 0
+    do iType = 1, numOfTypes
+      !
+      read(50, '(a)') textDum
+      read(50, *) atoms(iType)%symbol
+      !
+      read(50, '(a)') textDum
+      read(50, '(i10)') atoms(iType)%numOfAtoms
+      !
+      read(50, '(a)') textDum
+      read(50, '(i10)') atoms(iType)%lMax              ! number of projectors
+      !
+      allocate ( atoms(iType)%lps( atoms(iType)%lMax ) )
+      !
+      read(50, '(a)') textDum
+      do i = 1, atoms(iType)%lMax 
+        read(50, '(2i10)') l, ind
+        atoms(iType)%lps(ind) = l
+      enddo
+      !
+      read(50, '(a)') textDum
+      read(50, '(i10)') atoms(iType)%lmMax
+      !
+      read(50, '(a)') textDum
+      read(50, '(2i10)') atoms(iType)%nMax, atoms(iType)%iRc
+      !
+      allocate ( atoms(iType)%r(atoms(iType)%nMax), atoms(iType)%rab(atoms(iType)%nMax) )
+      !
+      read(50, '(a)') textDum
+      do i = 1, atoms(iType)%nMax
+        read(50, '(2ES24.15E3)') atoms(iType)%r(i), atoms(iType)%rab(i)
+      enddo
+      ! 
+      allocate ( atoms(iType)%wae(atoms(iType)%nMax, atoms(iType)%lMax) )
+      allocate ( atoms(iType)%wps(atoms(iType)%nMax, atoms(iType)%lMax) )
+      !
+      read(50, '(a)') textDum
+      do j = 1, atoms(iType)%lMax
+        do i = 1, atoms(iType)%nMax
+          read(50, '(2ES24.15E3)') atoms(iType)%wae(i, j), atoms(iType)%wps(i, j) 
+        enddo
+      enddo
+      !  
+      allocate ( atoms(iType)%F( atoms(iType)%iRc, atoms(iType)%lMax ) )
+      allocate ( atoms(iType)%F1(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax ) )
+      allocate ( atoms(iType)%F2(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax ) )
+      !
+      atoms(iType)%F = 0.0_dp
+      atoms(iType)%F1 = 0.0_dp
+      atoms(iType)%F2 = 0.0_dp
+      !
+      do j = 1, atoms(iType)%lMax
+        !
+        irc = atoms(iType)%iRc
+        atoms(iType)%F(1:irc,j)=(atoms(iType)%wae(1:irc,j)-atoms(iType)%wps(1:irc,j))*atoms(iType)%r(1:irc) * &
+            atoms(iType)%rab(1:irc)
+        !
+        do i = 1, atoms(iType)%lMax
+          !        
+          atoms(iType)%F1(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
+                                         atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
+          !
+          atoms(iType)%F2(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wae(1:irc,j) - &
+                                         atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
+                                         atoms(iType)%wps(1:irc,i)*atoms(iType)%wae(1:irc,j) + &
+                                         atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
+        enddo
+      enddo
+      !
+      nProjsSD = nProjsSD + atoms(iType)%numOfAtoms*atoms(iType)%lmMax
+      !
+      deallocate ( atoms(iType)%wae, atoms(iType)%wps )
+      !
+    enddo
+    !
+    JMAX = 0
+    do iType = 1, numOfTypes
+      do i = 1, atoms(iType)%lMax
+        if ( atoms(iType)%lps(i) > JMAX ) JMAX = atoms(iType)%lps(i)
+      enddo
+    enddo
+    !
+    maxL = JMAX
+    JMAX = 2*JMAX + 1
+    !
+    do iType = 1, numOfTypes
+      allocate ( atoms(iType)%bes_J_qr( 0:JMAX, atoms(iType)%iRc ) )
+      atoms(iType)%bes_J_qr(:,:) = 0.0_dp
+      !
+    enddo
+    !
+    read(50, '(a)') textDum
+    read(50, '(ES24.15E3)') ef
+    !
+    close(50)
+    !
+    call cpu_time(t2)
+    write(iostd, '(" Reading solid defect inputs done in:                ", f10.2, " secs.")') t2-t1
+    write(iostd, *)
+    flush(iostd)
+    !
+    return
+    !
+  end subroutine readInputSD
+  !
+  !
+  subroutine calculatePWsOverlap(ik)
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
     integer :: ibi, ibf
-      !! Loop index
     !
-    call readWfc(ik, perfectCrystal)
-      !! * Read the perfect crystal wavefunction ([[TMEModule(module):readWfc(subroutine)]])
+    write(iostd, '("      Reading perfect-crystal wfc")')
+    call readWfcPC(ik)
     !
-    call readWfc(ik, solidDefect)
-      !! * Read the solid defect wavefunction ([[TMEModule(module):readWfc(subroutine)]])
+    write(iostd, '("      Reading defect-crystal wfc")')
+    call readWfcSD(ik)
     !
     Ufi(:,:,ik) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-      !! * Initialize `Ufi` for the given k point to complex double zero
     !
-    do ibi = perfectCrystal%iBandL, perfectCrystal%iBandH 
+    do ibi = iBandIinit, iBandIfinal 
       !
-      do ibf = solidDefect%iBandL, solidDefect%iBandH
-        !! * For each initial band, calculate \(\sum \phi_f^*\psi_i\) (overlap??) with each final band
-        !!
-        Ufi(ibf, ibi, ik) = sum(conjg(solidDefect%wfc(:,ibf))*perfectCrystal%wfc(:,ibi))
-          !! * Calculate \(\langle\Phi_f|\Psi_i\rangle\)
-          !!
-        !if ( ibi == ibf ) write(iostd,'(2i4,3ES24.15E3)') ibf, ibi, Ufi(ibf, ibi, ik), abs(Ufi(ibf, ibi, ik))**2
+      do ibf = iBandFinit, iBandFfinal
+        Ufi(ibf, ibi, ik) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
         flush(iostd)
-        !
       enddo
       !
     enddo
@@ -1085,147 +984,28 @@ contains
   end subroutine calculatePWsOverlap
   !
   !
-  subroutine readWfc(ik, system)
-    !! Open the `grid.ki` file from [[pw_export_for_tme(program)]]
-    !! to get the indices for the wavefunction to be stored in, then
-    !! open the `wfc.ki` file and read in the wavefunction for the 
-    !! proper bands and store in the proper indices in the system's `wfc`
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
+  subroutine readProjectionsPC(ik)
     !
     implicit none
     !
     integer, intent(in) :: ik
-      !! K point index
-    integer :: ib, ig
-      !! Loop index
-    integer :: iDumV(3)
-      !! Dummy vector to ignore g vectors from `grid.ki`
-    integer, allocatable :: pwGind(:)
-      !! Indices for the wavefunction of a given k point
-    !
-    complex(kind = dp) :: wfc
-      !! Wavefunction
-    !
-    character(len = 300) :: ikstr
-      !! String version of the k point index
-    !
-    TYPE(crystal), intent(inout) :: system
-      !! Holds the structure for the system you are working on
-      !! (either `perfectCrystal` or `solidDefect`)
-    !
-    call int2str(ik, ikstr)
-      !! * Convert the k point index to a string
-    !
-    open(72, file=trim(system%exportDir)//"/grid."//trim(ikstr))
-      !! * Open the `grid.ki` file from [[pw_export_for_tme(program)]]
-    !
-    !> * Ignore the first two lines as they are comments
-    read(72, * )
-    read(72, * )
-    !
-    allocate ( pwGind(system%npws(ik)) )
-      !! * Allocate space for `pwGind`
-    !
-    do ig = 1, system%npws(ik)
-      !! * For each plane wave for a given k point, 
-      !!   read in the indices for the plane waves that 
-      !!   are held in `wfc.ki`
-      !
-      read(72, '(4i10)') pwGind(ig), iDumV(1:3)
-      !
-    enddo
-    !
-    close(72)
-      !! * Close the `grid.ki` file
-    !
-    open(72, file=trim(system%exportDir)//"/wfc."//trim(ikstr))
-      !! * Open the `wfc.ki` file from [[pw_export_for_tme(program)]]
-    !
-    !> Ignore the first two lines because they are comments
-    read(72, * )
-    read(72, * )
-    !
-    do ib = 1, system%iBandL - 1
-      do ig = 1, system%npws(ik)
-        !! * For each band before `iBandL`, ignore all of the
-        !!   plane waves for the given k point
-        read(72, *)
-        !
-      enddo
-    enddo
-    !
-    system%wfc(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-      !! * Initialize the wavefunction to complex double zero
-    !
-    do ib = system%iBandL, system%iBandH
-      do ig = 1, system%npws(ik)
-        !! * For bands between `iBandL` and `iBandH`,
-        !!   read in all of the plane waves for the given k point
-        !!   and store them in the proper index of the system's `wfc`
-        !
-        read(72, '(2ES24.15E3)') wfc
-        system%wfc(pwGind(ig), ib) = wfc
-        !
-      enddo
-    enddo
-    !
-    close(72)
-      !! * Close the `wfc.ki` file
-    !
-    deallocate ( pwGind )
-      !! * Deallocate space for `pwGind`
-    !
-    return
-    !
-  end subroutine readWfc
-  !
-  !
-  subroutine readProjections(ik, system)
-    !! Read in the projection \(\langle\beta|\Psi\rangle\) for each band
-    !!
-    !! <H2>Walkthrough</h2>
-    !!
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-      !! K point index
     integer :: i, j
-      !! Loop index
     !
-    character(len = 300) :: ikstr
-      !! String version of k point index
-    TYPE(crystal), intent(inout) :: system
-      !! Holds the structure for the system you are working on
-      !! (either `perfectCrystal` or `solidDefect`)
+    character(len = 300) :: iks
     !
-    call int2str(ik, ikstr)
-      !! * Convert the k point index to a string
+    call int2str(ik, iks)
     !
-    system%cProj(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
-      !! * Initialize `cProj` to all complex double zero
+    cProjPC(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
     !
-    open(72, file=trim(system%exportDir)//"/projections."//trim(ikstr))
-      !! * Open the `projections.ik` file from [[pw_export_for_tme(program)]]
+    ! Reading projections
+    !
+    open(72, file=trim(exportDirPC)//"/projections."//trim(iks))
     !
     read(72, *)
-      !! * Ignore the first line as it is a comment
     !
-    !write(6,'("Solid defect nBands: ", i3)') solidDefect%nBands
-    !write(6,'("Solid defect nSpins: ", i3)') solidDefect%nSpins
-    !write(6,'("Perfect crystal nBands: ", i3)') perfectCrystal%nBands
-    !write(6,'("Perfect crystal nSpins: ", i3)') perfectCrystal%nSpins
-    !! @todo Get actual perfect crystal and solid defect output to test @endtodo
-    !! @todo Figure out if loop should be over `solidDefect` or `perfectCrystal` @endtodo
-    !! @todo Look into `nSpins` to figure out if it is needed @endtodo
-    do j = 1, solidDefect%nBands  ! number of bands 
-      do i = 1, system%nProjs ! number of projections
-        !! * For each band, read in the projections \(\langle\beta|\Psi\rangle\)
-        !
-        read(72,'(2ES24.15E3)') system%cProj(i,j,1)
-        !
+    do j = 1, nBands  ! number of bands 
+      do i = 1, nProjsPC ! number of projections
+        read(72,'(2ES24.15E3)') cProjPC(i,j,1)
       enddo
     enddo
     !
@@ -1233,448 +1013,175 @@ contains
     !
     return
     !
-  end subroutine readProjections
+  end subroutine readProjectionsPC
   !
   !
-  subroutine projectBeta(ik, betaSystem, projectedSystem)
-    !! @todo Figure out what this subroutine really does
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
+  subroutine readProjectionsSD(ik)
     !
     implicit none
     !
     integer, intent(in) :: ik
-      !! K point index
-    integer :: ig, i, j
-      !! Loop index
-    integer :: iDumV(3)
-      !! Dummy variable to ignore input from file
-    integer, allocatable :: pwGind(:)
-      !! Indices for the wavefunction of a given k point
+    integer :: i, j
     !
-    character(len = 300) :: ikstr
-      !! String version of the k point index
+    character(len = 300) :: iks
     !
-    TYPE(crystal), intent(inout) :: betaSystem
-      !! Holds the structure for the system you are getting \(\beta\) from
-      !! (either `perfectCrystal` or `solidDefect`)
-    TYPE(crystal), intent(inout) :: projectedSystem
-      !! Holds the structure for the system you are projecting
-      !! (either `perfectCrystal` or `solidDefect`)
+    call int2str(ik, iks)
     !
-    call int2str(ik, ikstr)
-      !! * Convert the k point index to a string
+    cProjSD(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
     !
-    ! Reading PC projectors
+    ! Reading projections
     !
-    open(72, file=trim(betaSystem%exportDir)//"/grid."//trim(ikstr))
-      !! * Open the `grid.ki` file from [[pw_export_for_tme(program)]]
+    open(72, file=trim(exportDirSD)//"/projections."//trim(iks))
     !
-    !> * Ignore the next two lines as they are comments
-    read(72, * )
-    read(72, * )
+    read(72, *)
     !
-    allocate ( pwGind(betaSystem%npws(ik)) )
-      !! * Allocate space for `pwGind`
-    !
-    do ig = 1, betaSystem%npws(ik)
-      !! * Read in the index for each plane wave
-      !
-      read(72, '(4i10)') pwGind(ig), iDumV(1:3)
-      !
+    do j = 1, nBands  ! number of bands 
+      do i = 1, nProjsSD ! number of projections
+        read(72,'(2ES24.15E3)') cProjSD(i,j,1)
+      enddo
     enddo
     !
     close(72)
-      !! * Close the `grid.ki` file
     !
+    return
     !
-    allocate ( betaSystem%beta(numOfPWs, betaSystem%nProjs) )
-      !! * Allocate space for \(|\beta\rangle\)
+  end subroutine readProjectionsSD
+  !
+  !
+  subroutine projectBetaSDwfcPC(ik)
     !
-    betaSystem%beta(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-      !! * Initialize all values of \(|\beta\rangle\) to complex double zero
+    implicit none
     !
-    open(73, file=trim(betaSystem%exportDir)//"/projectors."//trim(ikstr))
-      !! * Open the `projectors.ki` file from [[pw_export_for_tme(program)]]
+    integer, intent(in) :: ik
+    integer :: ig, iDumV(3)
     !
-    read(73, *) 
-      !! * Ignore the first line because it is a comment
-    read(73, *) 
-      !! * Ignore the second line because it is the number of projectors that
-      !!   was already calculated in [[TMEModule(module):readQEExport(subroutine)]]
-      !!   and the number of plane waves for a given k point that was read in in the
-      !!   same subroutine
+    character(len = 300) :: iks
     !
-    do j = 1, betaSystem%nProjs
-      do i = 1, betaSystem%npws(ik)
-        !! * Read in each \(|\beta\rangle\) and store in the proper index of `beta`
-        !!   for the system
-        !
-        read(73,'(2ES24.15E3)') betaSystem%beta(pwGind(i),j)
-        !
+    call int2str(ik, iks)
+    !
+    ! Reading SD projectors
+    !
+    open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    allocate ( pwGindSD(npwsSD(ik)) )
+    !
+    do ig = 1, npwsSD(ik)
+      read(72, '(4i10)') pwGindSD(ig), iDumV(1:3)
+    enddo
+    !
+    close(72)
+    !
+    allocate ( betaSD(numOfPWs, nProjsSD) )
+    !
+    betaSD(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    !
+    open(73, file=trim(exportDirSD)//"/projectors."//trim(iks))
+    !
+    read(73, '(a)') textDum
+    read(73, '(2i10)') nProjsSD, npw
+    !
+    do j = 1, nProjsSD 
+      do i = 1, npw
+        read(73,'(2ES24.15E3)') betaSD(pwGindSD(i),j)
       enddo
     enddo
     !
     close(73)
     !
-    deallocate ( pwGind )
-      !! * Deallocate space for `pwGind`
+    deallocate ( pwGindSD )
     !
-    do j = projectedSystem%iBandL, projectedSystem%iBandH
-      do i = 1, betaSystem%nProjs
-        !! * Calculate \(\langle\beta|\Phi\rangle\) between 
-        !!   `iBandL` and `iBandH`
-        !
-        betaSystem%cCrossProj(i,j,1) = sum(conjg(betaSystem%beta(:,i))*projectedSystem%wfc(:,j))
-        !
+    do j = iBandIinit, iBandIfinal
+      do i = 1, nProjsSD
+        cProjBetaSDPhiPC(i,j,1) = sum(conjg(betaSD(:,i))*wfcPC(:,j))
       enddo
     enddo
     !
-    deallocate ( betaSystem%beta )
-      !! * Deallocate space for \(|\beta\rangle\)
+    deallocate ( betaSD )
     !
     return
     !
-  end subroutine projectBeta
+  end subroutine projectBetaSDwfcPC
   !
   !
-  subroutine pawCorrectionWfc(system)
-    !! Calculates the augmentation part of the transition matrix element
-    !! @todo Figure out what this subroutine really does @endtodo
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    implicit none
-    integer :: iIon
-      !! Loop index over atoms
-    integer :: iProj, jProj
-      !! Loop index of projectors
-    integer :: ibi, ibf
-      !! Loop index over bands
-    integer :: m, mPrime
-      !! Loop index for magnetic quantum number for a given projector
-    integer :: ispin 
-    integer :: LMBASE
-    integer :: LM, LMP
-      !! Index for cProj
-    integer :: l, lPrime
-      !! Angular momentum quantum number for a given projector
-    integer :: iAtomType
-      !! Atom type index for a given ion in the system
-    !
-    real(kind = dp) :: atomicOverlap
-    !
-    complex(kind = dp) :: cProjIe, cProjFe
-    !
-    TYPE(crystal), intent(inout) :: system
-      !! Holds the structure for the system you are working on
-      !! (either `perfectCrystal` or `solidDefect`)
-    !
-    ispin = 1
-      !! * Set the value of `ispin` to 1
-      !! @note
-      !! `ispin` never has a value other than one, so I'm not sure
-      !!  what its purpose is
-      !! @endnote
-    !
-    system%paw_Wfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-      !! * Initialize all values in `paw_Wfc` to complex double zero
-    !
-    LMBASE = 0
-      !! * Initialize the base offset for `cProj`'s first index to zero
-    !
-    do iIon = 1, system%nIons 
-      !! * For each atom in the system
-      !!    * Get the index for the atom type
-      !!    * Loop over the projectors twice, each time finding the
-      !!      angular momentum quantum number (\(l\) and \(l^{\prime}\))
-      !!      and magnetic quantum number (\(m\) and \(m^{\prime}\))
-      !!    * If \(l = l^{\prime}\) and \(m = m^{\prime}\), loop over the bands to
-      !!      calculate `paw_Wfc`
-      !!
-      !! @todo Figure out the significance of \(l = l^{\prime}\) and \(m = m^{\prime}\) @endtodo
-      !
-      iAtomType = system%atomTypeIndex(iIon)
-      !
-      LM = 0
-      !
-      do iProj = 1, system%atoms(iAtomType)%numProjs
-        !
-        l = system%atoms(iAtomType)%projAngMom(iProj)
-        !
-        do m = -l, l
-          !
-          LM = LM + 1 !1st index for CPROJ
-          !
-          LMP = 0
-          !
-          do jProj = 1, system%atoms(iAtomType)%numProjs
-            !
-            lPrime = system%atoms(iAtomType)%projAngMom(jProj)
-            !
-            do mPrime = -lPrime, lPrime
-              !
-              LMP = LMP + 1 ! 2nd index for CPROJ
-              !
-              atomicOverlap = 0.0_dp
-              !
-              if ( (l == lPrime).and.(m == mPrime) ) then 
-                !
-                atomicOverlap = sum(system%atoms(iAtomType)%F1(:,iProj, jProj))
-                !
-                do ibi = perfectCrystal%iBandL, perfectCrystal%iBandH
-                  !
-                  !> @todo Figure out why the difference between SD and PC @endtodo
-                  if ( system%crystalType == 'PC' ) then
-                    !
-                    cProjIe = system%cProj(LMP + LMBASE, ibi, ISPIN)
-                    !
-                  else if ( system%crystalType == 'SD' ) then
-                    !
-                    cProjIe = system%cCrossProj(LMP + LMBASE, ibi, ISPIN)
-                    !
-                  endif
-                  !
-                  do ibf = solidDefect%iBandL, solidDefect%iBandH
-                    !
-                    !> @todo Figure out why the difference between SD and PC @endtodo
-                    if ( system%crystalType == 'PC' ) then
-                      !
-                      cProjFe = conjg(system%cCrossProj(LM + LMBASE, ibf, ISPIN))
-                      !
-                    else if ( system%crystalType == 'SD' ) then
-                      !
-                      cProjFe = conjg(system%cProj(LM + LMBASE, ibf, ISPIN))
-                      !
-                    endif
-                    !
-                    system%paw_Wfc(ibf, ibi) = system%paw_Wfc(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
-                    !
-                  enddo
-                  !
-                enddo
-                !
-              endif
-              !
-            enddo
-            !
-          enddo
-          !
-        enddo
-        !
-      enddo
-      !
-      LMBASE = LMBASE + system%atoms(iAtomType)%lmMax
-      !
-    enddo
-    !
-    return
-    !
-  end subroutine pawCorrectionWfc
-  !
-  !
-  subroutine pawCorrectionK(system)
-    !! @todo Figure out what this subroutine really does @endtodo
-    !!
-    !! <h2>Walkthrough</h2>
+  subroutine pawCorrectionKPC()
     !
     implicit none
     !
-    !integer, intent(in) :: ik
+    integer :: ibi, ibf, ispin, ig
+    integer :: LL, I, NI, LMBASE, LM
+    integer :: L, M, ind, iT
+    real(kind = dp) :: q, qDotR, FI, t1, t2
     !
-    integer :: ibi, ibf
-      !! Loop index over bands
-    integer :: iPW
-      !! Loop index over plane waves for a given process
-    integer :: iProj
-      !! Loop index over projectors
-    integer :: iR
-      !! Loop index over radial mesh (up to augmentation sphere)
-    integer :: iAtomType
-      !! Loop index over atom types
-    integer :: iIon
-      !! Loop index over ions in system
-    integer :: l
-      !! Angular momentum quantum number
-    integer :: m
-      !! Magnetic quantum number
-    integer :: ispin
-    integer :: LMBASE
-    integer :: LM
-    integer :: ind
-    !
-    real(kind = dp) :: qDotR
-      !! \(\mathbf{G}\cdot\mathbf{r}\)
-    real(kind = dp) :: t1
-      !! Start time
-    real(kind = dp) :: t2
-      !! End time
-    real(kind = dp) :: v_in(3)
-      !! Unit vector in the direction of \(\mathbf{G}\)
-    real(kind = dp) :: JL(0:JMAX)
-      !! Spherical bessel functions for a point up to `JMAX`
-    real(kind = dp) :: q 
-    real(kind = dp) :: FI 
-    !
+    real(kind = dp) :: JL(0:JMAX), v_in(3)
     complex(kind = dp) :: Y( (JMAX+1)**2 )
-      !! All spherical harmonics up to some max momentum
-    complex(kind = dp) :: ATOMIC_CENTER
-      !! \(e^{-i\mathbf{G}\cdot\mathbf{r}}\)
-    complex(kind = dp) :: VifQ_aug
-    !
-    TYPE(crystal), intent(inout) :: system
-      !! Holds the structure for the system you are working on
-      !! (either `perfectCrystal` or `solidDefect`)
+    complex(kind = dp) :: VifQ_aug, ATOMIC_CENTER
     !
     ispin = 1
-      !! * Set the value of `ispin` to 1
-      !! @note
-      !! `ispin` never has a value other than one, so I'm not sure
-      !!  what its purpose is
-      !! @endnote
     !
     call cpu_time(t1)
-      !! * Start a timer
     !
-    system%pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-      !! * Initialize all values in `pawK` to complex double zero
+    pawKPC(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !
-    do iPW = nPWsI(myid), nPWsF(myid) 
-      !! * Loop through the plane waves for a given process
+    do ig = nPWsI(myid), nPWsF(myid)
       !
       if ( myid == root ) then 
-        if ( (iPW == nPWsI(myid) + 1000) .or. (mod(iPW, 25000) == 0) .or. (iPW == nPWsF(myid)) ) then
-          !! * If this is the root process, output a status update every 1000 plane waves
-          !!   and every multiple of 25000, giving an estimate of the time remaining at each step
-          !!   @todo Figure out if this output slows things down significantly @endtodo
-          !!   @todo Figure out if formula gives accurate representation of time left @endtodo
-          !
+        if ( (ig == nPWsI(myid) + 1000) .or. (mod(ig, 25000) == 0) .or. (ig == nPWsF(myid)) ) then
           call cpu_time(t2)
-          !
           write(iostd, '("        Done ", i10, " of", i10, " k-vecs. ETR : ", f10.2, " secs.")') &
-                iPW, nPWsF(myid) - nPWsI(myid) + 1, (t2-t1)*(nPWsF(myid) - nPWsI(myid) + 1 -iPW )/iPW
-          !
+                ig, nPWsF(myid) - nPWsI(myid) + 1, (t2-t1)*(nPWsF(myid) - nPWsI(myid) + 1 -ig )/ig
           flush(iostd)
-          !
-          !call cpu_time(t1)
-          !
         endif
       endif
       !
-      q = sqrt(sum(gvecs(:,iPW)*gvecs(:,iPW)))
-        !! * Calculate `q` as \(\sqrt{\mathbf{G}\cdot\mathbf{G}}\)
-        !!   to get length of \(\mathbf{G}\)
+      q = sqrt(sum(gvecs(:,ig)*gvecs(:,ig)))
       !
-      !> * Define a unit vector in the direction of \(\mathbf{G}\), 
-      !>   but only divide by the length if it is bigger than 
-      !>   \(1\times10^{-6}\) to avoid dividing by very small numbers
-      v_in(:) = gvecs(:,iPW)
-      if ( abs(q) > 1.0e-6_dp ) v_in = v_in/q 
-      !
+      v_in(:) = gvecs(:,ig)
+      if ( abs(q) > 1.0e-6_dp ) v_in = v_in/q ! i have to determine v_in = q
       Y = cmplx(0.0_dp, 0.0_dp, kind = dp)
-        !! * Initialize the spherical harmonics to complex double zero
-      call ylm(v_in, JMAX, Y) 
-        !! * Calculate spherical harmonics with argument `v_in` up to 
-        !!   \(Y_{J_{\text{max}}}^{\pm J_{\text{max}}}\)
+      CALL ylm(v_in, JMAX, Y) ! calculates all the needed spherical harmonics once
       !
       LMBASE = 0
-        !! * Initialize the base offset for `cProj`'s first index to zero
       !
-      do iAtomType = 1, system%numOfTypes
+      do iT = 1, numOfTypesPC
         !
-        do iR = 1, system%atoms(iAtomType)%iRAugMax 
-          !! * For each atom type, loop through the r points
-          !!   in the augmentation sphere and calculate the 
-          !!   spherical Bessel functions from 0 to `JMAX`
-          !!   at each point
+        DO I = 1, atomsPC(iT)%iRc
           !
           JL = 0.0_dp
+          CALL bessel_j(q*atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
+          atomsPC(iT)%bes_J_qr(:,I) = JL(:)
           !
-          call bessel_j(q*solidDefect%atoms(iAtomType)%r(iR), JMAX, JL) ! returns the spherical bessel at qr point
-            !! @todo Figure out if this should be `system` @endtodo
-            !! @todo Figure out significance of "qr" point @endtodo
-          !
-          system%atoms(iAtomType)%bes_J_qr(:,iR) = JL(:)
-            !! @todo Test if can just directly store in each atom type's `bes_J_qr` @endtodo
-          !
-        enddo
+        ENDDO
         !
       enddo
       !
-      do iIon = 1, system%nIons 
-        !! * For each atom in the system
-        !!    * Calculate \(\mathbf{G}\cdot\mathbf{r}\)
-        !!    * Calculate \(e^{-i\mathbf{G}\cdot\mathbf{r}}\)
-        !!    * Get the index for the atom type
-        !!    * Loop over the projectors, finding \(l, m\) for each
-        !!    * For each possible m
-        !!       * Calculate \(\text{FI} = j_l\cdot F\) where \(j_l\) is
-        !!         the Bessel function and \(F\) is for a given projector
-        !!       * Calculate \(\text{VifQ_aug} = e^{-i\mathbf{G}\cdot\mathbf{r}}
-        !!         Y_l^m(\mathbf{G}/|\mathbf{G}|)(-i)^l\text{FI}\)
-        !!       * Loop over the bands, summing `VifQ_aug*cProj` to get `pawK`
+      do ni = 1, nIonsPC ! LOOP OVER THE IONS
         !
-        qDotR = sum(gvecs(:,iPW)*system%posIon(:,iIon))
-          !! @todo Figure out if this should be `gDotR` @endtodo
+        qDotR = sum(gvecs(:,ig)*posIonPC(:,ni))
         !
-        !> @todo Figure out why this is called `ATOMIC_CENTER` @endtodo
-        !> @todo Figure out why the difference between SD and PC @endtodo
-        if ( system%crystalType == 'PC' ) then
-          !
-          ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
-          !
-        else if ( system%crystalType == 'SD' ) then
-          !
-          ATOMIC_CENTER = exp( ii*cmplx(qDotR, 0.0_dp, kind = dp) )
-          !
-        endif
+        ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
         !
-        iAtomType = system%atomTypeIndex(iIon)
-        !
+        iT = TYPNIPC(ni)
         LM = 0
-        !
-        do iProj = 1, system%atoms(iAtomType)%numProjs
-          !
-          l = system%atoms(iAtomType)%projAngMom(iProj)
-          !
-          do m = -l, l
-            !
+        DO LL = 1, atomsPC(iT)%lMax
+          L = atomsPC(iT)%LPS(LL)
+          DO M = -L, L
             LM = LM + 1 !1st index for CPROJ
             !
             FI = 0.0_dp
             !
-            FI = sum(system%atoms(iAtomType)%bes_J_qr(l,:)*system%atoms(iAtomType)%F(:,iProj)) ! radial part integration F contains rab
+            FI = sum(atomsPC(iT)%bes_J_qr(L,:)*atomsPC(iT)%F(:,LL)) ! radial part integration F contains rab
             !
-            ind = l*(l + 1) + m + 1 ! index for spherical harmonics
+            ind = L*(L + 1) + M + 1 ! index for spherical harmonics
+            VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**L*FI
             !
-            !> @todo Figure out why the difference between SD and PC @endtodo
-            if ( system%crystalType == 'PC' ) then
+            do ibi = iBandIinit, iBandIfinal
               !
-              VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**l*FI
-              !
-            else if ( system%crystalType == 'SD' ) then
-              !
-              VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**l*FI
-              !
-            endif
-            !
-            do ibi = perfectCrystal%iBandL, perfectCrystal%iBandH
-              !
-              do ibf = solidDefect%iBandL, solidDefect%iBandH
+              do ibf = iBandFinit, iBandFfinal
                 !
-                !> @todo Figure out why the difference between SD and PC @endtodo
-                if ( system%crystalType == 'PC' ) then
-                  !
-                  system%pawK(ibf, ibi, iPW) = system%pawK(ibf, ibi, iPW) + &
-                                                     VifQ_aug*system%cProj(LM + LMBASE, ibi, ISPIN)
-                  !
-                else if ( system%crystalType == 'SD' ) then
-                  !
-                  system%pawK(ibf, ibi, iPW) = system%pawK(ibf, ibi, iPW) + &
-                                                     VifQ_aug*conjg(system%cProj(LM + LMBASE, ibi, ISPIN))
-                  !
-                endif
+                pawKPC(ibf, ibi, ig) = pawKPC(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi, ISPIN)
                 !
               enddo
               !
@@ -1682,120 +1189,774 @@ contains
             !
           ENDDO
         ENDDO
-        LMBASE = LMBASE + system%atoms(iAtomType)%lmMax
+        LMBASE = LMBASE + atomsPC(iT)%lmMax
       ENDDO
       !
     enddo
     !
-    !system%pawK(:,:,:) = system%pawK(:,:,:)*4.0_dp*pi/sqrt(solidDefect%omega)
+    return
+    !
+  end subroutine pawCorrectionKPC
+  !
+  !
+  subroutine pawCorrectionSDK()
+    !
+    implicit none
+    !
+    integer :: ibi, ibf, ispin, ig
+    integer :: LL, I, NI, LMBASE, LM
+    integer :: L, M, ind, iT
+    real(kind = dp) :: q, qDotR, FI, t1, t2
+    !
+    real(kind = dp) :: JL(0:JMAX), v_in(3)
+    complex(kind = dp) :: Y( (JMAX+1)**2 )
+    complex(kind = dp) :: VifQ_aug, ATOMIC_CENTER
+    !
+    ispin = 1
+    !
+    call cpu_time(t1)
+    !
+    pawSDK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    !
+    do ig = nPWsI(myid), nPWsF(myid)
+      !
+      if ( myid == root ) then
+        if ( (ig == nPWsI(myid) + 1000) .or. (mod(ig, 25000) == 0) .or. (ig == nPWsF(myid)) ) then
+          call cpu_time(t2)
+          write(iostd, '("        Done ", i10, " of", i10, " k-vecs. ETR : ", f10.2, " secs.")') &
+                ig, nPWsF(myid) - nPWsI(myid) + 1, (t2-t1)*(nPWsF(myid) - nPWsI(myid) + 1 -ig )/ig
+          flush(iostd)
+          call cpu_time(t1)
+        endif
+      endif
+      q = sqrt(sum(gvecs(:,ig)*gvecs(:,ig)))
+      !
+      v_in(:) = gvecs(:,ig)
+      if ( abs(q) > 1.0e-6_dp ) v_in = v_in/q ! i have to determine v_in = q
+      Y = cmplx(0.0_dp, 0.0_dp, kind = dp)
+      CALL ylm(v_in, JMAX, Y) ! calculates all the needed spherical harmonics once
+      !
+      LMBASE = 0
+      !
+      do iT = 1, numOfTypes
+        !
+        DO I = 1, atoms(iT)%iRc
+          !
+          JL = 0.0_dp
+          CALL bessel_j(q*atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
+          atoms(iT)%bes_J_qr(:,I) = JL(:)
+          !
+        ENDDO
+      enddo
+      !
+      do ni = 1, nIonsSD ! LOOP OVER THE IONS
+        !
+        qDotR = sum(gvecs(:,ig)*posIonSD(:,ni))
+        !
+        ATOMIC_CENTER = exp( ii*cmplx(qDotR, 0.0_dp, kind = dp) )
+        !
+        iT = TYPNISD(ni)
+        LM = 0
+        DO LL = 1, atoms(iT)%lMax
+          L = atoms(iT)%LPS(LL)
+          DO M = -L, L
+            LM = LM + 1 !1st index for CPROJ
+            !
+            FI = 0.0_dp
+            !
+            FI = sum(atoms(iT)%bes_J_qr(L,:)*atoms(iT)%F(:,LL)) ! radial part integration F contains rab
+            !
+            ind = L*(L + 1) + M + 1 ! index for spherical harmonics
+            VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**L*FI
+            !
+            do ibi = iBandIinit, iBandIfinal
+              !
+              do ibf = iBandFinit, iBandFfinal
+                !
+                pawSDK(ibf, ibi, ig) = pawSDK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf, ISPIN))
+                !
+              enddo
+              !
+            enddo
+            !
+          ENDDO
+        ENDDO
+        LMBASE = LMBASE + atoms(iT)%lmMax
+      ENDDO
+      !
+    enddo
     !
     return
     !
-  end subroutine pawCorrectionK
+  end subroutine pawCorrectionSDK
+  !
+  !
+  subroutine pawCorrectionPsiPC()
+    !
+    ! calculates the augmentation part of the transition matrix element
+    !
+    implicit none
+    integer :: ibi, ibf, niPC, ispin 
+    integer :: LL, LLP, LMBASE, LM, LMP
+    integer :: L, M, LP, MP, iT
+    real(kind = dp) :: atomicOverlap
+    !
+    complex(kind = dp) :: cProjIe, cProjFe
+    !
+    ispin = 1
+    !
+    paw_PsiPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    !
+    LMBASE = 0
+    !
+    do niPC = 1, nIonsPC ! LOOP OVER THE IONS
+      !
+      iT = TYPNIPC(niPC)
+      LM = 0
+      DO LL = 1, atomsPC(iT)%lMax
+        L = atomsPC(iT)%LPS(LL)
+        DO M = -L, L
+          LM = LM + 1 !1st index for CPROJ
+          !
+          LMP = 0
+          DO LLP = 1, atomsPC(iT)%lMax
+            LP = atomsPC(iT)%LPS(LLP)
+            DO MP = -LP, LP
+              LMP = LMP + 1 ! 2nd index for CPROJ
+              !
+              atomicOverlap = 0.0_dp
+              if ( (L == LP).and.(M == MP) ) then 
+                atomicOverlap = sum(atomsPC(iT)%F1(:,LL, LLP))
+                !
+                do ibi = iBandIinit, iBandIfinal
+                  cProjIe = cProjPC(LMP + LMBASE, ibi, ISPIN)
+                  !
+                  do ibf = iBandFinit, iBandFfinal
+                    cProjFe = conjg(cProjBetaPCPsiSD(LM + LMBASE, ibf, ISPIN))
+                    !
+                    paw_PsiPC(ibf, ibi) = paw_PsiPC(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
+                    flush(iostd)
+                    !
+                  enddo
+                  !
+                enddo
+                !
+              endif
+              !
+            ENDDO
+          ENDDO
+        ENDDO
+      ENDDO
+      LMBASE = LMBASE + atomsPC(iT)%lmMax
+    ENDDO
+    !
+    return
+    !
+  end subroutine pawCorrectionPsiPC
+  !
+  !
+  subroutine pawCorrectionSDPhi()
+    !
+    ! calculates the augmentation part of the transition matrix element
+    !
+    implicit none
+    integer :: ibi, ibf, ni, ispin 
+    integer :: LL, LLP, LMBASE, LM, LMP
+    integer :: L, M, LP, MP, iT
+    real(kind = dp) :: atomicOverlap
+    !
+    complex(kind = dp) :: cProjIe, cProjFe
+    !
+    ispin = 1
+    !
+    paw_SDPhi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    !
+    LMBASE = 0
+    !
+    do ni = 1, nIonsSD ! LOOP OVER THE IONS
+      !
+      iT = TYPNISD(ni)
+      LM = 0
+      DO LL = 1, atoms(iT)%lMax
+        L = atoms(iT)%LPS(LL)
+        DO M = -L, L
+          LM = LM + 1 !1st index for CPROJ
+          !
+          LMP = 0
+          DO LLP = 1, atoms(iT)%lMax
+            LP = atoms(iT)%LPS(LLP)
+            DO MP = -LP, LP
+              LMP = LMP + 1 ! 2nd index for CPROJ
+              !
+              atomicOverlap = 0.0_dp
+              if ( (L == LP).and.(M == MP) ) then
+                atomicOverlap = sum(atoms(iT)%F1(:,LL,LLP))
+                !
+                do ibi = iBandIinit, iBandIfinal
+                  cProjIe = cProjBetaSDPhiPC(LMP + LMBASE, ibi, ISPIN)
+                  !
+                  do ibf = iBandFinit, iBandFfinal
+                    cProjFe = conjg(cProjSD(LM + LMBASE, ibf, ISPIN))
+                    !
+                    paw_SDPhi(ibf, ibi) = paw_SDPhi(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
+                    !
+                  enddo
+                  !
+                enddo
+                !
+              endif
+              !
+            ENDDO
+          ENDDO
+        ENDDO
+      ENDDO
+      LMBASE = LMBASE + atoms(iT)%lmMax
+    ENDDO
+    !
+    return
+    !
+  end subroutine pawCorrectionSDPhi
+  !
+  !
+  subroutine pawCorrection()
+    !
+    ! calculates the augmentation part of the transition matrix element
+    !
+    implicit none
+    integer :: ibi, ibf, niPC, ispin 
+    integer :: LL, LLP, LMBASE, LM, LMP
+    integer :: L, M, LP, MP, iT
+    real(kind = dp) :: atomicOverlap
+    !
+    complex(kind = dp) :: cProjIe, cProjFe
+    !
+    ispin = 1
+    !
+    paw_fi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    !
+    LMBASE = 0
+    !
+    do niPC = 1, nIonsPC ! LOOP OVER THE IONS
+      !
+      iT = TYPNIPC(niPC)
+      LM = 0
+      DO LL = 1, atomsPC(iT)%lMax
+        L = atomsPC(iT)%LPS(LL)
+        DO M = -L, L
+          LM = LM + 1 !1st index for CPROJ
+          !
+          LMP = 0
+          DO LLP = 1, atomsPC(iT)%lMax
+            LP = atomsPC(iT)%LPS(LLP)
+            DO MP = -LP, LP
+              LMP = LMP + 1 ! 2nd index for CPROJ
+              !
+              atomicOverlap = 0.0_dp
+              if ( (L == LP).and.(M == MP) ) atomicOverlap = sum(atomsPC(iT)%F2(:,LL,LLP))
+              !
+              do ibi = iBandIinit, iBandIfinal
+                cProjIe = cProjPC(LMP + LMBASE, ibi, ISPIN)
+                !
+                do ibf = iBandFinit, iBandFfinal
+                  cProjFe = conjg(cProjPC(LM + LMBASE, ibf, ISPIN))
+                  !
+                  paw_fi(ibf, ibi) = paw_fi(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
+                  !
+                enddo
+                !
+              enddo
+              !
+            ENDDO
+          ENDDO
+        ENDDO
+      ENDDO
+      LMBASE = LMBASE + atomsPC(iT)%lmMax
+    ENDDO
+    !
+    return
+    !
+  end subroutine pawCorrection
+  !
+  !
+  subroutine readEigenvalues(ik)
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
+    integer :: ib
+    !
+    character(len = 300) :: iks
+    !
+    call int2str(ik, iks)
+    !
+    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    do ib = 1, iBandIinit - 1
+      read(72, *)
+    enddo
+    !
+    do ib = iBandIinit, iBandIfinal
+      read(72, '(ES24.15E3)') eigvI(ib)
+    enddo
+    !
+    close(72)
+    !
+    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(iks))
+    !
+    read(72, * )
+    read(72, * ) 
+    !
+    do ib = 1, iBandFinit - 1
+      read(72, *)
+    enddo
+    !
+    do ib = iBandFinit, iBandFfinal
+      read(72, '(ES24.15E3)') eigvF(ib)
+    enddo
+    !
+    close(72)
+    !
+    return
+    !
+  end subroutine readEigenvalues
+  !
+  !
+  subroutine calculateVfiElements()
+    !
+    implicit none
+    !
+    integer :: ik, ib, nOfEnergies, iE
+    !
+    real(kind = dp) :: eMin, eMax, E, av, sd, x, EiMinusEf, A, DHifMin
+    !
+    real(kind = dp), allocatable :: sumWk(:), sAbsVfiOfE2(:), absVfiOfE2(:)
+    integer, allocatable :: nKsInEbin(:)
+    !
+    character (len = 300) :: text
+    !
+    allocate( DE(iBandIinit:iBandIfinal, nKptsPC), absVfi2(iBandIinit:iBandIfinal, nKptsPC) )
+    ! 
+    DE(:,:) = 0.0_dp
+    absVfi2(:,:) = 0.0_dp 
+    !
+    do ik = 1, nKptsPC
+      !
+      eigvI(:) = 0.0_dp
+      eigvF(:) = 0.0_dp
+      !
+      call readEigenvalues(ik)
+      !
+      do ib = iBandIinit, iBandIfinal
+        !
+        EiMinusEf = eigvI(ib) - eigvF(iBandFinit)
+        absVfi2(ib,ik) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ik))**2 - abs(Ufi(iBandFinit,ib,ik))**4 )
+        !
+        DE(ib, ik) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ik))
+        !
+      enddo
+      !
+    enddo
+    !
+    eMin = minval( DE(:,:) )
+    eMax = maxval( DE(:,:) )
+    !
+    nOfEnergies = int((eMax-eMin)/eBin) + 1
+    !
+    allocate ( absVfiOfE2(0:nOfEnergies), nKsInEbin(0:nOfEnergies), sumWk(0:nOfEnergies) )
+    !
+    absVfiOfE2(:) = 0.0_dp
+    nKsInEbin(:) = 0
+    sumWk(:) = 0.0_dp
+    !
+    do ik = 1, nKptsPC
+      !
+      do ib = iBandIinit, iBandIfinal
+        !
+        if ( abs( eMin - DE(ib,ik)) < 1.0e-3_dp ) DHifMin = absVfi2(ib, ik)
+        iE = int((DE(ib, ik)-eMin)/eBin)
+        if ( absVfi2(ib, ik) > 0.0_dp ) then
+          absVfiOfE2(iE) = absVfiOfE2(iE) + wkPC(ik)*absVfi2(ib, ik)
+          sumWk(iE) = sumWk(iE) + wkPC(ik)
+          nKsInEbin(iE) = nKsInEbin(iE) + 1
+        else
+          write(iostd,*) 'absVfi2', absVfi2(ib, ik)
+        endif
+        !
+      enddo
+      !
+    enddo
+    !
+    allocate ( sAbsVfiOfE2(0:nOfEnergies) )
+    !
+    sAbsVfiOfE2 = 0.0_dp
+    !
+    open(11, file=trim(VfisOutput)//'ofKpt', status='unknown')
+    !
+    write(11, '("# |<f|V|i>|^2 versus energy for all the k-points.")')
+    write(text, '("# Energy (shifted by eBin/2) (Hartree), |<f|V|i>|^2 (Hartree)^2,")')
+    write(11, '(a, " k-point index. Format : ''(2ES24.15E3,i10)''")') trim(text)
+    !
+    do ik = 1, nKptsPC
+      !
+      do ib = iBandIinit, iBandIfinal
+        !
+        iE = int((DE(ib,ik)-eMin)/eBin)
+        av = absVfiOfE2(iE)/sumWk(iE)
+        x = absVfi2(ib,ik)
+        write(11, '(2ES24.15E3,i10)') (eMin + iE*eBin), x, ik
+        write(12, '(2ES24.15E3,i10)') DE(ib,ik), absVfi2(ib, ik), ik
+        sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + wkPC(ik)*(x - av)**2/sumWk(iE)
+        !
+      enddo
+      !
+    enddo
+    !
+    close(11)
+    !
+    open(63, file=trim(VfisOutput), status='unknown')
+    !
+    write(63, '("# Averaged |<f|V|i>|^2 over K-points versus energy.")')
+    write(63, '("#                 Cell volume : ", ES24.15E3, " (a.u.)^3,   Format : ''(ES24.15E3)''")') omega
+    write(63, '("#   Minimun transition energy : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eMin
+    write(63, '("# |DHif|^2 at minimum Tr. En. : ", ES24.15E3, " (Hartree^2),Format : ''(ES24.15E3)''")') DHifMin
+    write(63, '("#                  Energy bin : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eBin
+    write(text, '("# Energy (Hartree), averaged |<f|V|i>|^2 over K-points (Hartree)^2,")')
+    write(63, '(a, " standard deviation (Hartree)^2. Format : ''(3ES24.15E3)''")') trim(text)
+    !
+    do iE = 0, nOfEnergies
+      E = iE*eBin
+      av = 0.0_dp
+      sd = 0.0_dp
+      if (nKsInEbin(iE) > 0) then
+        av = absVfiOfE2(iE)/sumWk(iE)
+        sd = sqrt(sAbsVfiOfE2(iE))
+      endif
+      write(63,'(3ES24.15E3)') eMin + E, av, sd
+    enddo
+    !
+    close(63)
+    !
+    return
+    !
+  end subroutine calculateVfiElements
+  !
+  !
+  subroutine checkIfCalculated(ik, tmes_file_exists)
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
+    logical, intent(out) :: tmes_file_exists
+    !
+    character(len = 300) :: Uelements
+    !
+    if ( ik < 10 ) then
+      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
+    else if ( ik < 100 ) then
+      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
+    else if ( ik < 1000 ) then
+      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
+    endif
+    !
+    inquire(file = trim(elementsPath)//trim(Uelements), exist = tmes_file_exists)
+    !
+    return
+    !
+  end subroutine checkIfCalculated
+  !
+  !
+  subroutine readUfis(ik)
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
+    !
+    integer :: ibi, ibf, totalNumberOfElements, iDum, i
+    real(kind = dp) :: rDum, t1, t2
+    complex(kind = dp):: cUfi
+    !
+    character(len = 300) :: Uelements
+    !
+    call cpu_time(t1)
+    write(iostd, '(" Reading Ufi(:,:) of k-point: ", i4)') ik
+    !
+    if ( ik < 10 ) then
+      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
+    else if ( ik < 100 ) then
+      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
+    else if ( ik < 1000 ) then
+      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
+    endif
+    !
+    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
+    !
+    read(17, *) 
+    read(17, *) 
+    read(17,'(5i10)') totalNumberOfElements, iDum, iDum, iDum, iDum
+    read(17, *) 
+    !
+    do i = 1, totalNumberOfElements
+      !
+      read(17, 1001) ibf, ibi, rDum, cUfi, rDum
+      Ufi(ibf,ibi,ik) = cUfi
+      !    
+    enddo
+    !
+    close(17)
+    !
+    call cpu_time(t2)
+    write(iostd, '(" Reading Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
+    !
+ 1001 format(2i10,4ES24.15E3)
+    !
+    return
+    !
+  end subroutine readUfis
+  !
+  !
+  subroutine writeResults(ik)
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
+    !
+    integer :: ibi, ibf, totalNumberOfElements
+    real(kind = dp) :: t1, t2
+    !
+    character(len = 300) :: text, Uelements
+    !
+    call cpu_time(t1)
+    !
+    call readEigenvalues(ik)
+    !
+    write(iostd, '(" Writing Ufi(:,:).")')
+    !
+    if ( ik < 10 ) then
+      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
+    else if ( ik < 100 ) then
+      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
+    else if ( ik < 1000 ) then
+      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
+    endif
+    !
+    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
+    !
+    write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
+    !
+    text = "# Total number of <f|U|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
+    write(17,'(a, " Format : ''(5i10)''")') trim(text)
+    !
+    totalNumberOfElements = (iBandIfinal - iBandIinit + 1)*(iBandFfinal - iBandFinit + 1)
+    write(17,'(5i10)') totalNumberOfElements, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+    !
+    write(17, '("# Final Band, Initial Band, Delta energy, Complex <f|U|i>, |<f|U|i>|^2 Format : ''(2i10,4ES24.15E3)''")')
+    !
+    do ibf = iBandFinit, iBandFfinal
+      do ibi = iBandIinit, iBandIfinal
+        !
+        write(17, 1001) ibf, ibi, eigvI(ibi) - eigvF(ibf), Ufi(ibf,ibi,ik), abs(Ufi(ibf,ibi,ik))**2
+        !    
+      enddo
+    enddo
+    !
+    close(17)
+    !
+    call cpu_time(t2)
+    write(iostd, '(" Writing Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
+    !
+ 1001 format(2i10,4ES24.15E3)
+    !
+    return
+    !
+  end subroutine writeResults
+   !
+   !
+  subroutine bessel_j (x, lmax, jl)
+    !
+    ! x is the argument of j, jl(0:lmax) is the output values.
+    implicit none
+    integer, intent(in) :: lmax
+    real(kind = dp), intent(in) :: x
+    real(kind = dp), intent(out) :: jl(0:lmax)
+    integer :: l
+    !
+    if (x <= 0.0_dp) then
+      jl = 0.0_dp
+      jl(0) = 1.0_dp
+      return
+    end if
+    !
+    jl(0) = sin(x)/x
+    if (lmax <= 0) return
+    jl(1) = (jl(0)-cos(x))/x
+    if (lmax == 1) return
+    !
+    do l = 2, lmax
+      jl(l) = dble(2*l-1)*jl(l-1)/x - jl(l-2)
+    enddo
+    !
+    return
+    !
+  end subroutine bessel_j
+  !
   !
   !
   subroutine ylm(v_in,lmax,y)
-  !! Returns the [spherical harmonics](http://mathworld.wolfram.com/SphericalHarmonic.html) 
-  !! for a given argument vector up to the maximum value of \(l\) given
-  !!
-  !! <h2>Description</h2>
-  !!   <h3>Purpose</h3>
-  !!        The spherical harmonics (Condon and Shortley convention)
-  !!          \(Y_0^0,Y_1^{-1},Y_1^0,Y_1^1,Y_2^{-2} ... Y_{l_{\text{max}}}^{\pm l_{\text{max}}}\)
-  !!        for vector \(\mathbf{V}\) (given in Cartesian coordinates)
-  !!        are calculated. In the Condon Shortley convention the
-  !!        spherical harmonics are defined as
-  !!        \[ Y_l^m = (-1)^m \sqrt{\frac{1}{\pi}} P_l^m(\cos{\theta})
-  !!        e^{im\phi} \]
-  !!        where  \(P_l^m(\cos{\theta})\) is the normalized Associated
-  !!        Legendre function. Thus,
-  !!                     \[  Y_l^{-m} = (-1)^m (Y_l^m)^* \]
-  !!
-  !!   <h3>Usage</h3>
-  !!
-  !!
-  !!        DOUBLE PRECISION V(3), Y(5*5)
-  !!        V(1) = ...
-  !!        V(2) = ...
-  !!        V(3) = ...
-  !!        CALL YLM(V,4,Y)
-  !!
-  !!   <h3>Argument Description</h3>
-  !!     <ul>
-  !!          <li> 
-  !!                  `V`      - `DOUBLE PRECISION` vector, dimension 3        (input)<br/>
-  !!                   Must be given in Cartesian coordinates.
-  !!                   Conversion of V to polar coordinates gives the
-  !!                   angles \(\theta\) and \(\phi\) necessary for the calculation
-  !!                   of the spherical harmonics.  
-  !!          </li>
-  !!          <li>
-  !!                   `LMAX`   - `INTEGER` value                               (input)<br/>
-  !!                   upper bound of \(l\) for which spherical harmonics
-  !!                   will be calculated<br/>
-  !!                   constraint: `LMAX >= 0`  
-  !!          </li>
-  !!          <li>
-  !!                   `Y`      - `COMPLEX*16` array, dimension `(LMAX+1)**2`    (output)<br/>
-  !!                   contains the calculated spherical harmonics<br/>
-  !!                   `Y(1)` for \(l=0\) (\(m = 0\))<br/>
-  !!                   `Y(2), ..., Y(4)` for \(l = 1\) (\(m = -1, 0, 1\))<br/>
-  !!                   ...<br/>
-  !!                   `Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))` for \(l = l_{\text{max}}\) 
-  !!                            (\(m = -l,...,l\))<br/>
-  !!                   constraint: Dimension of `Y` \(\geq (l_{\text{max}} + 1)^2\) (not checked)
-  !!          </li>
-  !!        </ul>
-  !!
-  !!   <h3>Used Subroutines (Directly Called)</h3>
-  !!           none
-  !!
-  !!   <h3>Indirectly Called Subroutines</h3>
-  !!           none
-  !!
-  !!   <h3>Input/Output (Read/Write)</h3>
-  !!           none
-  !!
-  !!   <h3>Machine Dependent Program Parts</h3>
-  !!           Type `COMPLEX*16` is used which does not conform to the
-  !!           FORTRAN 77 standard.
-  !!           Also the non-standard type conversion function `DCMPLX()`
-  !!           is used which combines two double precision values into
-  !!           one double complex value.
-  !!
-  !!   <h3>Method</h3>
-  !!           The basic algorithm used to calculate the spherical
-  !!           harmonics for vector \(\mathbf{V}\) is as follows:
-  !!
-  !!
-  !!           Y(0,0)
-  !!           Y(1,0)
-  !!           Y(1,1)
-  !!           Y(1,-1) = -Y(1,1)
-  !!           DO L = 2, LMAX
-  !!              Y(L,L)   = f(Y(L-1,L-1)) ... Formula 1
-  !!              Y(L,L-1) = f(Y(L-1,L-1)) ... Formula 2
-  !!              DO M = L-2, 0, -1
-  !!                 Y(L,M) = f(Y(L-1,M),Y(L-2,M)) ... Formula 2
-  !!                 Y(L,-M)= (-1)**M*CONJG(Y(L,M))
-  !!              ENDDO
-  !!           ENDDO
-  !!
-  !!   <h3>Formulas</h3>
-  !!        Starting values:
-  !!          \[Y_0^0 = \sqrt{\dfrac{1}{4\pi}}\]
-  !!          \[Y_1^0 = \sqrt{\dfrac{3}{4\pi}}\cos\theta\]
-  !!          \[Y_1^1 = -\sqrt{\dfrac{3}{8\pi}}\sin\theta e^{i\phi}\]
-  !!        Formula 1:
-  !!          \[Y_l^l = -\sqrt{\dfrac{2l+1}{2l}}\sin\theta e^{i\phi}Y_{l-1}^{l-1}\]
-  !!        Formula 2:
-  !!          \[Y_l^m = \sqrt{\dfrac{(2l-1)(2l+1)}{(l-m)(l+m)}}\cos\theta Y_{l-1}^m - 
-  !!                    \sqrt{\dfrac{(l-1+m)(l-1-m)(2l+1)}{(2l-3)(l-m)(l+m)}} Y_{l-2}^m\]
-  !!        Formula 3: (not used in the algorithm because of the division
-  !!                    by \(\sin\theta\) which may be zero)
-  !!          \[Y_l^m = -\sqrt{\dfrac{4(m+1)(m+1)}{(l+m+1)(l-m)}}\dfrac{\cos\theta}{\sin\theta}e^{i\phi}Y_1^{m+1} -
-  !!                    \sqrt{\dfrac{(l-m-1)(l+m+2)}{(l-m)(l+m+1)}}e^{-2i\phi}Y_l^{m+2}\]
-  !!
+  !
+  ! lmax   : spherical harmonics are calculated for l = 0 to lmax
+  ! v      : vector, argument of the spherical harmonics (we calculate
+  ! Ylm(v/norm(v))
+  ! y      : array containing Ylm(v) for several l,m
+  !
+  ! !DESCRIPTION:
+  !   1.  PURPOSE
+  !        The spherical harmonics (Condon and Shortley convention)
+  !          Y(0,0),Y(1,-1),Y(1,0),Y(1,1),Y(2,-2) ... Y(LMAX,LMAX)
+  !        for vector V (given in Cartesian coordinates)
+  !        are calculated. In the Condon Shortley convention the
+  !        spherical harmonics are defined as
+  !        $$ Y(l,m) = (-1)^m \sqrt{\frac{1}{\pi}} P_{lm}(\cos{\theta})
+  !        \rm
+  !        e^{\rm i m \phi} $$
+  !                        
+  !        where  $P_{lm}(\cos{\theta})$ is the normalized Associated
+  !        Legendre
+  !                  
+  !        function. Thus,
+  !                                             
+  !                     $$  Y(l,-m) = (-1)^m Y^*(l,m) $$
+  !
+  !   2.  USAGE
+  !        DOUBLE PRECISION V(3), Y(5*5)
+  !        V(1) = ...
+  !        V(2) = ...
+  !        V(3) = ...
+  !        CALL YLM(V,4,Y)
+  !
+  !       ARGUMENT-DESCRIPTION
+  !          V      - DOUBLE PRECISION vector, dimension 3        (input)
+  !                   Must be given in Cartesian coordinates.
+  !                   Conversion of V to polar coordinates gives the
+  !                   angles Theta and Phi necessary for the calculation
+  !                   of the spherical harmonics.
+  !          LMAX   - INTEGER value                               (input)
+  !                   upper bound of L for which spherical harmonics
+  !                   will be calculated
+  !                   constraint:
+  !                      LMAX >= 0
+  !          Y      - COMPLEX*16 array, dimension (LMAX+1)**2    (output)
+  !                   contains the calculated spherical harmonics
+  !                   Y(1)                   for L .EQ. 0 (M = 0)
+  !                   Y(2), ..., Y(4)        for L .EQ. 1 (M = -1, 0, 1)
+  !                   ...
+  !                   Y(LMAX*LMAX+1), ..., Y((LMAX+1)*(LMAX+1))
+  !                                          for L .EQ. LMAX
+  !                                              (M = -L,...,L)
+  !                   constraint:
+  !                      Dimension of Y .GE. (LMAX+1)**2 (not checked)
+  !        USED SUBROUTINES (DIRECTLY CALLED)
+  !           none
+  !
+  !        INDIRECTLY CALLED SUBROUTINES
+  !           none
+  !
+  !        UTILITY-SUBROUTINES (USE BEFOREHAND OR AFTERWARDS)
+  !           none
+  !
+  !        INPUT/OUTPUT (READ/WRITE)
+  !           none
+  !
+  !        MACHINENDEPENDENT PROGRAMPARTS
+  !           Type COMPLEX*16 is used which does not conform to the
+  !           FORTRAN 77 standard.
+  !           Also the non-standard type conversion function DCMPLX()
+  !           is used which combines two double precision values into
+  !           one double complex value.
+  !
+  !   3.     METHOD
+  !           The basic algorithm used to calculate the spherical
+  !           harmonics for vector V is as follows:
+  !
+  !           Y(0,0)
+  !           Y(1,0)
+  !           Y(1,1)
+  !           Y(1,-1) = -Y(1,1)
+  !           DO L = 2, LMAX
+  !              Y(L,L)   = f(Y(L-1,L-1)) ... Formula 1
+  !              Y(L,L-1) = f(Y(L-1,L-1)) ... Formula 2
+  !              DO M = L-2, 0, -1
+  !                 Y(L,M) = f(Y(L-1,M),Y(L-2,M)) ... Formula 2
+  !                 Y(L,-M)= (-1)**M*Y(L,M)
+  !              ENDDO
+  !           ENDDO
+  !
+  !           In the following the necessary recursion formulas and
+  !           starting values are given:
+  !
+  !        Start:
+  !%                        +------+
+  !%                        |   1     
+  !%           Y(0,0) =  -+ | -----  
+  !%                       \| 4(Pi)  
+  !%
+  !%                                   +------+
+  !%                                   |   3     
+  !%           Y(1,0) =  cos(Theta) -+ | -----  
+  !%                                  \| 4(Pi)  
+  !%
+  !%                                     +------+
+  !%                                     |   3    i(Phi)
+  !%           Y(1,1) =  - sin(Theta) -+ | ----- e
+  !%                                    \| 8(Pi)  
+  !%
+  !%        Formula 1:
+  !%
+  !%           Y(l,l) =
+  !%                           +--------+
+  !%                           | (2l+1)   i(Phi)
+  !%            -sin(Theta) -+ | ------  e       Y(l-1,l-1)
+  !%                          \|   2l  
+  !%
+  !%        Formula 2:
+  !%                                  +---------------+  
+  !%                                  |  (2l-1)(2l+1)   
+  !%           Y(l,m) = cos(Theta) -+ | -------------- Y(l-1,m)  -
+  !%                                 \|   (l-m)(l+m)       
+  !%
+  !%                                    +--------------------+  
+  !%                                    |(l-1+m)(l-1-m)(2l+1)
+  !%                              -  -+ |-------------------- Y(l-2,m)
+  !%                                   \|  (2l-3)(l-m)(l+m)                 
+  !%
+  !%        Formula 3: (not used in the algorithm because of the division
+  !%                    by sin(Theta) which may be zero)
+  !%
+  !%                                    +--------------+  
+  !%                      cos(Theta)    |  4(m+1)(m+1)   -i(Phi)
+  !%           Y(l,m) = - ---------- -+ | ------------  e       Y(l,m+1) -
+  !%                      sin(Theta)   \| (l+m+1)(l-m)       
+  !%
+  !%                                    +--------------+  
+  !%                                    |(l-m-1)(l+m+2)  -2i(Phi)
+  !%                              -  -+ |-------------- e        Y(l,m+2)
+  !%                                   \| (l-m)(l+m+1)                         
+  !%                                  
+  !%
   ! !REVISION HISTORY:
   !   26. April 1994                                   Version 1.2
   !   Taken 8 1 98 from SRC_lapw2 to SRC_telnes
@@ -1807,14 +1968,8 @@ contains
   !   In/Output :
   !
       integer, intent(in) :: LMAX
-        !! Spherical harmonics are calculated for 
-        !! \(l = 0, 1, ..., l_{\text{max}}\)
       real(kind = dp), intent(in) :: V_in(3)
-        !! Vector, argument of the spherical harmonics (we calculate
-        !! \(Y_l^m(\mathbf{v}/|\mathbf{v}|)\))
       complex(kind = dp), intent(out) :: Y(*)
-        !! Array containing \(Y_l^m(\mathbf{v})\) for several \(l,m\)
-  !
   !   Local variables :
       real(kind = dp), parameter :: pi = 3.1415926535897932384626433_dp
   !
@@ -1937,621 +2092,4 @@ contains
   END subroutine ylm
   !
   !
-  subroutine bessel_j (x, lmax, jl)
-    !! Generates the 
-    !! [spherical bessel function of the first kind](http://mathworld.wolfram.com/SphericalBesselFunctionoftheFirstKind.html)
-    !! for the given argument \(x\) and all possible indices from 0 to `lmax` 
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    !
-    implicit none
-    !
-    integer, intent(in) :: lmax
-    integer :: l
-    !
-    real(kind = dp), intent(in) :: x
-    real(kind = dp), intent(out) :: jl(0:lmax)
-    !
-    if (x <= 0.0_dp) then
-      !! * If \(x\) is less than zero, return 0 for all
-      !!   indices but 0 which is 1
-      !
-      jl = 0.0_dp
-      jl(0) = 1.0_dp
-      !
-      return
-      !
-    end if
-    !
-    !> * Explicitly calculate the first 2 functions so can use 
-    !>   recursive definition for later terms
-    jl(0) = sin(x)/x
-    if (lmax <= 0) return
-    jl(1) = (jl(0)-cos(x))/x
-    if (lmax == 1) return
-    !
-    do l = 2, lmax
-      !! * Define the rest of the functions as
-      !!   \[j_l = (2l-1)j_{l-1}/x - j_{l-2}\]
-      !
-      jl(l) = dble(2*l-1)*jl(l-1)/x - jl(l-2)
-      !
-    enddo
-    !
-    return
-    !
-  end subroutine bessel_j
-  !
-  !
-  subroutine writeResults(ik)
-    !! Write out the \(\langle f|U|i\rangle\) matrix and
-    !! changes in eigenvalues for a given k point
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    implicit none
-    !
-    integer, intent(in) :: ik
-      !! K point index
-    !
-    integer :: ibi, ibf
-      !! Loop index over bands
-    integer :: totalNumberOfElements
-      !! Total number of matrix elements
-    real(kind = dp) :: t1
-      !! Start time
-    real(kind = dp) :: t2
-      !! End time
-    !
-    character(len = 300) :: text
-      !! String to hold long section header
-    character(len = 300) :: Uelements
-      !! File name for matrix elements output 
-    character(len = 300) :: ikstr
-      !! String version of k point index
-    !
-    call cpu_time(t1)
-      !! * Start a timer
-    !
-    call readEigenvalues(ik)
-      !! * Read eigenvalues from [[pw_export_for_tme(program)]]
-    !
-    write(iostd, '(" Writing Ufi(:,:).")')
-      !! * Write out a header to `output` file
-    !
-    call int2str(ik, ikstr)
-      !! * Convert the k point index to a string
-    !
-    write(Uelements, '("/TMEs_kptI_",a,"_kptF_",a)') trim(ikstr), trim(ikstr)
-      !! * Determine what the file name should be based on the k point index
-    !
-    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
-      !! * Open the matrix elements output file
-    !
-    write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') solidDefect%omega
-      !! * Output cell volume to `Uelements` file
-    !
-    text = "# Total number of <f|U|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
-    write(17,'(a, " Format : ''(5i10)''")') trim(text)
-      ! * Output header for next section
-    !
-    totalNumberOfElements = (perfectCrystal%iBandH - perfectCrystal%iBandL + 1)* &
-                            (solidDefect%iBandH - solidDefect%iBandL + 1)
-      !! * Calculate the total number of matrix elements
-    write(17,'(5i10)') totalNumberOfElements, perfectCrystal%iBandL, perfectCrystal%iBandH, &
-                       solidDefect%iBandL, solidDefect%iBandH
-      !! * Output the total number of elements and band limits
-    !
-    write(17, '("# Final Band, Initial Band, Delta energy, Complex <f|U|i>, |<f|U|i>|^2 Format : ''(2i10,4ES24.15E3)''")')
-      ! * Output header for next section
-    !
-    do ibf = solidDefect%iBandL, solidDefect%iBandH
-      do ibi = perfectCrystal%iBandL, perfectCrystal%iBandH
-        !! * Loop through the bands to output the change 
-        !!   in eigenvalues, matrix element, and norm 
-        !!   squared matrix element
-        !
-        write(17, 1001) ibf, ibi, eigvI(ibi) - eigvF(ibf), Ufi(ibf,ibi,ik), abs(Ufi(ibf,ibi,ik))**2
-        !    
-      enddo
-    enddo
-    !
-    close(17)
-      !! * Close the matrix elements output file
-    !
-    call cpu_time(t2)
-      !! * Stop the timer
-    !
-    write(iostd, '(" Writing Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
-      !! * Write to `output` file how long it took to write the matrix 
-    !
- 1001 format(2i10,4ES24.15E3)
-    ! Define format for writing matrix  
-    !
-    return
-    !
-  end subroutine writeResults
-  !
-  !
-  subroutine readUfis(ik)
-    !! Read in matrix elements for a given k point
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    implicit none
-    !
-    integer, intent(in) :: ik
-      !! K point index
-    integer :: ibi, ibf
-      !! Loop index over bands
-    integer :: totalNumberOfElements
-      !! Total number of matrix elements
-    integer :: iDum
-      !! Dummy variable to ignore input
-    integer :: iEl
-      !! Loop index over matrix elements
-    !
-    real(kind = dp) :: rDum
-      !! Dummy variable to ignore input
-    real(kind = dp) :: t1
-      !! Start time
-    real(kind = dp) :: t2
-      !! End time
-    !
-    complex(kind = dp):: cUfi
-      !! Temporarily store value of each matrix element
-    !
-    character(len = 300) :: Uelements
-      !! File name for matrix elements output 
-    character(len = 300) :: ikstr
-      !! String version of k point index
-    !
-    call cpu_time(t1)
-      !! * Start a timer
-    !
-    write(iostd, '(" Reading Ufi(:,:) of k-point: ", i4)') ik
-      !! * Write out a header to the `output` file
-    !
-    call int2str(ik, ikstr)
-      !! * Convert the k point index to a string
-    !
-    write(Uelements, '("/TMEs_kptI_",a,"_kptF_",a)') trim(ikstr), trim(ikstr)
-      !! * Determine what the file name should be based on the k point index
-    !
-    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
-      !! * Open the matrix elements file
-    !
-    read(17, *) 
-    read(17, *) 
-      !! * Ignore the first two lines as they are comments
-    !
-    read(17,'(5i10)') totalNumberOfElements, iDum, iDum, iDum, iDum
-      !! * Read in the total number of matrix elements
-    !
-    read(17, *) 
-      !! * Ignore the next line as it is a comment
-    !
-    do iEl = 1, totalNumberOfElements
-      !! * Read in the indices and value for each
-      !!   matrix element, ignoring the change in
-      !!   eigenvalues and norm squared matrix
-      !!   element
-      !
-      read(17, 1001) ibf, ibi, rDum, cUfi, rDum
-      Ufi(ibf,ibi,ik) = cUfi
-      !    
-    enddo
-    !
-    close(17)
-    !
-    call cpu_time(t2)
-      !! * Stop timer
-    !
-    write(iostd, '(" Reading Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
-      !! * Write out time to read `Ufi` to `output` file
-    !
- 1001 format(2i10,4ES24.15E3)
-    ! Define format to read in matrix elements
-    !
-    return
-    !
-  end subroutine readUfis
-  !
-  !
-  subroutine calculateVfiElements()
-    !! @todo Figure out what the purpose of this function is. For plotting? @endtodo
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    implicit none
-    !
-    integer :: ik
-      !! Loop index over k points
-    integer :: ib
-      !! Loop index over bands
-    integer :: nOfEnergies, iE
-    !
-    real(kind = dp) :: eMin, eMax, E, av, sd, x, epsilon_if, DHifMin
-    !
-    real(kind = dp), allocatable :: sumWk(:), sAbsVfiOfE2(:), absVfiOfE2(:)
-    integer, allocatable :: nKsInEbin(:)
-    !
-    character (len = 300) :: text
-    !
-    allocate( DE(perfectCrystal%iBandL:perfectCrystal%iBandH, perfectCrystal%nKpts))
-    allocate( absVfi2(perfectCrystal%iBandL:perfectCrystal%iBandH, perfectCrystal%nKpts) )
-      !! * Allocate space for `DE` and `absVfi2`
-    ! 
-    DE(:,:) = 0.0_dp
-    absVfi2(:,:) = 0.0_dp 
-      !! * Initialize `DE` and `absVfi2` to double zero
-    !
-    do ik = 1, perfectCrystal%nKpts
-      !! * For each k point
-      !!    * Read in the initial and final eigenvalues
-      !!    * For each band between `iBandL_PC` and `iBandH_PC`
-      !!       * Calculate \(\epsilon_{if} = \epsilon_f - \epsilon_i\)
-      !!         as defined in paper
-      !!       * Calculate 
-      !!         \[|\Delta H_{if}|^2 = \dfrac{|\langle\Phi_f|\Psi_i\rangle|^2 - |\langle\Phi_f|\Psi_i\rangle|^4}
-      !!                                {(1 - 2|\langle\Phi_f|\Psi_i\rangle|^2)^2}\epsilon_{if}\]
-      !!         (A8 in paper)
-      !!         @note 
-      !!         Only numerator is calculated because the denominator
-      !!         is approximately zero, assuming \(|\langle\Phi_f|\Psi_i\rangle| \ll 1\)
-      !!         @endnote
-      !!       * Calculate `DE`\( = E_i - E_f = \sqrt{\epsilon_{if}^2 + 4|\Delta H_{if}|^2}\)
-      !
-      eigvI(:) = 0.0_dp
-      eigvF(:) = 0.0_dp
-      !
-      call readEigenvalues(ik)
-      !
-      do ib = perfectCrystal%iBandL, perfectCrystal%iBandH
-        !
-        epsilon_if = eigvF(solidDefect%iBandL) - eigvI(ib)
-        absVfi2(ib,ik) = epsilon_if**2*( abs(Ufi(solidDefect%iBandL,ib,ik))**2 - &
-                         abs(Ufi(solidDefect%iBandL,ib,ik))**4 )
-        !
-        DE(ib, ik) = sqrt(epsilon_if**2 - 4.0_dp*absVfi2(ib,ik))
-        !
-      enddo
-      !
-    enddo
-    !
-    eMin = minval( DE(:,:) )
-    eMax = maxval( DE(:,:) )
-      !! * Find the max and min of `DE`
-    !
-    nOfEnergies = int((eMax-eMin)/eBin) + 1
-      !! * Use the min and max values to calculate how many
-      !!   energy bins result between the energies using
-      !!   a bin size of `eBin`
-    !
-    allocate ( absVfiOfE2(0:nOfEnergies), nKsInEbin(0:nOfEnergies), sumWk(0:nOfEnergies) )
-      !! * Allocate space for `absVfiOfE2`, `nKsInEbin`, and `sumWk`
-    !
-    absVfiOfE2(:) = 0.0_dp
-    nKsInEbin(:) = 0
-    sumWk(:) = 0.0_dp
-      !! * Initialize all to double zero
-    !
-    do ik = 1, perfectCrystal%nKpts
-      !
-      do ib = perfectCrystal%iBandL, perfectCrystal%iBandH
-        !! * For each k point and band
-        !!    * Store `absVfi2` (\(|\Delta H_{if}|^2\)) if have min `DE`
-        !!    * Find the "index" of the particular `DE`
-        !!    * If \(|\Delta H_{if}|^2 > 0\) for given k point, add the 
-        !!      value to a cumulative sum, weighted by the k point weight `wk`,
-        !!      and keep track of the total weight and number of k points in
-        !!      each bin
-        !
-        if ( abs( eMin - DE(ib,ik)) < 1.0e-3_dp ) DHifMin = absVfi2(ib, ik)
-          !! @todo Figure out why `DHifMin` is needed @endtodo
-          !! @todo Figure out why used difference rather than `==
-        !
-        iE = int((DE(ib, ik)-eMin)/eBin)
-        !
-        if ( absVfi2(ib, ik) > 0.0_dp ) then
-          !! @todo Figure out why this test is here. All of these should be positive, right? @endtodo
-          !
-          absVfiOfE2(iE) = absVfiOfE2(iE) + perfectCrystal%wk(ik)*absVfi2(ib, ik)
-            !! @note I think `absVfiOfE2` is the sum of the numerators weighted by k point @endnote
-          !
-          sumWk(iE) = sumWk(iE) + perfectCrystal%wk(ik)
-          !
-          nKsInEbin(iE) = nKsInEbin(iE) + 1
-          !
-        else
-          write(iostd,*) 'lalala', absVfi2(ib, ik)
-        endif
-        !
-      enddo
-      !
-    enddo
-    !
-    allocate ( sAbsVfiOfE2(0:nOfEnergies) )
-      !! * Allocate space for `sAbsVfiOfE2`
-    !
-    sAbsVfiOfE2 = 0.0_dp
-      !! * Initialize to zero
-    !
-    open(11, file=trim(VfisOutput)//'ofKpt', status='unknown')
-      !! * Open `VfisVsEofKpt` file
-    !
-    write(11, '("# |<f|V|i>|^2 versus energy for all the k-points.")')
-      !! * Output file header
-    !
-    write(text, '("# Energy (eV) shifted by half eBin, |<f|V|i>|^2 (Hartree)^2,")')
-    write(11, '(a, " k-point index. Format : ''(2ES24.15E3,i10)''")') trim(text)
-      !! * Output section header
-    !
-    do ik = 1, perfectCrystal%nKpts
-      !
-      do ib = perfectCrystal%iBandL, perfectCrystal%iBandH
-        !! * For each k point and band, 
-        !!    * Figure out the "index" for `DE`
-        !!    * Calculate \(|\Delta H_{if}|^2\) average over k points
-        !!    * Store \(|\Delta H_{if}|^2\) for a given k point and band
-        !!    * Write out the energy shifted by half a bin, \(|\Delta H_{if}|^2\),
-        !!      and the k point index to `VfisVsEofKpt`
-        !!    * Write out unshifted energy, \(|\Delta H_{if}|^2\), and the k point
-        !!      index to some other file??
-        !!    * Calculate the standard deviation of \(|\Delta H_{if}|^2\)
-        !
-        iE = int((DE(ib,ik)-eMin)/eBin)
-        !
-        av = absVfiOfE2(iE)/sumWk(iE)
-        !
-        x = absVfi2(ib,ik)
-        !
-        write(11, '(2ES24.15E3,i10)') (eMin + (iE+0.5_dp)*eBin)*HartreeToEv, x, ik
-        write(12, '(2ES24.15E3,i10)') DE(ib,ik)*HartreeToEv, absVfi2(ib, ik), ik
-          !! @todo Figure out where unit 12 file is opened and what it is @endtodo
-        !write(11, '(2ES24.15E3,i10)') (eMin + iE*eBin + eBin/2.0_dp), x, ik
-        !
-        sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + perfectCrystal%wk(ik)*(x - av)**2/sumWk(iE)
-        !
-      enddo
-      !
-    enddo
-    !
-    close(11)
-      !! * Close `VfisVsEofKpt` file
-    !
-    open(63, file=trim(VfisOutput), status='unknown')
-      !! * Open `VfisVsE` file
-    !
-    write(63, '("# Averaged |<f|V|i>|^2 over K-points versus energy.")')
-      !! * Output file header
-    !
-    write(63, '("#                 Cell volume : ", ES24.15E3, " (a.u.)^3,   Format : ''(ES24.15E3)''")') solidDefect%omega
-    write(63, '("#   Minimun transition energy : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eMin
-    write(63, '("# |DHif|^2 at minimum Tr. En. : ", ES24.15E3, " (Hartree^2),Format : ''(ES24.15E3)''")') DHifMin
-    write(63, '("#                  Energy bin : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eBin
-      !! * Output cell volumn, min `DE`, \(|\Delta H_{if}|^2\) at min `DE`, and bin size
-    !
-    write(text, '("# Energy (Hartree), averaged |<f|V|i>|^2 over K-points (Hartree)^2,")')
-    write(63, '(a, " standard deviation (Hartree)^2. Format : ''(3ES24.15E3)''")') trim(text)
-      !! * Output section header
-    !
-    do iE = 0, nOfEnergies
-      !! * For each energy 
-      !!    * Calculate the average and standard deviation
-      !!      of \(|\Delta H_{if}|^2\)
-      !!    * Output the energy, average, and standard deviation
-      !
-      E = iE*eBin
-        !! @todo Figure out why use `eMin + iE*eBin` rather than `DE` @endtodo
-      !
-      av = 0.0_dp
-      !
-      sd = 0.0_dp
-      !
-      if (nKsInEbin(iE) > 0) then
-        !
-        av = absVfiOfE2(iE)/sumWk(iE)
-        !
-        sd = sqrt(sAbsVfiOfE2(iE))
-        !
-      endif
-      !
-      write(63,'(3ES24.15E3)') eMin + E, av, sd
-      !
-    enddo
-    !
-    close(63)
-      !! * Close `VfisVsE` file
-    !
-    return
-    !
-  end subroutine calculateVfiElements
-  !
-  !
-  subroutine readEigenvalues(ik)
-    !! Read in the eigenvalues output from [[pw_export_for_tme(program)]]
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    implicit none
-    !
-    integer, intent(in) :: ik
-      !! K point index
-    integer :: ib
-      !! Loop index over bands
-    !
-    character(len = 300) :: ikstr
-      !! String version of k point index
-    !
-    call int2str(ik, ikstr)
-      !! * Convert k point index to string
-    !
-    open(72, file=trim(perfectCrystal%exportDir)//"/eigenvalues."//trim(ikstr))
-      !! * Open the perfectCrystal `eigenvalues.ik` file from [[pw_export_for_tme(program)]]
-    !
-    read(72, * )
-    read(72, * )
-      !! * Ignore the first two lines as they are comments
-    !
-    do ib = 1, perfectCrystal%iBandL - 1
-      !! * Ignore eigenvalues for bands that are before `iBandL_PC`
-      !
-      read(72, *)
-      !
-    enddo
-    !
-    do ib = perfectCrystal%iBandL, perfectCrystal%iBandH
-      !! * Read in the eigenvalues from `iBandL_PC` to `iBandH_PC`
-      !
-      read(72, '(ES24.15E3)') eigvI(ib)
-      !
-    enddo
-    !
-    close(72)
-      !! * Close the perfect crystal `eigenvalues.ik` file
-    !
-    open(72, file=trim(solidDefect%exportDir)//"/eigenvalues."//trim(ikstr))
-      !! * Open the solid defect `eigenvalues.ik` file from [[pw_export_for_tme(program)]]
-    !
-    read(72, * )
-    read(72, * ) 
-      !! * Ignore the first two lines as they are comments
-    !
-    do ib = 1, solidDefect%iBandL - 1
-      !! * Ignore eigenvalues for bands that are before `iBandL_SD`
-      !
-      read(72, *)
-      !
-    enddo
-    !
-    do ib = solidDefect%iBandL, solidDefect%iBandH
-      !! * Read in the eigenvalues from `iBandL_SD` to `iBandH_SD`
-      !
-      read(72, '(ES24.15E3)') eigvF(ib)
-      !
-    enddo
-    !
-    close(72)
-      !! * Close the solid defect `eigenvalues.ik` file
-    !
-    return
-    !
-  end subroutine readEigenvalues
-  !
-  !
-  subroutine finalizeCalculation()
-    !! Stop timer, write out total time taken, and close the output file
-    !
-    implicit none
-    !
-    write(iostd,'("-----------------------------------------------------------------")')
-    !
-    call cpu_time(tf)
-    write(iostd, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
-    !
-    close(iostd)
-    !
-    return
-    !
-  end subroutine finalizeCalculation
-  !
-!=====================================================================================================
-! Utility functions that simplify the code and may be used multiple times
-  !
-  !---------------------------------------------------------------------------------------------------------------------------------
-  function wasRead(inputVal, variableName, usage, abortExecution) 
-    !! Determine if an input variable still has the default value.
-    !! If it does, output an error message and possibly set the program
-    !! to abort. Not all variables would cause the program to abort,
-    !! so this program assumes that if you pass in the logical `abortExecution`
-    !! then the variable is required and causes the program to abort 
-    !! if missing.
-    !!
-    !! I could not find a clean way to allow this function to receive
-    !! different types of variables (integer, real, character, etc.), so
-    !! I made the argument be an integer so that each type could be sent
-    !! in a different way. Each case is set up so that the value is tested to
-    !! see if it is less than zero to determine if the variable still has
-    !! its default value
-    !!
-    !! * For strings, the default value is `''`, so pass in 
-    !! `LEN(trim(variable))-1` as this should be less than zero if
-    !! the string still has the default value and greater than or equal 
-    !! to zero otherwise
-    !! * For integers the default values are less than zero, so just pass as is 
-    !! * Real variables also have a negative default value, so just pass the
-    !! value cast from real to integer
-    !!
-    implicit none
-    !
-    integer, intent(in) :: inputVal
-      !! Value to compare with 0 to see if a variable has been read;
-    !
-    character(len=*), intent(in) :: variableName
-      !! Name of the variable used in output message
-    character(len=*), intent(in) :: usage
-      !! Example of how the variable can be used
-    !
-    logical, optional, intent(inout) :: abortExecution
-      !! Optional logical for if the program should be aborted 
-    logical :: wasRead
-      !! Whether or not the input variable was read from the input file;
-      !! this is the return value
-    !
-    !! <h2>Walkthrough</h2>
-    !!
-    wasRead = .true.
-      !! * Default return value is true
-    !
-    if ( inputVal < 0) then
-      !! * If the input variable still has the default value
-      !!    * output an error message
-      !!    * set the program to abort if that variable was sent in
-      !!    * set the return value to false to indicate that the 
-      !!      variable wasn't read
-      !
-      write(iostd, *)
-      write(iostd, '(" Variable : """, a, """ is not defined!")') variableName
-      write(iostd, '(" usage : ", a)') usage
-      if(present(abortExecution)) then
-        !
-        write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-        abortExecution = .true.
-        !
-      endif 
-      !
-      wasRead = .false.
-      !
-    endif
-    !
-    return
-    !
-  end function wasRead
-  !
-  !---------------------------------------------------------------------------------------------------------------------------------
-  subroutine int2str(integ, string)
-    !! Write a given integer to a string, using only as many digits as needed
-    !
-    implicit none
-    integer :: integ
-    character(len = 300) :: string
-    !
-    if ( integ < 10 ) then
-      write(string, '(i1)') integ
-    else if ( integ < 100 ) then
-      write(string, '(i2)') integ
-    else if ( integ < 1000 ) then
-      write(string, '(i3)') integ
-    else if ( integ < 10000 ) then
-      write(string, '(i4)') integ
-    endif
-    !
-    string = trim(string)
-    !
-    return
-    !
-  end subroutine int2str
-  !
-end module TMEModule
+end module declarations
