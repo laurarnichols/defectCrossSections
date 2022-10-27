@@ -1,6 +1,7 @@
 #include "symbol.inc"
       MODULE POSCAR
       USE prec
+      USE base
 
 !
 ! poscar description input file
@@ -94,7 +95,7 @@
       INTEGER, EXTERNAL :: NITEMS
 
 ! Now extract from file POSCAR how many ion types we have ...
-      OPEN(UNIT=15,FILE=DIR_APP(1:DIR_LEN)//'POSCAR',STATUS='OLD',ERR=1000)
+      OPEN(UNIT=15,FILE=DIR_APP(1:DIR_LEN)//trim(POSCAR_FNAME),STATUS='OLD',ERR=1000)
 
       READ(15,'(A1)',ERR=147,END=147) CHARAC
 
@@ -223,7 +224,7 @@
 !
       IF (IU6>=0) THEN
          WRITE(*,"(A,A)")'ERROR: the following files does not exist ', &
-             DIR_APP(1:DIR_LEN)//'POSCAR'
+             DIR_APP(1:DIR_LEN)//trim(POSCAR_FNAME)
       ENDIF
       STOP
       END SUBROUTINE
@@ -255,7 +256,7 @@
       REAL(q) SCALEX,SCALEY,SCALEZ
       REAL(q) POTIMR
 
-      OPEN(UNIT=15,FILE=DIR_APP(1:DIR_LEN)//'POSCAR',STATUS='OLD')
+      OPEN(UNIT=15,FILE=DIR_APP(1:DIR_LEN)//trim(POSCAR_FNAME),STATUS='OLD')
 
       IF (IU6>=0) WRITE(IU6,*)
 !-----Basis vectors and scaling parameter ('lattice constant')
