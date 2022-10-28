@@ -458,13 +458,7 @@ program VASPExport
 !-----------------------------------------------------------------------
 !  Get command line arguments
 !-----------------------------------------------------------------------
-      do_io write(*,*) "Getting command line arguments"
-
       call getCommandLineArguments(kStart, kEnd, exportDir, inputDir, outputDir)
-
-      call execute_command_line('mkdir -p '//trim(exportDir))
-      call execute_command_line('mkdir -p '//trim(outputDir))
-        !! Make the output and export directories (only if they don't already exist)
 
       INCAR = trim(inputDir)//'/'//INCAR
       KPOINTS_FNAME = trim(inputDir)//'/'//KPOINTS_FNAME
@@ -488,6 +482,20 @@ program VASPExport
       ENDIF
       IF (KIMAGES>0) IUXML_SET=-1
 #endif
+  
+  io_begin
+
+    call execute_command_line('mkdir -p '//trim(exportDir))
+    call execute_command_line('mkdir -p '//trim(outputDir))
+      !! Make the output and export directories (only if they don't already exist)
+
+    !> Write out directories 
+    write(*,*) "Directories:"
+    write(*,*) "   input = ", trim(inputDir)
+    write(*,*) "   output = ", trim(outputDir)
+    write(*,*) "   export = ", trim(exportDir)
+
+  io_end
 
 #ifdef CUDA_GPU
       CALL GPU_BANNER(IO)
@@ -2592,25 +2600,48 @@ program VASPExport
       DWRITE0 'proall done'
  
 !=======================================================================
-! Write out projectors, projections, and wave functions
+! Write out projectors and projections
 !=======================================================================
-      do_io write(IO%IU6,*) "Writing out projectors, wave functions, and projections"
+      do_io write(IO%IU6,*) "Writing out projectors and projections"
 
+!-------------------------------------------------------------------------
       !> Test `kStart` and `kEnd` to make sure that they are both less
-      !> than the total number of k-points and that `kEnd >= kStart`
-      if(kStart > KPOINTS%NKPTS) then
+      !> than the total number of k-points, that `kStart >=1`,  and that 
+      !> `kEnd >= kStart`
+      if(kStart < 1 .or. kStart > KPOINTS%NKPTS) then
         do_io write(IO%IU6,*) "Invalid choice for kStart: ", kStart
         do_io write(IO%IU6,*) "Using default value of 1."
 
         kStart = 1
+      else 
+        do_io write(IO%IU6,*) "Starting with k-point ", kStart
       endif
 
       if(kEnd > KPOINTS%NKPTS .or. kEnd < kStart) then
         do_io write(IO%IU6,*) "Invalid choice for kEnd: ", kEnd
-        do_io write(IO%IU6,*) "Using default value of final k-point."
+        do_io write(IO%IU6,*) "Using default value of ", KPOINTS%NKPTS
 
         kEnd = KPOINTS%NKPTS
+      else 
+        do_io write(IO%IU6,*) "Ending with k-point ", kEnd
       endif
+
+!-------------------------------------------------------------------------
+      !> @note
+      !>    Trying to figure out how to parallelize this code. Here are some notes
+      !>    on what I've found:
+      !>    * For `NCORE = 44` and `KPAR = ` with 44 processes
+      !>       * Every process has every atom and every band
+      !>       * `WDES%NGVECTOR(ik)` and `WDES%NPRO` are split across processes
+      !>       * Seems like the `NGVECTOR` part is done in the `wave.F` file
+      !>       * Correctly exported `wfc.ik` file vs ``parallelized":
+      !>          * First line in correctly-exported file corresponds to data on
+      !>            17th node
+      !>          * Changing plane-wave index by 1 corresponds to changing the original
+      !>            line number by 1
+      !>          * Changing band index by 1 corresponds to changing the original line
+      !>            number by `NGVECTOR(ik)`
+      !> @endnote
 
       do isp = 1, INFO%ISPIN
         !! Loop over spin
@@ -2680,17 +2711,6 @@ program VASPExport
 
             close(82)
 
-            write(IO%IU6,*) "      Writing wave function and projections"
-
-            wfcFileExists = .false.
-            inquire(file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/wfc."//trim(ikStr), exist=wfcFileExists)
-            if (.not. wfcFileExists) then
-              open(83, file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/wfc."//trim(ikStr)) 
-            endif
-
-            write(83, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
-            write(83, '("# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: ''(2ES24.15E3)''")')
-
             projectionsFileExists = .false.
             inquire(file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/projections."//trim(ikStr), exist=projectionsFileExists)
             if (.not. projectionsFileExists) then 
@@ -2700,12 +2720,6 @@ program VASPExport
             write(84, '("# Complex projections <beta|psi>. Format: ''(2ES24.15E3)''")')
 
             do ib = 1, WDES%NB_TOT
-
-                do ipw = 1, WDES%NGVECTOR(ik)
-
-                  write(83,'(2ES24.15E3)') W%CPTWFP(ipw,ib,ik,isp)
-
-                enddo
 
                 do ipr = 1, WDES%NPRO
 
@@ -2723,7 +2737,6 @@ program VASPExport
 
             enddo
             
-            close(83)
             close(84)
 
           io_end
@@ -2780,10 +2793,6 @@ program VASPExport
       !! Arguments processed
     integer :: nargs
       !! Total number of command line arguments
-    integer :: kStart_ = -1
-      !! Input value for the initial k-point
-    integer :: kEnd_ = -1
-      !! Input value for the  k-point
 
     character(len=256) :: arg = ' '
       !! Command line argument
@@ -2814,11 +2823,11 @@ program VASPExport
       select case (trim(arg))
         case('-ks', '-kStart') 
           call get_command_argument(narg, arg)
-          read(arg, *) kStart_
+          read(arg, *) kStart
           narg = narg + 1
         case('-ke', '-kEnd') 
           call get_command_argument(narg, arg)
-          read(arg, *) kEnd_
+          read(arg, *) kEnd
           narg = narg + 1
         case('-ed', '-exportDir') 
           call get_command_argument(narg, arg)
@@ -2845,36 +2854,6 @@ program VASPExport
     exportDir = trim(exportDir_)
     inputDir = trim(inputDir_)
     outputDir = trim(outputDir_)
-    do_io write(*,*) 'exportDir = ', trim(exportDir)
-    do_io write(*,*) 'inputDir = ', trim(inputDir)
-    do_io write(*,*) 'outputDir = ', trim(outputDir)
-
-    !> @note
-    !>   The value of `kStart` and `kEnd` are not tested against the total number 
-    !>   of k-points here because we don't have that yet. It is tested before 
-    !>   entering the loop over k-points when writing out the files.
-    !> @endnote
-    if (kStart_ > 0) then
-      kStart = kStart_
-        
-      do_io write(*,*) 'Starting with k-point ', kStart
-    else
-      do_io write(*,*) 'WARNING: No value or invalid value for initial k-point: ', kStart_
-      do_io write(*,*) 'Using default value for initial k-point of 1'
-
-      kStart = 1
-    endif
-
-    if (kEnd_ >= kStart) then
-      kEnd = kEnd_
-        
-      do_io write(*,*) 'Ending with k-point ', kEnd
-    else
-      do_io write(*,*) 'WARNING: No value or invalid value for final k-point: ', kEnd_
-      do_io write(*,*) 'Using default value of final k-point as the total number of k-points'
-
-      kEnd = -1
-    endif
 
     return
   end subroutine getCommandLineArguments

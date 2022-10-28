@@ -757,7 +757,7 @@ module wfcExportVASPMod
       write(iostd,*) 'Starting to read wavefunction'
     endif
 
-    call readWavefunction(nBands, maxGkNum, nKPoints, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
+    call readAndWriteWavefunction(nBands, maxGkNum, nKPoints, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
       !! * Get the position of each k-point in reciprocal space 
       !!   and the number of \(G+k) vectors below the cutoff 
       !!   energy for each k-point
@@ -980,7 +980,7 @@ module wfcExportVASPMod
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine readWavefunction(nBands, maxGkNum, nKPoints, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
+  subroutine readAndWriteWavefunction(nBands, maxGkNum, nKPoints, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
     !! For each spin and k-point, read the number of
     !! \(G+k\) vectors below the energy cutoff, the
     !! position of the k-point in reciprocal space, 
@@ -989,6 +989,8 @@ module wfcExportVASPMod
     !!
     !! <h2>Walkthrough</h2>
     !!
+
+    use miscUtilities, only: int2str
 
     implicit none
 
@@ -1027,6 +1029,9 @@ module wfcExportVASPMod
     integer :: irec, isp, ik, i, iband, iplane
       !! Loop indices
 
+    character(len=300) :: indexC
+      !! Character index
+
 
     allocate(bandOccupation(nSpins, nBands, nKPoints))
     allocate(kPosition(3,nKPoints))
@@ -1050,6 +1055,7 @@ module wfcExportVASPMod
         !!         each band
         !!       * Read in the plane wave coefficients for
         !!         each band
+        !!       * Write out plane wave coefficients to `wfc.ik`
 
         write(iostd,*) '  Reading spin ', isp
 
@@ -1067,6 +1073,16 @@ module wfcExportVASPMod
 
           nPWs1kGlobal(ik) = nint(nPWs1kGlobal_real)
 
+          call int2str(ik+(isp-1)*nKPoints, indexC)
+          open(83, file=trim(exportDir)//"/wfc."//trim(indexC))
+            ! Open `wfc.ik` file to write plane wave coefficients
+
+          write(83, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
+          write(83, '("# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: ''(2ES24.15E3)''")')
+            ! Write header to `wfc.ik` file
+
+          write(iostd,*) '      Writing plane wave coeffients'
+
           do iband = 1, nBands
 
             irec = irec + 1
@@ -1074,16 +1090,18 @@ module wfcExportVASPMod
             read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nPWs1kGlobal(ik))
               ! Read in the plane wave coefficients for each band
 
+            write(83,'(2ES24.15E3)') (coeff(iplane,iband), iplane=1,nPWs1kGlobal(ik))
+              ! Write plane wave coefficients to `wfc.ik` file
           enddo
+
+          close(83)
+            ! Close `wfc.ik` file
         enddo
       enddo
 
       eigenE(:,:,:) = eigenE(:,:,:)*eVToRy
 
       deallocate(coeff)
-        !! @note 
-        !!  The plane wave coefficients are not currently used anywhere.
-        !! @endnote
 
     endif
 
@@ -1093,7 +1111,7 @@ module wfcExportVASPMod
     call MPI_BCAST(nPWs1kGlobal, size(nPWs1kGlobal), MPI_INTEGER, root, worldComm, ierr)
 
     return
-  end subroutine readWavefunction
+  end subroutine readAndWriteWavefunction
 
 !----------------------------------------------------------------------------
   subroutine distributeKpointsInPools(nKPoints)
