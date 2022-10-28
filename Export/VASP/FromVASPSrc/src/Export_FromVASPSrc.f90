@@ -211,13 +211,6 @@ program VASPExport
         !! String version of k-point index for
         !! output files
 
-      logical :: projectionsFileExists
-        !! If the `projections.ik` file already exists
-      logical :: projectorFileExists
-        !! If the `projectors.ik` file already exists
-      logical :: wfcFileExists
-        !! If the `wfc.ik` file already exists
-
 !=======================================================================
 !  a small set of parameters might be set here
 !  but this is really rarely necessary :->
@@ -2667,12 +2660,8 @@ program VASPExport
 
             write(IO%IU6,*) "      Writing projectors"
 
-            !> Open the projectors file if it doesn't exist
-            projectorFileExists = .false.
-            inquire(file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/projectors."//trim(ikStr), exist=projectorFileExists)
-            if (.not. projectorFileExists) then 
-              open(82, file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/projectors."//trim(ikStr)) 
-            endif
+            open(82, file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/projectors."//trim(ikStr)) 
+              !! Open the projectors file
 
             write(82, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
               !! Write header for projectors file
@@ -2711,11 +2700,8 @@ program VASPExport
 
             close(82)
 
-            projectionsFileExists = .false.
-            inquire(file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/projections."//trim(ikStr), exist=projectionsFileExists)
-            if (.not. projectionsFileExists) then 
-              open(84, file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/projections."//trim(ikStr)) 
-            endif
+            open(84, file=DIR_APP(1:DIR_LEN)//trim(exportDir)//"/projections."//trim(ikStr)) 
+              !! Open the projections file
 
             write(84, '("# Complex projections <beta|psi>. Format: ''(2ES24.15E3)''")')
 
