@@ -1,6 +1,6 @@
 # Export From VASP Source
 
-This program uses the VASP source code to generate the wave function, projectors, and projections to be used by the matrix element code (`TME`). It is currently not integrated with VASP's parallelization scheme, so **you must use 1 MPI process and set `NCORE = 1` and `KPAR = 1`**. Otherwise, the program will not work. 
+This program uses the VASP source code to generate the projectors and projections to be used by the matrix element code (`TME`). It is currently not integrated with VASP's parallelization scheme, so **you must use 1 MPI process and set `NCORE = 1` and `KPAR = 1`**. Otherwise, the program will not work. 
 
 The following options can be passed in at the command line:
 * `-ks` or `-kStart` is the k-point you want to start with
