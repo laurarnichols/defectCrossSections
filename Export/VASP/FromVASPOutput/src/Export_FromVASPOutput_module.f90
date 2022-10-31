@@ -12,9 +12,9 @@ module wfcExportVASPMod
     !! Index of the root process within each pool
   integer, parameter :: mainOutFileUnit = 50
     !! Main output file unit
-  integer, parameter :: potcarUnit = 86
+  integer, parameter :: potcarUnit = 71
     !! POTCAR unit for I/O
-  integer, parameter :: wavecarUnit = 86
+  integer, parameter :: wavecarUnit = 72
     !! WAVECAR unit for I/O
 
   real(kind = dp), parameter :: twoPiSquared = (2.0_dp*pi)**2
@@ -648,9 +648,12 @@ module wfcExportVASPMod
     character(len=256) :: fileName
       !! Full WAVECAR file name including path
 
+    
+    !fileName = trim(VASPDir)//'/WAVECAR'
+    fileName = '../WAVECAR'
+      !! Hardcode file name for now until figure out how to broadcast 
 
     if(ionode) then
-      fileName = trim(VASPDir)//'/WAVECAR'
 
       nRecords = 24
         ! Set a starting value for the number of records
@@ -673,6 +676,7 @@ module wfcExportVASPMod
 
       open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
       if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
+        !! * Reopen WAVECAR with correct number of records
 
       read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, wfcECut,(realSpaceLatticeVectors(j,1),j=1,3),&
           (realSpaceLatticeVectors(j,2),j=1,3), (realSpaceLatticeVectors(j,3),j=1,3)
@@ -680,6 +684,8 @@ module wfcExportVASPMod
         !!   space lattice vectors
       !read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, wfcECut,((realSpaceLatticeVectors(i,j),j=1,3),i=1,3)
         !! @todo Test this more compact form @endtodo
+
+      close(wavecarUnit)
 
       wfcECut = wfcECut*eVToRy
         !! * Convert energy from VASP from eV to Rydberg to match QE/TME expectation
@@ -742,6 +748,7 @@ module wfcExportVASPMod
     call MPI_BCAST(nb2max, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nb3max, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(maxGkNum, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(nRecords, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nBands, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -757,12 +764,15 @@ module wfcExportVASPMod
       write(iostd,*) 'Starting to read wavefunction'
     endif
 
-    call readAndWriteWavefunction(nBands, maxGkNum, nKPoints, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
-      !! * Get the position of each k-point in reciprocal space 
-      !!   and the number of \(G+k) vectors below the cutoff 
-      !!   energy for each k-point
+    call preliminaryWAVECARScan(nBands, nKPoints, nRecords, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
+      !! * For each spin and k-point, read the number of
+      !!   \(G+k\) vectors below the energy cutoff, the
+      !!   position of the k-point in reciprocal space, 
+      !!   and the eigenvalue and occupation for each band
 
-    if(ionode) close(wavecarUnit)
+    call readAndWriteWavefunction(nBands, maxGkNum, nKPoints, nPWs1kGlobal, nRecords, nSpins)
+      !! * For each spin and k-point, read and write the plane
+      !!   wave coefficients for each band
 
     if (ionode) then
       write(iostd,*) 'Finished reading wavefunction'
@@ -980,27 +990,24 @@ module wfcExportVASPMod
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine readAndWriteWavefunction(nBands, maxGkNum, nKPoints, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
+  subroutine preliminaryWAVECARScan(nBands, nKPoints, nRecords, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
     !! For each spin and k-point, read the number of
     !! \(G+k\) vectors below the energy cutoff, the
     !! position of the k-point in reciprocal space, 
-    !! and the eigenvalue, occupation, and plane
-    !! wave coefficients for each band
+    !! and the eigenvalue and occupation for each band
     !!
     !! <h2>Walkthrough</h2>
     !!
-
-    use miscUtilities, only: int2str
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: nBands
       !! Total number of bands
-    integer, intent(in) :: maxGkNum
-      !! Maximum number of \(G+k\) combinations
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+    integer, intent(in) :: nRecords
+      !! Number of records in the WAVECAR file
     integer, intent(in) :: nSpins
       !! Number of spins
 
@@ -1023,26 +1030,29 @@ module wfcExportVASPMod
     real(kind=dp) :: nPWs1kGlobal_real
       !! Real version of integers for reading from file
 
-    complex*8, allocatable :: coeff(:,:)
-      !! Plane wave coefficients
-
     integer :: irec, isp, ik, i, iband, iplane
       !! Loop indices
 
-    character(len=300) :: indexC
-      !! Character index
+    character(len=256) :: fileName
+      !! Full WAVECAR file name including path
 
 
     allocate(bandOccupation(nSpins, nBands, nKPoints))
     allocate(kPosition(3,nKPoints))
     allocate(nPWs1kGlobal(nKPoints))
     allocate(eigenE(nSpins,nKPoints,nBands))
+    
+    !fileName = trim(VASPDir)//'/WAVECAR'
+    fileName = '../WAVECAR'
+      !! Hardcode file name for now until figure out how to broadcast 
 
     if(ionode) then
+      open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
+      if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
 
-      allocate(coeff(maxGkNum,nBands))
-    
       irec=2
+
+      write(iostd,*) 'Completing preliminary scan of WAVECAR'
 
       do isp = 1, nSpins
         !! * For each spin:
@@ -1053,18 +1063,13 @@ module wfcExportVASPMod
         !!         reciprocal space
         !!       * Read in the eigenvalue and occupation for
         !!         each band
-        !!       * Read in the plane wave coefficients for
-        !!         each band
-        !!       * Write out plane wave coefficients to `wfc.ik`
 
         write(iostd,*) '  Reading spin ', isp
 
         do ik = 1, nKPoints
-
-          write(iostd,*) '    Reading k-point ', ik
-
+        
           irec = irec + 1
-       
+
           read(unit=wavecarUnit,rec=irec) nPWs1kGlobal_real, (kPosition(i,ik),i=1,3), &
                  (eigenE(isp,ik,iband), bandOccupation(isp, iband, ik), iband=1,nBands)
             ! Read in the number of \(G+k\) plane wave vectors below the energy
@@ -1073,35 +1078,14 @@ module wfcExportVASPMod
 
           nPWs1kGlobal(ik) = nint(nPWs1kGlobal_real)
 
-          call int2str(ik+(isp-1)*nKPoints, indexC)
-          open(83, file=trim(exportDir)//"/wfc."//trim(indexC))
-            ! Open `wfc.ik` file to write plane wave coefficients
+          irec = irec + nBands
 
-          write(83, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
-          write(83, '("# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: ''(2ES24.15E3)''")')
-            ! Write header to `wfc.ik` file
-
-          write(iostd,*) '      Writing plane wave coeffients'
-
-          do iband = 1, nBands
-
-            irec = irec + 1
-
-            read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nPWs1kGlobal(ik))
-              ! Read in the plane wave coefficients for each band
-
-            write(83,'(2ES24.15E3)') (coeff(iplane,iband), iplane=1,nPWs1kGlobal(ik))
-              ! Write plane wave coefficients to `wfc.ik` file
-          enddo
-
-          close(83)
-            ! Close `wfc.ik` file
         enddo
       enddo
 
-      eigenE(:,:,:) = eigenE(:,:,:)*eVToRy
+      close(wavecarUnit)
 
-      deallocate(coeff)
+      eigenE(:,:,:) = eigenE(:,:,:)*eVToRy
 
     endif
 
@@ -1109,6 +1093,141 @@ module wfcExportVASPMod
     call MPI_BCAST(bandOccupation, size(bandOccupation), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(eigenE, size(eigenE), MPI_COMPLEX, root, worldComm, ierr)
     call MPI_BCAST(nPWs1kGlobal, size(nPWs1kGlobal), MPI_INTEGER, root, worldComm, ierr)
+
+    if(ionode) write(iostd,*) 'Preliminary scan complete.'
+
+    return
+
+  end subroutine preliminaryWAVECARScan
+
+
+!----------------------------------------------------------------------------
+  subroutine readAndWriteWavefunction(nBands, maxGkNum, nKPoints, nPWs1kGlobal, nRecords, nSpins)
+    !! For each spin and k-point, read and write the plane
+    !! wave coefficients for each band
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    use miscUtilities, only: int2str
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nBands
+      !! Total number of bands
+    integer, intent(in) :: maxGkNum
+      !! Maximum number of \(G+k\) combinations
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+    integer, intent(in) :: nPWs1kGlobal(nKpoints)
+      !! Input number of plane waves for a single k-point 
+      !! for all processors
+    integer, intent(in) :: nRecords
+      !! Number of records in the WAVECAR file
+    integer, intent(in) :: nSpins
+      !! Number of spins
+
+    ! Local variables:
+    complex*8, allocatable :: coeff(:,:)
+      !! Plane wave coefficients
+
+    integer :: ionode_k_id
+      !! ID for the node that outputs for this k-point
+    integer :: wfcOutUnit
+      !! Process-dependent file unit for `wfc.ik`
+    integer :: irec, isp, ik, iband, iplane
+      !! Loop indices
+
+    logical :: ionode_k
+      !! If this node is the output node for this k-point
+
+    character(len=300) :: indexC
+      !! Character index
+    character(len=256) :: fileName
+      !! Full WAVECAR file name including path
+
+
+    !> * Only allocate the large array for the plane-wave
+    !>   coefficients if you are going to be one of the
+    !>   processes to output data. This large array is likely
+    !>   the source of any heap out of memory errors. If
+    !>   you get that, try using only a portion of the 
+    !>   available processes on the node.
+    if(myid < nKPoints + (nSpins - 1)*nKPoints + 1) then
+      allocate(coeff(maxGkNum,nBands))
+    else
+      allocate(coeff(1,1))
+    endif
+    
+    !fileName = trim(VASPDir)//'/WAVECAR'
+    fileName = '../WAVECAR'
+      !! Hardcode file name for now until figure out how to broadcast 
+
+    open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old', SHARED)
+    if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
+
+    if(ionode) write(iostd,*) 'Reading and writing plane wave coeffients'
+
+    irec=2
+
+    do isp = 1, nSpins
+      !! * For each spin:
+      !!    * Go through each k-point
+      !!       * Determine if this process is responsible
+      !!         for outputting data for this k-point
+      !!       * Read in the plane wave coefficients for
+      !!         each band
+      !!       * Write out plane wave coefficients to `wfc.ik`
+
+      do ik = 1, nKPoints
+        
+        ionode_k_id = mod(ik+(isp-1)*nKpoints, nProcs)
+        ionode_k = myid == ionode_k_id
+          ! Determine if this process is the node responsible
+          ! for outputting data for this k-point
+
+
+        irec = irec + 1
+       
+        if(ionode_k) then
+          call int2str(ik+(isp-1)*nKPoints, indexC)
+
+          wfcOutUnit = 83 + ionode_k_id
+          !open(wfcOutUnit, file=trim(exportDir)//"/wfc."//trim(indexC))
+          open(wfcOutUnit, file="wfc."//trim(indexC))
+            ! Open `wfc.ik` file to write plane wave coefficients
+            !! Hardcode for now until figure out how to broadcast
+
+          write(wfcOutUnit, '("# Node : ",i10)') myid
+          write(wfcOutUnit, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
+          write(wfcOutUnit, '("# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: ''(2ES24.15E3)''")')
+            ! Write header to `wfc.ik` file
+
+        endif
+
+        do iband = 1, nBands
+
+          irec = irec + 1
+
+          if(ionode_k) then
+            read(unit=wavecarUnit,rec=irec) (coeff(iplane,iband), iplane=1,nPWs1kGlobal(ik))
+              ! Read in the plane wave coefficients for each band
+
+            write(wfcOutUnit,'(2ES24.15E3)') (coeff(iplane,iband), iplane=1,nPWs1kGlobal(ik))
+              ! Write plane wave coefficients to `wfc.ik` file
+          endif
+
+        enddo
+
+        if(ionode_k) close(wfcOutUnit)
+          ! Close `wfc.ik` file
+
+      enddo
+    enddo
+
+    deallocate(coeff)
+    close(wavecarUnit)
 
     return
   end subroutine readAndWriteWavefunction
