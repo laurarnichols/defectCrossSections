@@ -1,4 +1,4 @@
-# Calculate Carrier Cross Sections
+# Defect Cross Sections
 ## Installation
 ### Dependencies
 #### HPC System
