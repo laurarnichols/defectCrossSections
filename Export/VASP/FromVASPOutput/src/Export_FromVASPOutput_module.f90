@@ -1075,6 +1075,8 @@ module wfcExportVASPMod
           nPWs1kGlobal(ik) = nint(nPWs1kGlobal_real)
 
           irec = irec + nBands
+            ! Skip the records for the plane-wave coefficients for now.
+            ! Those are read in the `readAndWriteWavefunction` subroutine.
 
         enddo
       enddo
@@ -1179,10 +1181,14 @@ module wfcExportVASPMod
         ionode_k_id = mod(ik+(isp-1)*nKpoints, nProcs)
         ionode_k = myid == ionode_k_id
           ! Determine if this process is the node responsible
-          ! for outputting data for this k-point
+          ! for outputting data for this k-point. K-points are 
+          ! distributed across processes in a round-robin fashion.
 
 
         irec = irec + 1
+          ! Have all processes increment the record number so
+          ! they know where they are supposed to access the file
+          ! once/if they are the `ionode_k`
        
         if(ionode_k) then
           call int2str(ik+(isp-1)*nKPoints, indexC)
