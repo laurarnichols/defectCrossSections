@@ -1199,7 +1199,6 @@ module wfcExportVASPMod
             ! Open `wfc.ik` file to write plane wave coefficients
             !! Hardcode for now until figure out how to broadcast
 
-          write(wfcOutUnit, '("# Node : ",i10)') myid
           write(wfcOutUnit, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
           write(wfcOutUnit, '("# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: ''(2ES24.15E3)''")')
             ! Write header to `wfc.ik` file
