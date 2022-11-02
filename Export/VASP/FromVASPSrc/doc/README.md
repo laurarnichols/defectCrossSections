@@ -15,3 +15,5 @@ aprun -n 1 path-to-package/bin/Export_FromVASPSrc.x -ks 1 -ke 2 -id '../' -od '.
 ```
 
 I believe that the only files this calculation needs from the VASP calculation are `INCAR`, `KPOINTS`, `POSCAR`, `POTCAR`, `WAVECAR`, and `CHGCAR`.
+
+For compiling the code, make a copy of the VASP 5 source directory and update the path in the main `Makefile`. Go to that copy and run `make std`, then compile the `Export_FromVASPSrc` code. The local `Makefile` will copy over the customized files to the VASP-source copy and compile.
