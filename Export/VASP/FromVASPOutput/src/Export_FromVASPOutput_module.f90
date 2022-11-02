@@ -649,9 +649,9 @@ module wfcExportVASPMod
       !! Full WAVECAR file name including path
 
     
-    fileName = trim(VASPDir)//'/WAVECAR'
-
     if(ionode) then
+
+      fileName = trim(VASPDir)//'/WAVECAR'
 
       nRecords = 24
         ! Set a starting value for the number of records
