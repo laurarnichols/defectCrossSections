@@ -41,6 +41,9 @@ program wfcExportVASPMain
 
   endif
 
+  call MPI_BCAST(exportDir, len(trim(exportDir)), MPI_CHARACTER, root, worldComm, ierr)
+  call MPI_BCAST(VASPDir, len(trim(VASPDir)), MPI_CHARACTER, root, worldComm, ierr)
+
   if (ionode) write(iostd,*) "Reading WAVECAR"
 
   call readWAVECAR(VASPDir, realSpaceLatticeVectors, recipSpaceLatticeVectors, wfcECut, bandOccupation, omega, wfcVecCut, &

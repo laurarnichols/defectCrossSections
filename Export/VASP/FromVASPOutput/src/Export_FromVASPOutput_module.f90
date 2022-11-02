@@ -1042,9 +1042,7 @@ module wfcExportVASPMod
     allocate(nPWs1kGlobal(nKPoints))
     allocate(eigenE(nSpins,nKPoints,nBands))
     
-    !fileName = trim(VASPDir)//'/WAVECAR'
-    fileName = '../WAVECAR'
-      !! Hardcode file name for now until figure out how to broadcast 
+    fileName = trim(VASPDir)//'/WAVECAR'
 
     if(ionode) then
       open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
@@ -1160,9 +1158,7 @@ module wfcExportVASPMod
       allocate(coeff(1,1))
     endif
     
-    !fileName = trim(VASPDir)//'/WAVECAR'
-    fileName = '../WAVECAR'
-      !! Hardcode file name for now until figure out how to broadcast 
+    fileName = trim(VASPDir)//'/WAVECAR'
 
     open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old', SHARED)
     if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
@@ -1194,8 +1190,7 @@ module wfcExportVASPMod
           call int2str(ik+(isp-1)*nKPoints, indexC)
 
           wfcOutUnit = 83 + ionode_k_id
-          !open(wfcOutUnit, file=trim(exportDir)//"/wfc."//trim(indexC))
-          open(wfcOutUnit, file="wfc."//trim(indexC))
+          open(wfcOutUnit, file=trim(exportDir)//"/wfc."//trim(indexC))
             ! Open `wfc.ik` file to write plane wave coefficients
             !! Hardcode for now until figure out how to broadcast
 
