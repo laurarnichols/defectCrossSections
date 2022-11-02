@@ -2784,13 +2784,14 @@ program VASPExport
       !! Command line argument
     character(len=256) :: command_line = ' '
       !! Command line arguments that were not processed
-    character(len=256) :: exportDir_ = './'
-      !! Input value for path to export files
-    character(len=256) :: inputDir_ = './'
-      !! Input value for path to input files
-    character(len=256) :: outputDir_ = './'
-      !! Input value for path to output files
 
+
+    !> Set default values
+    kStart = 1
+    kEnd = -1
+    exportDir = './'
+    inputDir = './'
+    outputDir = './'
 
     nargs = command_argument_count()
       !! * Get the number of arguments input at command line
@@ -2817,15 +2818,15 @@ program VASPExport
           narg = narg + 1
         case('-ed', '-exportDir') 
           call get_command_argument(narg, arg)
-          exportDir_ = trim(arg)
+          exportDir = trim(arg)
           narg = narg + 1
         case('-id', '-inputDir') 
           call get_command_argument(narg, arg)
-          inputDir_ = trim(arg)
+          inputDir = trim(arg)
           narg = narg + 1
         case('-od', '-outputDir') 
           call get_command_argument(narg, arg)
-          outputDir_ = trim(arg)
+          outputDir = trim(arg)
           narg = narg + 1
         case default
           command_line = trim(command_line) // ' ' // trim(arg)
@@ -2836,10 +2837,6 @@ program VASPExport
     if(len_trim(command_line) /= 0) then
       do_io write(*,*) 'Unprocessed command line arguments: ' // trim(command_line)
     endif
-
-    exportDir = trim(exportDir_)
-    inputDir = trim(inputDir_)
-    outputDir = trim(outputDir_)
 
     return
   end subroutine getCommandLineArguments
