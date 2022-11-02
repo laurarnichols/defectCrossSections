@@ -649,9 +649,7 @@ module wfcExportVASPMod
       !! Full WAVECAR file name including path
 
     
-    !fileName = trim(VASPDir)//'/WAVECAR'
-    fileName = '../WAVECAR'
-      !! Hardcode file name for now until figure out how to broadcast 
+    fileName = trim(VASPDir)//'/WAVECAR'
 
     if(ionode) then
 
