@@ -2191,7 +2191,7 @@ module wfcExportVASPMod
 
       do ipw = 1, nPWs1kGlobal(ik)
 
-        expArg = itwopi*sum(atomPosDir(:)*gVecMillerIndicesGlobal(:,gKIndexGlobal(ipw,ik))
+        expArg = itwopi*sum(atomPosDir(:)*gVecMillerIndicesGlobal(:,gKIndexGlobal(ipw,ik)))
           !! \(2\pi i (\mathbf{G} \cdot \mathbf{r})\)
 
         phaseExp(ipw, ia) = exp(expArg)
