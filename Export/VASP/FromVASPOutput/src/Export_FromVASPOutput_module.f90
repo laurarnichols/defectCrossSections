@@ -2180,7 +2180,7 @@ module wfcExportVASPMod
 
     complex(kind=dp) :: expArg
       !! Argument for phase exponential
-    complex(kind=dp) :: itwopi = (0._q, 1._q)*twopi
+    complex(kind=dp) :: itwopi = (0._dp, 1._dp)*twopi
 
     
     do ia = 1, nAtoms
