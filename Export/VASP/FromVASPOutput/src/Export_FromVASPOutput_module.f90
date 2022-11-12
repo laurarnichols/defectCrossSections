@@ -1,6 +1,6 @@
 module wfcExportVASPMod
   
-  use constants, only: dp, iostd, angToBohr, eVToRy, ryToHartree, pi
+  use constants, only: dp, iostd, angToBohr, eVToRy, ryToHartree, pi, twopi
   use mpi
 
   implicit none
@@ -2156,13 +2156,14 @@ module wfcExportVASPMod
 
     complex(kind=dp) :: expArg
       !! Argument for phase exponential
+    complex(kind=dp) :: itwopi = (0._q, 1._q)*twopi
 
     
     do ia = 1, nAtoms
 
       do ipw = 1, nPWs1kGlobal(ik)
 
-        expArg =  
+        expArg = itwopi
 
         phaseExp(ipw, ia) = exp(expArg)
 
