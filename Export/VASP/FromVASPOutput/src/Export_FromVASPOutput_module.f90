@@ -2129,7 +2129,8 @@ module wfcExportVASPMod
 
     do ik = 1, nKPoints
 
-      call calculatePhase(ik, nAtoms, nGVecsLocal, nKPoints, atomPositionsDir)
+      call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, &
+                atomPositionsDir, phaseExp)
 
     enddo
 
