@@ -2154,6 +2154,10 @@ module wfcExportVASPMod
     integer :: ia, ipw
       !! Loop indices
 
+    real(kind=dp) :: xDir, yDir, zDir
+      !! x, y, and z direct coordinates for
+      !! current atom
+
     complex(kind=dp) :: expArg
       !! Argument for phase exponential
     complex(kind=dp) :: itwopi = (0._q, 1._q)*twopi
@@ -2161,9 +2165,15 @@ module wfcExportVASPMod
     
     do ia = 1, nAtoms
 
+      xDir = atomPositionsDir(3,ia)
+      yDir = atomPositionsDir(3,ia)
+      zDir = atomPositionsDir(3,ia)
+        !! Store positions locally so don't have to access 
+        !! array every loop over plane waves
+
       do ipw = 1, nPWs1kGlobal(ik)
 
-        expArg = itwopi
+        expArg = itwopi*(xDir + yDir + zDir)
 
         phaseExp(ipw, ia) = exp(expArg)
 
