@@ -2123,7 +2123,7 @@ module wfcExportVASPMod
     integer :: ik
       !! Loop index
 
-    complex(kind=dp), allocatable :: phaseExp(nPWs1kGlobal(ik),nAtoms)
+    complex(kind=dp), allocatable :: phaseExp(:,:)
       !! Complex phase exponential
 
 
