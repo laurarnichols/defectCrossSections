@@ -83,6 +83,8 @@ module wfcExportVASPMod
 
   complex*16, allocatable :: eigenE(:,:,:)
     !! Band eigenvalues
+  complex(kind=dp), allocatable :: phaseExp(:,:)
+    !! Complex phase exponential
   
   integer, allocatable :: gIndexLocalToGlobal(:)
     !! Converts local index `ig` to global index
@@ -2095,8 +2097,7 @@ module wfcExportVASPMod
   end subroutine read_vasprun_xml
 
 !----------------------------------------------------------------------------
-  subroutine projectors(maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, &
-                phaseExp)
+  subroutine projectors(maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir)
     implicit none
 
     ! Input variables: 
@@ -2120,12 +2121,13 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
 
-    ! Output variables:
-    complex(kind=dp), intent(out) :: phaseExp(nPWs1kGlobal(ik),nAtoms)
-
     ! Local variables:
     integer :: ik
       !! Loop index
+
+    complex(kind=dp), allocatable :: phaseExp(nPWs1kGlobal(ik),nAtoms)
+      !! Complex phase exponential
+
 
     do ik = 1, nKPoints
 
@@ -2137,6 +2139,8 @@ module wfcExportVASPMod
     !call calculatePseudoTimesYlm()
 
     !call writeProjectors()
+
+    deallocate(phaseExp)
 
     return
   end subroutine projectors
@@ -2170,7 +2174,7 @@ module wfcExportVASPMod
       !! Atom positions
 
     ! Output variables:
-    complex(kind=dp), intent(out) :: phaseExp(nPWs1kGlobal(ik),nAtoms)
+    complex(kind=dp), allocatable, intent(out) :: phaseExp(:,:)
 
     ! Local variables:
     integer :: ia, ipw
@@ -2182,7 +2186,9 @@ module wfcExportVASPMod
     complex(kind=dp) :: expArg
       !! Argument for phase exponential
     complex(kind=dp) :: itwopi = (0._dp, 1._dp)*twopi
+      !! Complex phase exponential
 
+    allocate(phaseExp(nPWs1kGlobal(ik), nAtoms))
     
     do ia = 1, nAtoms
 
