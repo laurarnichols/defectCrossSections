@@ -85,7 +85,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Reading vasprun.xml"
 
-  call read_vasprun_xml(realSpaceLatticeVectors, nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomTypes)
+  call read_vasprun_xml(realSpaceLatticeVectors, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, iType, nAtoms, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
   if (ionode) write(iostd,*) "Done reading vasprun.xml"
@@ -129,7 +129,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Writing cell info"
 
-  call writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realSpaceLatticeVectors, recipSpaceLatticeVectors, atomPositions, nAtomsEachType)
+  call writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realSpaceLatticeVectors, recipSpaceLatticeVectors, atomPositionsDir, nAtomsEachType)
     !! * Write out the real- and reciprocal-space lattice vectors, 
     !!   the number of atoms, the number of types of atoms, the
     !!   final atom positions, number of bands, and number of spins,
@@ -139,7 +139,7 @@ program wfcExportVASPMain
 
   
   deallocate(iType)
-  deallocate(atomPositions)
+  deallocate(atomPositionsDir)
 
   if (ionode) write(iostd,*) "Writing pseudo info"
 

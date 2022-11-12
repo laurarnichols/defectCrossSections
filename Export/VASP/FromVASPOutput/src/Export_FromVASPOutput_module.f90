@@ -70,8 +70,8 @@ module wfcExportVASPMod
     !! Occupation of band
   real(kind=dp) :: omega
     !! Volume of unit cell
-  real(kind=dp), allocatable :: atomPositions(:,:)
-    !! Atom positions
+  real(kind=dp), allocatable :: atomPositionsDir(:,:)
+    !! Atom positions in direct coordinates
   real(kind=dp) :: tStart
     !! Start time
   real(kind=dp) :: wfcVecCut
@@ -1909,7 +1909,7 @@ module wfcExportVASPMod
   end subroutine hpsort_eps
 
 !----------------------------------------------------------------------------
-  subroutine read_vasprun_xml(realSpaceLatticeVectors, nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomTypes)
+  subroutine read_vasprun_xml(realSpaceLatticeVectors, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, iType, nAtoms, nAtomTypes)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
     !! <h2>Walkthrough</h2>
@@ -1929,6 +1929,8 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: atomPositionsDir(:,:)
+      !! Atom positions in direct coordinates
     real(kind=dp), intent(out) :: eFermi
       !! Fermi energy
     real(kind=dp), allocatable, intent(out) :: kWeight(:)
@@ -1943,10 +1945,7 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    real(kind=dp) :: dir(3)
-      !! Direct coordinates read from file
-
-    integer :: ik, ia, i, ix
+    integer :: ik, ia, i
       !! Loop indices
 
     character(len=256) :: cDum
@@ -2064,12 +2063,12 @@ module wfcExportVASPMod
         
       enddo
 
-      allocate(atomPositions(3,nAtoms))
+      allocate(atomPositionsDir(3,nAtoms))
 
       do ia = 1, nAtoms
         !! * Read in the final position for each atom
 
-        read(57,*) cDum, (dir(i),i=1,3), cDum
+        read(57,*) cDum, (atomPositionsDir(i,ia),i=1,3), cDum
           !! @note
           !!  I assume that the coordinates are always direct
           !!  in the `vasprun.xml` file and that the scaling
@@ -2077,13 +2076,6 @@ module wfcExportVASPMod
           !!  listed anywhere in that file. Extensive testing
           !!  needs to be done to confirm this assumption.
           !! @endnote
-
-        do ix = 1, 3
-
-          atomPositions(ix,ia) = sum(dir(:)*realSpaceLatticeVectors(ix,:))
-            !! @todo Test logic of direct to cartesian coordinates with scaling factor @endtodo
-
-        enddo
 
       enddo
 
@@ -2094,16 +2086,16 @@ module wfcExportVASPMod
     call MPI_BCAST(nAtomTypes, 1, MPI_INTEGER, root, worldComm, ierr)
 
     if (.not. ionode) allocate(iType(nAtoms))
-    if (.not. ionode) allocate(atomPositions(3,nAtoms))
+    if (.not. ionode) allocate(atomPositionsDir(3,nAtoms))
 
     call MPI_BCAST(iType, size(iType), MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(atomPositions, size(atomPositions), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(atomPositionsDir, size(atomPositionsDir), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
   end subroutine read_vasprun_xml
 
 !----------------------------------------------------------------------------
-  subroutine projectors(nAtoms, nGVecsLocal, nKPoints)
+  subroutine projectors(nAtoms, nGVecsLocal, nKPoints, atomPositionsDir)
     implicit none
 
     ! Input variables: 
@@ -2114,7 +2106,10 @@ module wfcExportVASPMod
     integer, intent(in) :: nKPoints
       !! Total number of k-points
 
-    call calculatePhase(nAtoms, nGVecsLocal, nKPoints)
+    real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
+      !! Atom positions
+
+    call calculatePhase(nAtoms, nGVecsLocal, nKPoints, atomPositionsDir)
 
     !call calculatePseudoTimesYlm()
 
@@ -2124,7 +2119,7 @@ module wfcExportVASPMod
   end subroutine projectors
 
 !----------------------------------------------------------------------------
-  subroutine calculatePhase(nAtoms, nGVecsLocal, nKPoints)
+  subroutine calculatePhase(nAtoms, nGVecsLocal, nKPoints, atomPositionsDir)
     implicit none
 
     ! Input variables: 
@@ -2135,6 +2130,9 @@ module wfcExportVASPMod
     integer, intent(in) :: nKPoints
       !! Total number of k-points
 
+    real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
+      !! Atom positions
+
     ! Local variables:
     integer :: ik, ia
       !! Loop index
@@ -2143,13 +2141,8 @@ module wfcExportVASPMod
     do ik = 1, nKPoints
       
       do ia = 1, nAtoms
-      !! @todo 
-      !!  Get atom positions in direct coordinates:
-      !!    * Change `atomPositions` to `atomPositionsDir` and store direct coordinates
-      !!    * Move conversion from direct to cartesian to write-out point
-      !!    * Pass `atomPositionsDir` to `calculatePhase`
-      !! @endtodo
 
+      enddo
     enddo
 
     return
@@ -2916,7 +2909,7 @@ module wfcExportVASPMod
 
 
 !----------------------------------------------------------------------------
-  subroutine writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realSpaceLatticeVectors, recipSpaceLatticeVectors, atomPositions, nAtomsEachType)
+  subroutine writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realSpaceLatticeVectors, recipSpaceLatticeVectors, atomPositionsDir, nAtomsEachType)
     !! Write out the real- and reciprocal-space lattice vectors, 
     !! the number of atoms, the number of types of atoms, the
     !! final atom positions, number of bands, and number of spins,
@@ -2940,7 +2933,7 @@ module wfcExportVASPMod
       !! Real space lattice vectors
     real(kind=dp), intent(in) :: recipSpaceLatticeVectors(3,3)
       !! Reciprocal lattice vectors
-    real(kind=dp), intent(in) :: atomPositions(3,nAtoms)
+    real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
 
 
@@ -2950,8 +2943,11 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: i
-      !! Loop index
+    real(kind=dp) :: atomPositionCart(3)
+      !! Position of given atom in cartesian coordinates
+
+    integer :: i, ia, ix
+      !! Loop indices
 
 
     if (ionode) then
@@ -2973,8 +2969,18 @@ module wfcExportVASPMod
       write(mainOutFileUnit, '(i10)') nAtomTypes
     
       write(mainOutFileUnit, '("# Atoms type, position(1:3) (a.u.). Format: ''(i10,3ES24.15E3)''")')
-      do i = 1, nAtoms
-        write(mainOutFileUnit,'(i10,3ES24.15E3)') iType(i), atomPositions(:,i)
+
+      do ia = 1, nAtoms
+
+        do ix = 1, 3
+
+          atomPositionCart(ix) = sum(atomPositionsDir(:,ia)*realSpaceLatticeVectors(ix,:))
+            !! @todo Test logic of direct to cartesian coordinates with scaling factor @endtodo
+
+        enddo
+
+        write(mainOutFileUnit,'(i10,3ES24.15E3)') iType(i), atomPositionCart(:)
+
       enddo
     
       write(mainOutFileUnit, '("# Number of Bands. Format: ''(i10)''")')
