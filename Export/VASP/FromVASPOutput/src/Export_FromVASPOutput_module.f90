@@ -2979,7 +2979,7 @@ module wfcExportVASPMod
 
         enddo
 
-        write(mainOutFileUnit,'(i10,3ES24.15E3)') iType(i), atomPositionCart(:)
+        write(mainOutFileUnit,'(i10,3ES24.15E3)') iType(ia), atomPositionCart(:)
 
       enddo
     
