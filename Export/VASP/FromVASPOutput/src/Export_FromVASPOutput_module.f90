@@ -2178,7 +2178,7 @@ module wfcExportVASPMod
     integer :: ia, ipw
       !! Loop indices
 
-    real(kind=dp) :: atomPosDir
+    real(kind=dp) :: atomPosDir(3)
       !! Direct coordinates for current atom
 
     complex(kind=dp) :: expArg
