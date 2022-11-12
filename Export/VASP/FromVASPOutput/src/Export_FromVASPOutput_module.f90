@@ -2095,21 +2095,33 @@ module wfcExportVASPMod
   end subroutine read_vasprun_xml
 
 !----------------------------------------------------------------------------
-  subroutine projectors(nAtoms, nGVecsLocal, nKPoints, atomPositionsDir, nPWs1kGlobal)
+  subroutine projectors(maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, &
+                phaseExp)
     implicit none
 
     ! Input variables: 
+    integer, intent(in) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `wfcECut` among all k-points
     integer, intent(in) :: nAtoms
       !! Number of atoms
-    integer, intent(in) :: nGVecsLocal
-      !! Local number of G-vectors on this processor
+    integer, intent(in) :: nGVecsGlobal
+      !! Global number of G-vectors
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+    integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: nPWs1kGlobal(nKPoints)
       !! Input number of plane waves for a single k-point
 
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
+
+    ! Output variables:
+    complex(kind=dp), intent(out) :: phaseExp(nPWs1kGlobal(ik),nAtoms)
 
     ! Local variables:
     integer :: ik
@@ -2129,18 +2141,27 @@ module wfcExportVASPMod
   end subroutine projectors
 
 !----------------------------------------------------------------------------
-  subroutine calculatePhase(ik, nAtoms, nGVecsLocal, nKPoints, atomPositionsDir, nPWs1kGlobal)
+  subroutine calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, &
+                atomPositionsDir, phaseExp)
     implicit none
 
     ! Input variables: 
     integer, intent(in) :: ik
       !! Current k-point
+    integer, intent(in) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `wfcECut` among all k-points
     integer, intent(in) :: nAtoms
       !! Number of atoms
-    integer, intent(in) :: nGVecsLocal
-      !! Local number of G-vectors on this processor
+    integer, intent(in) :: nGVecsGlobal
+      !! Global number of G-vectors
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+    integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: nPWs1kGlobal(nKPoints)
       !! Input number of plane waves for a single k-point
 
@@ -2148,15 +2169,14 @@ module wfcExportVASPMod
       !! Atom positions
 
     ! Output variables:
-    complex(kind=dp) :: phaseExp(nPWs1kGlobal(ik),nAtoms)
+    complex(kind=dp), intent(out) :: phaseExp(nPWs1kGlobal(ik),nAtoms)
 
     ! Local variables:
     integer :: ia, ipw
       !! Loop indices
 
-    real(kind=dp) :: xDir, yDir, zDir
-      !! x, y, and z direct coordinates for
-      !! current atom
+    real(kind=dp) :: atomPosDir
+      !! Direct coordinates for current atom
 
     complex(kind=dp) :: expArg
       !! Argument for phase exponential
@@ -2165,15 +2185,14 @@ module wfcExportVASPMod
     
     do ia = 1, nAtoms
 
-      xDir = atomPositionsDir(3,ia)
-      yDir = atomPositionsDir(3,ia)
-      zDir = atomPositionsDir(3,ia)
+      atomPosDir = atomPositionsDir(:,ia)
         !! Store positions locally so don't have to access 
         !! array every loop over plane waves
 
       do ipw = 1, nPWs1kGlobal(ik)
 
-        expArg = itwopi*(xDir + yDir + zDir)
+        expArg = itwopi*sum(atomPosDir(:)*gVecMillerIndicesGlobal(:,gKIndexGlobal(ipw,ik))
+          !! \(2\pi i (\mathbf{G} \cdot \mathbf{r})\)
 
         phaseExp(ipw, ia) = exp(expArg)
 
