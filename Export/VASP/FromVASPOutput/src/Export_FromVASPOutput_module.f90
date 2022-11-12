@@ -2095,7 +2095,7 @@ module wfcExportVASPMod
   end subroutine read_vasprun_xml
 
 !----------------------------------------------------------------------------
-  subroutine projectors(nAtoms, nGVecsLocal, nKPoints, atomPositionsDir)
+  subroutine projectors(nAtoms, nGVecsLocal, nKPoints, atomPositionsDir, nPWs1kGlobal)
     implicit none
 
     ! Input variables: 
@@ -2105,6 +2105,8 @@ module wfcExportVASPMod
       !! Local number of G-vectors on this processor
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+    integer, intent(in) :: nPWs1kGlobal(nKPoints)
+      !! Input number of plane waves for a single k-point
 
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
@@ -2119,7 +2121,7 @@ module wfcExportVASPMod
   end subroutine projectors
 
 !----------------------------------------------------------------------------
-  subroutine calculatePhase(nAtoms, nGVecsLocal, nKPoints, atomPositionsDir)
+  subroutine calculatePhase(nAtoms, nGVecsLocal, nKPoints, atomPositionsDir, nPWs1kGlobal)
     implicit none
 
     ! Input variables: 
@@ -2129,12 +2131,14 @@ module wfcExportVASPMod
       !! Local number of G-vectors on this processor
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+    integer, intent(in) :: nPWs1kGlobal(nKPoints)
+      !! Input number of plane waves for a single k-point
 
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
 
     ! Local variables:
-    integer :: ik, ia
+    integer :: ik, ia, ipw
       !! Loop index
 
     
@@ -2142,6 +2146,11 @@ module wfcExportVASPMod
       
       do ia = 1, nAtoms
 
+        do ipw = 1, nPWs1kGlobal(ik)
+
+          
+
+        enddo
       enddo
     enddo
 
