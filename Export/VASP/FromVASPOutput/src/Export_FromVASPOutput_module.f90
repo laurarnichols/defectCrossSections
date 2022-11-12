@@ -670,7 +670,7 @@ module wfcExportVASPMod
       prec = nint(prec_real)
         ! Convert input variables to integers
 
-      !if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
+      if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
       open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
       if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
@@ -2111,7 +2111,15 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
 
-    call calculatePhase(nAtoms, nGVecsLocal, nKPoints, atomPositionsDir)
+    ! Local variables:
+    integer :: ik
+      !! Loop index
+
+    do ik = 1, nKPoints
+
+      call calculatePhase(ik, nAtoms, nGVecsLocal, nKPoints, atomPositionsDir)
+
+    enddo
 
     !call calculatePseudoTimesYlm()
 
@@ -2121,10 +2129,12 @@ module wfcExportVASPMod
   end subroutine projectors
 
 !----------------------------------------------------------------------------
-  subroutine calculatePhase(nAtoms, nGVecsLocal, nKPoints, atomPositionsDir, nPWs1kGlobal)
+  subroutine calculatePhase(ik, nAtoms, nGVecsLocal, nKPoints, atomPositionsDir, nPWs1kGlobal)
     implicit none
 
     ! Input variables: 
+    integer, intent(in) :: ik
+      !! Current k-point
     integer, intent(in) :: nAtoms
       !! Number of atoms
     integer, intent(in) :: nGVecsLocal
@@ -2137,20 +2147,25 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
 
+    ! Output variables:
+    complex(kind=dp) :: phaseExp(nPWs1kGlobal(ik),nAtoms)
+
     ! Local variables:
-    integer :: ik, ia, ipw
-      !! Loop index
+    integer :: ia, ipw
+      !! Loop indices
+
+    complex(kind=dp) :: expArg
+      !! Argument for phase exponential
 
     
-    do ik = 1, nKPoints
-      
-      do ia = 1, nAtoms
+    do ia = 1, nAtoms
 
-        do ipw = 1, nPWs1kGlobal(ik)
+      do ipw = 1, nPWs1kGlobal(ik)
 
-          
+        expArg =  
 
-        enddo
+        phaseExp(ipw, ia) = exp(expArg)
+
       enddo
     enddo
 
