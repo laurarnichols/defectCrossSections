@@ -83,8 +83,6 @@ module wfcExportVASPMod
 
   complex*16, allocatable :: eigenE(:,:,:)
     !! Band eigenvalues
-  complex(kind=dp), allocatable :: phaseExp(:,:)
-    !! Complex phase exponential
   
   integer, allocatable :: gIndexLocalToGlobal(:)
     !! Converts local index `ig` to global index
