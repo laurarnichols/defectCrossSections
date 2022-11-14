@@ -2120,8 +2120,13 @@ module wfcExportVASPMod
       !! Atom positions
 
     ! Local variables:
+    integer :: ionode_k_id
+      !! ID for the node that outputs for this k-point
     integer :: ik
       !! Loop index
+
+    logical :: ionode_k
+      !! If this node is the output node for this k-point
 
     complex(kind=dp), allocatable :: phaseExp(:,:)
       !! Complex phase exponential
@@ -2129,14 +2134,24 @@ module wfcExportVASPMod
 
     do ik = 1, nKPoints
 
-      call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal(ik), &
-                atomPositionsDir, phaseExp)
+      ionode_k_id = mod(ik+(isp-1)*nKpoints, nProcs)
+      ionode_k = myid == ionode_k_id
+        ! Determine if this process is the node responsible
+        ! for outputting data for this k-point. K-points are 
+        ! distributed across processes in a round-robin fashion.
+
+      if(ionode_k) then
+
+        call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal(ik), &
+                  atomPositionsDir, phaseExp)
+
+        !call calculateRealProjWoPhase()
+
+        !call writeProjectors()
+
+      endif
 
     enddo
-
-    !call calculateRealProjWoPhase()
-
-    !call writeProjectors()
 
     deallocate(phaseExp)
 
