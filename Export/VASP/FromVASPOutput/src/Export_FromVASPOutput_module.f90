@@ -2233,34 +2233,40 @@ module wfcExportVASPMod
       LMIND = 1
 
       do L = 1, LMAX(iT)
-        !! @note
-        !!  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
-        !!  `SPHER` is called with `IZERO=1` along with the comment "relalculate the 
-        !!  projection operators (the array was used as a workspace)." `SPHER` is what is
-        !!  used to calculate `QPROJ`, which is what we call `realProjWoPhase` here. 
-        !!
-        !!  Based on this comment, I am going to assume `IZERO = 1`.
-        !! @endnote
 
         LMBASE = LL**2 + 1
 
         do LM = 0, MMAX
           
           do IND=1,INDMAX
-            realProjWoPhase(IND,LMIND+LM,iT) = realProjWoPhase(IND,LMIND+LM,iT) + VPS(IND)*Ylm(IND,LM+LMBASE)
+            realProjWoPhase(IND,LMIND+LM,iT) = VPS(IND)*Ylm(IND,LM+LMBASE)
               !! @note
               !!  This code does not work with spin spirals! For that to work, would need 
               !!  an additional index at the end of the array for `ISPINOR`.
               !! @endnote
+              !!
               !! @todo Add test to kill job if `NONL_S%LSPIRAL = .TRUE.` @endtodo
+              !!
               !! @note
-              !!  `pseudoTimesYlm` corresponds to `QPROJ`, but it only stores as much as needed 
+              !!  `realProjWoPhase` corresponds to `QPROJ`, but it only stores as much as needed 
               !!  for our application.
               !! @endnote
+              !!
               !! @note
               !!  `QPROJ` is accessed as `QPROJ(ipw,ilm,iT,ik,1)`, where `ipw` is over the number
               !!  of plane waves at a specfic k-point, `ilm` goes from 1 to `WDES%LMMAX(iT)` and
               !!  `iT` is the atom-type index.
+              !! @endnote
+              !!
+              !! @note
+              !!  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
+              !!  `SPHER` is called with `IZERO=1` along with the comment "relalculate the 
+              !!  projection operators (the array was used as a workspace)." `SPHER` is what is
+              !!  used to calculate `QPROJ`.
+              !!
+              !!  Based on this comment, I am going to assume `IZERO = 1`, which means that
+              !!  `realProjWoPhase` is calculated directly rather than being added to what was
+              !!  previously stored in the array, as is done in the `SPHER` subroutine.
               !! @endnote
           enddo
         enddo
