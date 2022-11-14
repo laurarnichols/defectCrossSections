@@ -2134,7 +2134,7 @@ module wfcExportVASPMod
 
     enddo
 
-    !call calculatePseudoTimesYlm()
+    call calculatePseudoTimesYlm()
 
     !call writeProjectors()
 
@@ -2206,6 +2206,14 @@ module wfcExportVASPMod
 
     return
   end subroutine calculatePhase
+
+!----------------------------------------------------------------------------
+  subroutine calculatePseudoTimesYlm()
+    implicit none
+
+
+    return
+  end subroutine calculatePseudoTimesYlm
 
 !----------------------------------------------------------------------------
   subroutine readPOTCAR(nAtomTypes, VASPDir, ps)
