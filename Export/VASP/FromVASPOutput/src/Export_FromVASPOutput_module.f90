@@ -2129,7 +2129,7 @@ module wfcExportVASPMod
 
     do ik = 1, nKPoints
 
-      call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, &
+      call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal(ik), &
                 atomPositionsDir, phaseExp)
 
     enddo
@@ -2144,7 +2144,7 @@ module wfcExportVASPMod
   end subroutine projectors
 
 !----------------------------------------------------------------------------
-  subroutine calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, &
+  subroutine calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1k, &
                 atomPositionsDir, phaseExp)
     implicit none
 
@@ -2165,8 +2165,8 @@ module wfcExportVASPMod
       !! and all processors
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
-    integer, intent(in) :: nPWs1kGlobal(nKPoints)
-      !! Input number of plane waves for a single k-point
+    integer, intent(in) :: nPWs1k
+      !! Input number of plane waves for the given k-point
 
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
@@ -2186,7 +2186,7 @@ module wfcExportVASPMod
     complex(kind=dp) :: itwopi = (0._dp, 1._dp)*twopi
       !! Complex phase exponential
 
-    allocate(phaseExp(nPWs1kGlobal(ik), nAtoms))
+    allocate(phaseExp(nPWs1k, nAtoms))
     
     do ia = 1, nAtoms
 
@@ -2194,7 +2194,7 @@ module wfcExportVASPMod
         !! Store positions locally so don't have to access 
         !! array every loop over plane waves
 
-      do ipw = 1, nPWs1kGlobal(ik)
+      do ipw = 1, nPWs1k
 
         expArg = itwopi*sum(atomPosDir(:)*gVecMillerIndicesGlobal(:,gKIndexGlobal(ipw,ik)))
           !! \(2\pi i (\mathbf{G} \cdot \mathbf{r})\)
@@ -2208,7 +2208,7 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(ik, nAtomTypes, pseudoTimesYlm)
+  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nPWs1k, pseudoTimesYlm)
     implicit none
 
     ! Input variables:
@@ -2216,18 +2216,20 @@ module wfcExportVASPMod
       !! Current k-point 
     integer, intent(in) :: nAtomTypes
       !! Number of types of atoms
+    integer, intent(in) :: nPWs1k
+      !! Input number of plane waves for the given k-point
 
     ! Output variables:
     real(kind=dp), allocatable, intent(out) :: realProjWoPhase(:,:,:)
       !! Real projectors without phase
 
     ! Local variables:
-    integer :: iT
+    integer :: iT, ipw
       !! Loop index
 
     allocate(pseudoTimesYlm(,,nAtomTypes))
 
-    call getYlm(LYDIM, INDMAX, Ylm, XS, YS, ZS)
+    call getYlm(LYDIM, nPWs1k, Ylm, XS, YS, ZS)
 
     do iT = 1, nAtomTypes
       LMIND = 1
@@ -2240,8 +2242,9 @@ module wfcExportVASPMod
 
         do LM = 0, MMAX
           
-          do IND=1,INDMAX
-            realProjWoPhase(IND,LMIND+LM,iT) = VPS(IND)*Ylm(IND,LM+LMBASE)
+          do ipw = 1, nPWs1k
+
+            realProjWoPhase(ipw,LMIND+LM,iT) = VPS(ipw)*Ylm(ipw,LM+LMBASE)
               !! @note
               !!  This code does not work with spin spirals! For that to work, would need 
               !!  an additional index at the end of the array for `ISPINOR`.
