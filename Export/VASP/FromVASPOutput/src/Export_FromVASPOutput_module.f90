@@ -2211,6 +2211,29 @@ module wfcExportVASPMod
   subroutine calculatePseudoTimesYlm()
     implicit none
 
+    call getYlm(LYDIM, INDMAX, Ylm, XS, YS, ZS)
+
+    do iT = 1, nAtomTypes
+      LMIND = 1
+
+      do L = 1, LMAX(iT)
+
+        do LM = 0, MMAX
+          
+          do IND=1,INDMAX
+            NONL_S%QPROJ(IND,LMIND+LM,NT,NK,ISPINOR)= NONL_S%QPROJ(IND,LMIND+LM,NT,NK,ISPINOR)+ &
+                 VPS(IND)*YLM(IND,LM+LMBASE)
+          enddo
+        enddo
+        
+        LMIND=LMIND+MMAX+1
+
+      enddo
+
+      if(LMIND-1 /= LMMAX(iT)) call exitError('calculatePseudoTimesYlm', 'LMMAX is wrong', 1)
+
+    enddo
+
 
     return
   end subroutine calculatePseudoTimesYlm
