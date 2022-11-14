@@ -2095,216 +2095,6 @@ module wfcExportVASPMod
   end subroutine read_vasprun_xml
 
 !----------------------------------------------------------------------------
-  subroutine projectors(maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir)
-    implicit none
-
-    ! Input variables: 
-    integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
-    integer, intent(in) :: nAtoms
-      !! Number of atoms
-    integer, intent(in) :: nGVecsGlobal
-      !! Global number of G-vectors
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-    integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors
-    integer, intent(in) :: nPWs1kGlobal(nKPoints)
-      !! Input number of plane waves for a single k-point
-
-    real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
-      !! Atom positions
-
-    ! Local variables:
-    integer :: ionode_k_id
-      !! ID for the node that outputs for this k-point
-    integer :: ik
-      !! Loop index
-
-    logical :: ionode_k
-      !! If this node is the output node for this k-point
-
-    complex(kind=dp), allocatable :: phaseExp(:,:)
-      !! Complex phase exponential
-
-
-    do ik = 1, nKPoints
-
-      ionode_k_id = mod(ik+(isp-1)*nKpoints, nProcs)
-      ionode_k = myid == ionode_k_id
-        ! Determine if this process is the node responsible
-        ! for outputting data for this k-point. K-points are 
-        ! distributed across processes in a round-robin fashion.
-
-      if(ionode_k) then
-
-        call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal(ik), &
-                  atomPositionsDir, phaseExp)
-
-        !call calculateRealProjWoPhase()
-
-        !call writeProjectors()
-
-      endif
-
-    enddo
-
-    deallocate(phaseExp)
-
-    return
-  end subroutine projectors
-
-!----------------------------------------------------------------------------
-  subroutine calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1k, &
-                atomPositionsDir, phaseExp)
-    implicit none
-
-    ! Input variables: 
-    integer, intent(in) :: ik
-      !! Current k-point
-    integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
-    integer, intent(in) :: nAtoms
-      !! Number of atoms
-    integer, intent(in) :: nGVecsGlobal
-      !! Global number of G-vectors
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-    integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors
-    integer, intent(in) :: nPWs1k
-      !! Input number of plane waves for the given k-point
-
-    real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
-      !! Atom positions
-
-    ! Output variables:
-    complex(kind=dp), allocatable, intent(out) :: phaseExp(:,:)
-
-    ! Local variables:
-    integer :: ia, ipw
-      !! Loop indices
-
-    real(kind=dp) :: atomPosDir(3)
-      !! Direct coordinates for current atom
-
-    complex(kind=dp) :: expArg
-      !! Argument for phase exponential
-    complex(kind=dp) :: itwopi = (0._dp, 1._dp)*twopi
-      !! Complex phase exponential
-
-    allocate(phaseExp(nPWs1k, nAtoms))
-    
-    do ia = 1, nAtoms
-
-      atomPosDir = atomPositionsDir(:,ia)
-        !! Store positions locally so don't have to access 
-        !! array every loop over plane waves
-
-      do ipw = 1, nPWs1k
-
-        expArg = itwopi*sum(atomPosDir(:)*gVecMillerIndicesGlobal(:,gKIndexGlobal(ipw,ik)))
-          !! \(2\pi i (\mathbf{G} \cdot \mathbf{r})\)
-
-        phaseExp(ipw, ia) = exp(expArg)
-
-      enddo
-    enddo
-
-    return
-  end subroutine calculatePhase
-
-!----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nPWs1k, pseudoTimesYlm)
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: ik
-      !! Current k-point 
-    integer, intent(in) :: nAtomTypes
-      !! Number of types of atoms
-    integer, intent(in) :: nPWs1k
-      !! Input number of plane waves for the given k-point
-
-    ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: realProjWoPhase(:,:,:)
-      !! Real projectors without phase
-
-    ! Local variables:
-    integer :: iT, ipw
-      !! Loop index
-
-    allocate(pseudoTimesYlm(,,nAtomTypes))
-
-    call getYlm(LYDIM, nPWs1k, Ylm, XS, YS, ZS)
-
-    do iT = 1, nAtomTypes
-      LMIND = 1
-
-      do L = 1, LMAX(iT)
-
-        LL = P(iT)%LPS(L)
-        MMAX = 2*LL
-        LMBASE = LL**2 + 1
-
-        do LM = 0, MMAX
-          
-          do ipw = 1, nPWs1k
-
-            realProjWoPhase(ipw,LMIND+LM,iT) = VPS(ipw)*Ylm(ipw,LM+LMBASE)
-              !! @note
-              !!  This code does not work with spin spirals! For that to work, would need 
-              !!  an additional index at the end of the array for `ISPINOR`.
-              !! @endnote
-              !!
-              !! @todo Add test to kill job if `NONL_S%LSPIRAL = .TRUE.` @endtodo
-              !!
-              !! @note
-              !!  `realProjWoPhase` corresponds to `QPROJ`, but it only stores as much as needed 
-              !!  for our application.
-              !! @endnote
-              !!
-              !! @note
-              !!  `QPROJ` is accessed as `QPROJ(ipw,ilm,iT,ik,1)`, where `ipw` is over the number
-              !!  of plane waves at a specfic k-point, `ilm` goes from 1 to `WDES%LMMAX(iT)` and
-              !!  `iT` is the atom-type index.
-              !! @endnote
-              !!
-              !! @note
-              !!  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
-              !!  `SPHER` is called with `IZERO=1` along with the comment "relalculate the 
-              !!  projection operators (the array was used as a workspace)." `SPHER` is what is
-              !!  used to calculate `QPROJ`.
-              !!
-              !!  Based on this comment, I am going to assume `IZERO = 1`, which means that
-              !!  `realProjWoPhase` is calculated directly rather than being added to what was
-              !!  previously stored in the array, as is done in the `SPHER` subroutine.
-              !! @endnote
-          enddo
-        enddo
-        
-        LMIND=LMIND+MMAX+1
-
-      enddo
-
-      if(LMIND-1 /= LMMAX(iT)) call exitError('calculatePseudoTimesYlm', 'LMMAX is wrong', 1)
-
-    enddo
-
-    deallocate(pseudoTimesYlm)
-
-    return
-  end subroutine calculateRealProjWoPhase
-
-!----------------------------------------------------------------------------
   subroutine readPOTCAR(nAtomTypes, VASPDir, ps)
     !! Read PAW pseudopotential information from POTCAR
     !! file
@@ -2655,6 +2445,219 @@ module wfcExportVASPMod
 
     return
   end subroutine readPOTCAR
+
+!----------------------------------------------------------------------------
+  subroutine projectors(maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir)
+    implicit none
+
+    ! Input variables: 
+    integer, intent(in) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `wfcECut` among all k-points
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+    integer, intent(in) :: nGVecsGlobal
+      !! Global number of G-vectors
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+    integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: nPWs1kGlobal(nKPoints)
+      !! Input number of plane waves for a single k-point
+
+    real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
+      !! Atom positions
+
+    ! Local variables:
+    integer :: ionode_k_id
+      !! ID for the node that outputs for this k-point
+    integer :: ik
+      !! Loop index
+
+    logical :: ionode_k
+      !! If this node is the output node for this k-point
+
+    complex(kind=dp), allocatable :: phaseExp(:,:)
+      !! Complex phase exponential
+
+
+    do ik = 1, nKPoints
+
+      ionode_k_id = mod(ik+(isp-1)*nKpoints, nProcs)
+      ionode_k = myid == ionode_k_id
+        ! Determine if this process is the node responsible
+        ! for outputting data for this k-point. K-points are 
+        ! distributed across processes in a round-robin fashion.
+
+      if(ionode_k) then
+
+        call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal(ik), &
+                  atomPositionsDir, phaseExp)
+
+        !call calculateRealProjWoPhase()
+
+        !call writeProjectors()
+
+      endif
+
+    enddo
+
+    deallocate(phaseExp)
+
+    return
+  end subroutine projectors
+
+!----------------------------------------------------------------------------
+  subroutine calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1k, &
+                atomPositionsDir, phaseExp)
+    implicit none
+
+    ! Input variables: 
+    integer, intent(in) :: ik
+      !! Current k-point
+    integer, intent(in) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `wfcECut` among all k-points
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+    integer, intent(in) :: nGVecsGlobal
+      !! Global number of G-vectors
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+    integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: nPWs1k
+      !! Input number of plane waves for the given k-point
+
+    real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
+      !! Atom positions
+
+    ! Output variables:
+    complex(kind=dp), allocatable, intent(out) :: phaseExp(:,:)
+
+    ! Local variables:
+    integer :: ia, ipw
+      !! Loop indices
+
+    real(kind=dp) :: atomPosDir(3)
+      !! Direct coordinates for current atom
+
+    complex(kind=dp) :: expArg
+      !! Argument for phase exponential
+    complex(kind=dp) :: itwopi = (0._dp, 1._dp)*twopi
+      !! Complex phase exponential
+
+    allocate(phaseExp(nPWs1k, nAtoms))
+    
+    do ia = 1, nAtoms
+
+      atomPosDir = atomPositionsDir(:,ia)
+        !! Store positions locally so don't have to access 
+        !! array every loop over plane waves
+
+      do ipw = 1, nPWs1k
+
+        expArg = itwopi*sum(atomPosDir(:)*gVecMillerIndicesGlobal(:,gKIndexGlobal(ipw,ik)))
+          !! \(2\pi i (\mathbf{G} \cdot \mathbf{r})\)
+
+        phaseExp(ipw, ia) = exp(expArg)
+
+      enddo
+    enddo
+
+    return
+  end subroutine calculatePhase
+
+!----------------------------------------------------------------------------
+  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nPWs1k, ps, realProjWoPhase)
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ik
+      !! Current k-point 
+    integer, intent(in) :: nAtomTypes
+      !! Number of types of atoms
+    integer, intent(in) :: nPWs1k
+      !! Input number of plane waves for the given k-point
+
+    type (pseudo) :: ps(nAtomTypes)
+      !! Holds all information needed from pseudopotential
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: realProjWoPhase(:,:,:)
+      !! Real projectors without phase
+
+    ! Local variables:
+    integer :: iT, ipw
+      !! Loop index
+
+    allocate(pseudoTimesYlm(nPWs1k,,nAtomTypes))
+
+    call getYlm(LYDIM, nPWs1k, Ylm, XS, YS, ZS)
+
+    do iT = 1, nAtomTypes
+      LMIND = 1
+
+      do L = 1, LMAX(iT)
+
+        LL = P(iT)%LPS(L)
+        MMAX = 2*LL
+        LMBASE = LL**2 + 1
+
+        do LM = 0, MMAX
+          
+          do ipw = 1, nPWs1k
+
+            realProjWoPhase(ipw,LMIND+LM,iT) = VPS(ipw)*Ylm(ipw,LM+LMBASE)
+              !! @note
+              !!  This code does not work with spin spirals! For that to work, would need 
+              !!  an additional index at the end of the array for `ISPINOR`.
+              !! @endnote
+              !!
+              !! @todo Add test to kill job if `NONL_S%LSPIRAL = .TRUE.` @endtodo
+              !!
+              !! @note
+              !!  `realProjWoPhase` corresponds to `QPROJ`, but it only stores as much as needed 
+              !!  for our application.
+              !! @endnote
+              !!
+              !! @note
+              !!  `QPROJ` is accessed as `QPROJ(ipw,ilm,iT,ik,1)`, where `ipw` is over the number
+              !!  of plane waves at a specfic k-point, `ilm` goes from 1 to `WDES%LMMAX(iT)` and
+              !!  `iT` is the atom-type index.
+              !! @endnote
+              !!
+              !! @note
+              !!  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
+              !!  `SPHER` is called with `IZERO=1` along with the comment "relalculate the 
+              !!  projection operators (the array was used as a workspace)." `SPHER` is what is
+              !!  used to calculate `QPROJ`.
+              !!
+              !!  Based on this comment, I am going to assume `IZERO = 1`, which means that
+              !!  `realProjWoPhase` is calculated directly rather than being added to what was
+              !!  previously stored in the array, as is done in the `SPHER` subroutine.
+              !! @endnote
+          enddo
+        enddo
+        
+        LMIND=LMIND+MMAX+1
+
+      enddo
+
+      if(LMIND-1 /= ps(iT)%lmmax) call exitError('calculatePseudoTimesYlm', 'LMMAX is wrong', 1)
+
+    enddo
+
+    deallocate(pseudoTimesYlm)
+
+    return
+  end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
   subroutine writeKInfo(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, &
