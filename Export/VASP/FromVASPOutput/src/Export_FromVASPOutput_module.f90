@@ -149,7 +149,7 @@ module wfcExportVASPMod
     !! Directory with VASP files
 
   type pseudo
-    integer :: angmom(16) = 0
+    integer :: angMom(16) = 0
       !! Angular momentum of projectors
     integer :: iRAugMax
       !! Max index of augmentation sphere
@@ -2264,7 +2264,7 @@ module wfcExportVASPMod
             ! Read in the reciprocal-space and real-space
             ! projectors
 
-            ps(iT)%angmom(ps(iT)%nChannels+ip) = angmom
+            ps(iT)%angMom(ps(iT)%nChannels+ip) = angMom
 
             read(potcarUnit,*) 
             read(potcarUnit,*) (ps(iT)%recipProj(ps(iT)%nChannels+ip,i), i=1,100)
@@ -2594,6 +2594,8 @@ module wfcExportVASPMod
       !! Real projectors without phase
 
     ! Local variables:
+    integer :: angMom
+      !! Angular momentum of projectors
     integer :: iT, ipw
       !! Loop index
 
@@ -2606,9 +2608,9 @@ module wfcExportVASPMod
 
       do L = 1, LMAX(iT)
 
-        LL = P(iT)%LPS(L)
-        MMAX = 2*LL
-        LMBASE = LL**2 + 1
+        angMom = ps(iT)%angMom(L)
+        MMAX = 2*angMom
+        LMBASE = angMom**2 + 1
 
         do LM = 0, MMAX
           
@@ -3200,7 +3202,7 @@ module wfcExportVASPMod
         write(mainOutFileUnit, '("# Angular momentum, index of the projectors. Format: ''(2i10)''")')
         do ip = 1, ps(iT)%nChannels
 
-          write(mainOutFileUnit, '(2i10)') ps(iT)%angmom(ip), ip
+          write(mainOutFileUnit, '(2i10)') ps(iT)%angMom(ip), ip
 
         enddo
         
