@@ -2239,7 +2239,7 @@ module wfcExportVASPMod
         !!  projection operators (the array was used as a workspace)." `SPHER` is what is
         !!  used to calculate `QPROJ`, which is what we call `realProjWoPhase` here. 
         !!
-        !!  Based on this comment, I am going to assume the `IZERO = 1`.
+        !!  Based on this comment, I am going to assume `IZERO = 1`.
         !! @endnote
 
         LMBASE = LL**2 + 1
