@@ -2134,7 +2134,7 @@ module wfcExportVASPMod
 
     enddo
 
-    !call calculatePseudoTimesYlm()
+    !call calculateRealProjWoPhase()
 
     !call writeProjectors()
 
@@ -2208,7 +2208,7 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculatePseudoTimesYlm(ik, nAtomTypes, pseudoTimesYlm)
+  subroutine calculateRealProjWoPhase(ik, nAtomTypes, pseudoTimesYlm)
     implicit none
 
     ! Input variables:
@@ -2218,8 +2218,8 @@ module wfcExportVASPMod
       !! Number of types of atoms
 
     ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: pseudoTimesYlm(:,:,:)
-      !! Pseudopotential projectors times spherical harmonics
+    real(kind=dp), allocatable, intent(out) :: realProjWoPhase(:,:,:)
+      !! Real projectors without phase
 
     ! Local variables:
     integer :: iT
@@ -2233,11 +2233,21 @@ module wfcExportVASPMod
       LMIND = 1
 
       do L = 1, LMAX(iT)
+        !! @note
+        !!  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
+        !!  `SPHER` is called with `IZERO=1` along with the comment "relalculate the 
+        !!  projection operators (the array was used as a workspace)." `SPHER` is what is
+        !!  used to calculate `QPROJ`, which is what we call `realProjWoPhase` here. 
+        !!
+        !!  Based on this comment, I am going to assume the `IZERO = 1`.
+        !! @endnote
+
+        LMBASE = LL**2 + 1
 
         do LM = 0, MMAX
           
           do IND=1,INDMAX
-            pseudoTimesYlm(IND,LMIND+LM,iT) = pseudoTimesYlm(IND,LMIND+LM,iT) + VPS(IND)*Ylm(IND,LM+LMBASE)
+            realProjWoPhase(IND,LMIND+LM,iT) = realProjWoPhase(IND,LMIND+LM,iT) + VPS(IND)*Ylm(IND,LM+LMBASE)
               !! @note
               !!  This code does not work with spin spirals! For that to work, would need 
               !!  an additional index at the end of the array for `ISPINOR`.
@@ -2266,7 +2276,7 @@ module wfcExportVASPMod
     deallocate(pseudoTimesYlm)
 
     return
-  end subroutine calculatePseudoTimesYlm
+  end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
   subroutine readPOTCAR(nAtomTypes, VASPDir, ps)
