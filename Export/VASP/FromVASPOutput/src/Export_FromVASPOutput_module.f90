@@ -2600,7 +2600,7 @@ module wfcExportVASPMod
       !! Max index of magnetic quantum number;
       !! loop from 0 to `imMax=2*angMom` because
       !! \(m_l\) can go from \(-l, \dots, l \)
-    integer :: iT, ipw, im
+    integer :: iT, ip, im, ipw
       !! Loop index
 
     allocate(pseudoTimesYlm(nPWs1k,,nAtomTypes))
@@ -2610,9 +2610,9 @@ module wfcExportVASPMod
     do iT = 1, nAtomTypes
       LMIND = 1
 
-      do L = 1, LMAX(iT)
+      do ip = 1, ps(iT)%nChannels
 
-        angMom = ps(iT)%angMom(L)
+        angMom = ps(iT)%angMom(ip)
         imMax= 2*angMom
         LMBASE = angMom**2 + 1
 
