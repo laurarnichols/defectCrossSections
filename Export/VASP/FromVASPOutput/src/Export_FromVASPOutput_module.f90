@@ -2234,6 +2234,8 @@ module wfcExportVASPMod
 
       do L = 1, LMAX(iT)
 
+        LL = P(iT)%LPS(L)
+        MMAX = 2*LL
         LMBASE = LL**2 + 1
 
         do LM = 0, MMAX
