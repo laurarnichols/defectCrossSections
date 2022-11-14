@@ -2134,7 +2134,7 @@ module wfcExportVASPMod
 
     enddo
 
-    call calculatePseudoTimesYlm()
+    !call calculatePseudoTimesYlm()
 
     !call writeProjectors()
 
@@ -2208,8 +2208,24 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculatePseudoTimesYlm()
+  subroutine calculatePseudoTimesYlm(ik, nAtomTypes, pseudoTimesYlm)
     implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ik
+      !! Current k-point 
+    integer, intent(in) :: nAtomTypes
+      !! Number of types of atoms
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: pseudoTimesYlm(:,:,:)
+      !! Pseudopotential projectors times spherical harmonics
+
+    ! Local variables:
+    integer :: iT
+      !! Loop index
+
+    allocate(pseudoTimesYlm(,,nAtomTypes))
 
     call getYlm(LYDIM, INDMAX, Ylm, XS, YS, ZS)
 
@@ -2221,8 +2237,21 @@ module wfcExportVASPMod
         do LM = 0, MMAX
           
           do IND=1,INDMAX
-            NONL_S%QPROJ(IND,LMIND+LM,NT,NK,ISPINOR)= NONL_S%QPROJ(IND,LMIND+LM,NT,NK,ISPINOR)+ &
-                 VPS(IND)*YLM(IND,LM+LMBASE)
+            pseudoTimesYlm(IND,LMIND+LM,iT) = pseudoTimesYlm(IND,LMIND+LM,iT) + VPS(IND)*Ylm(IND,LM+LMBASE)
+              !! @note
+              !!  This code does not work with spin spirals! For that to work, would need 
+              !!  an additional index at the end of the array for `ISPINOR`.
+              !! @endnote
+              !! @todo Add test to kill job if `NONL_S%LSPIRAL = .TRUE.` @endtodo
+              !! @note
+              !!  `pseudoTimesYlm` corresponds to `QPROJ`, but it only stores as much as needed 
+              !!  for our application.
+              !! @endnote
+              !! @note
+              !!  `QPROJ` is accessed as `QPROJ(ipw,ilm,iT,ik,1)`, where `ipw` is over the number
+              !!  of plane waves at a specfic k-point, `ilm` goes from 1 to `WDES%LMMAX(iT)` and
+              !!  `iT` is the atom-type index.
+              !! @endnote
           enddo
         enddo
         
@@ -2234,6 +2263,7 @@ module wfcExportVASPMod
 
     enddo
 
+    deallocate(pseudoTimesYlm)
 
     return
   end subroutine calculatePseudoTimesYlm
