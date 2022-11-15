@@ -2727,8 +2727,8 @@ module wfcExportVASPMod
 
     ARGSC = nonlPseudoGridSize/pot%maxGNonlPs
     do ipw = 1, nPWs1k
-      ARG=(GLEN(ipw)*ARGSC)+1
-      NADDR=INT(ARG)
+      ARG = (GLEN(ipw)*ARGSC) + 1
+      NADDR = INT(ARG)
 
       pseudoV(ipw) = 0._dp
 
@@ -2740,15 +2740,18 @@ module wfcExportVASPMod
         !! @endnote
 
       REM=MOD(ARG,1.0_dp)
-      V1=pot%PSPNL(NADDR-1,ip)
-      V2=pot%PSPNL(NADDR,ip)
-      V3=pot%PSPNL(NADDR+1,ip)
-      V4=pot%PSPNL(NADDR+2,ip)
-      T0=V2
-      T1=((6*V3)-(2*V1)-(3*V2)-V4)/6._dp
-      T2=(V1+V3-(2*V2))/2._dp
-      T3=(V4-V1+(3*(V2-V3)))/6._dp
-      pseudoV(ipw)=(T0+REM*(T1+REM*(T2+REM*T3)))*divSqrtOmega*FAKTX(ipw)
+
+      V1 = pot%recipProj(NADDR-1,ip)
+      V2 = pot%recipProj(NADDR,ip)
+      V3 = pot%recipProj(NADDR+1,ip)
+      V4 = pot%recipProj(NADDR+2,ip)
+
+      T0 = V2
+      T1 = ((6*V3)-(2*V1)-(3*V2)-V4)/6._dp
+      T2 = (V1+V3-(2*V2))/2._dp
+      T3 = (V4-V1+(3*(V2-V3)))/6._dp
+
+      pseudoV(ipw) = (T0 + REM*(T1 + REM*(T2 + REM*T3)))*divSqrtOmega*FAKTX(ipw)
 
       !IF (VPS(IND) /= 0._dp .AND. PRESENT(DK)) THEN
         !! @note
