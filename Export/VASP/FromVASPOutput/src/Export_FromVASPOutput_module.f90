@@ -2244,8 +2244,8 @@ module wfcExportVASPMod
             !!       r for the non-local contribution
             !!     * Increment the number of nlm channels
             !!     * Ignore non-local strength multipliers
-            !!     * Read in the reciprocal-space and real-space
-            !!       projectors
+            !!     * Read in the reciprocal-space projectors and set
+            !!       boundary
             !!     * Increment the number of l channels
             !!     * Read the next character switch
 
@@ -2270,6 +2270,7 @@ module wfcExportVASPMod
 
             read(potcarUnit,*) 
             read(potcarUnit,*) (ps(iT)%recipProj(ps(iT)%nChannels+ip,i), i=1,nonlPseudoGridSize)
+              ! Read in reciprocal-space projector
 
             ! Not really sure what the purpose of this is. Seems to be setting the grid boundary,
             ! but I'm not sure on the logic.
@@ -2280,8 +2281,8 @@ module wfcExportVASPMod
             endif
 
             read(potcarUnit,*) 
-            read(potcarUnit,*) (ps(iT)%realProj(ps(iT)%nChannels+ip,i), i=1,nonlPsudoGridSize)
-              !! @todo Figure out if you actually need to read these projectors @endtodo
+            read(potcarUnit,*) (dummyDA1(i), i=1,nonlPsudoGridSize)
+              ! Ignore real-space projector
 
           enddo
 
