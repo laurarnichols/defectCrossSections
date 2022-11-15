@@ -2621,7 +2621,7 @@ module wfcExportVASPMod
 
       do ip = 1, ps(iT)%nChannels
 
-        call getPseudoV(nPWs1k, omega, pseudoV)
+        call getPseudoV(iT, ip, nPWs1k, omega, pseudoV)
 
         angMom = ps(iT)%angMom(ip)
         imMax= 2*angMom
@@ -2679,10 +2679,14 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine getPseudoV(nPWs1k, omega, pseudoV)
+  subroutine getPseudoV(iT, ip, nPWs1k, omega, pseudoV)
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: iT
+      !! Atom-type index
+    integer, intent(in) :: ip
+      !! Channel index
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
 
@@ -2705,7 +2709,7 @@ module wfcExportVASPMod
 
     divSqrtOmega = 1/sqrt(omega)
 
-    ARGSC=NPSNL/P(NT)%PSMAXN
+    ARGSC=NPSNL/P(iT)%PSMAXN
     do ipw = 1, nPWs1k
       ARG=(GLEN(ipw)*ARGSC)+1
       NADDR=INT(ARG)
@@ -2720,17 +2724,17 @@ module wfcExportVASPMod
         !! @endnote
 
       REM=MOD(ARG,1.0_dp)
-      V1=P(NT)%PSPNL(NADDR-1,L)
-      V2=P(NT)%PSPNL(NADDR,L  )
-      V3=P(NT)%PSPNL(NADDR+1,L)
-      V4=P(NT)%PSPNL(NADDR+2,L)
+      V1=P(iT)%PSPNL(NADDR-1,ip)
+      V2=P(iT)%PSPNL(NADDR,ip)
+      V3=P(iT)%PSPNL(NADDR+1,ip)
+      V4=P(iT)%PSPNL(NADDR+2,ip)
       T0=V2
       T1=((6*V3)-(2*V1)-(3*V2)-V4)/6._dp
       T2=(V1+V3-(2*V2))/2._dp
       T3=(V4-V1+(3*(V2-V3)))/6._dp
       pseudoV(ipw)=(T0+REM*(T1+REM*(T2+REM*T3)))*divSqrtOmega*FAKTX(ipw)
 
-      !IF (VPS(ipw) /= 0._dp .AND. PRESENT(DK)) THEN
+      !IF (VPS(IND) /= 0._dp .AND. PRESENT(DK)) THEN
         !! @note
         !!  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
         !!  `SPHER` is called without `DK`  along with the comment "relalculate the 
