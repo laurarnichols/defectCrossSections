@@ -2723,7 +2723,7 @@ module wfcExportVASPMod
 
     divSqrtOmega = 1/sqrt(omega)
 
-    ARGSC=NPSNL/pot%PSMAXN
+    ARGSC = nonlPseudoGridSize/pot%PSMAXN
     do ipw = 1, nPWs1k
       ARG=(GLEN(ipw)*ARGSC)+1
       NADDR=INT(ARG)
