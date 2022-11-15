@@ -2271,11 +2271,13 @@ module wfcExportVASPMod
             read(potcarUnit,*) 
             read(potcarUnit,*) (ps(iT)%recipProj(ps(iT)%nChannels+ip,i), i=1,nonlPseudoGridSize)
 
-            IF (MOD(P(NTYP)%LPS(CHANNELS+1),2)==0) THEN
-              P(NTYP)%PSPNL(0,CHANNELS+NL) =  P(NTYP)%PSPNL(2,CHANNELS+NL)
-            ELSE
-              P(NTYP)%PSPNL(0,CHANNELS+NL) = -P(NTYP)%PSPNL(2,CHANNELS+NL)
-            ENDIF
+            ! Not really sure what the purpose of this is. Seems to be setting the grid boundary,
+            ! but I'm not sure on the logic.
+            if(mod(angMom,2) == 0) then
+              ps(iT)%recipProj(ps(iT%nChannels)+ip, 0) = ps(iT)%recipProj(ps(iT%nChannels)+ip, 2) 
+            else
+              ps(iT)%recipProj(ps(iT%nChannels)+ip, 0) = -ps(iT)%recipProj(ps(iT%nChannels)+ip, 2) 
+            endif
 
             read(potcarUnit,*) 
             read(potcarUnit,*) (ps(iT)%realProj(ps(iT)%nChannels+ip,i), i=1,nonlPsudoGridSize)
