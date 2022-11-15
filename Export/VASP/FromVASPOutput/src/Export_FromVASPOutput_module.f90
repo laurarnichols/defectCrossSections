@@ -2720,11 +2720,16 @@ module wfcExportVASPMod
            VPS(IND)=(T0+REM*(T1+REM*(T2+REM*T3)))*divSqrtOmega*FAKTX(IND)
         ENDIF
 
-        IF (VPS(ipw)/=0._dp.AND.PRESENT(DK)) THEN
-           ARG=(GLENP(ipw)*ARGSC)+1
-           NADDR=INT(ARG)
-           IF (NADDR>NPSNL-1.OR.(.NOT.ASSOCIATED(P(NT)%PSPNL_SPLINE).AND.NADDR>NPSNL-3)) VPS(ipw)=0._dp
-        ENDIF
+        !IF (VPS(ipw) /= 0._dp .AND. PRESENT(DK)) THEN
+              !! @note
+              !!  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
+              !!  `SPHER` is called without `DK`  along with the comment "relalculate the 
+              !!  projection operators (the array was used as a workspace)." `SPHER` is what is
+              !!  used to calculate the real projectors without the complex phase.
+              !!
+              !!  Based on this comment, I am going to assume that `DK` isn't present, which means
+              !!  that this section in the original `SPHER` subroutine is skipped. 
+              !! @endnote
      ENDDO
 
     return
