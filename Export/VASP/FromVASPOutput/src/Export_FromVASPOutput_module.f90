@@ -2599,6 +2599,8 @@ module wfcExportVASPMod
     ! Local variables:
     integer :: angMom
       !! Angular momentum of projectors
+    integer :: ilm
+      !! Index to track going over l and m
     integer :: imMax
       !! Max index of magnetic quantum number;
       !! loop from 0 to `imMax=2*angMom` because
@@ -2611,7 +2613,7 @@ module wfcExportVASPMod
     call getYlm(LYDIM, nPWs1k, Ylm, XS, YS, ZS)
 
     do iT = 1, nAtomTypes
-      LMIND = 1
+      ilm = 1
 
       do ip = 1, ps(iT)%nChannels
 
@@ -2625,7 +2627,7 @@ module wfcExportVASPMod
           
           do ipw = 1, nPWs1k
 
-            realProjWoPhase(ipw,LMIND+im,iT) = VPS(ipw)*Ylm(ipw,im+LMBASE)
+            realProjWoPhase(ipw,ilm+im,iT) = VPS(ipw)*Ylm(ipw,im+LMBASE)
               !! @note
               !!  This code does not work with spin spirals! For that to work, would need 
               !!  an additional index at the end of the array for `ISPINOR`.
@@ -2657,11 +2659,11 @@ module wfcExportVASPMod
           enddo
         enddo
         
-        LMIND = LMIND + imMax + 1
+        ilm = ilm + imMax + 1
 
       enddo
 
-      if(LMIND - 1 /= ps(iT)%lmmax) call exitError('calculatePseudoTimesYlm', 'LMMAX is wrong', 1)
+      if(ilm - 1 /= ps(iT)%lmmax) call exitError('calculatePseudoTimesYlm', 'LMMAX is wrong', 1)
 
     enddo
 
