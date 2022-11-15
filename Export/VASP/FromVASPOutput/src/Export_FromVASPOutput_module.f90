@@ -2700,25 +2700,23 @@ module wfcExportVASPMod
 
         VPS(ipw) = 0._dp
 
-        IF (ASSOCIATED(P(NT)%PSPNL_SPLINE)) THEN
-           IF (NADDR<NPSNL) THEN
-              NADDR  =MIN(INT(GLEN(ipw)*ARGSC)+1,NPSNL-1)
-              REM=GLEN(ipw)-P(NT)%PSPNL_SPLINE(NADDR,1,L)
-              VPS(ipw)=(P(NT)%PSPNL_SPLINE(NADDR,2,L)+REM*(P(NT)%PSPNL_SPLINE(NADDR,3,L)+ &
-                &         REM*(P(NT)%PSPNL_SPLINE(NADDR,4,L)+REM*P(NT)%PSPNL_SPLINE(NADDR,5,L))))*divSqrtOmega*FAKTX(ipw)
-           ENDIF
-        ELSE IF (NADDR<NPSNL-2) THEN
-           REM=MOD(ARG,1.0_dp)
-           V1=P(NT)%PSPNL(NADDR-1,L)
-           V2=P(NT)%PSPNL(NADDR,L  )
-           V3=P(NT)%PSPNL(NADDR+1,L)
-           V4=P(NT)%PSPNL(NADDR+2,L)
-           T0=V2
-           T1=((6*V3)-(2*V1)-(3*V2)-V4)/6._dp
-           T2=(V1+V3-(2*V2))/2._dp
-           T3=(V4-V1+(3*(V2-V3)))/6._dp
-           VPS(IND)=(T0+REM*(T1+REM*(T2+REM*T3)))*divSqrtOmega*FAKTX(IND)
-        ENDIF
+        !IF (ASSOCIATED(P(NT)%PSPNL_SPLINE)) THEN
+          !! @note
+          !!  Default `NLSPLINE = .FALSE.`, which is recommended except for specific
+          !!  applications not relevant to our purposes, so this section in the original
+          !!  `SPHER` subroutine is skipped.
+          !! @endnote
+
+         REM=MOD(ARG,1.0_dp)
+         V1=P(NT)%PSPNL(NADDR-1,L)
+         V2=P(NT)%PSPNL(NADDR,L  )
+         V3=P(NT)%PSPNL(NADDR+1,L)
+         V4=P(NT)%PSPNL(NADDR+2,L)
+         T0=V2
+         T1=((6*V3)-(2*V1)-(3*V2)-V4)/6._dp
+         T2=(V1+V3-(2*V2))/2._dp
+         T3=(V4-V1+(3*(V2-V3)))/6._dp
+         VPS(IND)=(T0+REM*(T1+REM*(T2+REM*T3)))*divSqrtOmega*FAKTX(IND)
 
         !IF (VPS(ipw) /= 0._dp .AND. PRESENT(DK)) THEN
               !! @note
