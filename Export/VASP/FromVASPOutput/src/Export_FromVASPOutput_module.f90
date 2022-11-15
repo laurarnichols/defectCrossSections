@@ -2607,6 +2607,10 @@ module wfcExportVASPMod
       !! \(m_l\) can go from \(-l, \dots, l \)
     integer :: iT, ip, im, ipw
       !! Loop index
+      
+    real(kind=dp), allocatable :: pseudoV(:)
+      !! Pseudopotential
+
 
     allocate(realProjWoPhase(nPWs1k,ps(iT)%lmmax,nAtomTypes))
 
@@ -2617,7 +2621,7 @@ module wfcExportVASPMod
 
       do ip = 1, ps(iT)%nChannels
 
-        call getPseudopotential(nPWs1k, omega)
+        call getPseudoV(nPWs1k, omega, pseudoV)
 
         angMom = ps(iT)%angMom(ip)
         imMax= 2*angMom
@@ -2627,7 +2631,7 @@ module wfcExportVASPMod
           
           do ipw = 1, nPWs1k
 
-            realProjWoPhase(ipw,ilm+im,iT) = VPS(ipw)*Ylm(ipw,im+LMBASE)
+            realProjWoPhase(ipw,ilm+im,iT) = pseudoV(ipw)*Ylm(ipw,im+LMBASE)
               !! @note
               !!  This code does not work with spin spirals! For that to work, would need 
               !!  an additional index at the end of the array for `ISPINOR`.
@@ -2659,6 +2663,8 @@ module wfcExportVASPMod
           enddo
         enddo
         
+        deallocate(pseudoV)
+
         ilm = ilm + imMax + 1
 
       enddo
@@ -2673,7 +2679,7 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine getPseudopotential(nPWs1k, omega)
+  subroutine getPseudoV(nPWs1k, omega, pseudoV)
     implicit none
 
     ! Input variables:
@@ -2683,6 +2689,10 @@ module wfcExportVASPMod
     real(kind=dp) :: omega
       !! Volume of unit cell
 
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: pseudoV(:)
+      !! Pseudopotential
+
     ! Local variables:
     integer :: ipw
       !! Loop index
@@ -2691,6 +2701,8 @@ module wfcExportVASPMod
       !! 1/sqrt(omega) for multiplying pseudopotential
 
 
+    allocate(pseudoV(nPWs1k))
+
      divSqrtOmega = 1/sqrt(omega)
 
      ARGSC=NPSNL/P(NT)%PSMAXN
@@ -2698,7 +2710,7 @@ module wfcExportVASPMod
         ARG=(GLEN(ipw)*ARGSC)+1
         NADDR=INT(ARG)
 
-        VPS(ipw) = 0._dp
+        pseudoV(ipw) = 0._dp
 
         !IF (ASSOCIATED(P(NT)%PSPNL_SPLINE)) THEN
           !! @note
@@ -2716,7 +2728,7 @@ module wfcExportVASPMod
          T1=((6*V3)-(2*V1)-(3*V2)-V4)/6._dp
          T2=(V1+V3-(2*V2))/2._dp
          T3=(V4-V1+(3*(V2-V3)))/6._dp
-         VPS(ipw)=(T0+REM*(T1+REM*(T2+REM*T3)))*divSqrtOmega*FAKTX(ipw)
+         pseudoV(ipw)=(T0+REM*(T1+REM*(T2+REM*T3)))*divSqrtOmega*FAKTX(ipw)
 
         !IF (VPS(ipw) /= 0._dp .AND. PRESENT(DK)) THEN
               !! @note
@@ -2731,7 +2743,7 @@ module wfcExportVASPMod
      enddo
 
     return
-  end subroutine getPseudopotential
+  end subroutine getPseudoV
 
 !----------------------------------------------------------------------------
   subroutine writeKInfo(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, &
