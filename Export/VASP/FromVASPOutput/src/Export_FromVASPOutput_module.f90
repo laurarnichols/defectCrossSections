@@ -14,6 +14,8 @@ module wfcExportVASPMod
     !! Main output file unit
   integer, parameter :: potcarUnit = 71
     !! POTCAR unit for I/O
+  integer, parameter :: splineSize = 100
+    !! Size of spline grid
   integer, parameter :: wavecarUnit = 72
     !! WAVECAR unit for I/O
 
@@ -169,9 +171,9 @@ module wfcExportVASPMod
       !! Radial grid points
     real(kind=dp) :: rAugMax
       !! Maximum radius of augmentation sphere
-    real(kind=dp) :: recipProj(16,100)
+    real(kind=dp) :: recipProj(16,splineSize)
       !! Reciprocal-space projectors
-    real(kind=dp) :: realProj(16,100)
+    real(kind=dp) :: realProj(16,splineSize)
       !! Real-space projectors
     real(kind=dp), allocatable :: wae(:,:)
       !! AE wavefunction
@@ -2267,9 +2269,9 @@ module wfcExportVASPMod
             ps(iT)%angMom(ps(iT)%nChannels+ip) = angMom
 
             read(potcarUnit,*) 
-            read(potcarUnit,*) (ps(iT)%recipProj(ps(iT)%nChannels+ip,i), i=1,100)
+            read(potcarUnit,*) (ps(iT)%recipProj(ps(iT)%nChannels+ip,i), i=1,splineSize)
             read(potcarUnit,*) 
-            read(potcarUnit,*) (ps(iT)%realProj(ps(iT)%nChannels+ip,i), i=1,100)
+            read(potcarUnit,*) (ps(iT)%realProj(ps(iT)%nChannels+ip,i), i=1,splineSize)
               !! @todo Figure out if you actually need to read these projectors @endtodo
 
           enddo
