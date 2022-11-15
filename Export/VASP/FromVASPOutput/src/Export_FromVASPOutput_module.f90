@@ -150,7 +150,7 @@ module wfcExportVASPMod
   character(len=256) :: VASPDir
     !! Directory with VASP files
 
-  type pseudo
+  type potcar
     integer :: angMom(16) = 0
       !! Angular momentum of projectors
     integer :: iRAugMax
@@ -181,9 +181,9 @@ module wfcExportVASPMod
       !! PS wavefunction
 
     character(len=2) :: element
-  end type pseudo
+  end type potcar
 
-  type (pseudo), allocatable :: ps(:)
+  type (potcar), allocatable :: pot(:)
 
   namelist /inputParams/ VASPDir, exportDir
 
@@ -2097,7 +2097,7 @@ module wfcExportVASPMod
   end subroutine read_vasprun_xml
 
 !----------------------------------------------------------------------------
-  subroutine readPOTCAR(nAtomTypes, VASPDir, ps)
+  subroutine readPOTCAR(nAtomTypes, VASPDir, pot)
     !! Read PAW pseudopotential information from POTCAR
     !! file
     !!
@@ -2115,8 +2115,8 @@ module wfcExportVASPMod
 
     
     ! Output variables:
-    type (pseudo) :: ps(nAtomTypes)
-      !! Holds all information needed from pseudopotential
+    type (potcar) :: pot(nAtomTypes)
+      !! Holds all information needed from POTCAR
 
 
     ! Local variables:
@@ -2155,10 +2155,10 @@ module wfcExportVASPMod
 
       do iT = 1, nAtomTypes
 
-        ps(iT)%nChannels = 0
-        ps(iT)%lmmax = 0
+        pot(iT)%nChannels = 0
+        pot(iT)%lmmax = 0
 
-        read(potcarUnit,*) dummyC, ps(iT)%element, dummyC
+        read(potcarUnit,*) dummyC, pot(iT)%element, dummyC
           !! * Read in the header
         read(potcarUnit,*)
           !! * Ignore the valence line
@@ -2249,12 +2249,12 @@ module wfcExportVASPMod
             !!     * Increment the number of l channels
             !!     * Read the next character switch
 
-          read(potcarUnit,*) angMom, nProj, ps(iT)%psRMax
+          read(potcarUnit,*) angMom, nProj, pot(iT)%psRMax
             ! Read in angular momentum, the number of projectors
             ! at this angular momentum, and the max r for the 
             ! non-local contribution
 
-          ps(iT)%lmmax = ps(iT)%lmmax + (2*angMom+1)*nProj
+          pot(iT)%lmmax = pot(iT)%lmmax + (2*angMom+1)*nProj
             ! Increment the number of nlm channels
 
           allocate(dummyDA2(nProj,nProj))
@@ -2266,18 +2266,18 @@ module wfcExportVASPMod
             ! Read in the reciprocal-space and real-space
             ! projectors
 
-            ps(iT)%angMom(ps(iT)%nChannels+ip) = angMom
+            pot(iT)%angMom(pot(iT)%nChannels+ip) = angMom
 
             read(potcarUnit,*) 
-            read(potcarUnit,*) (ps(iT)%recipProj(ps(iT)%nChannels+ip,i), i=1,nonlPseudoGridSize)
+            read(potcarUnit,*) (pot(iT)%recipProj(pot(iT)%nChannels+ip,i), i=1,nonlPseudoGridSize)
               ! Read in reciprocal-space projector
 
             ! Not really sure what the purpose of this is. Seems to be setting the grid boundary,
             ! but I'm not sure on the logic.
             if(mod(angMom,2) == 0) then
-              ps(iT)%recipProj(ps(iT%nChannels)+ip, 0) = ps(iT)%recipProj(ps(iT%nChannels)+ip, 2) 
+              pot(iT)%recipProj(pot(iT%nChannels)+ip, 0) = pot(iT)%recipProj(pot(iT%nChannels)+ip, 2) 
             else
-              ps(iT)%recipProj(ps(iT%nChannels)+ip, 0) = -ps(iT)%recipProj(ps(iT%nChannels)+ip, 2) 
+              pot(iT)%recipProj(pot(iT%nChannels)+ip, 0) = -pot(iT)%recipProj(pot(iT%nChannels)+ip, 2) 
             endif
 
             read(potcarUnit,*) 
@@ -2286,7 +2286,7 @@ module wfcExportVASPMod
 
           enddo
 
-          ps(iT)%nChannels = ps(iT)%nChannels + nProj
+          pot(iT)%nChannels = pot(iT)%nChannels + nProj
             ! Increment the number of l channels
 
           deallocate(dummyDA2)
@@ -2304,7 +2304,7 @@ module wfcExportVASPMod
           
         else
 
-          read(potcarUnit,*) ps(iT)%nmax, ps(iT)%rAugMax  
+          read(potcarUnit,*) pot(iT)%nmax, pot(iT)%rAugMax  
             !! * Read the number of mesh grid points and
             !!   the maximum radius in the augmentation sphere
           read(potcarUnit,*)
@@ -2312,11 +2312,11 @@ module wfcExportVASPMod
           read(potcarUnit,'(1X,A1)') charSwitch
             !! * Read character switch (not used)
 
-          allocate(ps(iT)%radGrid(ps(iT)%nmax))
-          allocate(ps(iT)%dRadGrid(ps(iT)%nmax))
-          allocate(ps(iT)%wps(ps(iT)%nChannels,ps(iT)%nmax))
-          allocate(ps(iT)%wae(ps(iT)%nChannels,ps(iT)%nmax))
-          allocate(dummyDA2(ps(iT)%nChannels, ps(iT)%nChannels))
+          allocate(pot(iT)%radGrid(pot(iT)%nmax))
+          allocate(pot(iT)%dRadGrid(pot(iT)%nmax))
+          allocate(pot(iT)%wps(pot(iT)%nChannels,pot(iT)%nmax))
+          allocate(pot(iT)%wae(pot(iT)%nChannels,pot(iT)%nmax))
+          allocate(dummyDA2(pot(iT)%nChannels, pot(iT)%nChannels))
 
           read(potcarUnit,*) dummyDA2(:,:)
             !! * Ignore augmentation charges
@@ -2338,12 +2338,12 @@ module wfcExportVASPMod
             !! * Read character switch
           if (charSwitch /= 'g') call exitError('readPOTCAR', 'expected grid section', 1)
 
-          read(potcarUnit,*) (ps(iT)%radGrid(i), i=1,ps(iT)%nmax)
+          read(potcarUnit,*) (pot(iT)%radGrid(i), i=1,pot(iT)%nmax)
 
-          ps(iT)%rAugMax = ps(iT)%rAugMax*angToBohr 
-          ps(iT)%radGrid(:) = ps(iT)%radGrid(:)*angToBohr
+          pot(iT)%rAugMax = pot(iT)%rAugMax*angToBohr 
+          pot(iT)%radGrid(:) = pot(iT)%radGrid(:)*angToBohr
 
-          H = log(ps(iT)%radGrid(ps(iT)%nmax)/ps(iT)%radGrid(1))/(ps(iT)%nmax - 1)
+          H = log(pot(iT)%radGrid(pot(iT)%nmax)/pot(iT)%radGrid(1))/(pot(iT)%nmax - 1)
             !! * Calculate \(H\) which is used to generate the derivative of the grid
             !!
             !! @note
@@ -2352,16 +2352,16 @@ module wfcExportVASPMod
             !! @endnote
           
           found = .false.
-          do ir = 1, ps(iT)%nmax
+          do ir = 1, pot(iT)%nmax
             !! * Calculate the max index of the augmentation sphere and
             !!   the derivative of the radial grid
 
-            if (.not. found .and. ps(iT)%radGrid(ir) > ps(iT)%rAugMax) then
-              ps(iT)%iRAugMax = ir - 1
+            if (.not. found .and. pot(iT)%radGrid(ir) > pot(iT)%rAugMax) then
+              pot(iT)%iRAugMax = ir - 1
               found = .true.
             endif
 
-            ps(iT)%dRadGrid(ir) = ps(iT)%radGrid(1)*H*exp(H*(ir-1))
+            pot(iT)%dRadGrid(ir) = pot(iT)%radGrid(1)*H*exp(H*(ir-1))
 
           enddo
 
@@ -2369,7 +2369,7 @@ module wfcExportVASPMod
             !! * Read character switch
           if (charSwitch /= 'a') call exitError('readPOTCAR', 'expected aepotential section', 1)
 
-          allocate(dummyDA1(ps(iT)%nmax))
+          allocate(dummyDA1(pot(iT)%nmax))
 
           read(potcarUnit,*) dummyDA1(:)
             !! * Ignore AE potential
@@ -2419,21 +2419,21 @@ module wfcExportVASPMod
           read(potcarUnit,*) dummyDA1(:)
             !! * Ignore core charge density
 
-          do ip = 1, ps(iT)%nChannels
+          do ip = 1, pot(iT)%nChannels
             !! * Read the AE and PS partial waves for each projector
             
             read(potcarUnit,'(1X,A1)') charSwitch
             if (charSwitch /= 'p') call exitError('readPOTCAR', 'expected pseudowavefunction section', 1)
-            read(potcarUnit,*) (ps(iT)%wps(ip,i), i=1,ps(iT)%nmax)
+            read(potcarUnit,*) (pot(iT)%wps(ip,i), i=1,pot(iT)%nmax)
 
             read(potcarUnit,'(1X,A1)') charSwitch
             if (charSwitch /= 'a') call exitError('readPOTCAR', 'expected aewavefunction section', 1)
-            read(potcarUnit,*) (ps(iT)%wae(ip,i), i=1,ps(iT)%nmax)
+            read(potcarUnit,*) (pot(iT)%wae(ip,i), i=1,pot(iT)%nmax)
 
           enddo
 
-          ps(iT)%wps(:,:) = ps(iT)%wps(:,:)/sqrt(angToBohr)
-          ps(iT)%wae(:,:) = ps(iT)%wae(:,:)/sqrt(angToBohr)
+          pot(iT)%wps(:,:) = pot(iT)%wps(:,:)/sqrt(angToBohr)
+          pot(iT)%wae(:,:) = pot(iT)%wae(:,:)/sqrt(angToBohr)
             !! @todo Make sure that partial wave unit conversion makes sense @endtodo
 
           deallocate(dummyDA1)
@@ -2587,7 +2587,7 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nPWs1k, omega, ps, realProjWoPhase)
+  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nPWs1k, omega, pot, realProjWoPhase)
     implicit none
 
     ! Input variables:
@@ -2601,8 +2601,8 @@ module wfcExportVASPMod
     real(kind=dp) :: omega
       !! Volume of unit cell
 
-    type (pseudo) :: ps(nAtomTypes)
-      !! Holds all information needed from pseudopotential
+    type (potcar) :: pot(nAtomTypes)
+      !! Holds all information needed from POTCAR
 
     ! Output variables:
     real(kind=dp), allocatable, intent(out) :: realProjWoPhase(:,:,:)
@@ -2624,18 +2624,18 @@ module wfcExportVASPMod
       !! Pseudopotential
 
 
-    allocate(realProjWoPhase(nPWs1k,ps(iT)%lmmax,nAtomTypes))
+    allocate(realProjWoPhase(nPWs1k,pot(iT)%lmmax,nAtomTypes))
 
     call getYlm(LYDIM, nPWs1k, Ylm, XS, YS, ZS)
 
     do iT = 1, nAtomTypes
       ilm = 1
 
-      do ip = 1, ps(iT)%nChannels
+      do ip = 1, pot(iT)%nChannels
 
-        call getPseudoV(ip, nPWs1k, omega, ps(iT), pseudoV)
+        call getPseudoV(ip, nPWs1k, omega, pot(iT), pseudoV)
 
-        angMom = ps(iT)%angMom(ip)
+        angMom = pot(iT)%angMom(ip)
         imMax= 2*angMom
         LMBASE = angMom**2 + 1
 
@@ -2681,7 +2681,7 @@ module wfcExportVASPMod
 
       enddo
 
-      if(ilm - 1 /= ps(iT)%lmmax) call exitError('calculatePseudoTimesYlm', 'LMMAX is wrong', 1)
+      if(ilm - 1 /= pot(iT)%lmmax) call exitError('calculatePseudoTimesYlm', 'LMMAX is wrong', 1)
 
     enddo
 
@@ -2691,7 +2691,7 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine getPseudoV(ip, nPWs1k, omega, ps, pseudoV)
+  subroutine getPseudoV(ip, nPWs1k, omega, pot, pseudoV)
     implicit none
 
     ! Input variables:
@@ -2703,8 +2703,8 @@ module wfcExportVASPMod
     real(kind=dp) :: omega
       !! Volume of unit cell
 
-    type (pseudo) :: ps
-      !! Holds all information needed from pseudopotential
+    type (potcar) :: pot
+      !! Holds all information needed from POTCAR
       !! for the specific atom type considered
 
     ! Output variables:
@@ -2723,7 +2723,7 @@ module wfcExportVASPMod
 
     divSqrtOmega = 1/sqrt(omega)
 
-    ARGSC=NPSNL/ps%PSMAXN
+    ARGSC=NPSNL/pot%PSMAXN
     do ipw = 1, nPWs1k
       ARG=(GLEN(ipw)*ARGSC)+1
       NADDR=INT(ARG)
@@ -2738,10 +2738,10 @@ module wfcExportVASPMod
         !! @endnote
 
       REM=MOD(ARG,1.0_dp)
-      V1=ps%PSPNL(NADDR-1,ip)
-      V2=ps%PSPNL(NADDR,ip)
-      V3=ps%PSPNL(NADDR+1,ip)
-      V4=ps%PSPNL(NADDR+2,ip)
+      V1=pot%PSPNL(NADDR-1,ip)
+      V2=pot%PSPNL(NADDR,ip)
+      V3=pot%PSPNL(NADDR+1,ip)
+      V4=pot%PSPNL(NADDR+2,ip)
       T0=V2
       T1=((6*V3)-(2*V1)-(3*V2)-V4)/6._dp
       T2=(V1+V3-(2*V2))/2._dp
@@ -3264,7 +3264,7 @@ module wfcExportVASPMod
   end subroutine writeCellInfo
 
 !----------------------------------------------------------------------------
-  subroutine writePseudoInfo(nAtomTypes, nAtomsEachType, ps)
+  subroutine writePseudoInfo(nAtomTypes, nAtomsEachType, pot)
     !! For each atom type, write out the element name,
     !! number of atoms of this type, projector info,
     !! radial grid info, and partial waves
@@ -3278,8 +3278,8 @@ module wfcExportVASPMod
     integer, intent(in) :: nAtomsEachType(nAtomTypes)
       !! Number of atoms of each type
 
-    type (pseudo) :: ps(nAtomTypes)
-      !! Holds all information needed from pseudopotential
+    type (potcar) :: pot(nAtomTypes)
+      !! Holds all information needed from POTCAR
 
 
     ! Output variables:
@@ -3295,36 +3295,36 @@ module wfcExportVASPMod
       do iT = 1, nAtomTypes
         
         write(mainOutFileUnit, '("# Element")')
-        write(mainOutFileUnit, *) trim(ps(iT)%element)
+        write(mainOutFileUnit, *) trim(pot(iT)%element)
         write(mainOutFileUnit, '("# Number of Atoms of this type. Format: ''(i10)''")')
         write(mainOutFileUnit, '(i10)') nAtomsEachType(iT)
         write(mainOutFileUnit, '("# Number of projectors. Format: ''(i10)''")')
-        write(mainOutFileUnit, '(i10)') ps(iT)%nChannels
+        write(mainOutFileUnit, '(i10)') pot(iT)%nChannels
         
         write(mainOutFileUnit, '("# Angular momentum, index of the projectors. Format: ''(2i10)''")')
-        do ip = 1, ps(iT)%nChannels
+        do ip = 1, pot(iT)%nChannels
 
-          write(mainOutFileUnit, '(2i10)') ps(iT)%angMom(ip), ip
+          write(mainOutFileUnit, '(2i10)') pot(iT)%angMom(ip), ip
 
         enddo
         
         write(mainOutFileUnit, '("# Number of channels. Format: ''(i10)''")')
-        write(mainOutFileUnit, '(i10)') ps(iT)%lmmax
+        write(mainOutFileUnit, '(i10)') pot(iT)%lmmax
         
         write(mainOutFileUnit, '("# Number of radial mesh points. Format: ''(2i10)''")')
-        write(mainOutFileUnit, '(2i10)') ps(iT)%nmax, ps(iT)%iRAugMax
+        write(mainOutFileUnit, '(2i10)') pot(iT)%nmax, pot(iT)%iRAugMax
           ! Number of points in the radial mesh, number of points inside the aug sphere
         
         write(mainOutFileUnit, '("# Radial grid, Integratable grid. Format: ''(2ES24.15E3)''")')
-        do ir = 1, ps(iT)%nmax
-          write(mainOutFileUnit, '(2ES24.15E3)') ps(iT)%radGrid(ir), ps(iT)%dRadGrid(ir) 
+        do ir = 1, pot(iT)%nmax
+          write(mainOutFileUnit, '(2ES24.15E3)') pot(iT)%radGrid(ir), pot(iT)%dRadGrid(ir) 
             ! Radial grid, derivative of radial grid
         enddo
         
         write(mainOutFileUnit, '("# AE, PS radial wfc for each beta function. Format: ''(2ES24.15E3)''")')
-        do ip = 1, ps(iT)%nChannels
-          do ir = 1, ps(iT)%nmax
-            write(mainOutFileUnit, '(2ES24.15E3)') ps(iT)%wae(ip,ir), ps(iT)%wps(ip,ir)
+        do ip = 1, pot(iT)%nChannels
+          do ir = 1, pot(iT)%nmax
+            write(mainOutFileUnit, '(2ES24.15E3)') pot(iT)%wae(ip,ir), pot(iT)%wps(ip,ir)
           enddo
         enddo
       
@@ -3431,7 +3431,7 @@ module wfcExportVASPMod
 !        !   h) It fills the interpolation table for the beta functions
 !        !
 !        ! `nh` is found in the `uspp_param` module and is the number of beta
-!        ! functions per atom type which corresponds to `ps(iT)%nChannels` I think
+!        ! functions per atom type which corresponds to `pot(iT)%nChannels` I think
 !
 !      CALL init_at_1
 !        ! This routine computes a table with the radial Fourier transform of the 

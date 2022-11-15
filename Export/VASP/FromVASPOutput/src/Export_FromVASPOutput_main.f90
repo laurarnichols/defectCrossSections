@@ -91,12 +91,12 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Done reading vasprun.xml"
 
 
-  allocate(ps(nAtomTypes))
+  allocate(pot(nAtomTypes))
 
 
   if (ionode) write(iostd,*) "Reading POTCAR"
 
-  call readPOTCAR(nAtomTypes, VASPDir, ps)
+  call readPOTCAR(nAtomTypes, VASPDir, pot)
     !! * Read in pseudopotential information from POTCAR
 
   if (ionode) write(iostd,*) "Done reading POTCAR"
@@ -143,7 +143,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Writing pseudo info"
 
-  call writePseudoInfo(nAtomTypes, nAtomsEachType, ps)
+  call writePseudoInfo(nAtomTypes, nAtomsEachType, pot)
     !! * For each atom type, write out the element name,
     !!   number of atoms of this type, projector info,
     !!   radial grid info, and partial waves
