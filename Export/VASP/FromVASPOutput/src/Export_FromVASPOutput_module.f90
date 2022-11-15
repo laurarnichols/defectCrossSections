@@ -2703,44 +2703,44 @@ module wfcExportVASPMod
 
     allocate(pseudoV(nPWs1k))
 
-     divSqrtOmega = 1/sqrt(omega)
+    divSqrtOmega = 1/sqrt(omega)
 
-     ARGSC=NPSNL/P(NT)%PSMAXN
-     do ipw = 1, nPWs1k
-        ARG=(GLEN(ipw)*ARGSC)+1
-        NADDR=INT(ARG)
+    ARGSC=NPSNL/P(NT)%PSMAXN
+    do ipw = 1, nPWs1k
+      ARG=(GLEN(ipw)*ARGSC)+1
+      NADDR=INT(ARG)
 
-        pseudoV(ipw) = 0._dp
+      pseudoV(ipw) = 0._dp
 
-        !IF (ASSOCIATED(P(NT)%PSPNL_SPLINE)) THEN
-          !! @note
-          !!  Default `NLSPLINE = .FALSE.`, which is recommended except for specific
-          !!  applications not relevant to our purposes, so this section in the original
-          !!  `SPHER` subroutine is skipped.
-          !! @endnote
+      !IF (ASSOCIATED(P(NT)%PSPNL_SPLINE)) THEN
+        !! @note
+        !!  Default `NLSPLINE = .FALSE.`, which is recommended except for specific
+        !!  applications not relevant to our purposes, so this section in the original
+        !!  `SPHER` subroutine is skipped.
+        !! @endnote
 
-         REM=MOD(ARG,1.0_dp)
-         V1=P(NT)%PSPNL(NADDR-1,L)
-         V2=P(NT)%PSPNL(NADDR,L  )
-         V3=P(NT)%PSPNL(NADDR+1,L)
-         V4=P(NT)%PSPNL(NADDR+2,L)
-         T0=V2
-         T1=((6*V3)-(2*V1)-(3*V2)-V4)/6._dp
-         T2=(V1+V3-(2*V2))/2._dp
-         T3=(V4-V1+(3*(V2-V3)))/6._dp
-         pseudoV(ipw)=(T0+REM*(T1+REM*(T2+REM*T3)))*divSqrtOmega*FAKTX(ipw)
+      REM=MOD(ARG,1.0_dp)
+      V1=P(NT)%PSPNL(NADDR-1,L)
+      V2=P(NT)%PSPNL(NADDR,L  )
+      V3=P(NT)%PSPNL(NADDR+1,L)
+      V4=P(NT)%PSPNL(NADDR+2,L)
+      T0=V2
+      T1=((6*V3)-(2*V1)-(3*V2)-V4)/6._dp
+      T2=(V1+V3-(2*V2))/2._dp
+      T3=(V4-V1+(3*(V2-V3)))/6._dp
+      pseudoV(ipw)=(T0+REM*(T1+REM*(T2+REM*T3)))*divSqrtOmega*FAKTX(ipw)
 
-        !IF (VPS(ipw) /= 0._dp .AND. PRESENT(DK)) THEN
-              !! @note
-              !!  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
-              !!  `SPHER` is called without `DK`  along with the comment "relalculate the 
-              !!  projection operators (the array was used as a workspace)." `SPHER` is what is
-              !!  used to calculate the real projectors without the complex phase.
-              !!
-              !!  Based on this comment, I am going to assume that `DK` isn't present, which means
-              !!  that this section in the original `SPHER` subroutine is skipped. 
-              !! @endnote
-     enddo
+      !IF (VPS(ipw) /= 0._dp .AND. PRESENT(DK)) THEN
+        !! @note
+        !!  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
+        !!  `SPHER` is called without `DK`  along with the comment "relalculate the 
+        !!  projection operators (the array was used as a workspace)." `SPHER` is what is
+        !!  used to calculate the real projectors without the complex phase.
+        !!
+        !!  Based on this comment, I am going to assume that `DK` isn't present, which means
+        !!  that this section in the original `SPHER` subroutine is skipped. 
+        !! @endnote
+    enddo
 
     return
   end subroutine getPseudoV
