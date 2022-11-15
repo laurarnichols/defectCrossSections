@@ -166,7 +166,7 @@ module wfcExportVASPMod
     real(kind=dp), allocatable :: dRadGrid(:)
       !! Derivative of radial grid
     real(kind=dp) :: maxGNonlPs
-      !! Max G for non-local pseudopotential 
+      !! Max G for non-local potential
     real(kind=dp) :: psRMax
       !! Max r for non-local contribution
     real(kind=dp), allocatable :: radGrid(:)
@@ -2232,7 +2232,7 @@ module wfcExportVASPMod
           !! * Ignore the atomic pseudo charge density
 
         read(potcarUnit,*) pot(iT)%maxGNonlPs, dummyC
-          !! * Read the max G for non-local pseudopotential 
+          !! * Read the max G for non-local potential 
           !!   and ignore unused boolean (`LDUM` in VASP)
         read(potcarUnit,'(1X,A1)') charSwitch
           !! * Read character switch
