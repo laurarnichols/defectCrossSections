@@ -2694,7 +2694,7 @@ module wfcExportVASPMod
      divSqrtOmega = 1/sqrt(omega)
 
      ARGSC=NPSNL/P(NT)%PSMAXN
-     DO ipw = 1, nPWs1k
+     do ipw = 1, nPWs1k
         ARG=(GLEN(ipw)*ARGSC)+1
         NADDR=INT(ARG)
 
@@ -2716,7 +2716,7 @@ module wfcExportVASPMod
          T1=((6*V3)-(2*V1)-(3*V2)-V4)/6._dp
          T2=(V1+V3-(2*V2))/2._dp
          T3=(V4-V1+(3*(V2-V3)))/6._dp
-         VPS(IND)=(T0+REM*(T1+REM*(T2+REM*T3)))*divSqrtOmega*FAKTX(IND)
+         VPS(ipw)=(T0+REM*(T1+REM*(T2+REM*T3)))*divSqrtOmega*FAKTX(ipw)
 
         !IF (VPS(ipw) /= 0._dp .AND. PRESENT(DK)) THEN
               !! @note
@@ -2728,7 +2728,7 @@ module wfcExportVASPMod
               !!  Based on this comment, I am going to assume that `DK` isn't present, which means
               !!  that this section in the original `SPHER` subroutine is skipped. 
               !! @endnote
-     ENDDO
+     enddo
 
     return
   end subroutine getPseudopotential
