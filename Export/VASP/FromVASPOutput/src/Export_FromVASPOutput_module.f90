@@ -14,8 +14,8 @@ module wfcExportVASPMod
     !! Main output file unit
   integer, parameter :: potcarUnit = 71
     !! POTCAR unit for I/O
-  integer, parameter :: splineSize = 100
-    !! Size of spline grid
+  integer, parameter :: nonlPseudoGridSize = 100
+    !! Size of non-local pseudopotential grid
   integer, parameter :: wavecarUnit = 72
     !! WAVECAR unit for I/O
 
@@ -171,9 +171,9 @@ module wfcExportVASPMod
       !! Radial grid points
     real(kind=dp) :: rAugMax
       !! Maximum radius of augmentation sphere
-    real(kind=dp) :: recipProj(16,splineSize)
+    real(kind=dp) :: recipProj(16,nonlPseudoGridSize)
       !! Reciprocal-space projectors
-    real(kind=dp) :: realProj(16,splineSize)
+    real(kind=dp) :: realProj(16,nonlPseudoGridSize)
       !! Real-space projectors
     real(kind=dp), allocatable :: wae(:,:)
       !! AE wavefunction
@@ -2269,7 +2269,7 @@ module wfcExportVASPMod
             ps(iT)%angMom(ps(iT)%nChannels+ip) = angMom
 
             read(potcarUnit,*) 
-            read(potcarUnit,*) (ps(iT)%recipProj(ps(iT)%nChannels+ip,i), i=1,splineSize)
+            read(potcarUnit,*) (ps(iT)%recipProj(ps(iT)%nChannels+ip,i), i=1,nonlPseudoGridSize)
 
             IF (MOD(P(NTYP)%LPS(CHANNELS+1),2)==0) THEN
               P(NTYP)%PSPNL(0,CHANNELS+NL) =  P(NTYP)%PSPNL(2,CHANNELS+NL)
@@ -2278,7 +2278,7 @@ module wfcExportVASPMod
             ENDIF
 
             read(potcarUnit,*) 
-            read(potcarUnit,*) (ps(iT)%realProj(ps(iT)%nChannels+ip,i), i=1,splineSize)
+            read(potcarUnit,*) (ps(iT)%realProj(ps(iT)%nChannels+ip,i), i=1,nonlPsudoGridSize)
               !! @todo Figure out if you actually need to read these projectors @endtodo
 
           enddo
