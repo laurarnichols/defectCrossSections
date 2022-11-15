@@ -2603,7 +2603,7 @@ module wfcExportVASPMod
     integer :: iT, ip, im, ipw
       !! Loop index
 
-    allocate(pseudoTimesYlm(nPWs1k,,nAtomTypes))
+    allocate(realProjWoPhase(nPWs1k,ps(iT)%lmmax,nAtomTypes))
 
     call getYlm(LYDIM, nPWs1k, Ylm, XS, YS, ZS)
 
@@ -2660,7 +2660,7 @@ module wfcExportVASPMod
 
     enddo
 
-    deallocate(pseudoTimesYlm)
+    deallocate(realProjWoPhase)
 
     return
   end subroutine calculateRealProjWoPhase
