@@ -2617,7 +2617,7 @@ module wfcExportVASPMod
 
       do ip = 1, ps(iT)%nChannels
 
-        call getPseudopotential()
+        call getPseudopotential(nPWs1k, omega)
 
         angMom = ps(iT)%angMom(ip)
         imMax= 2*angMom
@@ -2673,50 +2673,57 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine getPseudopotential(omega)
+  subroutine getPseudopotential(nPWs1k, omega)
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: nPWs1k
+      !! Input number of plane waves for the given k-point
+
     real(kind=dp) :: omega
       !! Volume of unit cell
 
     ! Local variables:
+    integer :: ipw
+      !! Loop index
+
     real(kind=dp) :: divSqrtOmega
       !! 1/sqrt(omega) for multiplying pseudopotential
+
 
      divSqrtOmega = 1/sqrt(omega)
 
      ARGSC=NPSNL/P(NT)%PSMAXN
-     DO IND=1,INDMAX
-        ARG=(GLEN(IND)*ARGSC)+1
+     DO ipw = 1, nPWs1k
+        ARG=(GLEN(ipw)*ARGSC)+1
         NADDR=INT(ARG)
 
-        VPS(IND)=0._q
+        VPS(ipw) = 0._dp
 
         IF (ASSOCIATED(P(NT)%PSPNL_SPLINE)) THEN
            IF (NADDR<NPSNL) THEN
-              NADDR  =MIN(INT(GLEN(IND)*ARGSC)+1,NPSNL-1)
-              REM=GLEN(IND)-P(NT)%PSPNL_SPLINE(NADDR,1,L)
-              VPS(IND)=(P(NT)%PSPNL_SPLINE(NADDR,2,L)+REM*(P(NT)%PSPNL_SPLINE(NADDR,3,L)+ &
-                &         REM*(P(NT)%PSPNL_SPLINE(NADDR,4,L)+REM*P(NT)%PSPNL_SPLINE(NADDR,5,L))))*FAKT*FAKTX(IND)
+              NADDR  =MIN(INT(GLEN(ipw)*ARGSC)+1,NPSNL-1)
+              REM=GLEN(ipw)-P(NT)%PSPNL_SPLINE(NADDR,1,L)
+              VPS(ipw)=(P(NT)%PSPNL_SPLINE(NADDR,2,L)+REM*(P(NT)%PSPNL_SPLINE(NADDR,3,L)+ &
+                &         REM*(P(NT)%PSPNL_SPLINE(NADDR,4,L)+REM*P(NT)%PSPNL_SPLINE(NADDR,5,L))))*divSqrtOmega*FAKTX(ipw)
            ENDIF
         ELSE IF (NADDR<NPSNL-2) THEN
-           REM=MOD(ARG,1.0_q)
+           REM=MOD(ARG,1.0_dp)
            V1=P(NT)%PSPNL(NADDR-1,L)
            V2=P(NT)%PSPNL(NADDR,L  )
            V3=P(NT)%PSPNL(NADDR+1,L)
            V4=P(NT)%PSPNL(NADDR+2,L)
            T0=V2
-           T1=((6*V3)-(2*V1)-(3*V2)-V4)/6._q
-           T2=(V1+V3-(2*V2))/2._q
-           T3=(V4-V1+(3*(V2-V3)))/6._q
-           VPS(IND)=(T0+REM*(T1+REM*(T2+REM*T3)))*FAKT*FAKTX(IND)
+           T1=((6*V3)-(2*V1)-(3*V2)-V4)/6._dp
+           T2=(V1+V3-(2*V2))/2._dp
+           T3=(V4-V1+(3*(V2-V3)))/6._dp
+           VPS(IND)=(T0+REM*(T1+REM*(T2+REM*T3)))*divSqrtOmega*FAKTX(IND)
         ENDIF
 
-        IF (VPS(IND)/=0._q.AND.PRESENT(DK)) THEN
-           ARG=(GLENP(IND)*ARGSC)+1
+        IF (VPS(ipw)/=0._dp.AND.PRESENT(DK)) THEN
+           ARG=(GLENP(ipw)*ARGSC)+1
            NADDR=INT(ARG)
-           IF (NADDR>NPSNL-1.OR.(.NOT.ASSOCIATED(P(NT)%PSPNL_SPLINE).AND.NADDR>NPSNL-3)) VPS(IND)=0._q
+           IF (NADDR>NPSNL-1.OR.(.NOT.ASSOCIATED(P(NT)%PSPNL_SPLINE).AND.NADDR>NPSNL-3)) VPS(ipw)=0._dp
         ENDIF
      ENDDO
 
