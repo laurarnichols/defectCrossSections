@@ -2621,7 +2621,7 @@ module wfcExportVASPMod
 
       do ip = 1, ps(iT)%nChannels
 
-        call getPseudoV(iT, ip, nPWs1k, omega, pseudoV)
+        call getPseudoV(ip, nPWs1k, omega, ps(iT), pseudoV)
 
         angMom = ps(iT)%angMom(ip)
         imMax= 2*angMom
@@ -2679,12 +2679,10 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine getPseudoV(iT, ip, nPWs1k, omega, pseudoV)
+  subroutine getPseudoV(ip, nPWs1k, omega, ps, pseudoV)
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: iT
-      !! Atom-type index
     integer, intent(in) :: ip
       !! Channel index
     integer, intent(in) :: nPWs1k
@@ -2692,6 +2690,10 @@ module wfcExportVASPMod
 
     real(kind=dp) :: omega
       !! Volume of unit cell
+
+    type (pseudo) :: ps
+      !! Holds all information needed from pseudopotential
+      !! for the specific atom type considered
 
     ! Output variables:
     real(kind=dp), allocatable, intent(out) :: pseudoV(:)
@@ -2709,7 +2711,7 @@ module wfcExportVASPMod
 
     divSqrtOmega = 1/sqrt(omega)
 
-    ARGSC=NPSNL/P(iT)%PSMAXN
+    ARGSC=NPSNL/ps%PSMAXN
     do ipw = 1, nPWs1k
       ARG=(GLEN(ipw)*ARGSC)+1
       NADDR=INT(ARG)
@@ -2724,10 +2726,10 @@ module wfcExportVASPMod
         !! @endnote
 
       REM=MOD(ARG,1.0_dp)
-      V1=P(iT)%PSPNL(NADDR-1,ip)
-      V2=P(iT)%PSPNL(NADDR,ip)
-      V3=P(iT)%PSPNL(NADDR+1,ip)
-      V4=P(iT)%PSPNL(NADDR+2,ip)
+      V1=ps%PSPNL(NADDR-1,ip)
+      V2=ps%PSPNL(NADDR,ip)
+      V3=ps%PSPNL(NADDR+1,ip)
+      V4=ps%PSPNL(NADDR+2,ip)
       T0=V2
       T1=((6*V3)-(2*V1)-(3*V2)-V4)/6._dp
       T2=(V1+V3-(2*V2))/2._dp
