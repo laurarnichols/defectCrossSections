@@ -2270,6 +2270,13 @@ module wfcExportVASPMod
 
             read(potcarUnit,*) 
             read(potcarUnit,*) (ps(iT)%recipProj(ps(iT)%nChannels+ip,i), i=1,splineSize)
+
+            IF (MOD(P(NTYP)%LPS(CHANNELS+1),2)==0) THEN
+              P(NTYP)%PSPNL(0,CHANNELS+NL) =  P(NTYP)%PSPNL(2,CHANNELS+NL)
+            ELSE
+              P(NTYP)%PSPNL(0,CHANNELS+NL) = -P(NTYP)%PSPNL(2,CHANNELS+NL)
+            ENDIF
+
             read(potcarUnit,*) 
             read(potcarUnit,*) (ps(iT)%realProj(ps(iT)%nChannels+ip,i), i=1,splineSize)
               !! @todo Figure out if you actually need to read these projectors @endtodo
