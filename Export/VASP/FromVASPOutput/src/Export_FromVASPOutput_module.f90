@@ -2575,7 +2575,7 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nPWs1k, ps, realProjWoPhase)
+  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nPWs1k, omega, ps, realProjWoPhase)
     implicit none
 
     ! Input variables:
@@ -2585,6 +2585,9 @@ module wfcExportVASPMod
       !! Number of types of atoms
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
+
+    real(kind=dp) :: omega
+      !! Volume of unit cell
 
     type (pseudo) :: ps(nAtomTypes)
       !! Holds all information needed from pseudopotential
@@ -2668,10 +2671,19 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine getPseudopotential()
+  subroutine getPseudopotential(omega)
     implicit none
 
-     FAKT= 1/SQRT(LATT_CUR%OMEGA)
+    ! Input variables:
+    real(kind=dp) :: omega
+      !! Volume of unit cell
+
+    ! Local variables:
+    real(kind=dp) :: divSqrtOmega
+      !! 1/sqrt(omega) for multiplying pseudopotential
+
+     divSqrtOmega = 1/sqrt(omega)
+
      ARGSC=NPSNL/P(NT)%PSMAXN
      DO IND=1,INDMAX
         ARG=(GLEN(IND)*ARGSC)+1
