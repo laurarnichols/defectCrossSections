@@ -2237,6 +2237,8 @@ module wfcExportVASPMod
         read(potcarUnit,'(1X,A1)') charSwitch
           !! * Read character switch
 
+        allocate(dummDA1(nonlPseudoGridSize))
+
         do while (charSwitch /= 'D' .and. charSwitch /= 'A' .and. charSwitch /= 'P' &
           .and. charSwitch /= 'E')
             !! * Until you have read in all of the momentum channels
@@ -2297,6 +2299,8 @@ module wfcExportVASPMod
             ! Read character switch
 
         enddo
+
+        deallocate(dummyDA1)
 
         if (charSwitch /= 'P') then
           !! * Ignore depletion charges
