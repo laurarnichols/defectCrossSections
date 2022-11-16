@@ -2632,6 +2632,8 @@ module wfcExportVASPMod
 
     allocate(realProjWoPhase(nPWs1k,pot(iT)%lmmax,nAtomTypes))
 
+    call generateGridTable()
+
     call getYlm(LYDIM, nPWs1k, Ylm, XS, YS, ZS)
 
     do iT = 1, nAtomTypes
@@ -2695,6 +2697,14 @@ module wfcExportVASPMod
 
     return
   end subroutine calculateRealProjWoPhase
+
+!----------------------------------------------------------------------------
+  subroutine generateGridTable()
+    implicit none
+
+
+    return
+  end subroutine generateGridTable
 
 !----------------------------------------------------------------------------
   subroutine getPseudoV(ip, nPWs1k, omega, pot, pseudoV)
