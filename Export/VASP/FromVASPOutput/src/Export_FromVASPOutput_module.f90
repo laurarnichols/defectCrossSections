@@ -2626,6 +2626,8 @@ module wfcExportVASPMod
     integer :: iT, ip, im, ipw
       !! Loop index
       
+    real(kind=dp) :: GVecLen(nPWs1k)
+      !! Length of G-vectors
     real(kind=dp), allocatable :: pseudoV(:)
       !! Pseudopotential
 
@@ -2641,7 +2643,7 @@ module wfcExportVASPMod
 
       do ip = 1, pot(iT)%nChannels
 
-        call getPseudoV(ip, nPWs1k, omega, pot(iT), pseudoV)
+        call getPseudoV(ip, nPWs1k, GVecLen, omega, pot(iT), pseudoV)
 
         angMom = pot(iT)%angMom(ip)
         imMax= 2*angMom
@@ -2707,7 +2709,7 @@ module wfcExportVASPMod
   end subroutine generateGridTable
 
 !----------------------------------------------------------------------------
-  subroutine getPseudoV(ip, nPWs1k, omega, pot, pseudoV)
+  subroutine getPseudoV(ip, nPWs1k, GVecLen, omega, pot, pseudoV)
     implicit none
 
     ! Input variables:
@@ -2716,7 +2718,9 @@ module wfcExportVASPMod
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
 
-    real(kind=dp) :: omega
+    real(kind=dp), intent(in) :: GVecLen(nPWs1k)
+      !! Length of G-vectors
+    real(kind=dp), intent(in) :: omega
       !! Volume of unit cell
 
     type (potcar) :: pot
@@ -2728,21 +2732,54 @@ module wfcExportVASPMod
       !! Pseudopotential
 
     ! Local variables:
+    integer :: iPsGr
+      !! Index on pseudopotential grid
     integer :: ipw
       !! Loop index
 
+    real(kind=dp) :: a_ipw, b_ipw, c_ipw, d_ipw
+      !! Cubic spline coefficients for recreating
+      !! pseudopotential
+    real(kind=dp) :: GLenToPseudoGrid
+      !! Factor to scale from G-vector length scale
+      !! to non-linear grid of size `nonlPseudoGridSize`
     real(kind=dp) :: divSqrtOmega
       !! 1/sqrt(omega) for multiplying pseudopotential
+    real(kind=dp) :: pseudoGridLoc
+      !! Location of G-vector/plane wave on pseudopotential 
+      !! grid, scaled by the G-vector length
+    real(kind=dp) :: rem
+      !! Decimal part of `pseudoGridLoc`, used for recreating
+      !! pseudopotential from cubic spline interpolation
+    real(kind=dp) :: rp1, rp2, rp3, rp4
+      !! Compressed recipocal-space projectors as read from
+      !! the POTCAR file
 
 
     allocate(pseudoV(nPWs1k))
 
     divSqrtOmega = 1/sqrt(omega)
 
-    ARGSC = nonlPseudoGridSize/pot%maxGNonlPs
+    GLenToPseudoGrid = nonlPseudoGridSize/pot%maxGNonlPs
+      !! * Define a scale factor for the argument based on the
+      !!   length of the G-vector. Convert from continous G-vector
+      !!   length scale to discrete scale of size `nonlPseudoGridSize`.
+
     do ipw = 1, nPWs1k
-      ARG = (GLEN(ipw)*ARGSC) + 1
-      NADDR = INT(ARG)
+
+      pseudoGridLoc = GVecLen(ipw)*GLenToPseudoGrid + 1
+        !! * Get a location of this G-vector/plane wave
+        !!   scaled to the size of the non-linear pseudopotential
+        !!   grid. This value is real.
+
+      iPsGr = int(pseudoGridLoc)
+        !! * Get the integer part of the location, which will be 
+        !!   used to index the reciprocal-space projectors as read
+        !!   in from the POTCAR file
+
+      rem = mod(pseudoGridLoc,1.0_dp)
+        !! * Get the remainder, which is used for recreating the
+        !!   pseudopotential from a cubic spline interpolation
 
       pseudoV(ipw) = 0._dp
 
@@ -2753,19 +2790,24 @@ module wfcExportVASPMod
         !!  `SPHER` subroutine is skipped.
         !! @endnote
 
-      REM=MOD(ARG,1.0_dp)
 
-      V1 = pot%recipProj(NADDR-1,ip)
-      V2 = pot%recipProj(NADDR,ip)
-      V3 = pot%recipProj(NADDR+1,ip)
-      V4 = pot%recipProj(NADDR+2,ip)
+      rp1 = pot%recipProj(ip, iPsGr-1)
+      rp2 = pot%recipProj(ip, iPsGr)
+      rp3 = pot%recipProj(ip, iPsGr+1)
+      rp4 = pot%recipProj(ip, iPsGr+2)
 
-      T0 = V2
-      T1 = ((6*V3)-(2*V1)-(3*V2)-V4)/6._dp
-      T2 = (V1+V3-(2*V2))/2._dp
-      T3 = (V4-V1+(3*(V2-V3)))/6._dp
+      a_ipw = rp2
+      b_ipw = (6*rp3 - 2*rp1 - 3*rp2 - rp4)/6._dp
+      c_ipw = (rp1 + rp3 - 2*rp2)/2._dp
+      d_ipw = (rp4 - rp1 + 3*(rp2 - rp3))/6._dp
+        !! * Decode the spline coefficients from the compressed reciprocal
+        !!   projectors read from the POTCAR file
 
-      pseudoV(ipw) = (T0 + REM*(T1 + REM*(T2 + REM*T3)))*divSqrtOmega*FAKTX(ipw)
+      pseudoV(ipw) = (a_ipw + rem*(b_ipw + rem*(c_ipw + rem*d_ipw)))*divSqrtOmega*FAKTX(ipw)
+        !! * Recreate full pseudopotential from cubic spline coefficients:
+        !!   \( \text{pseudo} = a_i + dx\cdot b_i + dx^2\cdot c_i + dx^3\cdot d_i \)
+        !!   where the \(i\) index is the plane-wave index, and \(dx\) is the decimal
+        !!   part of the pseudopotential-grid location
 
       !IF (VPS(IND) /= 0._dp .AND. PRESENT(DK)) THEN
         !! @note
