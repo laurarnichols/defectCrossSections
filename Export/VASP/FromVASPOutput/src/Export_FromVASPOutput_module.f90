@@ -2626,6 +2626,8 @@ module wfcExportVASPMod
     integer :: iT, ip, im, ipw
       !! Loop index
       
+    real(kind=dp) :: FAKTX(nPWs1k)
+      !! Not sure what this is
     real(kind=dp) :: GVecLen(nPWs1k)
       !! Length of G-vectors
     real(kind=dp), allocatable :: pseudoV(:)
@@ -2643,7 +2645,7 @@ module wfcExportVASPMod
 
       do ip = 1, pot(iT)%nChannels
 
-        call getPseudoV(ip, nPWs1k, GVecLen, omega, pot(iT), pseudoV)
+        call getPseudoV(ip, nPWs1k, FAKTX, GVecLen, omega, pot(iT), pseudoV)
 
         angMom = pot(iT)%angMom(ip)
         imMax= 2*angMom
@@ -2709,7 +2711,7 @@ module wfcExportVASPMod
   end subroutine generateGridTable
 
 !----------------------------------------------------------------------------
-  subroutine getPseudoV(ip, nPWs1k, GVecLen, omega, pot, pseudoV)
+  subroutine getPseudoV(ip, nPWs1k, FAKTX, GVecLen, omega, pot, pseudoV)
     implicit none
 
     ! Input variables:
@@ -2718,6 +2720,8 @@ module wfcExportVASPMod
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
 
+    real(kind=dp), intent(in) :: FAKTX(nPWs1k)
+      !! Not sure what this is
     real(kind=dp), intent(in) :: GVecLen(nPWs1k)
       !! Length of G-vectors
     real(kind=dp), intent(in) :: omega
