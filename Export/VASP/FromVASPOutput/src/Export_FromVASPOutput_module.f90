@@ -2636,7 +2636,7 @@ module wfcExportVASPMod
 
     allocate(realProjWoPhase(nPWs1k,pot(iT)%lmmax,nAtomTypes))
 
-    call generateGridTable(nPWs1k)
+    call generateGridTable(ik, nPWs1k)
 
     call getYlm(LYDIM, nPWs1k, Ylm, XS, YS, ZS)
 
@@ -2703,22 +2703,24 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine generateGridTable(nPWs1k)
+  subroutine generateGridTable(ik, nPWs1k)
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ik
+      !! Current k-point 
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
 
     do ipw = 1, nPWs1k
 
-      N1=MOD(WDES%IGX(ipw,NK)+GRID%NGX,GRID%NGX)+1
-      N2=MOD(WDES%IGY(ipw,NK)+GRID%NGY,GRID%NGY)+1
-      N3=MOD(WDES%IGZ(ipw,NK)+GRID%NGZ,GRID%NGZ)+1
+      N1=MOD(WDES%IGX(ipw,ik)+GRID%NGX,GRID%NGX)+1
+      N2=MOD(WDES%IGY(ipw,ik)+GRID%NGY,GRID%NGY)+1
+      N3=MOD(WDES%IGZ(ipw,ik)+GRID%NGZ,GRID%NGZ)+1
 
-      G1=(GRID%LPCTX(N1)+WDES%VKPT(1,NK))
-      G2=(GRID%LPCTY(N2)+WDES%VKPT(2,NK))
-      G3=(GRID%LPCTZ(N3)+WDES%VKPT(3,NK))
+      G1=(GRID%LPCTX(N1)+WDES%VKPT(1,ik))
+      G2=(GRID%LPCTY(N2)+WDES%VKPT(2,ik))
+      G3=(GRID%LPCTZ(N3)+WDES%VKPT(3,ik))
 
       IF (ASSOCIATED(NONL_S%VKPT_SHIFT)) THEN
         G1= G1 +NONL_S%VKPT_SHIFT(1,NI)
