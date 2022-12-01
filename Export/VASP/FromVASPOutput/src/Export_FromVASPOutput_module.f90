@@ -86,6 +86,8 @@ module wfcExportVASPMod
   complex*16, allocatable :: eigenE(:,:,:)
     !! Band eigenvalues
   
+  integer :: fftGridSize(3)
+    !! Number of points on the FFT grid in each direction
   integer, allocatable :: gIndexLocalToGlobal(:)
     !! Converts local index `ig` to global index
   integer, allocatable :: gKIndexLocalToGlobal(:,:)
@@ -1913,7 +1915,7 @@ module wfcExportVASPMod
   end subroutine hpsort_eps
 
 !----------------------------------------------------------------------------
-  subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, iType, nAtoms, nAtomTypes)
+  subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomTypes)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
     !! <h2>Walkthrough</h2>
@@ -1940,6 +1942,8 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) :: kWeight(:)
       !! K-point weights
 
+    integer, intent(out) :: fftGridSize(3)
+      !! Number of points on the FFT grid in each direction
     integer, allocatable, intent(out) :: iType(:)
       !! Atom type index
     integer, intent(out) :: nAtoms
@@ -1949,7 +1953,7 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: ik, ia, i
+    integer :: ik, ia, ix, i
       !! Loop indices
 
     character(len=256) :: cDum
@@ -1994,6 +1998,26 @@ module wfcExportVASPMod
         !! * Read in the weight for each k-point
 
         read(57,*) cDum, kWeight(ik), cDum
+
+      enddo
+
+
+      found = .false.
+      do while (.not. found)
+        !! * Ignore everything until you get to a
+        !!   line with `'grids'`, indicating the
+        !!   tag surrounding the k-point weights
+        
+        read(57, '(A)') line
+
+        if (index(line,'grids') /= 0) found = .true.
+        
+      enddo
+
+      do ix = 1, 3
+        !! * Read in the FFT grid size in each direction
+
+        read(57,*) cDum, fftGridSize(ix), cDum
 
       enddo
 
@@ -2593,10 +2617,12 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nPWs1k, omega, pot, realProjWoPhase)
+  subroutine calculateRealProjWoPhase(fftGridSize, ik, nAtomTypes, nPWs1k, omega, pot, realProjWoPhase)
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: fftGridSize(3)
+      !! Number of points on the FFT grid in each direction
     integer, intent(in) :: ik
       !! Current k-point 
     integer, intent(in) :: nAtomTypes
@@ -2636,7 +2662,7 @@ module wfcExportVASPMod
 
     allocate(realProjWoPhase(nPWs1k,pot(iT)%lmmax,nAtomTypes))
 
-    call generateGridTable(ik, nPWs1k)
+    call generateGridTable(fftGridSize, ik, nPWs1k)
 
     call getYlm(LYDIM, nPWs1k, Ylm, XS, YS, ZS)
 
@@ -2703,10 +2729,12 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine generateGridTable(ik, nPWs1k)
+  subroutine generateGridTable(fftGridSize, ik, nPWs1k)
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: fftGridSize(3)
+      !! Number of points on the FFT grid in each direction
     integer, intent(in) :: ik
       !! Current k-point 
     integer, intent(in) :: nPWs1k
@@ -2727,9 +2755,9 @@ module wfcExportVASPMod
 
     do ipw = 1, nPWs1k
 
-      N1=MOD(WDES%IGX(ipw,ik)+GRID%NGX,GRID%NGX)+1
-      N2=MOD(WDES%IGY(ipw,ik)+GRID%NGY,GRID%NGY)+1
-      N3=MOD(WDES%IGZ(ipw,ik)+GRID%NGZ,GRID%NGZ)+1
+      N1 = MOD(WDES%IGX(ipw,ik) + fftGridSize(1), fftGridSize(1)) + 1
+      N2 = MOD(WDES%IGY(ipw,ik) + fftGridSize(2), fftGridSize(2)) + 1
+      N3 = MOD(WDES%IGZ(ipw,ik) + fftGridSize(3), fftGridSize(3)) + 1
 
       G1=(GRID%LPCTX(N1)+WDES%VKPT(1,ik))
       G2=(GRID%LPCTY(N2)+WDES%VKPT(2,ik))

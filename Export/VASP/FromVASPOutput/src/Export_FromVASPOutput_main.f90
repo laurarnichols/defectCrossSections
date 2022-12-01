@@ -85,7 +85,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Reading vasprun.xml"
 
-  call read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, iType, nAtoms, nAtomTypes)
+  call read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
   if (ionode) write(iostd,*) "Done reading vasprun.xml"
