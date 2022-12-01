@@ -2736,18 +2736,18 @@ module wfcExportVASPMod
       YS(IND)  =GY/GLEN(IND)
       ZS(IND)  =GZ/GLEN(IND)
 
-      IF (PRESENT(DK)) THEN
-        G1P= G1 +DK(1)
-        G2P= G2 +DK(2)
-        G3P= G3 +DK(3)
-        GXP= (G1P*LATT_CUR%B(1,1)+G2P*LATT_CUR%B(1,2)+G3P*LATT_CUR%B(1,3)-QX) *TPI
-        GYP= (G1P*LATT_CUR%B(2,1)+G2P*LATT_CUR%B(2,2)+G3P*LATT_CUR%B(2,3)-QY) *TPI
-        GZP= (G1P*LATT_CUR%B(3,1)+G2P*LATT_CUR%B(3,2)+G3P*LATT_CUR%B(3,3)-QZ) *TPI
-        GLENP(IND)=MAX(SQRT(GXP*GXP+GYP*GYP+GZP*GZP),1E-10_q)
-      ENDIF
+      !IF (PRESENT(DK)) THEN
+        !! @note
+        !!  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
+        !!  `SPHER` is called without `DK`  along with the comment "relalculate the 
+        !!  projection operators (the array was used as a workspace)." `SPHER` is what is
+        !!  used to calculate the real projectors without the complex phase.
+        !!
+        !!  Based on this comment, I am going to assume that `DK` isn't present, which means
+        !!  that this section in the original `SPHER` subroutine is skipped. 
+        !! @endnote
     enddo
   
-
     return
   end subroutine generateGridTable
 
