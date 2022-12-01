@@ -2725,9 +2725,9 @@ module wfcExportVASPMod
       FACTM=1.00
       IF (WDES%LGAMMA .AND. (N1/=1 .OR. N2/=1 .OR. N3/=1)) FACTM=SQRT(2._q)
 
-      GX= (G1*LATT_CUR%B(1,1)+G2*LATT_CUR%B(1,2)+G3*LATT_CUR%B(1,3)-QX) *TPI
-      GY= (G1*LATT_CUR%B(2,1)+G2*LATT_CUR%B(2,2)+G3*LATT_CUR%B(2,3)-QY) *TPI
-      GZ= (G1*LATT_CUR%B(3,1)+G2*LATT_CUR%B(3,2)+G3*LATT_CUR%B(3,3)-QZ) *TPI
+      GX = (G1*LATT_CUR%B(1,1) + G2*LATT_CUR%B(1,2) + G3*LATT_CUR%B(1,3) - QX)*twopi
+      GY = (G1*LATT_CUR%B(2,1) + G2*LATT_CUR%B(2,2) + G3*LATT_CUR%B(2,3) - QY)*twopi
+      GZ = (G1*LATT_CUR%B(3,1) + G2*LATT_CUR%B(3,2) + G3*LATT_CUR%B(3,3) - QZ)*twopi
 
 
       GLEN(IND)=MAX(SQRT(GX*GX+GY*GY+GZ*GZ),1E-10_q)
