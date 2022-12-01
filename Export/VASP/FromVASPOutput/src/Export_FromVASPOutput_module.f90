@@ -1079,6 +1079,15 @@ module wfcExportVASPMod
             ! the eigenvalue and occupation for each band
 
           nPWs1kGlobal(ik) = nint(nPWs1kGlobal_real)
+            !! @note
+            !!  `nPWs1kGlobal(ik)` corresponds to `WDES%NPLWKP_TOT(K)` in VASP (see 
+            !!  subroutine `OUTWAV` in `fileio.F`). In the `GEN_INDEX` subroutine in
+            !!  `wave.F`, `WDES%NGVECTOR(NK) = WDES%NPLWKP(NK)/WDES%NRSPINORS`, where
+            !!  `NRSPINORS=1` for our case. `WDES%NPLWKP(NK)` and `WDES%NPLWKP_TOT(K)`
+            !!  are set the same way and neither `NGVECTOR(NK)` nor `NPLWKP_TOT(K)` are
+            !!  changed anywhere else, so I am treating them as equivalent. I am not
+            !!  sure why there are two separate variables defined.
+            !! @endnote
 
           irec = irec + nBands
             ! Skip the records for the plane-wave coefficients for now.
