@@ -46,7 +46,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Reading WAVECAR"
 
-  call readWAVECAR(VASPDir, realSpaceLatticeVectors, recipSpaceLatticeVectors, wfcECut, bandOccupation, omega, wfcVecCut, &
+  call readWAVECAR(VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
       kPosition, nb1max, nb2max, nb3max, nBands, maxGkNum, nKPoints, nPWs1kGlobal, nSpins, &
       eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
@@ -60,7 +60,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Calculating G-vectors"
 
-  call calculateGvecs(nb1max, nb2max, nb3max, recipSpaceLatticeVectors, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, nGVecsGlobal, &
+  call calculateGvecs(nb1max, nb2max, nb3max, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, nGVecsGlobal, &
       nGVecsLocal)
     !! * Calculate Miller indices and G-vectors and split
     !!   over processors
@@ -70,7 +70,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Reconstructing FFT grid"
 
-  call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, maxGkNum, nKPoints, nPWs1kGlobal, recipSpaceLatticeVectors, gVecInCart, &
+  call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, maxGkNum, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, &
       wfcVecCut, kPosition, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
     !! * Determine which G-vectors result in \(G+k\)
     !!   below the energy cutoff for each k-point and
@@ -85,7 +85,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Reading vasprun.xml"
 
-  call read_vasprun_xml(realSpaceLatticeVectors, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, iType, nAtoms, nAtomTypes)
+  call read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, iType, nAtoms, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
   if (ionode) write(iostd,*) "Done reading vasprun.xml"
@@ -129,7 +129,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Writing cell info"
 
-  call writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realSpaceLatticeVectors, recipSpaceLatticeVectors, atomPositionsDir, nAtomsEachType)
+  call writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realLattVec, recipLattVec, atomPositionsDir, nAtomsEachType)
     !! * Write out the real- and reciprocal-space lattice vectors, 
     !!   the number of atoms, the number of types of atoms, the
     !!   final atom positions, number of bands, and number of spins,

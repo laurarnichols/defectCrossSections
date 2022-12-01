@@ -58,9 +58,9 @@ module wfcExportVASPMod
 
 
   ! Variables that should be passed as arguments:
-  real(kind=dp) :: realSpaceLatticeVectors(3,3)
+  real(kind=dp) :: realLattVec(3,3)
     !! Real space lattice vectors
-  real(kind=dp) :: recipSpaceLatticeVectors(3,3)
+  real(kind=dp) :: recipLattVec(3,3)
     !! Reciprocal lattice vectors
   real(kind=dp) :: wfcECut
     !! Plane wave energy cutoff in Ry
@@ -584,7 +584,7 @@ module wfcExportVASPMod
   end subroutine exitError
 
 !----------------------------------------------------------------------------
-  subroutine readWAVECAR(VASPDir, realSpaceLatticeVectors, recipSpaceLatticeVectors, wfcECut, bandOccupation, omega, wfcVecCut, &
+  subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
         kPosition, nb1max, nb2max, nb3max, nBands, maxGkNum, nKPoints, nPWs1kGlobal, nSpins, &
         eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
@@ -600,9 +600,9 @@ module wfcExportVASPMod
 
     
     ! Output variables:
-    real(kind=dp), intent(out) :: realSpaceLatticeVectors(3,3)
+    real(kind=dp), intent(out) :: realLattVec(3,3)
       !! Real space lattice vectors
-    real(kind=dp), intent(out) :: recipSpaceLatticeVectors(3,3)
+    real(kind=dp), intent(out) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
     real(kind=dp), intent(out) :: wfcECut
       !! Plane wave energy cutoff in Ry
@@ -680,11 +680,11 @@ module wfcExportVASPMod
       if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
         !! * Reopen WAVECAR with correct number of records
 
-      read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, wfcECut,(realSpaceLatticeVectors(j,1),j=1,3),&
-          (realSpaceLatticeVectors(j,2),j=1,3), (realSpaceLatticeVectors(j,3),j=1,3)
+      read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, wfcECut,(realLattVec(j,1),j=1,3),&
+          (realLattVec(j,2),j=1,3), (realLattVec(j,3),j=1,3)
         !! * Read total number of k-points, plane wave cutoff energy, and real
         !!   space lattice vectors
-      !read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, wfcECut,((realSpaceLatticeVectors(i,j),j=1,3),i=1,3)
+      !read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, wfcECut,((realLattVec(i,j),j=1,3),i=1,3)
         !! @todo Test this more compact form @endtodo
 
       close(wavecarUnit)
@@ -695,20 +695,20 @@ module wfcExportVASPMod
       wfcVecCut = sqrt(wfcECut/evToRy*c)/angToBohr
         !! * Calculate vector cutoff from energy cutoff
 
-      realSpaceLatticeVectors = realSpaceLatticeVectors*angToBohr
+      realLattVec = realLattVec*angToBohr
 
       nKPoints = nint(nkstot_real)
       nBands = nint(nbnd_real)
         ! Convert input variables to integers
 
-      call calculateOmega(realSpaceLatticeVectors, omega)
+      call calculateOmega(realLattVec, omega)
         !! * Calculate the cell volume as \(a_1\cdot a_2\times a_3\)
 
-      call getReciprocalVectors(realSpaceLatticeVectors, omega, recipSpaceLatticeVectors)
+      call getReciprocalVectors(realLattVec, omega, recipLattVec)
         !! * Calculate the reciprocal lattice vectors from the real-space
         !!   lattice vectors and the cell volume
 
-      call estimateMaxNumPlanewaves(recipSpaceLatticeVectors, wfcECut, nb1max, nb2max, nb3max, maxGkNum)
+      call estimateMaxNumPlanewaves(recipLattVec, wfcECut, nb1max, nb2max, nb3max, maxGkNum)
         !! * Get the maximum number of plane waves
 
       !> * Write out total number of k-points, number of bands, 
@@ -722,16 +722,16 @@ module wfcExportVASPMod
         !!  in eV to compare with output from WaveTrans.
         !! @endnote
       write(iostd,*) 'real space lattice vectors:'
-      write(iostd,*) 'a1 =', (sngl(realSpaceLatticeVectors(j,1)),j=1,3)
-      write(iostd,*) 'a2 =', (sngl(realSpaceLatticeVectors(j,2)),j=1,3)
-      write(iostd,*) 'a3 =', (sngl(realSpaceLatticeVectors(j,3)),j=1,3)
+      write(iostd,*) 'a1 =', (sngl(realLattVec(j,1)),j=1,3)
+      write(iostd,*) 'a2 =', (sngl(realLattVec(j,2)),j=1,3)
+      write(iostd,*) 'a3 =', (sngl(realLattVec(j,3)),j=1,3)
       write(iostd,*) 
       write(iostd,*) 'volume unit cell =', sngl(omega)
       write(iostd,*) 
       write(iostd,*) 'reciprocal lattice vectors:'
-      write(iostd,*) 'b1 =', (sngl(recipSpaceLatticeVectors(j,1)),j=1,3)
-      write(iostd,*) 'b2 =', (sngl(recipSpaceLatticeVectors(j,2)),j=1,3)
-      write(iostd,*) 'b3 =', (sngl(recipSpaceLatticeVectors(j,3)),j=1,3)
+      write(iostd,*) 'b1 =', (sngl(recipLattVec(j,1)),j=1,3)
+      write(iostd,*) 'b2 =', (sngl(recipLattVec(j,2)),j=1,3)
+      write(iostd,*) 'b3 =', (sngl(recipLattVec(j,3)),j=1,3)
       write(iostd,*) 
         !! @note
         !!  I made an intentional choice to stick with the unscaled lattice
@@ -757,8 +757,8 @@ module wfcExportVASPMod
     call MPI_BCAST(wfcECut, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(wfcVecCut, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(realSpaceLatticeVectors, size(realSpaceLatticeVectors), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(recipSpaceLatticeVectors, size(recipSpaceLatticeVectors), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(recipLattVec, size(recipLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     if (ionode) then
       write(iostd,*) 
@@ -786,13 +786,13 @@ module wfcExportVASPMod
   end subroutine readWAVECAR
 
 !----------------------------------------------------------------------------
-  subroutine calculateOmega(realSpaceLatticeVectors, omega)
+  subroutine calculateOmega(realLattVec, omega)
     !! Calculate the cell volume as \(a_1\cdot a_2\times a_3\)
 
     implicit none
 
     ! Input variables:
-    real(kind=dp), intent(in) :: realSpaceLatticeVectors(3,3)
+    real(kind=dp), intent(in) :: realLattVec(3,3)
       !! Real space lattice vectors
 
 
@@ -806,29 +806,29 @@ module wfcExportVASPMod
       !! \(a_2\times a_3\)
 
 
-    call vcross(realSpaceLatticeVectors(:,2), realSpaceLatticeVectors(:,3), vtmp)
+    call vcross(realLattVec(:,2), realLattVec(:,3), vtmp)
 
-    omega = sum(realSpaceLatticeVectors(:,1)*vtmp(:))
+    omega = sum(realLattVec(:,1)*vtmp(:))
 
     return
   end subroutine calculateOmega
 
 !----------------------------------------------------------------------------
-  subroutine getReciprocalVectors(realSpaceLatticeVectors, omega, recipSpaceLatticeVectors)
+  subroutine getReciprocalVectors(realLattVec, omega, recipLattVec)
     !! Calculate the reciprocal lattice vectors from the real-space
     !! lattice vectors and the cell volume
 
     implicit none
 
     ! Input variables:
-    real(kind=dp), intent(in) :: realSpaceLatticeVectors(3,3)
+    real(kind=dp), intent(in) :: realLattVec(3,3)
       !! Real space lattice vectors
     real(kind=dp), intent(in) :: omega
       !! Volume of unit cell
 
 
     ! Output variables:
-    real(kind=dp), intent(out) :: recipSpaceLatticeVectors(3,3)
+    real(kind=dp), intent(out) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
 
 
@@ -837,11 +837,11 @@ module wfcExportVASPMod
       !! Loop index
     
 
-    call vcross(2.0d0*pi*realSpaceLatticeVectors(:,2)/omega, realSpaceLatticeVectors(:,3), recipSpaceLatticeVectors(:,1))
+    call vcross(2.0d0*pi*realLattVec(:,2)/omega, realLattVec(:,3), recipLattVec(:,1))
       ! \(b_1 = 2\pi/\Omega a_2\times a_3\)
-    call vcross(2.0d0*pi*realSpaceLatticeVectors(:,3)/omega, realSpaceLatticeVectors(:,1), recipSpaceLatticeVectors(:,2))
+    call vcross(2.0d0*pi*realLattVec(:,3)/omega, realLattVec(:,1), recipLattVec(:,2))
       ! \(b_2 = 2\pi/\Omega a_3\times a_1\)
-    call vcross(2.0d0*pi*realSpaceLatticeVectors(:,1)/omega, realSpaceLatticeVectors(:,2), recipSpaceLatticeVectors(:,3))
+    call vcross(2.0d0*pi*realLattVec(:,1)/omega, realLattVec(:,2), recipLattVec(:,3))
       ! \(b_3 = 2\pi/\Omega a_1\times a_2\)
 
 
@@ -873,7 +873,7 @@ module wfcExportVASPMod
   end subroutine vcross
 
 !----------------------------------------------------------------------------
-  subroutine estimateMaxNumPlanewaves(recipSpaceLatticeVectors, wfcECut, nb1max, nb2max, nb3max, maxGkNum)
+  subroutine estimateMaxNumPlanewaves(recipLattVec, wfcECut, nb1max, nb2max, nb3max, maxGkNum)
     !! Get the maximum number of plane waves. I'm not sure how 
     !! this is done completely. It seems to be just basic vector
     !! stuff, but I haven't been able to make sense of it.
@@ -886,7 +886,7 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    real(kind=dp), intent(in) :: recipSpaceLatticeVectors(3,3)
+    real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
     real(kind=dp), intent(in) :: wfcECut
       !! Plane wave energy cutoff in Ry
@@ -924,21 +924,21 @@ module wfcExportVASPMod
       !! Not sure what this is??
 
 
-    b1mag = sqrt(sum(recipSpaceLatticeVectors(:,1)**2))
-    b2mag = sqrt(sum(recipSpaceLatticeVectors(:,2)**2))
-    b3mag = sqrt(sum(recipSpaceLatticeVectors(:,3)**2))
+    b1mag = sqrt(sum(recipLattVec(:,1)**2))
+    b2mag = sqrt(sum(recipLattVec(:,2)**2))
+    b3mag = sqrt(sum(recipLattVec(:,3)**2))
 
     write(iostd,*) 'reciprocal lattice vector magnitudes:'
     write(iostd,*) sngl(b1mag),sngl(b2mag),sngl(b3mag)
       !! * Calculate and output reciprocal vector magnitudes
 
 
-    phi12 = acos(sum(recipSpaceLatticeVectors(:,1)*recipSpaceLatticeVectors(:,2))/(b1mag*b2mag))
+    phi12 = acos(sum(recipLattVec(:,1)*recipLattVec(:,2))/(b1mag*b2mag))
       !! * Calculate angle between \(b_1\) and \(b_2\)
 
-    call vcross(recipSpaceLatticeVectors(:,1), recipSpaceLatticeVectors(:,2), vtmp)
+    call vcross(recipLattVec(:,1), recipLattVec(:,2), vtmp)
     vmag = sqrt(sum(vtmp(:)**2))
-    sinphi123 = sum(recipSpaceLatticeVectors(:,3)*vtmp(:))/(vmag*b3mag)
+    sinphi123 = sum(recipLattVec(:,3)*vtmp(:))/(vmag*b3mag)
       !! * Get \(\sin\phi_{123}\)
 
     nb1maxA = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sin(phi12)))) + 1
@@ -948,12 +948,12 @@ module wfcExportVASPMod
       !! * Get first set of max values
 
 
-    phi13 = acos(sum(recipSpaceLatticeVectors(:,1)*recipSpaceLatticeVectors(:,3))/(b1mag*b3mag))
+    phi13 = acos(sum(recipLattVec(:,1)*recipLattVec(:,3))/(b1mag*b3mag))
       !! * Calculate angle between \(b_1\) and \(b_3\)
 
-    call vcross(recipSpaceLatticeVectors(:,1), recipSpaceLatticeVectors(:,3), vtmp)
+    call vcross(recipLattVec(:,1), recipLattVec(:,3), vtmp)
     vmag = sqrt(sum(vtmp(:)**2))
-    sinphi123 = sum(recipSpaceLatticeVectors(:,2)*vtmp(:))/(vmag*b2mag)
+    sinphi123 = sum(recipLattVec(:,2)*vtmp(:))/(vmag*b2mag)
       !! * Get \(\sin\phi_{123}\)
 
     nb1maxB = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sin(phi13)))) + 1
@@ -963,12 +963,12 @@ module wfcExportVASPMod
       !! * Get first set of max values
 
 
-    phi23 = acos(sum(recipSpaceLatticeVectors(:,2)*recipSpaceLatticeVectors(:,3))/(b2mag*b3mag))
+    phi23 = acos(sum(recipLattVec(:,2)*recipLattVec(:,3))/(b2mag*b3mag))
       !! * Calculate angle between \(b_2\) and \(b_3\)
 
-    call vcross(recipSpaceLatticeVectors(:,2), recipSpaceLatticeVectors(:,3), vtmp)
+    call vcross(recipLattVec(:,2), recipLattVec(:,3), vtmp)
     vmag = sqrt(sum(vtmp(:)**2))
-    sinphi123 = sum(recipSpaceLatticeVectors(:,1)*vtmp(:))/(vmag*b1mag)
+    sinphi123 = sum(recipLattVec(:,1)*vtmp(:))/(vmag*b1mag)
       !! * Get \(\sin\phi_{123}\)
 
     nb1maxC = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sinphi123))) + 1
@@ -1289,7 +1289,7 @@ module wfcExportVASPMod
   end subroutine distributeKpointsInPools
 
 !----------------------------------------------------------------------------
-  subroutine calculateGvecs(nb1max, nb2max, nb3max, recipSpaceLatticeVectors, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, &
+  subroutine calculateGvecs(nb1max, nb2max, nb3max, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, &
       nGVecsGlobal, nGVecsLocal)
     !! Calculate Miller indices and G-vectors and split
     !! over processors
@@ -1303,7 +1303,7 @@ module wfcExportVASPMod
     integer, intent(in) :: nb1max, nb2max, nb3max
       !! Not sure what this is??
 
-    real(kind=dp), intent(in) :: recipSpaceLatticeVectors(3,3)
+    real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
 
 
@@ -1442,7 +1442,7 @@ module wfcExportVASPMod
       do ix = 1, 3
         !! * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
 
-        gVecInCart(ix,ig) = sum(mill_local(:,ig)*recipSpaceLatticeVectors(ix,:))
+        gVecInCart(ix,ig) = sum(mill_local(:,ig)*recipLattVec(ix,:))
 
       enddo
       
@@ -1529,7 +1529,7 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, maxGkNum, nKPoints, nPWs1kGlobal, recipSpaceLatticeVectors, gVecInCart, &
+  subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, maxGkNum, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, &
       wfcVecCut, kPosition, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
@@ -1553,7 +1553,7 @@ module wfcExportVASPMod
     integer, intent(in) :: nPWs1kGlobal(nKPoints)
       !! Input number of plane waves for a single k-point
 
-    real(kind=dp), intent(in) :: recipSpaceLatticeVectors(3,3)
+    real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
     real(kind=dp), intent(in) :: gVecInCart(3,nGVecsLocal)
       !! G-vectors in Cartesian coordinates
@@ -1648,7 +1648,7 @@ module wfcExportVASPMod
       if (ionode) write(iostd,*) "Processing k-point ", ik
 
       do ix = 1, 3
-        xkCart(ix) = sum(kPosition(:,ik+ikStart_pool-1)*recipSpaceLatticeVectors(ix,:))
+        xkCart(ix) = sum(kPosition(:,ik+ikStart_pool-1)*recipLattVec(ix,:))
       enddo
 
       ngk_tmp = 0
@@ -1913,7 +1913,7 @@ module wfcExportVASPMod
   end subroutine hpsort_eps
 
 !----------------------------------------------------------------------------
-  subroutine read_vasprun_xml(realSpaceLatticeVectors, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, iType, nAtoms, nAtomTypes)
+  subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, iType, nAtoms, nAtomTypes)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
     !! <h2>Walkthrough</h2>
@@ -1922,7 +1922,7 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    real(kind=dp), intent(in) :: realSpaceLatticeVectors(3,3)
+    real(kind=dp), intent(in) :: realLattVec(3,3)
       !! Real space lattice vectors
 
     integer, intent(in) :: nKPoints
@@ -2711,6 +2711,8 @@ module wfcExportVASPMod
       !! Current k-point 
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
+    real(kind=dp), intent(in) :: recipLattVec(3,3)
+      !! Reciprocal lattice vectors
 
     do ipw = 1, nPWs1k
 
@@ -2731,9 +2733,9 @@ module wfcExportVASPMod
       FACTM=1.00
       IF (WDES%LGAMMA .AND. (N1/=1 .OR. N2/=1 .OR. N3/=1)) FACTM=SQRT(2._q)
 
-      GX = (G1*LATT_CUR%B(1,1) + G2*LATT_CUR%B(1,2) + G3*LATT_CUR%B(1,3) - QX)*twopi
-      GY = (G1*LATT_CUR%B(2,1) + G2*LATT_CUR%B(2,2) + G3*LATT_CUR%B(2,3) - QY)*twopi
-      GZ = (G1*LATT_CUR%B(3,1) + G2*LATT_CUR%B(3,2) + G3*LATT_CUR%B(3,3) - QZ)*twopi
+      GX = (G1*recipLattVec(1,1) + G2*recipLattVec(1,2) + G3*recipLattVec(1,3) - QX)*twopi
+      GY = (G1*recipLattVec(2,1) + G2*recipLattVec(2,2) + G3*recipLattVec(2,3) - QY)*twopi
+      GZ = (G1*recipLattVec(3,1) + G2*recipLattVec(3,2) + G3*recipLattVec(3,3) - QZ)*twopi
 
 
       GLEN(ipw)=MAX(SQRT(GX*GX+GY*GY+GZ*GZ),1E-10_q)
@@ -3284,7 +3286,7 @@ module wfcExportVASPMod
 
 
 !----------------------------------------------------------------------------
-  subroutine writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realSpaceLatticeVectors, recipSpaceLatticeVectors, atomPositionsDir, nAtomsEachType)
+  subroutine writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realLattVec, recipLattVec, atomPositionsDir, nAtomsEachType)
     !! Write out the real- and reciprocal-space lattice vectors, 
     !! the number of atoms, the number of types of atoms, the
     !! final atom positions, number of bands, and number of spins,
@@ -3304,9 +3306,9 @@ module wfcExportVASPMod
     integer, intent(in) :: nSpins
       !! Number of spins
 
-    real(kind=dp), intent(in) :: realSpaceLatticeVectors(3,3)
+    real(kind=dp), intent(in) :: realLattVec(3,3)
       !! Real space lattice vectors
-    real(kind=dp), intent(in) :: recipSpaceLatticeVectors(3,3)
+    real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
@@ -3328,14 +3330,14 @@ module wfcExportVASPMod
     if (ionode) then
     
       write(mainOutFileUnit, '("# Cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
-      write(mainOutFileUnit, '("# a1 ",3ES24.15E3)') realSpaceLatticeVectors(:,1)
-      write(mainOutFileUnit, '("# a2 ",3ES24.15E3)') realSpaceLatticeVectors(:,2)
-      write(mainOutFileUnit, '("# a3 ",3ES24.15E3)') realSpaceLatticeVectors(:,3)
+      write(mainOutFileUnit, '("# a1 ",3ES24.15E3)') realLattVec(:,1)
+      write(mainOutFileUnit, '("# a2 ",3ES24.15E3)') realLattVec(:,2)
+      write(mainOutFileUnit, '("# a3 ",3ES24.15E3)') realLattVec(:,3)
     
       write(mainOutFileUnit, '("# Reciprocal cell (a.u.). Format: ''(a5, 3ES24.15E3)''")')
-      write(mainOutFileUnit, '("# b1 ",3ES24.15E3)') recipSpaceLatticeVectors(:,1)
-      write(mainOutFileUnit, '("# b2 ",3ES24.15E3)') recipSpaceLatticeVectors(:,2)
-      write(mainOutFileUnit, '("# b3 ",3ES24.15E3)') recipSpaceLatticeVectors(:,3)
+      write(mainOutFileUnit, '("# b1 ",3ES24.15E3)') recipLattVec(:,1)
+      write(mainOutFileUnit, '("# b2 ",3ES24.15E3)') recipLattVec(:,2)
+      write(mainOutFileUnit, '("# b3 ",3ES24.15E3)') recipLattVec(:,3)
     
       write(mainOutFileUnit, '("# Number of Atoms. Format: ''(i10)''")')
       write(mainOutFileUnit, '(i10)') nAtoms
@@ -3349,7 +3351,7 @@ module wfcExportVASPMod
 
         do ix = 1, 3
 
-          atomPositionCart(ix) = sum(atomPositionsDir(:,ia)*realSpaceLatticeVectors(ix,:))
+          atomPositionCart(ix) = sum(atomPositionsDir(:,ia)*realLattVec(ix,:))
             !! @todo Test logic of direct to cartesian coordinates with scaling factor @endtodo
 
         enddo
