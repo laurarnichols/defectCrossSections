@@ -2636,7 +2636,7 @@ module wfcExportVASPMod
 
     allocate(realProjWoPhase(nPWs1k,pot(iT)%lmmax,nAtomTypes))
 
-    call generateGridTable()
+    call generateGridTable(nPWs1k)
 
     call getYlm(LYDIM, nPWs1k, Ylm, XS, YS, ZS)
 
@@ -2703,14 +2703,18 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine generateGridTable()
+  subroutine generateGridTable(nPWs1k)
     implicit none
 
-    DO IND=1,WDES%NGVECTOR(NK)
+    ! Input variables:
+    integer, intent(in) :: nPWs1k
+      !! Input number of plane waves for the given k-point
 
-      N1=MOD(WDES%IGX(IND,NK)+GRID%NGX,GRID%NGX)+1
-      N2=MOD(WDES%IGY(IND,NK)+GRID%NGY,GRID%NGY)+1
-      N3=MOD(WDES%IGZ(IND,NK)+GRID%NGZ,GRID%NGZ)+1
+    do ipw = 1, nPWs1k
+
+      N1=MOD(WDES%IGX(ipw,NK)+GRID%NGX,GRID%NGX)+1
+      N2=MOD(WDES%IGY(ipw,NK)+GRID%NGY,GRID%NGY)+1
+      N3=MOD(WDES%IGZ(ipw,NK)+GRID%NGZ,GRID%NGZ)+1
 
       G1=(GRID%LPCTX(N1)+WDES%VKPT(1,NK))
       G2=(GRID%LPCTY(N2)+WDES%VKPT(2,NK))
@@ -2730,11 +2734,11 @@ module wfcExportVASPMod
       GZ = (G1*LATT_CUR%B(3,1) + G2*LATT_CUR%B(3,2) + G3*LATT_CUR%B(3,3) - QZ)*twopi
 
 
-      GLEN(IND)=MAX(SQRT(GX*GX+GY*GY+GZ*GZ),1E-10_q)
-      FAKTX(IND)=FACTM
-      XS(IND)  =GX/GLEN(IND)
-      YS(IND)  =GY/GLEN(IND)
-      ZS(IND)  =GZ/GLEN(IND)
+      GLEN(ipw)=MAX(SQRT(GX*GX+GY*GY+GZ*GZ),1E-10_q)
+      FAKTX(ipw)=FACTM
+      XS(ipw)  =GX/GLEN(ipw)
+      YS(ipw)  =GY/GLEN(ipw)
+      ZS(ipw)  =GZ/GLEN(ipw)
 
       !IF (PRESENT(DK)) THEN
         !! @note
