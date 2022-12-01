@@ -2706,6 +2706,47 @@ module wfcExportVASPMod
   subroutine generateGridTable()
     implicit none
 
+    DO IND=1,WDES%NGVECTOR(NK)
+
+      N1=MOD(WDES%IGX(IND,NK)+GRID%NGX,GRID%NGX)+1
+      N2=MOD(WDES%IGY(IND,NK)+GRID%NGY,GRID%NGY)+1
+      N3=MOD(WDES%IGZ(IND,NK)+GRID%NGZ,GRID%NGZ)+1
+
+      G1=(GRID%LPCTX(N1)+WDES%VKPT(1,NK))
+      G2=(GRID%LPCTY(N2)+WDES%VKPT(2,NK))
+      G3=(GRID%LPCTZ(N3)+WDES%VKPT(3,NK))
+
+      IF (ASSOCIATED(NONL_S%VKPT_SHIFT)) THEN
+        G1= G1 +NONL_S%VKPT_SHIFT(1,NI)
+        G2= G2 +NONL_S%VKPT_SHIFT(2,NI)
+        G3= G3 +NONL_S%VKPT_SHIFT(3,NI)
+      ENDIF
+
+      FACTM=1.00
+      IF (WDES%LGAMMA .AND. (N1/=1 .OR. N2/=1 .OR. N3/=1)) FACTM=SQRT(2._q)
+
+      GX= (G1*LATT_CUR%B(1,1)+G2*LATT_CUR%B(1,2)+G3*LATT_CUR%B(1,3)-QX) *TPI
+      GY= (G1*LATT_CUR%B(2,1)+G2*LATT_CUR%B(2,2)+G3*LATT_CUR%B(2,3)-QY) *TPI
+      GZ= (G1*LATT_CUR%B(3,1)+G2*LATT_CUR%B(3,2)+G3*LATT_CUR%B(3,3)-QZ) *TPI
+
+
+      GLEN(IND)=MAX(SQRT(GX*GX+GY*GY+GZ*GZ),1E-10_q)
+      FAKTX(IND)=FACTM
+      XS(IND)  =GX/GLEN(IND)
+      YS(IND)  =GY/GLEN(IND)
+      ZS(IND)  =GZ/GLEN(IND)
+
+      IF (PRESENT(DK)) THEN
+        G1P= G1 +DK(1)
+        G2P= G2 +DK(2)
+        G3P= G3 +DK(3)
+        GXP= (G1P*LATT_CUR%B(1,1)+G2P*LATT_CUR%B(1,2)+G3P*LATT_CUR%B(1,3)-QX) *TPI
+        GYP= (G1P*LATT_CUR%B(2,1)+G2P*LATT_CUR%B(2,2)+G3P*LATT_CUR%B(2,3)-QY) *TPI
+        GZP= (G1P*LATT_CUR%B(3,1)+G2P*LATT_CUR%B(3,2)+G3P*LATT_CUR%B(3,3)-QZ) *TPI
+        GLENP(IND)=MAX(SQRT(GXP*GXP+GYP*GYP+GZP*GZP),1E-10_q)
+      ENDIF
+    enddo
+  
 
     return
   end subroutine generateGridTable
