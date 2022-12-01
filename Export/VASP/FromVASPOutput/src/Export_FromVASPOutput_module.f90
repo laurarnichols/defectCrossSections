@@ -2714,6 +2714,17 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
 
+    ! Local variables
+    logical :: gammaOnly
+      !! If the gamma only VASP code is used
+
+
+#ifdef gammareal
+    gammaOnly = .true.
+#else
+    gammaOnly = .false.
+#endif
+
     do ipw = 1, nPWs1k
 
       N1=MOD(WDES%IGX(ipw,ik)+GRID%NGX,GRID%NGX)+1
@@ -2731,7 +2742,7 @@ module wfcExportVASPMod
       ENDIF
 
       FACTM=1.00
-      IF (WDES%LGAMMA .AND. (N1/=1 .OR. N2/=1 .OR. N3/=1)) FACTM=SQRT(2._q)
+      if(gammaOnly .and. (N1 /= 1 .or. N2 /= 1 .or. N3 /= 1)) FACTM = SQRT(2._q)
 
       GX = (G1*recipLattVec(1,1) + G2*recipLattVec(1,2) + G3*recipLattVec(1,3) - QX)*twopi
       GY = (G1*recipLattVec(2,1) + G2*recipLattVec(2,2) + G3*recipLattVec(2,3) - QY)*twopi
