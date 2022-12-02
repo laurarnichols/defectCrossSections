@@ -2781,9 +2781,14 @@ module wfcExportVASPMod
       FACTM=1.00
       if(gammaOnly .and. (N1 /= 1 .or. N2 /= 1 .or. N3 /= 1)) FACTM = SQRT(2._q)
 
-      GX = (G1*recipLattVec(1,1) + G2*recipLattVec(1,2) + G3*recipLattVec(1,3) - QX)*twopi
-      GY = (G1*recipLattVec(2,1) + G2*recipLattVec(2,2) + G3*recipLattVec(2,3) - QY)*twopi
-      GZ = (G1*recipLattVec(3,1) + G2*recipLattVec(3,2) + G3*recipLattVec(3,3) - QZ)*twopi
+      GX = (G1*recipLattVec(1,1) + G2*recipLattVec(1,2) + G3*recipLattVec(1,3))*twopi
+      GY = (G1*recipLattVec(2,1) + G2*recipLattVec(2,2) + G3*recipLattVec(2,3))*twopi
+      GZ = (G1*recipLattVec(3,1) + G2*recipLattVec(3,2) + G3*recipLattVec(3,3))*twopi
+        !! @note
+        !!  There was originally a subtraction within the parentheses of `QX`/`QY`/`QZ`
+        !!  representing the spin spiral propagation vector. It was removed here because 
+        !!  we do not consider spin spirals.
+        !! @endnote
 
 
       GLEN(ipw)=MAX(SQRT(GX*GX+GY*GY+GZ*GZ),1E-10_q)
