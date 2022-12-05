@@ -1681,7 +1681,7 @@ module wfcExportVASPMod
         if (q <= wfcVecCut) then
 
           ngk_tmp = ngk_tmp + 1
-            ! If \(|G+k| \leq \) `vcut` increment the count for
+            ! If \(|G+k| \leq \) `wfcVecCut` increment the count for
             ! this k-point
 
           gkMod(ik,ngk_tmp) = q
