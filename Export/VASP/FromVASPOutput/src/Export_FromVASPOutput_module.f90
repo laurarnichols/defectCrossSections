@@ -2631,7 +2631,7 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(fftGridSize, ik, nAtomTypes, nPWs1k, omega, pot, realProjWoPhase)
+  subroutine calculateRealProjWoPhase(fftGridSize, ik, nAtomTypes, nPWs1k, kPos, omega, recipLattVec, pot, realProjWoPhase)
     implicit none
 
     ! Input variables:
@@ -2644,8 +2644,12 @@ module wfcExportVASPMod
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
 
-    real(kind=dp) :: omega
+    real(kind=dp), intent(in) :: kPos(3)
+      !! Position of this k-point in reciprocal space
+    real(kind=dp), intent(in) :: omega
       !! Volume of unit cell
+    real(kind=dp), intent(in) :: recipLattVec(3,3)
+      !! Reciprocal lattice vectors
 
     type (potcar) :: pot(nAtomTypes)
       !! Holds all information needed from POTCAR
@@ -2676,7 +2680,7 @@ module wfcExportVASPMod
 
     allocate(realProjWoPhase(nPWs1k,pot(iT)%lmmax,nAtomTypes))
 
-    call generateGridTable(fftGridSize, ik, nPWs1k)
+    call generateGridTable(fftGridSize, ik, nPWs1k, kPos, recipLattVec)
 
     call getYlm(LYDIM, nPWs1k, Ylm, XS, YS, ZS)
 
@@ -2743,7 +2747,7 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine generateGridTable(fftGridSize, ik, nPWs1k)
+  subroutine generateGridTable(fftGridSize, ik, nPWs1k, kPos, recipLattVec)
     implicit none
 
     ! Input variables:
@@ -2753,6 +2757,9 @@ module wfcExportVASPMod
       !! Current k-point 
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
+
+    real(kind=dp), intent(in) :: kPos(3)
+      !! Position of this k-point in reciprocal space
     real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
 
@@ -2773,9 +2780,9 @@ module wfcExportVASPMod
       N2 = MOD(WDES%IGY(ipw,ik) + fftGridSize(2), fftGridSize(2)) + 1
       N3 = MOD(WDES%IGZ(ipw,ik) + fftGridSize(3), fftGridSize(3)) + 1
 
-      G1=(GRID%LPCTX(N1)+WDES%VKPT(1,ik))
-      G2=(GRID%LPCTY(N2)+WDES%VKPT(2,ik))
-      G3=(GRID%LPCTZ(N3)+WDES%VKPT(3,ik))
+      G1 = (GRID%LPCTX(N1) + kPos(1))
+      G2 = (GRID%LPCTY(N2) + kPos(2))
+      G3 = (GRID%LPCTZ(N3) + kPos(3))
         !! @note
         !!  `GRID%LPCT*` corresponds to our `gVecMillerIndicesGlobal_tmp`
         !!  variable that holds the unsorted Miller indices. Would think
