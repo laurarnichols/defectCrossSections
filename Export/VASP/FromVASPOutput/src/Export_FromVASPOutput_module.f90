@@ -2652,8 +2652,8 @@ module wfcExportVASPMod
         !!  `GRID%LPCT*` corresponds to our `gVecMillerIndicesGlobal_tmp`
         !!  variable that holds the unsorted Miller indices. Would think
         !!  that we should sort the G-vectors, but I am not sure because
-        !!  of how the values are accessed here on (what seems to be) a 
-        !!  reduced grid. While I want to be efficient, I need to make
+        !!  of how the values are accessed here with a `MOD` on the 
+        !!  `fftGridSize`. While I want to be efficient, I need to make
         !!  sure that I am accurately reproducing what VASP does because
         !!  I don't want to interfere with the final results. Maybe sort
         !!  later?
