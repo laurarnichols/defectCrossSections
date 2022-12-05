@@ -105,8 +105,6 @@ module wfcExportVASPMod
     !! Atom type index
   integer, allocatable :: gVecMillerIndicesGlobal(:,:)
     !! Integer coefficients for G-vectors on all processors
-  integer :: nb1max, nb2max, nb3max
-    !! Not sure what this is??
   integer :: nAtoms
     !! Number of atoms
   integer :: nBands
@@ -118,8 +116,6 @@ module wfcExportVASPMod
     !! Number of \(G+k\) vectors with energy
     !! less than `wfcECut` for each
     !! k-point, on this processor
-  integer :: maxGkNum
-    !! Maximum number of \(G+k\) combinations
   integer :: nGVecsGlobal
     !! Global number of G-vectors
   integer :: nGVecsLocal
@@ -587,8 +583,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
-        kPosition, nb1max, nb2max, nb3max, nBands, maxGkNum, nKPoints, nPWs1kGlobal, nSpins, &
-        eigenE)
+        kPosition, nBands, maxGkNum, nKPoints, nPWs1kGlobal, nSpins, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -617,8 +612,6 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) :: kPosition(:,:)
       !! Position of k-points in reciprocal space
 
-    integer, intent(out) :: nb1max, nb2max, nb3max
-      !! Not sure what this is??
     integer, intent(out) :: nBands
       !! Total number of bands
     integer, intent(out) :: maxGkNum
@@ -710,9 +703,6 @@ module wfcExportVASPMod
         !! * Calculate the reciprocal lattice vectors from the real-space
         !!   lattice vectors and the cell volume
 
-      call estimateMaxNumPlanewaves(recipLattVec, wfcECut, nb1max, nb2max, nb3max, maxGkNum)
-        !! * Get the maximum number of plane waves
-
       !> * Write out total number of k-points, number of bands, 
       !>   the energy cutoff, the real-space-lattice vectors,
       !>   the cell volume, and the reciprocal lattice vectors
@@ -748,10 +738,6 @@ module wfcExportVASPMod
 
     endif
 
-    call MPI_BCAST(nb1max, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(nb2max, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(nb3max, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(maxGkNum, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nRecords, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -774,7 +760,7 @@ module wfcExportVASPMod
       !!   position of the k-point in reciprocal space, 
       !!   and the eigenvalue and occupation for each band
 
-    call readAndWriteWavefunction(nBands, maxGkNum, nKPoints, nPWs1kGlobal, nRecords, nSpins)
+    call readAndWriteWavefunction(nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins)
       !! * For each spin and k-point, read and write the plane
       !!   wave coefficients for each band
 
@@ -873,125 +859,6 @@ module wfcExportVASPMod
 
     return
   end subroutine vcross
-
-!----------------------------------------------------------------------------
-  subroutine estimateMaxNumPlanewaves(recipLattVec, wfcECut, nb1max, nb2max, nb3max, maxGkNum)
-    !! Get the maximum number of plane waves. I'm not sure how 
-    !! this is done completely. It seems to be just basic vector
-    !! stuff, but I haven't been able to make sense of it.
-    !! 
-    !! @todo Figure out how `estimateMaxNumPlanewaves` works @endtodo
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    real(kind=dp), intent(in) :: recipLattVec(3,3)
-      !! Reciprocal lattice vectors
-    real(kind=dp), intent(in) :: wfcECut
-      !! Plane wave energy cutoff in Ry
-
-
-    ! Output variables:
-    integer, intent(out) :: nb1max, nb2max, nb3max
-      !! Not sure what this is??
-    integer, intent(out) :: maxGkNum
-      !! Maximum number of \(G+k\) combinations
-
-
-    ! Local variables:
-    real(kind=dp) :: b1mag, b2mag, b3mag
-      !! Reciprocal vector magnitudes
-    real(kind=dp) :: c = 0.26246582250210965422
-      !! \(2m/\hbar^2\) converted from J\(^{-1}\)m\(^{-2}\)
-      !! to eV\(^{-1}\)A\(^{-2}\)
-    real(kind=dp) :: phi12, phi13, phi23
-      !! Angle between vectors
-    real(kind=dp) :: sinphi123
-      !! \(\sin\phi_{123}\)
-    real(kind=dp) :: vmag
-      !! Magnitude of temporary vector
-    real(kind=dp) :: vtmp(3)
-      !! Temporary vector for calculating angles
-
-    integer :: nb1maxA, nb2maxA, nb3maxA
-      !! Not sure what this is??
-    integer :: nb1maxB, nb2maxB, nb3maxB
-      !! Not sure what this is??
-    integer :: nb1maxC, nb2maxC, nb3maxC
-      !! Not sure what this is??
-    integer :: npmaxA, npmaxB, npmaxC
-      !! Not sure what this is??
-
-
-    b1mag = sqrt(sum(recipLattVec(:,1)**2))
-    b2mag = sqrt(sum(recipLattVec(:,2)**2))
-    b3mag = sqrt(sum(recipLattVec(:,3)**2))
-
-    write(iostd,*) 'reciprocal lattice vector magnitudes:'
-    write(iostd,*) sngl(b1mag),sngl(b2mag),sngl(b3mag)
-      !! * Calculate and output reciprocal vector magnitudes
-
-
-    phi12 = acos(sum(recipLattVec(:,1)*recipLattVec(:,2))/(b1mag*b2mag))
-      !! * Calculate angle between \(b_1\) and \(b_2\)
-
-    call vcross(recipLattVec(:,1), recipLattVec(:,2), vtmp)
-    vmag = sqrt(sum(vtmp(:)**2))
-    sinphi123 = sum(recipLattVec(:,3)*vtmp(:))/(vmag*b3mag)
-      !! * Get \(\sin\phi_{123}\)
-
-    nb1maxA = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sin(phi12)))) + 1
-    nb2maxA = (dsqrt(wfcECut/eVToRy*c)/(b2mag*abs(sin(phi12)))) + 1
-    nb3maxA = (dsqrt(wfcECut/eVToRy*c)/(b3mag*abs(sinphi123))) + 1
-    npmaxA = nint(4.0*pi*nb1maxA*nb2maxA*nb3maxA/3.0)
-      !! * Get first set of max values
-
-
-    phi13 = acos(sum(recipLattVec(:,1)*recipLattVec(:,3))/(b1mag*b3mag))
-      !! * Calculate angle between \(b_1\) and \(b_3\)
-
-    call vcross(recipLattVec(:,1), recipLattVec(:,3), vtmp)
-    vmag = sqrt(sum(vtmp(:)**2))
-    sinphi123 = sum(recipLattVec(:,2)*vtmp(:))/(vmag*b2mag)
-      !! * Get \(\sin\phi_{123}\)
-
-    nb1maxB = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sin(phi13)))) + 1
-    nb2maxB = (dsqrt(wfcECut/eVToRy*c)/(b2mag*abs(sinphi123))) + 1
-    nb3maxB = (dsqrt(wfcECut/eVToRy*c)/(b3mag*abs(sin(phi13)))) + 1
-    npmaxB = nint(4.*pi*nb1maxB*nb2maxB*nb3maxB/3.)
-      !! * Get first set of max values
-
-
-    phi23 = acos(sum(recipLattVec(:,2)*recipLattVec(:,3))/(b2mag*b3mag))
-      !! * Calculate angle between \(b_2\) and \(b_3\)
-
-    call vcross(recipLattVec(:,2), recipLattVec(:,3), vtmp)
-    vmag = sqrt(sum(vtmp(:)**2))
-    sinphi123 = sum(recipLattVec(:,1)*vtmp(:))/(vmag*b1mag)
-      !! * Get \(\sin\phi_{123}\)
-
-    nb1maxC = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sinphi123))) + 1
-    nb2maxC = (dsqrt(wfcECut/eVToRy*c)/(b2mag*abs(sin(phi23)))) + 1
-    nb3maxC = (dsqrt(wfcECut/eVToRy*c)/(b3mag*abs(sin(phi23)))) + 1
-    npmaxC = nint(4.*pi*nb1maxC*nb2maxC*nb3maxC/3.)
-      !! * Get first set of max values
-
-
-    nb1max = max0(nb1maxA,nb1maxB,nb1maxC)
-    nb2max = max0(nb2maxA,nb2maxB,nb2maxC)
-    nb3max = max0(nb3maxA,nb3maxB,nb3maxC)
-    maxGkNum = min0(npmaxA,npmaxB,npmaxC)
-
-    write(iostd,*) 'max. no. G values; 1,2,3 =', nb1max, nb2max, nb3max
-    write(iostd,*) ' '
-
-    write(iostd,*) 'estimated max. no. plane waves =', maxGkNum
-
-    return
-  end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
   subroutine preliminaryWAVECARScan(nBands, nKPoints, nRecords, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
@@ -1115,7 +982,7 @@ module wfcExportVASPMod
 
 
 !----------------------------------------------------------------------------
-  subroutine readAndWriteWavefunction(nBands, maxGkNum, nKPoints, nPWs1kGlobal, nRecords, nSpins)
+  subroutine readAndWriteWavefunction(nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins)
     !! For each spin and k-point, read and write the plane
     !! wave coefficients for each band
     !!
@@ -1129,8 +996,6 @@ module wfcExportVASPMod
     ! Input variables:
     integer, intent(in) :: nBands
       !! Total number of bands
-    integer, intent(in) :: maxGkNum
-      !! Maximum number of \(G+k\) combinations
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     integer, intent(in) :: nPWs1kGlobal(nKpoints)
@@ -1147,6 +1012,8 @@ module wfcExportVASPMod
 
     integer :: ionode_k_id
       !! ID for the node that outputs for this k-point
+    integer :: maxGkNum
+      !! Maximum number of \(G+k\) combinations
     integer :: wfcOutUnit
       !! Process-dependent file unit for `wfc.ik`
     integer :: irec, isp, ik, iband, iplane
@@ -1160,6 +1027,10 @@ module wfcExportVASPMod
     character(len=256) :: fileName
       !! Full WAVECAR file name including path
 
+
+    maxGkNum = max(nPWs1kGlobal(:))
+      !! * Calculate the max number of PWs (G+k combinations)
+      !!   across all k-points
 
     !> * Only allocate the large array for the plane-wave
     !>   coefficients if you are going to be one of the
@@ -1298,635 +1169,6 @@ module wfcExportVASPMod
 
     return
   end subroutine distributeKpointsInPools
-
-!----------------------------------------------------------------------------
-  subroutine calculateGvecs(nb1max, nb2max, nb3max, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, &
-      nGVecsGlobal, nGVecsLocal)
-    !! Calculate Miller indices and G-vectors and split
-    !! over processors
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nb1max, nb2max, nb3max
-      !! Not sure what this is??
-
-    real(kind=dp), intent(in) :: recipLattVec(3,3)
-      !! Reciprocal lattice vectors
-
-
-    ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: gVecInCart(:,:)
-      !! G-vectors in Cartesian coordinates
-
-    integer, allocatable, intent(out) :: gIndexLocalToGlobal(:)
-      !! Converts local index `ig` to global index
-    integer, allocatable, intent(out) :: gVecMillerIndicesGlobal(:,:)
-      !! Integer coefficients for G-vectors on all processors
-    integer, intent(out) :: nGVecsGlobal
-      !! Global number of G-vectors
-    integer, intent(out) :: nGVecsLocal
-      !! Local number of G-vectors on this processor
-
-
-    ! Local variables:
-    real(kind=dp) :: eps8 = 1.0E-8_dp
-      !! Double precision zero
-    real(kind=dp), allocatable :: millSum(:)
-      !! Sum of integer coefficients for G-vectors
-
-    integer :: igx, igy, igz, ig, ix
-      !! Loop indices
-    integer, allocatable :: iMill(:)
-      !! Indices of miller indices after sorting
-    integer, allocatable :: gVecMillerIndicesGlobal_tmp(:,:)
-      !! Integer coefficients for G-vectors on all processors
-    integer, allocatable :: mill_local(:,:)
-      !! Integer coefficients for G-vectors
-    integer :: millX, millY, millZ
-      !! Miller indices for each direction; in order
-      !! 0,1,...,(nb*max/2),-(nb*max/2-1),...,-1
-    integer :: npmax
-      !! Max number of plane waves
-
-
-    npmax = (2*nb1max+1)*(2*nb2max+1)*(2*nb3max+1) 
-    allocate(gVecMillerIndicesGlobal(3,npmax))
-    allocate(millSum(npmax))
-
-    if(ionode) then
-
-      allocate(gVecMillerIndicesGlobal_tmp(3,npmax))
-
-      write(iostd,*)
-      write(iostd,*) "***************"
-      write(iostd,*) "Calculating miller indices"
-
-      nGVecsGlobal = 0
-      gVecMillerIndicesGlobal_tmp = 0
-
-      !> * Generate Miller indices for every possible G-vector
-      !>   regardless of the \(|G+k|\) cutoff
-      do igz = 0, 2*nb3max
-
-        millZ = igz
-
-        if (igz .gt. nb3max) millZ = igz - 2*nb3max - 1
-
-        do igy = 0, 2*nb2max
-
-          millY = igy
-
-          if (igy .gt. nb2max) millY = igy - 2*nb2max - 1
-
-          do igx = 0, 2*nb1max
-
-            millX = igx
-
-            if (igx .gt. nb1max) millX = igx - 2*nb1max - 1
-
-            nGVecsGlobal = nGVecsGlobal + 1
-
-            gVecMillerIndicesGlobal_tmp(1,nGVecsGlobal) = millX
-            gVecMillerIndicesGlobal_tmp(2,nGVecsGlobal) = millY
-            gVecMillerIndicesGlobal_tmp(3,nGVecsGlobal) = millZ
-              !! * Calculate Miller indices
-
-            millSum(nGVecsGlobal) = sqrt(real(millX**2 + millY**2 + millZ**2))
-              !! * Calculate the sum of the Miller indices
-              !!   for sorting
-
-          enddo
-        enddo
-      enddo
-
-      if (nGVecsGlobal .ne. npmax) call exitError('calculateGvecs', & 
-        '*** error - computed no. of G-vectors != estimated number of plane waves', 1)
-        !! * Check that number of G-vectors are the same as the number of plane waves
-
-      write(iostd,*) "Sorting miller indices"
-
-      allocate(iMill(nGVecsGlobal))
-
-      do ig = 1, nGVecsGlobal
-        !! * Initialize the index array that will track elements
-        !!   after sorting
-
-        iMill(ig) = ig
-
-      enddo
-
-      call hpsort_eps(nGVecsGlobal, millSum, iMill, eps8)
-        !! * Order vector `millSum` keeping initial position in `iMill`
-
-      do ig = 1, nGVecsGlobal
-        !! * Rearrange the miller indices to match order of `millSum`
-
-        gVecMillerIndicesGlobal(:,ig) = gVecMillerIndicesGlobal_tmp(:,iMill(ig))
-
-      enddo
-
-      deallocate(iMill)
-      deallocate(gVecMillerIndicesGlobal_tmp)
-
-      write(iostd,*) "Done calculating and sorting miller indices"
-      write(iostd,*) "***************"
-      write(iostd,*)
-    endif
-
-    call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(gVecMillerIndicesGlobal, size(gVecMillerIndicesGlobal), MPI_INTEGER, root, worldComm, ierr)
-
-    if (ionode) then
-      write(iostd,*)
-      write(iostd,*) "***************"
-      write(iostd,*) "Distributing G-vecs over processors"
-    endif
-
-    call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexLocalToGlobal, mill_local, nGVecsLocal)
-      !! * Split up the G-vectors and Miller indices over processors 
-
-    if (ionode) write(iostd,*) "Calculating G-vectors"
-
-    allocate(gVecInCart(3,nGVecsLocal))
-
-    do ig = 1, nGVecsLocal
-
-      do ix = 1, 3
-        !! * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
-
-        gVecInCart(ix,ig) = sum(mill_local(:,ig)*recipLattVec(ix,:))
-
-      enddo
-      
-    enddo
-
-    if (ionode) then
-      write(iostd,*) "***************"
-      write(iostd,*)
-    endif
-
-    deallocate(mill_local)
-
-    return
-  end subroutine calculateGvecs
-
-!----------------------------------------------------------------------------
-  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexLocalToGlobal, mill_local, nGVecsLocal)
-    !! Figure out how many G-vectors there should be per processor
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nGVecsGlobal
-      !! Global number of G-vectors
-      
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors
-
-    
-    ! Output variables:
-    integer, allocatable, intent(out) :: gIndexLocalToGlobal(:)
-      ! Converts local index `ig` to global index
-    integer, allocatable, intent(out) :: mill_local(:,:)
-      !! Integer coefficients for G-vectors
-    integer, intent(out) :: nGVecsLocal
-      !! Local number of G-vectors on this processor
-
-
-    ! Local variables:
-    integer :: ig_l, ig_g
-      !! Loop indices
-    integer :: ngr
-      !! Number of G-vectors left over after evenly divided across processors
-
-
-    if( nGVecsGlobal > 0 ) then
-      nGVecsLocal = nGVecsGlobal/nProcs
-        !!  * Calculate number of G-vectors per processor
-
-      ngr = nGVecsGlobal - nGVecsLocal*nProcs 
-        !! * Calculate the remainder
-
-      if( myid < ngr ) nGVecsLocal = nGVecsLocal + 1
-        !! * Assign the remainder to the first `ngr` processors
-
-      !> * Generate an array to map a local index
-      !>   (`ig` passed to `gIndexLocalToGlobal`) to a global
-      !>   index (the value stored at `gIndexLocalToGlobal(ig)`)
-      !>   and get local miller indices
-      allocate(gIndexLocalToGlobal(nGVecsLocal))
-      allocate(mill_local(3,nGVecsLocal))
-
-      ig_l = 0
-      do ig_g = 1, nGVecsGlobal
-
-        if (myid == mod(ig_g-1,nProcs)) then
-        
-          ig_l = ig_l + 1
-          gIndexLocalToGlobal(ig_l) = ig_g
-          mill_local(:,ig_l) = gVecMillerIndicesGlobal(:,ig_g)
-
-        endif
-
-      enddo
-
-      if (ig_l /= nGVecsLocal) call exitError('distributeGvecsOverProcessors', 'unexpected number of G-vecs for this processor', 1)
-
-    endif
-
-    return
-  end subroutine distributeGvecsOverProcessors
-
-!----------------------------------------------------------------------------
-  subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, maxGkNum, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, &
-      wfcVecCut, kPosition, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
-    !! Determine which G-vectors result in \(G+k\)
-    !! below the energy cutoff for each k-point and
-    !! sort the indices based on \(|G+k|^2\)
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nGVecsLocal
-      !! Number of G-vectors on this processor
-
-    integer, intent(in) :: gIndexLocalToGlobal(nGVecsLocal)
-      ! Converts local index `ig` to global index
-    integer, intent(in) :: maxGkNum
-      !! Maximum number of \(G+k\) combinations
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-    integer, intent(in) :: nPWs1kGlobal(nKPoints)
-      !! Input number of plane waves for a single k-point
-
-    real(kind=dp), intent(in) :: recipLattVec(3,3)
-      !! Reciprocal lattice vectors
-    real(kind=dp), intent(in) :: gVecInCart(3,nGVecsLocal)
-      !! G-vectors in Cartesian coordinates
-    real(kind=dp), intent(in) :: wfcVecCut
-      !! Energy cutoff converted to vector cutoff
-    real(kind=dp), intent(in) :: kPosition(3,nKPoints)
-      !! Position of k-points in reciprocal space
-
-
-    ! Output variables:
-    integer, allocatable, intent(out) :: gKIndexLocalToGlobal(:,:)
-      !! Local to global indices for \(G+k\) vectors 
-      !! ordered by magnitude at a given k-point
-    integer, allocatable, intent(out) :: gToGkIndexMap(:,:)
-      !! Index map from \(G\) to \(G+k\);
-      !! indexed up to `nGVecsLocal` which
-      !! is greater than `maxNumPWsPool` and
-      !! stored for each k-point
-    integer, allocatable, intent(out) :: nGkLessECutLocal(:)
-      !! Number of \(G+k\) vectors with energy
-      !! less than `wfcECut` for each
-      !! k-point, on this processor
-    integer, allocatable, intent(out) :: nGkLessECutGlobal(:)
-      !! Global number of \(G+k\) vectors with energy
-      !! less than `wfcECut` for each k-point
-    integer, intent(out) :: maxGIndexGlobal
-      !! Maximum G-vector index among all \(G+k\)
-      !! and processors
-    integer, intent(out) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
-    integer, intent(out) :: maxNumPWsPool
-      !! Maximum number of \(G+k\) vectors
-      !! across all k-points for just this 
-      !! pool
-
-
-    ! Local variables:
-    real(kind=dp) :: eps8 = 1.0E-8_dp
-      !! Double precision zero
-    real(kind=dp) :: gkMod(nkPerPool,nGVecsLocal)
-      !! \(|G+k|^2\);
-      !! only stored if less than `wfcVecCut`
-    real(kind=dp) :: q
-      !! \(|q|^2\) where \(q = G+k\)
-    real(kind=dp) :: xkCart(3)
-      !! Cartesian coordinates for given k-point
-
-    integer :: ik, ig, ix
-      !! Loop indices
-    integer, allocatable :: igk(:)
-      !! Index map from \(G\) to \(G+k\)
-      !! indexed up to `maxNumPWsPool`
-    integer :: ngk_tmp
-      !! Temporary variable to hold `nGkLessECutLocal`
-      !! value so that don't have to keep accessing
-      !! array
-    integer :: maxGIndexLocal
-      !! Maximum G-vector index among all \(G+k\)
-      !! for just this processor
-    integer :: maxNumPWsLocal
-      !! Maximum number of \(G+k\) vectors
-      !! across all k-points for just this 
-      !! processor
-
-    allocate(nGkLessECutLocal(nkPerPool))
-    allocate(gToGkIndexMap(nkPerPool,nGVecsLocal))
-    
-    maxNumPWsLocal = 0
-    nGkLessECutLocal(:) = 0
-    gToGkIndexMap(:,:) = 0
-
-    if (ionode) then
-      write(iostd,*)
-      write(iostd,*) "***************"
-      write(iostd,*) "Determining G+k combinations less than energy cutoff"
-    endif
-
-    do ik = 1, nkPerPool
-      !! * For each \(G+k\) combination, calculate the 
-      !!   magnitude and, if it is less than the energy
-      !!   cutoff, store the G index and magnitude and 
-      !!   increment the number of \(G+k\) vectors at
-      !!   this k-point. Also, keep track of the maximum 
-      !!   number of \(G+k\) vectors among all k-points
-      !!
-      !! @note
-      !!  All of the above calculations are local to a single
-      !!  processor.
-      !! @endnote
-
-      if (ionode) write(iostd,*) "Processing k-point ", ik
-
-      do ix = 1, 3
-        xkCart(ix) = sum(kPosition(:,ik+ikStart_pool-1)*recipLattVec(ix,:))
-      enddo
-
-      ngk_tmp = 0
-
-      do ig = 1, nGVecsLocal
-
-        q = sqrt(sum((xkCart(:) + gVecInCart(:,ig))**2))
-          ! Calculate \(|G+k|\)
-
-        if (q <= eps8) q = 0.d0
-
-        !if (ionode) write(89,*) ik+ikStart_pool-1, ig, q <= wfcVecCut
-
-        if (q <= wfcVecCut) then
-
-          ngk_tmp = ngk_tmp + 1
-            ! If \(|G+k| \leq \) `wfcVecCut` increment the count for
-            ! this k-point
-
-          gkMod(ik,ngk_tmp) = q
-            ! Store the modulus for sorting
-
-          gToGkIndexMap(ik,ngk_tmp) = ig
-            ! Store the index for this G-vector
-
-        !else
-
-          !if (sqrt(sum(gVecInCart(:, ig)**2)) .gt. &
-            !sqrt(sum(kPosition(:,ik+ikStart_pool-1)**2) + sqrt(wfcVecCut))) goto 100
-            ! if |G| > |k| + sqrt(Ecut)  stop search
-            !! @todo Figure out if there is valid exit check for `ig` loop @endtodo
-
-        endif
-      enddo
-
-      if (ngk_tmp == 0) call exitError('reconstructFFTGrid', 'no G+k vectors on this processor', 1) 
-
-100   maxNumPWsLocal = max(maxNumPWsLocal, ngk_tmp)
-        ! Track the maximum number of \(G+k\)
-        ! vectors among all k-points
-
-      nGkLessECutLocal(ik) = ngk_tmp
-        ! Store the total number of \(G+k\)
-        ! vectors for this k-point
-
-    enddo
-
-    allocate(nGkLessECutGlobal(nKPoints))
-    nGkLessECutGlobal = 0
-    nGkLessECutGlobal(ikStart_pool:ikEnd_pool) = nGkLessECutLocal(1:nkPerPool)
-    CALL mpiSumIntV(nGkLessECutGlobal, worldComm)
-      !! * Calculate the global number of \(G+k\) 
-      !!   vectors for each k-point
-      
-    if (ionode) then
-
-      do ik = 1, nKPoints
-
-        if (nGkLessECutGlobal(ik) .ne. nPWs1kGlobal(ik)) call exitError('reconstructFFTGrid', &
-          'computed no. of G-vectors != input no. of plane waves', 1)
-          !! * Make sure that number of G-vectors isn't higher than the calculated maximum
-
-        if (nGkLessECutGlobal(ik) .gt. maxGkNum) call exitError('reconstructFFTGrid', &
-          'G-vector count exceeds estimate', 1)
-          !! * Make sure that number of G-vectors isn't higher than the calculated maximum
-
-      enddo
-    endif
-
-    if (ionode) then
-      write(iostd,*) "Done determining G+k combinations less than energy cutoff"
-      write(iostd,*) "***************"
-      write(iostd,*)
-    endif
-
-    if (maxNumPWsLocal <= 0) call exitError('reconstructFFTGrid', &
-                'No plane waves found: running on too many processors?', 1)
-      !! * Make sure that each processor gets some \(G+k\) vectors. If not,
-      !!   should rerun with fewer processors.
-
-    call MPI_ALLREDUCE(maxNumPWsLocal, maxNumPWsPool, 1, MPI_INTEGER, MPI_MAX, interPoolComm, ierr)
-    if(ierr /= 0) call exitError('reconstructFFTGrid', 'error in mpi_allreduce 1', ierr)
-      !! * When using pools, set `maxNumPWsPool` to the maximum value of `maxNumPWsLocal` 
-      !!   in the pool 
-
-
-    allocate(gKIndexLocalToGlobal(maxNumPWsPool,nkPerPool))
-    allocate(igk(maxNumPWsPool))
-
-    gKIndexLocalToGlobal = 0
-    igk = 0
-
-    if (ionode) then
-      write(iostd,*)
-      write(iostd,*) "***************"
-      write(iostd,*) "Sorting G+k combinations by magnitude"
-    endif
-
-    do ik = 1, nkPerPool
-      !! * Reorder the indices of the G-vectors so that
-      !!   they are sorted by \(|G+k|^2\) for each k-point
-
-      ngk_tmp = nGkLessECutLocal(ik)
-
-      igk(1:ngk_tmp) = gToGkIndexMap(ik,1:ngk_tmp)
-
-      call hpsort_eps(ngk_tmp, gkMod(ik,:), igk, eps8)
-        ! Order vector `gkMod` keeping initial position in `igk`
-
-      do ig = 1, ngk_tmp
-        
-        gKIndexLocalToGlobal(ig,ik) = gIndexLocalToGlobal(igk(ig))
-        
-      enddo
-     
-      gKIndexLocalToGlobal(ngk_tmp+1:maxNumPWsPool, ik) = 0
-
-    enddo
-
-    if (ionode) then
-      write(iostd,*) "Done sorting G+k combinations by magnitude"
-      write(iostd,*) "***************"
-      write(iostd,*)
-    endif
-
-    deallocate(igk)
-
-    maxGIndexLocal = maxval(gKIndexLocalToGlobal(:,:))
-    call MPI_ALLREDUCE(maxGIndexLocal, maxGIndexGlobal, 1, MPI_INTEGER, MPI_MAX, worldComm, ierr)
-    if(ierr /= 0) call exitError('reconstructFFTGrid', 'error in mpi_allreduce 2', ierr)
-      !! * Calculate the maximum G-vector index 
-      !!   among all \(G+k\) and processors
-
-    maxNumPWsGlobal = maxval(nGkLessECutGlobal(1:nKPoints))
-      !! * Calculate the maximum number of G-vectors 
-      !!   among all k-points
-
-    return
-  end subroutine reconstructFFTGrid
-
-!----------------------------------------------------------------------------
-  subroutine hpsort_eps(n, ra, ind, eps)
-    !! Sort an array ra(1:n) into ascending order using heapsort algorithm,
-    !! considering two elements equal if their difference is less than `eps`
-    !!
-    !! n is input, ra is replaced on output by its sorted rearrangement.
-    !! Create an index table (ind) by making an exchange in the index array
-    !! whenever an exchange is made on the sorted data array (ra).
-    !! In case of equal values in the data array (ra) the values in the
-    !! index array (ind) are used to order the entries.
-    !!
-    !! if on input ind(1)  = 0 then indices are initialized in the routine,
-    !! if on input ind(1) != 0 then indices are assumed to have been
-    !!                initialized before entering the routine and these
-    !!                indices are carried around during the sorting process
-    !!
-    !!
-    !! From QE code, adapted from Numerical Recipes pg. 329 (new edition)
-    !!
-
-    implicit none
-
-    ! Input/Output variables:
-    real(kind=dp), intent(in) :: eps
-    integer, intent(in) :: n
-
-    integer, intent(inout) :: ind(:)
-    real(kind=dp), intent(inout) :: ra (:)
-
-
-    ! Local variables
-    integer :: i, ir, j, l, iind
-    real(kind=dp) :: rra
-
-    ! initialize index array
-    if (ind (1) .eq.0) then
-      do i = 1, n
-        ind (i) = i
-      enddo
-    endif
-    ! nothing to order
-    if (n.lt.2) return
-    ! initialize indices for hiring and retirement-promotion phase
-    l = n / 2 + 1
-
-    ir = n
-
-    sorting: do
-
-      ! still in hiring phase
-      if ( l .gt. 1 ) then
-        l    = l - 1
-        rra  = ra (l)
-        iind = ind (l)
-        ! in retirement-promotion phase.
-      else
-        ! clear a space at the end of the array
-        rra  = ra (ir)
-        !
-        iind = ind (ir)
-        ! retire the top of the heap into it
-        ra (ir) = ra (1)
-        !
-        ind (ir) = ind (1)
-        ! decrease the size of the corporation
-        ir = ir - 1
-        ! done with the last promotion
-        if ( ir .eq. 1 ) then
-          ! the least competent worker at all !
-          ra (1)  = rra
-          !
-          ind (1) = iind
-          exit sorting
-        endif
-      endif
-      ! wheter in hiring or promotion phase, we
-      i = l
-      ! set up to place rra in its proper level
-      j = l + l
-      !
-      do while ( j .le. ir )
-        if ( j .lt. ir ) then
-          ! compare to better underling
-          if ( abs(ra(j)-ra(j+1)).ge.eps ) then
-            if (ra(j).lt.ra(j+1)) j = j + 1
-          else
-            ! this means ra(j) == ra(j+1) within tolerance
-            if (ind (j) .lt.ind (j + 1) ) j = j + 1
-          endif
-        endif
-        ! demote rra
-        if ( abs(rra - ra(j)).ge.eps ) then
-          if (rra.lt.ra(j)) then
-            ra (i) = ra (j)
-            ind (i) = ind (j)
-            i = j
-            j = j + j
-          else
-            ! set j to terminate do-while loop
-            j = ir + 1
-          end if
-        else
-          !this means rra == ra(j) within tolerance
-          ! demote rra
-          if (iind.lt.ind (j) ) then
-            ra (i) = ra (j)
-            ind (i) = ind (j)
-            i = j
-            j = j + j
-          else
-            ! set j to terminate do-while loop
-            j = ir + 1
-          endif
-        end if
-      enddo
-      ra (i) = rra
-      ind (i) = iind
-
-    end do sorting
-
-    return 
-  end subroutine hpsort_eps
 
 !----------------------------------------------------------------------------
   subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomTypes)
@@ -2135,6 +1377,629 @@ module wfcExportVASPMod
 
     return
   end subroutine read_vasprun_xml
+
+!----------------------------------------------------------------------------
+  subroutine calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, &
+      nGVecsGlobal, nGVecsLocal)
+    !! Calculate Miller indices and G-vectors and split
+    !! over processors
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: fftGridSize(3)
+      !! Number of points on the FFT grid in each direction
+
+    real(kind=dp), intent(in) :: recipLattVec(3,3)
+      !! Reciprocal lattice vectors
+
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: gVecInCart(:,:)
+      !! G-vectors in Cartesian coordinates
+
+    integer, allocatable, intent(out) :: gIndexLocalToGlobal(:)
+      !! Converts local index `ig` to global index
+    integer, allocatable, intent(out) :: gVecMillerIndicesGlobal(:,:)
+      !! Integer coefficients for G-vectors on all processors
+    integer, intent(out) :: nGVecsGlobal
+      !! Global number of G-vectors
+    integer, intent(out) :: nGVecsLocal
+      !! Local number of G-vectors on this processor
+
+
+    ! Local variables:
+    real(kind=dp) :: eps8 = 1.0E-8_dp
+      !! Double precision zero
+    real(kind=dp), allocatable :: millSum(:)
+      !! Sum of integer coefficients for G-vectors
+
+    integer :: igx, igy, igz, ig, ix
+      !! Loop indices
+    integer, allocatable :: iMill(:)
+      !! Indices of miller indices after sorting
+    integer, allocatable :: gVecMillerIndicesGlobal_tmp(:,:)
+      !! Integer coefficients for G-vectors on all processors
+    integer, allocatable :: mill_local(:,:)
+      !! Integer coefficients for G-vectors
+    integer :: millX, millY, millZ
+      !! Miller indices for each direction; in order
+      !! 0,1,...,(fftGridSize(:)/2),-(fftGridSize(:)/2-1),...,-1
+    integer :: npmax
+      !! Max number of plane waves
+
+
+    npmax = fftGridSize(1)*fftGridSize(2)*fftGridSize(3) 
+    allocate(gVecMillerIndicesGlobal(3,npmax))
+    allocate(millSum(npmax))
+
+    if(ionode) then
+
+      allocate(gVecMillerIndicesGlobal_tmp(3,npmax))
+
+      write(iostd,*)
+      write(iostd,*) "***************"
+      write(iostd,*) "Calculating miller indices"
+
+      nGVecsGlobal = 0
+      gVecMillerIndicesGlobal_tmp = 0
+
+      !> * Generate Miller indices for every possible G-vector
+      !>   regardless of the \(|G+k|\) cutoff
+      do igz = 1, fftGridSize(3)
+
+        millZ = igz - 1
+
+        if (igz .gt. fftGridSize(3)/2 + 1) millZ = igz - fftGridSize(3) - 1
+
+        do igy = 1, fftGridSize(2)
+
+          millY = igy - 1
+
+          if (igy .gt. fftGridSize(2)/2 + 1) millY = igy - fftGridSize(2) - 1
+
+          do igx = 1, fftGridSize(1)
+
+            millX = igx - 1
+
+            if (igx .gt. fftGridSize(1)/2 + 1) millX = igx - fftGridSize(1) - 1
+
+            nGVecsGlobal = nGVecsGlobal + 1
+
+            gVecMillerIndicesGlobal_tmp(1,nGVecsGlobal) = millX
+            gVecMillerIndicesGlobal_tmp(2,nGVecsGlobal) = millY
+            gVecMillerIndicesGlobal_tmp(3,nGVecsGlobal) = millZ
+              !! * Calculate Miller indices
+
+            millSum(nGVecsGlobal) = sqrt(real(millX**2 + millY**2 + millZ**2))
+              !! * Calculate the sum of the Miller indices
+              !!   for sorting
+
+          enddo
+        enddo
+      enddo
+
+      if (nGVecsGlobal .ne. npmax) call exitError('calculateGvecs', & 
+        '*** error - computed no. of G-vectors != estimated number of plane waves', 1)
+        !! * Check that number of G-vectors are the same as the number of plane waves
+
+      write(iostd,*) "Sorting miller indices"
+
+      allocate(iMill(nGVecsGlobal))
+
+      do ig = 1, nGVecsGlobal
+        !! * Initialize the index array that will track elements
+        !!   after sorting
+
+        iMill(ig) = ig
+
+      enddo
+
+      call hpsort_eps(nGVecsGlobal, millSum, iMill, eps8)
+        !! * Order vector `millSum` keeping initial position in `iMill`
+
+      do ig = 1, nGVecsGlobal
+        !! * Rearrange the miller indices to match order of `millSum`
+
+        gVecMillerIndicesGlobal(:,ig) = gVecMillerIndicesGlobal_tmp(:,iMill(ig))
+
+      enddo
+
+      deallocate(iMill)
+      deallocate(gVecMillerIndicesGlobal_tmp)
+
+      write(iostd,*) "Done calculating and sorting miller indices"
+      write(iostd,*) "***************"
+      write(iostd,*)
+    endif
+
+    call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(gVecMillerIndicesGlobal, size(gVecMillerIndicesGlobal), MPI_INTEGER, root, worldComm, ierr)
+
+    if (ionode) then
+      write(iostd,*)
+      write(iostd,*) "***************"
+      write(iostd,*) "Distributing G-vecs over processors"
+    endif
+
+    call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexLocalToGlobal, mill_local, nGVecsLocal)
+      !! * Split up the G-vectors and Miller indices over processors 
+
+    if (ionode) write(iostd,*) "Calculating G-vectors"
+
+    allocate(gVecInCart(3,nGVecsLocal))
+
+    do ig = 1, nGVecsLocal
+
+      do ix = 1, 3
+        !! * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
+
+        gVecInCart(ix,ig) = sum(mill_local(:,ig)*recipLattVec(ix,:))
+
+      enddo
+      
+    enddo
+
+    if (ionode) then
+      write(iostd,*) "***************"
+      write(iostd,*)
+    endif
+
+    deallocate(mill_local)
+
+    return
+  end subroutine calculateGvecs
+
+!----------------------------------------------------------------------------
+  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexLocalToGlobal, mill_local, nGVecsLocal)
+    !! Figure out how many G-vectors there should be per processor
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nGVecsGlobal
+      !! Global number of G-vectors
+      
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
+
+    
+    ! Output variables:
+    integer, allocatable, intent(out) :: gIndexLocalToGlobal(:)
+      ! Converts local index `ig` to global index
+    integer, allocatable, intent(out) :: mill_local(:,:)
+      !! Integer coefficients for G-vectors
+    integer, intent(out) :: nGVecsLocal
+      !! Local number of G-vectors on this processor
+
+
+    ! Local variables:
+    integer :: ig_l, ig_g
+      !! Loop indices
+    integer :: ngr
+      !! Number of G-vectors left over after evenly divided across processors
+
+
+    if( nGVecsGlobal > 0 ) then
+      nGVecsLocal = nGVecsGlobal/nProcs
+        !!  * Calculate number of G-vectors per processor
+
+      ngr = nGVecsGlobal - nGVecsLocal*nProcs 
+        !! * Calculate the remainder
+
+      if( myid < ngr ) nGVecsLocal = nGVecsLocal + 1
+        !! * Assign the remainder to the first `ngr` processors
+
+      !> * Generate an array to map a local index
+      !>   (`ig` passed to `gIndexLocalToGlobal`) to a global
+      !>   index (the value stored at `gIndexLocalToGlobal(ig)`)
+      !>   and get local miller indices
+      allocate(gIndexLocalToGlobal(nGVecsLocal))
+      allocate(mill_local(3,nGVecsLocal))
+
+      ig_l = 0
+      do ig_g = 1, nGVecsGlobal
+
+        if (myid == mod(ig_g-1,nProcs)) then
+        
+          ig_l = ig_l + 1
+          gIndexLocalToGlobal(ig_l) = ig_g
+          mill_local(:,ig_l) = gVecMillerIndicesGlobal(:,ig_g)
+
+        endif
+
+      enddo
+
+      if (ig_l /= nGVecsLocal) call exitError('distributeGvecsOverProcessors', 'unexpected number of G-vecs for this processor', 1)
+
+    endif
+
+    return
+  end subroutine distributeGvecsOverProcessors
+
+!----------------------------------------------------------------------------
+  subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, wfcVecCut, kPosition, &
+      gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
+    !! Determine which G-vectors result in \(G+k\)
+    !! below the energy cutoff for each k-point and
+    !! sort the indices based on \(|G+k|^2\)
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nGVecsLocal
+      !! Number of G-vectors on this processor
+
+    integer, intent(in) :: gIndexLocalToGlobal(nGVecsLocal)
+      ! Converts local index `ig` to global index
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+    integer, intent(in) :: nPWs1kGlobal(nKPoints)
+      !! Input number of plane waves for a single k-point
+
+    real(kind=dp), intent(in) :: recipLattVec(3,3)
+      !! Reciprocal lattice vectors
+    real(kind=dp), intent(in) :: gVecInCart(3,nGVecsLocal)
+      !! G-vectors in Cartesian coordinates
+    real(kind=dp), intent(in) :: wfcVecCut
+      !! Energy cutoff converted to vector cutoff
+    real(kind=dp), intent(in) :: kPosition(3,nKPoints)
+      !! Position of k-points in reciprocal space
+
+
+    ! Output variables:
+    integer, allocatable, intent(out) :: gKIndexLocalToGlobal(:,:)
+      !! Local to global indices for \(G+k\) vectors 
+      !! ordered by magnitude at a given k-point
+    integer, allocatable, intent(out) :: gToGkIndexMap(:,:)
+      !! Index map from \(G\) to \(G+k\);
+      !! indexed up to `nGVecsLocal` which
+      !! is greater than `maxNumPWsPool` and
+      !! stored for each k-point
+    integer, allocatable, intent(out) :: nGkLessECutLocal(:)
+      !! Number of \(G+k\) vectors with energy
+      !! less than `wfcECut` for each
+      !! k-point, on this processor
+    integer, allocatable, intent(out) :: nGkLessECutGlobal(:)
+      !! Global number of \(G+k\) vectors with energy
+      !! less than `wfcECut` for each k-point
+    integer, intent(out) :: maxGIndexGlobal
+      !! Maximum G-vector index among all \(G+k\)
+      !! and processors
+    integer, intent(out) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `wfcECut` among all k-points
+    integer, intent(out) :: maxNumPWsPool
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points for just this 
+      !! pool
+
+
+    ! Local variables:
+    real(kind=dp) :: eps8 = 1.0E-8_dp
+      !! Double precision zero
+    real(kind=dp) :: gkMod(nkPerPool,nGVecsLocal)
+      !! \(|G+k|^2\);
+      !! only stored if less than `wfcVecCut`
+    real(kind=dp) :: q
+      !! \(|q|^2\) where \(q = G+k\)
+    real(kind=dp) :: xkCart(3)
+      !! Cartesian coordinates for given k-point
+
+    integer :: ik, ig, ix
+      !! Loop indices
+    integer, allocatable :: igk(:)
+      !! Index map from \(G\) to \(G+k\)
+      !! indexed up to `maxNumPWsPool`
+    integer :: ngk_tmp
+      !! Temporary variable to hold `nGkLessECutLocal`
+      !! value so that don't have to keep accessing
+      !! array
+    integer :: maxGIndexLocal
+      !! Maximum G-vector index among all \(G+k\)
+      !! for just this processor
+    integer :: maxNumPWsLocal
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points for just this 
+      !! processor
+
+    allocate(nGkLessECutLocal(nkPerPool))
+    allocate(gToGkIndexMap(nkPerPool,nGVecsLocal))
+    
+    maxNumPWsLocal = 0
+    nGkLessECutLocal(:) = 0
+    gToGkIndexMap(:,:) = 0
+
+    if (ionode) then
+      write(iostd,*)
+      write(iostd,*) "***************"
+      write(iostd,*) "Determining G+k combinations less than energy cutoff"
+    endif
+
+    do ik = 1, nkPerPool
+      !! * For each \(G+k\) combination, calculate the 
+      !!   magnitude and, if it is less than the energy
+      !!   cutoff, store the G index and magnitude and 
+      !!   increment the number of \(G+k\) vectors at
+      !!   this k-point. Also, keep track of the maximum 
+      !!   number of \(G+k\) vectors among all k-points
+      !!
+      !! @note
+      !!  All of the above calculations are local to a single
+      !!  processor.
+      !! @endnote
+
+      if (ionode) write(iostd,*) "Processing k-point ", ik
+
+      do ix = 1, 3
+        xkCart(ix) = sum(kPosition(:,ik+ikStart_pool-1)*recipLattVec(ix,:))
+      enddo
+
+      ngk_tmp = 0
+
+      do ig = 1, nGVecsLocal
+
+        q = sqrt(sum((xkCart(:) + gVecInCart(:,ig))**2))
+          ! Calculate \(|G+k|\)
+
+        if (q <= eps8) q = 0.d0
+
+        !if (ionode) write(89,*) ik+ikStart_pool-1, ig, q <= wfcVecCut
+
+        if (q <= wfcVecCut) then
+
+          ngk_tmp = ngk_tmp + 1
+            ! If \(|G+k| \leq \) `wfcVecCut` increment the count for
+            ! this k-point
+
+          gkMod(ik,ngk_tmp) = q
+            ! Store the modulus for sorting
+
+          gToGkIndexMap(ik,ngk_tmp) = ig
+            ! Store the index for this G-vector
+
+        !else
+
+          !if (sqrt(sum(gVecInCart(:, ig)**2)) .gt. &
+            !sqrt(sum(kPosition(:,ik+ikStart_pool-1)**2) + sqrt(wfcVecCut))) goto 100
+            ! if |G| > |k| + sqrt(Ecut)  stop search
+            !! @todo Figure out if there is valid exit check for `ig` loop @endtodo
+
+        endif
+      enddo
+
+      if (ngk_tmp == 0) call exitError('reconstructFFTGrid', 'no G+k vectors on this processor', 1) 
+
+100   maxNumPWsLocal = max(maxNumPWsLocal, ngk_tmp)
+        ! Track the maximum number of \(G+k\)
+        ! vectors among all k-points
+
+      nGkLessECutLocal(ik) = ngk_tmp
+        ! Store the total number of \(G+k\)
+        ! vectors for this k-point
+
+    enddo
+
+    allocate(nGkLessECutGlobal(nKPoints))
+    nGkLessECutGlobal = 0
+    nGkLessECutGlobal(ikStart_pool:ikEnd_pool) = nGkLessECutLocal(1:nkPerPool)
+    CALL mpiSumIntV(nGkLessECutGlobal, worldComm)
+      !! * Calculate the global number of \(G+k\) 
+      !!   vectors for each k-point
+      
+    if (ionode) then
+
+      do ik = 1, nKPoints
+
+        if (nGkLessECutGlobal(ik) .ne. nPWs1kGlobal(ik)) call exitError('reconstructFFTGrid', &
+          'computed no. of G-vectors != input no. of plane waves', 1)
+          !! * Make sure that number of G-vectors isn't higher than the calculated maximum
+
+      enddo
+    endif
+
+    if (ionode) then
+      write(iostd,*) "Done determining G+k combinations less than energy cutoff"
+      write(iostd,*) "***************"
+      write(iostd,*)
+    endif
+
+    if (maxNumPWsLocal <= 0) call exitError('reconstructFFTGrid', &
+                'No plane waves found: running on too many processors?', 1)
+      !! * Make sure that each processor gets some \(G+k\) vectors. If not,
+      !!   should rerun with fewer processors.
+
+    call MPI_ALLREDUCE(maxNumPWsLocal, maxNumPWsPool, 1, MPI_INTEGER, MPI_MAX, interPoolComm, ierr)
+    if(ierr /= 0) call exitError('reconstructFFTGrid', 'error in mpi_allreduce 1', ierr)
+      !! * When using pools, set `maxNumPWsPool` to the maximum value of `maxNumPWsLocal` 
+      !!   in the pool 
+
+
+    allocate(gKIndexLocalToGlobal(maxNumPWsPool,nkPerPool))
+    allocate(igk(maxNumPWsPool))
+
+    gKIndexLocalToGlobal = 0
+    igk = 0
+
+    if (ionode) then
+      write(iostd,*)
+      write(iostd,*) "***************"
+      write(iostd,*) "Sorting G+k combinations by magnitude"
+    endif
+
+    do ik = 1, nkPerPool
+      !! * Reorder the indices of the G-vectors so that
+      !!   they are sorted by \(|G+k|^2\) for each k-point
+
+      ngk_tmp = nGkLessECutLocal(ik)
+
+      igk(1:ngk_tmp) = gToGkIndexMap(ik,1:ngk_tmp)
+
+      call hpsort_eps(ngk_tmp, gkMod(ik,:), igk, eps8)
+        ! Order vector `gkMod` keeping initial position in `igk`
+
+      do ig = 1, ngk_tmp
+        
+        gKIndexLocalToGlobal(ig,ik) = gIndexLocalToGlobal(igk(ig))
+        
+      enddo
+     
+      gKIndexLocalToGlobal(ngk_tmp+1:maxNumPWsPool, ik) = 0
+
+    enddo
+
+    if (ionode) then
+      write(iostd,*) "Done sorting G+k combinations by magnitude"
+      write(iostd,*) "***************"
+      write(iostd,*)
+    endif
+
+    deallocate(igk)
+
+    maxGIndexLocal = maxval(gKIndexLocalToGlobal(:,:))
+    call MPI_ALLREDUCE(maxGIndexLocal, maxGIndexGlobal, 1, MPI_INTEGER, MPI_MAX, worldComm, ierr)
+    if(ierr /= 0) call exitError('reconstructFFTGrid', 'error in mpi_allreduce 2', ierr)
+      !! * Calculate the maximum G-vector index 
+      !!   among all \(G+k\) and processors
+
+    maxNumPWsGlobal = maxval(nGkLessECutGlobal(1:nKPoints))
+      !! * Calculate the maximum number of G-vectors 
+      !!   among all k-points
+
+    return
+  end subroutine reconstructFFTGrid
+
+!----------------------------------------------------------------------------
+  subroutine hpsort_eps(n, ra, ind, eps)
+    !! Sort an array ra(1:n) into ascending order using heapsort algorithm,
+    !! considering two elements equal if their difference is less than `eps`
+    !!
+    !! n is input, ra is replaced on output by its sorted rearrangement.
+    !! Create an index table (ind) by making an exchange in the index array
+    !! whenever an exchange is made on the sorted data array (ra).
+    !! In case of equal values in the data array (ra) the values in the
+    !! index array (ind) are used to order the entries.
+    !!
+    !! if on input ind(1)  = 0 then indices are initialized in the routine,
+    !! if on input ind(1) != 0 then indices are assumed to have been
+    !!                initialized before entering the routine and these
+    !!                indices are carried around during the sorting process
+    !!
+    !!
+    !! From QE code, adapted from Numerical Recipes pg. 329 (new edition)
+    !!
+
+    implicit none
+
+    ! Input/Output variables:
+    real(kind=dp), intent(in) :: eps
+    integer, intent(in) :: n
+
+    integer, intent(inout) :: ind(:)
+    real(kind=dp), intent(inout) :: ra (:)
+
+
+    ! Local variables
+    integer :: i, ir, j, l, iind
+    real(kind=dp) :: rra
+
+    ! initialize index array
+    if (ind (1) .eq.0) then
+      do i = 1, n
+        ind (i) = i
+      enddo
+    endif
+    ! nothing to order
+    if (n.lt.2) return
+    ! initialize indices for hiring and retirement-promotion phase
+    l = n / 2 + 1
+
+    ir = n
+
+    sorting: do
+
+      ! still in hiring phase
+      if ( l .gt. 1 ) then
+        l    = l - 1
+        rra  = ra (l)
+        iind = ind (l)
+        ! in retirement-promotion phase.
+      else
+        ! clear a space at the end of the array
+        rra  = ra (ir)
+        !
+        iind = ind (ir)
+        ! retire the top of the heap into it
+        ra (ir) = ra (1)
+        !
+        ind (ir) = ind (1)
+        ! decrease the size of the corporation
+        ir = ir - 1
+        ! done with the last promotion
+        if ( ir .eq. 1 ) then
+          ! the least competent worker at all !
+          ra (1)  = rra
+          !
+          ind (1) = iind
+          exit sorting
+        endif
+      endif
+      ! wheter in hiring or promotion phase, we
+      i = l
+      ! set up to place rra in its proper level
+      j = l + l
+      !
+      do while ( j .le. ir )
+        if ( j .lt. ir ) then
+          ! compare to better underling
+          if ( abs(ra(j)-ra(j+1)).ge.eps ) then
+            if (ra(j).lt.ra(j+1)) j = j + 1
+          else
+            ! this means ra(j) == ra(j+1) within tolerance
+            if (ind (j) .lt.ind (j + 1) ) j = j + 1
+          endif
+        endif
+        ! demote rra
+        if ( abs(rra - ra(j)).ge.eps ) then
+          if (rra.lt.ra(j)) then
+            ra (i) = ra (j)
+            ind (i) = ind (j)
+            i = j
+            j = j + j
+          else
+            ! set j to terminate do-while loop
+            j = ir + 1
+          end if
+        else
+          !this means rra == ra(j) within tolerance
+          ! demote rra
+          if (iind.lt.ind (j) ) then
+            ra (i) = ra (j)
+            ind (i) = ind (j)
+            i = j
+            j = j + j
+          else
+            ! set j to terminate do-while loop
+            j = ir + 1
+          endif
+        end if
+      enddo
+      ra (i) = rra
+      ind (i) = iind
+
+    end do sorting
+
+    return 
+  end subroutine hpsort_eps
 
 !----------------------------------------------------------------------------
   subroutine readPOTCAR(nAtomTypes, VASPDir, pot)

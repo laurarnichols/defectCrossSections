@@ -47,8 +47,7 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Reading WAVECAR"
 
   call readWAVECAR(VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
-      kPosition, nb1max, nb2max, nb3max, nBands, maxGkNum, nKPoints, nPWs1kGlobal, nSpins, &
-      eigenE)
+      kPosition, nBands, maxGkNum, nKPoints, nPWs1kGlobal, nSpins, eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 
   if (ionode) write(iostd,*) "Done reading WAVECAR"
@@ -58,9 +57,17 @@ program wfcExportVASPMain
     !! * Figure out how many k-points there should be per pool
 
 
+  if (ionode) write(iostd,*) "Reading vasprun.xml"
+
+  call read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomTypes)
+    !! * Read the k-point weights and cell info from the `vasprun.xml` file
+
+  if (ionode) write(iostd,*) "Done reading vasprun.xml"
+
+
   if (ionode) write(iostd,*) "Calculating G-vectors"
 
-  call calculateGvecs(nb1max, nb2max, nb3max, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, nGVecsGlobal, &
+  call calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, nGVecsGlobal, &
       nGVecsLocal)
     !! * Calculate Miller indices and G-vectors and split
     !!   over processors
@@ -70,8 +77,8 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Reconstructing FFT grid"
 
-  call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, maxGkNum, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, &
-      wfcVecCut, kPosition, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
+  call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, wfcVecCut, kPosition, &
+      gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
     !! * Determine which G-vectors result in \(G+k\)
     !!   below the energy cutoff for each k-point and
     !!   sort the indices based on \(|G+k|^2\)
@@ -83,16 +90,8 @@ program wfcExportVASPMain
   deallocate(gVecInCart)
   deallocate(nPWs1kGlobal)
 
-  if (ionode) write(iostd,*) "Reading vasprun.xml"
-
-  call read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomTypes)
-    !! * Read the k-point weights and cell info from the `vasprun.xml` file
-
-  if (ionode) write(iostd,*) "Done reading vasprun.xml"
-
 
   allocate(pot(nAtomTypes))
-
 
   if (ionode) write(iostd,*) "Reading POTCAR"
 
