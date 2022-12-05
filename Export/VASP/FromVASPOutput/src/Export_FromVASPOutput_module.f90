@@ -1338,7 +1338,7 @@ module wfcExportVASPMod
     real(kind=dp), allocatable :: millSum(:)
       !! Sum of integer coefficients for G-vectors
 
-    integer :: ig1, ig2, ig3, ig1p, ig2p, ig3p, ig, ix
+    integer :: igx, igy, igz, ig, ix
       !! Loop indices
     integer, allocatable :: iMill(:)
       !! Indices of miller indices after sorting
@@ -1346,6 +1346,9 @@ module wfcExportVASPMod
       !! Integer coefficients for G-vectors on all processors
     integer, allocatable :: mill_local(:,:)
       !! Integer coefficients for G-vectors
+    integer :: millX, millY, millZ
+      !! Miller indices for each direction; in order
+      !! 0,1,...,(nb*max/2),-(nb*max/2-1),...,-1
     integer :: npmax
       !! Max number of plane waves
 
@@ -1365,32 +1368,34 @@ module wfcExportVASPMod
       nGVecsGlobal = 0
       gVecMillerIndicesGlobal_tmp = 0
 
-      do ig3 = 0, 2*nb3max
+      !> * Generate Miller indices for every possible G-vector
+      !>   regardless of the \(|G+k|\) cutoff
+      do igz = 0, 2*nb3max
 
-        ig3p = ig3
+        millZ = igz
 
-        if (ig3 .gt. nb3max) ig3p = ig3 - 2*nb3max - 1
+        if (igz .gt. nb3max) millZ = igz - 2*nb3max - 1
 
-        do ig2 = 0, 2*nb2max
+        do igy = 0, 2*nb2max
 
-          ig2p = ig2
+          millY = igy
 
-          if (ig2 .gt. nb2max) ig2p = ig2 - 2*nb2max - 1
+          if (igy .gt. nb2max) millY = igy - 2*nb2max - 1
 
-          do ig1 = 0, 2*nb1max
+          do igx = 0, 2*nb1max
 
-            ig1p = ig1
+            millX = igx
 
-            if (ig1 .gt. nb1max) ig1p = ig1 - 2*nb1max - 1
+            if (igx .gt. nb1max) millX = igx - 2*nb1max - 1
 
             nGVecsGlobal = nGVecsGlobal + 1
 
-            gVecMillerIndicesGlobal_tmp(1,nGVecsGlobal) = ig1p
-            gVecMillerIndicesGlobal_tmp(2,nGVecsGlobal) = ig2p
-            gVecMillerIndicesGlobal_tmp(3,nGVecsGlobal) = ig3p
+            gVecMillerIndicesGlobal_tmp(1,nGVecsGlobal) = millX
+            gVecMillerIndicesGlobal_tmp(2,nGVecsGlobal) = millY
+            gVecMillerIndicesGlobal_tmp(3,nGVecsGlobal) = millZ
               !! * Calculate Miller indices
 
-            millSum(nGVecsGlobal) = sqrt(real(ig1p**2 + ig2p**2 + ig3p**2))
+            millSum(nGVecsGlobal) = sqrt(real(millX**2 + millY**2 + millZ**2))
               !! * Calculate the sum of the Miller indices
               !!   for sorting
 
@@ -2771,6 +2776,16 @@ module wfcExportVASPMod
       G1=(GRID%LPCTX(N1)+WDES%VKPT(1,ik))
       G2=(GRID%LPCTY(N2)+WDES%VKPT(2,ik))
       G3=(GRID%LPCTZ(N3)+WDES%VKPT(3,ik))
+        !! @note
+        !!  `GRID%LPCT*` corresponds to our `gVecMillerIndicesGlobal_tmp`
+        !!  variable that holds the unsorted Miller indices. Would think
+        !!  that we should sort the G-vectors, but I am not sure because
+        !!  of how the values are accessed here on (what seems to be) a 
+        !!  reduced grid. While I want to be efficient, I need to make
+        !!  sure that I am accurately reproducing what VASP does because
+        !!  I don't want to interfere with the final results. Maybe sort
+        !!  later?
+        !! @endnote
 
       !IF (ASSOCIATED(NONL_S%VKPT_SHIFT)) THEN
         !! @note 
