@@ -2772,11 +2772,18 @@ module wfcExportVASPMod
       G2=(GRID%LPCTY(N2)+WDES%VKPT(2,ik))
       G3=(GRID%LPCTZ(N3)+WDES%VKPT(3,ik))
 
-      IF (ASSOCIATED(NONL_S%VKPT_SHIFT)) THEN
-        G1= G1 +NONL_S%VKPT_SHIFT(1,NI)
-        G2= G2 +NONL_S%VKPT_SHIFT(2,NI)
-        G3= G3 +NONL_S%VKPT_SHIFT(3,NI)
-      ENDIF
+      !IF (ASSOCIATED(NONL_S%VKPT_SHIFT)) THEN
+        !! @note 
+        !!  `NONL_S%VKPT_SHIFT` is only set in `us.F::SETDIJ_AVEC_`.
+        !!  That subroutine is only called in `nmr.F::SETDIJ_AVEC`, but
+        !!  that call is only reached if `ORBITALMAG = .TRUE.`. This value
+        !!  can be set in the `INCAR` file, but there is no wiki entry,
+        !!  so it looks like a legacy option. Not sure how it relates
+        !!  to other magnetic switches like `MAGMOM`. However, `ORBITALMAG`
+        !!  is written to the `vasprun.xml` file, so will just test
+        !!  to make sure that `ORBITALMAG = .FALSE.` and throw an error 
+        !!  if not.
+        !! @endnote
 
       FACTM=1.00
       if(gammaOnly .and. (N1 /= 1 .or. N2 /= 1 .or. N3 /= 1)) FACTM = SQRT(2._q)
