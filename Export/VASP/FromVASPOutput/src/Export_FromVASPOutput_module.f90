@@ -2792,6 +2792,8 @@ module wfcExportVASPMod
       !! Reciprocal lattice vectors
 
     ! Local variables
+    real(kind=dp) :: eps8 = 1.0E-8_dp
+      !! Double precision zero
     real(kind=dp) :: gkCart(3)
       !! \(G+k\) in Cartesian coordinates for only
       !! vectors that satisfy the cutoff
@@ -2861,7 +2863,10 @@ module wfcExportVASPMod
         !! @endnote
 
 
-      GLEN(ipw)=MAX(SQRT(GX*GX+GY*GY+GZ*GZ),1E-10_q)
+      GLEN(ipw) = SQRT(GX*GX+GY*GY+GZ*GZ)
+      
+      if (GLEN(ipw) <= eps8) GLEN(ipw) = 0.d0
+
       FAKTX(ipw)=FACTM
       XS(ipw)  =GX/GLEN(ipw)
       YS(ipw)  =GY/GLEN(ipw)
