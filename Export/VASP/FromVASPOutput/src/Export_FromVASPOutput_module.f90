@@ -2638,7 +2638,8 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(fftGridSize, ik, nAtomTypes, nPWs1k, kPos, omega, recipLattVec, pot, realProjWoPhase)
+  subroutine calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1k, gKIndexGlobal, gVecMillerIndicesGlobal, kPosition, &
+        omega, recipLattVec, pot, realProjWoPhase)
     implicit none
 
     ! Input variables:
@@ -2646,13 +2647,23 @@ module wfcExportVASPMod
       !! Number of points on the FFT grid in each direction
     integer, intent(in) :: ik
       !! Current k-point 
+    integer, intent(in) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `wfcECut` among all k-points
     integer, intent(in) :: nAtomTypes
       !! Number of types of atoms
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
+    integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
 
-    real(kind=dp), intent(in) :: kPos(3)
-      !! Position of this k-point in reciprocal space
+    real(kind=dp), intent(in) :: kPosition(3,nKPoints)
+      !! Position of k-points in reciprocal space
     real(kind=dp), intent(in) :: omega
       !! Volume of unit cell
     real(kind=dp), intent(in) :: recipLattVec(3,3)
@@ -2687,7 +2698,7 @@ module wfcExportVASPMod
 
     allocate(realProjWoPhase(nPWs1k,pot(iT)%lmmax,nAtomTypes))
 
-    call generateGridTable(fftGridSize, ik, nPWs1k, kPos, recipLattVec)
+    call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, recipLattVec)
 
     call getYlm(LYDIM, nPWs1k, Ylm, XS, YS, ZS)
 
@@ -2754,23 +2765,37 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine generateGridTable(fftGridSize, ik, nPWs1k, kPos, recipLattVec)
+  subroutine generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, recipLattVec)
     implicit none
 
     ! Input variables:
     integer, intent(in) :: fftGridSize(3)
       !! Number of points on the FFT grid in each direction
+    integer, intent(in) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `wfcECut` among all k-points
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+    integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: ik
       !! Current k-point 
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
 
-    real(kind=dp), intent(in) :: kPos(3)
-      !! Position of this k-point in reciprocal space
+    real(kind=dp), intent(in) :: kPosition(3,nKPoints)
+      !! Position of k-points in reciprocal space
     real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
 
     ! Local variables
+    real(kind=dp) :: gkDir(3)
+      !! \(G+k\) in direct coordinates for only
+      !! vectors that satisfy the cutoff
+
     logical :: gammaOnly
       !! If the gamma only VASP code is used
 
@@ -2783,36 +2808,42 @@ module wfcExportVASPMod
 
     do ipw = 1, nPWs1k
 
-      N1 = MOD(WDES%IGX(ipw,ik) + fftGridSize(1), fftGridSize(1)) + 1
-      N2 = MOD(WDES%IGY(ipw,ik) + fftGridSize(2), fftGridSize(2)) + 1
-      N3 = MOD(WDES%IGZ(ipw,ik) + fftGridSize(3), fftGridSize(3)) + 1
+      !N1 = MOD(WDES%IGX(ipw,ik) + fftGridSize(1), fftGridSize(1)) + 1
+      !N2 = MOD(WDES%IGY(ipw,ik) + fftGridSize(2), fftGridSize(2)) + 1
+      !N3 = MOD(WDES%IGZ(ipw,ik) + fftGridSize(3), fftGridSize(3)) + 1
 
-      G1 = (GRID%LPCTX(N1) + kPos(1))
-      G2 = (GRID%LPCTY(N2) + kPos(2))
-      G3 = (GRID%LPCTZ(N3) + kPos(3))
-        !! @note
-        !!  `GRID%LPCT*` corresponds to our `gVecMillerIndicesGlobal_tmp`
-        !!  variable that holds the unsorted Miller indices. Would think
-        !!  that we should sort the G-vectors, but I am not sure because
-        !!  of how the values are accessed here with a `MOD` on the 
-        !!  `fftGridSize`. While I want to be efficient, I need to make
-        !!  sure that I am accurately reproducing what VASP does because
-        !!  I don't want to interfere with the final results. Maybe sort
-        !!  later?
-        !! @endnote
+      !G1 = (GRID%LPCTX(N1) + kPosition(1,ik))
+      !G2 = (GRID%LPCTY(N2) + kPosition(2,ik))
+      !G3 = (GRID%LPCTZ(N3) + kPosition(3,ik))
+        ! @note
+        !  The original code from VASP is left commented out above. 
+        !  `GRID%LPCT*` corresponds to our `gVecMillerIndicesGlobal_tmp`
+        !  variable that holds the unsorted G-vectors in Miller indices. 
+        !  `WDES%IGX/IGY/IGZ` holds only the G-vectors s.t. \(|G+k| <\)
+        !  cutoff. Their values do not seem to be sorted, but I am going
+        !  to use the sorted array here because I don't think it affects
+        !  the VASP results and it matches up better with the rest of 
+        !  our code. Leaving this here though, in case issues come up
+        !  and this choice needs to be questioned.
+        ! @endnote
+
+      gkDir(:) = gVecMillerIndicesGlobal(:,gKIndexGlobal(ipw,ik)) + kPosition(:,ik)
+        ! I belive this recreates the purpose of the original lines 
+        ! above by getting \(G+k\) in direct coordinates for only
+        ! the \(G+k\) combinations that satisfy the cutoff
 
       !IF (ASSOCIATED(NONL_S%VKPT_SHIFT)) THEN
-        !! @note 
-        !!  `NONL_S%VKPT_SHIFT` is only set in `us.F::SETDIJ_AVEC_`.
-        !!  That subroutine is only called in `nmr.F::SETDIJ_AVEC`, but
-        !!  that call is only reached if `ORBITALMAG = .TRUE.`. This value
-        !!  can be set in the `INCAR` file, but there is no wiki entry,
-        !!  so it looks like a legacy option. Not sure how it relates
-        !!  to other magnetic switches like `MAGMOM`. However, `ORBITALMAG`
-        !!  is written to the `vasprun.xml` file, so will just test
-        !!  to make sure that `ORBITALMAG = .FALSE.` and throw an error 
-        !!  if not.
-        !! @endnote
+        ! @note 
+        !  `NONL_S%VKPT_SHIFT` is only set in `us.F::SETDIJ_AVEC_`.
+        !  That subroutine is only called in `nmr.F::SETDIJ_AVEC`, but
+        !  that call is only reached if `ORBITALMAG = .TRUE.`. This value
+        !  can be set in the `INCAR` file, but there is no wiki entry,
+        !  so it looks like a legacy option. Not sure how it relates
+        !  to other magnetic switches like `MAGMOM`. However, `ORBITALMAG`
+        !  is written to the `vasprun.xml` file, so will just test
+        !  to make sure that `ORBITALMAG = .FALSE.` and throw an error 
+        !  if not.
+        ! @endnote
 
       FACTM=1.00
       if(gammaOnly .and. (N1 /= 1 .or. N2 /= 1 .or. N3 /= 1)) FACTM = SQRT(2._q)
