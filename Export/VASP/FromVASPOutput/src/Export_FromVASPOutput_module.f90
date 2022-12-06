@@ -163,8 +163,8 @@ module wfcExportVASPMod
 
     real(kind=dp), allocatable :: dRadGrid(:)
       !! Derivative of radial grid
-    real(kind=dp) :: maxGNonlPs
-      !! Max G for non-local potential
+    real(kind=dp) :: maxGkNonlPs
+      !! Max \(|G+k|\) for non-local potential
     real(kind=dp) :: psRMax
       !! Max r for non-local contribution
     real(kind=dp), allocatable :: radGrid(:)
@@ -2276,8 +2276,8 @@ module wfcExportVASPMod
         read(potcarUnit,*) (dummyD(i), i=1,1000)
           !! * Ignore the atomic pseudo charge density
 
-        read(potcarUnit,*) pot(iT)%maxGNonlPs, dummyC
-          !! * Read the max G for non-local potential 
+        read(potcarUnit,*) pot(iT)%maxGkNonlPs, dummyC
+          !! * Read the max \(|G+k|\) for non-local potential 
           !!   and ignore unused boolean (`LDUM` in VASP)
         read(potcarUnit,'(1X,A1)') charSwitch
           !! * Read character switch
@@ -2690,17 +2690,18 @@ module wfcExportVASPMod
       
     real(kind=dp) :: FAKTX(nPWs1k)
       !! Not sure what this is
+    real(kind=dp) :: gkModGlobal(nPWs1k)
+      !! \(|G+k|^2\)
     real(kind=dp), intent(out) :: gkUnit(3,nPWs1k)
       !! \( (G+k)/|G+k| \)
-    real(kind=dp) :: GVecLen(nPWs1k)
-      !! Length of G-vectors
     real(kind=dp), allocatable :: pseudoV(:)
       !! Pseudopotential
 
 
     allocate(realProjWoPhase(nPWs1k,pot(iT)%lmmax,nAtomTypes))
 
-    call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, recipLattVec, gkUnit)
+    call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, &
+          recipLattVec, gkModGlobal, gkUnit)
 
     call getYlm(LYDIM, nPWs1k, Ylm, gkUnit)
 
@@ -2709,7 +2710,7 @@ module wfcExportVASPMod
 
       do ip = 1, pot(iT)%nChannels
 
-        call getPseudoV(ip, nPWs1k, FAKTX, GVecLen, omega, pot(iT), pseudoV)
+        call getPseudoV(ip, nPWs1k, FAKTX, gkModGlobal, omega, pot(iT), pseudoV)
 
         angMom = pot(iT)%angMom(ip)
         imMax= 2*angMom
@@ -2767,7 +2768,8 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, recipLattVec, gkUnit)
+  subroutine generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, &
+        recipLattVec, gkModGlobal, gkUnit)
     implicit none
 
     ! Input variables:
@@ -2794,6 +2796,8 @@ module wfcExportVASPMod
       !! Reciprocal lattice vectors
 
     ! Output variables
+    real(kind=dp) :: gkModGlobal(nPWs1k)
+      !! \(|G+k|^2\)
     real(kind=dp), intent(out) :: gkUnit(3,nPWs1k)
       !! \( (G+k)/|G+k| \)
 
@@ -2806,8 +2810,6 @@ module wfcExportVASPMod
     real(kind=dp) :: gkDir(3)
       !! \(G+k\) in direct coordinates for only
       !! vectors that satisfy the cutoff
-    real(kind=dp) :: gkMod
-      !! \(|G+k|^2\)
 
     logical :: gammaOnly
       !! If the gamma only VASP code is used
@@ -2871,13 +2873,13 @@ module wfcExportVASPMod
         !! @endnote
 
 
-      gkMod = sqrt(sum(gkCart(:)**2 ))
+      gkModGlobal(ipw) = sqrt(sum(gkCart(:)**2 ))
         !! * Get magnitude of G+k vector 
       
-      if(gkMod <= eps8) gkMod = 0.d0
+      if(gkModGlobal(ipw) <= eps8) gkModGlobal(ipw) = 0.d0
 
       FAKTX(ipw)=FACTM
-      gkUnit(:,ipw)  = gkDir(:)/gkMod
+      gkUnit(:,ipw)  = gkDir(:)/gkModGlobal(ipw)
 
       !IF (PRESENT(DK)) THEN
         !! @note
@@ -2895,7 +2897,7 @@ module wfcExportVASPMod
   end subroutine generateGridTable
 
 !----------------------------------------------------------------------------
-  subroutine getPseudoV(ip, nPWs1k, FAKTX, GVecLen, omega, pot, pseudoV)
+  subroutine getPseudoV(ip, nPWs1k, FAKTX, gkModGlobal, omega, pot, pseudoV)
     implicit none
 
     ! Input variables:
@@ -2906,8 +2908,8 @@ module wfcExportVASPMod
 
     real(kind=dp), intent(in) :: FAKTX(nPWs1k)
       !! Not sure what this is
-    real(kind=dp), intent(in) :: GVecLen(nPWs1k)
-      !! Length of G-vectors
+    real(kind=dp), intent(in) :: gkModGlobal(nPWs1k)
+      !! \(|G+k|^2\)
     real(kind=dp), intent(in) :: omega
       !! Volume of unit cell
 
@@ -2928,14 +2930,14 @@ module wfcExportVASPMod
     real(kind=dp) :: a_ipw, b_ipw, c_ipw, d_ipw
       !! Cubic spline coefficients for recreating
       !! pseudopotential
-    real(kind=dp) :: GLenToPseudoGrid
-      !! Factor to scale from G-vector length scale
+    real(kind=dp) :: GkLenToPseudoGrid
+      !! Factor to scale from \(G+k\) length scale
       !! to non-linear grid of size `nonlPseudoGridSize`
     real(kind=dp) :: divSqrtOmega
       !! 1/sqrt(omega) for multiplying pseudopotential
     real(kind=dp) :: pseudoGridLoc
-      !! Location of G-vector/plane wave on pseudopotential 
-      !! grid, scaled by the G-vector length
+      !! Location of \(G+k\) vector on pseudopotential 
+      !! grid, scaled by the \(|G+k|\)
     real(kind=dp) :: rem
       !! Decimal part of `pseudoGridLoc`, used for recreating
       !! pseudopotential from cubic spline interpolation
@@ -2948,17 +2950,17 @@ module wfcExportVASPMod
 
     divSqrtOmega = 1/sqrt(omega)
 
-    GLenToPseudoGrid = nonlPseudoGridSize/pot%maxGNonlPs
+    GkLenToPseudoGrid = nonlPseudoGridSize/pot%maxGkNonlPs
       !! * Define a scale factor for the argument based on the
       !!   length of the G-vector. Convert from continous G-vector
       !!   length scale to discrete scale of size `nonlPseudoGridSize`.
 
     do ipw = 1, nPWs1k
 
-      pseudoGridLoc = GVecLen(ipw)*GLenToPseudoGrid + 1
-        !! * Get a location of this G-vector/plane wave
-        !!   scaled to the size of the non-linear pseudopotential
-        !!   grid. This value is real.
+      pseudoGridLoc = gkModGlobal(ipw)*GkLenToPseudoGrid + 1
+        !! * Get a location of this \(G+k\) vector scaled to
+        !!   the size of the non-linear pseudopotential grid.
+        !!   This value is real.
 
       iPsGr = int(pseudoGridLoc)
         !! * Get the integer part of the location, which will be 
