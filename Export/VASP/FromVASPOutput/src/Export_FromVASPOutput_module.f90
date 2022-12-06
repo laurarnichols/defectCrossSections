@@ -2690,6 +2690,8 @@ module wfcExportVASPMod
       
     real(kind=dp) :: FAKTX(nPWs1k)
       !! Not sure what this is
+    real(kind=dp), intent(out) :: gkUnit(3,nPWs1k)
+      !! \( (G+k)/|G+k| \)
     real(kind=dp) :: GVecLen(nPWs1k)
       !! Length of G-vectors
     real(kind=dp), allocatable :: pseudoV(:)
@@ -2698,9 +2700,9 @@ module wfcExportVASPMod
 
     allocate(realProjWoPhase(nPWs1k,pot(iT)%lmmax,nAtomTypes))
 
-    call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, recipLattVec)
+    call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, recipLattVec, gkUnit)
 
-    call getYlm(LYDIM, nPWs1k, Ylm, XS, YS, ZS)
+    call getYlm(LYDIM, nPWs1k, Ylm, gkUnit)
 
     do iT = 1, nAtomTypes
       ilm = 1
@@ -2765,7 +2767,7 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, recipLattVec)
+  subroutine generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, recipLattVec, gkUnit)
     implicit none
 
     ! Input variables:
@@ -2790,6 +2792,10 @@ module wfcExportVASPMod
       !! Position of k-points in reciprocal space
     real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
+
+    ! Output variables
+    real(kind=dp), intent(out) :: gkUnit(3,nPWs1k)
+      !! \( (G+k)/|G+k| \)
 
     ! Local variables
     real(kind=dp) :: eps8 = 1.0E-8_dp
@@ -2871,9 +2877,7 @@ module wfcExportVASPMod
       if(gkMod <= eps8) gkMod = 0.d0
 
       FAKTX(ipw)=FACTM
-      XS(ipw)  =GX/gkMod
-      YS(ipw)  =GY/gkMod
-      ZS(ipw)  =GZ/gkMod
+      gkUnit(:,ipw)  = gkDir(:)/gkMod
 
       !IF (PRESENT(DK)) THEN
         !! @note
