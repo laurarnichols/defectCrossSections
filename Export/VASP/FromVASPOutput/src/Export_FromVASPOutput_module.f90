@@ -1624,7 +1624,7 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine reconstructFFTGrid(nGVecsLocal, gKIndexGlobal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, wfcVecCut, kPosition, &
+  subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, wfcVecCut, kPosition, &
       gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
@@ -1657,9 +1657,6 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    integer, allocatable, intent(out) :: gKIndexGlobal(:,:)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors
     integer, allocatable, intent(out) :: gKIndexLocalToGlobal(:,:)
       !! Local to global indices for \(G+k\) vectors 
       !! ordered by magnitude at a given k-point
@@ -1878,147 +1875,8 @@ module wfcExportVASPMod
       !! * Calculate the maximum number of G-vectors 
       !!   among all k-points
 
-    allocate(gKIndexGlobal(maxNumPWsGlobal, nKPoints))
-
-    if(ionode) then
-      write(iostd,*)
-      write(iostd,*) "***************"
-      write(iostd,*) "Getting global G+k indices"
-
-    endif
-  
-    gKIndexGlobal(:,:) = 0
-    do ik = 1, nKPoints
-
-      if (ionode) write(iostd,*) "Processing k-point ", ik
-
-      call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
-          maxNumPWsGlobal, gKIndexGlobal)
-        !! * For each k-point, gather all of the \(G+k\) indices
-        !!   among all processors in a single global array
-    
-    enddo
-
-    if(ionode) then
-
-      write(iostd,*) "Done getting global G+k indices"
-      write(iostd,*) "***************"
-      write(iostd,*)
-      flush(iostd)
-
-    endif
-
     return
   end subroutine reconstructFFTGrid
-
-!----------------------------------------------------------------------------
-  subroutine getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
-      maxNumPWsGlobal, gKIndexGlobal)
-    !! Gather the \(G+k\) vector indices in single, global 
-    !! array
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-    integer, intent(in) :: maxNumPWsPool
-      !! Maximum number of \(G+k\) vectors
-      !! across all k-points for just this 
-      !! processor
-
-    integer, intent(in) :: gKIndexLocalToGlobal(maxNumPWsPool, nkPerPool)
-      !! Local to global indices for \(G+k\) vectors 
-      !! ordered by magnitude at a given k-point;
-      !! the first index goes up to `maxNumPWsPool`,
-      !! but only valid values are up to `nGkLessECutLocal`
-    integer, intent(in) :: ik
-      !! Index of current k-point
-    integer, intent(in) :: nGkLessECutGlobal(nKPoints)
-      !! Global number of \(G+k\) vectors with energy
-      !! less than `wfcECut` for each k-point
-    integer, intent(in) :: nGkLessECutLocal(nkPerPool)
-      !! Number of \(G+k\) vectors with energy
-      !! less than `wfcECut` for each
-      !! k-point, on this processor
-    integer, intent(in) :: maxGIndexGlobal
-      !! Maximum G-vector index among all \(G+k\)
-      !! and processors
-    integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
-
-
-    ! Output variables:
-    integer, intent(out) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors
-
-
-    ! Local variables:
-    integer :: ig
-    integer, allocatable :: itmp1(:)
-      !! Global \(G+k\) indices for single
-      !! k-point with zeros for G-vector indices
-      !! where \(G+k\) was greater than the cutoff
-    integer :: ngg 
-      !! Counter for \(G+k\) vectors for given
-      !! k-point; should equal `nGkLessECutGlobal`
-
-    
-    allocate(itmp1(maxGIndexGlobal), stat=ierr)
-    if (ierr/= 0) call exitError('getGlobalGkIndices','allocating itmp1', abs(ierr))
-
-    itmp1 = 0
-    if(ik >= ikStart_pool .and. ik <= ikEnd_pool) then
-
-      do ig = 1, nGkLessECutLocal(ik-ikStart_pool+1)
-
-        itmp1(gKIndexLocalToGlobal(ig, ik-ikStart_pool+1)) = gKIndexLocalToGlobal(ig, ik-ikStart_pool+1)
-          !! * For each k-point and \(G+k\) vector for this processor,
-          !!   store the local to global indices (`gKIndexLocalToGlobal`) in an
-          !!   array that will later be combined globally
-          !!
-          !! @note
-          !!  This will leave zeros in spots where the \(G+k\) 
-          !!  combination for this k-point was greater than the energy 
-          !!  cutoff.
-          !! @endnote
-
-      enddo
-    endif
-
-    call mpiSumIntV(itmp1, worldComm)
-
-    ngg = 0
-    do  ig = 1, maxGIndexGlobal
-
-      if(itmp1(ig) == ig) then
-        !! * Go through and find all of the non-zero
-        !!   indices in the now-global `itmp1` array,
-        !!   and store them in a new array that won't
-        !!   have the extra zeros
-
-        ngg = ngg + 1
-
-        gKIndexGlobal(ngg, ik) = ig
-
-      endif
-    enddo
-
-
-    if(ionode .and. ngg /= nGkLessECutGlobal(ik)) call exitError('writeKInfo', 'Unexpected number of G+k vectors', 1)
-      !! * Make sure that the total number of non-zero
-      !!   indices matches the global number of \(G+k\)
-      !!   vectors for this k-point
-    
-    deallocate( itmp1 )
-
-    return
-  end subroutine getGlobalGkIndices
 
 !----------------------------------------------------------------------------
   subroutine hpsort_eps(n, ra, ind, eps)
@@ -2967,9 +2825,11 @@ module wfcExportVASPMod
   end subroutine getPseudoV
 
 !----------------------------------------------------------------------------
-  subroutine writeKInfo(nBands, nKPoints, nGkLessECutGlobal, nSpins, bandOccupation, kWeight, kPosition)
-    !! Calculate the highest occupied band for each k-point
-    !! and write out k-point information
+  subroutine writeKInfo(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, nBands, nGkLessECutGlobal, nGkLessECutLocal, &
+      nSpins, maxGIndexGlobal, maxNumPWsGlobal, bandOccupation, kWeight, kPosition, gKIndexGlobal)
+    !! Calculate the highest occupied band for each k-point,
+    !! gather the \(G+k\) vector indices in single, global 
+    !! array, and write out k-point information
     !!
     !! <h2>Walkthrough</h2>
     !!
@@ -2977,15 +2837,35 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: nBands
-      !! Total number of bands
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+    integer, intent(in) :: maxNumPWsPool
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points for just this 
+      !! processor
+
+    integer, intent(in) :: gKIndexLocalToGlobal(maxNumPWsPool, nkPerPool)
+      !! Local to global indices for \(G+k\) vectors 
+      !! ordered by magnitude at a given k-point;
+      !! the first index goes up to `maxNumPWsPool`,
+      !! but only valid values are up to `nGkLessECutLocal`
+    integer, intent(in) :: nBands
+      !! Total number of bands
     integer, intent(in) :: nGkLessECutGlobal(nKPoints)
       !! Global number of \(G+k\) vectors with energy
       !! less than `wfcECut` for each k-point
+    integer, intent(in) :: nGkLessECutLocal(nkPerPool)
+      !! Number of \(G+k\) vectors with energy
+      !! less than `wfcECut` for each
+      !! k-point, on this processor
     integer, intent(in) :: nSpins
       !! Number of spins
+    integer, intent(in) :: maxGIndexGlobal
+      !! Maximum G-vector index among all \(G+k\)
+      !! and processors
+    integer, intent(in) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `wfcECut` among all k-points
 
     real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands, nKPoints)
       !! Occupation of band
@@ -2996,13 +2876,16 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    integer, allocatable, intent(out) :: gKIndexGlobal(:,:)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
 
 
     ! Local variables:
     integer, allocatable :: groundState(:,:)
       !! Holds the highest occupied band
       !! for each k-point and spin
-    integer :: ik, isp
+    integer :: ik, ig, isp
       !! Loop indices
 
 
@@ -3035,31 +2918,43 @@ module wfcExportVASPMod
 
       write(iostd,*)
       write(iostd,*) "***************"
-      write(iostd,*) "Writing out k info"
+      write(iostd,*) "Getting global G+k indices"
 
-      do isp = 1, nSpins
-        do ik = 1, nKPoints
+    endif
+  
+    allocate(gKIndexGlobal(maxNumPWsGlobal, nKPoints))
+  
+    gKIndexGlobal(:,:) = 0
+    do isp = 1, nSpins
+      do ik = 1, nKPoints
 
-          write(iostd,*) "   Processing k-point ", ik, " Spin ", isp
+        if (ionode) write(iostd,*) "Processing k-point ", ik, " Spin ", isp
+
+        call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
+            maxNumPWsGlobal, gKIndexGlobal)
+          !! * For each k-point, gather all of the \(G+k\) indices
+          !!   among all processors in a single global array
     
-          write(mainOutFileUnit, '(3i10,4ES24.15E3)') ik, groundState(isp,ik), nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
-          flush(mainOutFileUnit)
-            !! * Write the k-point index, the ground state band, and
-            !!   the number of G-vectors, weight, and position for this 
-            !!   k-point
+        if (ionode) write(mainOutFileUnit, '(3i10,4ES24.15E3)') ik, groundState(isp,ik), nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
+        if (ionode) flush(mainOutFileUnit)
+          !! * Write the k-point index, the ground state band, and
+          !!   the number of G-vectors, weight, and position for this 
+          !!   k-point
     
-        enddo
-
       enddo
 
-      write(iostd,*) "Done writing out k info"
+    enddo
+
+    if(ionode) then
+
+      write(iostd,*) "Done getting global G+k indices"
       write(iostd,*) "***************"
       write(iostd,*)
       flush(iostd)
 
-      deallocate(groundState)
-
     endif
+
+    if (ionode) deallocate(groundState)
 
     return
   end subroutine writeKInfo
@@ -3117,6 +3012,115 @@ module wfcExportVASPMod
 
     return
   end subroutine getGroundState
+
+!----------------------------------------------------------------------------
+  subroutine getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
+      maxNumPWsGlobal, gKIndexGlobal)
+    !! Gather the \(G+k\) vector indices in single, global 
+    !! array
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+    integer, intent(in) :: maxNumPWsPool
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points for just this 
+      !! processor
+
+    integer, intent(in) :: gKIndexLocalToGlobal(maxNumPWsPool, nkPerPool)
+      !! Local to global indices for \(G+k\) vectors 
+      !! ordered by magnitude at a given k-point;
+      !! the first index goes up to `maxNumPWsPool`,
+      !! but only valid values are up to `nGkLessECutLocal`
+    integer, intent(in) :: ik
+      !! Index of current k-point
+    integer, intent(in) :: nGkLessECutGlobal(nKPoints)
+      !! Global number of \(G+k\) vectors with energy
+      !! less than `wfcECut` for each k-point
+    integer, intent(in) :: nGkLessECutLocal(nkPerPool)
+      !! Number of \(G+k\) vectors with energy
+      !! less than `wfcECut` for each
+      !! k-point, on this processor
+    integer, intent(in) :: maxGIndexGlobal
+      !! Maximum G-vector index among all \(G+k\)
+      !! and processors
+    integer, intent(in) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `wfcECut` among all k-points
+
+
+    ! Output variables:
+    integer, intent(out) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
+
+
+    ! Local variables:
+    integer :: ig
+    integer, allocatable :: itmp1(:)
+      !! Global \(G+k\) indices for single
+      !! k-point with zeros for G-vector indices
+      !! where \(G+k\) was greater than the cutoff
+    integer :: ngg 
+      !! Counter for \(G+k\) vectors for given
+      !! k-point; should equal `nGkLessECutGlobal`
+
+    
+    allocate(itmp1(maxGIndexGlobal), stat=ierr)
+    if (ierr/= 0) call exitError('getGlobalGkIndices','allocating itmp1', abs(ierr))
+
+    itmp1 = 0
+    if(ik >= ikStart_pool .and. ik <= ikEnd_pool) then
+
+      do ig = 1, nGkLessECutLocal(ik-ikStart_pool+1)
+
+        itmp1(gKIndexLocalToGlobal(ig, ik-ikStart_pool+1)) = gKIndexLocalToGlobal(ig, ik-ikStart_pool+1)
+          !! * For each k-point and \(G+k\) vector for this processor,
+          !!   store the local to global indices (`gKIndexLocalToGlobal`) in an
+          !!   array that will later be combined globally
+          !!
+          !! @note
+          !!  This will leave zeros in spots where the \(G+k\) 
+          !!  combination for this k-point was greater than the energy 
+          !!  cutoff.
+          !! @endnote
+
+      enddo
+    endif
+
+    call mpiSumIntV(itmp1, worldComm)
+
+    ngg = 0
+    do  ig = 1, maxGIndexGlobal
+
+      if(itmp1(ig) == ig) then
+        !! * Go through and find all of the non-zero
+        !!   indices in the now-global `itmp1` array,
+        !!   and store them in a new array that won't
+        !!   have the extra zeros
+
+        ngg = ngg + 1
+
+        gKIndexGlobal(ngg, ik) = ig
+
+      endif
+    enddo
+
+
+    if(ionode .and. ngg /= nGkLessECutGlobal(ik)) call exitError('writeKInfo', 'Unexpected number of G+k vectors', 1)
+      !! * Make sure that the total number of non-zero
+      !!   indices matches the global number of \(G+k\)
+      !!   vectors for this k-point
+    
+    deallocate( itmp1 )
+
+    return
+  end subroutine getGlobalGkIndices
 
 !----------------------------------------------------------------------------
   subroutine writeGridInfo(nGVecsGlobal, nKPoints, nSpins, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
