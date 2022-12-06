@@ -2792,6 +2792,9 @@ module wfcExportVASPMod
       !! Reciprocal lattice vectors
 
     ! Local variables
+    real(kind=dp) :: gkCart(3)
+      !! \(G+k\) in Cartesian coordinates for only
+      !! vectors that satisfy the cutoff
     real(kind=dp) :: gkDir(3)
       !! \(G+k\) in direct coordinates for only
       !! vectors that satisfy the cutoff
@@ -2848,9 +2851,9 @@ module wfcExportVASPMod
       FACTM=1.00
       if(gammaOnly .and. (N1 /= 1 .or. N2 /= 1 .or. N3 /= 1)) FACTM = SQRT(2._q)
 
-      GX = (G1*recipLattVec(1,1) + G2*recipLattVec(1,2) + G3*recipLattVec(1,3))*twopi
-      GY = (G1*recipLattVec(2,1) + G2*recipLattVec(2,2) + G3*recipLattVec(2,3))*twopi
-      GZ = (G1*recipLattVec(3,1) + G2*recipLattVec(3,2) + G3*recipLattVec(3,3))*twopi
+      do ix = 1, 3
+        gkCart(ix) = sum(gkDir(:)*recipLattVec(ix,:))*twopi
+      enddo
         !! @note
         !!  There was originally a subtraction within the parentheses of `QX`/`QY`/`QZ`
         !!  representing the spin spiral propagation vector. It was removed here because 
