@@ -2800,6 +2800,8 @@ module wfcExportVASPMod
     real(kind=dp) :: gkDir(3)
       !! \(G+k\) in direct coordinates for only
       !! vectors that satisfy the cutoff
+    real(kind=dp) :: gkMod
+      !! \(|G+k|^2\)
 
     logical :: gammaOnly
       !! If the gamma only VASP code is used
@@ -2863,14 +2865,15 @@ module wfcExportVASPMod
         !! @endnote
 
 
-      GLEN(ipw) = SQRT(GX*GX+GY*GY+GZ*GZ)
+      gkMod = sqrt(sum(gkCart(:)**2 ))
+        !! * Get magnitude of G+k vector 
       
-      if (GLEN(ipw) <= eps8) GLEN(ipw) = 0.d0
+      if(gkMod <= eps8) gkMod = 0.d0
 
       FAKTX(ipw)=FACTM
-      XS(ipw)  =GX/GLEN(ipw)
-      YS(ipw)  =GY/GLEN(ipw)
-      ZS(ipw)  =GZ/GLEN(ipw)
+      XS(ipw)  =GX/gkMod
+      YS(ipw)  =GY/gkMod
+      ZS(ipw)  =GZ/gkMod
 
       !IF (PRESENT(DK)) THEN
         !! @note
