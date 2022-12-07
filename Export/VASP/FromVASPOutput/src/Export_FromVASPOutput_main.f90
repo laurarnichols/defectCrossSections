@@ -17,7 +17,7 @@ program wfcExportVASPMain
 
   call mpiInitialization()
 
-  call initialize(exportDir, VASPDir)
+  call initialize(gammaOnly, exportDir, VASPDir)
     !! * Set default values for input variables, open output file,
     !!   and start timers
 

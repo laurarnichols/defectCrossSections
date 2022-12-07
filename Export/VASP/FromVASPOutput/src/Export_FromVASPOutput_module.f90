@@ -140,6 +140,9 @@ module wfcExportVASPMod
     !! Number of types of atoms
   integer :: nSpins
     !! Number of spins
+
+  logical :: gammaOnly
+    !! If the gamma only VASP code is used
   
   character(len=256) :: exportDir
     !! Directory to be used for export
@@ -185,7 +188,7 @@ module wfcExportVASPMod
 
   type (potcar), allocatable :: pot(:)
 
-  namelist /inputParams/ VASPDir, exportDir
+  namelist /inputParams/ VASPDir, exportDir, gammaOnly
 
 
   contains
@@ -391,7 +394,7 @@ module wfcExportVASPMod
   end subroutine setUpPools
 
 !----------------------------------------------------------------------------
-  subroutine initialize(exportDir, VASPDir)
+  subroutine initialize(gammaOnly, exportDir, VASPDir)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -408,6 +411,9 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    logical, intent(out) :: gammaOnly
+      !! If the gamma only VASP code is used
+
     character(len=256), intent(out) :: exportDir
       !! Directory to be used for export
     character(len=256), intent(out) :: VASPDir
@@ -422,6 +428,7 @@ module wfcExportVASPMod
 
     VASPDir = './'
     exportDir = './Export'
+    gammaOnly = .false.
 
     call cpu_time(tStart)
 
@@ -2639,7 +2646,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1k, gKIndexGlobal, gVecMillerIndicesGlobal, kPosition, &
-        omega, recipLattVec, pot, realProjWoPhase)
+        omega, recipLattVec, gammaOnly, pot, realProjWoPhase)
     implicit none
 
     ! Input variables:
@@ -2668,6 +2675,9 @@ module wfcExportVASPMod
       !! Volume of unit cell
     real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
+
+    logical, intent(in) :: gammaOnly
+      !! If the gamma only VASP code is used
 
     type (potcar) :: pot(nAtomTypes)
       !! Holds all information needed from POTCAR
@@ -2701,7 +2711,7 @@ module wfcExportVASPMod
     allocate(realProjWoPhase(nPWs1k,pot(iT)%lmmax,nAtomTypes))
 
     call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, &
-          recipLattVec, gkModGlobal, gkUnit)
+          recipLattVec, gammaOnly, gkModGlobal, gkUnit)
 
     call getYlm(LYDIM, nPWs1k, Ylm, gkUnit)
 
@@ -2769,7 +2779,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, &
-        recipLattVec, gkModGlobal, gkUnit)
+        recipLattVec, gammaOnly, gkModGlobal, gkUnit)
     implicit none
 
     ! Input variables:
@@ -2795,6 +2805,9 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
 
+    logical, intent(in) :: gammaOnly
+      !! If the gamma only VASP code is used
+
     ! Output variables
     real(kind=dp) :: gkModGlobal(nPWs1k)
       !! \(|G+k|^2\)
@@ -2811,15 +2824,6 @@ module wfcExportVASPMod
       !! \(G+k\) in direct coordinates for only
       !! vectors that satisfy the cutoff
 
-    logical :: gammaOnly
-      !! If the gamma only VASP code is used
-
-
-#ifdef gammareal
-    gammaOnly = .true.
-#else
-    gammaOnly = .false.
-#endif
 
     do ipw = 1, nPWs1k
 
