@@ -2698,12 +2698,13 @@ module wfcExportVASPMod
     integer :: iT, ip, im, ipw
       !! Loop index
       
-    real(kind=dp) :: FAKTX(nPWs1k)
-      !! Not sure what this is
     real(kind=dp) :: gkModGlobal(nPWs1k)
       !! \(|G+k|^2\)
     real(kind=dp), intent(out) :: gkUnit(3,nPWs1k)
       !! \( (G+k)/|G+k| \)
+    real(kind=dp) :: multFact(nPWs1k)
+      !! Multiplicative factor for the pseudopotential;
+      !! only used in the Gamma-only version
     real(kind=dp), allocatable :: pseudoV(:)
       !! Pseudopotential
 
@@ -2711,7 +2712,7 @@ module wfcExportVASPMod
     allocate(realProjWoPhase(nPWs1k,pot(iT)%lmmax,nAtomTypes))
 
     call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, &
-          recipLattVec, gammaOnly, gkModGlobal, gkUnit)
+          recipLattVec, gammaOnly, gkModGlobal, gkUnit, multFact)
 
     call getYlm(LYDIM, nPWs1k, Ylm, gkUnit)
 
@@ -2720,7 +2721,7 @@ module wfcExportVASPMod
 
       do ip = 1, pot(iT)%nChannels
 
-        call getPseudoV(ip, nPWs1k, FAKTX, gkModGlobal, omega, pot(iT), pseudoV)
+        call getPseudoV(ip, nPWs1k, gkModGlobal, multFact, omega, pot(iT), pseudoV)
 
         angMom = pot(iT)%angMom(ip)
         imMax= 2*angMom
@@ -2779,7 +2780,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, &
-        recipLattVec, gammaOnly, gkModGlobal, gkUnit)
+        recipLattVec, gammaOnly, gkModGlobal, gkUnit, multFact)
     implicit none
 
     ! Input variables:
@@ -2809,12 +2810,18 @@ module wfcExportVASPMod
       !! If the gamma only VASP code is used
 
     ! Output variables
-    real(kind=dp) :: gkModGlobal(nPWs1k)
+    real(kind=dp), intent(out) :: gkModGlobal(nPWs1k)
       !! \(|G+k|^2\)
     real(kind=dp), intent(out) :: gkUnit(3,nPWs1k)
       !! \( (G+k)/|G+k| \)
+    real(kind=dp), intent(out) :: multFact(nPWs1k)
+      !! Multiplicative factor for the pseudopotential;
+      !! only used in the Gamma-only version
 
     ! Local variables
+    integer :: gVec(3)
+      !! Local storage of this G-vector
+
     real(kind=dp) :: eps8 = 1.0E-8_dp
       !! Double precision zero
     real(kind=dp) :: gkCart(3)
@@ -2824,6 +2831,9 @@ module wfcExportVASPMod
       !! \(G+k\) in direct coordinates for only
       !! vectors that satisfy the cutoff
 
+
+    multFact(:) = 1._dp
+      !! Initialize the multiplicative factor to 1
 
     do ipw = 1, nPWs1k
 
@@ -2846,7 +2856,8 @@ module wfcExportVASPMod
         !  and this choice needs to be questioned.
         ! @endnote
 
-      gkDir(:) = gVecMillerIndicesGlobal(:,gKIndexGlobal(ipw,ik)) + kPosition(:,ik)
+      gVec(:) = gVecMillerIndicesGlobal(:,gKIndexGlobal(ipw,ik))
+      gkDir(:) = gVec(:) + kPosition(:,ik)
         ! I belive this recreates the purpose of the original lines 
         ! above by getting \(G+k\) in direct coordinates for only
         ! the \(G+k\) combinations that satisfy the cutoff
@@ -2864,8 +2875,7 @@ module wfcExportVASPMod
         !  if not.
         ! @endnote
 
-      FACTM=1.00
-      if(gammaOnly .and. (N1 /= 1 .or. N2 /= 1 .or. N3 /= 1)) FACTM = SQRT(2._q)
+      if(gammaOnly .and. (gVec(1) /= 0 .or. gVec(2) /= 0 .or. gVec(3) /= 0)) multFact(ipw) = sqrt(2._dp)
 
       do ix = 1, 3
         gkCart(ix) = sum(gkDir(:)*recipLattVec(ix,:))*twopi
@@ -2882,7 +2892,6 @@ module wfcExportVASPMod
       
       if(gkModGlobal(ipw) <= eps8) gkModGlobal(ipw) = 0.d0
 
-      FAKTX(ipw)=FACTM
       gkUnit(:,ipw)  = gkDir(:)/gkModGlobal(ipw)
 
       !IF (PRESENT(DK)) THEN
@@ -2901,7 +2910,7 @@ module wfcExportVASPMod
   end subroutine generateGridTable
 
 !----------------------------------------------------------------------------
-  subroutine getPseudoV(ip, nPWs1k, FAKTX, gkModGlobal, omega, pot, pseudoV)
+  subroutine getPseudoV(ip, nPWs1k, gkModGlobal, multFact, omega, pot, pseudoV)
     implicit none
 
     ! Input variables:
@@ -2910,10 +2919,11 @@ module wfcExportVASPMod
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
 
-    real(kind=dp), intent(in) :: FAKTX(nPWs1k)
-      !! Not sure what this is
     real(kind=dp), intent(in) :: gkModGlobal(nPWs1k)
       !! \(|G+k|^2\)
+    real(kind=dp), intent(in) :: multFact(nPWs1k)
+      !! Multiplicative factor for the pseudopotential;
+      !! only used in the Gamma-only version
     real(kind=dp), intent(in) :: omega
       !! Volume of unit cell
 
@@ -2997,7 +3007,7 @@ module wfcExportVASPMod
         !! * Decode the spline coefficients from the compressed reciprocal
         !!   projectors read from the POTCAR file
 
-      pseudoV(ipw) = (a_ipw + rem*(b_ipw + rem*(c_ipw + rem*d_ipw)))*divSqrtOmega*FAKTX(ipw)
+      pseudoV(ipw) = (a_ipw + rem*(b_ipw + rem*(c_ipw + rem*d_ipw)))*divSqrtOmega*multFact(ipw)
         !! * Recreate full pseudopotential from cubic spline coefficients:
         !!   \( \text{pseudo} = a_i + dx\cdot b_i + dx^2\cdot c_i + dx^3\cdot d_i \)
         !!   where the \(i\) index is the plane-wave index, and \(dx\) is the decimal
