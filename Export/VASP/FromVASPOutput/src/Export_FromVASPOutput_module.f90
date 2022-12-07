@@ -2695,6 +2695,10 @@ module wfcExportVASPMod
       !! Max index of magnetic quantum number;
       !! loop from 0 to `imMax=2*angMom` because
       !! \(m_l\) can go from \(-l, \dots, l \)
+    integer :: YDimL
+      !! L dimension of spherical harmonics;
+      !! max l quantum number across all
+      !! pseudopotentials
     integer :: iT, ip, im, ipw
       !! Loop index
       
@@ -2714,7 +2718,11 @@ module wfcExportVASPMod
     call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, &
           recipLattVec, gammaOnly, gkModGlobal, gkUnit, multFact)
 
-    call getYlm(LYDIM, nPWs1k, Ylm, gkUnit)
+    YDimL = maxL(nAtomTypes, pot)
+      !! Get the L dimension for the spherical harmonics by
+      !! finding the max l quantum number across all pseudopotentials
+
+    call getYlm(YDimL, nPWs1k, Ylm, gkUnit)
 
     do iT = 1, nAtomTypes
       ilm = 1
@@ -2724,7 +2732,7 @@ module wfcExportVASPMod
         call getPseudoV(ip, nPWs1k, gkModGlobal, multFact, omega, pot(iT), pseudoV)
 
         angMom = pot(iT)%angMom(ip)
-        imMax= 2*angMom
+        imMax = 2*angMom
         LMBASE = angMom**2 + 1
 
         do im = 0, imMax
@@ -2809,7 +2817,7 @@ module wfcExportVASPMod
     logical, intent(in) :: gammaOnly
       !! If the gamma only VASP code is used
 
-    ! Output variables
+    ! Output variables:
     real(kind=dp), intent(out) :: gkModGlobal(nPWs1k)
       !! \(|G+k|^2\)
     real(kind=dp), intent(out) :: gkUnit(3,nPWs1k)
@@ -2818,7 +2826,7 @@ module wfcExportVASPMod
       !! Multiplicative factor for the pseudopotential;
       !! only used in the Gamma-only version
 
-    ! Local variables
+    ! Local variables:
     integer :: gVec(3)
       !! Local storage of this G-vector
 
@@ -2908,6 +2916,48 @@ module wfcExportVASPMod
   
     return
   end subroutine generateGridTable
+
+!----------------------------------------------------------------------------
+  function maxL(nAtomTypes, pot)
+    !! Get the maximum L quantum number across all
+    !! pseudopotentials
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nAtomTypes
+      !! Number of types of atoms
+
+    type (potcar) :: pot(nAtomTypes)
+      !! Holds all information needed from POTCAR
+
+    ! Output variables:
+    integer :: maxL
+      !! The maximum L quantum number across all 
+      !! pseudopotentials
+
+    ! Local variables
+    integer :: maxLTmp
+      !! Max L in all channels of single atom type
+    integer :: iT, ip
+      !! Loop indices
+
+    maxL = 0
+
+    do iT = 1, nAtomTypes
+      maxLTmp = 0
+
+      do ip = 1, pot(iT)%nChannels
+            
+        maxLTmp = max(pot(iT)%angMom(ip), maxLTmp)
+
+      enddo
+
+      maxL = max(maxL, maxLTmp)
+      
+    enddo
+
+  end function maxL
 
 !----------------------------------------------------------------------------
   subroutine getPseudoV(ip, nPWs1k, gkModGlobal, multFact, omega, pot, pseudoV)
