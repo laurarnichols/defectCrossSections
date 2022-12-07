@@ -7,10 +7,21 @@ The input file should look like
 &inputParams
   VASPDir = 'path-to-VASP-output'
   exportDir = 'path-to-put-exported-files'
+  gammaOnly = .false.
 /
 ```
 
-The default values are `VASPDir = './'` and `exportDir = './Export'`. If the directory used for the exported files does not exist, it will be created.
+The input variables are:
+* `VASPDir`
+  * Default: `'./'`
+  * The directory where the VASP output files are
+* `exportDir`
+  * Default: `'./Export'`
+  * The directory for where to store the exported files
+  * If directory does not exist, it will be created
+* `gammaOnly`
+  * Default: `.false.`
+  * Whether the Gamma-point only version of VASP (`gam`) was used
 
 To run the code, use something like `aprun -n num-procs path-to-package/bin/Export_FromVASPOutput.x < exportFromOutput.in > exportFromOutput.out`. 
 
