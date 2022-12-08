@@ -2990,7 +2990,11 @@ module wfcExportVASPMod
       !! Spherical harmonics
 
     ! Local variables:
-    integer :: ipw
+    integer :: L
+      !! l for calculation of Ylm*Yl'm'
+    integer :: LPrime
+      !! l' for calculation of Ylm*Yl'm'
+    integer :: ipw, im, imp
       !! Loop index
 
     real(kind=dp) :: multFact
@@ -3050,16 +3054,18 @@ module wfcExportVASPMod
     !> coefficients (i.e., the inverse of the integral of three real
     !> spherical harmonics
     !>    YLM = \sum_ll'mm' Cll'mm'(L,M) Ylm Yl'm'
-    LP = 1
+    LPrime = 1
     do L = LSET, YDimL-1
 
       CALL YLM3LOOKUP(L,LP,LMINDX)
 
       LNEW = L + LP
 
-      do M = 1, 2*L +1
+      do im = 1, 2*L+1
+        ! Loop over m
 
-        do MP= 1, 2*LP+1
+        do imp = 1, 2*LPrime+1
+          ! Loop over m'
 
           LMINDX = LMINDX + 1
 
@@ -3074,7 +3080,7 @@ module wfcExportVASPMod
 
               do ipw = 1, nPWs1k
 
-                Ylm(ipw,LM) = Ylm(ipw,LM) + YLM3I(IC)*Ylm(ipw,L*L+M)*Ylm(ipw,LP*LP+MP)
+                Ylm(ipw,LM) = Ylm(ipw,LM) + YLM3I(IC)*Ylm(ipw,L*L+im)*Ylm(ipw,LPrime*LPrime+imp)
 
               enddo
             endif
