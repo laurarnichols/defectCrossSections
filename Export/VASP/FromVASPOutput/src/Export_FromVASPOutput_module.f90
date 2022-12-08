@@ -3055,7 +3055,7 @@ module wfcExportVASPMod
     !> spherical harmonics
     !>    YLM = \sum_ll'mm' Cll'mm'(L,M) Ylm Yl'm'
     LPrime = 1
-    do L = LSET, YDimL-1
+    do L = 2, YDimL-1
 
       CALL YLM3LOOKUP(L,LP,LMINDX)
 
