@@ -3046,6 +3046,34 @@ module wfcExportVASPMod
     if(YDimL < 3) return
       !! Return if the max L quantum number is 2
 
+    !> From VASP source: for L>2 we use (some kind of) Clebsch-Gordan
+    !> coefficients (i.e., the inverse of the integral of three real
+    !> spherical harmonics
+    !>    YLM = \sum_ll'mm' Cll'mm'(L,M) Ylm Yl'm'
+    LP=1
+    DO L=LSET,LYDIM-1
+      CALL YLM3LOOKUP(L,LP,LMINDX)
+      LNEW=L+LP
+      DO M = 1, 2*L +1
+        DO MP= 1, 2*LP+1
+          LMINDX=LMINDX+1
+
+          ISTART=INDCG(LMINDX)
+          IEND  =INDCG(LMINDX+1)
+
+          DO IC=ISTART,IEND-1
+            LM=JS(IC)
+            IF (LM > LNEW*LNEW       .AND. &
+                LM <= (LNEW+1)*(LNEW+1)) THEN
+              DO IND=1,INDMAX
+                YLM(IND,LM) = YLM(IND,LM)+ &
+                    YLM3I(IC)*YLM(IND,L*L+M)*YLM(IND,LP*LP+MP)
+              ENDDO
+            ENDIF
+          ENDDO
+        ENDDO
+      ENDDO
+    ENDDO
 
     return
   end subroutine getYlm
