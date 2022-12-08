@@ -2990,11 +2990,7 @@ module wfcExportVASPMod
       !! Spherical harmonics
 
     ! Local variables:
-    integer :: L
-      !! l for calculation of Ylm*Yl'm'
-    integer :: LPrime
-      !! l' for calculation of Ylm*Yl'm'
-    integer :: ipw, im, imp
+    integer :: ipw
       !! Loop index
 
     real(kind=dp) :: multFact
@@ -3050,51 +3046,8 @@ module wfcExportVASPMod
     if(YDimL < 3) return
       !! Return if the max L quantum number is 2
 
-    !> From VASP source: for L>2 we use (some kind of) Clebsch-Gordan
-    !> coefficients (i.e., the inverse of the integral of three real
-    !> spherical harmonics
-    !>    YLM = \sum_ll'mm' Cll'mm'(L,M) Ylm Yl'm'
+    !! @todo Add test for YDimL >= 3 @endtodo
 
-    allocate(YLMLOOKUP_TABLE(0:LMAXCG,0:LMAXCG))
-
-    LPrime = 1
-    do L = 2, YDimL-1
-
-      if(L > LMAXCG .or. LPrime > LMAXCG) call exitError('getYlm', &
-        'internal error: L or LPrime > LMAXCG', 1)
-      LMINDX = YLM3LOOKUP_TABLE(L,LPrime)
-
-      LNEW = L + LPrime
-
-      do im = 1, 2*L+1
-        ! Loop over m
-
-        do imp = 1, 2*LPrime+1
-          ! Loop over m'
-
-          LMINDX = LMINDX + 1
-
-          ISTART = INDCG(LMINDX)
-          IEND = INDCG(LMINDX+1)
-
-          do IC = ISTART, IEND-1
-
-            LM = JS(IC)
-
-            if(LM > LNEW*LNEW .and. LM <= (LNEW+1)*(LNEW+1)) then
-
-              do ipw = 1, nPWs1k
-
-                Ylm(ipw,LM) = Ylm(ipw,LM) + YLM3I(IC)*Ylm(ipw,L*L+im)*Ylm(ipw,LPrime*LPrime+imp)
-
-              enddo
-            endif
-          enddo
-        enddo
-      enddo
-    enddo
-
-    deallocate(YLM3LOOKUP_TABLE)
 
     return
   end subroutine getYlm
