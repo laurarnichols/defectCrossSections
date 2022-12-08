@@ -2731,7 +2731,7 @@ module wfcExportVASPMod
 
     allocate(Ylm(nPWs1k, YDimLM))
 
-    call getYlm(nPWs1k, YDimL, gkUnit, Ylm)
+    call getYlm(nPWs1k, YDimL, YDimLM, gkUnit, Ylm)
 
     do iT = 1, nAtomTypes
       ilm = 1
@@ -2969,7 +2969,7 @@ module wfcExportVASPMod
   end function maxL
 
 !----------------------------------------------------------------------------
-  subroutine getYlm(nPWs1k, YDimL, gkUnit, Ylm)
+  subroutine getYlm(nPWs1k, YDimL, YDimLM, gkUnit, Ylm)
     implicit none
 
     ! Input variables:
@@ -2979,9 +2979,72 @@ module wfcExportVASPMod
       !! L dimension of spherical harmonics;
       !! max l quantum number across all
       !! pseudopotentials
+    integer, intent(in) :: YDimLM
+      !! Total number of lm combinations
 
     real(kind=dp), intent(in) :: gkUnit(3,nPWs1k)
       !! \( (G+k)/|G+k| \)
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: Ylm(nPWs1k,YDimLM)
+      !! Spherical harmonics
+
+    ! Local variables:
+    integer :: ipw
+      !! Loop index
+
+    real(kind=dp) :: multFact
+      !! Factor that is multiplied in front
+      !! of all spherical harmonics
+    real(kind=dp) :: multFactTmp
+      !! Multiplication factor for a specific
+      !! calculation
+
+
+    if(YDimL < 0) return
+      !! Return if there is no angular momentum dimension.
+      !! This shouldn't happen, but a check just in case
+
+    Ylm(:,:) = 0._dp
+      !! Initialize all spherical harmonics to zero
+
+    multFact = 1/(2._dp*sqrt(pi))
+      !! Set factor that is in front of all spherical
+      !! harmonics
+
+    Ylm(:,1) = multFact
+      !! Directly calculate L=0 case
+
+    if(YDimL < 1) return
+      !! Return if the max L quantum number is 0
+
+    !> Directly calculate L=1 case
+    multFactTmp = multFact*sqrt(3._dp)
+    do ipw = 1, nPWs1k
+
+      Ylm(ipw,2)  = multFactTmp*gkUnit(2,ipw)
+      Ylm(ipw,3)  = multFactTmp*gkUnit(3,ipw)
+      Ylm(ipw,4)  = multFactTmp*gkUnit(1,ipw)
+
+    enddo
+
+    if(YDimL < 2) return
+      !! Return if the max L quantum number is 1
+
+    !> Directly calculate L=2 case
+    multFactTmp = multFact*sqrt(15._dp)
+    do ipw = 1, nPWs1k
+
+        Ylm(ipw,5)= multFactTmp*gkUnit(1,ipw)*gkUnit(2,ipw)
+        Ylm(ipw,6)= multFactTmp*gkUnit(2,ipw)*gkUnit(3,ipw)
+        Ylm(ipw,7)= (multFact*sqrt(5._dp)/2._dp)*(3._dp*gkUnit(3,ipw)*gkUnit(3,ipw) - 1)
+        Ylm(ipw,8)= multFactTmp*gkUnit(1,ipw)*gkUnit(3,ipw)
+        Ylm(ipw,9)= (multFactTmp/2._dp)*(gkUnit(1,ipw)*gkUnit(1,ipw) - gkUnit(2,ipw)*gkUnit(2,ipw))
+
+    enddo
+
+    if(YDimL < 3) return
+      !! Return if the max L quantum number is 2
 
 
     return
