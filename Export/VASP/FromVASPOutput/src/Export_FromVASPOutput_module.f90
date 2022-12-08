@@ -3050,30 +3050,38 @@ module wfcExportVASPMod
     !> coefficients (i.e., the inverse of the integral of three real
     !> spherical harmonics
     !>    YLM = \sum_ll'mm' Cll'mm'(L,M) Ylm Yl'm'
-    LP=1
-    DO L=LSET,LYDIM-1
+    LP = 1
+    do L = LSET, YDimL-1
+
       CALL YLM3LOOKUP(L,LP,LMINDX)
-      LNEW=L+LP
-      DO M = 1, 2*L +1
-        DO MP= 1, 2*LP+1
-          LMINDX=LMINDX+1
 
-          ISTART=INDCG(LMINDX)
-          IEND  =INDCG(LMINDX+1)
+      LNEW = L + LP
 
-          DO IC=ISTART,IEND-1
-            LM=JS(IC)
-            IF (LM > LNEW*LNEW       .AND. &
-                LM <= (LNEW+1)*(LNEW+1)) THEN
-              DO IND=1,INDMAX
-                YLM(IND,LM) = YLM(IND,LM)+ &
-                    YLM3I(IC)*YLM(IND,L*L+M)*YLM(IND,LP*LP+MP)
-              ENDDO
-            ENDIF
-          ENDDO
-        ENDDO
-      ENDDO
-    ENDDO
+      do M = 1, 2*L +1
+
+        do MP= 1, 2*LP+1
+
+          LMINDX = LMINDX + 1
+
+          ISTART = INDCG(LMINDX)
+          IEND = INDCG(LMINDX+1)
+
+          do IC = ISTART, IEND-1
+
+            LM = JS(IC)
+
+            if(LM > LNEW*LNEW .and. LM <= (LNEW+1)*(LNEW+1)) then
+
+              do ipw = 1, nPWs1k
+
+                Ylm(ipw,LM) = Ylm(ipw,LM) + YLM3I(IC)*Ylm(ipw,L*L+M)*Ylm(ipw,LP*LP+MP)
+
+              enddo
+            endif
+          enddo
+        enddo
+      enddo
+    enddo
 
     return
   end subroutine getYlm
