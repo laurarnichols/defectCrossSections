@@ -2699,6 +2699,8 @@ module wfcExportVASPMod
       !! L dimension of spherical harmonics;
       !! max l quantum number across all
       !! pseudopotentials
+    integer :: YDimLM
+      !! Total number of lm combinations
     integer :: iT, ip, im, ipw
       !! Loop index
       
@@ -2711,6 +2713,8 @@ module wfcExportVASPMod
       !! only used in the Gamma-only version
     real(kind=dp), allocatable :: pseudoV(:)
       !! Pseudopotential
+    real(kind=dp), allocatable :: Ylm(:,:)
+      !! Spherical harmonics
 
 
     allocate(realProjWoPhase(nPWs1k,pot(iT)%lmmax,nAtomTypes))
@@ -2722,7 +2726,12 @@ module wfcExportVASPMod
       !! Get the L dimension for the spherical harmonics by
       !! finding the max l quantum number across all pseudopotentials
 
-    call getYlm(YDimL, nPWs1k, Ylm, gkUnit)
+    YDimLM = (YDimL + 1)**2
+      !! Calculate the total number of lm pairs
+
+    allocate(Ylm(nPWs1k, YDimLM))
+
+    call getYlm(nPWs1k, YDimL, gkUnit, Ylm)
 
     do iT = 1, nAtomTypes
       ilm = 1
@@ -2781,7 +2790,7 @@ module wfcExportVASPMod
 
     enddo
 
-    deallocate(realProjWoPhase)
+    deallocate(realProjWoPhase, Ylm)
 
     return
   end subroutine calculateRealProjWoPhase
@@ -2958,6 +2967,25 @@ module wfcExportVASPMod
     enddo
 
   end function maxL
+
+!----------------------------------------------------------------------------
+  subroutine getYlm(nPWs1k, YDimL, gkUnit, Ylm)
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nPWs1k
+      !! Input number of plane waves for the given k-point
+    integer, intent(in) :: YDimL
+      !! L dimension of spherical harmonics;
+      !! max l quantum number across all
+      !! pseudopotentials
+
+    real(kind=dp), intent(in) :: gkUnit(3,nPWs1k)
+      !! \( (G+k)/|G+k| \)
+
+
+    return
+  end subroutine getYlm
 
 !----------------------------------------------------------------------------
   subroutine getPseudoV(ip, nPWs1k, gkModGlobal, multFact, omega, pot, pseudoV)
