@@ -3054,12 +3054,17 @@ module wfcExportVASPMod
     !> coefficients (i.e., the inverse of the integral of three real
     !> spherical harmonics
     !>    YLM = \sum_ll'mm' Cll'mm'(L,M) Ylm Yl'm'
+
+    allocate(YLMLOOKUP_TABLE(0:LMAXCG,0:LMAXCG))
+
     LPrime = 1
     do L = 2, YDimL-1
 
-      CALL YLM3LOOKUP(L,LP,LMINDX)
+      if(L > LMAXCG .or. LPrime > LMAXCG) call exitError('getYlm', &
+        'internal error: L or LPrime > LMAXCG', 1)
+      LMINDX = YLM3LOOKUP_TABLE(L,LPrime)
 
-      LNEW = L + LP
+      LNEW = L + LPrime
 
       do im = 1, 2*L+1
         ! Loop over m
@@ -3088,6 +3093,8 @@ module wfcExportVASPMod
         enddo
       enddo
     enddo
+
+    deallocate(YLM3LOOKUP_TABLE)
 
     return
   end subroutine getYlm
