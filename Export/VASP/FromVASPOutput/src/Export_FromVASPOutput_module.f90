@@ -2612,7 +2612,7 @@ module wfcExportVASPMod
         if(myid == ionode_k_id(1)) isp = 1
         if(nSpins == 2 .and. myid == ionode_k_id(2)) isp = 2
 
-        call writeProjectors(ik, isp, nAtoms, nKPoints, exportDir)
+        call writeProjectors(ik, isp, nAtoms, nKPoints, nPWs1kGlobal(ik), exportDir)
 
         enddo
 
@@ -3246,7 +3246,7 @@ module wfcExportVASPMod
   end subroutine getPseudoV
 
 !----------------------------------------------------------------------------
-  subroutine writeProjectors(ik, isp, nAtoms, nKPoints, exportDir)
+  subroutine writeProjectors(ik, isp, nAtoms, nKPoints, nPWs1k, exportDir)
 
     use miscUtilities, only: int2str
 
@@ -3261,6 +3261,8 @@ module wfcExportVASPMod
       !! Number of atoms
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+    integer, intent(in) :: nPWs1k
+      !! Input number of plane waves for the given k-point
 
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
@@ -3282,7 +3284,7 @@ module wfcExportVASPMod
     write(82, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
       !! Write header for projectors file
 
-    write(82,'(2i10)') WDES%NPRO, WDES%NGVECTOR(ik)
+    write(82,'(2i10)') WDES%NPRO, nPWs1k
       !! Write out the number of projectors and number of
       !! \(G+k\) vectors at this k-point below the energy
       !! cutoff
@@ -3294,7 +3296,7 @@ module wfcExportVASPMod
 
       do ilm = 1, WDES%LMMAX(iT)
 
-        do ipw = 1, WDES%NGVECTOR(ik)
+        do ipw = 1, nPWs1k
           !! Calculate \(|\beta\rangle\)
 
           write(82,'(2ES24.15E3)') conjg(NONL_S%QPROJ(ipw,ilm,iT,ik,1)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm,iT))
