@@ -3046,6 +3046,13 @@ module wfcExportVASPMod
     if(YDimL < 3) return
       !! Return if the max L quantum number is 2
 
+    !> @note
+    !>  This code only considers up to d electrons! The spherical
+    !>  harmonics are much more complicated to calculate past that 
+    !>  point, but we have no use for it right now, so I am just 
+    !>  going to skip it. 
+    !> @endnote
+
     !! @todo Add test for YDimL >= 3 @endtodo
 
 
