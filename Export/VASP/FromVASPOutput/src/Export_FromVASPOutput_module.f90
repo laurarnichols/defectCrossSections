@@ -2612,7 +2612,7 @@ module wfcExportVASPMod
         if(myid == ionode_k_id(1)) isp = 1
         if(nSpins == 2 .and. myid == ionode_k_id(2)) isp = 2
 
-        call writeProjectors(ik, isp, nAtoms, nKPoints, nPWs1kGlobal(ik), exportDir)
+        call writeProjectors(ik, isp, nAtoms, nAtomTypes, nKPoints, nPWs1kGlobal(ik), realProjWoPhase, compFact, phaseExp, exportDir)
 
         enddo
 
@@ -3246,7 +3246,7 @@ module wfcExportVASPMod
   end subroutine getPseudoV
 
 !----------------------------------------------------------------------------
-  subroutine writeProjectors(ik, isp, nAtoms, nKPoints, nPWs1k, exportDir)
+  subroutine writeProjectors(ik, isp, nAtoms, nAtomTypes, nKPoints, nPWs1k, realProjWoPhase, compFact, phaseExp, exportDir)
 
     use miscUtilities, only: int2str
 
@@ -3259,10 +3259,19 @@ module wfcExportVASPMod
       !! Current spin channel
     integer, intent(in) :: nAtoms
       !! Number of atoms
+    integer, intent(in) :: nAtomTypes
+      !! Number of types of atoms
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
+
+    real(kind=dp), intent(in) :: realProjWoPhase(nPWs1k,:,nAtomTypes)
+      !! Real projectors without phase
+
+    complex(kind=dp), intent(in) :: compFact(:,nAtomTypes)
+      !! Complex "phase" factor
+    complex(kind=dp), intent(in) :: phaseExp(nPWs1k,nAtoms)
 
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
@@ -3299,15 +3308,14 @@ module wfcExportVASPMod
         do ipw = 1, nPWs1k
           !! Calculate \(|\beta\rangle\)
 
-          write(82,'(2ES24.15E3)') conjg(NONL_S%QPROJ(ipw,ilm,iT,ik,1)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm,iT))
+          write(82,'(2ES24.15E3)') conjg(realProjWoPhase(ipw,ilm,iT)*phaseExp(ipw,iA)*compFact(ilm,iT))
             !! @note
             !!    The projectors are stored as \(\langle\beta|\), so need to take the complex conjugate
             !!    to output \(|\beta\rangle.
             !! @endnote
             !! @note
             !!    `NONL_S%LSPIRAL = .FALSE.`, so spin spirals are not calculated, which makes
-            !!    `NONL_S%QPROJ` spin-independent. This is why it is indexed as `NONL_S%QPROJ(ipw,ilm,iT,ik,1)`
-            !!    and not `NONL_S%QPROJ(ipw,lmbase+ilm,iT,ik,isp)`.
+            !!    `NONL_S%QPROJ` spin-independent. This is why there is no spin index on `realProjWoPhase`.
             !! @endnote
 
         enddo
