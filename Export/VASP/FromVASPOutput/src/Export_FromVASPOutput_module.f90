@@ -1089,7 +1089,6 @@ module wfcExportVASPMod
           wfcOutUnit = 83 + ionode_k_id
           open(wfcOutUnit, file=trim(exportDir)//"/wfc."//trim(indexC))
             ! Open `wfc.ik` file to write plane wave coefficients
-            !! Hardcode for now until figure out how to broadcast
 
           write(wfcOutUnit, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
           write(wfcOutUnit, '("# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: ''(2ES24.15E3)''")')
@@ -2517,7 +2516,7 @@ module wfcExportVASPMod
   end subroutine readPOTCAR
 
 !----------------------------------------------------------------------------
-  subroutine projectors(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, &
+  subroutine projectors(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nGVecsGlobal, nKPoints, nSpins, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, &
         atomPositionsDir, kPosition, omega, recipLattVec, gammaOnly, pot)
     implicit none
 
@@ -2535,6 +2534,8 @@ module wfcExportVASPMod
       !! Global number of G-vectors
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+    integer, intent(in) :: nSpins
+      !! Number of spins
     integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors
@@ -2559,13 +2560,11 @@ module wfcExportVASPMod
       !! Holds all information needed from POTCAR
 
     ! Local variables:
-    integer :: ionode_k_id
-      !! ID for the node that outputs for this k-point
+    integer :: ionode_k_id(2)
+      !! IDs for the nodes that output for this k-point
+      !! for each spin channel
     integer :: ik
       !! Loop index
-
-    logical :: ionode_k
-      !! If this node is the output node for this k-point
 
     real(kind=dp), allocatable :: realProjWoPhase(:,:,:)
       !! Real projectors without phase
@@ -2578,13 +2577,19 @@ module wfcExportVASPMod
 
     do ik = 1, nKPoints
 
-      ionode_k_id = mod(ik+(isp-1)*nKpoints, nProcs)
-      ionode_k = myid == ionode_k_id
-        ! Determine if this process is the node responsible
-        ! for outputting data for this k-point. K-points are 
-        ! distributed across processes in a round-robin fashion.
+      ! K-points are distributed across processes in a round-robin fashion.
 
-      if(ionode_k) then
+      ionode_k_id(1) = mod(ik, nProcs)
+        !! ID of processor to output spin down channel
+      ionode_k_id(2) = mod(ik+(nSpins-1)*nKpoints, nProcs)
+        !! ID of processor to output spin up channel, if
+        !! multiple spins. If not, same as `ionode_k_id(1)`
+
+      if(myid == ionode_k_id(1) || myid == ionode_k_id(2)) then
+        !! Calculate the projectors only once for each k-point
+        !! because they are not dependent on spin. Write them 
+        !! out as if they were dependent on spin because that
+        !! is how TME currently expects it.
 
         call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal(ik), &
                   atomPositionsDir, phaseExp)
@@ -2592,7 +2597,11 @@ module wfcExportVASPMod
         call calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1kGlobal(ik), gKIndexGlobal, &
                   gVecMillerIndicesGlobal, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
-        !call writeProjectors()
+        do isp = 1, nSpins
+
+          call writeProjectors()
+
+        enddo
 
         deallocate(phaseExp, realProjWoPhase, compFact)
 
