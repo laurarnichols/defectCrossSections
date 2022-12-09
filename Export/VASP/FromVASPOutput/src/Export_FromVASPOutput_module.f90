@@ -2517,15 +2517,20 @@ module wfcExportVASPMod
   end subroutine readPOTCAR
 
 !----------------------------------------------------------------------------
-  subroutine projectors(maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir)
+  subroutine projectors(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, &
+        atomPositionsDir, kPosition, omega, recipLattVec, gammaOnly, pot)
     implicit none
 
     ! Input variables: 
+    integer, intent(in) :: fftGridSize(3)
+      !! Number of points on the FFT grid in each direction
     integer, intent(in) :: maxNumPWsGlobal
       !! Max number of \(G+k\) vectors with energy
       !! less than `wfcECut` among all k-points
     integer, intent(in) :: nAtoms
       !! Number of atoms
+    integer, intent(in) :: nAtomTypes
+      !! Number of types of atoms
     integer, intent(in) :: nGVecsGlobal
       !! Global number of G-vectors
     integer, intent(in) :: nKPoints
@@ -2540,6 +2545,18 @@ module wfcExportVASPMod
 
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
+    real(kind=dp), intent(in) :: kPosition(3,nKPoints)
+      !! Position of k-points in reciprocal space
+    real(kind=dp), intent(in) :: omega
+      !! Volume of unit cell
+    real(kind=dp), intent(in) :: recipLattVec(3,3)
+      !! Reciprocal lattice vectors
+
+    logical, intent(in) :: gammaOnly
+      !! If the gamma only VASP code is used
+
+    type (potcar) :: pot(nAtomTypes)
+      !! Holds all information needed from POTCAR
 
     ! Local variables:
     integer :: ionode_k_id
@@ -2549,6 +2566,9 @@ module wfcExportVASPMod
 
     logical :: ionode_k
       !! If this node is the output node for this k-point
+
+    real(kind=dp), allocatable :: realProjWoPhase(:,:,:)
+      !! Real projectors without phase
 
     complex(kind=dp), allocatable :: phaseExp(:,:)
       !! Complex phase exponential
@@ -2567,15 +2587,17 @@ module wfcExportVASPMod
         call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal(ik), &
                   atomPositionsDir, phaseExp)
 
-        !call calculateRealProjWoPhase()
+        call calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1kGlobal(ik), gKIndexGlobal, &
+                  gVecMillerIndicesGlobal, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase)
 
         !call writeProjectors()
+
+        deallocate(phaseExp, realProjWoPhase)
 
       endif
 
     enddo
 
-    deallocate(phaseExp)
 
     return
   end subroutine projectors
@@ -2793,7 +2815,7 @@ module wfcExportVASPMod
 
     enddo
 
-    deallocate(realProjWoPhase, Ylm)
+    deallocate(Ylm)
 
     return
   end subroutine calculateRealProjWoPhase
