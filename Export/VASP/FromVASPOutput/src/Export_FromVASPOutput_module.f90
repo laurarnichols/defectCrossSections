@@ -2570,6 +2570,8 @@ module wfcExportVASPMod
     real(kind=dp), allocatable :: realProjWoPhase(:,:,:)
       !! Real projectors without phase
 
+    complex(kind=dp), allocatable :: compFact(:,:)
+      !! Complex "phase" factor
     complex(kind=dp), allocatable :: phaseExp(:,:)
       !! Complex phase exponential
 
@@ -2588,11 +2590,11 @@ module wfcExportVASPMod
                   atomPositionsDir, phaseExp)
 
         call calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1kGlobal(ik), gKIndexGlobal, &
-                  gVecMillerIndicesGlobal, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase)
+                  gVecMillerIndicesGlobal, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
         !call writeProjectors()
 
-        deallocate(phaseExp, realProjWoPhase)
+        deallocate(phaseExp, realProjWoPhase, compFact)
 
       endif
 
@@ -2668,7 +2670,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1k, gKIndexGlobal, gVecMillerIndicesGlobal, kPosition, &
-        omega, recipLattVec, gammaOnly, pot, realProjWoPhase)
+        omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
     implicit none
 
     ! Input variables:
@@ -2708,6 +2710,9 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) :: realProjWoPhase(:,:,:)
       !! Real projectors without phase
 
+    complex(kind=dp), allocatable, intent(out) :: compFact(:,:)
+      !! Complex "phase" factor
+
     ! Local variables:
     integer :: angMom
       !! Angular momentum of projectors
@@ -2715,6 +2720,9 @@ module wfcExportVASPMod
       !! Index to track going over l and m
     integer :: ilmBase
       !! Starting index over l and m based 
+      !! on the current angular momentum
+    integer :: ilmMax
+      !! Max index over l and m based 
       !! on the current angular momentum
     integer :: imMax
       !! Max index of magnetic quantum number;
@@ -2742,7 +2750,6 @@ module wfcExportVASPMod
       !! Spherical harmonics
 
 
-    allocate(realProjWoPhase(nPWs1k,pot(iT)%lmmax,nAtomTypes))
 
     call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, &
           recipLattVec, gammaOnly, gkModGlobal, gkUnit, multFact)
@@ -2755,6 +2762,7 @@ module wfcExportVASPMod
       !! Calculate the total number of lm pairs
 
     allocate(Ylm(nPWs1k, YDimLM))
+    allocate(realProjWoPhase(nPWs1k,YDimLM,nAtomTypes), compFact(YDimLM,nAtomTypes))
 
     call getYlm(nPWs1k, YDimL, YDimLM, gkUnit, Ylm)
 
@@ -2768,6 +2776,18 @@ module wfcExportVASPMod
         angMom = pot(iT)%angMom(ip)
         imMax = 2*angMom
         ilmBase = angMom**2 + 1
+
+        !> Store complex phase factor
+        ilmMax = ilm + imMax
+        if(angMom == 0) then
+          compFact(ilm:ilmMax,iT) = 1._dp
+        else if(angMom == 1) then
+          compFact(ilm:ilmMax,iT) = (0._dp, 1._dp)
+        else if(angMom == 2) then
+          compFact(ilm:ilmMax,iT) = -1._dp
+        else if(angMom == 3) then
+          compFact(ilm:ilmMax,iT) = (0._dp, -1._dp)
+        endif
 
         do im = 0, imMax
           
