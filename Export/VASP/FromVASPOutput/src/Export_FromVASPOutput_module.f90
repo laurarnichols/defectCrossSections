@@ -589,7 +589,7 @@ module wfcExportVASPMod
   end subroutine exitError
 
 !----------------------------------------------------------------------------
-  subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
+  subroutine readWAVECAR(exportDir, VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
         kPosition, nBands, maxGkNum, nKPoints, nPWs1kGlobal, nSpins, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
@@ -599,6 +599,8 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
+    character(len=256), intent(in) :: exportDir
+      !! Directory to be used for export
     character(len=256), intent(in) :: VASPDir
       !! Directory with VASP files
 
@@ -767,7 +769,7 @@ module wfcExportVASPMod
       !!   position of the k-point in reciprocal space, 
       !!   and the eigenvalue and occupation for each band
 
-    call readAndWriteWavefunction(nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins)
+    call readAndWriteWavefunction(nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, exportDir, VASPDir)
       !! * For each spin and k-point, read and write the plane
       !!   wave coefficients for each band
 
@@ -989,7 +991,7 @@ module wfcExportVASPMod
 
 
 !----------------------------------------------------------------------------
-  subroutine readAndWriteWavefunction(nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins)
+  subroutine readAndWriteWavefunction(nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, exportDir, VASPDir)
     !! For each spin and k-point, read and write the plane
     !! wave coefficients for each band
     !!
@@ -1012,6 +1014,11 @@ module wfcExportVASPMod
       !! Number of records in the WAVECAR file
     integer, intent(in) :: nSpins
       !! Number of spins
+      
+    character(len=256), intent(in) :: exportDir
+      !! Directory to be used for export
+    character(len=256), intent(in) :: VASPDir
+      !! Directory with VASP files
 
     ! Local variables:
     complex*8, allocatable :: coeff(:,:)
@@ -2517,7 +2524,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine projectors(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nGVecsGlobal, nKPoints, nSpins, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1kGlobal, &
-        atomPositionsDir, kPosition, omega, recipLattVec, gammaOnly, pot)
+        atomPositionsDir, kPosition, omega, recipLattVec, exportDir, gammaOnly, pot)
     implicit none
 
     ! Input variables: 
@@ -2553,6 +2560,9 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
 
+    character(len=256), intent(in) :: exportDir
+      !! Directory to be used for export
+
     logical, intent(in) :: gammaOnly
       !! If the gamma only VASP code is used
 
@@ -2563,8 +2573,10 @@ module wfcExportVASPMod
     integer :: ionode_k_id(2)
       !! IDs for the nodes that output for this k-point
       !! for each spin channel
+    integer :: isp
+      !! Spin channel
     integer :: ik
-      !! Loop index
+      !! Loop indices
 
     real(kind=dp), allocatable :: realProjWoPhase(:,:,:)
       !! Real projectors without phase
@@ -2597,9 +2609,10 @@ module wfcExportVASPMod
         call calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1kGlobal(ik), gKIndexGlobal, &
                   gVecMillerIndicesGlobal, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
-        do isp = 1, nSpins
+        if(myid == ionode_k_id(1)) isp = 1
+        if(nSpins == 2 .and. myid == ionode_k_id(2)) isp = 2
 
-          call writeProjectors()
+        call writeProjectors(ik, isp, nAtoms, nKPoints, exportDir)
 
         enddo
 
@@ -3231,6 +3244,80 @@ module wfcExportVASPMod
 
     return
   end subroutine getPseudoV
+
+!----------------------------------------------------------------------------
+  subroutine writeProjectors(ik, isp, nAtoms, nKPoints, exportDir)
+
+    use miscUtilities, only: int2str
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ik
+      !! Current k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+
+    character(len=256), intent(in) :: exportDir
+      !! Directory to be used for export
+
+    ! Local variables:
+    integer :: projOutUnit
+      !! Process-dependent file unit for `projectors.ik`
+
+    character(len=300) :: indexC
+      !! Character index
+
+
+    call int2str(ik+(isp-1)*nKPoints, indexC)
+
+    projOutUnit = 83 + myid
+    open(projOutUnit, file=trim(exportDir)//"/projectors."//trim(indexC))
+      ! Open `projectors.ik` file
+
+    write(82, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
+      !! Write header for projectors file
+
+    write(82,'(2i10)') WDES%NPRO, WDES%NGVECTOR(ik)
+      !! Write out the number of projectors and number of
+      !! \(G+k\) vectors at this k-point below the energy
+      !! cutoff
+
+    do ia = 1, nAtoms
+    
+      iT = T_INFO%ITYP(iA)
+        !! Store the index of the type for this atom
+
+      do ilm = 1, WDES%LMMAX(iT)
+
+        do ipw = 1, WDES%NGVECTOR(ik)
+          !! Calculate \(|\beta\rangle\)
+
+          write(82,'(2ES24.15E3)') conjg(NONL_S%QPROJ(ipw,ilm,iT,ik,1)*NONL_S%CREXP(ipw,iA)*NONL_S%CQFAK(ilm,iT))
+            !! @note
+            !!    The projectors are stored as \(\langle\beta|\), so need to take the complex conjugate
+            !!    to output \(|\beta\rangle.
+            !! @endnote
+            !! @note
+            !!    `NONL_S%LSPIRAL = .FALSE.`, so spin spirals are not calculated, which makes
+            !!    `NONL_S%QPROJ` spin-independent. This is why it is indexed as `NONL_S%QPROJ(ipw,ilm,iT,ik,1)`
+            !!    and not `NONL_S%QPROJ(ipw,lmbase+ilm,iT,ik,isp)`.
+            !! @endnote
+
+        enddo
+
+      enddo
+    enddo
+
+    close(82)
+
+
+    return
+  end subroutine writeProjectors
 
 !----------------------------------------------------------------------------
   subroutine writeKInfo(nBands, nKPoints, nGkLessECutGlobal, nSpins, bandOccupation, kWeight, kPosition)
