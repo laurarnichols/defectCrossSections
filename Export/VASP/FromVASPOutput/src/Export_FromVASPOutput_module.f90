@@ -2691,6 +2691,9 @@ module wfcExportVASPMod
       !! Angular momentum of projectors
     integer :: ilm
       !! Index to track going over l and m
+    integer :: ilmBase
+      !! Starting index over l and m based 
+      !! on the current angular momentum
     integer :: imMax
       !! Max index of magnetic quantum number;
       !! loop from 0 to `imMax=2*angMom` because
@@ -2742,13 +2745,13 @@ module wfcExportVASPMod
 
         angMom = pot(iT)%angMom(ip)
         imMax = 2*angMom
-        LMBASE = angMom**2 + 1
+        ilmBase = angMom**2 + 1
 
         do im = 0, imMax
           
           do ipw = 1, nPWs1k
 
-            realProjWoPhase(ipw,ilm+im,iT) = pseudoV(ipw)*Ylm(ipw,im+LMBASE)
+            realProjWoPhase(ipw,ilm+im,iT) = pseudoV(ipw)*Ylm(ipw,ilmBase+im)
               !! @note
               !!  This code does not work with spin spirals! For that to work, would need 
               !!  an additional index at the end of the array for `ISPINOR`.
