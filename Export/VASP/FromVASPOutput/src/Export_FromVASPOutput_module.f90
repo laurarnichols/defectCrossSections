@@ -2612,7 +2612,7 @@ module wfcExportVASPMod
         if(myid == ionode_k_id(1)) isp = 1
         if(nSpins == 2 .and. myid == ionode_k_id(2)) isp = 2
 
-        call writeProjectors(ik, isp, nAtoms, nAtomTypes, nKPoints, nPWs1kGlobal(ik), realProjWoPhase, compFact, phaseExp, exportDir)
+        call writeProjectors(ik, isp, nAtoms, nAtomTypes, nKPoints, nPWs1kGlobal(ik), realProjWoPhase, compFact, phaseExp, exportDir, pot)
 
         enddo
 
@@ -3246,7 +3246,7 @@ module wfcExportVASPMod
   end subroutine getPseudoV
 
 !----------------------------------------------------------------------------
-  subroutine writeProjectors(ik, isp, nAtoms, nAtomTypes, nKPoints, nPWs1k, realProjWoPhase, compFact, phaseExp, exportDir)
+  subroutine writeProjectors(ik, isp, nAtoms, nAtomTypes, nKPoints, nPWs1k, realProjWoPhase, compFact, phaseExp, exportDir, pot)
 
     use miscUtilities, only: int2str
 
@@ -3276,6 +3276,10 @@ module wfcExportVASPMod
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
 
+    type (potcar) :: pot
+      !! Holds all information needed from POTCAR
+      !! for the specific atom type considered
+
     ! Local variables:
     integer :: projOutUnit
       !! Process-dependent file unit for `projectors.ik`
@@ -3293,6 +3297,9 @@ module wfcExportVASPMod
     write(82, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
       !! Write header for projectors file
 
+    nProj = sum(pot(:)%lmmax*WDES%NITYP(:))
+      ! I don't think this is legit. Find another way to calculate this.
+
     write(82,'(2i10)') WDES%NPRO, nPWs1k
       !! Write out the number of projectors and number of
       !! \(G+k\) vectors at this k-point below the energy
@@ -3303,7 +3310,7 @@ module wfcExportVASPMod
       iT = T_INFO%ITYP(iA)
         !! Store the index of the type for this atom
 
-      do ilm = 1, WDES%LMMAX(iT)
+      do ilm = 1, pot(iT)%lmmax
 
         do ipw = 1, nPWs1k
           !! Calculate \(|\beta\rangle\)
