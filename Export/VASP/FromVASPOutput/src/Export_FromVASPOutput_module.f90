@@ -1184,7 +1184,7 @@ module wfcExportVASPMod
   end subroutine distributeKpointsInPools
 
 !----------------------------------------------------------------------------
-  subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomTypes)
+  subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
     !! <h2>Walkthrough</h2>
@@ -1217,6 +1217,8 @@ module wfcExportVASPMod
       !! Atom type index
     integer, intent(out) :: nAtoms
       !! Number of atoms
+    integer, allocatable, intent(out) :: nAtomsEachType(:)
+      !! Number of atoms of each type
     integer, intent(out) :: nAtomTypes
       !! Number of types of atoms
 
@@ -1311,12 +1313,17 @@ module wfcExportVASPMod
       read(57,*) 
       read(57,*) 
 
-      allocate(iType(nAtoms))
+      allocate(iType(nAtoms), nAtomsEachType(nAtomTypes))
 
+      nAtomsEachType = 0
       do ia = 1, nAtoms
         !! * Read in the atom type index for each atom
+        !!   and calculate the number of atoms of each
+        !!   type
 
         read(57,'(a21,i3,a9)') cDum, iType(ia), cDum
+
+        nAtomsEachType(iType(ia)) = nAtomsEachType(iType(ia)) + 1
 
       enddo
 
@@ -2612,7 +2619,8 @@ module wfcExportVASPMod
         if(myid == ionode_k_id(1)) isp = 1
         if(nSpins == 2 .and. myid == ionode_k_id(2)) isp = 2
 
-        call writeProjectors(ik, isp, nAtoms, nAtomTypes, nKPoints, nPWs1kGlobal(ik), realProjWoPhase, compFact, phaseExp, exportDir, pot)
+        call writeProjectors(ik, isp, nAtoms, iType, nAtomTypes, nAtomsEachType, nKPoints, nPWs1kGlobal(ik), realProjWoPhase, compFact, &
+                  phaseExp, exportDir, pot)
 
         enddo
 
@@ -3246,7 +3254,7 @@ module wfcExportVASPMod
   end subroutine getPseudoV
 
 !----------------------------------------------------------------------------
-  subroutine writeProjectors(ik, isp, nAtoms, nAtomTypes, nKPoints, nPWs1k, realProjWoPhase, compFact, phaseExp, exportDir, pot)
+  subroutine writeProjectors(ik, isp, nAtoms, iType, nAtomTypes, nAtomsEachType, nKPoints, nPWs1k, realProjWoPhase, compFact, phaseExp, exportDir, pot)
 
     use miscUtilities, only: int2str
 
@@ -3259,8 +3267,12 @@ module wfcExportVASPMod
       !! Current spin channel
     integer, intent(in) :: nAtoms
       !! Number of atoms
+    integer, intent(in) :: iType(nAtoms)
+      !! Atom type index
     integer, intent(in) :: nAtomTypes
       !! Number of types of atoms
+    integer, intent(in) :: nAtomsEachType(nAtomTypes)
+      !! Number of atoms of each type
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     integer, intent(in) :: nPWs1k
@@ -3281,6 +3293,8 @@ module wfcExportVASPMod
       !! for the specific atom type considered
 
     ! Local variables:
+    integer :: nProj
+      !! Number of projectors across all atom types
     integer :: projOutUnit
       !! Process-dependent file unit for `projectors.ik`
 
@@ -3297,17 +3311,23 @@ module wfcExportVASPMod
     write(82, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
       !! Write header for projectors file
 
-    nProj = sum(pot(:)%lmmax*WDES%NITYP(:))
-      ! I don't think this is legit. Find another way to calculate this.
+    nProj = 0
+    do iT = 1, nAtomTypes
+      !! Calculate the total number of projectors across all
+      !! atom types
 
-    write(82,'(2i10)') WDES%NPRO, nPWs1k
+      nProj = nProj + pot(iT)%lmmax*nAtomsEachType(iT)
+
+    enddo
+
+    write(82,'(2i10)') nProj, nPWs1k
       !! Write out the number of projectors and number of
       !! \(G+k\) vectors at this k-point below the energy
       !! cutoff
 
     do ia = 1, nAtoms
     
-      iT = T_INFO%ITYP(iA)
+      iT = iType(ia)
         !! Store the index of the type for this atom
 
       do ilm = 1, pot(iT)%lmmax
@@ -3315,7 +3335,7 @@ module wfcExportVASPMod
         do ipw = 1, nPWs1k
           !! Calculate \(|\beta\rangle\)
 
-          write(82,'(2ES24.15E3)') conjg(realProjWoPhase(ipw,ilm,iT)*phaseExp(ipw,iA)*compFact(ilm,iT))
+          write(82,'(2ES24.15E3)') conjg(realProjWoPhase(ipw,ilm,iT)*phaseExp(ipw,ia)*compFact(ilm,iT))
             !! @note
             !!    The projectors are stored as \(\langle\beta|\), so need to take the complex conjugate
             !!    to output \(|\beta\rangle.
@@ -3599,11 +3619,10 @@ module wfcExportVASPMod
 
 
 !----------------------------------------------------------------------------
-  subroutine writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realLattVec, recipLattVec, atomPositionsDir, nAtomsEachType)
+  subroutine writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realLattVec, recipLattVec, atomPositionsDir)
     !! Write out the real- and reciprocal-space lattice vectors, 
     !! the number of atoms, the number of types of atoms, the
-    !! final atom positions, number of bands, and number of spins,
-    !! then calculate the number of atoms of each type
+    !! final atom positions, number of bands, and number of spins
 
     implicit none
 
@@ -3625,12 +3644,6 @@ module wfcExportVASPMod
       !! Reciprocal lattice vectors
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
-
-
-    ! Output variables:
-    integer, allocatable, intent(out) :: nAtomsEachType(:)
-      !! Number of atoms of each type
-
 
     ! Local variables:
     real(kind=dp) :: atomPositionCart(3)
@@ -3678,12 +3691,6 @@ module wfcExportVASPMod
 
       write(mainOutFileUnit, '("# Spin. Format: ''(i10)''")')
       write(mainOutFileUnit, '(i10)') nSpins
-    
-      allocate( nAtomsEachType(nAtomTypes) )
-      nAtomsEachType = 0
-      do i = 1, nAtoms
-        nAtomsEachType(iType(i)) = nAtomsEachType(iType(i)) + 1
-      enddo
 
     endif
 
