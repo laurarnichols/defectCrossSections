@@ -3315,7 +3315,7 @@ module wfcExportVASPMod
     open(projOutUnit, file=trim(exportDir)//"/projectors."//trim(indexC))
       ! Open `projectors.ik` file
 
-    write(82, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
+    write(projOutUnit, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
       !! Write header for projectors file
 
     nProj = 0
@@ -3327,7 +3327,7 @@ module wfcExportVASPMod
 
     enddo
 
-    write(82,'(2i10)') nProj, nPWs1k
+    write(projOutUnit,'(2i10)') nProj, nPWs1k
       !! Write out the number of projectors and number of
       !! \(G+k\) vectors at this k-point below the energy
       !! cutoff
@@ -3342,7 +3342,7 @@ module wfcExportVASPMod
         do ipw = 1, nPWs1k
           !! Calculate \(|\beta\rangle\)
 
-          write(82,'(2ES24.15E3)') conjg(realProjWoPhase(ipw,ilm,iT)*phaseExp(ipw,ia)*compFact(ilm,iT))
+          write(projOutUnit,'(2ES24.15E3)') conjg(realProjWoPhase(ipw,ilm,iT)*phaseExp(ipw,ia)*compFact(ilm,iT))
             !! @note
             !!    The projectors are stored as \(\langle\beta|\), so need to take the complex conjugate
             !!    to output \(|\beta\rangle.
@@ -3357,7 +3357,7 @@ module wfcExportVASPMod
       enddo
     enddo
 
-    close(82)
+    close(projOutUnit)
 
 
     return
