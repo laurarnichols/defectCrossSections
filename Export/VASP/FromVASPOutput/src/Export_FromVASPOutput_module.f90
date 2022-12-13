@@ -2340,11 +2340,11 @@ module wfcExportVASPMod
             
             read(potcarUnit,'(1X,A1)') charSwitch
             if (charSwitch /= 'p') call exitError('readPOTCAR', 'expected pseudowavefunction section', 1)
-            read(potcarUnit,*) (pot(iT)%wps(ip,i), i=1,pot(iT)%nmax)
+            read(potcarUnit,*) (pot(iT)%wps(i,ip), i=1,pot(iT)%nmax)
 
             read(potcarUnit,'(1X,A1)') charSwitch
             if (charSwitch /= 'a') call exitError('readPOTCAR', 'expected aewavefunction section', 1)
-            read(potcarUnit,*) (pot(iT)%wae(ip,i), i=1,pot(iT)%nmax)
+            read(potcarUnit,*) (pot(iT)%wae(i,ip), i=1,pot(iT)%nmax)
 
           enddo
 
@@ -3838,7 +3838,7 @@ module wfcExportVASPMod
         write(mainOutFileUnit, '("# AE, PS radial wfc for each beta function. Format: ''(2ES24.15E3)''")')
         do ip = 1, pot(iT)%nChannels
           do ir = 1, pot(iT)%nmax
-            write(mainOutFileUnit, '(2ES24.15E3)') pot(iT)%wae(ip,ir), pot(iT)%wps(ip,ir)
+            write(mainOutFileUnit, '(2ES24.15E3)') pot(iT)%wae(ir,ip), pot(iT)%wps(ir,ip)
           enddo
         enddo
       
