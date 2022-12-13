@@ -1234,11 +1234,15 @@ module wfcExportVASPMod
     call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nAtomTypes, 1, MPI_INTEGER, root, worldComm, ierr)
 
-    if (.not. ionode) allocate(iType(nAtoms))
-    if (.not. ionode) allocate(atomPositionsDir(3,nAtoms))
+    if (.not. ionode) then
+      allocate(iType(nAtoms))
+      allocate(atomPositionsDir(3,nAtoms))
+      allocate(nAtomsEachType(nAtomTypes))
+    endif
 
     call MPI_BCAST(iType, size(iType), MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(atomPositionsDir, size(atomPositionsDir), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(nAtomsEachType, size(nAtomsEachType), MPI_INTEGER, root, worldComm, ierr)
 
     return
   end subroutine read_vasprun_xml
@@ -2370,6 +2374,15 @@ module wfcExportVASPMod
       enddo
 
     endif    
+
+    do iT = 1, nAtomTypes
+
+      call MPI_BCAST(pot(iT)%nChannels, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(pot(iT)%lmmax, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(pot(iT)%angmom, size(pot(iT)%angmom), MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(pot(iT)%recipProj, size(pot(iT)%recipProj), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    enddo
 
     return
   end subroutine readPOTCAR

@@ -43,6 +43,7 @@ program wfcExportVASPMain
 
   call MPI_BCAST(exportDir, len(exportDir), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(VASPDir, len(VASPDir), MPI_CHARACTER, root, worldComm, ierr)
+  call MPI_BCAST(gammaOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
 
   if (ionode) write(iostd,*) "Reading WAVECAR"
 
