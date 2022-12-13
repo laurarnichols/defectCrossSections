@@ -3197,9 +3197,8 @@ module wfcExportVASPMod
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
 
-    type (potcar) :: pot
+    type (potcar) :: pot(nAtomTypes)
       !! Holds all information needed from POTCAR
-      !! for the specific atom type considered
 
     ! Local variables:
     integer :: nProj
@@ -3384,9 +3383,8 @@ module wfcExportVASPMod
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
 
-    type (potcar) :: pot
+    type (potcar) :: pot(nAtomTypes)
       !! Holds all information needed from POTCAR
-      !! for the specific atom type considered
 
     ! Local variables:
     integer :: ionode_k_id
