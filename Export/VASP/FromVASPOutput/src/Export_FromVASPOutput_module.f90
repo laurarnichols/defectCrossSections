@@ -2512,10 +2512,13 @@ module wfcExportVASPMod
 
           endif
 
-          call readAndWriteWavefunction(ik, isp, maxGkNum, nBands, nKPoints, nPWs1k, exportDir, irec, coeff)
-
           call writeProjectors(ik, isp, nAtoms, iType, nAtomTypes, nAtomsEachType, nKPoints, nPWs1k, realProjWoPhase, compFact, &
                     phaseExp, exportDir, pot)
+
+          call readAndWriteWavefunction(ik, isp, maxGkNum, nBands, nKPoints, nPWs1k, exportDir, irec, coeff)
+
+          call getAndWriteProjections(ik, isp, maxGkNum, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, realProjWoPhase, &
+                    compFact, phaseExp, coeff, exportDir, pot)
 
         else
 
@@ -3308,6 +3311,7 @@ module wfcExportVASPMod
     character(len=300) :: indexC
       !! Character index
 
+
     ionode_k_id = mod(ik, nProcs)
 
     wfcOutUnit = 83 + ionode_k_id
@@ -3338,6 +3342,99 @@ module wfcExportVASPMod
 
     return
   end subroutine readAndWriteWavefunction
+
+!----------------------------------------------------------------------------
+  subroutine getAndWriteProjections(ik, isp, maxGkNum, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, realProjWoPhase, compFact, phaseExp, &
+          coeff, exportDir, pot)
+
+    use miscUtilities, only: int2str
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ik
+      !! Current k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+    integer, intent(in) :: maxGkNum
+      !! Maximum number of \(G+k\) combinations
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+    integer, intent(in) :: nAtomTypes
+      !! Number of types of atoms
+    integer, intent(in) :: nAtomsEachType(nAtomTypes)
+      !! Number of atoms of each type
+    integer, intent(in) :: nBands
+      !! Total number of bands
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+    integer, intent(in) :: nPWs1k
+      !! Input number of plane waves for the given k-point
+
+    real(kind=dp), intent(in) :: realProjWoPhase(nPWs1k,64,nAtomTypes)
+      !! Real projectors without phase
+
+    complex(kind=dp), intent(in) :: compFact(64,nAtomTypes)
+      !! Complex "phase" factor
+    complex(kind=dp), intent(in) :: phaseExp(nPWs1k,nAtoms)
+
+    complex*8, intent(in) :: coeff(maxGkNum, nBands)
+      !! Plane wave coefficients
+      
+    character(len=256), intent(in) :: exportDir
+      !! Directory to be used for export
+
+    type (potcar) :: pot
+      !! Holds all information needed from POTCAR
+      !! for the specific atom type considered
+
+    ! Local variables:
+    integer :: ionode_k_id
+      !! ID for the node that outputs for this k-point
+    integer :: projOutUnit
+      !! Process-dependent file unit for `projections.ik`
+    integer :: ib, iT, ia, iaBase, ilm
+      !! Loop indices
+
+    character(len=300) :: indexC
+      !! Character index
+
+    complex*8 :: projection
+      !! Projection for current atom/band/lm channel
+
+
+    ionode_k_id = mod(ik, nProcs)
+
+    projOutUnit = 83 + ionode_k_id
+
+    call int2str(ik+(isp-1)*nKPoints, indexC)
+
+    open(projOutUnit, file=trim(exportDir)//"/projections."//trim(indexC))
+      !! Open `projections.ik`
+
+    write(projOutUnit, '("# Complex projections <beta|psi>. Format: ''(2ES24.15E3)''")')
+
+    do ib = 1, nBands
+      iaBase = 1
+      
+      do iT = 1, nAtomTypes
+        do ia = iaBase, nAtomsEachType(iT)+iaBase-1
+          do ilm = 1, pot(iT)%lmmax
+
+            projection = itwopi*compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*phaseExp(:,ia)*coeff(:,ib))
+              !! Sum over the plane waves
+
+            write(projOutUnit,'(2ES24.15E3)') projection
+
+          enddo
+        enddo
+      enddo
+    enddo
+
+    close(projOutUnit)
+
+    return
+  end subroutine getAndWriteProjections
 
 !----------------------------------------------------------------------------
   subroutine writeKInfo(nBands, nKPoints, nGkLessECutGlobal, nSpins, bandOccupation, kWeight, kPosition)
