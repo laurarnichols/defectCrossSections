@@ -2792,7 +2792,14 @@ module wfcExportVASPMod
       !! Calculate the total number of lm pairs
 
     allocate(Ylm(nPWs1k, YDimLM))
-    allocate(realProjWoPhase(nPWs1k,YDimLM,nAtomTypes), compFact(YDimLM,nAtomTypes))
+    allocate(realProjWoPhase(nPWs1k,64,nAtomTypes), compFact(64,nAtomTypes))
+      ! These are allocated in VASP using `LMDIM`, which is hardcoded
+      ! as 64. This is similar to the hardcoded dimension of 16 for 
+      ! the channels. This is not optimal, but it is probably set so
+      ! that the dimensions can be set early and can work for the vast
+      ! majority of cases. May want to look into these values in the
+      ! future if memory is an issue (although these arrays will likely
+      ! not be the culprit of memory issues).
 
     call getYlm(nPWs1k, YDimL, YDimLM, gkUnit, Ylm)
 
@@ -3278,10 +3285,10 @@ module wfcExportVASPMod
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
 
-    real(kind=dp), intent(in) :: realProjWoPhase(nPWs1k,:,nAtomTypes)
+    real(kind=dp), intent(in) :: realProjWoPhase(nPWs1k,64,nAtomTypes)
       !! Real projectors without phase
 
-    complex(kind=dp), intent(in) :: compFact(:,nAtomTypes)
+    complex(kind=dp), intent(in) :: compFact(64,nAtomTypes)
       !! Complex "phase" factor
     complex(kind=dp), intent(in) :: phaseExp(nPWs1k,nAtoms)
 
