@@ -589,8 +589,8 @@ module wfcExportVASPMod
   end subroutine exitError
 
 !----------------------------------------------------------------------------
-  subroutine readWAVECAR(exportDir, VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
-        kPosition, nBands, maxGkNum, nKPoints, nPWs1kGlobal, nSpins, eigenE)
+  subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
+        kPosition, nBands, nKPoints, nPWs1kGlobal, nSpins, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -599,8 +599,6 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    character(len=256), intent(in) :: exportDir
-      !! Directory to be used for export
     character(len=256), intent(in) :: VASPDir
       !! Directory with VASP files
 
@@ -623,8 +621,6 @@ module wfcExportVASPMod
 
     integer, intent(out) :: nBands
       !! Total number of bands
-    integer, intent(out) :: maxGkNum
-      !! Maximum number of \(G+k\) combinations
     integer, intent(out) :: nKPoints
       !! Total number of k-points
     integer, allocatable, intent(out) :: nPWs1kGlobal(:)
@@ -1493,7 +1489,7 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine reconstructFFTGrid(nGVecsLocal, gKIndexGlobal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, wfcVecCut, kPosition, &
+  subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, wfcVecCut, kPosition, gKIndexGlobal, &
       gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
@@ -2151,7 +2147,7 @@ module wfcExportVASPMod
         read(potcarUnit,'(1X,A1)') charSwitch
           !! * Read character switch
 
-        allocate(dummDA1(nonlPseudoGridSize))
+        allocate(dummyDA1(nonlPseudoGridSize))
 
         do while (charSwitch /= 'D' .and. charSwitch /= 'A' .and. charSwitch /= 'P' &
           .and. charSwitch /= 'E')
@@ -2193,13 +2189,13 @@ module wfcExportVASPMod
             ! Not really sure what the purpose of this is. Seems to be setting the grid boundary,
             ! but I'm not sure on the logic.
             if(mod(angMom,2) == 0) then
-              pot(iT)%recipProj(pot(iT%nChannels)+ip, 0) = pot(iT)%recipProj(pot(iT%nChannels)+ip, 2) 
+              pot(iT)%recipProj(pot(iT)%nChannels+ip, 0) = pot(iT)%recipProj(pot(iT)%nChannels+ip, 2) 
             else
-              pot(iT)%recipProj(pot(iT%nChannels)+ip, 0) = -pot(iT)%recipProj(pot(iT%nChannels)+ip, 2) 
+              pot(iT)%recipProj(pot(iT)%nChannels+ip, 0) = -pot(iT)%recipProj(pot(iT)%nChannels+ip, 2) 
             endif
 
             read(potcarUnit,*) 
-            read(potcarUnit,*) (dummyDA1(i), i=1,nonlPsudoGridSize)
+            read(potcarUnit,*) (dummyDA1(i), i=1,nonlPseudoGridSize)
               ! Ignore real-space projector
 
           enddo
@@ -2456,6 +2452,8 @@ module wfcExportVASPMod
     real(kind=dp), allocatable :: realProjWoPhase(:,:,:)
       !! Real projectors without phase
 
+    complex*8, allocatable :: coeff(:,:)
+      !! Plane wave coefficients
     complex(kind=dp), allocatable :: compFact(:,:)
       !! Complex "phase" factor
     complex(kind=dp), allocatable :: phaseExp(:,:)
@@ -2469,7 +2467,7 @@ module wfcExportVASPMod
       !! this k-point
 
 
-    maxGkNum = max(nPWs1kGlobal(:))
+    maxGkNum = maxval(nPWs1kGlobal)
       !! * Calculate the max number of PWs (G+k combinations)
       !!   across all k-points
 
@@ -2540,7 +2538,7 @@ module wfcExportVASPMod
             !! the record number by the number of bands
 
         endif
-
+      enddo
     enddo
 
     deallocate(coeff, phaseExp, realProjWoPhase, compFact)
@@ -2684,7 +2682,7 @@ module wfcExportVASPMod
       
     real(kind=dp) :: gkModGlobal(nPWs1k)
       !! \(|G+k|^2\)
-    real(kind=dp), intent(out) :: gkUnit(3,nPWs1k)
+    real(kind=dp) :: gkUnit(3,nPWs1k)
       !! \( (G+k)/|G+k| \)
     real(kind=dp) :: multFact(nPWs1k)
       !! Multiplicative factor for the pseudopotential;
@@ -2835,6 +2833,8 @@ module wfcExportVASPMod
     ! Local variables:
     integer :: gVec(3)
       !! Local storage of this G-vector
+    integer :: ipw, ix
+      !! Loop indices
 
     real(kind=dp) :: eps8 = 1.0E-8_dp
       !! Double precision zero
@@ -3218,6 +3218,8 @@ module wfcExportVASPMod
       !! Number of projectors across all atom types
     integer :: projOutUnit
       !! Process-dependent file unit for `projectors.ik`
+    integer :: iT, ia, ilm, ipw
+      !! Loop indices
 
     character(len=300) :: indexC
       !! Character index
@@ -3410,6 +3412,8 @@ module wfcExportVASPMod
     character(len=300) :: indexC
       !! Character index
 
+    complex(kind=dp) :: itwopi = (0._dp, 1._dp)*twopi
+      !! Complex phase exponential
     complex*8 :: projection
       !! Projection for current atom/band/lm channel
 
