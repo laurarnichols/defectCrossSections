@@ -1088,7 +1088,7 @@ module wfcExportVASPMod
 
       inquire(file = fileName, exist = fileExists)
 
-      if (.not. fileExists) call exitError('getKPointWeights', 'Required file vasprun.xml does not exist', 1)
+      if (.not. fileExists) call exitError('read_vasprun_xml', 'Required file vasprun.xml does not exist', 1)
 
       open(57, file=fileName)
         !! * If root node, open `vasprun.xml`
