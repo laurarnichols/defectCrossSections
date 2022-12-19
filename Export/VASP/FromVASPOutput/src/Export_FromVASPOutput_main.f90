@@ -89,7 +89,6 @@ program wfcExportVASPMain
 
   deallocate(gIndexLocalToGlobal)
   deallocate(gVecInCart)
-  deallocate(nPWs1kGlobal)
 
 
   allocate(pot(nAtomTypes))
@@ -110,6 +109,9 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Done getting and writing projectors, projections, and wfc"
 
 
+  deallocate(nPWs1kGlobal)
+
+
   if (ionode) write(iostd,*) "Writing k-point info"
 
   call writeKInfo(nBands, nKPoints, nGkLessECutGlobal, nSpins, bandOccupation, kWeight, kPosition)
@@ -119,6 +121,7 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Done writing k-point info"
 
 
+  deallocate(kPosition)
   deallocate(kWeight)
 
   if (ionode) write(iostd,*) "Writing grid info"
