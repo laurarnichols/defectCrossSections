@@ -1227,6 +1227,7 @@ module wfcExportVASPMod
     endif
 
     call MPI_BCAST(kWeight, size(kWeight), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(fftGridSize, size(fftGridSize), MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nAtomTypes, 1, MPI_INTEGER, root, worldComm, ierr)
 
