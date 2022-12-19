@@ -48,7 +48,7 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Reading WAVECAR"
 
   call readWAVECAR(VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
-      kPosition, nBands, nKPoints, nPWs1kGlobal, nSpins, eigenE)
+      kPosition, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 
   if (ionode) write(iostd,*) "Done reading WAVECAR"
@@ -100,6 +100,14 @@ program wfcExportVASPMain
     !! * Read in pseudopotential information from POTCAR
 
   if (ionode) write(iostd,*) "Done reading POTCAR"
+
+
+  if (ionode) write(iostd,*) "Getting and writing projectors, projections, and wfc"
+
+  call projAndWav(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGVecsGlobal, nKPoints, nRecords, nSpins, gKIndexGlobal, &
+        gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+
+  if (ionode) write(iostd,*) "Done getting and writing projectors, projections, and wfc"
 
 
   if (ionode) write(iostd,*) "Writing k-point info"

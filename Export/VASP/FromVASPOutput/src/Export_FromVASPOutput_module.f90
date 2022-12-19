@@ -138,6 +138,8 @@ module wfcExportVASPMod
     !! ppool
   integer :: nAtomTypes
     !! Number of types of atoms
+  integer :: nRecords
+    !! Number of records in WAVECAR file
   integer :: nSpins
     !! Number of spins
 
@@ -590,7 +592,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
-        kPosition, nBands, nKPoints, nPWs1kGlobal, nSpins, eigenE)
+        kPosition, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -626,6 +628,8 @@ module wfcExportVASPMod
     integer, allocatable, intent(out) :: nPWs1kGlobal(:)
       !! Input number of plane waves for a single k-point 
       !! for all processors
+    integer, intent(out) :: nRecords
+      !! Number of records in WAVECAR file
     integer, intent(out) :: nSpins
       !! Number of spins
 
@@ -644,8 +648,6 @@ module wfcExportVASPMod
 
     integer :: j
       !! Index used for reading lattice vectors
-    integer :: nRecords
-      !! Number of records in WAVECAR file
     integer :: prec
       !! Precision of plane wave coefficients
 
