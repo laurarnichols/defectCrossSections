@@ -2524,19 +2524,22 @@ module wfcExportVASPMod
 
             call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1k, &
                       atomPositionsDir, phaseExp)
-            write(*,*) myid, " is here 1"
 
             call calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1k, gKIndexGlobal, &
                       gVecMillerIndicesGlobal, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
           endif
 
-          write(*,*) myid, " is here 7"
+          write(*,*) "    Writing projectors of k-point ", ik, " and spin ", isp
+
           call writeProjectors(ik, isp, nAtoms, iType, nAtomTypes, nAtomsEachType, nKPoints, nPWs1k, realProjWoPhase, compFact, &
                     phaseExp, exportDir, pot)
 
-          write(*,*) myid, " is here 8"
+          write(*,*) "    Reading and writing wave function for k-point ", ik, " and spin ", isp
+
           call readAndWriteWavefunction(ik, isp, maxGkNum, nBands, nKPoints, nPWs1k, exportDir, irec, coeff)
+
+          write(*,*) "    Getting and writing projections for k-point ", ik, " and spin ", isp
 
           call getAndWriteProjections(ik, isp, maxGkNum, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, realProjWoPhase, &
                     compFact, phaseExp, coeff, exportDir, pot)
@@ -2703,12 +2706,8 @@ module wfcExportVASPMod
       !! Spherical harmonics
 
 
-    write(*,*) myid, " is here 2"
-
     call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, &
           recipLattVec, gammaOnly, gkModGlobal, gkUnit, multFact)
-
-    write(*,*) myid, " is here 3"
 
     YDimL = maxL(nAtomTypes, pot)
       !! Get the L dimension for the spherical harmonics by
@@ -2728,7 +2727,6 @@ module wfcExportVASPMod
       ! not be the culprit of memory issues).
 
     call getYlm(nPWs1k, YDimL, YDimLM, gkUnit, Ylm)
-    write(*,*) myid, " is here 4"
 
     do iT = 1, nAtomTypes
       ilm = 1
@@ -2736,7 +2734,6 @@ module wfcExportVASPMod
       do ip = 1, pot(iT)%nChannels
 
         call getPseudoV(ip, nPWs1k, gkModGlobal, multFact, omega, pot(iT), pseudoV)
-        write(*,*) myid, " is here 5"
 
         angMom = pot(iT)%angMom(ip)
         imMax = 2*angMom
@@ -2800,7 +2797,6 @@ module wfcExportVASPMod
 
     enddo
 
-    write(*,*) myid, " is here 6"
     deallocate(Ylm)
 
     return
