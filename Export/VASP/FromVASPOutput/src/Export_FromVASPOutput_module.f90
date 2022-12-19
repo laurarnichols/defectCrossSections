@@ -2378,6 +2378,7 @@ module wfcExportVASPMod
 
       call MPI_BCAST(pot(iT)%nChannels, 1, MPI_INTEGER, root, worldComm, ierr)
       call MPI_BCAST(pot(iT)%lmmax, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(pot(iT)%maxGkNonlPs, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(pot(iT)%angmom, size(pot(iT)%angmom), MPI_INTEGER, root, worldComm, ierr)
       call MPI_BCAST(pot(iT)%recipProj, size(pot(iT)%recipProj), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
@@ -2523,18 +2524,18 @@ module wfcExportVASPMod
 
             call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1k, &
                       atomPositionsDir, phaseExp)
-            write(*,*) myid, " is here 2"
+            write(*,*) myid, " is here 1"
 
             call calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1k, gKIndexGlobal, &
                       gVecMillerIndicesGlobal, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
           endif
 
-          write(*,*) myid, " is here 3"
+          write(*,*) myid, " is here 7"
           call writeProjectors(ik, isp, nAtoms, iType, nAtomTypes, nAtomsEachType, nKPoints, nPWs1k, realProjWoPhase, compFact, &
                     phaseExp, exportDir, pot)
 
-          write(*,*) myid, " is here 4"
+          write(*,*) myid, " is here 8"
           call readAndWriteWavefunction(ik, isp, maxGkNum, nBands, nKPoints, nPWs1k, exportDir, irec, coeff)
 
           call getAndWriteProjections(ik, isp, maxGkNum, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, realProjWoPhase, &
@@ -2702,12 +2703,12 @@ module wfcExportVASPMod
       !! Spherical harmonics
 
 
-    write(*,*) myid, " is here 1"
+    write(*,*) myid, " is here 2"
 
     call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, &
           recipLattVec, gammaOnly, gkModGlobal, gkUnit, multFact)
 
-    write(*,*) myid, " is here 2"
+    write(*,*) myid, " is here 3"
 
     YDimL = maxL(nAtomTypes, pot)
       !! Get the L dimension for the spherical harmonics by
@@ -2727,6 +2728,7 @@ module wfcExportVASPMod
       ! not be the culprit of memory issues).
 
     call getYlm(nPWs1k, YDimL, YDimLM, gkUnit, Ylm)
+    write(*,*) myid, " is here 4"
 
     do iT = 1, nAtomTypes
       ilm = 1
@@ -2734,6 +2736,7 @@ module wfcExportVASPMod
       do ip = 1, pot(iT)%nChannels
 
         call getPseudoV(ip, nPWs1k, gkModGlobal, multFact, omega, pot(iT), pseudoV)
+        write(*,*) myid, " is here 5"
 
         angMom = pot(iT)%angMom(ip)
         imMax = 2*angMom
@@ -2797,6 +2800,7 @@ module wfcExportVASPMod
 
     enddo
 
+    write(*,*) myid, " is here 6"
     deallocate(Ylm)
 
     return
@@ -3152,7 +3156,6 @@ module wfcExportVASPMod
         !!  applications not relevant to our purposes, so this section in the original
         !!  `SPHER` subroutine is skipped.
         !! @endnote
-
 
       rp1 = pot%recipProj(ip, iPsGr-1)
       rp2 = pot%recipProj(ip, iPsGr)
