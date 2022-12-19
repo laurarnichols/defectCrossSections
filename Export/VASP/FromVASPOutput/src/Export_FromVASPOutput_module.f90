@@ -2480,10 +2480,13 @@ module wfcExportVASPMod
     !>   the source of any heap out of memory errors. If
     !>   you get that, try using only a portion of the 
     !>   available processes on the node.
-    if(myid <= nKPoints) then
+    if(myid < nKPoints) then
       allocate(coeff(maxGkNum,nBands))
     else
+      allocate(realProjWoPhase(1,1,1))
       allocate(coeff(1,1))
+      allocate(compFact(1,1))
+      allocate(phaseExp(1,1))
     endif
     
     fileName = trim(VASPDir)//'/WAVECAR'
@@ -2499,7 +2502,7 @@ module wfcExportVASPMod
       do ik = 1, nKPoints
         nPWs1k = nPWs1kGlobal(ik)
 
-        ionode_k_id = mod(ik, nProcs)
+        ionode_k_id = mod(ik-1, nProcs)
         ionode_k = myid == ionode_k_id
           ! Determine if this process is the node responsible
           ! for outputting data for this k-point. K-points are 
@@ -2520,15 +2523,18 @@ module wfcExportVASPMod
 
             call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1k, &
                       atomPositionsDir, phaseExp)
+            write(*,*) myid, " is here 2"
 
             call calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1k, gKIndexGlobal, &
                       gVecMillerIndicesGlobal, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
           endif
 
+          write(*,*) myid, " is here 3"
           call writeProjectors(ik, isp, nAtoms, iType, nAtomTypes, nAtomsEachType, nKPoints, nPWs1k, realProjWoPhase, compFact, &
                     phaseExp, exportDir, pot)
 
+          write(*,*) myid, " is here 4"
           call readAndWriteWavefunction(ik, isp, maxGkNum, nBands, nKPoints, nPWs1k, exportDir, irec, coeff)
 
           call getAndWriteProjections(ik, isp, maxGkNum, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, realProjWoPhase, &
@@ -2696,9 +2702,12 @@ module wfcExportVASPMod
       !! Spherical harmonics
 
 
+    write(*,*) myid, " is here 1"
 
     call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, &
           recipLattVec, gammaOnly, gkModGlobal, gkUnit, multFact)
+
+    write(*,*) myid, " is here 2"
 
     YDimL = maxL(nAtomTypes, pot)
       !! Get the L dimension for the spherical harmonics by
@@ -3329,7 +3338,7 @@ module wfcExportVASPMod
       !! Character index
 
 
-    ionode_k_id = mod(ik, nProcs)
+    ionode_k_id = mod(ik-1, nProcs)
 
     wfcOutUnit = 83 + ionode_k_id
 
@@ -3421,7 +3430,7 @@ module wfcExportVASPMod
       !! Projection for current atom/band/lm channel
 
 
-    ionode_k_id = mod(ik, nProcs)
+    ionode_k_id = mod(ik-1, nProcs)
 
     projOutUnit = 83 + ionode_k_id
 
