@@ -1129,7 +1129,7 @@ module wfcExportVASPMod
       do ix = 1, 3
         !! * Read in the FFT grid size in each direction
 
-        read(57,*) cDum, fftGridSize(ix), cDum
+        read(57,'(a28,i6,a4)') cDum, fftGridSize(ix), cDum
 
       enddo
 
