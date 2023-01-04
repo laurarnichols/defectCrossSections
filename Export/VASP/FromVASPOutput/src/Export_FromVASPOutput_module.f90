@@ -2915,6 +2915,7 @@ module wfcExportVASPMod
         !! * Get magnitude of G+k vector 
 
       gkUnit(:,ipw)  = gkDir(:)/gkModGlobal(ipw)
+        !! * Calculate unit vector in direction of \(G+k\)
 
       !IF (PRESENT(DK)) THEN
         !! @note
