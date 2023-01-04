@@ -2848,8 +2848,6 @@ module wfcExportVASPMod
     integer :: ipw, ix
       !! Loop indices
 
-    real(kind=dp) :: eps8 = 1.0E-8_dp
-      !! Double precision zero
     real(kind=dp) :: gkCart(3)
       !! \(G+k\) in Cartesian coordinates for only
       !! vectors that satisfy the cutoff
@@ -2913,31 +2911,10 @@ module wfcExportVASPMod
         !! @endnote
 
 
-      gkModGlobal(ipw) = sqrt(sum(gkCart(:)**2 ))
+      gkModGlobal(ipw) = max(sqrt(sum(gkCart(:)**2 )), 1e-10_dp)
         !! * Get magnitude of G+k vector 
 
-      !> * Calculate the unit vector in the direction of \(G+k\)
-      if(gkModGlobal(ipw) <= eps8) then
-        ! If the modulus is less than double-precision zero,
-        ! set the modulus and unit vector to zero.
-        ! @note
-        !   I think this is safe to do because the modulus being
-        !   less than `eps8` means that it is practically zero,
-        !   and from writing out in a specific system, the only
-        !   vector that met this criteron was the one where 
-        !   \(G+k = 0\). But the modulus is used to recreate the
-        !   pseudopotential, so I'm not sure that setting these
-        !   values explicitly wouldn't affect that calculation.
-        ! @endnote
-
-        gkModGlobal(ipw) = 0.d0
-        gkUnit(:,ipw) = 0.0d0
-      
-      else 
-
-        gkUnit(:,ipw)  = gkDir(:)/gkModGlobal(ipw)
-
-      endif
+      gkUnit(:,ipw)  = gkDir(:)/gkModGlobal(ipw)
 
       !IF (PRESENT(DK)) THEN
         !! @note
