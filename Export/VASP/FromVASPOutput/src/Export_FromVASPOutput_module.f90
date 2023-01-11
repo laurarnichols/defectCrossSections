@@ -2532,17 +2532,17 @@ module wfcExportVASPMod
 
           write(*,*) "    Writing projectors of k-point ", ik, " and spin ", isp
 
-          call writeProjectors(ik, isp, nAtoms, iType, nAtomTypes, nAtomsEachType, nKPoints, nPWs1k, realProjWoPhase, compFact, &
-                    phaseExp, exportDir, pot)
+          !call writeProjectors(ik, isp, nAtoms, iType, nAtomTypes, nAtomsEachType, nKPoints, nPWs1k, realProjWoPhase, compFact, &
+          !          phaseExp, exportDir, pot)
 
           write(*,*) "    Reading and writing wave function for k-point ", ik, " and spin ", isp
 
-          call readAndWriteWavefunction(ik, isp, maxGkNum, nBands, nKPoints, nPWs1k, exportDir, irec, coeff)
+          !call readAndWriteWavefunction(ik, isp, maxGkNum, nBands, nKPoints, nPWs1k, exportDir, irec, coeff)
 
           write(*,*) "    Getting and writing projections for k-point ", ik, " and spin ", isp
 
-          call getAndWriteProjections(ik, isp, maxGkNum, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, realProjWoPhase, &
-                    compFact, phaseExp, coeff, exportDir, pot)
+          !call getAndWriteProjections(ik, isp, maxGkNum, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, realProjWoPhase, &
+          !          compFact, phaseExp, coeff, exportDir, pot)
 
         else
 
@@ -2859,6 +2859,8 @@ module wfcExportVASPMod
     multFact(:) = 1._dp
       !! Initialize the multiplicative factor to 1
 
+    if(ionode) write(*,*) kPosition(:,ik)
+
     do ipw = 1, nPWs1k
 
       !N1 = MOD(WDES%IGX(ipw,ik) + fftGridSize(1), fftGridSize(1)) + 1
@@ -3116,6 +3118,14 @@ module wfcExportVASPMod
       !! the POTCAR file
 
 
+    if(ionode) then
+
+      open(47, file=trim(exportDir)//"/pseudoV.1")
+      open(48, file=trim(exportDir)//"/psGrLoc.1")
+      open(49, file=trim(exportDir)//"/recipProj.1")
+
+    endif
+
     allocate(pseudoV(nPWs1k))
 
     divSqrtOmega = 1/sqrt(omega)
@@ -3124,6 +3134,7 @@ module wfcExportVASPMod
       !! * Define a scale factor for the argument based on the
       !!   length of the G-vector. Convert from continous G-vector
       !!   length scale to discrete scale of size `nonlPseudoGridSize`.
+    if(ionode) write(*,*) pot%maxGkNonlPs
 
     do ipw = 1, nPWs1k
 
@@ -3155,6 +3166,9 @@ module wfcExportVASPMod
       rp3 = pot%recipProj(ip, iPsGr+1)
       rp4 = pot%recipProj(ip, iPsGr+2)
 
+      if(ionode) write(48,*) gkModGlobal(ipw), " ", pseudoGridLoc
+      if(ionode) write(49,*) ip, " ", rp1, " ", rp2, " ", rp3, " ", rp4
+
       a_ipw = rp2
       b_ipw = (6*rp3 - 2*rp1 - 3*rp2 - rp4)/6._dp
       c_ipw = (rp1 + rp3 - 2*rp2)/2._dp
@@ -3168,6 +3182,8 @@ module wfcExportVASPMod
         !!   where the \(i\) index is the plane-wave index, and \(dx\) is the decimal
         !!   part of the pseudopotential-grid location
 
+      if(ionode) write(47,*) pseudoV(ipw)
+
       !IF (VPS(IND) /= 0._dp .AND. PRESENT(DK)) THEN
         !! @note
         !!  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
@@ -3179,6 +3195,18 @@ module wfcExportVASPMod
         !!  that this section in the original `SPHER` subroutine is skipped. 
         !! @endnote
     enddo
+
+    if(ionode) then
+
+      write(47,*) "Complete!!"
+      write(48,*) "Complete!!"
+      write(49,*) "Complete!!"
+
+      close(47)
+      close(48)
+      close(49)
+
+    endif
 
     return
   end subroutine getPseudoV
