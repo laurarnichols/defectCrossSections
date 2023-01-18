@@ -178,8 +178,6 @@ module wfcExportVASPMod
       !! Maximum radius of augmentation sphere
     real(kind=dp) :: recipProj(16,nonlPseudoGridSize)
       !! Reciprocal-space projectors
-    real(kind=dp) :: realProj(16,nonlPseudoGridSize)
-      !! Real-space projectors
     real(kind=dp), allocatable :: wae(:,:)
       !! AE wavefunction
     real(kind=dp), allocatable :: wps(:,:)
@@ -2147,6 +2145,9 @@ module wfcExportVASPMod
         read(potcarUnit,*) pot(iT)%maxGkNonlPs, dummyC
           !! * Read the max \(|G+k|\) for non-local potential 
           !!   and ignore unused boolean (`LDUM` in VASP)
+
+        pot(iT)%maxGkNonlPs = pot(iT)%maxGkNonlPs/angToBohr
+
         read(potcarUnit,'(1X,A1)') charSwitch
           !! * Read character switch
 
@@ -2189,6 +2190,9 @@ module wfcExportVASPMod
             read(potcarUnit,*) (pot(iT)%recipProj(pot(iT)%nChannels+ip,i), i=1,nonlPseudoGridSize)
               ! Read in reciprocal-space projector
 
+            pot(iT)%recipProj(pot(iT)%nChannels+ip,:) = pot(iT)%recipProj(pot(iT)%nChannels+ip,:)*sqrt(angToBohr)**3
+              ! Converting units with assuming the units are sqrt(length)**3
+
             ! Not really sure what the purpose of this is. Seems to be setting the grid boundary,
             ! but I'm not sure on the logic.
             if(mod(angMom,2) == 0) then
@@ -2226,6 +2230,10 @@ module wfcExportVASPMod
           read(potcarUnit,*) pot(iT)%nmax, pot(iT)%rAugMax  
             !! * Read the number of mesh grid points and
             !!   the maximum radius in the augmentation sphere
+
+          pot(iT)%rAugMax = pot(iT)%rAugMax*angToBohr 
+            ! Convert units 
+
           read(potcarUnit,*)
             !! * Ignore format specifier
           read(potcarUnit,'(1X,A1)') charSwitch
@@ -2259,7 +2267,6 @@ module wfcExportVASPMod
 
           read(potcarUnit,*) (pot(iT)%radGrid(i), i=1,pot(iT)%nmax)
 
-          pot(iT)%rAugMax = pot(iT)%rAugMax*angToBohr 
           pot(iT)%radGrid(:) = pot(iT)%radGrid(:)*angToBohr
 
           H = log(pot(iT)%radGrid(pot(iT)%nmax)/pot(iT)%radGrid(1))/(pot(iT)%nmax - 1)
@@ -2351,9 +2358,13 @@ module wfcExportVASPMod
 
           enddo
 
-          pot(iT)%wps(:,:) = pot(iT)%wps(:,:)/sqrt(angToBohr)
-          pot(iT)%wae(:,:) = pot(iT)%wae(:,:)/sqrt(angToBohr)
-            !! @todo Make sure that partial wave unit conversion makes sense @endtodo
+          pot(iT)%wps(:,:) = pot(iT)%wps(:,:)/sqrt(angToBohr)**3
+          pot(iT)%wae(:,:) = pot(iT)%wae(:,:)/sqrt(angToBohr)**3
+            !! @note
+            !!   Previously had the conversion factor as `1/sqrt(angToBohr)`
+            !!   and that seemed to work well, but I don't think it is 
+            !!   correct. Not sure what to do here. 
+            !! @endnote
 
           deallocate(dummyDA1)
           deallocate(dummyDA2)
@@ -2532,17 +2543,17 @@ module wfcExportVASPMod
 
           write(*,*) "    Writing projectors of k-point ", ik, " and spin ", isp
 
-          !call writeProjectors(ik, isp, nAtoms, iType, nAtomTypes, nAtomsEachType, nKPoints, nPWs1k, realProjWoPhase, compFact, &
-          !          phaseExp, exportDir, pot)
+          call writeProjectors(ik, isp, nAtoms, iType, nAtomTypes, nAtomsEachType, nKPoints, nPWs1k, realProjWoPhase, compFact, &
+                    phaseExp, exportDir, pot)
 
           write(*,*) "    Reading and writing wave function for k-point ", ik, " and spin ", isp
 
-          !call readAndWriteWavefunction(ik, isp, maxGkNum, nBands, nKPoints, nPWs1k, exportDir, irec, coeff)
+          call readAndWriteWavefunction(ik, isp, maxGkNum, maxNumPWsGlobal, nBands, nKPoints, nPWs1k, gKIndexGlobal, exportDir, irec, coeff)
 
           write(*,*) "    Getting and writing projections for k-point ", ik, " and spin ", isp
 
-          !call getAndWriteProjections(ik, isp, maxGkNum, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, realProjWoPhase, &
-          !          compFact, phaseExp, coeff, exportDir, pot)
+          call getAndWriteProjections(ik, isp, maxGkNum, maxNumPWsGlobal, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, gKIndexGlobal, &
+                    realProjWoPhase, compFact, phaseExp, coeff, exportDir, pot)
 
         else
 
@@ -2615,6 +2626,7 @@ module wfcExportVASPMod
 
         expArg = itwopi*sum(atomPosDir(:)*gVecMillerIndicesGlobal(:,gKIndexGlobal(ipw,ik)))
           !! \(2\pi i (\mathbf{G} \cdot \mathbf{r})\)
+          ! Sorted by G+k length because of use of `gKIndexGlobal(ipw,ik)`
 
         phaseExp(ipw, ia) = exp(expArg)
 
@@ -2859,8 +2871,6 @@ module wfcExportVASPMod
     multFact(:) = 1._dp
       !! Initialize the multiplicative factor to 1
 
-    if(ionode) write(*,*) kPosition(:,ik)
-
     do ipw = 1, nPWs1k
 
       !N1 = MOD(WDES%IGX(ipw,ik) + fftGridSize(1), fftGridSize(1)) + 1
@@ -2904,7 +2914,12 @@ module wfcExportVASPMod
       if(gammaOnly .and. (gVec(1) /= 0 .or. gVec(2) /= 0 .or. gVec(3) /= 0)) multFact(ipw) = sqrt(2._dp)
 
       do ix = 1, 3
-        gkCart(ix) = sum(gkDir(:)*recipLattVec(ix,:))*twopi
+        gkCart(ix) = sum(gkDir(:)*recipLattVec(ix,:))
+          ! VASP has a factor of `twopi` here, but I removed
+          ! it because the vectors in `reconstructFFTGrid` 
+          ! do not have that factor, but they result in the
+          ! number of \(G+k\) vectors for each k-point matching
+          ! the value input from the WAVECAR.
       enddo
         !! @note
         !!  There was originally a subtraction within the parentheses of `QX`/`QY`/`QZ`
@@ -2916,7 +2931,7 @@ module wfcExportVASPMod
       gkModGlobal(ipw) = max(sqrt(sum(gkCart(:)**2 )), 1e-10_dp)
         !! * Get magnitude of G+k vector 
 
-      gkUnit(:,ipw)  = gkDir(:)/gkModGlobal(ipw)
+      gkUnit(:,ipw)  = gkCart(:)/gkModGlobal(ipw)
         !! * Calculate unit vector in direction of \(G+k\)
 
       !IF (PRESENT(DK)) THEN
@@ -3118,14 +3133,6 @@ module wfcExportVASPMod
       !! the POTCAR file
 
 
-    if(ionode) then
-
-      open(47, file=trim(exportDir)//"/pseudoV.1")
-      open(48, file=trim(exportDir)//"/psGrLoc.1")
-      open(49, file=trim(exportDir)//"/recipProj.1")
-
-    endif
-
     allocate(pseudoV(nPWs1k))
 
     divSqrtOmega = 1/sqrt(omega)
@@ -3134,7 +3141,6 @@ module wfcExportVASPMod
       !! * Define a scale factor for the argument based on the
       !!   length of the G-vector. Convert from continous G-vector
       !!   length scale to discrete scale of size `nonlPseudoGridSize`.
-    if(ionode) write(*,*) pot%maxGkNonlPs
 
     do ipw = 1, nPWs1k
 
@@ -3166,9 +3172,6 @@ module wfcExportVASPMod
       rp3 = pot%recipProj(ip, iPsGr+1)
       rp4 = pot%recipProj(ip, iPsGr+2)
 
-      if(ionode) write(48,*) gkModGlobal(ipw), " ", pseudoGridLoc
-      if(ionode) write(49,*) ip, " ", rp1, " ", rp2, " ", rp3, " ", rp4
-
       a_ipw = rp2
       b_ipw = (6*rp3 - 2*rp1 - 3*rp2 - rp4)/6._dp
       c_ipw = (rp1 + rp3 - 2*rp2)/2._dp
@@ -3182,8 +3185,6 @@ module wfcExportVASPMod
         !!   where the \(i\) index is the plane-wave index, and \(dx\) is the decimal
         !!   part of the pseudopotential-grid location
 
-      if(ionode) write(47,*) pseudoV(ipw)
-
       !IF (VPS(IND) /= 0._dp .AND. PRESENT(DK)) THEN
         !! @note
         !!  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
@@ -3195,18 +3196,6 @@ module wfcExportVASPMod
         !!  that this section in the original `SPHER` subroutine is skipped. 
         !! @endnote
     enddo
-
-    if(ionode) then
-
-      write(47,*) "Complete!!"
-      write(48,*) "Complete!!"
-      write(49,*) "Complete!!"
-
-      close(47)
-      close(48)
-      close(49)
-
-    endif
 
     return
   end subroutine getPseudoV
@@ -3316,7 +3305,7 @@ module wfcExportVASPMod
   end subroutine writeProjectors
 
 !----------------------------------------------------------------------------
-  subroutine readAndWriteWavefunction(ik, isp, maxGkNum, nBands, nKPoints, nPWs1k, exportDir, irec, coeff)
+  subroutine readAndWriteWavefunction(ik, isp, maxGkNum, maxNumPWsGlobal, nBands, nKPoints, nPWs1k, gKIndexGlobal, exportDir, irec, coeff)
     !! For each spin and k-point, read and write the plane
     !! wave coefficients for each band
     !!
@@ -3334,12 +3323,18 @@ module wfcExportVASPMod
       !! Current spin channel
     integer, intent(in) :: maxGkNum
       !! Maximum number of \(G+k\) combinations
+    integer, intent(in) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `wfcECut` among all k-points
     integer, intent(in) :: nBands
       !! Total number of bands
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
+    integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
       
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
@@ -3382,8 +3377,15 @@ module wfcExportVASPMod
       read(unit=wavecarUnit,rec=irec) (coeff(ipw,ib), ipw=1,nPWs1k)
         ! Read in the plane wave coefficients for each band
 
-      write(wfcOutUnit,'(2ES24.15E3)') (coeff(ipw,ib), ipw=1,nPWs1k)
-        ! Write plane wave coefficients to `wfc.ik` file
+      coeff(:,ib) = coeff(:,ib)/sqrt(angToBohr)**3
+
+      !write(wfcOutUnit,'(2ES24.15E3)') (coeff(ipw,ib), ipw=1,nPWs1k)
+      write(wfcOutUnit,'(2ES24.15E3)') (coeff(gKIndexGlobal(ipw,ik),ib), ipw=1,nPWs1k)
+        !! Not sure what sorting/unit conversion to do. I'm confused 
+        !! because I think the second line with unit conversion is 
+        !! correct, but the first line without unit conversion is 
+        !! equivalent to what comes from VASP, and that gave good 
+        !! results.
 
     enddo
 
@@ -3394,8 +3396,8 @@ module wfcExportVASPMod
   end subroutine readAndWriteWavefunction
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteProjections(ik, isp, maxGkNum, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, realProjWoPhase, compFact, phaseExp, &
-          coeff, exportDir, pot)
+  subroutine getAndWriteProjections(ik, isp, maxGkNum, maxNumPWsGlobal, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, gKIndexGlobal, &
+          realProjWoPhase, compFact, phaseExp, coeff, exportDir, pot)
 
     use miscUtilities, only: int2str
 
@@ -3408,6 +3410,9 @@ module wfcExportVASPMod
       !! Current spin channel
     integer, intent(in) :: maxGkNum
       !! Maximum number of \(G+k\) combinations
+    integer, intent(in) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `wfcECut` among all k-points
     integer, intent(in) :: nAtoms
       !! Number of atoms
     integer, intent(in) :: nAtomTypes
@@ -3420,6 +3425,9 @@ module wfcExportVASPMod
       !! Total number of k-points
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
+    integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
 
     real(kind=dp), intent(in) :: realProjWoPhase(nPWs1k,64,nAtomTypes)
       !! Real projectors without phase
@@ -3442,7 +3450,7 @@ module wfcExportVASPMod
       !! ID for the node that outputs for this k-point
     integer :: projOutUnit
       !! Process-dependent file unit for `projections.ik`
-    integer :: ib, iT, ia, iaBase, ilm
+    integer :: ib, iT, ia, iaBase, ilm, ipw
       !! Loop indices
 
     character(len=300) :: indexC
@@ -3471,9 +3479,20 @@ module wfcExportVASPMod
       do iT = 1, nAtomTypes
         do ia = iaBase, nAtomsEachType(iT)+iaBase-1
           do ilm = 1, pot(iT)%lmmax
+            projection = 0._dp
+              ! Initialize this projection
 
-            projection = itwopi*compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*phaseExp(:,ia)*coeff(:,ib))
-              !! Sum over the plane waves
+            do ipw = 1, nPWs1k
+
+              projection = projection + realProjWoPhase(ipw,ilm,iT)*phaseExp(ipw,ia)*coeff(gKIndexGlobal(ipw,ik),ib)
+                ! Perform sum for this projection
+                ! `realProjWoPhase` and `phaseExp` are already in the correct order,
+                ! but `coeff` isn't, so it needs to be indexed using `gKIndexGlobal(ipw,ik)`.
+            
+            enddo
+
+            projection = projection*itwopi*compFact(ilm,iT)
+              ! Multiply by complex prefactors
 
             write(projOutUnit,'(2ES24.15E3)') projection
 
