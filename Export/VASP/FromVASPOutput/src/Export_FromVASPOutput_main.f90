@@ -48,7 +48,7 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Reading WAVECAR"
 
   call readWAVECAR(VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
-      kPosition, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
+      kPosition, fftGridSize, maxGkNum, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 
   if (ionode) write(iostd,*) "Done reading WAVECAR"
@@ -60,7 +60,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Reading vasprun.xml"
 
-  call read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
+  call read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
   if (ionode) write(iostd,*) "Done reading vasprun.xml"
@@ -78,8 +78,9 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Reconstructing FFT grid"
 
-  call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, wfcVecCut, kPosition, &
-      gKIndexGlobal, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
+  call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, maxGkNum, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, &
+      wfcVecCut, kPosition, gKIndexGlobal, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, &
+      maxNumPWsGlobal, maxNumPWsPool)
     !! * Determine which G-vectors result in \(G+k\)
     !!   below the energy cutoff for each k-point and
     !!   sort the indices based on \(|G+k|^2\)

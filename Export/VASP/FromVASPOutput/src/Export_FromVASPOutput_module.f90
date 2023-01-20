@@ -105,6 +105,8 @@ module wfcExportVASPMod
     !! Atom type index
   integer, allocatable :: gVecMillerIndicesGlobal(:,:)
     !! Integer coefficients for G-vectors on all processors
+  integer :: maxGkNum
+    !! Maximum number of \(G+k\) combinations
   integer :: nAtoms
     !! Number of atoms
   integer :: nBands
@@ -590,7 +592,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
-        kPosition, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
+        kPosition, fftGridSize, maxGkNum, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -619,6 +621,10 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) :: kPosition(:,:)
       !! Position of k-points in reciprocal space
 
+    integer, intent(out) :: fftGridSize(3)
+      !! Number of points on the FFT grid in each direction
+    integer, intent(out) :: maxGkNum
+      !! Maximum number of \(G+k\) combinations
     integer, intent(out) :: nBands
       !! Total number of bands
     integer, intent(out) :: nKPoints
@@ -708,6 +714,9 @@ module wfcExportVASPMod
         !! * Calculate the reciprocal lattice vectors from the real-space
         !!   lattice vectors and the cell volume
 
+      call estimateMaxNumPlanewaves(recipLattVec, wfcECut, fftGridSize, maxGkNum)
+        !! * Get the maximum number of plane waves
+
       !> * Write out total number of k-points, number of bands, 
       !>   the energy cutoff, the real-space-lattice vectors,
       !>   the cell volume, and the reciprocal lattice vectors
@@ -743,6 +752,7 @@ module wfcExportVASPMod
 
     endif
 
+    call MPI_BCAST(maxGkNum, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nRecords, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -752,6 +762,7 @@ module wfcExportVASPMod
     call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(recipLattVec, size(recipLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(fftGridSize, size(fftGridSize), MPI_INTEGER, root, worldComm, ierr)
 
     call preliminaryWAVECARScan(nBands, nKPoints, nRecords, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
       !! * For each spin and k-point, read the number of
@@ -761,6 +772,125 @@ module wfcExportVASPMod
 
     return
   end subroutine readWAVECAR
+
+!----------------------------------------------------------------------------
+  subroutine estimateMaxNumPlanewaves(recipLattVec, wfcECut, fftGridSize, maxGkNum)
+    !! Get the maximum number of plane waves. I'm not sure how
+    !! this is done completely. It seems to be just basic vector
+    !! stuff, but I haven't been able to make sense of it.
+    !!
+    !! @todo Figure out how `estimateMaxNumPlanewaves` works @endtodo
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    real(kind=dp), intent(in) :: recipLattVec(3,3)
+      !! Reciprocal lattice vectors
+    real(kind=dp), intent(in) :: wfcECut
+      !! Plane wave energy cutoff in Ry
+
+
+    ! Output variables:
+    integer, intent(out) :: fftGridSize(3)
+      !! Number of points on the FFT grid in each direction
+    integer, intent(out) :: maxGkNum
+      !! Maximum number of \(G+k\) combinations
+
+
+    ! Local variables:
+    real(kind=dp) :: b1mag, b2mag, b3mag
+      !! Reciprocal vector magnitudes
+    real(kind=dp) :: c = 0.26246582250210965422
+      !! \(2m/\hbar^2\) converted from J\(^{-1}\)m\(^{-2}\)
+      !! to eV\(^{-1}\)A\(^{-2}\)
+    real(kind=dp) :: phi12, phi13, phi23
+      !! Angle between vectors
+    real(kind=dp) :: sinphi123
+      !! \(\sin\phi_{123}\)
+    real(kind=dp) :: vmag
+      !! Magnitude of temporary vector
+    real(kind=dp) :: vtmp(3)
+      !! Temporary vector for calculating angles
+
+    integer :: nb1maxA, nb2maxA, nb3maxA
+      !! Not sure what this is??
+    integer :: nb1maxB, nb2maxB, nb3maxB
+      !! Not sure what this is??
+    integer :: nb1maxC, nb2maxC, nb3maxC
+      !! Not sure what this is??
+    integer :: npmaxA, npmaxB, npmaxC
+      !! Not sure what this is??
+
+
+    b1mag = sqrt(sum(recipLattVec(:,1)**2))
+    b2mag = sqrt(sum(recipLattVec(:,2)**2))
+    b3mag = sqrt(sum(recipLattVec(:,3)**2))
+
+    write(iostd,*) 'reciprocal lattice vector magnitudes:'
+    write(iostd,*) sngl(b1mag),sngl(b2mag),sngl(b3mag)
+      !! * Calculate and output reciprocal vector magnitudes
+
+
+    phi12 = acos(sum(recipLattVec(:,1)*recipLattVec(:,2))/(b1mag*b2mag))
+      !! * Calculate angle between \(b_1\) and \(b_2\)
+
+    call vcross(recipLattVec(:,1), recipLattVec(:,2), vtmp)
+    vmag = sqrt(sum(vtmp(:)**2))
+    sinphi123 = sum(recipLattVec(:,3)*vtmp(:))/(vmag*b3mag)
+      !! * Get \(\sin\phi_{123}\)
+
+    nb1maxA = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sin(phi12)))) + 1
+    nb2maxA = (dsqrt(wfcECut/eVToRy*c)/(b2mag*abs(sin(phi12)))) + 1
+    nb3maxA = (dsqrt(wfcECut/eVToRy*c)/(b3mag*abs(sinphi123))) + 1
+    npmaxA = nint(4.0*pi*nb1maxA*nb2maxA*nb3maxA/3.0)
+      !! * Get first set of max values
+
+
+    phi13 = acos(sum(recipLattVec(:,1)*recipLattVec(:,3))/(b1mag*b3mag))
+      !! * Calculate angle between \(b_1\) and \(b_3\)
+
+    call vcross(recipLattVec(:,1), recipLattVec(:,3), vtmp)
+    vmag = sqrt(sum(vtmp(:)**2))
+    sinphi123 = sum(recipLattVec(:,2)*vtmp(:))/(vmag*b2mag)
+      !! * Get \(\sin\phi_{123}\)
+
+    nb1maxB = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sin(phi13)))) + 1
+    nb2maxB = (dsqrt(wfcECut/eVToRy*c)/(b2mag*abs(sinphi123))) + 1
+    nb3maxB = (dsqrt(wfcECut/eVToRy*c)/(b3mag*abs(sin(phi13)))) + 1
+    npmaxB = nint(4.*pi*nb1maxB*nb2maxB*nb3maxB/3.)
+      !! * Get first set of max values
+
+
+    phi23 = acos(sum(recipLattVec(:,2)*recipLattVec(:,3))/(b2mag*b3mag))
+      !! * Calculate angle between \(b_2\) and \(b_3\)
+
+    call vcross(recipLattVec(:,2), recipLattVec(:,3), vtmp)
+    vmag = sqrt(sum(vtmp(:)**2))
+    sinphi123 = sum(recipLattVec(:,1)*vtmp(:))/(vmag*b1mag)
+      !! * Get \(\sin\phi_{123}\)
+
+    nb1maxC = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sinphi123))) + 1
+    nb2maxC = (dsqrt(wfcECut/eVToRy*c)/(b2mag*abs(sin(phi23)))) + 1
+    nb3maxC = (dsqrt(wfcECut/eVToRy*c)/(b3mag*abs(sin(phi23)))) + 1
+    npmaxC = nint(4.*pi*nb1maxC*nb2maxC*nb3maxC/3.)
+      !! * Get first set of max values
+
+
+    fftGridSize(1) = 2*max0(nb1maxA,nb1maxB,nb1maxC) + 1
+    fftGridSize(2) = 2*max0(nb2maxA,nb2maxB,nb2maxC) + 1
+    fftGridSize(3) = 2*max0(nb3maxA,nb3maxB,nb3maxC) + 1
+    maxGkNum = min0(npmaxA,npmaxB,npmaxC)
+
+    write(iostd,*) 'max. no. G values; 1,2,3 =', fftGridSize(:)
+    write(iostd,*) ' '
+
+    write(iostd,*) 'estimated max. no. plane waves =', maxGkNum
+
+    return
+  end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
   subroutine calculateOmega(realLattVec, omega)
@@ -1025,7 +1155,7 @@ module wfcExportVASPMod
   end subroutine distributeKpointsInPools
 
 !----------------------------------------------------------------------------
-  subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
+  subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
     !! <h2>Walkthrough</h2>
@@ -1052,8 +1182,6 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) :: kWeight(:)
       !! K-point weights
 
-    integer, intent(out) :: fftGridSize(3)
-      !! Number of points on the FFT grid in each direction
     integer, allocatable, intent(out) :: iType(:)
       !! Atom type index
     integer, intent(out) :: nAtoms
@@ -1110,26 +1238,6 @@ module wfcExportVASPMod
         !! * Read in the weight for each k-point
 
         read(57,*) cDum, kWeight(ik), cDum
-
-      enddo
-
-
-      found = .false.
-      do while (.not. found)
-        !! * Ignore everything until you get to a
-        !!   line with `'grids'`, indicating the
-        !!   tag surrounding the k-point weights
-        
-        read(57, '(A)') line
-
-        if (index(line,'grids') /= 0) found = .true.
-        
-      enddo
-
-      do ix = 1, 3
-        !! * Read in the FFT grid size in each direction
-
-        read(57,'(a28,i6,a4)') cDum, fftGridSize(ix), cDum
 
       enddo
 
@@ -1227,7 +1335,6 @@ module wfcExportVASPMod
     endif
 
     call MPI_BCAST(kWeight, size(kWeight), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(fftGridSize, size(fftGridSize), MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nAtomTypes, 1, MPI_INTEGER, root, worldComm, ierr)
 
@@ -1298,7 +1405,7 @@ module wfcExportVASPMod
       !! Max number of plane waves
 
 
-    npmax = (fftGridSize(1)+1)*(fftGridSize(2)+1)*(fftGridSize(3)+1) 
+    npmax = fftGridSize(1)*fftGridSize(2)*fftGridSize(3) 
     allocate(gVecMillerIndicesGlobal(3,npmax))
     allocate(millSum(npmax))
 
@@ -1315,23 +1422,23 @@ module wfcExportVASPMod
 
       !> * Generate Miller indices for every possible G-vector
       !>   regardless of the \(|G+k|\) cutoff
-      do igz = 1, fftGridSize(3)+1
+      do igz = 1, fftGridSize(3)
 
         millZ = igz - 1
 
-        if (igz - 1 .gt. fftGridSize(3)/2) millZ = igz - 1 - (fftGridSize(3) + 1)
+        if (igz - 1 .gt. (fftGridSize(3)-1)/2) millZ = igz - 1 - fftGridSize(3)
 
-        do igy = 1, fftGridSize(2)+1
+        do igy = 1, fftGridSize(2)
 
           millY = igy - 1
 
-          if (igy - 1 .gt. fftGridSize(2)/2) millY = igy - 1 - (fftGridSize(2) + 1)
+          if (igy - 1 .gt. (fftGridSize(2)-1)/2) millY = igy - 1 - fftGridSize(2)
 
-          do igx = 1, fftGridSize(1)+1
+          do igx = 1, fftGridSize(1)
 
             millX = igx - 1
 
-            if (igx - 1 .gt. fftGridSize(1)/2) millX = igx - 1 - (fftGridSize(1) + 1)
+            if (igx - 1 .gt. (fftGridSize(1)-1)/2) millX = igx - 1 - fftGridSize(1)
 
             nGVecsGlobal = nGVecsGlobal + 1
 
@@ -1352,7 +1459,7 @@ module wfcExportVASPMod
         '*** error - computed no. of G-vectors != estimated number of plane waves', 1)
         !! * Check that number of G-vectors are the same as the number of plane waves
 
-      write(iostd,*) "Sorting miller indices"
+      write(iostd,*) "Sorting miller indices"
 
       allocate(iMill(nGVecsGlobal))
 
@@ -1490,8 +1597,9 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, wfcVecCut, kPosition, gKIndexGlobal, &
-      gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
+  subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, maxGkNum, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, &
+      wfcVecCut, kPosition, gKIndexGlobal, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, &
+      maxNumPWsGlobal, maxNumPWsPool)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
     !! sort the indices based on \(|G+k|^2\)
@@ -1506,7 +1614,9 @@ module wfcExportVASPMod
       !! Number of G-vectors on this processor
 
     integer, intent(in) :: gIndexLocalToGlobal(nGVecsLocal)
-      ! Converts local index `ig` to global index
+      !! Converts local index `ig` to global index
+    integer, intent(in) :: maxGkNum
+      !! Maximum number of \(G+k\) combinations
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     integer, intent(in) :: nPWs1kGlobal(nKPoints)
@@ -1671,6 +1781,10 @@ module wfcExportVASPMod
 
         if (nGkLessECutGlobal(ik) .ne. nPWs1kGlobal(ik)) call exitError('reconstructFFTGrid', &
           'computed no. of G-vectors != input no. of plane waves', 1)
+          !! * Make sure that number of G-vectors isn't higher than the calculated maximum
+
+        if (nGkLessECutGlobal(ik) .gt. maxGkNum) call exitError('reconstructFFTGrid', &
+          'G-vector count exceeds estimate', 1)
           !! * Make sure that number of G-vectors isn't higher than the calculated maximum
 
       enddo
