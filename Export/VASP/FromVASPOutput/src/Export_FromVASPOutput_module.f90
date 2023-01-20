@@ -1298,7 +1298,7 @@ module wfcExportVASPMod
       !! Max number of plane waves
 
 
-    npmax = fftGridSize(1)*fftGridSize(2)*fftGridSize(3) 
+    npmax = (fftGridSize(1)+1)*(fftGridSize(2)+1)*(fftGridSize(3)+1) 
     allocate(gVecMillerIndicesGlobal(3,npmax))
     allocate(millSum(npmax))
 
@@ -1315,23 +1315,23 @@ module wfcExportVASPMod
 
       !> * Generate Miller indices for every possible G-vector
       !>   regardless of the \(|G+k|\) cutoff
-      do igz = 1, fftGridSize(3)
+      do igz = 1, fftGridSize(3)+1
 
         millZ = igz - 1
 
-        if (igz .gt. fftGridSize(3)/2 + 1) millZ = igz - fftGridSize(3) - 1
+        if (igz - 1 .gt. fftGridSize(3)/2) millZ = igz - 1 - (fftGridSize(3) + 1)
 
-        do igy = 1, fftGridSize(2)
+        do igy = 1, fftGridSize(2)+1
 
           millY = igy - 1
 
-          if (igy .gt. fftGridSize(2)/2 + 1) millY = igy - fftGridSize(2) - 1
+          if (igy - 1 .gt. fftGridSize(2)/2) millY = igy - 1 - (fftGridSize(2) + 1)
 
-          do igx = 1, fftGridSize(1)
+          do igx = 1, fftGridSize(1)+1
 
             millX = igx - 1
 
-            if (igx .gt. fftGridSize(1)/2 + 1) millX = igx - fftGridSize(1) - 1
+            if (igx - 1 .gt. fftGridSize(1)/2) millX = igx - 1 - (fftGridSize(1) + 1)
 
             nGVecsGlobal = nGVecsGlobal + 1
 
