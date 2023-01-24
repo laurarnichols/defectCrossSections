@@ -2190,7 +2190,7 @@ module wfcExportVASPMod
             read(potcarUnit,*) (pot(iT)%recipProj(pot(iT)%nChannels+ip,i), i=1,nonlPseudoGridSize)
               ! Read in reciprocal-space projector
 
-            pot(iT)%recipProj(pot(iT)%nChannels+ip,:) = pot(iT)%recipProj(pot(iT)%nChannels+ip,:)*sqrt(angToBohr)**3
+            !pot(iT)%recipProj(pot(iT)%nChannels+ip,:) = pot(iT)%recipProj(pot(iT)%nChannels+ip,:)*sqrt(angToBohr)**3
               ! Converting units with assuming the units are sqrt(length)**3
 
             ! Not really sure what the purpose of this is. Seems to be setting the grid boundary,
@@ -2358,8 +2358,8 @@ module wfcExportVASPMod
 
           enddo
 
-          pot(iT)%wps(:,:) = pot(iT)%wps(:,:)/sqrt(angToBohr)**3
-          pot(iT)%wae(:,:) = pot(iT)%wae(:,:)/sqrt(angToBohr)**3
+          pot(iT)%wps(:,:) = pot(iT)%wps(:,:)/sqrt(angToBohr)!**3
+          pot(iT)%wae(:,:) = pot(iT)%wae(:,:)/sqrt(angToBohr)!**3
             !! @note
             !!   Previously had the conversion factor as `1/sqrt(angToBohr)`
             !!   and that seemed to work well, but I don't think it is 
@@ -3377,10 +3377,10 @@ module wfcExportVASPMod
       read(unit=wavecarUnit,rec=irec) (coeff(ipw,ib), ipw=1,nPWs1k)
         ! Read in the plane wave coefficients for each band
 
-      coeff(:,ib) = coeff(:,ib)/sqrt(angToBohr)**3
+      !coeff(:,ib) = coeff(:,ib)/sqrt(angToBohr)**3
 
-      !write(wfcOutUnit,'(2ES24.15E3)') (coeff(ipw,ib), ipw=1,nPWs1k)
-      write(wfcOutUnit,'(2ES24.15E3)') (coeff(gKIndexGlobal(ipw,ik),ib), ipw=1,nPWs1k)
+      write(wfcOutUnit,'(2ES24.15E3)') (coeff(ipw,ib), ipw=1,nPWs1k)
+      !write(wfcOutUnit,'(2ES24.15E3)') (coeff(gKIndexGlobal(ipw,ik),ib), ipw=1,nPWs1k)
         !! Not sure what sorting/unit conversion to do. I'm confused 
         !! because I think the second line with unit conversion is 
         !! correct, but the first line without unit conversion is 
