@@ -1079,6 +1079,12 @@ module wfcExportVASPMod
       !! If the `vasprun.xml` file exists
     logical :: found
       !! If the required tag was found
+    logical :: orbitalMag
+      !! If can safely ignore `VKPT_SHIFT`
+    logical :: spinSpiral
+      !! If spin spirals considered (LSPIRAL)
+    logical :: useRealProj
+      !! If real-space projectors are used (LREAL)
 
     allocate(kWeight(nKPoints))
 
@@ -1117,6 +1123,44 @@ module wfcExportVASPMod
       found = .false.
       do while (.not. found)
         !! * Ignore everything until you get to a
+        !!   line with `'LREAL'`, indicating the
+        !!   tag that determines if real-space 
+        !!   projectors are used
+        
+        read(57, '(A)') line
+
+        if (index(line,'LREAL') /= 0) found = .true.
+        
+      enddo
+
+      read(line,'(a35,L4,a4)') cDum, useRealProj, cDum
+
+      if(useRealProj) call exitError('read_vasprun_xml', &
+        '*** error - expected LREAL = F but got T', 1)
+
+
+      found = .false.
+      do while (.not. found)
+        !! * Ignore everything until you get to a
+        !!   line with `'LSPIRAL'`, indicating the
+        !!   tag that determines if spin spirals are
+        !!   included
+        
+        read(57, '(A)') line
+
+        if (index(line,'LSPIRAL') /= 0) found = .true.
+        
+      enddo
+
+      read(line,'(a37,L4,a4)') cDum, spinSpiral, cDum
+
+      if(spinSpiral) call exitError('read_vasprun_xml', &
+        '*** error - expected LSPIRAL = F but got T', 1)
+
+
+      found = .false.
+      do while (.not. found)
+        !! * Ignore everything until you get to a
         !!   line with `'grids'`, indicating the
         !!   tag surrounding the k-point weights
         
@@ -1132,6 +1176,24 @@ module wfcExportVASPMod
         read(57,'(a28,i6,a4)') cDum, fftGridSize(ix), cDum
 
       enddo
+
+
+      found = .false.
+      do while (.not. found)
+        !! * Ignore everything until you get to a
+        !!   line with `'ORBITALMAG'`, indicating the
+        !!   tag that determines if can ignore `VKPT_SHIFT`
+        
+        read(57, '(A)') line
+
+        if (index(line,'ORBITALMAG') /= 0) found = .true.
+        
+      enddo
+
+      read(line,'(a39,L4,a4)') cDum, orbitalMag, cDum
+
+      if(orbitalMag) call exitError('read_vasprun_xml', &
+        '*** error - expected ORBITALMAG = F but got T', 1)
 
 
       found = .false.
@@ -1223,6 +1285,9 @@ module wfcExportVASPMod
           !! @endnote
 
       enddo
+
+      if(maxval(atomPositionsDir) > 1) call exitError('read_vasprun_xml', &
+        '*** error - expected direct coordinates', 1)
 
     endif
 
@@ -2893,6 +2958,7 @@ module wfcExportVASPMod
         ! @endnote
 
       gVec(:) = gVecMillerIndicesGlobal(:,gKIndexGlobal(ipw,ik))
+      if(ionode) write(49,*) gVec
       gkDir(:) = gVec(:) + kPosition(:,ik)
         ! I belive this recreates the purpose of the original lines 
         ! above by getting \(G+k\) in direct coordinates for only
@@ -3069,14 +3135,15 @@ module wfcExportVASPMod
     if(YDimL < 3) return
       !! Return if the max L quantum number is 2
 
-    !> @note
-    !>  This code only considers up to d electrons! The spherical
-    !>  harmonics are much more complicated to calculate past that 
-    !>  point, but we have no use for it right now, so I am just 
-    !>  going to skip it. 
-    !> @endnote
 
-    !! @todo Add test for YDimL >= 3 @endtodo
+    call exitError('getYlm', &
+        '*** error - expected YDimL < 3', 1)
+      !> @note
+      !>  This code only considers up to d electrons! The spherical
+      !>  harmonics are much more complicated to calculate past that 
+      !>  point, but we have no use for it right now, so I am just 
+      !>  going to skip it. 
+      !> @endnote
 
 
     return
