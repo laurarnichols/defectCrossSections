@@ -101,6 +101,8 @@ module wfcExportVASPMod
   integer, allocatable :: gKIndexGlobal(:,:)
     !! Indices of \(G+k\) vectors for each k-point
     !! and all processors
+  integer, allocatable :: iMill(:)
+    !! Indices of miller indices after sorting
   integer, allocatable :: iType(:)
     !! Atom type index
   integer, allocatable :: gVecMillerIndicesGlobal(:,:)
@@ -1311,7 +1313,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, &
-      nGVecsGlobal, nGVecsLocal)
+      iMill, nGVecsGlobal, nGVecsLocal)
     !! Calculate Miller indices and G-vectors and split
     !! over processors
     !!
@@ -1336,6 +1338,8 @@ module wfcExportVASPMod
       !! Converts local index `ig` to global index
     integer, allocatable, intent(out) :: gVecMillerIndicesGlobal(:,:)
       !! Integer coefficients for G-vectors on all processors
+    integer, allocatable, intent(out) :: iMill(:)
+      !! Indices of miller indices after sorting
     integer, intent(out) :: nGVecsGlobal
       !! Global number of G-vectors
     integer, intent(out) :: nGVecsLocal
@@ -1350,8 +1354,6 @@ module wfcExportVASPMod
 
     integer :: igx, igy, igz, ig, ix
       !! Loop indices
-    integer, allocatable :: iMill(:)
-      !! Indices of miller indices after sorting
     integer, allocatable :: gVecMillerIndicesGlobal_tmp(:,:)
       !! Integer coefficients for G-vectors on all processors
     integer, allocatable :: mill_local(:,:)
@@ -1439,7 +1441,6 @@ module wfcExportVASPMod
 
       enddo
 
-      deallocate(iMill)
       deallocate(gVecMillerIndicesGlobal_tmp)
 
       write(iostd,*) "Done calculating and sorting miller indices"
@@ -1449,6 +1450,9 @@ module wfcExportVASPMod
 
     call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(gVecMillerIndicesGlobal, size(gVecMillerIndicesGlobal), MPI_INTEGER, root, worldComm, ierr)
+
+    if(.not. ionode) allocate(iMill(nGVecsGlobal))
+    call MPI_BCAST(iMill, size(iMill), MPI_INTEGER, root, worldComm, ierr)
 
     if (ionode) then
       write(iostd,*)
@@ -2465,7 +2469,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine projAndWav(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGVecsGlobal, nKPoints, nRecords, nSpins, gKIndexGlobal, &
-        gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+        gVecMillerIndicesGlobal, iMill, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
     implicit none
 
     ! Input variables: 
@@ -2493,6 +2497,8 @@ module wfcExportVASPMod
       !! and all processors
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: iMill(nGVecsGlobal)
+      !! Indices of miller indices after sorting
     integer, intent(in) :: nPWs1kGlobal(nKPoints)
       !! Input number of plane waves for a single k-point
 
@@ -2598,11 +2604,11 @@ module wfcExportVASPMod
             !! out as if they were dependent on spin because that
             !! is how TME currently expects it.
 
-            call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1k, &
+            call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, iMill, nPWs1k, &
                       atomPositionsDir, phaseExp)
 
             call calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1k, gKIndexGlobal, &
-                      gVecMillerIndicesGlobal, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
+                      gVecMillerIndicesGlobal, iMill, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
           endif
 
@@ -2637,7 +2643,7 @@ module wfcExportVASPMod
   end subroutine projAndWav
 
 !----------------------------------------------------------------------------
-  subroutine calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, nPWs1k, &
+  subroutine calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, iMill, nPWs1k, &
                 atomPositionsDir, phaseExp)
     implicit none
 
@@ -2658,6 +2664,8 @@ module wfcExportVASPMod
       !! and all processors
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: iMill(nGVecsGlobal)
+      !! Indices of miller indices after sorting
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
 
@@ -2668,6 +2676,8 @@ module wfcExportVASPMod
     complex(kind=dp), allocatable, intent(out) :: phaseExp(:,:)
 
     ! Local variables:
+    integer :: pwLoc
+      !! Location of PW in unsorted G-vector array
     integer :: ia, ipw
       !! Loop indices
 
@@ -2689,7 +2699,11 @@ module wfcExportVASPMod
 
       do ipw = 1, nPWs1k
 
-        expArg = itwopi*sum(atomPosDir(:)*gVecMillerIndicesGlobal(:,gKIndexGlobal(ipw,ik)))
+        pwLoc = findloc(iMill, gKIndexGlobal(ipw,ik), dim=1)
+          !! Get the location of where this G-vector
+          !! would be in the unsorted PW array
+
+        expArg = itwopi*sum(atomPosDir(:)*gVecMillerIndicesGlobal(:,pwLoc))
           !! \(2\pi i (\mathbf{G} \cdot \mathbf{r})\)
           ! Sorted by G+k length because of use of `gKIndexGlobal(ipw,ik)`
 
@@ -2702,8 +2716,8 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1k, gKIndexGlobal, gVecMillerIndicesGlobal, kPosition, &
-        omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
+  subroutine calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1k, gKIndexGlobal, gVecMillerIndicesGlobal, iMill, &
+        kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
     implicit none
 
     ! Input variables:
@@ -2725,6 +2739,8 @@ module wfcExportVASPMod
       !! and all processors
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: iMill(nGVecsGlobal)
+      !! Indices of miller indices after sorting
 
     real(kind=dp), intent(in) :: kPosition(3,nKPoints)
       !! Position of k-points in reciprocal space
@@ -2783,7 +2799,7 @@ module wfcExportVASPMod
       !! Spherical harmonics
 
 
-    call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, &
+    call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, iMill, nPWs1k, kPosition, &
           recipLattVec, gammaOnly, gkModGlobal, gkUnit, multFact)
 
     YDimL = maxL(nAtomTypes, pot)
@@ -2880,7 +2896,7 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, nPWs1k, kPosition, &
+  subroutine generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, iMill, nPWs1k, kPosition, &
         recipLattVec, gammaOnly, gkModGlobal, gkUnit, multFact)
     implicit none
 
@@ -2899,6 +2915,8 @@ module wfcExportVASPMod
       !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: ik
       !! Current k-point 
+    integer, intent(in) :: iMill(nGVecsGlobal)
+      !! Indices of miller indices after sorting
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
 
@@ -2922,6 +2940,8 @@ module wfcExportVASPMod
     ! Local variables:
     integer :: gVec(3)
       !! Local storage of this G-vector
+    integer :: pwLoc
+      !! Location of PW in unsorted G-vector array
     integer :: ipw, ix
       !! Loop indices
 
@@ -2950,14 +2970,16 @@ module wfcExportVASPMod
         !  `GRID%LPCT*` corresponds to our `gVecMillerIndicesGlobal_tmp`
         !  variable that holds the unsorted G-vectors in Miller indices. 
         !  `WDES%IGX/IGY/IGZ` holds only the G-vectors s.t. \(|G+k| <\)
-        !  cutoff. Their values do not seem to be sorted, but I am going
-        !  to use the sorted array here because I don't think it affects
-        !  the VASP results and it matches up better with the rest of 
-        !  our code. Leaving this here though, in case issues come up
-        !  and this choice needs to be questioned.
+        !  cutoff. Their values do not seem to be sorted, so I use `pwLoc`
+        !  recreate the unsorted order from the sorted array.
         ! @endnote
 
-      gVec(:) = gVecMillerIndicesGlobal(:,gKIndexGlobal(ipw,ik))
+
+      pwLoc = findloc(iMill, gKIndexGlobal(ipw,ik), dim=1)
+        !! Get the location of where this G-vector
+        !! would be in the unsorted PW array
+
+      gVec(:) = gVecMillerIndicesGlobal(:,pwLoc)
       if(ionode) write(49,*) gVec
       gkDir(:) = gVec(:) + kPosition(:,ik)
         ! I belive this recreates the purpose of the original lines 
