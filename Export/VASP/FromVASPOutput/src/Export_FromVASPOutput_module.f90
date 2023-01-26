@@ -101,8 +101,8 @@ module wfcExportVASPMod
   integer, allocatable :: gKIndexGlobal(:,:)
     !! Indices of \(G+k\) vectors for each k-point
     !! and all processors
-  integer, allocatable :: iMill(:)
-    !! Indices of miller indices after sorting
+  integer, allocatable :: iRecov(:)
+    !! Index to recover unsorted array
   integer, allocatable :: iType(:)
     !! Atom type index
   integer, allocatable :: gVecMillerIndicesGlobal(:,:)
@@ -1291,6 +1291,8 @@ module wfcExportVASPMod
       if(maxval(atomPositionsDir) > 1) call exitError('read_vasprun_xml', &
         '*** error - expected direct coordinates', 1)
 
+      close(57)
+
     endif
 
     call MPI_BCAST(kWeight, size(kWeight), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -1313,7 +1315,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, &
-      iMill, nGVecsGlobal, nGVecsLocal)
+      iRecov, nGVecsGlobal, nGVecsLocal)
     !! Calculate Miller indices and G-vectors and split
     !! over processors
     !!
@@ -1338,8 +1340,8 @@ module wfcExportVASPMod
       !! Converts local index `ig` to global index
     integer, allocatable, intent(out) :: gVecMillerIndicesGlobal(:,:)
       !! Integer coefficients for G-vectors on all processors
-    integer, allocatable, intent(out) :: iMill(:)
-      !! Indices of miller indices after sorting
+    integer, allocatable, intent(out) :: iRecov(:)
+      !! Index to recover unsorted array
     integer, intent(out) :: nGVecsGlobal
       !! Global number of G-vectors
     integer, intent(out) :: nGVecsLocal
@@ -1356,6 +1358,8 @@ module wfcExportVASPMod
       !! Loop indices
     integer, allocatable :: gVecMillerIndicesGlobal_tmp(:,:)
       !! Integer coefficients for G-vectors on all processors
+    integer, allocatable :: iMill(:)
+      !! Indices of miller indices after sorting
     integer, allocatable :: mill_local(:,:)
       !! Integer coefficients for G-vectors
     integer :: millX, millY, millZ
@@ -1365,7 +1369,7 @@ module wfcExportVASPMod
       !! Max number of plane waves
 
 
-    npmax = (fftGridSize(1)+1)*(fftGridSize(2)+1)*(fftGridSize(3)+1) 
+    npmax = fftGridSize(1)*fftGridSize(2)*fftGridSize(3) 
     allocate(gVecMillerIndicesGlobal(3,npmax))
     allocate(millSum(npmax))
 
@@ -1382,23 +1386,23 @@ module wfcExportVASPMod
 
       !> * Generate Miller indices for every possible G-vector
       !>   regardless of the \(|G+k|\) cutoff
-      do igz = 1, fftGridSize(3)+1
+      do igz = 1, fftGridSize(3)
 
         millZ = igz - 1
 
-        if (igz - 1 .gt. fftGridSize(3)/2) millZ = igz - 1 - (fftGridSize(3) + 1)
+        if (igz - 1 .gt. fftGridSize(3)/2) millZ = igz - 1 - fftGridSize(3)
 
-        do igy = 1, fftGridSize(2)+1
+        do igy = 1, fftGridSize(2)
 
           millY = igy - 1
 
-          if (igy - 1 .gt. fftGridSize(2)/2) millY = igy - 1 - (fftGridSize(2) + 1)
+          if (igy - 1 .gt. fftGridSize(2)/2) millY = igy - 1 - fftGridSize(2)
 
-          do igx = 1, fftGridSize(1)+1
+          do igx = 1, fftGridSize(1)
 
             millX = igx - 1
 
-            if (igx - 1 .gt. fftGridSize(1)/2) millX = igx - 1 - (fftGridSize(1) + 1)
+            if (igx - 1 .gt. fftGridSize(1)/2) millX = igx - 1 - fftGridSize(1)
 
             nGVecsGlobal = nGVecsGlobal + 1
 
@@ -1422,6 +1426,7 @@ module wfcExportVASPMod
       write(iostd,*) "Sorting miller indices"
 
       allocate(iMill(nGVecsGlobal))
+      allocate(iRecov(nGVecsGlobal))
 
       do ig = 1, nGVecsGlobal
         !! * Initialize the index array that will track elements
@@ -1431,8 +1436,9 @@ module wfcExportVASPMod
 
       enddo
 
-      call hpsort_eps(nGVecsGlobal, millSum, iMill, eps8)
+      call hpsort_eps(nGVecsGlobal, millSum, iMill, iRecov, .true., .true., eps8)
         !! * Order vector `millSum` keeping initial position in `iMill`
+
 
       do ig = 1, nGVecsGlobal
         !! * Rearrange the miller indices to match order of `millSum`
@@ -1441,18 +1447,20 @@ module wfcExportVASPMod
 
       enddo
 
+      deallocate(iMill)
       deallocate(gVecMillerIndicesGlobal_tmp)
 
-      write(iostd,*) "Done calculating and sorting miller indices"
-      write(iostd,*) "***************"
-      write(iostd,*)
+      write(*,*) "Done calculating and sorting miller indices"
+      write(*,*) "***************"
+      write(*,*)
     endif
 
     call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(gVecMillerIndicesGlobal, size(gVecMillerIndicesGlobal), MPI_INTEGER, root, worldComm, ierr)
 
-    if(.not. ionode) allocate(iMill(nGVecsGlobal))
-    call MPI_BCAST(iMill, size(iMill), MPI_INTEGER, root, worldComm, ierr)
+    if(.not. ionode) allocate(iRecov(nGVecsGlobal))
+    call MPI_BCAST(iRecov, size(iRecov), MPI_INTEGER, root, worldComm, ierr)
+
 
     if (ionode) then
       write(iostd,*)
@@ -1649,6 +1657,9 @@ module wfcExportVASPMod
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this 
       !! processor
+    integer :: tmpArr(1)
+      !! Temporary array to ignore recovery index
+      !! from sorting algorithm
 
     allocate(nGkLessECutLocal(nkPerPool))
     allocate(gToGkIndexMap(nkPerPool,nGVecsLocal))
@@ -1774,6 +1785,7 @@ module wfcExportVASPMod
       write(iostd,*) "Sorting G+k combinations by magnitude"
     endif
 
+
     do ik = 1, nkPerPool
       !! * Reorder the indices of the G-vectors so that
       !!   they are sorted by \(|G+k|^2\) for each k-point
@@ -1782,7 +1794,7 @@ module wfcExportVASPMod
 
       igk(1:ngk_tmp) = gToGkIndexMap(ik,1:ngk_tmp)
 
-      call hpsort_eps(ngk_tmp, gkMod(ik,:), igk, eps8)
+      call hpsort_eps(ngk_tmp, gkMod(ik,:), igk, tmpArr, .false., .false., eps8)
         ! Order vector `gkMod` keeping initial position in `igk`
 
       do ig = 1, ngk_tmp
@@ -1795,6 +1807,7 @@ module wfcExportVASPMod
 
     enddo
 
+
     if (ionode) then
       write(iostd,*) "Done sorting G+k combinations by magnitude"
       write(iostd,*) "***************"
@@ -1802,6 +1815,7 @@ module wfcExportVASPMod
     endif
 
     deallocate(igk)
+
 
     maxGIndexLocal = maxval(gKIndexLocalToGlobal(:,:))
     call MPI_ALLREDUCE(maxGIndexLocal, maxGIndexGlobal, 1, MPI_INTEGER, MPI_MAX, worldComm, ierr)
@@ -1956,7 +1970,7 @@ module wfcExportVASPMod
   end subroutine getGlobalGkIndices
 
 !----------------------------------------------------------------------------
-  subroutine hpsort_eps(n, ra, ind, eps)
+  subroutine hpsort_eps(n, ra, indSrt, indRecov, sortIndSeq_in, calcIndRecov, eps)
     !! Sort an array ra(1:n) into ascending order using heapsort algorithm,
     !! considering two elements equal if their difference is less than `eps`
     !!
@@ -1980,21 +1994,59 @@ module wfcExportVASPMod
     ! Input/Output variables:
     real(kind=dp), intent(in) :: eps
     integer, intent(in) :: n
+    logical, intent(in) :: calcIndRecov
+      !! If the recovery index array should be calculated
+    logical, intent(in) :: sortIndSeq_in
+      !! If the sort index is sequential (input value)
 
-    integer, intent(inout) :: ind(:)
+    integer, intent(inout) :: indSrt(:)
+    integer, intent(inout) :: indRecov(:)
     real(kind=dp), intent(inout) :: ra (:)
 
 
     ! Local variables
-    integer :: i, ir, j, l, iind
+    integer, allocatable :: indSrtSeq(:)
+      !! Sequential index to sort in order to
+      !! calculate the recovery index properly
+    integer :: i, ir, j, l, iind, iindSeq
     real(kind=dp) :: rra
+    logical :: sortIndSeq
+      !! If the sort index is sequential
 
-    ! initialize index array
-    if (ind (1) .eq.0) then
+    sortIndSeq = sortIndSeq_in
+
+    !> Initialize index array, if not already initialized
+    !> and set the sort-index sequential logical to true
+    if (indSrt (1) .eq.0) then
+
+      sortIndSeq = .true.
+
       do i = 1, n
-        ind (i) = i
+        indSrt(i) = i
       enddo
     endif
+
+    !> If the recovery index should be calculated and
+    !> the input sort index is not sequential, then
+    !> create a separate sequential sort index so that
+    !> the recovery index can be calculated
+    if(calcIndRecov .and. .not. sortIndSeq) then
+      allocate(indSrtSeq(n))
+
+      do i = 1, n
+        indSrtSeq(i) = i
+      enddo
+    else
+      allocate(indSrtSeq(1))
+    endif
+
+    !> Initialize recovery index if it should be calculated
+    if(calcIndRecov) then
+      do i = 1, n
+        indRecov(i) = i
+      enddo
+    endif
+
     ! nothing to order
     if (n.lt.2) return
     ! initialize indices for hiring and retirement-promotion phase
@@ -2002,79 +2054,261 @@ module wfcExportVASPMod
 
     ir = n
 
-    sorting: do
+    if(calcIndRecov .and. sortIndSeq) then
+      !! If the original sorting index is sequential
+      !! and the recovery index should be calculated,
+      !! sort while tracking the recovery index using
+      !! the original sorting index
 
-      ! still in hiring phase
-      if ( l .gt. 1 ) then
-        l    = l - 1
-        rra  = ra (l)
-        iind = ind (l)
-        ! in retirement-promotion phase.
-      else
-        ! clear a space at the end of the array
-        rra  = ra (ir)
-        !
-        iind = ind (ir)
-        ! retire the top of the heap into it
-        ra (ir) = ra (1)
-        !
-        ind (ir) = ind (1)
-        ! decrease the size of the corporation
-        ir = ir - 1
-        ! done with the last promotion
-        if ( ir .eq. 1 ) then
-          ! the least competent worker at all !
-          ra (1)  = rra
-          !
-          ind (1) = iind
-          exit sorting
-        endif
-      endif
-      ! wheter in hiring or promotion phase, we
-      i = l
-      ! set up to place rra in its proper level
-      j = l + l
-      !
-      do while ( j .le. ir )
-        if ( j .lt. ir ) then
-          ! compare to better underling
-          if ( abs(ra(j)-ra(j+1)).ge.eps ) then
-            if (ra(j).lt.ra(j+1)) j = j + 1
-          else
-            ! this means ra(j) == ra(j+1) within tolerance
-            if (ind (j) .lt.ind (j + 1) ) j = j + 1
-          endif
-        endif
-        ! demote rra
-        if ( abs(rra - ra(j)).ge.eps ) then
-          if (rra.lt.ra(j)) then
-            ra (i) = ra (j)
-            ind (i) = ind (j)
-            i = j
-            j = j + j
-          else
-            ! set j to terminate do-while loop
-            j = ir + 1
-          end if
+      sortingWRecovSeq: do
+
+        ! still in hiring phase
+        if ( l .gt. 1 ) then
+          l    = l - 1
+          rra  = ra (l)
+          iind = indSrt(l)
+          ! in retirement-promotion phase.
         else
-          !this means rra == ra(j) within tolerance
-          ! demote rra
-          if (iind.lt.ind (j) ) then
-            ra (i) = ra (j)
-            ind (i) = ind (j)
-            i = j
-            j = j + j
-          else
-            ! set j to terminate do-while loop
-            j = ir + 1
+          ! clear a space at the end of the array
+          rra  = ra (ir)
+          !
+          iind = indSrt(ir)
+          ! retire the top of the heap into it
+          ra (ir) = ra (1)
+          !
+          indRecov(indSrt(1)) = ir
+          indSrt(ir) = indSrt(1)
+          ! decrease the size of the corporation
+          ir = ir - 1
+          ! done with the last promotion
+          if ( ir .eq. 1 ) then
+            ! the least competent worker at all !
+            ra (1)  = rra
+            !
+            indRecov(iind) = 1
+            indSrt(1) = iind
+            exit sortingWRecovSeq
           endif
-        end if
-      enddo
-      ra (i) = rra
-      ind (i) = iind
+        endif
+        ! wheter in hiring or promotion phase, we
+        i = l
+        ! set up to place rra in its proper level
+        j = l + l
+        !
+        do while ( j .le. ir )
+          if ( j .lt. ir ) then
+            ! compare to better underling
+            if ( abs(ra(j)-ra(j+1)).ge.eps ) then
+              if (ra(j).lt.ra(j+1)) j = j + 1
+            else
+              ! this means ra(j) == ra(j+1) within tolerance
+              if (indSrt(j) .lt.indSrt(j + 1) ) j = j + 1
+            endif
+          endif
+          ! demote rra
+          if ( abs(rra - ra(j)).ge.eps ) then
+            if (rra.lt.ra(j)) then
+              ra (i) = ra (j)
+              indRecov(indSrt(j)) = i
+              indSrt(i) = indSrt(j)
+              i = j
+              j = j + j
+            else
+              ! set j to terminate do-while loop
+              j = ir + 1
+            end if
+          else
+            !this means rra == ra(j) within tolerance
+            ! demote rra
+            if (iind.lt.indSrt(j) ) then
+              ra (i) = ra (j)
+              indRecov(indSrt(j)) = i
+              indSrt(i) = indSrt(j)
+              i = j
+              j = j + j
+            else
+              ! set j to terminate do-while loop
+              j = ir + 1
+            endif
+          end if
+        enddo
+        ra (i) = rra
+        indRecov(iind) = i
+        indSrt(i) = iind
 
-    end do sorting
+      end do sortingWRecovSeq
 
+    else if(calcIndRecov .and. .not. sortIndSeq) then
+      !! If the recovery index should be calculated
+      !! but the original sorting index is not sequential,
+      !! sort the original sorting index while tracking
+      !! the recovery index using a separate sequential index
+
+      sortingWRecovNoSeq: do
+
+        ! still in hiring phase
+        if ( l .gt. 1 ) then
+          l    = l - 1
+          rra  = ra (l)
+          iind = indSrt(l)
+          iindSeq = indSrtSeq(l)
+          ! in retirement-promotion phase.
+        else
+          ! clear a space at the end of the array
+          rra  = ra (ir)
+          !
+          iind = indSrt(ir)
+          iindSeq = indSrtSeq(ir)
+          ! retire the top of the heap into it
+          ra (ir) = ra (1)
+          !
+          indRecov(indSrtSeq(1)) = ir
+          indSrtSeq(ir) = indSrtSeq(1)
+          indSrt(ir) = indSrt(1)
+          ! decrease the size of the corporation
+          ir = ir - 1
+          ! done with the last promotion
+          if ( ir .eq. 1 ) then
+            ! the least competent worker at all !
+            ra (1)  = rra
+            !
+            indRecov(iindSeq) = 1
+            indSrtSeq(1) = iindSeq
+            indSrt(1) = iind
+            exit sortingWRecovNoSeq
+          endif
+        endif
+        ! wheter in hiring or promotion phase, we
+        i = l
+        ! set up to place rra in its proper level
+        j = l + l
+        !
+        do while ( j .le. ir )
+          if ( j .lt. ir ) then
+            ! compare to better underling
+            if ( abs(ra(j)-ra(j+1)).ge.eps ) then
+              if (ra(j).lt.ra(j+1)) j = j + 1
+            else
+              ! this means ra(j) == ra(j+1) within tolerance
+              if (indSrt(j) .lt.indSrt(j + 1) ) j = j + 1
+            endif
+          endif
+          ! demote rra
+          if ( abs(rra - ra(j)).ge.eps ) then
+            if (rra.lt.ra(j)) then
+              ra (i) = ra (j)
+              indRecov(indSrtSeq(j)) = i
+              indSrtSeq(i) = indSrtSeq(j)
+              indSrt(i) = indSrt(j)
+              i = j
+              j = j + j
+            else
+              ! set j to terminate do-while loop
+              j = ir + 1
+            end if
+          else
+            !this means rra == ra(j) within tolerance
+            ! demote rra
+            if (iind.lt.indSrt(j) ) then
+              ra (i) = ra (j)
+              indRecov(indSrtSeq(j)) = i
+              indSrtSeq(i) = indSrtSeq(j)
+              indSrt(i) = indSrt(j)
+              i = j
+              j = j + j
+            else
+              ! set j to terminate do-while loop
+              j = ir + 1
+            endif
+          end if
+        enddo
+        ra (i) = rra
+        indRecov(iindSeq) = i
+        indSrtSeq(i) = iindSeq
+        indSrt(i) = iind
+
+      end do sortingWRecovNoSeq
+
+    else
+      !! Otherwise, only sort the original index
+
+      sortingNoRecov: do
+
+        ! still in hiring phase
+        if ( l .gt. 1 ) then
+          l    = l - 1
+          rra  = ra (l)
+          iind = indSrt(l)
+          ! in retirement-promotion phase.
+        else
+          ! clear a space at the end of the array
+          rra  = ra (ir)
+          !
+          iind = indSrt(ir)
+          ! retire the top of the heap into it
+          ra (ir) = ra (1)
+          !
+          indSrt(ir) = indSrt(1)
+          ! decrease the size of the corporation
+          ir = ir - 1
+          ! done with the last promotion
+          if ( ir .eq. 1 ) then
+            ! the least competent worker at all !
+            ra (1)  = rra
+            !
+            indSrt(1) = iind
+            exit sortingNoRecov
+          endif
+        endif
+        ! wheter in hiring or promotion phase, we
+        i = l
+        ! set up to place rra in its proper level
+        j = l + l
+        !
+        do while ( j .le. ir )
+          if ( j .lt. ir ) then
+            ! compare to better underling
+            if ( abs(ra(j)-ra(j+1)).ge.eps ) then
+              if (ra(j).lt.ra(j+1)) j = j + 1
+            else
+              ! this means ra(j) == ra(j+1) within tolerance
+              if (indSrt(j) .lt.indSrt(j + 1) ) j = j + 1
+            endif
+          endif
+          ! demote rra
+          if ( abs(rra - ra(j)).ge.eps ) then
+            if (rra.lt.ra(j)) then
+              ra (i) = ra (j)
+              indSrt(i) = indSrt(j)
+              i = j
+              j = j + j
+            else
+              ! set j to terminate do-while loop
+              j = ir + 1
+            end if
+          else
+            !this means rra == ra(j) within tolerance
+            ! demote rra
+            if (iind.lt.indSrt(j) ) then
+              ra (i) = ra (j)
+              indSrt(i) = indSrt(j)
+              i = j
+              j = j + j
+            else
+              ! set j to terminate do-while loop
+              j = ir + 1
+            endif
+          end if
+        enddo
+        ra (i) = rra
+        indSrt(i) = iind
+
+      end do sortingNoRecov
+
+    endif
+
+    deallocate(indSrtSeq)
+    
     return 
   end subroutine hpsort_eps
 
@@ -2469,7 +2703,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine projAndWav(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGVecsGlobal, nKPoints, nRecords, nSpins, gKIndexGlobal, &
-        gVecMillerIndicesGlobal, iMill, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+        gVecMillerIndicesGlobal, iRecov, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
     implicit none
 
     ! Input variables: 
@@ -2497,8 +2731,8 @@ module wfcExportVASPMod
       !! and all processors
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
-    integer, intent(in) :: iMill(nGVecsGlobal)
-      !! Indices of miller indices after sorting
+    integer, intent(in) :: iRecov(nGVecsGlobal)
+      !! Index to recover unsorted array
     integer, intent(in) :: nPWs1kGlobal(nKPoints)
       !! Input number of plane waves for a single k-point
 
@@ -2604,11 +2838,11 @@ module wfcExportVASPMod
             !! out as if they were dependent on spin because that
             !! is how TME currently expects it.
 
-            call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, iMill, nPWs1k, &
+            call calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, iRecov, nPWs1k, &
                       atomPositionsDir, phaseExp)
 
             call calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1k, gKIndexGlobal, &
-                      gVecMillerIndicesGlobal, iMill, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
+                      gVecMillerIndicesGlobal, iRecov, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
           endif
 
@@ -2643,7 +2877,7 @@ module wfcExportVASPMod
   end subroutine projAndWav
 
 !----------------------------------------------------------------------------
-  subroutine calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, iMill, nPWs1k, &
+  subroutine calculatePhase(ik, maxNumPWsGlobal, nAtoms, nGVecsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, iRecov, nPWs1k, &
                 atomPositionsDir, phaseExp)
     implicit none
 
@@ -2664,8 +2898,8 @@ module wfcExportVASPMod
       !! and all processors
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
-    integer, intent(in) :: iMill(nGVecsGlobal)
-      !! Indices of miller indices after sorting
+    integer, intent(in) :: iRecov(nGVecsGlobal)
+      !! Index to recover unsorted array
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
 
@@ -2699,7 +2933,7 @@ module wfcExportVASPMod
 
       do ipw = 1, nPWs1k
 
-        pwLoc = findloc(iMill, gKIndexGlobal(ipw,ik), dim=1)
+        pwLoc = iRecov(gKIndexGlobal(ipw,ik))
           !! Get the location of where this G-vector
           !! would be in the unsorted PW array
 
@@ -2716,7 +2950,7 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1k, gKIndexGlobal, gVecMillerIndicesGlobal, iMill, &
+  subroutine calculateRealProjWoPhase(fftGridSize, ik, maxNumPWsGlobal, nAtomTypes, nKPoints, nPWs1k, gKIndexGlobal, gVecMillerIndicesGlobal, iRecov, &
         kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
     implicit none
 
@@ -2739,8 +2973,8 @@ module wfcExportVASPMod
       !! and all processors
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
-    integer, intent(in) :: iMill(nGVecsGlobal)
-      !! Indices of miller indices after sorting
+    integer, intent(in) :: iRecov(nGVecsGlobal)
+      !! Index to recover unsorted array
 
     real(kind=dp), intent(in) :: kPosition(3,nKPoints)
       !! Position of k-points in reciprocal space
@@ -2799,7 +3033,7 @@ module wfcExportVASPMod
       !! Spherical harmonics
 
 
-    call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, iMill, nPWs1k, kPosition, &
+    call generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, iRecov, nPWs1k, kPosition, &
           recipLattVec, gammaOnly, gkModGlobal, gkUnit, multFact)
 
     YDimL = maxL(nAtomTypes, pot)
@@ -2896,7 +3130,7 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, iMill, nPWs1k, kPosition, &
+  subroutine generateGridTable(fftGridSize, maxNumPWsGlobal, nKPoints, gKIndexGlobal, gVecMillerIndicesGlobal, ik, iRecov, nPWs1k, kPosition, &
         recipLattVec, gammaOnly, gkModGlobal, gkUnit, multFact)
     implicit none
 
@@ -2915,8 +3149,8 @@ module wfcExportVASPMod
       !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: ik
       !! Current k-point 
-    integer, intent(in) :: iMill(nGVecsGlobal)
-      !! Indices of miller indices after sorting
+    integer, intent(in) :: iRecov(nGVecsGlobal)
+      !! Index to recover unsorted array
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
 
@@ -2975,7 +3209,7 @@ module wfcExportVASPMod
         ! @endnote
 
 
-      pwLoc = findloc(iMill, gKIndexGlobal(ipw,ik), dim=1)
+      pwLoc = iRecov(gKIndexGlobal(ipw,ik))
         !! Get the location of where this G-vector
         !! would be in the unsorted PW array
 

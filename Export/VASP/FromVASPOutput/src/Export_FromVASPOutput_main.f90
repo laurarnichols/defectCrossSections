@@ -68,7 +68,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Calculating G-vectors"
 
-  call calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, iMill, nGVecsGlobal, nGVecsLocal)
+  call calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, iRecov, nGVecsGlobal, nGVecsLocal)
     !! * Calculate Miller indices and G-vectors and split
     !!   over processors
 
@@ -85,6 +85,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Done reconstructing FFT grid"
 
+  write(*,*) myid, " is here 3.7"
 
   deallocate(gIndexLocalToGlobal)
   deallocate(gVecInCart)
@@ -103,7 +104,7 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Getting and writing projectors, projections, and wfc"
 
   call projAndWav(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGVecsGlobal, nKPoints, nRecords, nSpins, gKIndexGlobal, &
-        gVecMillerIndicesGlobal, iMill, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+        gVecMillerIndicesGlobal, iRecov, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
   if (ionode) write(iostd,*) "Done getting and writing projectors, projections, and wfc"
 
