@@ -85,7 +85,6 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Done reconstructing FFT grid"
 
-  write(*,*) myid, " is here 3.7"
 
   deallocate(gIndexLocalToGlobal)
   deallocate(gVecInCart)
