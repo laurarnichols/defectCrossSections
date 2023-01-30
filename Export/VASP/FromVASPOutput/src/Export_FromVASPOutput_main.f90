@@ -68,7 +68,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Calculating G-vectors"
 
-  call calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, iRecov, nGVecsGlobal, nGVecsLocal)
+  call calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, iMill, nGVecsGlobal, nGVecsLocal)
     !! * Calculate Miller indices and G-vectors and split
     !!   over processors
 
@@ -78,7 +78,8 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Reconstructing FFT grid"
 
   call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, wfcVecCut, kPosition, &
-      gKIndexGlobal, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
+      gKIndexGlobal, gKIndexOrigOrderGlobal, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, &
+      maxNumPWsGlobal, maxNumPWsPool)
     !! * Determine which G-vectors result in \(G+k\)
     !!   below the energy cutoff for each k-point and
     !!   sort the indices based on \(|G+k|^2\)
@@ -102,13 +103,13 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Getting and writing projectors, projections, and wfc"
 
-  call projAndWav(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGVecsGlobal, nKPoints, nRecords, nSpins, gKIndexGlobal, &
-        gVecMillerIndicesGlobal, iRecov, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+  call projAndWav(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGVecsGlobal, nKPoints, nRecords, nSpins, gKIndexOrigOrderGlobal, &
+        gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
   if (ionode) write(iostd,*) "Done getting and writing projectors, projections, and wfc"
 
 
-  deallocate(nPWs1kGlobal)
+  deallocate(nPWs1kGlobal, gKIndexOrigOrderGlobal)
 
 
   if (ionode) write(iostd,*) "Writing k-point info"
