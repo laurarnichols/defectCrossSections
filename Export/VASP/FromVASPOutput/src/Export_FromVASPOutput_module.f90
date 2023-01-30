@@ -3263,7 +3263,7 @@ module wfcExportVASPMod
 
     allocate(pseudoV(nPWs1k))
 
-    divSqrtOmega = 1/sqrt(omega)
+    divSqrtOmega = 1/sqrt(omega/angToBohr**3)
 
     GkLenToPseudoGrid = nonlPseudoGridSize/pot%maxGkNonlPs
       !! * Define a scale factor for the argument based on the
@@ -3427,7 +3427,6 @@ module wfcExportVASPMod
     enddo
 
     close(projOutUnit)
-
 
     return
   end subroutine writeProjectors
