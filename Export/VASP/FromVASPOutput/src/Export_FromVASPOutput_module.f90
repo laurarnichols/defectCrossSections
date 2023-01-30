@@ -3577,14 +3577,12 @@ module wfcExportVASPMod
       !! ID for the node that outputs for this k-point
     integer :: projOutUnit
       !! Process-dependent file unit for `projections.ik`
-    integer :: ib, iT, ia, iaBase, ilm, ipw
+    integer :: ib, iT, ia, iaBase, ilm
       !! Loop indices
 
     character(len=300) :: indexC
       !! Character index
 
-    complex(kind=dp) :: itwopi = (0._dp, 1._dp)*twopi
-      !! Complex phase exponential
     complex*8 :: projection
       !! Projection for current atom/band/lm channel
 
@@ -3606,20 +3604,9 @@ module wfcExportVASPMod
       do iT = 1, nAtomTypes
         do ia = iaBase, nAtomsEachType(iT)+iaBase-1
           do ilm = 1, pot(iT)%lmmax
-            projection = 0._dp
-              ! Initialize this projection
 
-            do ipw = 1, nPWs1k
-
-              projection = projection + realProjWoPhase(ipw,ilm,iT)*phaseExp(ipw,ia)*coeff(ipw,ib)
-                ! Perform sum for this projection
-                ! `realProjWoPhase` and `phaseExp` are already in the correct order,
-                ! but `coeff` isn't, so it needs to be indexed using `gKIndexGlobal(ipw,ik)`.
-            
-            enddo
-
-            projection = projection*itwopi*compFact(ilm,iT)
-              ! Multiply by complex prefactors
+            projection = compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*phaseExp(:,ia)*coeff(:,ib))
+              ! Calculate projection (sum over plane waves)
 
             write(projOutUnit,'(2ES24.15E3)') projection
 
