@@ -78,7 +78,7 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Reconstructing FFT grid"
 
   call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, wfcVecCut, kPosition, &
-      gKIndexGlobal, gKIndexOrigOrderGlobal, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, &
+      gKIndexGlobal, gKIndexOrigOrderGlobal, gKIndexLocalToGlobal, gKSort, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, &
       maxNumPWsGlobal, maxNumPWsPool)
     !! * Determine which G-vectors result in \(G+k\)
     !!   below the energy cutoff for each k-point and
@@ -104,7 +104,7 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Getting and writing projectors, projections, and wfc"
 
   call projAndWav(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGVecsGlobal, nKPoints, nRecords, nSpins, gKIndexOrigOrderGlobal, &
-        gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+        gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
   if (ionode) write(iostd,*) "Done getting and writing projectors, projections, and wfc"
 

@@ -104,6 +104,9 @@ module wfcExportVASPMod
   integer, allocatable :: gKIndexOrigOrderGlobal(:,:)
     !! Indices of \(G+k\) vectors for each k-point
     !! and all processors in the original order
+  integer, allocatable :: gKSort(:,:)
+    !! Indices to recover sorted order on reduced
+    !! \(G+k\) grid
   integer, allocatable :: iMill(:)
     !! Indices of miller indices after sorting
   integer, allocatable :: iType(:)
@@ -1565,7 +1568,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, wfcVecCut, kPosition, gKIndexGlobal, &
-      gKIndexOrigOrderGlobal, gKIndexLocalToGlobal, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
+      gKIndexOrigOrderGlobal, gKIndexLocalToGlobal, gKSort, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
     !! sort the indices based on \(|G+k|^2\)
@@ -1606,6 +1609,9 @@ module wfcExportVASPMod
     integer, allocatable, intent(out) :: gKIndexLocalToGlobal(:,:)
       !! Local to global indices for \(G+k\) vectors 
       !! ordered by magnitude at a given k-point
+    integer, allocatable, intent(out) :: gKSort(:,:)
+      !! Indices to recover sorted order on reduced
+      !! \(G+k\) grid
     integer, allocatable, intent(out) :: gToGkIndexMap(:,:)
       !! Index map from \(G\) to \(G+k\);
       !! indexed up to `nGVecsLocal` which
@@ -1638,6 +1644,8 @@ module wfcExportVASPMod
       !! only stored if less than `wfcVecCut`
     real(kind=dp) :: q
       !! \(|q|^2\) where \(q = G+k\)
+    real(kind=dp), allocatable :: realGKOrigOrder(:)
+      !! Indices of \(G+k\) in original order
     real(kind=dp), allocatable :: realiMillGk(:)
       !! Indices of miller indices after sorting
     real(kind=dp) :: xkCart(3)
@@ -1848,16 +1856,20 @@ module wfcExportVASPMod
     enddo
 
     allocate(gKIndexOrigOrderGlobal(maxNumPWsGlobal, nKPoints))
+    allocate(gKSort(maxNumPWsGlobal, nKPoints))
 
     gKIndexOrigOrderGlobal = gKIndexGlobal
+    gKSort = 0._dp
 
     if(ionode) then
 
       allocate(realiMillGk(maxNumPWsGlobal))
+      allocate(realGKOrigOrder(maxNumPWsGlobal))
 
       do ik = 1, nKPoints
 
-        realiMillGk = 0
+        realiMillGk = 0._dp
+        realGKOrigOrder = 0._dp
         ngk_tmp = nGkLessECutGlobal(ik)
 
         do ig = 1, ngk_tmp
@@ -1866,6 +1878,11 @@ module wfcExportVASPMod
             !! * Get only the original indices that correspond
             !!   to G vectors s.t. \(|G+k|\) is less than the
             !!   cutoff
+
+          gKSort(ig,ik) = ig
+            !! * Initialize an array that will recover the sorted
+            !!   order of the G-vectors from only the \(G+k\) sub-grid
+            !!   rather than the full G-vector grid like `gKIndexGlobal`
 
         enddo
 
@@ -1877,14 +1894,25 @@ module wfcExportVASPMod
           !!   interface for different types, but we don't really need that here
           !!   and it shouldn't affect the results. 
 
+
+        realGKOrigOrder(1:ngk_tmp) = real(gKIndexOrigOrderGlobal(1:ngk_tmp,ik))
+
+        call hpsort_eps(ngk_tmp, realGKOrigOrder(1:ngk_tmp), gKSort(1:ngk_tmp,ik), eps8)
+          !! * Sort another index by `gKIndexOrigOrder`. This index will allow
+          !!   us to recreate the sorted order on the reduced \(G+k\) grid. We
+          !!   need this for outputting the wave functions, projectors, and
+          !!   projections in the order that `TME` expects them.
+
       enddo
 
       deallocate(realiMillGk)
+      deallocate(realGKOrigOrder)
       deallocate(iMill)
 
     endif
 
     call MPI_BCAST(gKIndexOrigOrderGlobal, size(gKIndexOrigOrderGlobal), MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(gKSort, size(gKSort), MPI_INTEGER, root, worldComm, ierr)
 
     if(ionode) then
 
@@ -2529,7 +2557,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine projAndWav(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGVecsGlobal, nKPoints, nRecords, nSpins, gKIndexOrigOrderGlobal, &
-        gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+        gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
     implicit none
 
     ! Input variables: 
@@ -2555,6 +2583,9 @@ module wfcExportVASPMod
     integer, intent(in) :: gKIndexOrigOrderGlobal(maxNumPWsGlobal, nKPoints)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors in the original order
+    integer, intent(in) :: gKSort(maxNumPWsGlobal, nKPoints)
+      !! Indices to recover sorted order on reduced
+      !! \(G+k\) grid
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: nPWs1kGlobal(nKPoints)
@@ -2583,8 +2614,6 @@ module wfcExportVASPMod
     ! Local variables:
     integer :: ionode_k_id
       !! ID for node that output for this k-point
-    integer :: maxGkNum
-      !! Maximum number of \(G+k\) combinations
     integer :: nPWs1k
       !! Input number of plane waves for the given k-point
     integer :: irec
@@ -2611,10 +2640,6 @@ module wfcExportVASPMod
       !! this k-point
 
 
-    maxGkNum = maxval(nPWs1kGlobal)
-      !! * Calculate the max number of PWs (G+k combinations)
-      !!   across all k-points
-
     !> * Only allocate the large array for the plane-wave
     !>   coefficients if you are going to be one of the
     !>   processes to output data. This large array is likely
@@ -2622,7 +2647,7 @@ module wfcExportVASPMod
     !>   you get that, try using only a portion of the 
     !>   available processes on the node.
     if(myid < nKPoints) then
-      allocate(coeff(maxGkNum,nBands))
+      allocate(coeff(maxNumPWsGlobal,nBands))
     else
       allocate(realProjWoPhase(1,1,1))
       allocate(coeff(1,1))
@@ -2672,16 +2697,16 @@ module wfcExportVASPMod
 
           write(*,*) "    Writing projectors of k-point ", ik, " and spin ", isp
 
-          call writeProjectors(ik, isp, nAtoms, iType, nAtomTypes, nAtomsEachType, nKPoints, nPWs1k, realProjWoPhase, compFact, &
-                    phaseExp, exportDir, pot)
+          call writeProjectors(ik, isp, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nKPoints, nPWs1k, gKSort, realProjWoPhase, &
+                    compFact, phaseExp, exportDir, pot)
 
           write(*,*) "    Reading and writing wave function for k-point ", ik, " and spin ", isp
 
-          call readAndWriteWavefunction(ik, isp, maxGkNum, maxNumPWsGlobal, nBands, nKPoints, nPWs1k, gKIndexOrigOrderGlobal, exportDir, irec, coeff)
+          call readAndWriteWavefunction(ik, isp, maxNumPWsGlobal, nBands, nKPoints, nPWs1k, gKSort, exportDir, irec, coeff)
 
           write(*,*) "    Getting and writing projections for k-point ", ik, " and spin ", isp
 
-          call getAndWriteProjections(ik, isp, maxGkNum, maxNumPWsGlobal, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, gKIndexOrigOrderGlobal, &
+          call getAndWriteProjections(ik, isp, maxNumPWsGlobal, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, gKIndexOrigOrderGlobal, &
                     realProjWoPhase, compFact, phaseExp, coeff, exportDir, pot)
 
         else
@@ -3329,7 +3354,8 @@ module wfcExportVASPMod
   end subroutine getPseudoV
 
 !----------------------------------------------------------------------------
-  subroutine writeProjectors(ik, isp, nAtoms, iType, nAtomTypes, nAtomsEachType, nKPoints, nPWs1k, realProjWoPhase, compFact, phaseExp, exportDir, pot)
+  subroutine writeProjectors(ik, isp, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nKPoints, nPWs1k, gKSort, realProjWoPhase, &
+        compFact, phaseExp, exportDir, pot)
 
     use miscUtilities, only: int2str
 
@@ -3344,6 +3370,9 @@ module wfcExportVASPMod
       !! Number of atoms
     integer, intent(in) :: iType(nAtoms)
       !! Atom type index
+    integer, intent(in) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with energy
+      !! less than `wfcECut` among all k-points
     integer, intent(in) :: nAtomTypes
       !! Number of types of atoms
     integer, intent(in) :: nAtomsEachType(nAtomTypes)
@@ -3352,6 +3381,9 @@ module wfcExportVASPMod
       !! Total number of k-points
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
+    integer, intent(in) :: gKSort(maxNumPWsGlobal, nKPoints)
+      !! Indices to recover sorted order on reduced
+      !! \(G+k\) grid
 
     real(kind=dp), intent(in) :: realProjWoPhase(nPWs1k,64,nAtomTypes)
       !! Real projectors without phase
@@ -3411,7 +3443,7 @@ module wfcExportVASPMod
         do ipw = 1, nPWs1k
           !! Calculate \(|\beta\rangle\)
 
-          write(projOutUnit,'(2ES24.15E3)') conjg(realProjWoPhase(ipw,ilm,iT)*phaseExp(ipw,ia)*compFact(ilm,iT))
+          write(projOutUnit,'(2ES24.15E3)') conjg(realProjWoPhase(gKSort(ipw,ik),ilm,iT)*phaseExp(gKSort(ipw,ik),ia)*compFact(ilm,iT))
             !! @note
             !!    The projectors are stored as \(\langle\beta|\), so need to take the complex conjugate
             !!    to output \(|\beta\rangle.
@@ -3432,7 +3464,7 @@ module wfcExportVASPMod
   end subroutine writeProjectors
 
 !----------------------------------------------------------------------------
-  subroutine readAndWriteWavefunction(ik, isp, maxGkNum, maxNumPWsGlobal, nBands, nKPoints, nPWs1k, gKIndexOrigOrderGlobal, exportDir, irec, coeff)
+  subroutine readAndWriteWavefunction(ik, isp, maxNumPWsGlobal, nBands, nKPoints, nPWs1k, gKSort, exportDir, irec, coeff)
     !! For each spin and k-point, read and write the plane
     !! wave coefficients for each band
     !!
@@ -3448,8 +3480,6 @@ module wfcExportVASPMod
       !! Current k-point
     integer, intent(in) :: isp
       !! Current spin channel
-    integer, intent(in) :: maxGkNum
-      !! Maximum number of \(G+k\) combinations
     integer, intent(in) :: maxNumPWsGlobal
       !! Max number of \(G+k\) vectors with energy
       !! less than `wfcECut` among all k-points
@@ -3459,9 +3489,9 @@ module wfcExportVASPMod
       !! Total number of k-points
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
-    integer, intent(in) :: gKIndexOrigOrderGlobal(maxNumPWsGlobal, nKPoints)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors in the original order
+    integer, intent(in) :: gKSort(maxNumPWsGlobal, nKPoints)
+      !! Indices to recover sorted order on reduced
+      !! \(G+k\) grid
       
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
@@ -3469,7 +3499,7 @@ module wfcExportVASPMod
     ! Output variables:
     integer, intent(inout) :: irec
 
-    complex*8, intent(inout) :: coeff(maxGkNum, nBands)
+    complex*8, intent(inout) :: coeff(maxNumPWsGlobal, nBands)
       !! Plane wave coefficients
 
     ! Local variables:
@@ -3506,13 +3536,12 @@ module wfcExportVASPMod
 
       !coeff(:,ib) = coeff(:,ib)/sqrt(angToBohr)**3
 
-      write(wfcOutUnit,'(2ES24.15E3)') (coeff(ipw,ib), ipw=1,nPWs1k)
-      !write(wfcOutUnit,'(2ES24.15E3)') (coeff(gKIndexGlobal(ipw,ik),ib), ipw=1,nPWs1k)
-        !! Not sure what sorting/unit conversion to do. I'm confused 
-        !! because I think the second line with unit conversion is 
-        !! correct, but the first line without unit conversion is 
-        !! equivalent to what comes from VASP, and that gave good 
-        !! results.
+      do ipw = 1, nPWs1k
+
+        write(wfcOutUnit,'(2ES24.15E3)') coeff(gKSort(ipw,ik),ib)
+          ! Write out in sorted order
+
+      enddo
 
     enddo
 
@@ -3523,7 +3552,7 @@ module wfcExportVASPMod
   end subroutine readAndWriteWavefunction
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteProjections(ik, isp, maxGkNum, maxNumPWsGlobal, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, gKIndexOrigOrderGlobal, &
+  subroutine getAndWriteProjections(ik, isp, maxNumPWsGlobal, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, gKIndexOrigOrderGlobal, &
           realProjWoPhase, compFact, phaseExp, coeff, exportDir, pot)
 
     use miscUtilities, only: int2str
@@ -3535,8 +3564,6 @@ module wfcExportVASPMod
       !! Current k-point
     integer, intent(in) :: isp
       !! Current spin channel
-    integer, intent(in) :: maxGkNum
-      !! Maximum number of \(G+k\) combinations
     integer, intent(in) :: maxNumPWsGlobal
       !! Max number of \(G+k\) vectors with energy
       !! less than `wfcECut` among all k-points
@@ -3563,7 +3590,7 @@ module wfcExportVASPMod
       !! Complex "phase" factor
     complex(kind=dp), intent(in) :: phaseExp(nPWs1k,nAtoms)
 
-    complex*8, intent(in) :: coeff(maxGkNum, nBands)
+    complex*8, intent(in) :: coeff(maxNumPWsGlobal, nBands)
       !! Plane wave coefficients
       
     character(len=256), intent(in) :: exportDir
@@ -3607,6 +3634,8 @@ module wfcExportVASPMod
 
             projection = compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*phaseExp(:,ia)*coeff(:,ib))
               ! Calculate projection (sum over plane waves)
+              ! Don't need to worry about sorting because projection
+              ! has sum over plane waves.
 
             write(projOutUnit,'(2ES24.15E3)') projection
 
