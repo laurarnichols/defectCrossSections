@@ -622,7 +622,6 @@ contains
     !
     do ib = 1, iBandIinit - 1
       do ig = 1, npwsPC(ik)
-        write(iostd, '("      ib = ", I3, " ig = ", I7)') ib, ig
         read(72, *)
       enddo
     enddo
@@ -631,8 +630,6 @@ contains
     !
     do ib = iBandIinit, iBandIfinal
       do ig = 1, npwsPC(ik)
-        write(iostd, '("      ib = ", I5, "ig = ", I5)') ib, ig
-
         read(72, '(2ES24.15E3)') wfc
         wfcPC(pwGindPC(ig), ib) = wfc
       enddo
