@@ -2346,9 +2346,8 @@ module wfcExportVASPMod
             read(potcarUnit,*) 
             read(potcarUnit,*) (pot(iT)%recipProj(pot(iT)%nChannels+ip,i), i=1,nonlPseudoGridSize)
               ! Read in reciprocal-space projector
-
-            !pot(iT)%recipProj(pot(iT)%nChannels+ip,:) = pot(iT)%recipProj(pot(iT)%nChannels+ip,:)*sqrt(angToBohr)**3
-              ! Converting units with assuming the units are sqrt(length)**3
+              ! I believe these units are Ang^(3/2). When multiplied by `1/sqrt(omega)`,
+              ! the projectors are then unitless. 
 
             ! Not really sure what the purpose of this is. Seems to be setting the grid boundary,
             ! but I'm not sure on the logic.
@@ -2515,12 +2514,15 @@ module wfcExportVASPMod
 
           enddo
 
-          pot(iT)%wps(:,:) = pot(iT)%wps(:,:)/sqrt(angToBohr)!**3
-          pot(iT)%wae(:,:) = pot(iT)%wae(:,:)/sqrt(angToBohr)!**3
+          pot(iT)%wps(:,:) = pot(iT)%wps(:,:)/sqrt(angToBohr)
+          pot(iT)%wae(:,:) = pot(iT)%wae(:,:)/sqrt(angToBohr)
             !! @note
-            !!   Previously had the conversion factor as `1/sqrt(angToBohr)`
-            !!   and that seemed to work well, but I don't think it is 
-            !!   correct. Not sure what to do here. 
+            !!  Based on the fact that this does not have an x/y/z
+            !!  dimension and that these values get multiplied by 
+            !!  `radGrid` and `dRadGrid`, which we treat as being 
+            !!  one dimensional, I think these are one dimensional 
+            !!  and should just have `1/sqrt(angToBohr)`. That has 
+            !!  worked well in the past too.
             !! @endnote
 
           deallocate(dummyDA1)
@@ -3449,6 +3451,12 @@ module wfcExportVASPMod
             !!    to output \(|\beta\rangle.
             !! @endnote
             !! @note
+            !!    The projectors should have units inverse to those of the coefficients. That was
+            !!    previously listed as (a.u.)^(-3/2), but the `TME` code seems to expect both the
+            !!    projectors and the wave function coefficients to be unitless, so there should be
+            !!    no unit conversion here.
+            !! @endnote
+            !! @note
             !!    `NONL_S%LSPIRAL = .FALSE.`, so spin spirals are not calculated, which makes
             !!    `NONL_S%QPROJ` spin-independent. This is why there is no spin index on `realProjWoPhase`.
             !! @endnote
@@ -3524,7 +3532,7 @@ module wfcExportVASPMod
       ! Open `wfc.ik` file to write plane wave coefficients
 
     write(wfcOutUnit, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
-    write(wfcOutUnit, '("# Complex : wavefunction coefficients (a.u.)^(-3/2). Format: ''(2ES24.15E3)''")')
+    write(wfcOutUnit, '("# Complex : wavefunction coefficients. Format: ''(2ES24.15E3)''")')
       ! Write header to `wfc.ik` file
 
     do ib = 1, nBands
@@ -3534,12 +3542,17 @@ module wfcExportVASPMod
       read(unit=wavecarUnit,rec=irec) (coeff(ipw,ib), ipw=1,nPWs1k)
         ! Read in the plane wave coefficients for each band
 
-      !coeff(:,ib) = coeff(:,ib)/sqrt(angToBohr)**3
-
       do ipw = 1, nPWs1k
 
         write(wfcOutUnit,'(2ES24.15E3)') coeff(gKSort(ipw,ik),ib)
           ! Write out in sorted order
+          !! @note
+          !!  I was trying to convert these coefficients based
+          !!  on the units listed above, but I don't think those
+          !!  are accurate. Based on the `TME` code, it seems like
+          !!  these coefficients are actually treated as unitless,
+          !!  so there should be no unit conversion here.
+          !! @endnote
 
       enddo
 
