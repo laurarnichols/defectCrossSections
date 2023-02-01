@@ -1,4 +1,4 @@
-# Export From VASP Output
+# Export From VASP
 
 This program exports the data from VASP output files into a form that can be processed by the matrix element code (`TME`). The program needs to know where the output files are and where to put the exported data.
 
@@ -23,9 +23,7 @@ The input variables are:
   * Default: `.false.`
   * Whether the Gamma-point only version of VASP (`gam`) was used
 
-To run the code, use something like `aprun -n num-procs path-to-package/bin/Export_FromVASPOutput.x < exportFromOutput.in > exportFromOutput.out`. 
-
-Currently, the I/O is only done by the root node (`ionode`), but the processing of the data is split across all processes.
+To run the code, use something like `aprun -n num-procs path-to-package/bin/Export_VASP.x < export.in > export.out`. 
 
 The output files are
 * `eigenvalues.ik`
