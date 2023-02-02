@@ -47,7 +47,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Reading WAVECAR"
 
-  call readWAVECAR(VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
+  call readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
       kPosition, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 

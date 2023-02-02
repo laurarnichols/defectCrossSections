@@ -62,8 +62,6 @@ module wfcExportVASPMod
     !! Real space lattice vectors
   real(kind=dp) :: recipLattVec(3,3)
     !! Reciprocal lattice vectors
-  real(kind=dp) :: wfcECut
-    !! Plane wave energy cutoff in Ry
   real(kind=dp) :: eFermi
     !! Fermi energy
   real(kind=dp), allocatable :: gVecInCart(:,:)
@@ -118,11 +116,11 @@ module wfcExportVASPMod
   integer :: nBands
     !! Total number of bands
   integer, allocatable :: nGkLessECutGlobal(:)
-    !! Global number of \(G+k\) vectors with energy
-    !! less than `wfcECut` for each k-point
+    !! Global number of \(G+k\) vectors with magnitude
+    !! less than `wfcVecCut` for each k-point
   integer, allocatable :: nGkLessECutLocal(:)
-    !! Number of \(G+k\) vectors with energy
-    !! less than `wfcECut` for each
+    !! Number of \(G+k\) vectors with magnitude
+    !! less than `wfcVecCut` for each
     !! k-point, on this processor
   integer :: nGVecsGlobal
     !! Global number of G-vectors
@@ -138,8 +136,8 @@ module wfcExportVASPMod
     !! Maximum G-vector index among all \(G+k\)
     !! and processors
   integer :: maxNumPWsGlobal
-    !! Max number of \(G+k\) vectors with energy
-    !! less than `wfcECut` among all k-points
+    !! Max number of \(G+k\) vectors with magnitude
+    !! less than `wfcVecCut` among all k-points
   integer :: maxNumPWsPool
     !! Maximum number of \(G+k\) vectors
     !! across all k-points for just this
@@ -597,7 +595,7 @@ module wfcExportVASPMod
   end subroutine exitError
 
 !----------------------------------------------------------------------------
-  subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, wfcECut, bandOccupation, omega, wfcVecCut, &
+  subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
         kPosition, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
@@ -616,8 +614,6 @@ module wfcExportVASPMod
       !! Real space lattice vectors
     real(kind=dp), intent(out) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
-    real(kind=dp), intent(out) :: wfcECut
-      !! Plane wave energy cutoff in Ry
     real(kind=dp), allocatable, intent(out) :: bandOccupation(:,:,:)
       !! Occupation of band
     real(kind=dp), intent(out) :: omega
@@ -651,6 +647,8 @@ module wfcExportVASPMod
       !! Real version of integers for reading from file
     real(kind=dp) :: nbnd_real
       !! Real version of integers for reading from file
+    real(kind=dp) :: wfcECut
+      !! Plane wave energy cutoff in Ry
 
     integer :: j
       !! Index used for reading lattice vectors
@@ -697,10 +695,7 @@ module wfcExportVASPMod
 
       close(wavecarUnit)
 
-      wfcECut = wfcECut*eVToRy
-        !! * Convert energy from VASP from eV to Rydberg to match QE/TME expectation
-
-      wfcVecCut = sqrt(wfcECut/evToRy*c)/angToBohr
+      wfcVecCut = sqrt(wfcECut*c)/angToBohr
         !! * Calculate vector cutoff from energy cutoff
 
       realLattVec = realLattVec*angToBohr
@@ -721,7 +716,7 @@ module wfcExportVASPMod
       !>   the cell volume, and the reciprocal lattice vectors
       write(iostd,*) 'no. k points =', nKPoints
       write(iostd,*) 'no. bands =', nBands
-      write(iostd,*) 'max. energy (eV) =', sngl(wfcECut/eVToRy)
+      write(iostd,*) 'max. energy (eV) =', sngl(wfcECut)
         !! @note 
         !!  The energy cutoff is currently output to the `iostd` file
         !!  in eV to compare with output from WaveTrans.
@@ -755,7 +750,6 @@ module wfcExportVASPMod
     call MPI_BCAST(nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nBands, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(wfcECut, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(wfcVecCut, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -1618,18 +1612,18 @@ module wfcExportVASPMod
       !! is greater than `maxNumPWsPool` and
       !! stored for each k-point
     integer, allocatable, intent(out) :: nGkLessECutLocal(:)
-      !! Number of \(G+k\) vectors with energy
-      !! less than `wfcECut` for each
+      !! Number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` for each
       !! k-point, on this processor
     integer, allocatable, intent(out) :: nGkLessECutGlobal(:)
-      !! Global number of \(G+k\) vectors with energy
-      !! less than `wfcECut` for each k-point
+      !! Global number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` for each k-point
     integer, intent(out) :: maxGIndexGlobal
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
     integer, intent(out) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
+      !! Max number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` among all k-points
     integer, intent(out) :: maxNumPWsPool
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this 
@@ -1953,18 +1947,18 @@ module wfcExportVASPMod
     integer, intent(in) :: ik
       !! Index of current k-point
     integer, intent(in) :: nGkLessECutGlobal(nKPoints)
-      !! Global number of \(G+k\) vectors with energy
-      !! less than `wfcECut` for each k-point
+      !! Global number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` for each k-point
     integer, intent(in) :: nGkLessECutLocal(nkPerPool)
-      !! Number of \(G+k\) vectors with energy
-      !! less than `wfcECut` for each
+      !! Number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` for each
       !! k-point, on this processor
     integer, intent(in) :: maxGIndexGlobal
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
     integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
+      !! Max number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` among all k-points
 
 
     ! Output variables:
@@ -2566,8 +2560,8 @@ module wfcExportVASPMod
     integer, intent(in) :: fftGridSize(3)
       !! Number of points on the FFT grid in each direction
     integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
+      !! Max number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` among all k-points
     integer, intent(in) :: nAtoms
       !! Number of atoms
     integer, intent(in) :: nAtomTypes
@@ -2736,8 +2730,8 @@ module wfcExportVASPMod
     integer, intent(in) :: ik
       !! Current k-point
     integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
+      !! Max number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` among all k-points
     integer, intent(in) :: nAtoms
       !! Number of atoms
     integer, intent(in) :: nGVecsGlobal
@@ -2802,8 +2796,8 @@ module wfcExportVASPMod
     integer, intent(in) :: ik
       !! Current k-point 
     integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
+      !! Max number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` among all k-points
     integer, intent(in) :: nAtomTypes
       !! Number of types of atoms
     integer, intent(in) :: nKPoints
@@ -2978,8 +2972,8 @@ module wfcExportVASPMod
     integer, intent(in) :: fftGridSize(3)
       !! Number of points on the FFT grid in each direction
     integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
+      !! Max number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` among all k-points
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     integer, intent(in) :: gKIndexOrigOrderGlobal(maxNumPWsGlobal, nKPoints)
@@ -3373,8 +3367,8 @@ module wfcExportVASPMod
     integer, intent(in) :: iType(nAtoms)
       !! Atom type index
     integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
+      !! Max number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` among all k-points
     integer, intent(in) :: nAtomTypes
       !! Number of types of atoms
     integer, intent(in) :: nAtomsEachType(nAtomTypes)
@@ -3489,8 +3483,8 @@ module wfcExportVASPMod
     integer, intent(in) :: isp
       !! Current spin channel
     integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
+      !! Max number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` among all k-points
     integer, intent(in) :: nBands
       !! Total number of bands
     integer, intent(in) :: nKPoints
@@ -3578,8 +3572,8 @@ module wfcExportVASPMod
     integer, intent(in) :: isp
       !! Current spin channel
     integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
+      !! Max number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` among all k-points
     integer, intent(in) :: nAtoms
       !! Number of atoms
     integer, intent(in) :: nAtomTypes
@@ -3678,8 +3672,8 @@ module wfcExportVASPMod
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     integer, intent(in) :: nGkLessECutGlobal(nKPoints)
-      !! Global number of \(G+k\) vectors with energy
-      !! less than `wfcECut` for each k-point
+      !! Global number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` for each k-point
     integer, intent(in) :: nSpins
       !! Number of spins
 
@@ -3836,8 +3830,8 @@ module wfcExportVASPMod
     integer, intent(in) :: nSpins
       !! Number of spins
     integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with energy
-      !! less than `wfcECut` among all k-points
+      !! Max number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` among all k-points
 
     integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
       !! Indices of \(G+k\) vectors for each k-point
@@ -3845,8 +3839,8 @@ module wfcExportVASPMod
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: nGkLessECutGlobal(nKPoints)
-      !! Global number of \(G+k\) vectors with energy
-      !! less than `wfcECut` for each k-point
+      !! Global number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` for each k-point
     integer, intent(in) :: maxGIndexGlobal
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
