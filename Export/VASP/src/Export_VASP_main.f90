@@ -15,6 +15,9 @@ program wfcExportVASPMain
   
   implicit none
 
+  integer :: iT
+    !! Index for deallocating `pot` variables
+
   call mpiInitialization()
 
   call initialize(gammaOnly, exportDir, VASPDir)
@@ -108,8 +111,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Done getting and writing projectors, projections, and wfc"
 
-
-  deallocate(nPWs1kGlobal, gKIndexOrigOrderGlobal)
+  deallocate(nPWs1kGlobal, gKIndexOrigOrderGlobal, gKSort)
 
 
   if (ionode) write(iostd,*) "Writing k-point info"
@@ -135,7 +137,7 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Done writing grid info"
       
 
-  deallocate(gKIndexGlobal, gVecMillerIndicesGlobal)
+  deallocate(gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal)
 
   if (ionode) write(iostd,*) "Writing cell info"
 
@@ -159,6 +161,14 @@ program wfcExportVASPMain
     !!   radial grid info, and partial waves
 
   if (ionode) write(iostd,*) "Done writing pseudo info"
+
+  deallocate(nAtomsEachType)
+
+  if(ionode) then
+    do iT = 1, nAtomTypes
+      deallocate(pot(iT)%radGrid, pot(iT)%dRadGrid, pot(iT)%wae, pot(iT)%wps)
+    enddo
+  endif
 
 
   if (ionode) write(iostd,*) "Writing eigenvalues"
