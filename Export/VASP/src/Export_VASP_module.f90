@@ -984,6 +984,8 @@ module wfcExportVASPMod
     ! Input variables:
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+    !integer, intent(in) :: nProcPerPool
+      ! Number of processes per pool
 
 
     ! Output variables:
@@ -1492,7 +1494,9 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexLocalToGlobal, mill_local, nGVecsLocal)
-    !! Figure out how many G-vectors there should be per processor
+    !! Figure out how many G-vectors there should be per processor.
+    !! G-vectors are split up in a round robin fashion over processors
+    !! in a single k-point pool.
     !!
     !! <h2>Walkthrough</h2>
     !!
@@ -1502,7 +1506,8 @@ module wfcExportVASPMod
     ! Input variables:
     integer, intent(in) :: nGVecsGlobal
       !! Global number of G-vectors
-      
+    !integer, intent(in) :: nProcPerPool
+      ! Number of processes per pool
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
 
@@ -1524,10 +1529,10 @@ module wfcExportVASPMod
 
 
     if( nGVecsGlobal > 0 ) then
-      nGVecsLocal = nGVecsGlobal/nProcs
+      nGVecsLocal = nGVecsGlobal/nProcPerPool
         !!  * Calculate number of G-vectors per processor
 
-      ngr = nGVecsGlobal - nGVecsLocal*nProcs 
+      ngr = nGVecsGlobal - nGVecsLocal*nProcPerPool 
         !! * Calculate the remainder
 
       if( myid < ngr ) nGVecsLocal = nGVecsLocal + 1
@@ -1543,7 +1548,7 @@ module wfcExportVASPMod
       ig_l = 0
       do ig_g = 1, nGVecsGlobal
 
-        if (myid == mod(ig_g-1,nProcs)) then
+        if(indexInPool == mod(ig_g-1,nProcPerPool)) then
         
           ig_l = ig_l + 1
           gIndexLocalToGlobal(ig_l) = ig_g
