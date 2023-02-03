@@ -1773,7 +1773,7 @@ module wfcExportVASPMod
       !! * Make sure that each processor gets some \(G+k\) vectors. If not,
       !!   should rerun with fewer processors.
 
-    call MPI_ALLREDUCE(maxNumPWsLocal, maxNumPWsPool, 1, MPI_INTEGER, MPI_MAX, interPoolComm, ierr)
+    call MPI_ALLREDUCE(maxNumPWsLocal, maxNumPWsPool, 1, MPI_INTEGER, MPI_MAX, intraPoolComm, ierr)
     if(ierr /= 0) call exitError('reconstructFFTGrid', 'error in mpi_allreduce 1', ierr)
       !! * When using pools, set `maxNumPWsPool` to the maximum value of `maxNumPWsLocal` 
       !!   in the pool 
