@@ -1708,8 +1708,6 @@ module wfcExportVASPMod
 
         if (q <= eps8) q = 0.d0
 
-        !if (ionode) write(89,*) ik+ikStart_pool-1, ig, q <= wfcVecCut
-
         if (q <= wfcVecCut) then
 
           ngk_tmp = ngk_tmp + 1
