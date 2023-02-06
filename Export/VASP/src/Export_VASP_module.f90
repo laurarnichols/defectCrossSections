@@ -2705,8 +2705,8 @@ module wfcExportVASPMod
 
           write(*,*) "    Getting and writing projections for k-point ", ik, " and spin ", isp
 
-          call getAndWriteProjections(ik, isp, maxNumPWsGlobal, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, gKIndexOrigOrderGlobal, &
-                    realProjWoPhase, compFact, phaseExp, coeff, exportDir, pot)
+          call getAndWriteProjections(ik, isp, maxNumPWsGlobal, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, realProjWoPhase, compFact, & 
+                    phaseExp, coeff, exportDir, pot)
 
         else
 
@@ -3562,8 +3562,8 @@ module wfcExportVASPMod
   end subroutine readAndWriteWavefunction
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteProjections(ik, isp, maxNumPWsGlobal, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, gKIndexOrigOrderGlobal, &
-          realProjWoPhase, compFact, phaseExp, coeff, exportDir, pot)
+  subroutine getAndWriteProjections(ik, isp, maxNumPWsGlobal, nAtoms, nAtomTypes, nAtomsEachType, nBands, nKPoints, nPWs1k, realProjWoPhase, compFact, &
+          phaseExp, coeff, exportDir, pot)
 
     use miscUtilities, only: int2str
 
@@ -3589,9 +3589,6 @@ module wfcExportVASPMod
       !! Total number of k-points
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
-    integer, intent(in) :: gKIndexOrigOrderGlobal(maxNumPWsGlobal, nKPoints)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors in the original order
 
     real(kind=dp), intent(in) :: realProjWoPhase(nPWs1k,64,nAtomTypes)
       !! Real projectors without phase
