@@ -3847,8 +3847,8 @@ module wfcExportVASPMod
       !! * For each band, scatter the coefficients across all 
       !!   of the processes in the pool
 
-      call MPI_SCATTERV(coeff(:,ib), sendCount, displacement, MPI_DOUBLE_COMPLEX, coeffLocal(1:nGkVecsLocal_ik,ib), nGkVecsLocal_ik, &
-          MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
+      call MPI_SCATTERV(coeff(:,ib), sendCount, displacement, MPI_COMPLEX, coeffLocal(1:nGkVecsLocal_ik,ib), nGkVecsLocal_ik, &
+          MPI_COMPLEX, 0, intraPoolComm, ierr)
 
     enddo
 
