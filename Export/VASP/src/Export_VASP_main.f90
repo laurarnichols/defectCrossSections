@@ -80,9 +80,9 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Reconstructing FFT grid"
 
-  call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, wfcVecCut, kPosition, &
-      gKIndexGlobal, gKIndexOrigOrderLocal, gKIndexLocalToGlobal, gKSort, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, nGkVecsLocal, & 
-      maxGIndexGlobal, maxNumPWsGlobal, maxNumPWsPool)
+  call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, wfcVecCut, gKIndexGlobal, &
+      gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, gToGkIndexMap, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
+      nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
     !! * Determine which G-vectors result in \(G+k\)
     !!   below the energy cutoff for each k-point and
     !!   sort the indices based on \(|G+k|^2\)
@@ -106,12 +106,13 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Getting and writing projectors, projections, and wfc"
 
-  call projAndWav(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nRecords, nSpins, gKIndexOrigOrderLocal, &
-        gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+  call projAndWav(fftGridSize, maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
+      nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
+      recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
   if (ionode) write(iostd,*) "Done getting and writing projectors, projections, and wfc"
 
-  deallocate(nPWs1kGlobal, gKIndexOrigOrderGlobal, gKSort)
+  deallocate(nPWs1kGlobal, gKIndexOrigOrderLocal, gKSort, nGkVecsLocal, iGkStart_pool, iGkEnd_pool)
 
 
   if (ionode) write(iostd,*) "Writing k-point info"
