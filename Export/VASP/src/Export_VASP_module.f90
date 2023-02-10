@@ -2799,6 +2799,9 @@ module wfcExportVASPMod
   subroutine projAndWav(fftGridSize, maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
       nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
       recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+
+    use miscUtilities, only: int2str
+
     implicit none
 
     ! Input variables: 
@@ -2887,6 +2890,8 @@ module wfcExportVASPMod
 
     character(len=256) :: fileName
       !! Full WAVECAR file name including path
+    character(len=300) :: indexC1, indexC2
+      !! Character indices
 
     
     if(indexInPool == 0) then
@@ -2924,6 +2929,20 @@ module wfcExportVASPMod
       call calculateRealProjWoPhase(fftGridSize, ikLocal, nAtomTypes, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
                 kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
+        if(indexInPool == 0) write(*,'("    Writing projectors of k-point ", i3)') ikGlobal
+
+      call writeProjectors(ikLocal, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, nPWs1k, & 
+                gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot)
+
+      if(nSpins == 2) then
+
+        call int2str(ikGlobal, indexC1)
+        call int2str(ikGlobal+nKPoints, indexC2)
+
+        call execute_command_line('cp projectors.'//trim(indexC1)//' projectors.'//trim(indexC2))
+
+      endif
+
       do isp = 1, nSpins
 
         isk = ikGlobal + (isp - 1)*nKPoints
@@ -2934,16 +2953,11 @@ module wfcExportVASPMod
           ! they know where they are supposed to access the WAVECAR
           ! once/if they are the I/O node
 
-        if(indexInPool == 0) write(*,*) "    Writing projectors of k-point ", ikGlobal, " and spin ", isp
-
-        call writeProjectors(ikLocal, isp, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, nPWs1k, & 
-                  gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot)
-
-        if(indexInPool == 0) write(*,*) "    Reading and writing wave function for k-point ", ikGlobal, " and spin ", isp
+        if(indexInPool == 0) write(*,'("    Reading and writing wave function for k-point ", i3, " and spin ", i2)') ikGlobal, isp
 
         call readAndWriteWavefunction(ikLocal, isp, maxNumPWsGlobal, nBands, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
 
-        if(indexInPool == 0) write(*,*) "    Getting and writing projections for k-point ", ikGlobal, " and spin ", isp
+        if(indexInPool == 0) write(*,'("    Getting and writing projections for k-point ", i3, " and spin ", i2)') ikGlobal, isp
 
         call getAndWriteProjections(ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nBands, nGkVecsLocal_ik, nKPoints, realProjWoPhase, compFact, & 
                   phaseExp, coeffLocal, exportDir, pot)
@@ -3582,7 +3596,7 @@ module wfcExportVASPMod
   end subroutine getPseudoV
 
 !----------------------------------------------------------------------------
-  subroutine writeProjectors(ik, isp, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, nPWs1k, &
+  subroutine writeProjectors(ik, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, nPWs1k, &
         gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot)
 
     use miscUtilities, only: int2str
@@ -3592,8 +3606,6 @@ module wfcExportVASPMod
     ! Input variables:
     integer, intent(in) :: ik
       !! Current k-point
-    integer, intent(in) :: isp
-      !! Current spin channel
     integer, intent(in) :: nAtoms
       !! Number of atoms
     integer, intent(in) :: iType(nAtoms)
@@ -3641,21 +3653,26 @@ module wfcExportVASPMod
     integer :: displacement(nProcPerPool)
       !! Offset from beginning of array for
       !! scattering coefficients to each process
-    integer :: iT, ia, ilm, ipw
+    integer :: iT, ia, ilm, ipw, ikGlobal
       !! Loop indices
 
-    real(kind=dp) :: realProjWoPhaseGlobal(nPWs1k)
+    real(kind=dp) :: realProjWoPhaseGlobal(nPWs1k,64,nAtomTypes)
       !! Real projectors without phase
 
-    complex(kind=dp) :: phaseExpGlobal(nPWs1k)
+    complex(kind=dp) :: phaseExpGlobal(nPWs1k, nAtoms)
       !! Exponential phase factor
 
     character(len=300) :: indexC
       !! Character index
 
 
-    if(indexInPool == 0) then
-      call int2str(ik+ikStart_pool-1+(isp-1)*nKPoints, indexC)
+    if(indexInPool == 1) then
+      ! Have process 1 handle projectors output and
+      ! process 0 handle wfc output
+
+      ikGlobal = ik+ikStart_pool-1
+
+      call int2str(ikGlobal, indexC)
 
       projOutUnit = 83 + myid
       open(projOutUnit, file=trim(exportDir)//"/projectors."//trim(indexC))
@@ -3680,28 +3697,51 @@ module wfcExportVASPMod
 
     endif
 
+    sendCount = 0
+    sendCount(indexInPool+1) = nGkVecsLocal_ik
+    call mpiSumIntV(sendCount, intraPoolComm)
+      !! * Put the number of G+k vectors on each process
+      !!   in a single array per pool
+
+    displacement = 0
+    displacement(indexInPool+1) = iGkStart_pool(ik)-1
+    call mpiSumIntV(displacement, intraPoolComm)
+      !! * Put the displacement from the beginning of the array
+      !!   for each process in a single array per pool
+
     do ia = 1, nAtoms
-    
+      !! * Gather data to process 1 for outputting
+
       iT = iType(ia)
         !! Store the index of the type for this atom
 
-      phaseExpGlobal = 0._dp
-      phaseExpGlobal(iGkStart_pool(ik):iGkEnd_pool(ik)) = phaseExp(1:nGkVecsLocal_ik,ia)
-      call mpiSumComplexV(phaseExpGlobal, intraPoolComm)
+      call MPI_GATHERV(phaseExp(1:nGkVecsLocal_ik,ia), nGkVecsLocal_ik, MPI_COMPLEX, phaseExpGlobal(:,ia), sendCount, &
+          displacement, MPI_COMPLEX, 1, intraPoolComm, ierr)
 
       do ilm = 1, pot(iT)%lmmax
 
-        realProjWoPhaseGlobal = 0._dp
-        realProjWoPhaseGlobal(iGkStart_pool(ik):iGkEnd_pool(ik)) = realProjWoPhase(1:nGkVecsLocal_ik,ilm,iT)
-        call mpiSumDoubleV(realProjWoPhaseGlobal, intraPoolComm)
-          !! Gather `realProjWoPhase` from the pool in a global (to pool) array
+        call MPI_GATHERV(realProjWoPhase(1:nGkVecsLocal_ik,ilm,iT), nGkVecsLocal_ik, MPI_DOUBLE_PRECISION, realProjWoPhaseGlobal(:,ilm,iT), &
+            sendCount, displacement, MPI_DOUBLE_PRECISION, 1, intraPoolComm, ierr)
 
-        if(indexInPool == 0) then
+      enddo
+
+    enddo
+
+    if(indexInPool == 1) then
+      !! Write out data from process 1
+
+      do ia = 1, nAtoms
+    
+        iT = iType(ia)
+          !! Store the index of the type for this atom
+
+        do ilm = 1, pot(iT)%lmmax
+
           do ipw = 1, nPWs1k
             !! Calculate \(|\beta\rangle\)
 
             write(projOutUnit,'(2ES24.15E3)') &
-              conjg(realProjWoPhaseGlobal(gKSort(ipw,ik+ikStart_pool-1))*phaseExpGlobal(gKSort(ipw,ik+ikStart_pool-1))*compFact(ilm,iT))
+              conjg(realProjWoPhaseGlobal(gKSort(ipw,ikGlobal),ilm,iT)*phaseExpGlobal(gKSort(ipw,ikGlobal),ia)*compFact(ilm,iT))
               !! @note
               !!    The projectors are stored as \(\langle\beta|\), so need to take the complex conjugate
               !!    to output \(|\beta\rangle.
@@ -3718,11 +3758,11 @@ module wfcExportVASPMod
               !! @endnote
 
           enddo
-        endif
+        enddo
       enddo
-    enddo
 
-    if(indexInPool == 0) close(projOutUnit)
+      close(projOutUnit)
+    endif
 
     return
   end subroutine writeProjectors
@@ -3833,11 +3873,13 @@ module wfcExportVASPMod
 
     endif
 
+    sendCount = 0
     sendCount(indexInPool+1) = nGkVecsLocal_ik
     call mpiSumIntV(sendCount, intraPoolComm)
       !! * Put the number of G+k vectors on each process
       !!   in a single array per pool
 
+    displacement = 0
     displacement(indexInPool+1) = iGkStart_pool(ik)-1
     call mpiSumIntV(displacement, intraPoolComm)
       !! * Put the displacement from the beginning of the array
