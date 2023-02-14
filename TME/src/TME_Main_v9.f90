@@ -25,7 +25,7 @@ program transitionMatrixElements
 
   call distributeKpointsInPools(nKPoints)
     
-  if(ionode)
+  if(ionode) then
     allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPoints) )
     allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )

@@ -680,8 +680,8 @@ contains
     
     implicit none
 
-    ! Input variables:
-    integer, intent(in) :: nKPoints
+    ! Outpu variables:
+    integer, intent(out) :: nKPoints
       !! Total number of k-points
     
     ! Local variables:
