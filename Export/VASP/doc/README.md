@@ -23,8 +23,6 @@ The input variables are:
   * Default: `.false.`
   * Whether the Gamma-point only version of VASP (`gam`) was used
 
-To run the code, use something like `aprun -n num-procs path-to-package/bin/Export_VASP.x < export.in > export.out`. 
-
 The output files are
 * `eigenvalues.ik`
 * `grid.ik`
@@ -32,3 +30,12 @@ The output files are
 * `mgrid`
 * `wfc.ik`
 
+## Running and parallelization
+
+To run the code, use something like 
+```
+aprun -n num-procs path-to-package/bin/Export_VASP.x -nk num-k-pools < export.in > export.out
+```
+There must be the same number of processes per pool, so `num-procs` must be evenly divisible by `num-k-pools`. The k-points are split up into `num-k-pools` sequentially (i.e., k-points get assigned to pool 1 first then pool 2, etc.). The plane waves are then split across each process in a given pool. The calculations over plane waves are completely distributed, so they are very fast. The bottleneck of the export is writing out the projectors and wave functions, as they require all of the data to be gathered to a single process per pool that handles the I/O for each. The I/O processors are different for the projectors and wave functions so those files can be output at the same time. Because of this bottleneck, it is most efficient to minimize the number of k-points per pool. 
+
+The only way to solve the bottleneck would be to use binary files and direct access and/or MPI I/O, but that would require updating codes down the line, and we aren't concerned with that right now.
