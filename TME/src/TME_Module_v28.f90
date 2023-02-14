@@ -21,6 +21,10 @@ module declarations
   ! Global variables not passed as arguments:
   integer :: ierr
     !! Error returned by MPI
+  integer :: ikEnd_pool
+    !! Ending index for k-points in single pool
+  integer :: ikStart_pool
+    !! Starting index for k-points in single pool
   integer :: indexInPool
     !! Process index within pool
   integer :: intraPoolComm = 0
@@ -29,6 +33,8 @@ module declarations
     !! ID of this process
   integer :: myPoolId
     !! Pool index for this process
+  integer :: nkPerPool
+    !! Number of k-points in each pool
   integer :: nPools = 1
     !! Number of pools for k-point parallelization
   integer :: nProcs
