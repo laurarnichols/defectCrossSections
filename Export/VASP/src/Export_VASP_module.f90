@@ -2929,7 +2929,7 @@ module wfcExportVASPMod
       call calculateRealProjWoPhase(fftGridSize, ikLocal, nAtomTypes, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
                 kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
-        if(indexInPool == 0) write(*,'("    Writing projectors of k-point ", i3)') ikGlobal
+      if(indexInPool == 0) write(*,'("    Writing projectors of k-point ", i3)') ikGlobal
 
       call writeProjectors(ikLocal, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, nPWs1k, & 
                 gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot)
@@ -3715,8 +3715,8 @@ module wfcExportVASPMod
       iT = iType(ia)
         !! Store the index of the type for this atom
 
-      call MPI_GATHERV(phaseExp(1:nGkVecsLocal_ik,ia), nGkVecsLocal_ik, MPI_COMPLEX, phaseExpGlobal(:,ia), sendCount, &
-          displacement, MPI_COMPLEX, 1, intraPoolComm, ierr)
+      call MPI_GATHERV(phaseExp(1:nGkVecsLocal_ik,ia), nGkVecsLocal_ik, MPI_DOUBLE_COMPLEX, phaseExpGlobal(:,ia), sendCount, &
+          displacement, MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
 
       do ilm = 1, pot(iT)%lmmax
 
@@ -3983,7 +3983,7 @@ module wfcExportVASPMod
               ! Don't need to worry about sorting because projection
               ! has sum over plane waves.
 
-            call MPI_ALLREDUCE(projectionLocal, projection, 1, MPI_DOUBLE_PRECISION, MPI_SUM, intraPoolComm, ierr)
+            call MPI_ALLREDUCE(projectionLocal, projection, 1, MPI_COMPLEX, MPI_SUM, intraPoolComm, ierr)
 
             if(indexInPool == 0) write(projOutUnit,'(2ES24.15E3)') projection
 
