@@ -15,6 +15,9 @@ program wfcExportVASPMain
   
   implicit none
 
+  integer :: iT
+    !! Index for deallocating `pot` variables
+
   call mpiInitialization()
 
   call initialize(gammaOnly, exportDir, VASPDir)
@@ -77,9 +80,9 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Reconstructing FFT grid"
 
-  call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, recipLattVec, gVecInCart, wfcVecCut, kPosition, &
-      gKIndexGlobal, gKIndexOrigOrderGlobal, gKIndexLocalToGlobal, gKSort, gToGkIndexMap, nGkLessECutLocal, nGkLessECutGlobal, maxGIndexGlobal, &
-      maxNumPWsGlobal, maxNumPWsPool)
+  call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, wfcVecCut, gKIndexGlobal, &
+      gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, gToGkIndexMap, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
+      nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
     !! * Determine which G-vectors result in \(G+k\)
     !!   below the energy cutoff for each k-point and
     !!   sort the indices based on \(|G+k|^2\)
@@ -103,13 +106,13 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Getting and writing projectors, projections, and wfc"
 
-  call projAndWav(fftGridSize, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGVecsGlobal, nKPoints, nRecords, nSpins, gKIndexOrigOrderGlobal, &
-        gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+  call projAndWav(fftGridSize, maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
+      nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
+      recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
   if (ionode) write(iostd,*) "Done getting and writing projectors, projections, and wfc"
 
-
-  deallocate(nPWs1kGlobal, gKIndexOrigOrderGlobal)
+  deallocate(nPWs1kGlobal, gKIndexOrigOrderLocal, gKSort, nGkVecsLocal, iGkStart_pool, iGkEnd_pool)
 
 
   if (ionode) write(iostd,*) "Writing k-point info"
@@ -135,7 +138,7 @@ program wfcExportVASPMain
   if (ionode) write(iostd,*) "Done writing grid info"
       
 
-  deallocate(gKIndexGlobal, gVecMillerIndicesGlobal)
+  deallocate(gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal)
 
   if (ionode) write(iostd,*) "Writing cell info"
 
@@ -160,6 +163,14 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Done writing pseudo info"
 
+  deallocate(nAtomsEachType)
+
+  if(ionode) then
+    do iT = 1, nAtomTypes
+      deallocate(pot(iT)%radGrid, pot(iT)%dRadGrid, pot(iT)%wae, pot(iT)%wps)
+    enddo
+  endif
+
 
   if (ionode) write(iostd,*) "Writing eigenvalues"
 
@@ -177,6 +188,8 @@ program wfcExportVASPMain
   call MPI_Barrier(worldComm, ierr)
  
   if (ionode) write(iostd,*) "************ VASP Export complete! ************"
+
+  call MPI_FINALIZE(ierr)
 
 END PROGRAM wfcExportVASPMain
 
