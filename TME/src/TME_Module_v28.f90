@@ -1,31 +1,61 @@
 module declarations
   !
   implicit none
-  !
+
+  ! Parameters:
   integer, parameter :: dp = selected_real_kind(15, 307)
   integer, parameter :: iostd = 16
   integer, parameter :: root  = 0
-  !
-  character(len = 6), parameter ::      output = 'output'
-  !
+    !! ID of the root node
+
   real(kind = dp), parameter ::          pi = 3.141592653589793_dp
   real(kind = dp), parameter ::       sq4pi = 3.544907701811032_dp
   real(kind = dp), parameter :: evToHartree = 0.03674932538878_dp
-  !
-  complex(kind = dp), parameter ::    ii = cmplx(0.0_dp, 1.0_dp, kind = dp)
-  !
+  
+  complex(kind = dp), parameter :: ii = cmplx(0.0_dp, 1.0_dp, kind = dp)
+  
+  character(len = 6), parameter :: output = 'output'
+
+
+  ! Global variables not passed as arguments:
+  integer :: ierr
+    !! Error returned by MPI
+  integer :: indexInPool
+    !! Process index within pool
+  integer :: intraPoolComm = 0
+    !! Intra-pool communicator
+  integer :: myid
+    !! ID of this process
+  integer :: myPoolId
+    !! Pool index for this process
+  integer :: nPools = 1
+    !! Number of pools for k-point parallelization
+  integer :: nProcs
+    !! Number of processes
+  integer :: nProcPerPool
+    !! Number of processes per pool
+  integer :: worldComm
+    !! World communicator
+
+  logical :: ionode
+    !! If this node is the root node
+
+  integer :: nKPoints
+    !! Total number of k-points
+  
+
   character(len = 200) :: exportDirSD, exportDirPC, VfisOutput
   character(len = 300) :: input, inputPC, textDum, elementsPath
   character(len = 320) :: mkdir
   !
   integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ik, ki, kf, ig, ibi, ibf
   integer :: JMAX, maxL, iTypes, iPn
-  integer :: numOfGvecs, numOfPWsPC, numOfPWsSD, nIonsSD, nIonsPC, nKptsPC, nProjsPC, numOfTypesPC
-  integer :: numOfPWs, numOfTypes, nBands, nKpts, nSpins, nProjsSD
+  integer :: numOfGvecs, numOfPWsPC, numOfPWsSD, nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
+  integer :: numOfPWs, numOfTypes, nBands, nSpins, nProjsSD
   integer :: numOfUsedGvecsPP, ios, npwNi, npwNf, npwMi, npwMf
   integer :: fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
   integer :: gx, gy, gz, nGvsI, nGvsF, nGi, nGf
-  integer :: myid, numprocs, nSquareProcs, np, nI, nF, nPP, ind2, ierr
+  integer :: np, nI, nF, nPP, ind2
   integer :: i, j, n1, n2, n3, n4, n, id, npw
   !
   integer, allocatable :: counts(:), displmnt(:), nPWsI(:), nPWsF(:)
@@ -77,48 +107,384 @@ module declarations
   !
   !
 contains
+
+!----------------------------------------------------------------------------
+  subroutine mpiInitialization()
+    !! Generate MPI processes and communicators 
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Output variables:
+    !logical, intent(out) :: ionode
+      ! If this node is the root node
+    !integer, intent(out) :: intraPoolComm = 0
+      ! Intra-pool communicator
+    !integer, intent(out) :: indexInPool
+      ! Process index within pool
+    !integer, intent(out) :: myid
+      ! ID of this process
+    !integer, intent(out) :: myPoolId
+      ! Pool index for this process
+    !integer, intent(out) :: nPools
+      ! Number of pools for k-point parallelization
+    !integer, intent(out) :: nProcs
+      ! Number of processes
+    !integer, intent(out) :: nProcPerPool
+      ! Number of processes per pool
+    !integer, intent(out) :: worldComm
+      ! World communicator
+
+
+    call MPI_Init(ierr)
+    if (ierr /= 0) call mpiExitError( 8001 )
+
+    worldComm = MPI_COMM_WORLD
+
+    call MPI_COMM_RANK(worldComm, myid, ierr)
+    if (ierr /= 0) call mpiExitError( 8002 )
+      !! * Determine the rank or ID of the calling process
+    call MPI_COMM_SIZE(worldComm, nProcs, ierr)
+    if (ierr /= 0) call mpiExitError( 8003 )
+      !! * Determine the size of the MPI pool (i.e., the number of processes)
+
+    ionode = (myid == root)
+      ! Set a boolean for if this is the root process
+
+    call getCommandLineArguments()
+      !! * Get the number of pools from the command line
+
+    call setUpPools()
+      !! * Split up processors between pools and generate MPI
+      !!   communicators for pools
+
+    return
+  end subroutine mpiInitialization
+
+!----------------------------------------------------------------------------
+  subroutine mpiExitError(code)
+    !! Exit on error with MPI communication
+
+    implicit none
+    
+    integer, intent(in) :: code
+
+    write( iostd, '( "*** MPI error ***")' )
+    write( iostd, '( "*** error code: ",I5, " ***")' ) code
+
+    call MPI_ABORT(worldComm,code,ierr)
+    
+    stop
+
+    return
+  end subroutine mpiExitError
+
+!----------------------------------------------------------------------------
+  subroutine exitError(calledFrom, message, ierror)
+    !! Output error message and abort if ierr > 0
+    !!
+    !! Can ensure that error will cause abort by
+    !! passing abs(ierror)
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+    
+    implicit none
+
+    integer, intent(in) :: ierror
+      !! Error
+
+    character(len=*), intent(in) :: calledFrom
+      !! Place where this subroutine was called from
+    character(len=*), intent(in) :: message
+      !! Error message
+
+    integer :: id
+      !! ID of this process
+    integer :: mpierr
+      !! Error output from MPI
+
+    character(len=6) :: cerr
+      !! String version of error
+
+
+    if ( ierror <= 0 ) return
+      !! * Do nothing if the error is less than or equal to zero
+
+    write( cerr, fmt = '(I6)' ) ierror
+      !! * Write ierr to a string
+    write(unit=*, fmt = '(/,1X,78("%"))' )
+      !! * Output a dividing line
+    write(unit=*, fmt = '(5X,"Error in ",A," (",A,"):")' ) trim(calledFrom), trim(adjustl(cerr))
+      !! * Output where the error occurred and the error
+    write(unit=*, fmt = '(5X,A)' ) TRIM(message)
+      !! * Output the error message
+    write(unit=*, fmt = '(1X,78("%"),/)' )
+      !! * Output a dividing line
+
+    write( *, '("     stopping ...")' )
+  
+    call flush( iostd )
+  
+    id = 0
+  
+    !> * For MPI, get the id of this process and abort
+    call MPI_COMM_RANK( worldComm, id, mpierr )
+    call MPI_ABORT( worldComm, mpierr, ierr )
+    call MPI_FINALIZE( mpierr )
+
+    stop 2
+
+    return
+
+  end subroutine exitError
+
+!----------------------------------------------------------------------------
+  subroutine getCommandLineArguments()
+    !! Get the command line arguments. This currently
+    !! only processes the number of pools
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Output variables:
+    !integer, intent(out) :: nPools
+      ! Number of pools for k-point parallelization
+
+
+    ! Local variables:
+    integer :: narg = 0
+      !! Arguments processed
+    integer :: nargs
+      !! Total number of command line arguments
+    integer :: nPools_ = 1
+      !! Number of k point pools for parallelization
+
+    character(len=256) :: arg = ' '
+      !! Command line argument
+    character(len=256) :: command_line = ' '
+      !! Command line arguments that were not processed
+
+
+    nargs = command_argument_count()
+      !! * Get the number of arguments input at command line
+
+    call MPI_BCAST(nargs, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    if(ionode) then
+
+      call get_command_argument(narg, arg)
+        !! Ignore executable
+      narg = narg + 1
+
+      do while (narg <= nargs)
+        call get_command_argument(narg, arg)
+          !! * Get the flag
+          !! @note
+          !!  This program only currently processes the number of pools,
+          !!  represented by `-nk`/`-nPools`/`-nPoolss`. All other flags 
+          !!  will be ignored.
+          !! @endnote
+
+        narg = narg + 1
+
+        !> * Process the flag and store the following value
+        select case (trim(arg))
+          case('-nk', '-nPools', '-nPoolss') 
+            call get_command_argument(narg, arg)
+            read(arg, *) nPools_
+            narg = narg + 1
+          case default
+            command_line = trim(command_line) // ' ' // trim(arg)
+        end select
+      enddo
+
+      !> Write out unprocessed command line arguments, if there are any
+      if(len_trim(command_line) /= 0) then
+        write(*,*) 'Unprocessed command line arguments: ' // trim(command_line)
+      endif
+
+    endif
+
+    call MPI_BCAST(nPools_, 1, MPI_INTEGER, root, worldComm, ierr)
+    if(ierr /= 0) call mpiExitError(8005)
+
+    nPools = nPools_
+
+    return
+  end subroutine getCommandLineArguments
+
+!----------------------------------------------------------------------------
+  subroutine setUpPools()
+    !! Split up processors between pools and generate MPI
+    !! communicators for pools
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    !integer, intent(in) :: myid
+      ! ID of this process
+    !integer, intent(in) :: nPools
+      ! Number of pools for k-point parallelization
+    !integer, intent(in) :: nProcs
+      ! Number of processes
+
+
+    ! Output variables:
+    !integer, intent(out) :: intraPoolComm = 0
+      ! Intra-pool communicator
+    !integer, intent(out) :: indexInPool
+      ! Process index within pool
+    !integer, intent(out) :: myPoolId
+      ! Pool index for this process
+    !integer, intent(out) :: nProcPerPool
+      ! Number of processes per pool
+
+
+    if(nPools < 1 .or. nPools > nProcs) call exitError('mpiInitialization', &
+      'invalid number of pools, out of range', 1)
+      !! * Verify that the number of pools is between 1 and the number of processes
+
+    if(mod(nProcs, nPools) /= 0) call exitError('mpiInitialization', &
+      'invalid number of pools, mod(nProcs,nPools) /=0 ', 1)
+      !! * Verify that the number of processes is evenly divisible by the number of pools
+
+    nProcPerPool = nProcs / nPools
+      !! * Calculate how many processes there are per pool
+
+    myPoolId = myid / nProcPerPool
+      !! * Get the pool index for this process
+
+    indexInPool = mod(myid, nProcPerPool)
+      !! * Get the index of the process within the pool
+
+    call MPI_BARRIER(worldComm, ierr)
+    if(ierr /= 0) call mpiExitError(8007)
+
+    call MPI_COMM_SPLIT(worldComm, myPoolId, myid, intraPoolComm, ierr)
+    if(ierr /= 0) call mpiExitError(8008)
+      !! * Create intra-pool communicator
+
+    return
+  end subroutine setUpPools
+
+!----------------------------------------------------------------------------
+  subroutine distributeKpointsInPools(nKPoints)
+    !! Figure out how many k-points there should be per pool
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+    !integer, intent(in) :: nProcPerPool
+      ! Number of processes per pool
+
+
+    ! Output variables:
+    !integer, intent(out) :: ikEnd_pool
+      ! Ending index for k-points in single pool 
+    !integer, intent(out) :: ikStart_pool
+      ! Starting index for k-points in single pool 
+    !integer, intent(out) :: nkPerPool
+      ! Number of k-points in each pool
+
+
+    ! Local variables:
+    integer :: nkr
+      !! Number of k-points left over after evenly divided across pools
+
+
+    if( nKPoints > 0 ) then
+
+      IF( ( nProcPerPool > nProcs ) .or. ( mod( nProcs, nProcPerPool ) /= 0 ) ) &
+        CALL exitError( 'distributeKpointsInPools','nProcPerPool', 1 )
+
+      nkPerPool = nKPoints / nPools
+        !!  * Calculate k-points per pool
+
+      nkr = nKPoints - nkPerPool * nPools 
+        !! * Calculate the remainder `nkr`
+
+      IF( myPoolId < nkr ) nkPerPool = nkPerPool + 1
+        !! * Assign the remainder to the first `nkr` pools
+
+      !>  * Calculate the index of the first k-point in this pool
+      ikStart_pool = nkPerPool * myPoolId + 1
+      IF( myPoolId >= nkr ) ikStart_pool = ikStart_pool + nkr
+
+      ikEnd_pool = ikStart_pool + nkPerPool - 1
+        !!  * Calculate the index of the last k-point in this pool
+
+    endif
+
+    return
+  end subroutine distributeKpointsInPools
+  
   !
-  !
-  subroutine readInput()
+  subroutine readInput(nKPoints)
     !
     implicit none
-    !
+
+    ! Output variables:
+    integer, intent(out) :: nKPoints
+      !! Total number of k-points
+
+    ! Local variables:    
     logical :: file_exists
-    !
+    
+
     call cpu_time(t0)
-    !
+    
     ! Check if file output exists. If it does, delete it.
-    !
+    
     inquire(file = output, exist = file_exists)
     if ( file_exists ) then
       open (unit = 11, file = output, status = "old")
       close(unit = 11, status = "delete")
     endif
-    !
+    
     ! Open new output file.
-    !
+    
     open (iostd, file = output, status='new')
-    !
-    call initialize()
-    !
+    
+    call initialize(nKPoints)
+    
     READ (5, TME_Input, iostat = ios)
-    !
+    
     call checkInitialization()
-    !
-    call readInputPC()
-    call readInputSD()
-    !
+    
+    call readInputPC(nKPoints)
+    call readInputSD(nKPoints)
+
+    call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
+    
     numOfPWs = max( numOfPWsPC, numOfPWsSD )
-    !
+    
     return
-    !
+    
   end subroutine readInput
-  !
-  !
-  subroutine initialize()
-    !
+  
+  
+  subroutine initialize(nKPoints)
+    
     implicit none
-    !
+
+    ! Output variables:
+    integer, intent(out) :: nKPoints
+      !! Total number of k-points
+    
+
     exportDirSD = ''
     exportDirPC = ''
     elementsPath = ''
@@ -126,7 +492,7 @@ contains
     !
     ki = -1
     kf = -1
-    nKpts = -1
+    nKPoints = -1
     !
     eBin = -1.0_dp
     !
@@ -303,155 +669,161 @@ contains
   end subroutine checkInitialization
   !
   !
-  subroutine readInputPC()
-    !
+  subroutine readInputPC(nKPoints)
+    
     implicit none
-    !
+
+    ! Input variables:
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+    
+    ! Local variables:
     integer :: i, j, l, ind, ik, iDum, iType, ni, irc
-    !
+    
     real(kind = dp) :: t1, t2 
-    !
+    
     character(len = 300) :: textDum
-    !
+    
     logical :: file_exists
-    !
+    
+
     call cpu_time(t1)
-    !
+    
     write(iostd, *)
     write(iostd, '(" Reading perfect crystal inputs.")')
     write(iostd, *)
-    !
+    
     inputPC = trim(trim(exportDirPC)//'/input')
-    !
+    
     inquire(file =trim(inputPC), exist = file_exists)
-    !
+    
     if ( file_exists .eqv. .false. ) then
       write(iostd, '(" File : ", a, " , does not exist!")') trim(inputPC)
       write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirPC)
       write(iostd, '(" Program stops!")')
       flush(iostd)
     endif
-    !
+    
     open(50, file=trim(inputPC), status = 'old')
-    !
+    
     read(50, '(a)') textDum
     read(50, * ) 
-    !
+    
     read(50, '(a)') textDum
-    read(50, '(i10)') nKptsPC
-    !
+    read(50, '(i10)') nKPoints
+    
     read(50, '(a)') textDum
-    !
-    allocate ( npwsPC(nKptsPC), wkPC(nKptsPC), xkPC(3,nKptsPC) )
-    !
-    do ik = 1, nKptsPC
-      !
+    
+    allocate ( npwsPC(nKPoints), wkPC(nKPoints), xkPC(3,nKPoints) )
+    
+    do ik = 1, nKPoints
+      
       read(50, '(3i10,4ES24.15E3)') iDum, iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
-      !
+      
     enddo
-    !
+    
     read(50, '(a)') textDum
     read(50, * ) ! numOfGvecs
-    !
+    
     read(50, '(a)') textDum
     read(50, '(i10)') numOfPWsPC
-    !
+    
     read(50, '(a)') textDum     
     read(50, * ) ! fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
-    !
+    
     read(50, '(a)') textDum
     read(50,  * )
     read(50,  * )
     read(50,  * )
-    !
+    
     read(50, '(a)') textDum
     read(50, * )
     read(50, * )
     read(50, * )
-    !
-    !
+    
+    
     read(50, '(a)') textDum
     read(50, '(i10)') nIonsPC
-    !
+    
     read(50, '(a)') textDum
     read(50, '(i10)') numOfTypesPC
-    !
+    
     allocate( posIonPC(3,nIonsPC), TYPNIPC(nIonsPC) )
-    !
+    
     read(50, '(a)') textDum
     do ni = 1, nIonsPC
       read(50,'(i10, 3ES24.15E3)') TYPNIPC(ni), (posIonPC(j,ni) , j = 1,3)
     enddo
-    !
+    
     read(50, '(a)') textDum
     read(50, * )
-    !
+    
     read(50, '(a)') textDum
     read(50, * ) 
-    !
+    
     allocate ( atomsPC(numOfTypesPC) )
-    !
+    
     nProjsPC = 0
     do iType = 1, numOfTypesPC
-      !
+      
       read(50, '(a)') textDum
       read(50, *) atomsPC(iType)%symbol
-      !
+      
       read(50, '(a)') textDum
       read(50, '(i10)') atomsPC(iType)%numOfAtoms
-      !
+      
       read(50, '(a)') textDum
       read(50, '(i10)') atomsPC(iType)%lMax              ! number of projectors
-      !
+      
       allocate ( atomsPC(iType)%lps( atomsPC(iType)%lMax ) )
-      !
+      
       read(50, '(a)') textDum
       do i = 1, atomsPC(iType)%lMax 
         read(50, '(2i10)') l, ind
         atomsPC(iType)%lps(ind) = l
       enddo
-      !
+      
       read(50, '(a)') textDum
       read(50, '(i10)') atomsPC(iType)%lmMax
-      !
+      
       read(50, '(a)') textDum
       read(50, '(2i10)') atomsPC(iType)%nMax, atomsPC(iType)%iRc
-      !
+      
       allocate ( atomsPC(iType)%r(atomsPC(iType)%nMax), atomsPC(iType)%rab(atomsPC(iType)%nMax) )
-      !
+      
       read(50, '(a)') textDum
       do i = 1, atomsPC(iType)%nMax
         read(50, '(2ES24.15E3)') atomsPC(iType)%r(i), atomsPC(iType)%rab(i)
       enddo
-      ! 
+       
       allocate ( atomsPC(iType)%wae(atomsPC(iType)%nMax, atomsPC(iType)%lMax) )
       allocate ( atomsPC(iType)%wps(atomsPC(iType)%nMax, atomsPC(iType)%lMax) )
-      !
+      
       read(50, '(a)') textDum
       do j = 1, atomsPC(iType)%lMax
         do i = 1, atomsPC(iType)%nMax
           read(50, '(2ES24.15E3)') atomsPC(iType)%wae(i, j), atomsPC(iType)%wps(i, j) 
         enddo
       enddo
-      !  
+        
       allocate ( atomsPC(iType)%F( atomsPC(iType)%iRc, atomsPC(iType)%lMax ) )
       allocate ( atomsPC(iType)%F1(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax ) )
       allocate ( atomsPC(iType)%F2(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax ) )
-      !
+      
       atomsPC(iType)%F = 0.0_dp
       atomsPC(iType)%F1 = 0.0_dp
       atomsPC(iType)%F2 = 0.0_dp
-      !
+      
       do j = 1, atomsPC(iType)%lMax
-        !
+        
         irc = atomsPC(iType)%iRc
         atomsPC(iType)%F(1:irc,j)=(atomsPC(iType)%wae(1:irc,j)-atomsPC(iType)%wps(1:irc,j))* &
               atomsPC(iType)%r(1:irc)*atomsPC(iType)%rab(1:irc)
-        !
+        
         do i = 1, atomsPC(iType)%lMax
           atomsPC(iType)%F1(1:irc,i,j) = ( atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wae(1:irc,j) - &
     &                                      atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wps(1:irc,j))*atomsPC(iType)%rab(1:irc)
-          !
+          
           atomsPC(iType)%F2(1:irc,i,j) = ( atomsPC(iType)%wae(1:irc,i)*atomsPC(iType)%wae(1:irc,j) - &
                                            atomsPC(iType)%wae(1:irc,i)*atomsPC(iType)%wps(1:irc,j) - &
                                            atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wae(1:irc,j) + &
@@ -459,39 +831,39 @@ contains
 
         enddo
       enddo
-      !
+      
       nProjsPC = nProjsPC + atomsPC(iType)%numOfAtoms*atomsPC(iType)%lmMax
-      !
+      
     enddo
-    !
+    
     close(50)
-    !
+    
     JMAX = 0
     do iType = 1, numOfTypesPC
       do i = 1, atomsPC(iType)%lMax
         if ( atomsPC(iType)%lps(i) > JMAX ) JMAX = atomsPC(iType)%lps(i)
       enddo
     enddo
-    !
+    
     maxL = JMAX
     JMAX = 2*JMAX + 1
-    !
+    
     do iType = 1, numOfTypesPC
       allocate ( atomsPC(iType)%bes_J_qr( 0:JMAX, atomsPC(iType)%iRc ) )
       atomsPC(iType)%bes_J_qr(:,:) = 0.0_dp
-      !
+      
     enddo
-    !
+    
     call cpu_time(t2)
     write(iostd, '(" Reading input files done in:                ", f10.2, " secs.")') t2-t1
     write(iostd, *)
     flush(iostd)
-    !
+    
     return
-    !
+    
   end subroutine readInputPC
-  !
-  !
+  
+  
   subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
     !
     implicit none
@@ -587,8 +959,8 @@ contains
     return
     !
   end subroutine readPWsSet
-  !
-  !
+
+
   subroutine readWfcPC(ik)
     !
     implicit none
@@ -757,19 +1129,28 @@ contains
   end subroutine readWfcSD
   !
   !
-  subroutine readInputSD()
+  subroutine readInputSD(nKPoints)
     !
     implicit none
-    !
+    
+    ! Input variables:
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+    
+    ! Local variables:
+    integer :: nKpts
+      !! Number of k-points read from SD file
+
     integer :: i, j, l, ind, ik, iDum, iType, ni, irc
-    !
+    
     real(kind = dp) :: t1, t2
     real(kind = dp) :: ef
-    !
+    
     character(len = 300) :: textDum
-    !
+    
     logical :: file_exists
-    !
+    
+
     call cpu_time(t1)
     !
     write(iostd, *)
@@ -794,12 +1175,14 @@ contains
     !
     read(50, '(a)') textDum
     read(50, '(i10)') nKpts
+
+    if(nKpts /= nKPoints) call exitError('readInputsSD', 'Number of k-points in systems must match', 1)
     !
     read(50, '(a)') textDum
     !
-    allocate ( groundState(nKpts), npwsSD(nKpts), wk(nKpts), xk(3,nKpts) )
+    allocate ( groundState(nKPoints), npwsSD(nKPoints), wk(nKPoints), xk(3,nKPoints) )
     !
-    do ik = 1, nKpts
+    do ik = 1, nKPoints
       !
       read(50, '(3i10,4ES24.15E3)') iDum, groundState(ik), npwsSD(ik), wk(ik), xk(1:3,ik)
       !
@@ -1124,7 +1507,7 @@ contains
     !
     do ig = nPWsI(myid), nPWsF(myid)
       !
-      if ( myid == root ) then 
+      if (ionode) then 
         if ( (ig == nPWsI(myid) + 1000) .or. (mod(ig, 25000) == 0) .or. (ig == nPWsF(myid)) ) then
           call cpu_time(t2)
           write(iostd, '("        Done ", i10, " of", i10, " k-vecs. ETR : ", f10.2, " secs.")') &
@@ -1217,7 +1600,7 @@ contains
     !
     do ig = nPWsI(myid), nPWsF(myid)
       !
-      if ( myid == root ) then
+      if (ionode) then
         if ( (ig == nPWsI(myid) + 1000) .or. (mod(ig, 25000) == 0) .or. (ig == nPWsF(myid)) ) then
           call cpu_time(t2)
           write(iostd, '("        Done ", i10, " of", i10, " k-vecs. ETR : ", f10.2, " secs.")') &
@@ -1534,12 +1917,12 @@ contains
     !
     character (len = 300) :: text
     !
-    allocate( DE(iBandIinit:iBandIfinal, nKptsPC), absVfi2(iBandIinit:iBandIfinal, nKptsPC) )
+    allocate( DE(iBandIinit:iBandIfinal, nKPoints), absVfi2(iBandIinit:iBandIfinal, nKPoints) )
     ! 
     DE(:,:) = 0.0_dp
     absVfi2(:,:) = 0.0_dp 
     !
-    do ik = 1, nKptsPC
+    do ik = 1, nKPoints
       !
       eigvI(:) = 0.0_dp
       eigvF(:) = 0.0_dp
@@ -1568,7 +1951,7 @@ contains
     nKsInEbin(:) = 0
     sumWk(:) = 0.0_dp
     !
-    do ik = 1, nKptsPC
+    do ik = 1, nKPoints
       !
       do ib = iBandIinit, iBandIfinal
         !
@@ -1596,7 +1979,7 @@ contains
     write(text, '("# Energy (shifted by eBin/2) (Hartree), |<f|V|i>|^2 (Hartree)^2,")')
     write(11, '(a, " k-point index. Format : ''(2ES24.15E3,i10)''")') trim(text)
     !
-    do ik = 1, nKptsPC
+    do ik = 1, nKPoints
       !
       do ib = iBandIinit, iBandIfinal
         !
