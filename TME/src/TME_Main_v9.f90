@@ -1,5 +1,4 @@
 program transitionMatrixElements
-  use mpi
   use declarations
   
   implicit none

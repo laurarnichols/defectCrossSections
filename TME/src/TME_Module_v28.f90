@@ -1,5 +1,6 @@
 module declarations
-  !
+  use mpi
+  
   implicit none
 
   ! Parameters:
