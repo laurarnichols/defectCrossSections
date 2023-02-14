@@ -189,5 +189,7 @@ program wfcExportVASPMain
  
   if (ionode) write(iostd,*) "************ VASP Export complete! ************"
 
+  call MPI_FINALIZE(ierr)
+
 END PROGRAM wfcExportVASPMain
 
