@@ -54,6 +54,10 @@ module declarations
   real(kind=dp) :: recipLattVec(3,3)
     !! Reciprocal lattice vectors
 
+  integer, allocatable :: gIndexGlobalToLocal(:)
+    !! Converts global G-index to local G-index
+  integer, allocatable :: gVecProcId(:)
+    !! Index in pool where G-vector is distributed to
   integer :: maxGIndexGlobal
     !! Maximum G-vector index among all \(G+k\)
     !! and processors for PC and SD
@@ -130,84 +134,6 @@ module declarations
   !
   !
 contains
-
-!----------------------------------------------------------------------------
-  subroutine mpiExitError(code)
-    !! Exit on error with MPI communication
-
-    implicit none
-    
-    integer, intent(in) :: code
-
-    write( iostd, '( "*** MPI error ***")' )
-    write( iostd, '( "*** error code: ",I5, " ***")' ) code
-
-    call MPI_ABORT(worldComm,code,ierr)
-    
-    stop
-
-    return
-  end subroutine mpiExitError
-
-!----------------------------------------------------------------------------
-  subroutine exitError(calledFrom, message, ierror)
-    !! Output error message and abort if ierr > 0
-    !!
-    !! Can ensure that error will cause abort by
-    !! passing abs(ierror)
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    
-    implicit none
-
-    integer, intent(in) :: ierror
-      !! Error
-
-    character(len=*), intent(in) :: calledFrom
-      !! Place where this subroutine was called from
-    character(len=*), intent(in) :: message
-      !! Error message
-
-    integer :: id
-      !! ID of this process
-    integer :: mpierr
-      !! Error output from MPI
-
-    character(len=6) :: cerr
-      !! String version of error
-
-
-    if ( ierror <= 0 ) return
-      !! * Do nothing if the error is less than or equal to zero
-
-    write( cerr, fmt = '(I6)' ) ierror
-      !! * Write ierr to a string
-    write(unit=*, fmt = '(/,1X,78("%"))' )
-      !! * Output a dividing line
-    write(unit=*, fmt = '(5X,"Error in ",A," (",A,"):")' ) trim(calledFrom), trim(adjustl(cerr))
-      !! * Output where the error occurred and the error
-    write(unit=*, fmt = '(5X,A)' ) TRIM(message)
-      !! * Output the error message
-    write(unit=*, fmt = '(1X,78("%"),/)' )
-      !! * Output a dividing line
-
-    write( *, '("     stopping ...")' )
-  
-    call flush( iostd )
-  
-    id = 0
-  
-    !> * For MPI, get the id of this process and abort
-    call MPI_COMM_RANK( worldComm, id, mpierr )
-    call MPI_ABORT( worldComm, mpierr, ierr )
-    call MPI_FINALIZE( mpierr )
-
-    stop 2
-
-    return
-
-  end subroutine exitError
 
 !----------------------------------------------------------------------------
   subroutine mpiInitialization()
@@ -1128,7 +1054,7 @@ contains
   end subroutine distributeKpointsInPools
   
 !----------------------------------------------------------------------------
-  subroutine getFullPWGrid(nGVecsGlobal, mill_local, nGVecsLocal)
+  subroutine getFullPWGrid(nGVecsGlobal, gIndexGlobalToLocal, gVecProcId, mill_local, nGVecsLocal)
     !! Read full PW grid from mgrid file
     
     implicit none
@@ -1138,6 +1064,10 @@ contains
       !! Global number of G-vectors
 
     ! Output variables:
+    integer, intent(out) :: gIndexGlobalToLocal(nGVecsGlobal)
+      !! Converts global G-index to local G-index
+    integer, intent(out) :: gVecProcId(nGVecsGlobal)
+      !! Index in pool where G-vector is distributed to
     integer, allocatable, intent(out) :: mill_local(:,:)
       !! Integer coefficients for G-vectors
     integer, intent(out) :: nGVecsLocal
@@ -1171,14 +1101,14 @@ contains
 
     endif
 
-    call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, mill_local, nGVecsLocal)
+    call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexGlobalToLocal, gVecProcId, mill_local, nGVecsLocal)
     
     return
     
   end subroutine getFullPWGrid
 
 !----------------------------------------------------------------------------
-  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, mill_local, nGVecsLocal)
+  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexGlobalToLocal, gVecProdId, mill_local, nGVecsLocal)
     !! Figure out how many G-vectors there should be per processor.
     !! G-vectors are split up in a round robin fashion over processors
     !! in a single k-point pool.
@@ -1198,6 +1128,10 @@ contains
 
     
     ! Output variables:
+    integer, intent(out) :: gIndexGlobalToLocal(nGVecsGlobal)
+      !! Converts global G-index to local G-index
+    integer, intent(out) :: gVecProcId(nGVecsGlobal)
+      !! Index in pool where G-vector is distributed to
     integer, allocatable, intent(out) :: mill_local(:,:)
       !! Integer coefficients for G-vectors
     integer, intent(out) :: nGVecsLocal
@@ -1223,14 +1157,20 @@ contains
 
 
       allocate(mill_local(3,nGVecsLocal))
+      gIndexGlobalToLocal = 0
+      gVecProcId = 0
 
-      !> Get local Miller indices
+      !> * Get local Miller indices, store map from global
+      !>   G-vector index to local G-vector index, and store
+      !>   index in pool where each G-vector is distributed
       ig_l = 0
       do ig_g = 1, nGVecsGlobal
 
         if(indexInPool == mod(ig_g-1,nProcPerPool)) then
-        
+
           ig_l = ig_l + 1
+          gIndexGlobalToLocal(ig_g) = ig_l
+          gVecProcId(ig_g) = indexInPool
           mill_local(:,ig_l) = gVecMillerIndicesGlobal(:,ig_g)
 
         endif
@@ -1239,78 +1179,13 @@ contains
 
       if (ig_l /= nGVecsLocal) call exitError('distributeGvecsOverProcessors', 'unexpected number of G-vecs for this processor', 1)
 
+      call mpiSumIntV(gIndexGlobalToLocal, intraPoolComm)
+      call mpiSumIntV(gVecProcId, intraPoolComm)
+
     endif
 
     return
   end subroutine distributeGvecsOverProcessors
-  
-  
-  subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
-    !
-    implicit none
-    !
-    integer, intent(in)  :: nOfPWs, nOfBlocks
-    !
-    integer :: iStep, iModu
-    !
-    iStep = int(nOfPWs/nOfBlocks)
-    iModu = mod(nOfPWs,nOfBlocks)
-    !
-    do i = 0, nOfBlocks - 1
-      counts(i) = iStep
-      if ( iModu > 0 ) then
-        counts(i) = counts(i) + 1
-        iModu = iModu - 1
-      endif
-    enddo
-    !
-    displmnt(0) = 0
-    do i = 1, nOfBlocks-1
-      displmnt(i) = displmnt(i-1) + counts(i)
-    enddo
-    !
-    return
-    !
-  end subroutine distributePWsToProcs
-  !
-  !
-  subroutine int2str(integ, string)
-    !
-    implicit none
-    integer :: integ
-    character(len = 300) :: string
-    !
-    if ( integ < 10 ) then
-      write(string, '(i1)') integ
-    else if ( integ < 100 ) then
-      write(string, '(i2)') integ
-    else if ( integ < 1000 ) then
-      write(string, '(i3)') integ
-    else if ( integ < 10000 ) then
-      write(string, '(i4)') integ
-    endif
-    !
-    string = trim(string)
-    !
-    return
-    !
-  end subroutine int2str
-  !
-  !
-  subroutine finalizeCalculation()
-    !
-    implicit none
-    !
-    write(iostd,'("-----------------------------------------------------------------")')
-    !
-    call cpu_time(tf)
-    write(iostd, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
-    !
-    close(iostd)
-    !
-    return
-    !
-  end subroutine finalizeCalculation
 
 
   subroutine readWfcPC(ik)
@@ -2616,6 +2491,180 @@ contains
       !
   999 RETURN
   END subroutine ylm
-  !
-  !
+  
+!----------------------------------------------------------------------------
+  subroutine finalizeCalculation()
+    !
+    implicit none
+    !
+    write(iostd,'("-----------------------------------------------------------------")')
+    !
+    call cpu_time(tf)
+    write(iostd, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
+    !
+    close(iostd)
+    !
+    return
+    !
+  end subroutine finalizeCalculation
+
+!----------------------------------------------------------------------------
+  subroutine mpiExitError(code)
+    !! Exit on error with MPI communication
+
+    implicit none
+    
+    integer, intent(in) :: code
+
+    write( iostd, '( "*** MPI error ***")' )
+    write( iostd, '( "*** error code: ",I5, " ***")' ) code
+
+    call MPI_ABORT(worldComm,code,ierr)
+    
+    stop
+
+    return
+  end subroutine mpiExitError
+
+!----------------------------------------------------------------------------
+  subroutine exitError(calledFrom, message, ierror)
+    !! Output error message and abort if ierr > 0
+    !!
+    !! Can ensure that error will cause abort by
+    !! passing abs(ierror)
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+    
+    implicit none
+
+    integer, intent(in) :: ierror
+      !! Error
+
+    character(len=*), intent(in) :: calledFrom
+      !! Place where this subroutine was called from
+    character(len=*), intent(in) :: message
+      !! Error message
+
+    integer :: id
+      !! ID of this process
+    integer :: mpierr
+      !! Error output from MPI
+
+    character(len=6) :: cerr
+      !! String version of error
+
+
+    if ( ierror <= 0 ) return
+      !! * Do nothing if the error is less than or equal to zero
+
+    write( cerr, fmt = '(I6)' ) ierror
+      !! * Write ierr to a string
+    write(unit=*, fmt = '(/,1X,78("%"))' )
+      !! * Output a dividing line
+    write(unit=*, fmt = '(5X,"Error in ",A," (",A,"):")' ) trim(calledFrom), trim(adjustl(cerr))
+      !! * Output where the error occurred and the error
+    write(unit=*, fmt = '(5X,A)' ) TRIM(message)
+      !! * Output the error message
+    write(unit=*, fmt = '(1X,78("%"),/)' )
+      !! * Output a dividing line
+
+    write( *, '("     stopping ...")' )
+  
+    call flush( iostd )
+  
+    id = 0
+  
+    !> * For MPI, get the id of this process and abort
+    call MPI_COMM_RANK( worldComm, id, mpierr )
+    call MPI_ABORT( worldComm, mpierr, ierr )
+    call MPI_FINALIZE( mpierr )
+
+    stop 2
+
+    return
+
+  end subroutine exitError
+
+!----------------------------------------------------------------------------
+  subroutine mpiSumIntV(msg, comm)
+    !! Perform `MPI_ALLREDUCE` sum for an integer vector
+    !! using a max buffer size
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input/output variables:
+    integer, intent(in) :: comm
+      !! MPI communicator
+    integer, intent(inout) :: msg(:)
+      !! Message to be sent
+
+
+    ! Local variables:
+    integer, parameter :: maxb = 100000
+      !! Max buffer size
+
+    integer :: ib
+      !! Loop index
+    integer :: buff(maxb)
+      !! Buffer
+    integer :: msglen
+      !! Length of message to be sent
+    integer :: nbuf
+      !! Number of buffers
+
+    msglen = size(msg)
+
+    nbuf = msglen/maxb
+      !! * Get the number of buffers of size `maxb` needed
+  
+    do ib = 1, nbuf
+      !! * Send message in buffers of size `maxb`
+     
+        call MPI_ALLREDUCE(msg(1+(ib-1)*maxb), buff, maxb, MPI_INTEGER, MPI_SUM, comm, ierr)
+        if(ierr /= 0) call exitError('mpiSumIntV', 'error in mpi_allreduce 1', ierr)
+
+        msg((1+(ib-1)*maxb):(ib*maxb)) = buff(1:maxb)
+
+    enddo
+
+    if((msglen - nbuf*maxb) > 0 ) then
+      !! * Send any data left of size less than `maxb`
+
+        call MPI_ALLREDUCE(msg(1+nbuf*maxb), buff, (msglen-nbuf*maxb), MPI_INTEGER, MPI_SUM, comm, ierr)
+        if(ierr /= 0) call exitError('mpiSumIntV', 'error in mpi_allreduce 2', ierr)
+
+        msg((1+nbuf*maxb):msglen) = buff(1:(msglen-nbuf*maxb))
+    endif
+
+    return
+  end subroutine mpiSumIntV
+  
+!----------------------------------------------------------------------------
+  subroutine int2str(integ, string)
+    !
+    implicit none
+    integer :: integ
+    character(len = 300) :: string
+    !
+    if ( integ < 10 ) then
+      write(string, '(i1)') integ
+    else if ( integ < 100 ) then
+      write(string, '(i2)') integ
+    else if ( integ < 1000 ) then
+      write(string, '(i3)') integ
+    else if ( integ < 10000 ) then
+      write(string, '(i4)') integ
+    endif
+    !
+    string = trim(string)
+    !
+    return
+    !
+  end subroutine int2str
+  
+  
 end module declarations

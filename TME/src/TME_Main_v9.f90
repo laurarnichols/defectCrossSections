@@ -9,8 +9,6 @@ program transitionMatrixElements
   call mpiInitialization()
     !! Initialize MPI
   
-  allocate ( nPWsI(0:nProcs-1), nPWsF(0:nProcs-1) )
-  
   if(ionode) then
     
     call cpu_time(t0)
@@ -22,17 +20,25 @@ program transitionMatrixElements
 
   endif
 
-  call MPI_BCAST(maxGIndexGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
   call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
-  call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
 
   call distributeKpointsInPools(nKPoints)
     !! Split the k-points across the pools
 
-  call getFullPWGrid(nGVecsGlobal, mill_local, nGVecsLocal)
+
+  call MPI_BCAST(maxGIndexGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
+
+  allocate(gIndexLocalToGlobal(nGVecsGlobal), gVecProcId(nGVecsGlobal))
+
+  call getFullPWGrid(nGVecsGlobal, gIndexGlobalToLocal, gVecProcId, mill_local, nGVecsLocal)
     !! Read the full PW grid from `mgrid` and distribute
     !! across processes
+
+  deallocate(gIndexLocalToGlobal)
+  deallocate(gVecProcId)
     
+
   if(ionode) then
     allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPoints) )
     allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
@@ -44,43 +50,20 @@ program transitionMatrixElements
     
     Ufi(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
-    allocate ( counts(0:nProcs-1), displmnt(0:nProcs-1) )
-    
-    call distributePWsToProcs(nGVecsGlobal, nProcs)
-    
-    nPWsI(:) = 0
-    nPWsF(:) = 0
-    
-    do i = 0, nProcs - 1
-      nPWsI(i) = 1 + sum(counts(:i-1))
-      nPWsF(i) = sum(counts(:i))
-    enddo
-      
   endif
   
-  call MPI_BCAST(iBandIinit,  1, MPI_INTEGER,root,worldComm,ierr)
-  call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER,root,worldComm,ierr)
-  call MPI_BCAST(iBandFinit,  1, MPI_INTEGER,root,worldComm,ierr)
-  call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER,root,worldComm,ierr)
-  
-  call MPI_BCAST(nKPoints,     1, MPI_INTEGER,root,worldComm,ierr)
-  
-  call MPI_BCAST(nProjsPC,    1, MPI_INTEGER,root,worldComm,ierr)
-  call MPI_BCAST(nProjsSD,    1, MPI_INTEGER,root,worldComm,ierr)
-  call MPI_BCAST(nBands,      1, MPI_INTEGER,root,worldComm,ierr)
-  call MPI_BCAST(nSpins,      1, MPI_INTEGER,root,worldComm,ierr)
-  
-  call MPI_BCAST(nPWsI, nProcs, MPI_INTEGER, root, worldComm, ierr)
-  call MPI_BCAST(nPWsF, nProcs, MPI_INTEGER, root, worldComm, ierr)
-  
-  if (.not. ionode) allocate ( gvecs(3, nGVecsGlobal) )
-  call MPI_BCAST(gvecs, size(gvecs), MPI_DOUBLE_PRECISION,root,worldComm,ierr)
-  
+  call MPI_BCAST(iBandIinit, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(nProjsPC, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(nProjsSD, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(nBands, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(JMAX, 1, MPI_INTEGER, root, worldComm, ierr)
   call MPI_BCAST(numOfTypesPC, 1, MPI_INTEGER, root, worldComm, ierr)
   
-  if (.not. ionode) allocate ( atomsPC(numOfTypesPC) )
-  
-  call MPI_BCAST(JMAX, 1, MPI_INTEGER, root, worldComm, ierr)
+  if(.not. ionode) allocate ( atomsPC(numOfTypesPC) )
   
   do i = 1, numOfTypesPC
     
