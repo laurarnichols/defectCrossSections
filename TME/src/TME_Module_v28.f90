@@ -76,11 +76,10 @@ module declarations
   character(len = 320) :: mkdir
   !
   integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ik, ki, kf, ig, ibi, ibf
-  integer :: JMAX, maxL, iTypes, iPn
+  integer :: JMAX, iTypes, iPn
   integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
   integer :: numOfTypes, nBands, nSpins, nProjsSD
   integer :: numOfUsedGvecsPP, ios, npwNi, npwNf, npwMi, npwMf
-  integer :: fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
   integer :: gx, gy, gz, nGvsI, nGvsF, nGi, nGf
   integer :: np, nI, nF, nPP, ind2
   integer :: i, j, n1, n2, n3, n4, n, id, npw
@@ -102,13 +101,12 @@ module declarations
   complex(kind = dp), allocatable :: betaPC(:,:), cProjBetaPCPsiSD(:,:,:)
   complex(kind = dp), allocatable :: betaSD(:,:), cProjBetaSDPhiPC(:,:,:)
   !
-  integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:), groundState(:)
+  integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:)
   integer, allocatable :: npwsSD(:), pwGindPC(:), pwGindSD(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
   integer, allocatable :: npwsPC(:)
   real(kind = dp), allocatable :: wkPC(:), xkPC(:,:)
   !
   type :: atom
-    character(len = 2) :: symbol
     integer :: numOfAtoms, lMax, lmMax, nMax, iRc
     integer, allocatable :: lps(:)
     real(kind = dp), allocatable :: r(:), rab(:), wae(:,:), wps(:,:), F(:,:), F1(:,:,:), F2(:,:,:), bes_J_qr(:,:)
@@ -353,47 +351,55 @@ contains
 
     logical :: file_exists
     
+    
+    if(ionode) then
+      !> Check if file output exists. If it does, delete it.
+      inquire(file = output, exist = file_exists)
+      if ( file_exists ) then
+        open (unit = 11, file = output, status = "old")
+        close(unit = 11, status = "delete")
+      endif
+    
+      open (iostd, file = output, status='new')
+        !! Open new output file.
+    
+      call initialize(nKPoints)
+    
+      READ (5, TME_Input, iostat = ios)
+    
+      call checkInitialization()
 
-    call cpu_time(t0)
-    
-    ! Check if file output exists. If it does, delete it.
-    
-    inquire(file = output, exist = file_exists)
-    if ( file_exists ) then
-      open (unit = 11, file = output, status = "old")
-      close(unit = 11, status = "delete")
     endif
-    
-    ! Open new output file.
-    
-    open (iostd, file = output, status='new')
-    
-    call initialize(nKPoints)
-    
-    READ (5, TME_Input, iostat = ios)
-    
-    call checkInitialization()
-    
+
+    call MPI_BCAST(iBandIinit, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+
     call readInputPC(nKPoints, maxGIndexGlobalPC)
     call readInputSD(nKPoints, maxGIndexGlobalSD, nGVecsGlobal, realLattVec, recipLattVec)
     
-    maxGIndexGlobal = max(maxGIndexGlobalPC, maxGIndexGlobalSD)
+    if(ionode) then
 
-    if(maxGIndexGlobal > nGVecsGlobal) call exitError('readInput', &
-        'Trying to reference G vecs outside of max grid size. Try switching which grid is read.', 1)
+      maxGIndexGlobal = max(maxGIndexGlobalPC, maxGIndexGlobalSD)
+
+      if(maxGIndexGlobal > nGVecsGlobal) call exitError('readInput', &
+          'Trying to reference G vecs outside of max grid size. Try switching which grid is read.', 1)
+
+    endif
+
+    call MPI_BCAST(maxGIndexGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
     
     return
     
   end subroutine readInput
   
 !----------------------------------------------------------------------------
-  subroutine initialize(nKPoints)
+  subroutine initialize()
     
     implicit none
 
     ! Output variables:
-    integer, intent(out) :: nKPoints
-      !! Total number of k-points
     
 
     exportDirSD = ''
@@ -403,7 +409,6 @@ contains
     !
     ki = -1
     kf = -1
-    nKPoints = -1
     !
     eBin = -1.0_dp
     !
@@ -602,178 +607,261 @@ contains
     
     logical :: file_exists
     
+    if(ionode) then
+      call cpu_time(t1)
+    
+      write(iostd, *)
+      write(iostd, '(" Reading perfect crystal inputs.")')
+      write(iostd, *)
+    
+      inputPC = trim(trim(exportDirPC)//'/input')
+    
+      inquire(file =trim(inputPC), exist = file_exists)
+    
+      if ( file_exists .eqv. .false. ) then
+        write(iostd, '(" File : ", a, " , does not exist!")') trim(inputPC)
+        write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirPC)
+        write(iostd, '(" Program stops!")')
+        flush(iostd)
+      endif
+    
+      open(50, file=trim(inputPC), status = 'old')
+    
+      read(50, '(a)') textDum
+      read(50, * ) 
+    
+      read(50, '(a)') textDum
+      read(50, '(i10)') nKPoints
 
-    call cpu_time(t1)
+    endif
+
+    call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     
-    write(iostd, *)
-    write(iostd, '(" Reading perfect crystal inputs.")')
-    write(iostd, *)
+    allocate(npwsPC(nKPoints), wkPC(nKPoints), xkPC(3,nKPoints))
     
-    inputPC = trim(trim(exportDirPC)//'/input')
+    if(ionode) then
+
+      read(50, '(a)') textDum
     
-    inquire(file =trim(inputPC), exist = file_exists)
-    
-    if ( file_exists .eqv. .false. ) then
-      write(iostd, '(" File : ", a, " , does not exist!")') trim(inputPC)
-      write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirPC)
-      write(iostd, '(" Program stops!")')
-      flush(iostd)
+      do ik = 1, nKPoints
+      
+        read(50, '(3i10,4ES24.15E3)') iDum, iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
+      
+      enddo
+
     endif
     
-    open(50, file=trim(inputPC), status = 'old')
+    call MPI_BCAST(npwsPC, nKPoints, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(wkPC, nKPoints, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(xkPC, nKPoints, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    if(ionode) then
+
+      read(50, '(a)') textDum
+      read(50, * ) ! nGVecsGlobal
     
-    read(50, '(a)') textDum
-    read(50, * ) 
+      read(50, '(a)') textDum
+      read(50, '(i10)') maxGIndexGlobalPC
     
-    read(50, '(a)') textDum
-    read(50, '(i10)') nKPoints
+      read(50, '(a)') textDum     
+      read(50, * ) ! fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
     
-    read(50, '(a)') textDum
+      read(50, '(a)') textDum
+      read(50,  * )
+      read(50,  * )
+      read(50,  * )
     
-    allocate ( npwsPC(nKPoints), wkPC(nKPoints), xkPC(3,nKPoints) )
+      read(50, '(a)') textDum
+      read(50, * )
+      read(50, * )
+      read(50, * )
     
-    do ik = 1, nKPoints
-      
-      read(50, '(3i10,4ES24.15E3)') iDum, iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
-      
-    enddo
+      read(50, '(a)') textDum
+      read(50, '(i10)') nIonsPC
     
-    read(50, '(a)') textDum
-    read(50, * ) ! nGVecsGlobal
+      read(50, '(a)') textDum
+      read(50, '(i10)') numOfTypesPC
     
-    read(50, '(a)') textDum
-    read(50, '(i10)') maxGIndexGlobalPC
+    endif
+
+    call MPI_BCAST(nIonsPC, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(numOfTypesPC, 1, MPI_INTEGER, root, worldComm, ierr)
     
-    read(50, '(a)') textDum     
-    read(50, * ) ! fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
+    allocate(posIonPC(3,nIonsPC), TYPNIPC(nIonsPC))
+
+
+    if(ionode) then
     
-    read(50, '(a)') textDum
-    read(50,  * )
-    read(50,  * )
-    read(50,  * )
+      read(50, '(a)') textDum
+      do ni = 1, nIonsPC
+        read(50,'(i10, 3ES24.15E3)') TYPNIPC(ni), (posIonPC(j,ni) , j = 1,3)
+      enddo
     
-    read(50, '(a)') textDum
-    read(50, * )
-    read(50, * )
-    read(50, * )
+      read(50, '(a)') textDum
+      read(50, * )
     
+      read(50, '(a)') textDum
+      read(50, * ) 
+
+    endif
+
+    call MPI_BCAST(TYPNIPC,  size(TYPNIPC),  MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(posIonPC, size(posIonPC), MPI_DOUBLE_PRECISION,root,worldComm,ierr)
     
-    read(50, '(a)') textDum
-    read(50, '(i10)') nIonsPC
-    
-    read(50, '(a)') textDum
-    read(50, '(i10)') numOfTypesPC
-    
-    allocate( posIonPC(3,nIonsPC), TYPNIPC(nIonsPC) )
-    
-    read(50, '(a)') textDum
-    do ni = 1, nIonsPC
-      read(50,'(i10, 3ES24.15E3)') TYPNIPC(ni), (posIonPC(j,ni) , j = 1,3)
-    enddo
-    
-    read(50, '(a)') textDum
-    read(50, * )
-    
-    read(50, '(a)') textDum
-    read(50, * ) 
-    
-    allocate ( atomsPC(numOfTypesPC) )
-    
+    allocate(atomsPC(numOfTypesPC))
+
     nProjsPC = 0
     do iType = 1, numOfTypesPC
       
-      read(50, '(a)') textDum
-      read(50, *) atomsPC(iType)%symbol
+      if(ionode) then
+
+        read(50, '(a)') textDum
+        read(50, *) 
       
-      read(50, '(a)') textDum
-      read(50, '(i10)') atomsPC(iType)%numOfAtoms
+        read(50, '(a)') textDum
+        read(50, '(i10)') atomsPC(iType)%numOfAtoms
+
+      endif
+
+      call MPI_BCAST(atomsPC(iType)(%numOfAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
       
-      read(50, '(a)') textDum
-      read(50, '(i10)') atomsPC(iType)%lMax              ! number of projectors
+      if(ionode) then
+
+        read(50, '(a)') textDum
+        read(50, '(i10)') atomsPC(iType)%lMax              ! number of projectors
       
-      allocate ( atomsPC(iType)%lps( atomsPC(iType)%lMax ) )
+      endif
+
+      call MPI_BCAST(atomsPC(iType)%lMax, 1, MPI_INTEGER, root, worldComm, ierr)
+
+      allocate(atomsPC(iType)%lps(atomsPC(iType)%lMax))
       
-      read(50, '(a)') textDum
-      do i = 1, atomsPC(iType)%lMax 
-        read(50, '(2i10)') l, ind
-        atomsPC(iType)%lps(ind) = l
-      enddo
-      
-      read(50, '(a)') textDum
-      read(50, '(i10)') atomsPC(iType)%lmMax
-      
-      read(50, '(a)') textDum
-      read(50, '(2i10)') atomsPC(iType)%nMax, atomsPC(iType)%iRc
-      
-      allocate ( atomsPC(iType)%r(atomsPC(iType)%nMax), atomsPC(iType)%rab(atomsPC(iType)%nMax) )
-      
-      read(50, '(a)') textDum
-      do i = 1, atomsPC(iType)%nMax
-        read(50, '(2ES24.15E3)') atomsPC(iType)%r(i), atomsPC(iType)%rab(i)
-      enddo
-       
-      allocate ( atomsPC(iType)%wae(atomsPC(iType)%nMax, atomsPC(iType)%lMax) )
-      allocate ( atomsPC(iType)%wps(atomsPC(iType)%nMax, atomsPC(iType)%lMax) )
-      
-      read(50, '(a)') textDum
-      do j = 1, atomsPC(iType)%lMax
-        do i = 1, atomsPC(iType)%nMax
-          read(50, '(2ES24.15E3)') atomsPC(iType)%wae(i, j), atomsPC(iType)%wps(i, j) 
-        enddo
-      enddo
-        
-      allocate ( atomsPC(iType)%F( atomsPC(iType)%iRc, atomsPC(iType)%lMax ) )
-      allocate ( atomsPC(iType)%F1(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax ) )
-      allocate ( atomsPC(iType)%F2(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax ) )
-      
-      atomsPC(iType)%F = 0.0_dp
-      atomsPC(iType)%F1 = 0.0_dp
-      atomsPC(iType)%F2 = 0.0_dp
-      
-      do j = 1, atomsPC(iType)%lMax
-        
-        irc = atomsPC(iType)%iRc
-        atomsPC(iType)%F(1:irc,j)=(atomsPC(iType)%wae(1:irc,j)-atomsPC(iType)%wps(1:irc,j))* &
-              atomsPC(iType)%r(1:irc)*atomsPC(iType)%rab(1:irc)
-        
-        do i = 1, atomsPC(iType)%lMax
-          atomsPC(iType)%F1(1:irc,i,j) = ( atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wae(1:irc,j) - &
-    &                                      atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wps(1:irc,j))*atomsPC(iType)%rab(1:irc)
-          
-          atomsPC(iType)%F2(1:irc,i,j) = ( atomsPC(iType)%wae(1:irc,i)*atomsPC(iType)%wae(1:irc,j) - &
-                                           atomsPC(iType)%wae(1:irc,i)*atomsPC(iType)%wps(1:irc,j) - &
-                                           atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wae(1:irc,j) + &
-    &                                      atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wps(1:irc,j))*atomsPC(iType)%rab(1:irc)
+      if(ionode) then
+
+        read(50, '(a)') textDum
+
+        do i = 1, atomsPC(iType)%lMax 
+
+          read(50, '(2i10)') l, ind
+          atomsPC(iType)%lps(ind) = l
 
         enddo
-      enddo
+
+      endif
+
+      call MPI_BCAST(atomsPC(iType)%lps, atomsPC(iType)%lMax, MPI_INTEGER, root, worldComm, ierr)
+
+      if(ionode) then
       
-      nProjsPC = nProjsPC + atomsPC(iType)%numOfAtoms*atomsPC(iType)%lmMax
+        read(50, '(a)') textDum
+        read(50, '(i10)') atomsPC(iType)%lmMax
+      
+        read(50, '(a)') textDum
+        read(50, '(2i10)') atomsPC(iType)%nMax, atomsPC(iType)%iRc
+
+      endif
+    
+      call MPI_BCAST(atomsPC(iType)%lmMax, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(atomsPC(iType)%iRc, 1, MPI_INTEGER, root, worldComm, ierr)
+      
+      if(ionode) then
+      
+        allocate(atomsPC(iType)%r(atomsPC(iType)%nMax), atomsPC(iType)%rab(atomsPC(iType)%nMax))
+
+        read(50, '(a)') textDum
+
+        do i = 1, atomsPC(iType)%nMax
+          read(50, '(2ES24.15E3)') atomsPC(iType)%r(i), atomsPC(iType)%rab(i)
+        enddo
+       
+        allocate(atomsPC(iType)%wae(atomsPC(iType)%nMax, atomsPC(iType)%lMax))
+        allocate(atomsPC(iType)%wps(atomsPC(iType)%nMax, atomsPC(iType)%lMax))
+      
+        read(50, '(a)') textDum
+        do j = 1, atomsPC(iType)%lMax
+          do i = 1, atomsPC(iType)%nMax
+            read(50, '(2ES24.15E3)') atomsPC(iType)%wae(i, j), atomsPC(iType)%wps(i, j) 
+          enddo
+        enddo
+        
+      endif
+
+      allocate(atomsPC(iType)%F(atomsPC(iType)%iRc, atomsPC(iType)%lMax))
+      allocate(atomsPC(iType)%F1(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax))
+      allocate(atomsPC(iType)%F2(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax))
+      
+      if(ionode) then
+
+        atomsPC(iType)%F = 0.0_dp
+        atomsPC(iType)%F1 = 0.0_dp
+        atomsPC(iType)%F2 = 0.0_dp
+      
+        do j = 1, atomsPC(iType)%lMax
+        
+          irc = atomsPC(iType)%iRc
+          atomsPC(iType)%F(1:irc,j)=(atomsPC(iType)%wae(1:irc,j)-atomsPC(iType)%wps(1:irc,j))* &
+                atomsPC(iType)%r(1:irc)*atomsPC(iType)%rab(1:irc)
+        
+          do i = 1, atomsPC(iType)%lMax
+            atomsPC(iType)%F1(1:irc,i,j) = ( atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wae(1:irc,j) - &
+                                            atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wps(1:irc,j))*atomsPC(iType)%rab(1:irc)
+          
+            atomsPC(iType)%F2(1:irc,i,j) = ( atomsPC(iType)%wae(1:irc,i)*atomsPC(iType)%wae(1:irc,j) - &
+                                             atomsPC(iType)%wae(1:irc,i)*atomsPC(iType)%wps(1:irc,j) - &
+                                             atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wae(1:irc,j) + &
+                                             atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wps(1:irc,j))*atomsPC(iType)%rab(1:irc)
+
+          enddo
+        enddo
+
+        deallocate(atomsPC(iType)%wae)
+        deallocate(atomsPC(iType)%wps)
+        deallocate(atomsPC(iType)%r)
+        deallocate(atomsPC(iType)%rab)
+      
+        nProjsPC = nProjsPC + atomsPC(iType)%numOfAtoms*atomsPC(iType)%lmMax
+
+      endif
+
+      call MPI_BCAST(atomsPC(iType)%F, size(atomsPC(iType)%F), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(atomsPC(iType)%F1, size(atomsPC(iType)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(atomsPC(iType)%F2, size(atomsPC(iType)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       
     enddo
+  
+    call MPI_BCAST(nProjsPC, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    if(ionode) then
     
-    close(50)
+      close(50)
     
-    JMAX = 0
-    do iType = 1, numOfTypesPC
-      do i = 1, atomsPC(iType)%lMax
-        if ( atomsPC(iType)%lps(i) > JMAX ) JMAX = atomsPC(iType)%lps(i)
+      JMAX = 0
+      do iType = 1, numOfTypesPC
+        do i = 1, atomsPC(iType)%lMax
+          if ( atomsPC(iType)%lps(i) > JMAX ) JMAX = atomsPC(iType)%lps(i)
+        enddo
       enddo
-    enddo
     
-    maxL = JMAX
-    JMAX = 2*JMAX + 1
+      JMAX = 2*JMAX + 1
+
+    endif
+
+    call MPI_BCAST(JMAX, 1, MPI_INTEGER, root, worldComm, ierr)
     
     do iType = 1, numOfTypesPC
-      allocate ( atomsPC(iType)%bes_J_qr( 0:JMAX, atomsPC(iType)%iRc ) )
+
+      allocate(atomsPC(iType)%bes_J_qr(0:JMAX, atomsPC(iType)%iRc))
       atomsPC(iType)%bes_J_qr(:,:) = 0.0_dp
       
     enddo
-    
-    call cpu_time(t2)
-    write(iostd, '(" Reading input files done in:                ", f10.2, " secs.")') t2-t1
-    write(iostd, *)
-    flush(iostd)
+
+    if(ionode) then
+      call cpu_time(t2)
+      write(iostd, '(" Reading input files done in:                ", f10.2, " secs.")') t2-t1
+      write(iostd, *)
+      flush(iostd)
+
+    endif
     
     return
     
@@ -807,194 +895,273 @@ contains
     integer :: i, j, l, ind, ik, iDum, iType, ni, irc
     
     real(kind = dp) :: t1, t2
-    real(kind = dp) :: ef
     
     character(len = 300) :: textDum
     
     logical :: file_exists
     
 
-    call cpu_time(t1)
-    !
-    write(iostd, *)
-    write(iostd, '(" Reading solid defect inputs.")')
-    write(iostd, *)
-    !
-    input = trim(trim(exportDirSD)//'/input')
-    !
-    inquire(file = trim(input), exist = file_exists)
-    !
-    if ( file_exists .eqv. .false. ) then
-      write(iostd, '(" File : ", a, " , does not exist!")') trim(input)
-      write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirSD)
-      write(iostd, '(" Program stops!")')
-      flush(iostd)
-    endif
-    !
-    open(50, file=trim(input), status = 'old')
-    !
-    read(50, '(a)') textDum
-    read(50, '(ES24.15E3)' ) omega
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') nKpts
+    if(ionode) then
+      call cpu_time(t1)
+    
+      write(iostd, *)
+      write(iostd, '(" Reading solid defect inputs.")')
+      write(iostd, *)
+    
+      input = trim(trim(exportDirSD)//'/input')
+    
+      inquire(file = trim(input), exist = file_exists)
+    
+      if ( file_exists .eqv. .false. ) then
+        write(iostd, '(" File : ", a, " , does not exist!")') trim(input)
+        write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirSD)
+        write(iostd, '(" Program stops!")')
+        flush(iostd)
+      endif
+    
+      open(50, file=trim(input), status = 'old')
+    
+      read(50, '(a)') textDum
+      read(50, '(ES24.15E3)' ) omega
 
-    if(nKpts /= nKPoints) call exitError('readInputsSD', 'Number of k-points in systems must match', 1)
-    !
-    read(50, '(a)') textDum
-    !
-    allocate ( groundState(nKPoints), npwsSD(nKPoints), wk(nKPoints), xk(3,nKPoints) )
-    !
-    do ik = 1, nKPoints
-      !
-      read(50, '(3i10,4ES24.15E3)') iDum, groundState(ik), npwsSD(ik), wk(ik), xk(1:3,ik)
-      !
-    enddo
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') nGVecsGlobal
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') maxGIndexGlobalSD
-    !
-    read(50, '(a)') textDum     
-    read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
-    !
-    read(50, '(a)') textDum
-    read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,1)
-    read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,2)
-    read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,3)
-    !
-    read(50, '(a)') textDum
-    read(50, '(a5, 3ES24.15E3)') textDum, recipLattVec(1:3,1)
-    read(50, '(a5, 3ES24.15E3)') textDum, recipLattVec(1:3,2)
-    read(50, '(a5, 3ES24.15E3)') textDum, recipLattVec(1:3,3)
-    !
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') nIonsSD
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') numOfTypes
-    !
-    allocate( posIonSD(3,nIonsSD), TYPNISD(nIonsSD) )
-    !
-    read(50, '(a)') textDum
-    do ni = 1, nIonsSD
-      read(50,'(i10, 3ES24.15E3)') TYPNISD(ni), (posIonSD(j,ni), j = 1,3)
-    enddo
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') nBands
-    !
-    read(50, '(a)') textDum
-    read(50, '(i10)') nSpins
-    !
-    allocate ( atoms(numOfTypes) )
-    !
+    endif
+
+    call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    
+    if(ionode) then
+
+      read(50, '(a)') textDum
+      read(50, '(i10)') nKpts
+
+      if(nKpts /= nKPoints) call exitError('readInputsSD', 'Number of k-points in systems must match', 1)
+    
+      read(50, '(a)') textDum
+    
+      allocate(npwsSD(nKPoints), wk(nKPoints), xk(3,nKPoints))
+    
+      do ik = 1, nKPoints
+      
+        read(50, '(3i10,4ES24.15E3)') iDum, iDum, npwsSD(ik), wk(ik), xk(1:3,ik)
+      
+      enddo
+
+    endif
+    
+    call MPI_BCAST(npwsSD, nKPoints, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(wk, nKPoints, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(xk, nKPoints, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    if(ionode) then
+    
+      read(50, '(a)') textDum
+      read(50, '(i10)') nGVecsGlobal
+    
+      read(50, '(a)') textDum
+      read(50, '(i10)') maxGIndexGlobalSD
+    
+      read(50, '(a)') textDum     
+      read(50,*) 
+      !read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
+    
+      read(50, '(a)') textDum
+      read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,1)
+      read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,2)
+      read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,3)
+    
+      read(50, '(a)') textDum
+      read(50, '(a5, 3ES24.15E3)') textDum, recipLattVec(1:3,1)
+      read(50, '(a5, 3ES24.15E3)') textDum, recipLattVec(1:3,2)
+      read(50, '(a5, 3ES24.15E3)') textDum, recipLattVec(1:3,3)
+    
+      read(50, '(a)') textDum
+      read(50, '(i10)') nIonsSD
+    
+      read(50, '(a)') textDum
+      read(50, '(i10)') numOfTypes
+
+    endif
+
+    call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(recipLattVec, size(recipLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(nIonsSD, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(numOfTypes, 1, MPI_INTEGER, root, worldComm, ierr)
+    
+    allocate(posIonSD(3,nIonsSD), TYPNISD(nIonsSD))
+
+    if(ionode) then
+    
+      read(50, '(a)') textDum
+      do ni = 1, nIonsSD
+        read(50,'(i10, 3ES24.15E3)') TYPNISD(ni), (posIonSD(j,ni), j = 1,3)
+      enddo
+
+    endif
+  
+    call MPI_BCAST(TYPNISD, size(TYPNISD), MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(posIonSD, size(posIonSD), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    if(ionode) then
+    
+      read(50, '(a)') textDum
+      read(50, '(i10)') nBands
+    
+      read(50, '(a)') textDum
+      read(50, '(i10)') nSpins
+
+    endif
+
+    call MPI_BCAST(nBands, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
+    
+    allocate(atoms(numOfTypes))
+    
     nProjsSD = 0
     do iType = 1, numOfTypes
-      !
-      read(50, '(a)') textDum
-      read(50, *) atoms(iType)%symbol
-      !
-      read(50, '(a)') textDum
-      read(50, '(i10)') atoms(iType)%numOfAtoms
-      !
-      read(50, '(a)') textDum
-      read(50, '(i10)') atoms(iType)%lMax              ! number of projectors
-      !
-      allocate ( atoms(iType)%lps( atoms(iType)%lMax ) )
-      !
-      read(50, '(a)') textDum
-      do i = 1, atoms(iType)%lMax 
-        read(50, '(2i10)') l, ind
-        atoms(iType)%lps(ind) = l
-      enddo
-      !
-      read(50, '(a)') textDum
-      read(50, '(i10)') atoms(iType)%lmMax
-      !
-      read(50, '(a)') textDum
-      read(50, '(2i10)') atoms(iType)%nMax, atoms(iType)%iRc
-      !
-      allocate ( atoms(iType)%r(atoms(iType)%nMax), atoms(iType)%rab(atoms(iType)%nMax) )
-      !
-      read(50, '(a)') textDum
-      do i = 1, atoms(iType)%nMax
-        read(50, '(2ES24.15E3)') atoms(iType)%r(i), atoms(iType)%rab(i)
-      enddo
-      ! 
-      allocate ( atoms(iType)%wae(atoms(iType)%nMax, atoms(iType)%lMax) )
-      allocate ( atoms(iType)%wps(atoms(iType)%nMax, atoms(iType)%lMax) )
-      !
-      read(50, '(a)') textDum
-      do j = 1, atoms(iType)%lMax
+      
+      if(ionode) then
+
+        read(50, '(a)') textDum
+        read(50, *) 
+      
+        read(50, '(a)') textDum
+        read(50, '(i10)') atoms(iType)%numOfAtoms
+      
+        read(50, '(a)') textDum
+        read(50, '(i10)') atoms(iType)%lMax              ! number of projectors
+
+      endif
+
+      call MPI_BCAST(atoms(iType)%numOfAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(atoms(iType)%lMax, 1, MPI_INTEGER, root, worldComm, ierr)
+      
+      allocate(atoms(iType)%lps(atoms(iType)%lMax))
+      
+      if(ionode) then
+
+        read(50, '(a)') textDum
+        do i = 1, atoms(iType)%lMax 
+          read(50, '(2i10)') l, ind
+          atoms(iType)%lps(ind) = l
+        enddo
+
+      endif
+
+      call MPI_BCAST(atoms(iType)%lps, size(atoms(iType)%lps), MPI_INTEGER, root, worldComm, ierr)
+
+      if(ionode) then
+      
+        read(50, '(a)') textDum
+        read(50, '(i10)') atoms(iType)%lmMax
+      
+        read(50, '(a)') textDum
+        read(50, '(2i10)') atoms(iType)%nMax, atoms(iType)%iRc
+
+      endif
+    
+      call MPI_BCAST(atoms(iType)%lmMax, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(atoms(iType)%iRc, 1, MPI_INTEGER, root, worldComm, ierr)
+
+      if(ionode) then
+      
+        allocate(atoms(iType)%r(atoms(iType)%nMax), atoms(iType)%rab(atoms(iType)%nMax) )
+      
+        read(50, '(a)') textDum
         do i = 1, atoms(iType)%nMax
-          read(50, '(2ES24.15E3)') atoms(iType)%wae(i, j), atoms(iType)%wps(i, j) 
+          read(50, '(2ES24.15E3)') atoms(iType)%r(i), atoms(iType)%rab(i)
         enddo
-      enddo
-      !  
-      allocate ( atoms(iType)%F( atoms(iType)%iRc, atoms(iType)%lMax ) )
-      allocate ( atoms(iType)%F1(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax ) )
-      allocate ( atoms(iType)%F2(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax ) )
-      !
-      atoms(iType)%F = 0.0_dp
-      atoms(iType)%F1 = 0.0_dp
-      atoms(iType)%F2 = 0.0_dp
-      !
-      do j = 1, atoms(iType)%lMax
-        !
-        irc = atoms(iType)%iRc
-        atoms(iType)%F(1:irc,j)=(atoms(iType)%wae(1:irc,j)-atoms(iType)%wps(1:irc,j))*atoms(iType)%r(1:irc) * &
-            atoms(iType)%rab(1:irc)
-        !
+       
+        allocate(atoms(iType)%wae(atoms(iType)%nMax, atoms(iType)%lMax))
+        allocate(atoms(iType)%wps(atoms(iType)%nMax, atoms(iType)%lMax))
+      
+        read(50, '(a)') textDum
+        do j = 1, atoms(iType)%lMax
+          do i = 1, atoms(iType)%nMax
+            read(50, '(2ES24.15E3)') atoms(iType)%wae(i, j), atoms(iType)%wps(i, j) 
+          enddo
+        enddo
+
+      endif
+
+        
+      allocate(atoms(iType)%F(atoms(iType)%iRc, atoms(iType)%lMax))
+      allocate(atoms(iType)%F1(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax))
+      allocate(atoms(iType)%F2(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax))
+      
+      if(ionode) then
+
+        atoms(iType)%F = 0.0_dp
+        atoms(iType)%F1 = 0.0_dp
+        atoms(iType)%F2 = 0.0_dp
+      
+        do j = 1, atoms(iType)%lMax
+          
+          irc = atoms(iType)%iRc
+          atoms(iType)%F(1:irc,j)=(atoms(iType)%wae(1:irc,j)-atoms(iType)%wps(1:irc,j))*atoms(iType)%r(1:irc) * &
+              atoms(iType)%rab(1:irc)
+          
+          do i = 1, atoms(iType)%lMax
+                  
+            atoms(iType)%F1(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
+                                           atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
+          
+            atoms(iType)%F2(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wae(1:irc,j) - &
+                                           atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
+                                           atoms(iType)%wps(1:irc,i)*atoms(iType)%wae(1:irc,j) + &
+                                           atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
+          enddo
+        enddo
+      
+        nProjsSD = nProjsSD + atoms(iType)%numOfAtoms*atoms(iType)%lmMax
+      
+        deallocate(atoms(iType)%wae, atoms(iType)%wps)
+        deallocate(atoms(iType%r, atoms(iType)%rab))
+
+      endif
+
+      call MPI_BCAST(atoms(iType)%F, size(atoms(iType)%F), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(atoms(iType)%F1, size(atoms(iType)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(atoms(iType)%F2, size(atoms(iType)%F2), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      
+    enddo
+
+    call MPI_BCAST(nProjsSD, 1, MPI_INTEGER, root, worldComm, ierr)
+    
+    if(ionode) then
+    
+      close(50)
+
+      JMAX = 0
+      do iType = 1, numOfTypes
         do i = 1, atoms(iType)%lMax
-          !        
-          atoms(iType)%F1(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
-                                         atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
-          !
-          atoms(iType)%F2(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wae(1:irc,j) - &
-                                         atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
-                                         atoms(iType)%wps(1:irc,i)*atoms(iType)%wae(1:irc,j) + &
-                                         atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
+          if ( atoms(iType)%lps(i) > JMAX ) JMAX = atoms(iType)%lps(i)
         enddo
       enddo
-      !
-      nProjsSD = nProjsSD + atoms(iType)%numOfAtoms*atoms(iType)%lmMax
-      !
-      deallocate ( atoms(iType)%wae, atoms(iType)%wps )
-      !
-    enddo
-    !
-    JMAX = 0
+    
+      JMAX = 2*JMAX + 1
+
+    endif
+
+    call MPI_BCAST(JMAX, 1, MPI_INTEGER, root, worldComm, ierr)
+    
     do iType = 1, numOfTypes
-      do i = 1, atoms(iType)%lMax
-        if ( atoms(iType)%lps(i) > JMAX ) JMAX = atoms(iType)%lps(i)
-      enddo
-    enddo
-    !
-    maxL = JMAX
-    JMAX = 2*JMAX + 1
-    !
-    do iType = 1, numOfTypes
-      allocate ( atoms(iType)%bes_J_qr( 0:JMAX, atoms(iType)%iRc ) )
+
+      allocate(atoms(iType)%bes_J_qr( 0:JMAX, atoms(iType)%iRc))
       atoms(iType)%bes_J_qr(:,:) = 0.0_dp
-      !
+      
     enddo
-    !
-    read(50, '(a)') textDum
-    read(50, '(ES24.15E3)') ef
-    !
-    close(50)
-    !
-    call cpu_time(t2)
-    write(iostd, '(" Reading solid defect inputs done in:                ", f10.2, " secs.")') t2-t1
-    write(iostd, *)
-    flush(iostd)
-    !
+    
+    if(ionode) then
+
+      call cpu_time(t2)
+      write(iostd, '(" Reading solid defect inputs done in:                ", f10.2, " secs.")') t2-t1
+      write(iostd, *)
+      flush(iostd)
+
+    endif
+    
     return
-    !
+    
   end subroutine readInputSD
 
 !----------------------------------------------------------------------------
@@ -1187,7 +1354,7 @@ contains
     return
   end subroutine distributeGvecsOverProcessors
 
-
+!----------------------------------------------------------------------------
   subroutine readWfcPC(ik)
     !
     implicit none
