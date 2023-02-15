@@ -449,7 +449,7 @@ contains
     call checkInitialization()
     
     call readInputPC(nKPoints, maxGIndexGlobalPC)
-    call readInputSD(nKPoints, maxGIndexGlobalSD, nGVecsGlobal, recipLattVec)
+    call readInputSD(nKPoints, maxGIndexGlobalSD, nGVecsGlobal, realLattVec, recipLattVec)
     
     maxGIndexGlobal = max(maxGIndexGlobalPC, maxGIndexGlobalSD)
 
@@ -1144,7 +1144,7 @@ contains
       !! Local number of G-vectors on this processor
     
     ! Local variables:
-    integer, :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+    integer :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
     integer :: iDum
       !! Ignore dummy integer
@@ -1221,13 +1221,10 @@ contains
       if( indexInPool < ngr ) nGVecsLocal = nGVecsLocal + 1
         !! * Assign the remainder to the first `ngr` processors
 
-      !> * Generate an array to map a local index
-      !>   (`ig` passed to `gIndexLocalToGlobal`) to a global
-      !>   index (the value stored at `gIndexLocalToGlobal(ig)`)
-      !>   and get local miller indices
-      allocate(gIndexLocalToGlobal(nGVecsLocal))
+
       allocate(mill_local(3,nGVecsLocal))
 
+      !> Get local Miller indices
       ig_l = 0
       do ig_g = 1, nGVecsGlobal
 
