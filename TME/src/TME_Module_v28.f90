@@ -47,6 +47,22 @@ module declarations
   logical :: ionode
     !! If this node is the root node
 
+
+  ! Variables that should be passed as arguments:
+  real(kind=dp) :: realLattVec(3,3)
+    !! Real space lattice vectors
+  real(kind=dp) :: recipLattVec(3,3)
+    !! Reciprocal lattice vectors
+
+  integer :: maxGIndexGlobal
+    !! Maximum G-vector index among all \(G+k\)
+    !! and processors for PC and SD
+  integer, allocatable :: mill_local(:,:)
+    !! Integer coefficients for G-vectors
+  integer :: nGVecsGlobal
+    !! Global number of G-vectors
+  integer :: nGVecsLocal
+    !! Local number of G-vectors on this processor
   integer :: nKPoints
     !! Total number of k-points
   
@@ -57,8 +73,8 @@ module declarations
   !
   integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ik, ki, kf, ig, ibi, ibf
   integer :: JMAX, maxL, iTypes, iPn
-  integer :: numOfGvecs, numOfPWsPC, numOfPWsSD, nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
-  integer :: numOfPWs, numOfTypes, nBands, nSpins, nProjsSD
+  integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
+  integer :: numOfTypes, nBands, nSpins, nProjsSD
   integer :: numOfUsedGvecsPP, ios, npwNi, npwNf, npwMi, npwMf
   integer :: fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
   integer :: gx, gy, gz, nGvsI, nGvsF, nGi, nGf
@@ -67,7 +83,7 @@ module declarations
   !
   integer, allocatable :: counts(:), displmnt(:), nPWsI(:), nPWsF(:)
   !
-  real(kind = dp) t0, tf, at(3,3), bg(3,3)
+  real(kind = dp) t0, tf
   !
   real(kind = dp) :: omega, threej
   !
@@ -114,61 +130,6 @@ module declarations
   !
   !
 contains
-
-!----------------------------------------------------------------------------
-  subroutine mpiInitialization()
-    !! Generate MPI processes and communicators 
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Output variables:
-    !logical, intent(out) :: ionode
-      ! If this node is the root node
-    !integer, intent(out) :: intraPoolComm = 0
-      ! Intra-pool communicator
-    !integer, intent(out) :: indexInPool
-      ! Process index within pool
-    !integer, intent(out) :: myid
-      ! ID of this process
-    !integer, intent(out) :: myPoolId
-      ! Pool index for this process
-    !integer, intent(out) :: nPools
-      ! Number of pools for k-point parallelization
-    !integer, intent(out) :: nProcs
-      ! Number of processes
-    !integer, intent(out) :: nProcPerPool
-      ! Number of processes per pool
-    !integer, intent(out) :: worldComm
-      ! World communicator
-
-
-    call MPI_Init(ierr)
-    if (ierr /= 0) call mpiExitError( 8001 )
-
-    worldComm = MPI_COMM_WORLD
-
-    call MPI_COMM_RANK(worldComm, myid, ierr)
-    if (ierr /= 0) call mpiExitError( 8002 )
-      !! * Determine the rank or ID of the calling process
-    call MPI_COMM_SIZE(worldComm, nProcs, ierr)
-    if (ierr /= 0) call mpiExitError( 8003 )
-      !! * Determine the size of the MPI pool (i.e., the number of processes)
-
-    ionode = (myid == root)
-      ! Set a boolean for if this is the root process
-
-    call getCommandLineArguments()
-      !! * Get the number of pools from the command line
-
-    call setUpPools()
-      !! * Split up processors between pools and generate MPI
-      !!   communicators for pools
-
-    return
-  end subroutine mpiInitialization
 
 !----------------------------------------------------------------------------
   subroutine mpiExitError(code)
@@ -247,6 +208,61 @@ contains
     return
 
   end subroutine exitError
+
+!----------------------------------------------------------------------------
+  subroutine mpiInitialization()
+    !! Generate MPI processes and communicators 
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Output variables:
+    !logical, intent(out) :: ionode
+      ! If this node is the root node
+    !integer, intent(out) :: intraPoolComm = 0
+      ! Intra-pool communicator
+    !integer, intent(out) :: indexInPool
+      ! Process index within pool
+    !integer, intent(out) :: myid
+      ! ID of this process
+    !integer, intent(out) :: myPoolId
+      ! Pool index for this process
+    !integer, intent(out) :: nPools
+      ! Number of pools for k-point parallelization
+    !integer, intent(out) :: nProcs
+      ! Number of processes
+    !integer, intent(out) :: nProcPerPool
+      ! Number of processes per pool
+    !integer, intent(out) :: worldComm
+      ! World communicator
+
+
+    call MPI_Init(ierr)
+    if (ierr /= 0) call mpiExitError( 8001 )
+
+    worldComm = MPI_COMM_WORLD
+
+    call MPI_COMM_RANK(worldComm, myid, ierr)
+    if (ierr /= 0) call mpiExitError( 8002 )
+      !! * Determine the rank or ID of the calling process
+    call MPI_COMM_SIZE(worldComm, nProcs, ierr)
+    if (ierr /= 0) call mpiExitError( 8003 )
+      !! * Determine the size of the MPI pool (i.e., the number of processes)
+
+    ionode = (myid == root)
+      ! Set a boolean for if this is the root process
+
+    call getCommandLineArguments()
+      !! * Get the number of pools from the command line
+
+    call setUpPools()
+      !! * Split up processors between pools and generate MPI
+      !!   communicators for pools
+
+    return
+  end subroutine mpiInitialization
 
 !----------------------------------------------------------------------------
   subroutine getCommandLineArguments()
@@ -381,73 +397,34 @@ contains
 
     return
   end subroutine setUpPools
-
-!----------------------------------------------------------------------------
-  subroutine distributeKpointsInPools(nKPoints)
-    !! Figure out how many k-points there should be per pool
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-    !integer, intent(in) :: nProcPerPool
-      ! Number of processes per pool
-
-
-    ! Output variables:
-    !integer, intent(out) :: ikEnd_pool
-      ! Ending index for k-points in single pool 
-    !integer, intent(out) :: ikStart_pool
-      ! Starting index for k-points in single pool 
-    !integer, intent(out) :: nkPerPool
-      ! Number of k-points in each pool
-
-
-    ! Local variables:
-    integer :: nkr
-      !! Number of k-points left over after evenly divided across pools
-
-
-    if( nKPoints > 0 ) then
-
-      IF( ( nProcPerPool > nProcs ) .or. ( mod( nProcs, nProcPerPool ) /= 0 ) ) &
-        CALL exitError( 'distributeKpointsInPools','nProcPerPool', 1 )
-
-      nkPerPool = nKPoints / nPools
-        !!  * Calculate k-points per pool
-
-      nkr = nKPoints - nkPerPool * nPools 
-        !! * Calculate the remainder `nkr`
-
-      IF( myPoolId < nkr ) nkPerPool = nkPerPool + 1
-        !! * Assign the remainder to the first `nkr` pools
-
-      !>  * Calculate the index of the first k-point in this pool
-      ikStart_pool = nkPerPool * myPoolId + 1
-      IF( myPoolId >= nkr ) ikStart_pool = ikStart_pool + nkr
-
-      ikEnd_pool = ikStart_pool + nkPerPool - 1
-        !!  * Calculate the index of the last k-point in this pool
-
-    endif
-
-    return
-  end subroutine distributeKpointsInPools
   
-  !
-  subroutine readInput(nKPoints)
-    !
+!----------------------------------------------------------------------------
+  subroutine readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
+    
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: maxGIndexGlobal
+      !! Maximum G-vector index among all \(G+k\)
+      !! and processors for PC and SD
+    integer, intent(out) :: nGVecsGlobal
+      !! Global number of G-vectors
     integer, intent(out) :: nKPoints
       !! Total number of k-points
 
+    real(kind=dp), intent(out) :: realLattVec(3,3)
+      !! Real space lattice vectors
+    real(kind=dp), intent(out) :: recipLattVec(3,3)
+      !! Reciprocal lattice vectors
+
     ! Local variables:    
+    integer :: maxGIndexGlobalPC
+      !! Maximum G-vector index among all \(G+k\)
+      !! and processors for PC
+    integer :: maxGIndexGlobalSD
+      !! Maximum G-vector index among all \(G+k\)
+      !! and processors for SD
+
     logical :: file_exists
     
 
@@ -471,18 +448,19 @@ contains
     
     call checkInitialization()
     
-    call readInputPC(nKPoints)
-    call readInputSD(nKPoints)
-
-    call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
+    call readInputPC(nKPoints, maxGIndexGlobalPC)
+    call readInputSD(nKPoints, maxGIndexGlobalSD, nGVecsGlobal, recipLattVec)
     
-    numOfPWs = max( numOfPWsPC, numOfPWsSD )
+    maxGIndexGlobal = max(maxGIndexGlobalPC, maxGIndexGlobalSD)
+
+    if(maxGIndexGlobal > nGVecsGlobal) call exitError('readInput', &
+        'Trying to reference G vecs outside of max grid size. Try switching which grid is read.', 1)
     
     return
     
   end subroutine readInput
   
-  
+!----------------------------------------------------------------------------
   subroutine initialize(nKPoints)
     
     implicit none
@@ -513,8 +491,8 @@ contains
     return
     !
   end subroutine initialize
-  !
-  !
+  
+!----------------------------------------------------------------------------
   subroutine checkInitialization()
     !
     implicit none
@@ -674,15 +652,20 @@ contains
     return
     !
   end subroutine checkInitialization
-  !
-  !
-  subroutine readInputPC(nKPoints)
+  
+!----------------------------------------------------------------------------
+  subroutine readInputPC(nKPoints, maxGIndexGlobalPC)
     
     implicit none
 
     ! Input variables:
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+
+    ! Output variables:
+    integer, intent(out) :: maxGIndexGlobalPC
+      !! Maximum G-vector index among all \(G+k\)
+      !! and processors for PC
     
     ! Local variables:
     integer :: i, j, l, ind, ik, iDum, iType, ni, irc
@@ -730,10 +713,10 @@ contains
     enddo
     
     read(50, '(a)') textDum
-    read(50, * ) ! numOfGvecs
+    read(50, * ) ! nGVecsGlobal
     
     read(50, '(a)') textDum
-    read(50, '(i10)') numOfPWsPC
+    read(50, '(i10)') maxGIndexGlobalPC
     
     read(50, '(a)') textDum     
     read(50, * ) ! fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
@@ -870,279 +853,26 @@ contains
     
   end subroutine readInputPC
   
-  
-  subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
-    !
-    implicit none
-    !
-    integer, intent(in)  :: nOfPWs, nOfBlocks
-    !
-    integer :: iStep, iModu
-    !
-    iStep = int(nOfPWs/nOfBlocks)
-    iModu = mod(nOfPWs,nOfBlocks)
-    !
-    do i = 0, nOfBlocks - 1
-      counts(i) = iStep
-      if ( iModu > 0 ) then
-        counts(i) = counts(i) + 1
-        iModu = iModu - 1
-      endif
-    enddo
-    !
-    displmnt(0) = 0
-    do i = 1, nOfBlocks-1
-      displmnt(i) = displmnt(i-1) + counts(i)
-    enddo
-    !
-    return
-    !
-  end subroutine distributePWsToProcs
-  !
-  !
-  subroutine int2str(integ, string)
-    !
-    implicit none
-    integer :: integ
-    character(len = 300) :: string
-    !
-    if ( integ < 10 ) then
-      write(string, '(i1)') integ
-    else if ( integ < 100 ) then
-      write(string, '(i2)') integ
-    else if ( integ < 1000 ) then
-      write(string, '(i3)') integ
-    else if ( integ < 10000 ) then
-      write(string, '(i4)') integ
-    endif
-    !
-    string = trim(string)
-    !
-    return
-    !
-  end subroutine int2str
-  !
-  !
-  subroutine finalizeCalculation()
-    !
-    implicit none
-    !
-    write(iostd,'("-----------------------------------------------------------------")')
-    !
-    call cpu_time(tf)
-    write(iostd, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
-    !
-    close(iostd)
-    !
-    return
-    !
-  end subroutine finalizeCalculation
-  !
-  !
-  subroutine readPWsSet()
-    !
-    implicit none
-    !
-    integer :: ig, iDum, iGx, iGy, iGz
-    !
-    open(72, file=trim(exportDirSD)//"/mgrid")
-    !
-    read(72, * )
-    read(72, * )
-    !
-    allocate ( gvecs(3, numOfGvecs ) )
-    !
-    gvecs(:,:) = 0.0_dp
-    !
-    do ig = 1, numOfGvecs
-      read(72, '(4i10)') iDum, iGx, iGy, iGz
-      gvecs(1,ig) = dble(iGx)*bg(1,1) + dble(iGy)*bg(1,2) + dble(iGz)*bg(1,3)
-      gvecs(2,ig) = dble(iGx)*bg(2,1) + dble(iGy)*bg(2,2) + dble(iGz)*bg(2,3)
-      gvecs(3,ig) = dble(iGx)*bg(3,1) + dble(iGy)*bg(3,2) + dble(iGz)*bg(3,3)
-    enddo
-    !
-    close(72)
-    !
-    return
-    !
-  end subroutine readPWsSet
-
-
-  subroutine readWfcPC(ik)
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: ib, ig, iDumV(3)
-    !
-    complex(kind = dp) :: wfc
-    !
-    character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
-    open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    allocate ( pwGindPC(npwsPC(ik)) )
-    !
-    do ig = 1, npwsPC(ik)
-      read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
-    enddo
-    !
-    close(72)
-    !
-    open(72, file=trim(exportDirPC)//"/wfc."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    do ib = 1, iBandIinit - 1
-      do ig = 1, npwsPC(ik)
-        read(72, *)
-      enddo
-    enddo
-    !
-    wfcPC(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-    !
-    do ib = iBandIinit, iBandIfinal
-      do ig = 1, npwsPC(ik)
-        read(72, '(2ES24.15E3)') wfc
-        wfcPC(pwGindPC(ig), ib) = wfc
-      enddo
-    enddo
-    !
-    close(72)
-    !
-    deallocate ( pwGindPC )
-    !
-    return
-    !
-  end subroutine readWfcPC
-  !
-  !
-  subroutine projectBetaPCwfcSD(ik)
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: ig, iDumV(3)
-    !
-    character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
-    ! Reading PC projectors
-    !
-    open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    allocate ( pwGindPC(npwsPC(ik)) )
-    !
-    do ig = 1, npwsPC(ik)
-      read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
-    enddo
-    !
-    close(72)
-    !
-    allocate ( betaPC(numOfPWs, nProjsPC) )
-    !
-    betaPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    !
-    open(73, file=trim(exportDirPC)//"/projectors."//trim(iks))
-    !
-    read(73, '(a)') textDum
-    read(73, '(2i10)') nProjsPC, npw
-    !
-    do j = 1, nProjsPC 
-      do i = 1, npw
-        read(73,'(2ES24.15E3)') betaPC(pwGindPC(i),j)
-      enddo
-    enddo
-    !
-    close(73)
-    !
-    deallocate ( pwGindPC )
-    !
-    do j = iBandFinit, iBandFfinal
-      do i = 1, nProjsPC
-        cProjBetaPCPsiSD(i,j,1) = sum(conjg(betaPC(:,i))*wfcSD(:,j))
-      enddo
-    enddo
-    !
-    deallocate ( betaPC )
-    !
-    return
-    !
-  end subroutine projectBetaPCwfcSD
-  !
-  !
-  subroutine readWfcSD(ik)
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: ib, ig, iDumV(3)
-    !
-    complex(kind = dp) :: wfc
-    !
-    character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
-    open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    allocate ( pwGindSD(npwsSD(ik)) )
-    !
-    do ig = 1, npwsSD(ik)
-      read(72, '(4i10)') pwGindSD(ig), iDumV(1:3)
-    enddo
-    !
-    close(72)
-    !
-    open(72, file=trim(exportDirSD)//"/wfc."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    do ib = 1, iBandFinit - 1
-      do ig = 1, npwsSD(ik)
-        read(72, *)
-      enddo
-    enddo
-    !
-    wfcSD(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-    !
-    do ib = iBandFinit, iBandFfinal
-      do ig = 1, npwsSD(ik)
-        read(72, '(2ES24.15E3)') wfc
-        wfcSD(pwGindSD(ig), ib) = wfc
-      enddo
-    enddo
-    !
-    close(72)
-    !
-    deallocate ( pwGindSD )
-    !
-    return
-    !
-  end subroutine readWfcSD
-  !
-  !
-  subroutine readInputSD(nKPoints)
+!----------------------------------------------------------------------------
+  subroutine readInputSD(nKPoints, maxGIndexGlobalSD, nGVecsGlobal, realLattVec, recipLattVec)
     !
     implicit none
     
     ! Input variables:
     integer, intent(in) :: nKPoints
       !! Total number of k-points
+
+    ! Output variables:
+    integer, intent(out) :: maxGIndexGlobalSD
+      !! Maximum G-vector index among all \(G+k\)
+      !! and processors for SD
+    integer, intent(out) :: nGVecsGlobal
+      !! Global number of G-vectors
+
+    real(kind=dp), intent(out) :: realLattVec(3,3)
+      !! Real space lattice vectors
+    real(kind=dp), intent(out) :: recipLattVec(3,3)
+      !! Reciprocal lattice vectors
     
     ! Local variables:
     integer :: nKpts
@@ -1196,23 +926,23 @@ contains
     enddo
     !
     read(50, '(a)') textDum
-    read(50, '(i10)') numOfGvecs
+    read(50, '(i10)') nGVecsGlobal
     !
     read(50, '(a)') textDum
-    read(50, '(i10)') numOfPWsSD
+    read(50, '(i10)') maxGIndexGlobalSD
     !
     read(50, '(a)') textDum     
     read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
     !
     read(50, '(a)') textDum
-    read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,1)
-    read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,2)
-    read(50, '(a5, 3ES24.15E3)') textDum, at(1:3,3)
+    read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,1)
+    read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,2)
+    read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,3)
     !
     read(50, '(a)') textDum
-    read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,1)
-    read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,2)
-    read(50, '(a5, 3ES24.15E3)') textDum, bg(1:3,3)
+    read(50, '(a5, 3ES24.15E3)') textDum, recipLattVec(1:3,1)
+    read(50, '(a5, 3ES24.15E3)') textDum, recipLattVec(1:3,2)
+    read(50, '(a5, 3ES24.15E3)') textDum, recipLattVec(1:3,3)
     !
     !
     read(50, '(a)') textDum
@@ -1340,6 +1070,418 @@ contains
     return
     !
   end subroutine readInputSD
+
+!----------------------------------------------------------------------------
+  subroutine distributeKpointsInPools(nKPoints)
+    !! Figure out how many k-points there should be per pool
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+    !integer, intent(in) :: nProcPerPool
+      ! Number of processes per pool
+
+
+    ! Output variables:
+    !integer, intent(out) :: ikEnd_pool
+      ! Ending index for k-points in single pool 
+    !integer, intent(out) :: ikStart_pool
+      ! Starting index for k-points in single pool 
+    !integer, intent(out) :: nkPerPool
+      ! Number of k-points in each pool
+
+
+    ! Local variables:
+    integer :: nkr
+      !! Number of k-points left over after evenly divided across pools
+
+
+    if( nKPoints > 0 ) then
+
+      IF( ( nProcPerPool > nProcs ) .or. ( mod( nProcs, nProcPerPool ) /= 0 ) ) &
+        CALL exitError( 'distributeKpointsInPools','nProcPerPool', 1 )
+
+      nkPerPool = nKPoints / nPools
+        !!  * Calculate k-points per pool
+
+      nkr = nKPoints - nkPerPool * nPools 
+        !! * Calculate the remainder `nkr`
+
+      IF( myPoolId < nkr ) nkPerPool = nkPerPool + 1
+        !! * Assign the remainder to the first `nkr` pools
+
+      !>  * Calculate the index of the first k-point in this pool
+      ikStart_pool = nkPerPool * myPoolId + 1
+      IF( myPoolId >= nkr ) ikStart_pool = ikStart_pool + nkr
+
+      ikEnd_pool = ikStart_pool + nkPerPool - 1
+        !!  * Calculate the index of the last k-point in this pool
+
+    endif
+
+    return
+  end subroutine distributeKpointsInPools
+  
+!----------------------------------------------------------------------------
+  subroutine getFullPWGrid(nGVecsGlobal, mill_local, nGVecsLocal)
+    !! Read full PW grid from mgrid file
+    
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nGVecsGlobal
+      !! Global number of G-vectors
+
+    ! Output variables:
+    integer, allocatable, intent(out) :: mill_local(:,:)
+      !! Integer coefficients for G-vectors
+    integer, intent(out) :: nGVecsLocal
+      !! Local number of G-vectors on this processor
+    
+    ! Local variables:
+    integer, :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
+    integer :: iDum
+      !! Ignore dummy integer
+    integer :: ig
+      !! Loop index
+    
+
+    if(ionode) then
+
+      open(72, file=trim(exportDirSD)//"/mgrid")
+        !! Read full G-vector grid from defect folder.
+        !! This assumes that the grids are the same.
+    
+      read(72, * )
+      read(72, * )
+    
+      do ig = 1, nGVecsGlobal
+
+        read(72, '(4i10)') iDum, gVecMillerIndicesGlobal(1:3,ig)
+
+      enddo
+    
+      close(72)
+
+    endif
+
+    call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, mill_local, nGVecsLocal)
+    
+    return
+    
+  end subroutine getFullPWGrid
+
+!----------------------------------------------------------------------------
+  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, mill_local, nGVecsLocal)
+    !! Figure out how many G-vectors there should be per processor.
+    !! G-vectors are split up in a round robin fashion over processors
+    !! in a single k-point pool.
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nGVecsGlobal
+      !! Global number of G-vectors
+    !integer, intent(in) :: nProcPerPool
+      ! Number of processes per pool
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
+
+    
+    ! Output variables:
+    integer, allocatable, intent(out) :: mill_local(:,:)
+      !! Integer coefficients for G-vectors
+    integer, intent(out) :: nGVecsLocal
+      !! Local number of G-vectors on this processor
+
+
+    ! Local variables:
+    integer :: ig_l, ig_g
+      !! Loop indices
+    integer :: ngr
+      !! Number of G-vectors left over after evenly divided across processors
+
+
+    if( nGVecsGlobal > 0 ) then
+      nGVecsLocal = nGVecsGlobal/nProcPerPool
+        !!  * Calculate number of G-vectors per processor
+
+      ngr = nGVecsGlobal - nGVecsLocal*nProcPerPool 
+        !! * Calculate the remainder
+
+      if( indexInPool < ngr ) nGVecsLocal = nGVecsLocal + 1
+        !! * Assign the remainder to the first `ngr` processors
+
+      !> * Generate an array to map a local index
+      !>   (`ig` passed to `gIndexLocalToGlobal`) to a global
+      !>   index (the value stored at `gIndexLocalToGlobal(ig)`)
+      !>   and get local miller indices
+      allocate(gIndexLocalToGlobal(nGVecsLocal))
+      allocate(mill_local(3,nGVecsLocal))
+
+      ig_l = 0
+      do ig_g = 1, nGVecsGlobal
+
+        if(indexInPool == mod(ig_g-1,nProcPerPool)) then
+        
+          ig_l = ig_l + 1
+          mill_local(:,ig_l) = gVecMillerIndicesGlobal(:,ig_g)
+
+        endif
+
+      enddo
+
+      if (ig_l /= nGVecsLocal) call exitError('distributeGvecsOverProcessors', 'unexpected number of G-vecs for this processor', 1)
+
+    endif
+
+    return
+  end subroutine distributeGvecsOverProcessors
+  
+  
+  subroutine distributePWsToProcs(nOfPWs, nOfBlocks)
+    !
+    implicit none
+    !
+    integer, intent(in)  :: nOfPWs, nOfBlocks
+    !
+    integer :: iStep, iModu
+    !
+    iStep = int(nOfPWs/nOfBlocks)
+    iModu = mod(nOfPWs,nOfBlocks)
+    !
+    do i = 0, nOfBlocks - 1
+      counts(i) = iStep
+      if ( iModu > 0 ) then
+        counts(i) = counts(i) + 1
+        iModu = iModu - 1
+      endif
+    enddo
+    !
+    displmnt(0) = 0
+    do i = 1, nOfBlocks-1
+      displmnt(i) = displmnt(i-1) + counts(i)
+    enddo
+    !
+    return
+    !
+  end subroutine distributePWsToProcs
+  !
+  !
+  subroutine int2str(integ, string)
+    !
+    implicit none
+    integer :: integ
+    character(len = 300) :: string
+    !
+    if ( integ < 10 ) then
+      write(string, '(i1)') integ
+    else if ( integ < 100 ) then
+      write(string, '(i2)') integ
+    else if ( integ < 1000 ) then
+      write(string, '(i3)') integ
+    else if ( integ < 10000 ) then
+      write(string, '(i4)') integ
+    endif
+    !
+    string = trim(string)
+    !
+    return
+    !
+  end subroutine int2str
+  !
+  !
+  subroutine finalizeCalculation()
+    !
+    implicit none
+    !
+    write(iostd,'("-----------------------------------------------------------------")')
+    !
+    call cpu_time(tf)
+    write(iostd, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
+    !
+    close(iostd)
+    !
+    return
+    !
+  end subroutine finalizeCalculation
+
+
+  subroutine readWfcPC(ik)
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
+    integer :: ib, ig, iDumV(3)
+    !
+    complex(kind = dp) :: wfc
+    !
+    character(len = 300) :: iks
+    !
+    call int2str(ik, iks)
+    !
+    open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    allocate ( pwGindPC(npwsPC(ik)) )
+    !
+    do ig = 1, npwsPC(ik)
+      read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
+    enddo
+    !
+    close(72)
+    !
+    open(72, file=trim(exportDirPC)//"/wfc."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    do ib = 1, iBandIinit - 1
+      do ig = 1, npwsPC(ik)
+        read(72, *)
+      enddo
+    enddo
+    !
+    wfcPC(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    !
+    do ib = iBandIinit, iBandIfinal
+      do ig = 1, npwsPC(ik)
+        read(72, '(2ES24.15E3)') wfc
+        wfcPC(pwGindPC(ig), ib) = wfc
+      enddo
+    enddo
+    !
+    close(72)
+    !
+    deallocate ( pwGindPC )
+    !
+    return
+    !
+  end subroutine readWfcPC
+  !
+  !
+  subroutine projectBetaPCwfcSD(ik)
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
+    integer :: ig, iDumV(3)
+    !
+    character(len = 300) :: iks
+    !
+    call int2str(ik, iks)
+    !
+    ! Reading PC projectors
+    !
+    open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    allocate ( pwGindPC(npwsPC(ik)) )
+    !
+    do ig = 1, npwsPC(ik)
+      read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
+    enddo
+    !
+    close(72)
+    !
+    allocate ( betaPC(maxGIndexGlobal, nProjsPC) )
+    !
+    betaPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    !
+    open(73, file=trim(exportDirPC)//"/projectors."//trim(iks))
+    !
+    read(73, '(a)') textDum
+    read(73, '(2i10)') nProjsPC, npw
+    !
+    do j = 1, nProjsPC 
+      do i = 1, npw
+        read(73,'(2ES24.15E3)') betaPC(pwGindPC(i),j)
+      enddo
+    enddo
+    !
+    close(73)
+    !
+    deallocate ( pwGindPC )
+    !
+    do j = iBandFinit, iBandFfinal
+      do i = 1, nProjsPC
+        cProjBetaPCPsiSD(i,j,1) = sum(conjg(betaPC(:,i))*wfcSD(:,j))
+      enddo
+    enddo
+    !
+    deallocate ( betaPC )
+    !
+    return
+    !
+  end subroutine projectBetaPCwfcSD
+  !
+  !
+  subroutine readWfcSD(ik)
+    !
+    implicit none
+    !
+    integer, intent(in) :: ik
+    integer :: ib, ig, iDumV(3)
+    !
+    complex(kind = dp) :: wfc
+    !
+    character(len = 300) :: iks
+    !
+    call int2str(ik, iks)
+    !
+    open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    allocate ( pwGindSD(npwsSD(ik)) )
+    !
+    do ig = 1, npwsSD(ik)
+      read(72, '(4i10)') pwGindSD(ig), iDumV(1:3)
+    enddo
+    !
+    close(72)
+    !
+    open(72, file=trim(exportDirSD)//"/wfc."//trim(iks))
+    !
+    read(72, * )
+    read(72, * )
+    !
+    do ib = 1, iBandFinit - 1
+      do ig = 1, npwsSD(ik)
+        read(72, *)
+      enddo
+    enddo
+    !
+    wfcSD(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    !
+    do ib = iBandFinit, iBandFfinal
+      do ig = 1, npwsSD(ik)
+        read(72, '(2ES24.15E3)') wfc
+        wfcSD(pwGindSD(ig), ib) = wfc
+      enddo
+    enddo
+    !
+    close(72)
+    !
+    deallocate ( pwGindSD )
+    !
+    return
+    !
+  end subroutine readWfcSD
   !
   !
   subroutine calculatePWsOverlap(ik)
@@ -1461,7 +1603,7 @@ contains
     !
     close(72)
     !
-    allocate ( betaSD(numOfPWs, nProjsSD) )
+    allocate ( betaSD(maxGIndexGlobal, nProjsSD) )
     !
     betaSD(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     !

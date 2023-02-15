@@ -17,13 +17,21 @@ program transitionMatrixElements
     
     ! Reading input, initializing and checking all variables of the calculation.
     
-    call readInput(nKPoints)
-    
-    call readPWsSet()
+    call readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
+      !! @todo Figure out if `realLattVec` used anywhere. If not remove. @endtodo
 
   endif
 
+  call MPI_BCAST(maxGIndexGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
+
   call distributeKpointsInPools(nKPoints)
+    !! Split the k-points across the pools
+
+  call getFullPWGrid(nGVecsGlobal, mill_local, nGVecsLocal)
+    !! Read the full PW grid from `mgrid` and distribute
+    !! across processes
     
   if(ionode)
     allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPoints) )
@@ -38,7 +46,7 @@ program transitionMatrixElements
     
     allocate ( counts(0:nProcs-1), displmnt(0:nProcs-1) )
     
-    call distributePWsToProcs(numOfGvecs, nProcs)
+    call distributePWsToProcs(nGVecsGlobal, nProcs)
     
     nPWsI(:) = 0
     nPWsF(:) = 0
@@ -61,13 +69,11 @@ program transitionMatrixElements
   call MPI_BCAST(nProjsSD,    1, MPI_INTEGER,root,worldComm,ierr)
   call MPI_BCAST(nBands,      1, MPI_INTEGER,root,worldComm,ierr)
   call MPI_BCAST(nSpins,      1, MPI_INTEGER,root,worldComm,ierr)
-  call MPI_BCAST(numOfPWs,    1, MPI_INTEGER,root,worldComm,ierr)
-  call MPI_BCAST(numOfGvecs,  1, MPI_INTEGER,root,worldComm,ierr)
   
   call MPI_BCAST(nPWsI, nProcs, MPI_INTEGER, root, worldComm, ierr)
   call MPI_BCAST(nPWsF, nProcs, MPI_INTEGER, root, worldComm, ierr)
   
-  if (.not. ionode) allocate ( gvecs(3, numOfGvecs) )
+  if (.not. ionode) allocate ( gvecs(3, nGVecsGlobal) )
   call MPI_BCAST(gvecs, size(gvecs), MPI_DOUBLE_PRECISION,root,worldComm,ierr)
   
   call MPI_BCAST(numOfTypesPC, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -169,7 +175,7 @@ program transitionMatrixElements
         write(iostd, '("    Plane waves part begun.")')
         write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> begun.")')
         call cpu_time(t1)
-        allocate( wfcPC (numOfPWs, iBandIinit:iBandIfinal), wfcSD (numOfPWs, iBandFinit:iBandFfinal ) )
+        allocate( wfcPC (maxGIndexGlobal, iBandIinit:iBandIfinal), wfcSD (maxGIndexGlobal, iBandFinit:iBandFfinal ) )
         
         call calculatePWsOverlap(ik)
         
