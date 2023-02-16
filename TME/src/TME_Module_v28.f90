@@ -1353,63 +1353,187 @@ contains
 
     return
   end subroutine distributeGvecsOverProcessors
+  
+!----------------------------------------------------------------------------
+  subroutine checkIfCalculated(ik, tmes_file_exists)
+    
+    implicit none
+    
+    integer, intent(in) :: ik
+    logical, intent(out) :: tmes_file_exists
+    
+    character(len = 300) :: Uelements
+    
+    if ( ik < 10 ) then
+      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
+    else if ( ik < 100 ) then
+      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
+    else if ( ik < 1000 ) then
+      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
+    endif
+    
+    inquire(file = trim(elementsPath)//trim(Uelements), exist = tmes_file_exists)
+    
+    return
+    
+  end subroutine checkIfCalculated
+  
+!----------------------------------------------------------------------------
+  subroutine calculatePWsOverlap(ik)
+    
+    implicit none
+    
+    integer, intent(in) :: ik
+    integer :: ibi, ibf
+    
+    call readWfc('PC', iBandIinit, iBandIfinal, ik, npwsPC, wfcPC)
+    call readWfc('SD', iBandFinit, iBandFfinal, ik, npwsSD, wfcSD)
+    
+    Ufi(:,:,ik) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    
+    do ibi = iBandIinit, iBandIfinal 
+      
+      do ibf = iBandFinit, iBandFfinal
+
+        Ufi(ibf, ibi, ik) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
+
+      enddo
+      
+    enddo
+    
+    return
+    
+  end subroutine calculatePWsOverlap
 
 !----------------------------------------------------------------------------
-  subroutine readWfcPC(ik)
-    !
+  subroutine readWfc(crystalType, iBandinit, iBandfinal, ik, npws, wfc)
+    
     implicit none
-    !
+    
+    ! Input variables:
+    integer, intent(in) :: iBandinit
+    integer, intent(in) :: iBandfinal
     integer, intent(in) :: ik
+    integer, intent(in) :: npws
+
+    character(len=2) :: crystalType
+
+    ! Output variables
+    complex(kind=dp), intent(inout) :: wfc(:,:)
+
+    ! Local variables:
+    integer :: ikGlobal
+      !! Global k index
+    integer, allocatable :: pwGind(:)
+
+    complex(kind=dp) :: wfcIn
+      !! Wave function read from file
+ 
     integer :: ib, ig, iDumV(3)
-    !
-    complex(kind = dp) :: wfc
-    !
+    
     character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
-    open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    allocate ( pwGindPC(npwsPC(ik)) )
-    !
-    do ig = 1, npwsPC(ik)
-      read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
-    enddo
-    !
-    close(72)
-    !
-    open(72, file=trim(exportDirPC)//"/wfc."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    do ib = 1, iBandIinit - 1
-      do ig = 1, npwsPC(ik)
-        read(72, *)
+
+
+    if(indexInPool == 0) then
+
+      ikGlobal = ik+ikStart_pool-1
+
+      call int2str(ikGlobal, iks)
+    
+      if(cystalType == 'PC') then
+        open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
+      else
+        open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
+      endif
+    
+      read(72, * )
+      read(72, * )
+
+    endif
+    
+    allocate(pwGind(npws(ikGlobal)))
+    
+    if(indexInPool == 0) then 
+
+      do ig = 1, npws(ikGlobal)
+        read(72, '(4i10)') pwGind(ig), iDumV(1:3)
       enddo
-    enddo
-    !
-    wfcPC(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-    !
-    do ib = iBandIinit, iBandIfinal
-      do ig = 1, npwsPC(ik)
-        read(72, '(2ES24.15E3)') wfc
-        wfcPC(pwGindPC(ig), ib) = wfc
+    
+      close(72)
+
+    endif
+
+    call MPI_BCAST(pwGind, size(pwGind), MPI_INTEGER, root, intraPoolComm, ierr)
+
+    if(indexInPool == 0) then
+    
+      if(cystalType == 'PC') then
+        open(72, file=trim(exportDirPC)//"/wfc."//trim(iks))
+      else
+        open(72, file=trim(exportDirSD)//"/wfc."//trim(iks))
+      endif
+    
+      read(72, * )
+      read(72, * )
+    
+      do ib = 1, iBandinit - 1
+        do ig = 1, npws(ikGlobal)
+          read(72, *)
+        enddo
       enddo
-    enddo
-    !
-    close(72)
-    !
-    deallocate ( pwGindPC )
-    !
+
+    endif
+    
+    wfc(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    
+    do ib = iBandinit, iBandfinal
+      do ig = 1, npws(ikGlobal)
+    
+        !> Store wave function locally or send to process
+        !> where it is to be stored.
+        if(indexInPool == 0) then
+
+          read(72, '(2ES24.15E3)') wfcIn
+
+          if(gVecProcId(ig) == 0) then
+
+            wfc(gIndexGlobalToLocal(pwGindPC(ig)),ib) = wfcIn
+
+          else
+            
+            call MPI_SEND(wfcIn, 1, MPI_DOUBLE_COMPLEX, gVecProcId(ig), 0, 0, intraPoolComm, ierr)
+
+          endif
+
+        endif
+
+        !> If wave function to be stored on this process and
+        !> not already stored via the pool root node, receive 
+        !> the data from the pool root node.
+        if(indexInPool == gVecProcId(ig) .and. indexInPool /= 0) then
+
+          call MPI_RECV(wfc(gIndexGlobalToLocal(pwGind(ig)),ib), 1, MPI_DOUBLE_COMPLEX, 0, 0, intraPoolComm, MPI_STATUS_IGNORE, ierr)
+
+        endif
+
+        enddo
+      enddo
+    
+      close(72)
+
+    endif
+    
+    deallocate(pwGind)
+    
     return
-    !
-  end subroutine readWfcPC
-  !
-  !
+    
+  end subroutine readWfc
+  
+  
   subroutine projectBetaPCwfcSD(ik)
     !
     implicit none
@@ -1466,90 +1590,7 @@ contains
     return
     !
   end subroutine projectBetaPCwfcSD
-  !
-  !
-  subroutine readWfcSD(ik)
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: ib, ig, iDumV(3)
-    !
-    complex(kind = dp) :: wfc
-    !
-    character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
-    open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    allocate ( pwGindSD(npwsSD(ik)) )
-    !
-    do ig = 1, npwsSD(ik)
-      read(72, '(4i10)') pwGindSD(ig), iDumV(1:3)
-    enddo
-    !
-    close(72)
-    !
-    open(72, file=trim(exportDirSD)//"/wfc."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    do ib = 1, iBandFinit - 1
-      do ig = 1, npwsSD(ik)
-        read(72, *)
-      enddo
-    enddo
-    !
-    wfcSD(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-    !
-    do ib = iBandFinit, iBandFfinal
-      do ig = 1, npwsSD(ik)
-        read(72, '(2ES24.15E3)') wfc
-        wfcSD(pwGindSD(ig), ib) = wfc
-      enddo
-    enddo
-    !
-    close(72)
-    !
-    deallocate ( pwGindSD )
-    !
-    return
-    !
-  end subroutine readWfcSD
-  !
-  !
-  subroutine calculatePWsOverlap(ik)
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: ibi, ibf
-    !
-    write(iostd, '("      Reading perfect-crystal wfc")')
-    call readWfcPC(ik)
-    !
-    write(iostd, '("      Reading defect-crystal wfc")')
-    call readWfcSD(ik)
-    !
-    Ufi(:,:,ik) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    !
-    do ibi = iBandIinit, iBandIfinal 
-      !
-      do ibf = iBandFinit, iBandFfinal
-        Ufi(ibf, ibi, ik) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
-        flush(iostd)
-      enddo
-      !
-    enddo
-    !
-    return
-    !
-  end subroutine calculatePWsOverlap
+  
   !
   !
   subroutine readProjectionsPC(ik)
@@ -2210,36 +2251,8 @@ contains
     return
     !
   end subroutine calculateVfiElements
-  !
-  !
-  subroutine checkIfCalculated(ik, tmes_file_exists)
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    logical, intent(out) :: tmes_file_exists
-    !
-    character(len = 300) :: Uelements
-    !
-    if ( ik < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
-    else if ( ik < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
-    else if ( ik < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
-    endif
-    !
-    inquire(file = trim(elementsPath)//trim(Uelements), exist = tmes_file_exists)
-    !
-    return
-    !
-  end subroutine checkIfCalculated
-  !
-  !
+  
+  
   subroutine readUfis(ik)
     !
     implicit none

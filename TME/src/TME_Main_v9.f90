@@ -5,6 +5,9 @@ program transitionMatrixElements
   
   real(kind = dp) :: t1, t2
     !! For timing different processes
+
+  integer :: ikLocal, ikGlobal
+    !! Loop indices
   
   call mpiInitialization()
     !! Initialize MPI
@@ -15,38 +18,6 @@ program transitionMatrixElements
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     !! @todo Figure out if `realLattVec` used anywhere. If not remove. @endtodo
-
-  deallocate(npwsPC)
-  deallocate(wkPC)
-  deallocate(xkPC)
-  deallocate(posIonPC)
-  deallocate(TYPNIPC)
-
-  do iType = 1, numOfTypesPC
-    deallocate(atomsPC(iType)%lps)
-    deallocate(atomsPC(iType)%F)
-    deallocate(atomsPC(iType)%F1)
-    deallocate(atomsPC(iType)%F2)
-    deallocate(atomsPC(iType)%bes_J_qr)
-  enddo
-
-  deallocate(atomsPC)
-
-  deallocate(npwsSD)
-  deallocate(wk)
-  deallocate(xk)
-  deallocate(posIonSD)
-  deallocate(TYPNISD)
-
-  do iType = 1, numOfTypesPC
-    deallocate(atoms(iType)%lps)
-    deallocate(atoms(iType)%F)
-    deallocate(atoms(iType)%F1)
-    deallocate(atoms(iType)%F2)
-    deallocate(atoms(iType)%bes_J_qr)
-  enddo
-
-  deallocate(atoms)
 
 
   call distributeKpointsInPools(nKPoints)
@@ -59,14 +30,9 @@ program transitionMatrixElements
     !! Read the full PW grid from `mgrid` and distribute
     !! across processes
 
-  deallocate(gIndexLocalToGlobal)
-  deallocate(gVecProcId)
-  deallocate(mill_local)
-  
 
 
-
-  allocate ( paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
+  allocate(paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
   if(ionode) then
     allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPoints) )
     allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
@@ -79,46 +45,52 @@ program transitionMatrixElements
     Ufi(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
   endif
   
-  do ik = 1, nKPoints
+  do ikLocal = 1, nkPerPool
     
-    if (ionode) then
+    ikGlobal = ikLocal+ikStart_pool-1
+      !! Get the global `ik` index from the local one
+    
+    if(ionode) then
       
       tmes_file_exists = .false.
-      call checkIfCalculated(ik,tmes_file_exists)
+      call checkIfCalculated(ikGlobal,tmes_file_exists)
       
     endif
     
     call MPI_BCAST(tmes_file_exists, 1, MPI_LOGICAL, root, worldComm, ierr)
     
-    if ( .not.tmes_file_exists ) then
+    if(.not. tmes_file_exists) then
       
-      allocate ( cProjPC(nProjsPC, nBands, nSpins) )
-      allocate ( cProjSD(nProjsSD, nBands, nSpins) )
+      allocate(cProjPC(nProjsPC, nBands, nSpins))
+      allocate(cProjSD(nProjsSD, nBands, nSpins))
       
-      if (ionode) then
+      write(iostd, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4)') ikGlobal, nKPoints
+      flush(iostd)
         
-        write(iostd, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4)') ik, nKPoints
-        flush(iostd)
+      call cpu_time(t1)
+      
+      allocate(wfcPC(nGVecsLocal, iBandIinit:iBandIfinal), wfcSD(nGVecsLocal, iBandFinit:iBandFfinal))
         
-        write(iostd, *)
-        write(iostd, '("    Plane waves part begun.")')
-        write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> begun.")')
-        call cpu_time(t1)
-        allocate( wfcPC (maxGIndexGlobal, iBandIinit:iBandIfinal), wfcSD (maxGIndexGlobal, iBandFinit:iBandFfinal ) )
+      call calculatePWsOverlap(ikLocal)
+        !! Read wave functions and get overlap
         
-        call calculatePWsOverlap(ik)
+      call cpu_time(t2)
+      write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> for k-point", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
+      flush(iostd)
+
+      if(ikGlobal == 1) then
+        write(100+indexInPool, '(2i10)') iBandIinit, npwsPC(ikGlobal) 
+        do ig = 1, npwsPC(ikGlobal)
+          write(100+indexInPool,'(2ES24.15E3)') wfcPC(ig,iBandIinit)
+        enddo
+      endif
+
+      call exitError('main', 'stopping for debugging', 5)
         
-        call cpu_time(t2)
-        write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> done in", f10.2, " secs.")') t2-t1
-        flush(iostd)
-        
-        write(iostd, '("    Plane waves part done in", f10.2, " secs.")') t2-t1
-        write(iostd, *)
-        write(iostd, '("    PAW part begun.")')
-        
-        call cpu_time(t1)
-        write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> begun.")')
-        flush(iostd)
+
+      call cpu_time(t1)
+      write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> for k-point", i2, " begun.")') ikGlobal
+      flush(iostd)
         
         call readProjectionsPC(ik)
         
@@ -154,8 +126,6 @@ program transitionMatrixElements
         call cpu_time(t1)
         write(iostd, '("      <\\vec{k}|PAW_PC> begun.")')
         flush(iostd)
-        
-      endif
       
       call MPI_BCAST(cProjPC, size(cProjPC), MPI_DOUBLE_COMPLEX, root, worldComm, ierr)
       call MPI_BCAST(cProjSD, size(cProjSD), MPI_DOUBLE_COMPLEX, root, worldComm, ierr)
@@ -225,6 +195,43 @@ program transitionMatrixElements
     endif
     
   enddo
+
+  deallocate(npwsPC)
+  deallocate(wkPC)
+  deallocate(xkPC)
+  deallocate(posIonPC)
+  deallocate(TYPNIPC)
+
+  do iType = 1, numOfTypesPC
+    deallocate(atomsPC(iType)%lps)
+    deallocate(atomsPC(iType)%F)
+    deallocate(atomsPC(iType)%F1)
+    deallocate(atomsPC(iType)%F2)
+    deallocate(atomsPC(iType)%bes_J_qr)
+  enddo
+
+  deallocate(atomsPC)
+
+  deallocate(npwsSD)
+  deallocate(wk)
+  deallocate(xk)
+  deallocate(posIonSD)
+  deallocate(TYPNISD)
+
+  do iType = 1, numOfTypesPC
+    deallocate(atoms(iType)%lps)
+    deallocate(atoms(iType)%F)
+    deallocate(atoms(iType)%F1)
+    deallocate(atoms(iType)%F2)
+    deallocate(atoms(iType)%bes_J_qr)
+  enddo
+
+  deallocate(atoms)
+
+  deallocate(gIndexLocalToGlobal)
+  deallocate(gVecProcId)
+  deallocate(mill_local)
+  
   
   if ( allocated ( paw_id ) ) deallocate ( paw_id )
   if (ionode) then
