@@ -6,7 +6,7 @@ program transitionMatrixElements
   real(kind = dp) :: t1, t2
     !! For timing different processes
 
-  integer :: ikLocal, ikGlobal
+  integer :: ikLocal, ikGlobal, iType
     !! Loop indices
   
   call mpiInitialization()
@@ -24,7 +24,7 @@ program transitionMatrixElements
     !! Split the k-points across the pools
 
 
-  allocate(gIndexLocalToGlobal(nGVecsGlobal), gVecProcId(nGVecsGlobal))
+  allocate(gIndexGlobalToLocal(nGVecsGlobal), gVecProcId(nGVecsGlobal))
 
   call getFullPWGrid(nGVecsGlobal, gIndexGlobalToLocal, gVecProcId, mill_local, nGVecsLocal)
     !! Read the full PW grid from `mgrid` and distribute
@@ -34,7 +34,6 @@ program transitionMatrixElements
 
   allocate(paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
   if(ionode) then
-    allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPoints) )
     allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
@@ -42,8 +41,10 @@ program transitionMatrixElements
     allocate ( eigvI (iBandIinit:iBandIfinal), eigvF (iBandFinit:iBandFfinal) )
     
     
-    Ufi(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
   endif
+
+  allocate(Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPerPool))
+  Ufi(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
   
   do ikLocal = 1, nkPerPool
     
@@ -228,7 +229,7 @@ program transitionMatrixElements
 
   deallocate(atoms)
 
-  deallocate(gIndexLocalToGlobal)
+  deallocate(gIndexGlobalToLocal)
   deallocate(gVecProcId)
   deallocate(mill_local)
   

@@ -363,7 +363,7 @@ contains
       open (iostd, file = output, status='new')
         !! Open new output file.
     
-      call initialize(nKPoints)
+      call initialize()
     
       READ (5, TME_Input, iostat = ios)
     
@@ -723,7 +723,7 @@ contains
 
       endif
 
-      call MPI_BCAST(atomsPC(iType)(%numOfAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(atomsPC(iType)%numOfAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
       
       if(ionode) then
 
@@ -1115,7 +1115,7 @@ contains
         nProjsSD = nProjsSD + atoms(iType)%numOfAtoms*atoms(iType)%lmMax
       
         deallocate(atoms(iType)%wae, atoms(iType)%wps)
-        deallocate(atoms(iType%r, atoms(iType)%rab))
+        deallocate(atoms(iType)%r, atoms(iType)%rab)
 
       endif
 
@@ -1275,7 +1275,7 @@ contains
   end subroutine getFullPWGrid
 
 !----------------------------------------------------------------------------
-  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexGlobalToLocal, gVecProdId, mill_local, nGVecsLocal)
+  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexGlobalToLocal, gVecProcId, mill_local, nGVecsLocal)
     !! Figure out how many G-vectors there should be per processor.
     !! G-vectors are split up in a round robin fashion over processors
     !! in a single k-point pool.
@@ -1418,7 +1418,7 @@ contains
     integer, intent(in) :: iBandinit
     integer, intent(in) :: iBandfinal
     integer, intent(in) :: ik
-    integer, intent(in) :: npws
+    integer, intent(in) :: npws(nKPoints)
 
     character(len=2) :: crystalType
 
@@ -1444,7 +1444,7 @@ contains
 
       call int2str(ikGlobal, iks)
     
-      if(cystalType == 'PC') then
+      if(crystalType == 'PC') then
         open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
       else
         open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
@@ -1471,7 +1471,7 @@ contains
 
     if(indexInPool == 0) then
     
-      if(cystalType == 'PC') then
+      if(crystalType == 'PC') then
         open(72, file=trim(exportDirPC)//"/wfc."//trim(iks))
       else
         open(72, file=trim(exportDirSD)//"/wfc."//trim(iks))
@@ -1520,12 +1520,10 @@ contains
 
         endif
 
-        enddo
       enddo
+    enddo
     
-      close(72)
-
-    endif
+    if(indexInPool == 0) close(72)
     
     deallocate(pwGind)
     
