@@ -79,13 +79,7 @@ program transitionMatrixElements
       write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> for k-point", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
       flush(iostd)
 
-      if(ikGlobal == 1) then
-        write(100+indexInPool, '(2i10)') iBandIinit, npwsPC(ikGlobal) 
-        do ig = 1, npwsPC(ikGlobal)
-          write(100+indexInPool,'(2ES24.15E3)') wfcPC(ig,iBandIinit)
-        enddo
-      endif
-
+      call MPI_Barrier(worldComm, ierr)
       call exitError('main', 'stopping for debugging', 5)
         
 

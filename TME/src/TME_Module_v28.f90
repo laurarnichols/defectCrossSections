@@ -359,9 +359,13 @@ contains
         open (unit = 11, file = output, status = "old")
         close(unit = 11, status = "delete")
       endif
+
+    endif
     
-      open (iostd, file = output, status='new')
-        !! Open new output file.
+    open (iostd, file = output)
+      !! Open new output file.
+
+    if(ionode) then
     
       call initialize()
     
@@ -375,6 +379,11 @@ contains
     call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    call MPI_BCAST(exportDirSD, len(exportDirSD), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(exportDirPC, len(exportDirPC), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(elementsPath, len(elementsPath), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(VfisOutput, len(exportDirSD), MPI_CHARACTER, root, worldComm, ierr)
 
     call readInputPC(nKPoints, maxGIndexGlobalPC)
     call readInputSD(nKPoints, maxGIndexGlobalSD, nGVecsGlobal, realLattVec, recipLattVec)
@@ -936,8 +945,13 @@ contains
       if(nKpts /= nKPoints) call exitError('readInputsSD', 'Number of k-points in systems must match', 1)
     
       read(50, '(a)') textDum
+
+    endif
+
     
-      allocate(npwsSD(nKPoints), wk(nKPoints), xk(3,nKPoints))
+    allocate(npwsSD(nKPoints), wk(nKPoints), xk(3,nKPoints))
+
+    if(ionode) then
     
       do ik = 1, nKPoints
       
@@ -1392,6 +1406,8 @@ contains
     
     call readWfc('PC', iBandIinit, iBandIfinal, ik, npwsPC, wfcPC)
     call readWfc('SD', iBandFinit, iBandFfinal, ik, npwsSD, wfcSD)
+      !! Read perfect crystal and defect wave functions and
+      !! broadcast to processes
     
     Ufi(:,:,ik) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
@@ -1400,6 +1416,7 @@ contains
       do ibf = iBandFinit, iBandFfinal
 
         Ufi(ibf, ibi, ik) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
+          !! Calculate local overlap
 
       enddo
       
@@ -1411,36 +1428,55 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine readWfc(crystalType, iBandinit, iBandfinal, ik, npws, wfc)
+    !! Read wave function for given `crystalType` from `iBandinit`
+    !! to `iBandfinal`
     
     implicit none
     
     ! Input variables:
     integer, intent(in) :: iBandinit
+      !! Starting band
     integer, intent(in) :: iBandfinal
+      !! Ending band
     integer, intent(in) :: ik
+      !! Current k point
     integer, intent(in) :: npws(nKPoints)
+      !! Number of G+k vectors less than
+      !! the cutoff at each k-point
 
     character(len=2) :: crystalType
+      !! Crystal type (PC or SD)
 
     ! Output variables
-    complex(kind=dp), intent(inout) :: wfc(:,:)
+    complex(kind=dp), intent(inout) :: wfc(nGVecsLocal,iBandinit:iBandfinal)
+      !! Wave function coefficients for 
+      !! local G-vectors
 
     ! Local variables:
+    integer :: iDumV(3)
+      !! Vector to ignore G-vector Miller indices
     integer :: ikGlobal
       !! Global k index
     integer, allocatable :: pwGind(:)
+      !! G-vector indices for G+k vectors
+      !! less than cutoff
+    integer :: ib, ig, igk, iproc
+      !! Loop indices
 
-    complex(kind=dp) :: wfcIn
+    complex(kind=dp) :: wfcBuff(nProcPerPool)
       !! Wave function read from file
  
-    integer :: ib, ig, iDumV(3)
-    
     character(len = 300) :: iks
+      !! String k-point
 
+
+    ikGlobal = ik+ikStart_pool-1
+      !! Get global k index from local one
 
     if(indexInPool == 0) then
-
-      ikGlobal = ik+ikStart_pool-1
+      !! Have the root node in each pool open 
+      !! the grid file for the current crystal
+      !! type and k-point
 
       call int2str(ikGlobal, iks)
     
@@ -1452,12 +1488,16 @@ contains
     
       read(72, * )
       read(72, * )
+        ! Ignore the header
 
     endif
     
     allocate(pwGind(npws(ikGlobal)))
     
     if(indexInPool == 0) then 
+      !! Have the root node in each pool read in
+      !! the global PW indices that satisfy 
+      !! G+k < cutoff
 
       do ig = 1, npws(ikGlobal)
         read(72, '(4i10)') pwGind(ig), iDumV(1:3)
@@ -1470,6 +1510,9 @@ contains
     call MPI_BCAST(pwGind, size(pwGind), MPI_INTEGER, root, intraPoolComm, ierr)
 
     if(indexInPool == 0) then
+      !! Have the root node in the pool read the wave
+      !! function coefficients. Ignore the bands before 
+      !! `iBandinit`
     
       if(crystalType == 'PC') then
         open(72, file=trim(exportDirPC)//"/wfc."//trim(iks))
@@ -1479,6 +1522,7 @@ contains
     
       read(72, * )
       read(72, * )
+        ! Ignore the header
     
       do ib = 1, iBandinit - 1
         do ig = 1, npws(ikGlobal)
@@ -1489,34 +1533,50 @@ contains
     endif
     
     wfc(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    wfcBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
     
+    !> Have the root node read the PW coefficients
+    !> then broadcast to other processes
     do ib = iBandinit, iBandfinal
-      do ig = 1, npws(ikGlobal)
-    
-        !> Store wave function locally or send to process
-        !> where it is to be stored.
-        if(indexInPool == 0) then
+      igk = 1
+      iproc = 1
 
-          read(72, '(2ES24.15E3)') wfcIn
+      do ig = 1, nGVecsGlobal
+        ! Loop over all G-vectors to make broadcasting
+        ! clearer and simpler
 
-          if(gVecProcId(ig) == 0) then
+        if(ig == pwGind(igk)) then
+          ! If this G-vector satisfies G+k < cutoff
+          ! for the current k-point
 
-            wfc(gIndexGlobalToLocal(pwGindPC(ig)),ib) = wfcIn
+          if(indexInPool == 0) read(72, '(2ES24.15E3)') wfcBuff(iproc)
+            ! Read in the PW coefficient and store in the
+            ! slot for the process that holds the current
+            ! G-vector
 
-          else
-            
-            call MPI_SEND(wfcIn, 1, MPI_DOUBLE_COMPLEX, gVecProcId(ig), 0, 0, intraPoolComm, ierr)
-
-          endif
+          igk = igk + 1
+            ! Increment the G+k vector counter
 
         endif
 
-        !> If wave function to be stored on this process and
-        !> not already stored via the pool root node, receive 
-        !> the data from the pool root node.
-        if(indexInPool == gVecProcId(ig) .and. indexInPool /= 0) then
+        if(iproc == nProcPerPool) then
+          ! If the process counter is up to the number
+          ! of processes per pool
 
-          call MPI_RECV(wfc(gIndexGlobalToLocal(pwGind(ig)),ib), 1, MPI_DOUBLE_COMPLEX, 0, 0, intraPoolComm, MPI_STATUS_IGNORE, ierr)
+          call MPI_BCAST(wfcBuff, nProcPerPool, MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
+            ! Broadcast the wave function buffer
+
+          wfc(gIndexGlobalToLocal(ig),ib) = wfcBuff(indexInPool+1)
+            ! Store the value for this process locally
+
+          ! Reset the wave function buffer and process counter
+          wfcBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+          iproc = 1
+
+        else
+          ! Otherwise, increment the process counter
+
+          iproc = iproc + 1
 
         endif
 
