@@ -62,9 +62,6 @@ program transitionMatrixElements
     
     if(.not. tmes_file_exists) then
       
-      allocate(cProjPC(nProjsPC, nBands, nSpins))
-      allocate(cProjSD(nProjsSD, nBands, nSpins))
-      
       write(iostd, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4)') ikGlobal, nKPoints
       flush(iostd)
         
@@ -78,33 +75,43 @@ program transitionMatrixElements
       call cpu_time(t2)
       write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> for k-point", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
       flush(iostd)
-
-      call MPI_Barrier(worldComm, ierr)
-      call exitError('main', 'stopping for debugging', 5)
         
 
       call cpu_time(t1)
       write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> for k-point", i2, " begun.")') ikGlobal
       flush(iostd)
         
-        call readProjectionsPC(ik)
+      
+      allocate(cProjPC(nProjsPC, nBands, nSpins))
+
+      call readProjections('PC', ik, nProjsPC, cProjPC)
         
-        allocate ( cProjBetaPCPsiSD(nProjsPC, nBands, nSpins) )
-        call projectBetaPCwfcSD(ik)
+
+      allocate(cProjBetaPCPsiSD(nProjsPC, nBands, nSpins))
+
+      call projectBetaPCwfcSD(ik)
         
-        deallocate ( wfcSD )
+      deallocate(wfcSD)
+
+      call MPI_Barrier(worldComm, ierr)
+      call exitError('main', 'stopping for debugging', 5)
+
+
+
         
-        call pawCorrectionPsiPC()
+      call pawCorrectionPsiPC()
         
-        deallocate ( cProjBetaPCPsiSD )
+      deallocate ( cProjBetaPCPsiSD )
         
-        call cpu_time(t2)
-        write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> done in", f10.2, " secs.")') t2-t1
-        call cpu_time(t1)
-        write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> begun.")')
-        flush(iostd)
-        
-        call readProjectionsSD(ik)
+      call cpu_time(t2)
+      write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> done in", f10.2, " secs.")') t2-t1
+      call cpu_time(t1)
+      write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> begun.")')
+      flush(iostd)
+
+      allocate(cProjSD(nProjsSD, nBands, nSpins))
+
+      call readProjections('SD', ik, nProjsSD, cProjSD)
         
         allocate ( cProjBetaSDPhiPC(nProjsSD, nBands, nSpins) )
         call projectBetaSDwfcPC(ik)

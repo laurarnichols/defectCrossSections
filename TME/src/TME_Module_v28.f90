@@ -1444,11 +1444,11 @@ contains
       !! Number of G+k vectors less than
       !! the cutoff at each k-point
 
-    character(len=2) :: crystalType
+    character(len=2), intent(in) :: crystalType
       !! Crystal type (PC or SD)
 
     ! Output variables
-    complex(kind=dp), intent(inout) :: wfc(nGVecsLocal,iBandinit:iBandfinal)
+    complex(kind=dp), intent(out) :: wfc(nGVecsLocal,iBandinit:iBandfinal)
       !! Wave function coefficients for 
       !! local G-vectors
 
@@ -1591,6 +1591,68 @@ contains
     
   end subroutine readWfc
   
+!----------------------------------------------------------------------------
+  subroutine readProjections(crystalType, ik, nProjs, cProj)
+    
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ik
+      !! Current k point
+    integer, intent(in) :: nProjs
+      !! Number of projectors
+
+    character(len=2), intent(in) :: crystalType
+      !! Crystal type (PC or SD)
+
+    ! Output variables:
+    complex(kind=dp), intent(out) :: cProj(nProjs,nBands,nSpins)
+      !! Projections <beta|wfc>
+
+    ! Local variables:
+    integer :: ipr, ib
+      !! Loop indices
+    
+    character(len = 300) :: iks
+      !! String k-point
+    
+
+    call int2str(ik, iks)
+    
+    cProj(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
+    
+    if(indexInPool == 0) then
+
+      ! Open the projections file for the given crystal type
+      if(crystalType == 'PC') then
+        open(72, file=trim(exportDirPC)//"/projections."//trim(iks))
+      else
+        open(72, file=trim(exportDirSD)//"/projections."//trim(iks))
+      endif
+    
+     read(72, *)
+      ! Ignore the header
+    
+      ! Read the projections
+      do ib = 1, nBands   
+        do ipr = 1, nProjs 
+
+          read(72,'(2ES24.15E3)') cProj(ipr,ib,1)
+
+        enddo
+      enddo
+    
+      close(72)
+
+    endif
+
+    call MPI_BCAST(cProj, size(cProj), MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
+      ! Broadcast entire array to all processes
+    
+    return
+    
+  end subroutine readProjections
+  
   
   subroutine projectBetaPCwfcSD(ik)
     !
@@ -1648,71 +1710,6 @@ contains
     return
     !
   end subroutine projectBetaPCwfcSD
-  
-  !
-  !
-  subroutine readProjectionsPC(ik)
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: i, j
-    !
-    character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
-    cProjPC(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
-    !
-    ! Reading projections
-    !
-    open(72, file=trim(exportDirPC)//"/projections."//trim(iks))
-    !
-    read(72, *)
-    !
-    do j = 1, nBands  ! number of bands 
-      do i = 1, nProjsPC ! number of projections
-        read(72,'(2ES24.15E3)') cProjPC(i,j,1)
-      enddo
-    enddo
-    !
-    close(72)
-    !
-    return
-    !
-  end subroutine readProjectionsPC
-  !
-  !
-  subroutine readProjectionsSD(ik)
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: i, j
-    !
-    character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
-    cProjSD(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
-    !
-    ! Reading projections
-    !
-    open(72, file=trim(exportDirSD)//"/projections."//trim(iks))
-    !
-    read(72, *)
-    !
-    do j = 1, nBands  ! number of bands 
-      do i = 1, nProjsSD ! number of projections
-        read(72,'(2ES24.15E3)') cProjSD(i,j,1)
-      enddo
-    enddo
-    !
-    close(72)
-    !
-    return
-    !
-  end subroutine readProjectionsSD
   !
   !
   subroutine projectBetaSDwfcPC(ik)
