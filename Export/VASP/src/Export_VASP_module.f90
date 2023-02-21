@@ -1630,7 +1630,7 @@ module wfcExportVASPMod
     
     ! Output variables:
     integer, allocatable, intent(out) :: gIndexLocalToGlobal(:)
-      ! Converts local index `ig` to global index
+      !! Converts local index `ig` to global index
     integer, allocatable, intent(out) :: mill_local(:,:)
       !! Integer coefficients for G-vectors
     integer, intent(out) :: nGVecsLocal
@@ -3968,7 +3968,7 @@ module wfcExportVASPMod
               ! Don't need to worry about sorting because projection
               ! has sum over plane waves.
 
-            call MPI_ALLREDUCE(projectionLocal, projection, 1, MPI_COMPLEX, MPI_SUM, intraPoolComm, ierr)
+            call MPI_REDUCE(projectionLocal, projection, 1, MPI_COMPLEX, MPI_SUM, root, intraPoolComm, ierr)
 
             if(indexInPool == 0) write(projOutUnit,'(2ES24.15E3)') projection
 
