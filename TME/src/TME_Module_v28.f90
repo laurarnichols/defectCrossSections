@@ -1913,69 +1913,6 @@ contains
     return
     
   end subroutine pawCorrectionWfc
-  
-  
-  subroutine pawCorrectionSDPhi()
-    
-    ! calculates the augmentation part of the transition matrix element
-    
-    implicit none
-    integer :: ibi, ibf, ni, ispin 
-    integer :: LL, LLP, LMBASE, LM, LMP
-    integer :: L, M, LP, MP, iT
-    real(kind = dp) :: atomicOverlap
-    
-    complex(kind = dp) :: cProjIe, cProjFe
-    
-    ispin = 1
-    
-    paw_SDPhi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    
-    LMBASE = 0
-    
-    do ni = 1, nIonsSD ! LOOP OVER THE IONS
-      
-      iT = TYPNISD(ni)
-      LM = 0
-      DO LL = 1, atoms(iT)%lMax
-        L = atoms(iT)%LPS(LL)
-        DO M = -L, L
-          LM = LM + 1 !1st index for CPROJ
-          
-          LMP = 0
-          DO LLP = 1, atoms(iT)%lMax
-            LP = atoms(iT)%LPS(LLP)
-            DO MP = -LP, LP
-              LMP = LMP + 1 ! 2nd index for CPROJ
-              
-              atomicOverlap = 0.0_dp
-              if ( (L == LP).and.(M == MP) ) then
-                atomicOverlap = sum(atoms(iT)%F1(:,LL,LLP))
-                
-                do ibi = iBandIinit, iBandIfinal
-                  cProjIe = cProjBetaSDPhiPC(LMP + LMBASE, ibi, ISPIN)
-                  
-                  do ibf = iBandFinit, iBandFfinal
-                    cProjFe = conjg(cProjSD(LM + LMBASE, ibf, ISPIN))
-                    
-                    paw_SDPhi(ibf, ibi) = paw_SDPhi(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
-                    
-                  enddo
-                  
-                enddo
-                
-              endif
-              
-            ENDDO
-          ENDDO
-        ENDDO
-      ENDDO
-      LMBASE = LMBASE + atoms(iT)%lmMax
-    ENDDO
-    
-    return
-    
-  end subroutine pawCorrectionSDPhi
 
   
   subroutine pawCorrectionKPC()
