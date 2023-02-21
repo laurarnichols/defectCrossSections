@@ -98,7 +98,7 @@ module declarations
   complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
   complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:), paw_fi(:,:)
   complex(kind = dp), allocatable :: paw_PsiPC(:,:), paw_SDPhi(:,:)
-  complex(kind = dp), allocatable :: betaPC(:,:), cProjBetaPCPsiSD(:,:,:)
+  complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:,:)
   complex(kind = dp), allocatable :: betaSD(:,:), cProjBetaSDPhiPC(:,:,:)
   !
   integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:)
@@ -1427,7 +1427,7 @@ contains
   end subroutine calculatePWsOverlap
 
 !----------------------------------------------------------------------------
-  subroutine readWfc(crystalType, iBandinit, iBandfinal, ik, npws, wfc)
+  subroutine readWfc(crystalType, iBandinit, iBandfinal, ikGlobal, npws, wfc)
     !! Read wave function for given `crystalType` from `iBandinit`
     !! to `iBandfinal`
     
@@ -1438,7 +1438,7 @@ contains
       !! Starting band
     integer, intent(in) :: iBandfinal
       !! Ending band
-    integer, intent(in) :: ik
+    integer, intent(in) :: ikGlobal
       !! Current k point
     integer, intent(in) :: npws(nKPoints)
       !! Number of G+k vectors less than
@@ -1455,8 +1455,6 @@ contains
     ! Local variables:
     integer :: iDumV(3)
       !! Vector to ignore G-vector Miller indices
-    integer :: ikGlobal
-      !! Global k index
     integer, allocatable :: pwGind(:)
       !! G-vector indices for G+k vectors
       !! less than cutoff
@@ -1469,9 +1467,6 @@ contains
     character(len = 300) :: iks
       !! String k-point
 
-
-    ikGlobal = ik+ikStart_pool-1
-      !! Get global k index from local one
 
     if(indexInPool == 0) then
       !! Have the root node in each pool open 
@@ -1592,12 +1587,12 @@ contains
   end subroutine readWfc
   
 !----------------------------------------------------------------------------
-  subroutine readProjections(crystalType, ik, nProjs, cProj)
+  subroutine readProjections(crystalType, ikGlobal, nProjs, cProj)
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ik
+    integer, intent(in) :: ikGlobal
       !! Current k point
     integer, intent(in) :: nProjs
       !! Number of projectors
@@ -1617,7 +1612,7 @@ contains
       !! String k-point
     
 
-    call int2str(ik, iks)
+    call int2str(ikGlobal, iks)
     
     cProj(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
     
@@ -1653,123 +1648,182 @@ contains
     
   end subroutine readProjections
   
+!----------------------------------------------------------------------------
+  subroutine calculateCrossProjection(projCrystalType, iBandinit, iBandfinal, ikGlobal, nProjs, wfc, crossProjection)
+    
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iBandinit
+      !! Starting band for crystal wfc comes from
+      !! (not `projCrystalType`)
+    integer, intent(in) :: iBandfinal
+      !! Ending band for crystal wfc comes from
+      !! (not `projCrystalType`)
+    integer, intent(in) :: ikGlobal
+      !! Current k point
+    integer, intent(in) :: nProjs
+      !! Number of projectors
+
+    complex(kind=dp), intent(in) :: wfc(nGVecsLocal,iBandinit:iBandfinal)
+      !! Wave function coefficients for local G-vectors
+      !! for crystal not of `projCrystalType`
+
+    character(len=2), intent(in) :: projCrystalType
+      !! Crystal type (PC or SD) for projectors.
+      !! Wave function will come from other crystal
+      !! type.
+
+    ! Output variables:
+    complex(kind=dp), intent(out) :: crossProjection(nProjs,nBands,nSpins)
+      !! Projections <beta|wfc>
+    
+    ! Local variables:
+    integer :: iDumV(3)
+      !! Vector to ignore G-vector Miller indices
+    integer, allocatable :: pwGind(:)
+      !! G-vector indices for G+k vectors
+      !! less than cutoff
+    integer :: ib, ipr, ig, igk, iproc
+      !! Loop indices
+
+    complex(kind=dp) :: beta(nGVecsLocal,nProjs)
+      !! Projector of `projCrystalType`
+    complex(kind=dp) :: betaBuff(nProcPerPool)
+      !! Projector buffer for broadcasting
+    complex(kind=dp) :: crossProjectionLocal
+      !! Local version of cross projection to
+      !! be summed across processors in pool
+    
+    character(len = 300) :: iks
+    
+
+    if(indexInPool == 0) then
+      !! Have the root node in each pool open 
+      !! the grid file for the current crystal
+      !! type and k-point
+
+      call int2str(ikGlobal, iks)
+    
+      if(projCrystalType == 'PC') then
+        open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
+      else
+        open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
+      endif
+    
+      read(72, * )
+      read(72, * )
+        ! Ignore the header
+
+    endif
+    
+    allocate(pwGind(npws(ikGlobal)))
+    
+    if(indexInPool == 0) then 
+      !! Have the root node in each pool read in
+      !! the global PW indices that satisfy 
+      !! G+k < cutoff
+
+      do ig = 1, npws(ikGlobal)
+        read(72, '(4i10)') pwGind(ig), iDumV(1:3)
+      enddo
+    
+      close(72)
+
+    endif
+
+    call MPI_BCAST(pwGind, size(pwGind), MPI_INTEGER, root, intraPoolComm, ierr)
+   
+
+    if(indexInPool == 0) then
+      !! Have the root node in the pool read the projectors
+      !! of `projCrystalType`
+    
+      if(projCrystalType == 'PC') then
+        open(72, file=trim(exportDirPC)//"/projectors."//trim(iks))
+      else
+        open(72, file=trim(exportDirSD)//"/projectors."//trim(iks))
+      endif
+    
+      read(72, * )
+      read(72, * )
+        ! Ignore the header
+
+    endif
+    
+    beta(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    betaBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    
+    !> Have the root node read the projector
+    !> then broadcast to other processes
+    do ipr = 1, nProjs
+      igk = 1
+      iproc = 1
+
+      do ig = 1, nGVecsGlobal
+        ! Loop over all G-vectors to make broadcasting
+        ! clearer and simpler
+
+        if(ig == pwGind(igk)) then
+          ! If this G-vector satisfies G+k < cutoff
+          ! for the current k-point
+
+          if(indexInPool == 0) read(72, '(2ES24.15E3)') betaBuff(iproc)
+            ! Read in the projector and store in the slot
+            ! for the process that holds the current G-vector
+
+          igk = igk + 1
+            ! Increment the G+k vector counter
+
+        endif
+
+        if(iproc == nProcPerPool) then
+          ! If the process counter is up to the number
+          ! of processes per pool
+
+          call MPI_BCAST(betaBuff, nProcPerPool, MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
+            ! Broadcast the projector buffer
+
+          beta(gIndexGlobalToLocal(ig),ipr) = betaBuff(indexInPool+1)
+            ! Store the value for this process locally
+
+          ! Reset the projector buffer and process counter
+          projectorBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+          iproc = 1
+
+        else
+          ! Otherwise, increment the process counter
+
+          iproc = iproc + 1
+
+        endif
+
+      enddo
+    enddo
+    
+    if(indexInPool == 0) close(72)
+    
+    deallocate(pwGind)
+    
+    
+    !> Calculate the cross projection of one crystal's projectors
+    !> on the other crystal's wave function coefficients, distributing
+    !> the result to all processors
+    do ib = iBandinit, iBandfinal
+      do ipr = 1, nProjs
+
+        crossProjectionLocal = sum(conjg(beta(:,ipr))*wfc(:,ib))
+
+        call MPI_ALLREDUCE(crossProjectionLocal, crossProjection(ipr,ib,1), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
+
+      enddo
+    enddo
+    
+    return
+    
+  end subroutine calculateCrossProjection
   
-  subroutine projectBetaPCwfcSD(ik)
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: ig, iDumV(3)
-    !
-    character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
-    ! Reading PC projectors
-    !
-    open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    allocate ( pwGindPC(npwsPC(ik)) )
-    !
-    do ig = 1, npwsPC(ik)
-      read(72, '(4i10)') pwGindPC(ig), iDumV(1:3)
-    enddo
-    !
-    close(72)
-    !
-    allocate ( betaPC(maxGIndexGlobal, nProjsPC) )
-    !
-    betaPC(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    !
-    open(73, file=trim(exportDirPC)//"/projectors."//trim(iks))
-    !
-    read(73, '(a)') textDum
-    read(73, '(2i10)') nProjsPC, npw
-    !
-    do j = 1, nProjsPC 
-      do i = 1, npw
-        read(73,'(2ES24.15E3)') betaPC(pwGindPC(i),j)
-      enddo
-    enddo
-    !
-    close(73)
-    !
-    deallocate ( pwGindPC )
-    !
-    do j = iBandFinit, iBandFfinal
-      do i = 1, nProjsPC
-        cProjBetaPCPsiSD(i,j,1) = sum(conjg(betaPC(:,i))*wfcSD(:,j))
-      enddo
-    enddo
-    !
-    deallocate ( betaPC )
-    !
-    return
-    !
-  end subroutine projectBetaPCwfcSD
-  !
-  !
-  subroutine projectBetaSDwfcPC(ik)
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    integer :: ig, iDumV(3)
-    !
-    character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
-    ! Reading SD projectors
-    !
-    open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
-    !
-    read(72, * )
-    read(72, * )
-    !
-    allocate ( pwGindSD(npwsSD(ik)) )
-    !
-    do ig = 1, npwsSD(ik)
-      read(72, '(4i10)') pwGindSD(ig), iDumV(1:3)
-    enddo
-    !
-    close(72)
-    !
-    allocate ( betaSD(maxGIndexGlobal, nProjsSD) )
-    !
-    betaSD(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    !
-    open(73, file=trim(exportDirSD)//"/projectors."//trim(iks))
-    !
-    read(73, '(a)') textDum
-    read(73, '(2i10)') nProjsSD, npw
-    !
-    do j = 1, nProjsSD 
-      do i = 1, npw
-        read(73,'(2ES24.15E3)') betaSD(pwGindSD(i),j)
-      enddo
-    enddo
-    !
-    close(73)
-    !
-    deallocate ( pwGindSD )
-    !
-    do j = iBandIinit, iBandIfinal
-      do i = 1, nProjsSD
-        cProjBetaSDPhiPC(i,j,1) = sum(conjg(betaSD(:,i))*wfcPC(:,j))
-      enddo
-    enddo
-    !
-    deallocate ( betaSD )
-    !
-    return
-    !
-  end subroutine projectBetaSDwfcPC
-  !
-  !
+  
   subroutine pawCorrectionKPC()
     !
     implicit none

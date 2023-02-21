@@ -69,7 +69,7 @@ program transitionMatrixElements
       
       allocate(wfcPC(nGVecsLocal, iBandIinit:iBandIfinal), wfcSD(nGVecsLocal, iBandFinit:iBandFfinal))
         
-      call calculatePWsOverlap(ikLocal)
+      call calculatePWsOverlap(ikGlobal)
         !! Read wave functions and get overlap
         
       call cpu_time(t2)
@@ -78,45 +78,42 @@ program transitionMatrixElements
         
 
       call cpu_time(t1)
-      write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> for k-point", i2, " begun.")') ikGlobal
+      write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> for k-point ", i2, " begun.")') ikGlobal
       flush(iostd)
         
       
       allocate(cProjPC(nProjsPC, nBands, nSpins))
 
-      call readProjections('PC', ik, nProjsPC, cProjPC)
+      call readProjections('PC', ikGlobal, nProjsPC, cProjPC)
         
 
       allocate(cProjBetaPCPsiSD(nProjsPC, nBands, nSpins))
 
-      call projectBetaPCwfcSD(ik)
+      call calculateCrossProjection('PC', iBandFinit, iBandFfinal, ikGlobal, nProjsPC, wfcSD, cProjBetaPCPsiSD)
         
       deallocate(wfcSD)
 
-      call MPI_Barrier(worldComm, ierr)
-      call exitError('main', 'stopping for debugging', 5)
 
-
-
-        
       call pawCorrectionPsiPC()
         
-      deallocate ( cProjBetaPCPsiSD )
+      deallocate(cProjBetaPCPsiSD)
         
       call cpu_time(t2)
-      write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> done in", f10.2, " secs.")') t2-t1
+      write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
+
+
       call cpu_time(t1)
-      write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> begun.")')
+      write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> for k-point ", i2, " begun.")') ikGlobal
       flush(iostd)
 
       allocate(cProjSD(nProjsSD, nBands, nSpins))
 
       call readProjections('SD', ik, nProjsSD, cProjSD)
         
-        allocate ( cProjBetaSDPhiPC(nProjsSD, nBands, nSpins) )
-        call projectBetaSDwfcPC(ik)
+      allocate(cProjBetaSDPhiPC(nProjsSD, nBands, nSpins))
+      call calculateCrossProjection('SD', iBandIinit, iBandIfinal, ikGlobal, nProjsSD, wfcPC, cProjBetaSDPhiPC)
         
-        deallocate ( wfcPC )
+      deallocate(wfcPC)
         
         call pawCorrectionSDPhi()
         deallocate ( cProjBetaSDPhiPC )
