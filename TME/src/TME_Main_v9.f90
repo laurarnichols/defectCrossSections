@@ -33,10 +33,10 @@ program transitionMatrixElements
 
 
   allocate(paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
+  allocate(paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
+  allocate(paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
   if(ionode) then
     allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-    allocate ( paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-    allocate ( paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( paw_fi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( eigvI (iBandIinit:iBandIfinal), eigvF (iBandFinit:iBandFfinal) )
     
@@ -75,17 +75,21 @@ program transitionMatrixElements
       call cpu_time(t2)
       write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> for k-point", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
       flush(iostd)
-        
 
-      call cpu_time(t1)
-      write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> for k-point ", i2, " begun.")') ikGlobal
-      flush(iostd)
-        
+      !-----------------------------------------------------------------------------------------------
+      !> Read projections
       
       allocate(cProjPC(nProjsPC, nBands, nSpins))
 
       call readProjections('PC', ikGlobal, nProjsPC, cProjPC)
+
+      allocate(cProjSD(nProjsSD, nBands, nSpins))
+
+      call readProjections('SD', ik, nProjsSD, cProjSD)
         
+
+      !-----------------------------------------------------------------------------------------------
+      !> Calculate cross projections
 
       allocate(cProjBetaPCPsiSD(nProjsPC, nBands, nSpins))
 
@@ -93,41 +97,55 @@ program transitionMatrixElements
         
       deallocate(wfcSD)
 
-
-      call pawCorrectionPsiPC()
-        
-      deallocate(cProjBetaPCPsiSD)
-        
-      call cpu_time(t2)
-      write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
-
-
-      call cpu_time(t1)
-      write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> for k-point ", i2, " begun.")') ikGlobal
-      flush(iostd)
-
-      allocate(cProjSD(nProjsSD, nBands, nSpins))
-
-      call readProjections('SD', ik, nProjsSD, cProjSD)
-        
       allocate(cProjBetaSDPhiPC(nProjsSD, nBands, nSpins))
+
       call calculateCrossProjection('SD', iBandIinit, iBandIfinal, ikGlobal, nProjsSD, wfcPC, cProjBetaSDPhiPC)
         
       deallocate(wfcPC)
-        
-        call pawCorrectionSDPhi()
-        deallocate ( cProjBetaSDPhiPC )
-        
+
+
+      !-----------------------------------------------------------------------------------------------
+      !> Have process 0 in each pool calculate the PAW wave function correction for PC
+      if(indexInPool == 0) then
+
+        call cpu_time(t1)
+        write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> for k-point ", i2, " begun.")') ikGlobal
+        flush(iostd)
+
+        call pawCorrectionWfc(nIonsPC, TYPNIPC, cProjPC, cProjBetaPCPsiSD, atomsPC, paw_PsiPC)
+
+        call cpu_time(t2)
+        write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
+
+      endif
+          
+      deallocate(cProjBetaPCPsiSD)
+
+
+      !-----------------------------------------------------------------------------------------------
+      !> Have process 1 in each pool calculate the PAW wave function correction for PC
+      if(indexInPool == 1) then
+
+        call cpu_time(t1)
+        write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> for k-point ", i2, " begun.")') ikGlobal
+        flush(iostd)
+
+        call pawCorrectionWfc(nIonsSD, TYPNISD, cProjBetaSDPhiPC, cProjSD, atoms, paw_SDPhi)
+
         call cpu_time(t2)
         write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> done in", f10.2, " secs.")') t2-t1
         flush(iostd)
-        
+
+      endif
+
+      deallocate(cProjBetaSDPhiPC)
+      
+      
+      !-----------------------------------------------------------------------------------------------
+
         call cpu_time(t1)
         write(iostd, '("      <\\vec{k}|PAW_PC> begun.")')
         flush(iostd)
-      
-      call MPI_BCAST(cProjPC, size(cProjPC), MPI_DOUBLE_COMPLEX, root, worldComm, ierr)
-      call MPI_BCAST(cProjSD, size(cProjSD), MPI_DOUBLE_COMPLEX, root, worldComm, ierr)
       
       allocate ( pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid)) )
       
@@ -146,7 +164,13 @@ program transitionMatrixElements
       allocate ( pawSDK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid) ) )
       
       call pawCorrectionSDK()
+
+
+      call MPI_BCAST(paw_PsiPC, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
       
+
+
+
       if (ionode) then
         
         call cpu_time(t2)
@@ -232,11 +256,9 @@ program transitionMatrixElements
   deallocate(mill_local)
   
   
-  if ( allocated ( paw_id ) ) deallocate ( paw_id )
-  if (ionode) then
-    if ( allocated ( paw_PsiPC ) ) deallocate ( paw_PsiPC )
-    if ( allocated ( paw_SDPhi ) ) deallocate ( paw_SDPhi )
-  endif
+  deallocate(paw_id)
+  deallocate(paw_PsiPC)
+  deallocate(paw_SDPhi)
   
   ! Calculating Vfi
   
