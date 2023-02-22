@@ -221,13 +221,11 @@ program transitionMatrixElements
       if(indexInPool == 0) call readUfis(ikLocal)
        
     endif
-
-    call MPI_BCAST(Ufi(:,:,ikLocal), size(Ufi(:,:,ikLocal)), MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
     
   enddo
 
     
-  if(calculateVfis) call calculateVfiElements()
+  if(calculateVfis .and. indexInPool == 0) call calculateVfiElements()
 
 
   deallocate(npwsPC)

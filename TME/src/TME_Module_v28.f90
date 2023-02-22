@@ -29,6 +29,8 @@ module declarations
     !! Process index within pool
   integer :: intraPoolComm = 0
     !! Intra-pool communicator
+  integer :: interPoolComm = 0
+    !! Intra-pool communicator
   integer :: myid
     !! ID of this process
   integer :: myPoolId
@@ -318,6 +320,13 @@ contains
     call MPI_COMM_SPLIT(worldComm, myPoolId, myid, intraPoolComm, ierr)
     if(ierr /= 0) call mpiExitError(8008)
       !! * Create intra-pool communicator
+
+    call MPI_BARRIER(worldComm, ierr)
+    if(ierr /= 0) call mpiExitError(8009)
+
+    call MPI_COMM_SPLIT(worldComm, indexInPool, myid, interPoolComm, ierr)
+    if(ierr /= 0) call mpiExitError(8010)
+      !! * Create inter-pool communicator
 
     return
   end subroutine setUpPools
@@ -2215,157 +2224,210 @@ contains
     
   end subroutine readUfis
   
-  
+!----------------------------------------------------------------------------
   subroutine calculateVfiElements()
-    !
+    
     implicit none
-    !
-    integer :: ik, ib, nOfEnergies, iE
-    !
+    
+    integer :: ikLocal, ikGlobal, ib, nOfEnergies, iE
+    
     real(kind = dp) :: eMin, eMax, E, av, sd, x, EiMinusEf, A, DHifMin
-    !
+    
     real(kind = dp), allocatable :: sumWk(:), sAbsVfiOfE2(:), absVfiOfE2(:)
     integer, allocatable :: nKsInEbin(:)
-    !
+    
     character (len = 300) :: text
-    !
-    allocate( DE(iBandIinit:iBandIfinal, nKPoints), absVfi2(iBandIinit:iBandIfinal, nKPoints) )
-    ! 
+    character (len = 300) :: fNameBase
+    character (len = 300) :: fNameK
+    character(len = 300) :: iks
+    
+
+    allocate(DE(iBandIinit:iBandIfinal, nKPerPool), absVfi2(iBandIinit:iBandIfinal, nKPerPool))
+     
     DE(:,:) = 0.0_dp
     absVfi2(:,:) = 0.0_dp 
-    !
-    do ik = 1, nKPoints
-      !
+    
+    do ikLocal = 1, nKPerPool
+
+      ikGlobal = ikLocal+ikStart_pool-1
+      
       eigvI(:) = 0.0_dp
       eigvF(:) = 0.0_dp
-      !
-      call readEigenvalues(ik)
-      !
+      
+      call readEigenvalues(ikGlobal)
+      
       do ib = iBandIinit, iBandIfinal
-        !
+        
         EiMinusEf = eigvI(ib) - eigvF(iBandFinit)
-        absVfi2(ib,ik) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ik))**2 - abs(Ufi(iBandFinit,ib,ik))**4 )
-        !
-        DE(ib, ik) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ik))
-        !
+        absVfi2(ib,ikLocal) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ikLocal))**2 - abs(Ufi(iBandFinit,ib,ikLocal))**4 )
+        
+        DE(ib, ikLocal) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ikLocal))
+        
       enddo
-      !
+      
     enddo
-    !
-    eMin = minval( DE(:,:) )
-    eMax = maxval( DE(:,:) )
-    !
+    
+    eMin = minval(DE(:,:))
+    call MPI_ALLREDUCE(MPI_IN_PLACE, eMin, 1, MPI_DOUBLE_PRECISION, MPI_MIN, interPoolComm, ierr)
+
+    eMax = maxval(DE(:,:))
+    call MPI_ALLREDUCE(MPI_IN_PLACE, eMax, 1, MPI_DOUBLE_PRECISION, MPI_MAX, interPoolComm, ierr)
+    
     nOfEnergies = int((eMax-eMin)/eBin) + 1
-    !
-    allocate ( absVfiOfE2(0:nOfEnergies), nKsInEbin(0:nOfEnergies), sumWk(0:nOfEnergies) )
-    !
+    
+    allocate(absVfiOfE2(0:nOfEnergies), nKsInEbin(0:nOfEnergies), sumWk(0:nOfEnergies))
+    
     absVfiOfE2(:) = 0.0_dp
     nKsInEbin(:) = 0
     sumWk(:) = 0.0_dp
-    !
-    do ik = 1, nKPoints
-      !
+    DHifMin = 0.0_dp
+    
+    do ikLocal = 1, nKPerPool
+
+      ikGlobal = ikLocal+ikStart_pool-1
+      
       do ib = iBandIinit, iBandIfinal
-        !
-        if ( abs( eMin - DE(ib,ik)) < 1.0e-3_dp ) DHifMin = absVfi2(ib, ik)
-        iE = int((DE(ib, ik)-eMin)/eBin)
-        if ( absVfi2(ib, ik) > 0.0_dp ) then
-          absVfiOfE2(iE) = absVfiOfE2(iE) + wkPC(ik)*absVfi2(ib, ik)
-          sumWk(iE) = sumWk(iE) + wkPC(ik)
+        
+        if(abs(eMin - DE(ib,ikLocal)) < 1.0e-3_dp) DHifMin = absVfi2(ib, ikLocal)
+
+        iE = int((DE(ib, ikLocal)-eMin)/eBin)
+
+        if(absVfi2(ib, ikLocal) > 0.0_dp) then
+
+          absVfiOfE2(iE) = absVfiOfE2(iE) + wkPC(ikGlobal)*absVfi2(ib, ikLocal)
+
+          sumWk(iE) = sumWk(iE) + wkPC(ikGlobal)
+
           nKsInEbin(iE) = nKsInEbin(iE) + 1
+
         else
-          write(iostd,*) 'absVfi2', absVfi2(ib, ik)
+          write(iostd,*) 'absVfi2', absVfi2(ib, ikLocal)
         endif
-        !
+        
       enddo
-      !
+      
     enddo
-    !
-    allocate ( sAbsVfiOfE2(0:nOfEnergies) )
-    !
+
+    call MPI_ALLREDUCE(MPI_IN_PLACE, DHifMin, 1, MPI_DOUBLE_PRECISION, MPI_SUM, interPoolComm, ierr)
+    call mpiSumDoubleV(absVfiOfE2, interPoolComm)
+    call mpiSumDoubleV(sumWk, interPoolComm)
+    call mpiSumIntV(nKsInEbin, interPoolComm)
+    
+    allocate(sAbsVfiOfE2(0:nOfEnergies))
+    
     sAbsVfiOfE2 = 0.0_dp
-    !
-    open(11, file=trim(VfisOutput)//'ofKpt', status='unknown')
-    !
-    write(11, '("# |<f|V|i>|^2 versus energy for all the k-points.")')
-    write(text, '("# Energy (shifted by eBin/2) (Hartree), |<f|V|i>|^2 (Hartree)^2,")')
-    write(11, '(a, " k-point index. Format : ''(2ES24.15E3,i10)''")') trim(text)
-    !
-    do ik = 1, nKPoints
-      !
+    
+    do ikLocal = 1, nKPerPool
+
+      ikGlobal = ikLocal+ikStart_pool-1
+    
+      call int2str(ikGlobal, iks)
+
+      open(11, file=trim(VfisOutput)//'ofKpt.'//trim(iks), status='unknown')
+      
       do ib = iBandIinit, iBandIfinal
-        !
-        iE = int((DE(ib,ik)-eMin)/eBin)
+        
+        iE = int((DE(ib,ikLocal)-eMin)/eBin)
+
         av = absVfiOfE2(iE)/sumWk(iE)
-        x = absVfi2(ib,ik)
-        write(11, '(2ES24.15E3,i10)') (eMin + iE*eBin), x, ik
-        write(12, '(2ES24.15E3,i10)') DE(ib,ik), absVfi2(ib, ik), ik
-        sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + wkPC(ik)*(x - av)**2/sumWk(iE)
-        !
+
+        x = absVfi2(ib,ikLocal)
+
+        write(11, '(2ES24.15E3,i10)') (eMin + iE*eBin), x, ikGlobal
+        !write(12, '(2ES24.15E3,i10)') DE(ib,ik), absVfi2(ib, ik), ik
+
+        sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + wkPC(ikGlobal)*(x - av)**2/sumWk(iE)
+        
       enddo
-      !
+
+      close(11)
+      
     enddo
-    !
-    close(11)
-    !
-    open(63, file=trim(VfisOutput), status='unknown')
-    !
-    write(63, '("# Averaged |<f|V|i>|^2 over K-points versus energy.")')
-    write(63, '("#                 Cell volume : ", ES24.15E3, " (a.u.)^3,   Format : ''(ES24.15E3)''")') omega
-    write(63, '("#   Minimun transition energy : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eMin
-    write(63, '("# |DHif|^2 at minimum Tr. En. : ", ES24.15E3, " (Hartree^2),Format : ''(ES24.15E3)''")') DHifMin
-    write(63, '("#                  Energy bin : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eBin
-    write(text, '("# Energy (Hartree), averaged |<f|V|i>|^2 over K-points (Hartree)^2,")')
-    write(63, '(a, " standard deviation (Hartree)^2. Format : ''(3ES24.15E3)''")') trim(text)
-    !
-    do iE = 0, nOfEnergies
-      E = iE*eBin
-      av = 0.0_dp
-      sd = 0.0_dp
-      if (nKsInEbin(iE) > 0) then
-        av = absVfiOfE2(iE)/sumWk(iE)
-        sd = sqrt(sAbsVfiOfE2(iE))
-      endif
-      write(63,'(3ES24.15E3)') eMin + E, av, sd
-    enddo
-    !
-    close(63)
-    !
+
+    call mpiSumDoubleV(sAbsVfiOfE2, interPoolComm)
+    
+    if(myPoolId == 0) then
+
+      open(11, file=trim(VfisOutput)//'ofKpt', status='unknown')
+    
+      write(11, '("# |<f|V|i>|^2 versus energy for all the k-points.")')
+      write(text, '("# Energy (shifted by eBin/2) (Hartree), |<f|V|i>|^2 (Hartree)^2,")')
+      write(11, '(a, " k-point index. Format : ''(2ES24.15E3,i10)''")') trim(text)
+
+      close(11)
+
+      do ikGlobal = 1, nKPoints
+
+        call int2str(ikGlobal, iks)
+
+        fNameBase = trim(VfisOutput)//'ofKpt'
+        fNameK = trim(fNameBase)//'.'//trim(iks)
+
+        call execute_command_line('cat '//trim(fNameK)//' >> '//trim(fNameBase))
+        call execute_command_line('rm '//trim(fNameK))
+
+      enddo
+
+      open(63, file=trim(VfisOutput), status='unknown')
+    
+      write(63, '("# Averaged |<f|V|i>|^2 over K-points versus energy.")')
+      write(63, '("#                 Cell volume : ", ES24.15E3, " (a.u.)^3,   Format : ''(ES24.15E3)''")') omega
+      write(63, '("#   Minimun transition energy : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eMin
+      write(63, '("# |DHif|^2 at minimum Tr. En. : ", ES24.15E3, " (Hartree^2),Format : ''(ES24.15E3)''")') DHifMin
+      write(63, '("#                  Energy bin : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eBin
+      write(text, '("# Energy (Hartree), averaged |<f|V|i>|^2 over K-points (Hartree)^2,")')
+      write(63, '(a, " standard deviation (Hartree)^2. Format : ''(3ES24.15E3)''")') trim(text)
+    
+      do iE = 0, nOfEnergies
+        E = iE*eBin
+        av = 0.0_dp
+        sd = 0.0_dp
+        if (nKsInEbin(iE) > 0) then
+          av = absVfiOfE2(iE)/sumWk(iE)
+          sd = sqrt(sAbsVfiOfE2(iE))
+        endif
+        write(63,'(3ES24.15E3)') eMin + E, av, sd
+      enddo
+    
+      close(63)
+    
+    endif  
+    
     return
-    !
+    
   end subroutine calculateVfiElements
    
-   
+!----------------------------------------------------------------------------
   subroutine bessel_j (x, lmax, jl)
-    !
+    
     ! x is the argument of j, jl(0:lmax) is the output values.
     implicit none
     integer, intent(in) :: lmax
     real(kind = dp), intent(in) :: x
     real(kind = dp), intent(out) :: jl(0:lmax)
     integer :: l
-    !
+    
     if (x <= 0.0_dp) then
       jl = 0.0_dp
       jl(0) = 1.0_dp
       return
     end if
-    !
+    
     jl(0) = sin(x)/x
     if (lmax <= 0) return
     jl(1) = (jl(0)-cos(x))/x
     if (lmax == 1) return
-    !
+    
     do l = 2, lmax
       jl(l) = dble(2*l-1)*jl(l-1)/x - jl(l-2)
     enddo
-    !
+    
     return
-    !
+    
   end subroutine bessel_j
-  !
-  !
-  !
+  
+  
+!----------------------------------------------------------------------------
   subroutine ylm(v_in,lmax,y)
   !
   ! lmax   : spherical harmonics are calculated for l = 0 to lmax
@@ -2514,15 +2576,15 @@ contains
   !   cosmetics March 2005 (Kevin Jorissen)
   !
       implicit none
-  !
+  
   !   In/Output :
-  !
+  
       integer, intent(in) :: LMAX
       real(kind = dp), intent(in) :: V_in(3)
       complex(kind = dp), intent(out) :: Y(*)
   !   Local variables :
       real(kind = dp), parameter :: pi = 3.1415926535897932384626433_dp
-  !
+  
       INTEGER         ::  I2L, I4L2, INDEX, INDEX2, L, M, MSIGN
       real(kind = dp) ::  A, B, C, AB, ABC, ABMAX, ABCMAX, V(3)
       real(kind = dp) ::  D4LL1C, D2L13
@@ -2530,23 +2592,23 @@ contains
       real(kind = dp) ::  TEMP1, TEMP2, TEMP3
       real(kind = dp) ::  YLLR, YLL1R, YL1L1R, YLMR
       real(kind = dp) ::  YLLI, YLL1I, YL1L1I, YLMI
-      !
+      
       ! Y(0,0)
-      !
+      
       do INDEX = 1,3
         V(INDEX) = dble(V_in(INDEX))
       enddo
       YLLR = 1.0_dp/sqrt(4.0_dp*PI)
       YLLI = 0.0_dp
       Y(1) = CMPLX(YLLR, YLLI, kind = dp)
-      !
+      
       ! continue only if spherical harmonics for (L .GT. 0) are desired
-      !
+      
       IF (LMAX .LE. 0) GOTO 999
-      !
+      
       ! calculate sin(Phi), cos(Phi), sin(Theta), cos(Theta)
       ! Theta, Phi ... polar angles of vector V
-      !
+      
       ABMAX  = MAX(ABS(V(1)),ABS(V(2)))
       IF (ABMAX .GT. 0.0_dp) THEN
         A = V(1)/ABMAX
@@ -2571,24 +2633,24 @@ contains
         COSTH = 1.0_dp
         SINTH = 0.0_dp
       ENDIF
-      !
+      
       ! Y(1,0)
-      !
+      
       Y(3) = CMPLX(sqrt(3.0_dp)*YLLR*COSTH, 0.0_dp, kind = dp)
-      !
+      
       ! Y(1,1) ( = -DCONJG(Y(1,-1)))
-      !
+      
       TEMP1 = -SQRT(1.5_dp)*YLLR*SINTH
       Y(4) = CMPLX(TEMP1*COSPH,TEMP1*SINPH, kind = dp)
       Y(2) = -CONJG(Y(4))
-      !
+      
       DO L = 2, LMAX
         INDEX  = L*L + 1
         INDEX2 = INDEX + 2*L
         MSIGN  = 1 - 2*MOD(L,2)
-        !
+        
         ! YLL = Y(L,L) = f(Y(L-1,L-1)) ... Formula 1
-        !
+        
         YL1L1R = DBLE(Y(INDEX-1))
         YL1L1I = DIMAG(Y(INDEX-1))
         TEMP1 = -SQRT(DBLE(2*L+1)/DBLE(2*L))*SINTH
@@ -2599,10 +2661,10 @@ contains
         !Y(INDEX)  = dble(MSIGN)*CONJG(Y(INDEX2))
         INDEX2 = INDEX2 - 1
         INDEX  = INDEX  + 1
-        !
+        
         ! YLL1 = Y(L,L-1) = f(Y(L-1,L-1)) ... Formula 2
         ! (the coefficient for Y(L-2,L-1) in Formula 2 is zero)
-        !
+        
         TEMP2 = SQRT(DBLE(2*L+1))*COSTH
         YLL1R = TEMP2*YL1L1R
         YLL1I = TEMP2*YL1L1I
@@ -2611,16 +2673,16 @@ contains
   !      Y(INDEX)  = -dble(MSIGN)*CONJG(Y(INDEX2))
         INDEX2 = INDEX2 - 1
         INDEX  = INDEX  + 1
-        !
+        
         I4L2 = INDEX2 - 4*L + 2
         I2L  = INDEX2 - 2*L
         D4LL1C = COSTH*SQRT(DBLE(4*L*L-1))
         D2L13  = -SQRT(DBLE(2*L+1)/DBLE(2*L-3))
-        !
+        
         DO M = L - 2, 0, -1
-          !
+          
           ! YLM = Y(L,M) = f(Y(L-2,M),Y(L-1,M)) ... Formula 2
-          !
+          
           TEMP1 = 1.0_dp/SQRT(DBLE((L+M)*(L-M)))
           TEMP2 = D4LL1C*TEMP1
           TEMP3 = D2L13*SQRT(DBLE((L+M-1)*(L-M-1)))*TEMP1
@@ -2629,7 +2691,7 @@ contains
           Y(INDEX2) = CMPLX(YLMR,YLMI, kind = dp)
           Y(INDEX)  = cmplx(MSIGN,0.0_dp,kind=dp)*CONJG(Y(INDEX2))
     !      Y(INDEX)  = dble(MSIGN)*CONJG(Y(INDEX2))
-          !
+          
           MSIGN  = -MSIGN
           INDEX2 = INDEX2 - 1
           INDEX  = INDEX  + 1
@@ -2637,7 +2699,7 @@ contains
           I2L    = I2L    - 1
         ENDDO
       ENDDO
-      !
+      
   999 RETURN
   END subroutine ylm
   
@@ -2791,14 +2853,73 @@ contains
 
     return
   end subroutine mpiSumIntV
+
+!----------------------------------------------------------------------------
+  subroutine mpiSumDoubleV(msg, comm)
+    !! Perform `MPI_ALLREDUCE` sum for a double-precision vector
+    !! using a max buffer size
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input/output variables:
+    integer, intent(in) :: comm
+      !! MPI communicator
+
+    real(kind=dp), intent(inout) :: msg(:)
+      !! Message to be sent
+
+
+    ! Local variables:
+    integer, parameter :: maxb = 20000
+      !! Max buffer size
+
+    integer :: ib
+      !! Loop index
+    integer :: msglen
+      !! Length of message to be sent
+    integer :: nbuf
+      !! Number of buffers
+
+    real(kind=dp) :: buff(maxb)
+      !! Buffer
+
+    msglen = size(msg)
+
+    nbuf = msglen/maxb
+      !! * Get the number of buffers of size `maxb` needed
+
+    do ib = 1, nbuf
+      !! * Send message in buffers of size `maxb`
+     
+        call MPI_ALLREDUCE(msg(1+(ib-1)*maxb), buff, maxb, MPI_DOUBLE_PRECISION, MPI_SUM, comm, ierr)
+        if(ierr /= 0) call exitError('mpiSumDoubleV', 'error in mpi_allreduce 1', ierr)
+
+        msg((1+(ib-1)*maxb):(ib*maxb)) = buff(1:maxb)
+
+    enddo
+
+    if((msglen - nbuf*maxb) > 0 ) then
+      !! * Send any data left of size less than `maxb`
+
+        call MPI_ALLREDUCE(msg(1+nbuf*maxb), buff, (msglen-nbuf*maxb), MPI_DOUBLE_PRECISION, MPI_SUM, comm, ierr)
+        if(ierr /= 0) call exitError('mpiSumDoubleV', 'error in mpi_allreduce 2', ierr)
+
+        msg((1+nbuf*maxb):msglen) = buff(1:(msglen-nbuf*maxb))
+    endif
+
+    return
+  end subroutine mpiSumDoubleV
   
 !----------------------------------------------------------------------------
   subroutine int2str(integ, string)
-    !
+    
     implicit none
     integer :: integ
     character(len = 300) :: string
-    !
+    
     if ( integ < 10 ) then
       write(string, '(i1)') integ
     else if ( integ < 100 ) then
@@ -2808,11 +2929,11 @@ contains
     else if ( integ < 10000 ) then
       write(string, '(i4)') integ
     endif
-    !
+    
     string = trim(string)
-    !
+    
     return
-    !
+    
   end subroutine int2str
   
   
