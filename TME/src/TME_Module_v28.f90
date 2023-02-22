@@ -1662,7 +1662,7 @@ contains
   end subroutine readProjections
   
 !----------------------------------------------------------------------------
-  subroutine calculateCrossProjection(projCrystalType, iBandinit, iBandfinal, ikGlobal, nProjs, wfc, crossProjection)
+  subroutine calculateCrossProjection(projCrystalType, iBandinit, iBandfinal, ikGlobal, nProjs, npws, wfc, crossProjection)
     
     implicit none
 
@@ -1677,6 +1677,9 @@ contains
       !! Current k point
     integer, intent(in) :: nProjs
       !! Number of projectors
+    integer, intent(in) :: npws(nKPoints)
+      !! Number of G+k vectors less than
+      !! the cutoff at each k-point
 
     complex(kind=dp), intent(in) :: wfc(nGVecsLocal,iBandinit:iBandfinal)
       !! Wave function coefficients for local G-vectors
@@ -1801,7 +1804,7 @@ contains
             ! Store the value for this process locally
 
           ! Reset the projector buffer and process counter
-          projectorBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+          betaBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
           iproc = 1
 
         else
@@ -1883,7 +1886,7 @@ contains
     
     LMBASE = 0
     
-    do ia = 1, nIons
+    do ia = 1, nAtoms
       
       iT = iType(ia)
 
@@ -1947,7 +1950,7 @@ contains
     character(len=2), intent(in) :: crystalType
       !! Crystal type (PC or SD)
 
-    type(atom), intent(in) :: atoms(nAtoms)
+    type(atom), intent(inout) :: atoms(nAtoms)
       !! Structure to hold details for each atom
 
     ! Output variables:
@@ -1956,7 +1959,7 @@ contains
     ! Local variables:
     real(kind=dp) :: gCart(3)
       !! G-vector in Cartesian coordinates
-    integer :: ibi, ibf, ispin, ig
+    integer :: ibi, ibf, ispin, ig, ix
     integer :: LL, I, NI, LMBASE, LM
     integer :: L, M, ind, iT
     real(kind = dp) :: q, qDotR, FI, t1, t2

@@ -93,13 +93,13 @@ program transitionMatrixElements
 
       allocate(cProjBetaPCPsiSD(nProjsPC, nBands, nSpins))
 
-      call calculateCrossProjection('PC', iBandFinit, iBandFfinal, ikGlobal, nProjsPC, wfcSD, cProjBetaPCPsiSD)
+      call calculateCrossProjection('PC', iBandFinit, iBandFfinal, ikGlobal, nProjsPC, npwsPC, wfcSD, cProjBetaPCPsiSD)
         
       deallocate(wfcSD)
 
       allocate(cProjBetaSDPhiPC(nProjsSD, nBands, nSpins))
 
-      call calculateCrossProjection('SD', iBandIinit, iBandIfinal, ikGlobal, nProjsSD, wfcPC, cProjBetaSDPhiPC)
+      call calculateCrossProjection('SD', iBandIinit, iBandIfinal, ikGlobal, nProjsSD, npwsSD, wfcPC, cProjBetaSDPhiPC)
         
       deallocate(wfcPC)
 
@@ -207,7 +207,7 @@ program transitionMatrixElements
 
         write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
         
-        Ufi(:,:,Local) = Ufi(:,:,Local) + paw_SDPhi(:,:) + paw_PsiPC(:,:)
+        Ufi(:,:,ikLocal) = Ufi(:,:,ikLocal) + paw_SDPhi(:,:) + paw_PsiPC(:,:)
         
         call writeResults(ikLocal)
         
