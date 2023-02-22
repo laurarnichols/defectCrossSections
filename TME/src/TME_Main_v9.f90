@@ -62,8 +62,10 @@ program transitionMatrixElements
     
     if(.not. tmes_file_exists) then
       
-      write(iostd, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4)') ikGlobal, nKPoints
-      flush(iostd)
+      !-----------------------------------------------------------------------------------------------
+      !> Read wave functions and calculate overlap
+      
+      if(indexInPool == 0) write(iostd, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4)') ikGlobal, nKPoints
         
       call cpu_time(t1)
       
@@ -73,8 +75,7 @@ program transitionMatrixElements
         !! Read wave functions and get overlap
         
       call cpu_time(t2)
-      write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> for k-point", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
-      flush(iostd)
+      if(indexInPool == 0) write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> for k-point", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
 
       !-----------------------------------------------------------------------------------------------
       !> Read projections
@@ -142,46 +143,47 @@ program transitionMatrixElements
       
       
       !-----------------------------------------------------------------------------------------------
+      !> Broadcast wave function corrections to other processes
 
-        call cpu_time(t1)
-        write(iostd, '("      <\\vec{k}|PAW_PC> begun.")')
-        flush(iostd)
+      call MPI_BCAST(paw_PsiPC, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
+      call MPI_BCAST(paw_SDPhi, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
+
+
+      !-----------------------------------------------------------------------------------------------
+      !> Have all processes calculate the PAW k correction
+
+      call cpu_time(t1)
+      if(indexInPool == 0) write(iostd, '("      <\\vec{k}|PAW_PC> for k-point ", i2, " begun.")') ikGlobal
       
-      allocate ( pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid)) )
+
+      allocate(pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
       
-      call pawCorrectionKPC()
+      call pawCorrectionK('PC', nIonsPC, TYPNIPC, numOfTypesPC, posIonPC, atomsPC, pawKPC)
       
-      if (ionode) then
-        call cpu_time(t2)
-        write(iostd, '("      <\\vec{k}|PAW_PC> done in", f10.2, " secs.")') t2-t1
+
+      call cpu_time(t2)
+      if(indexInPool == 0) write(iostd, '("      <\\vec{k}|PAW_PC> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
         
-        call cpu_time(t1)
-        write(iostd, '("      <PAW_SD|\\vec{k}> begun.")')
-        flush(iostd)
-        
-      endif
-      
-      allocate ( pawSDK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid) ) )
-      
-      call pawCorrectionSDK()
-
-
-      call MPI_BCAST(paw_PsiPC, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
+      call cpu_time(t1)
+      if(indexInPool == 0) write(iostd, '("      <PAW_SD|\\vec{k}> for k-point ", i2, " begun.")') ikGlobal
       
 
-
-
-      if (ionode) then
-        
-        call cpu_time(t2)
-        write(iostd, '("      <PAW_SD|\\vec{k}> done in", f10.2, " secs.")') t2-t1
-        
-        call cpu_time(t1)
-        write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> begun.")')
-        flush(iostd)
-        
-      endif
+      allocate(pawSDK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
       
+      call pawCorrectionK('SD', nIonsSD, TYPNISD, numOfTypes, posIonSD, atoms, pawSDK)
+
+        
+      call cpu_time(t2)
+      if(indexInPool == 0) write(iostd, '("      <PAW_SD|\\vec{k}> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
+      
+
+      !-----------------------------------------------------------------------------------------------
+      !> Sum over PAW k corrections
+        
+      call cpu_time(t1)
+      if(indexInPool == 0) write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> begun.")')
+      
+
       paw_id(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
       
       do ibi = iBandIinit, iBandIfinal
@@ -191,15 +193,15 @@ program transitionMatrixElements
         enddo
         
       enddo
+
       
-      if (ionode) paw_SDKKPC(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
+      if(indexInPool == 0) paw_SDKKPC(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
       
-      CALL MPI_REDUCE(paw_id, paw_SDKKPC, size(paw_id), MPI_DOUBLE_COMPLEX, MPI_SUM, root, worldComm, ierr)
+      call MPI_REDUCE(paw_id, paw_SDKKPC, size(paw_id), MPI_DOUBLE_COMPLEX, MPI_SUM, root, intraPoolComm, ierr)
       
-      if (ionode) then
-        
-        call cpu_time(t2)
-        write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> done in", f10.2, " secs.")') t2-t1
+
+      call cpu_time(t2)
+      if(indexInPool == 0) then write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> done in", f10.2, " secs.")') t2-t1
         flush(iostd)
         
         Ufi(:,:,ik) = Ufi(:,:,ik) + paw_SDPhi(:,:) + paw_PsiPC(:,:) + paw_SDKKPC(:,:)*16.0_dp*pi*pi/omega

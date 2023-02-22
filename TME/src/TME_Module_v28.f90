@@ -1841,6 +1841,7 @@ contains
       !! Final-system (SD) projection
 
     type(atom), intent(in) :: atoms(nAtoms)
+      !! Structure to hold details for each atom
 
     ! Output variables:
     complex(kind=dp), intent(out) :: pawWfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal)
@@ -1915,191 +1916,132 @@ contains
   end subroutine pawCorrectionWfc
 
   
-  subroutine pawCorrectionKPC()
-    !
+  subroutine pawCorrectionK(crystalType, nAtoms, iType, numOfTypes, atomPositions, atoms, pawK)
+    
     implicit none
-    !
+
+    ! Input variables:
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+    integer, intent(in) :: iType(nAtoms)
+      !! Atom type index
+    integer, intent(in) :: numOfTypes
+      !! Number of different atom types
+
+    real(kind=dp), intent(in) :: atomPositions(3,nAtoms)
+      !! Atom positions in Cartesian coordinates
+
+    character(len=2), intent(in) :: crystalType
+      !! Crystal type (PC or SD)
+
+    type(atom), intent(in) :: atoms(nAtoms)
+      !! Structure to hold details for each atom
+
+    ! Output variables:
+    complex(kind=dp) :: pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal)
+
+    ! Local variables:
+    real(kind=dp) :: gCart(3)
+      !! G-vector in Cartesian coordinates
     integer :: ibi, ibf, ispin, ig
     integer :: LL, I, NI, LMBASE, LM
     integer :: L, M, ind, iT
     real(kind = dp) :: q, qDotR, FI, t1, t2
-    !
+    
     real(kind = dp) :: JL(0:JMAX), v_in(3)
     complex(kind = dp) :: Y( (JMAX+1)**2 )
     complex(kind = dp) :: VifQ_aug, ATOMIC_CENTER
-    !
+    
+
     ispin = 1
-    !
+    
     call cpu_time(t1)
-    !
-    pawKPC(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    !
-    do ig = nPWsI(myid), nPWsF(myid)
-      !
-      if (ionode) then 
-        if ( (ig == nPWsI(myid) + 1000) .or. (mod(ig, 25000) == 0) .or. (ig == nPWsF(myid)) ) then
-          call cpu_time(t2)
-          write(iostd, '("        Done ", i10, " of", i10, " k-vecs. ETR : ", f10.2, " secs.")') &
-                ig, nPWsF(myid) - nPWsI(myid) + 1, (t2-t1)*(nPWsF(myid) - nPWsI(myid) + 1 -ig )/ig
-          flush(iostd)
-        endif
-      endif
-      !
-      q = sqrt(sum(gvecs(:,ig)*gvecs(:,ig)))
-      !
-      v_in(:) = gvecs(:,ig)
-      if ( abs(q) > 1.0e-6_dp ) v_in = v_in/q ! i have to determine v_in = q
-      Y = cmplx(0.0_dp, 0.0_dp, kind = dp)
-      CALL ylm(v_in, JMAX, Y) ! calculates all the needed spherical harmonics once
-      !
-      LMBASE = 0
-      !
-      do iT = 1, numOfTypesPC
-        !
-        DO I = 1, atomsPC(iT)%iRc
-          !
-          JL = 0.0_dp
-          CALL bessel_j(q*atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
-          atomsPC(iT)%bes_J_qr(:,I) = JL(:)
-          !
-        ENDDO
-        !
+    
+    pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    
+    do ig = 1, nGVecsLocal
+      
+      do ix = 1, 3
+        gCart(ix) = sum(mill_local(:,ig)*recipLattVec(ix,:))
       enddo
-      !
-      do ni = 1, nIonsPC ! LOOP OVER THE IONS
-        !
-        qDotR = sum(gvecs(:,ig)*posIonPC(:,ni))
-        !
-        ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
-        !
-        iT = TYPNIPC(ni)
-        LM = 0
-        DO LL = 1, atomsPC(iT)%lMax
-          L = atomsPC(iT)%LPS(LL)
-          DO M = -L, L
-            LM = LM + 1 !1st index for CPROJ
-            !
-            FI = 0.0_dp
-            !
-            FI = sum(atomsPC(iT)%bes_J_qr(L,:)*atomsPC(iT)%F(:,LL)) ! radial part integration F contains rab
-            !
-            ind = L*(L + 1) + M + 1 ! index for spherical harmonics
-            VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**L*FI
-            !
-            do ibi = iBandIinit, iBandIfinal
-              !
-              do ibf = iBandFinit, iBandFfinal
-                !
-                pawKPC(ibf, ibi, ig) = pawKPC(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi, ISPIN)
-                !
-              enddo
-              !
-            enddo
-            !
-          ENDDO
-        ENDDO
-        LMBASE = LMBASE + atomsPC(iT)%lmMax
-      ENDDO
-      !
-    enddo
-    !
-    return
-    !
-  end subroutine pawCorrectionKPC
-  !
-  !
-  subroutine pawCorrectionSDK()
-    !
-    implicit none
-    !
-    integer :: ibi, ibf, ispin, ig
-    integer :: LL, I, NI, LMBASE, LM
-    integer :: L, M, ind, iT
-    real(kind = dp) :: q, qDotR, FI, t1, t2
-    !
-    real(kind = dp) :: JL(0:JMAX), v_in(3)
-    complex(kind = dp) :: Y( (JMAX+1)**2 )
-    complex(kind = dp) :: VifQ_aug, ATOMIC_CENTER
-    !
-    ispin = 1
-    !
-    call cpu_time(t1)
-    !
-    pawSDK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    !
-    do ig = nPWsI(myid), nPWsF(myid)
-      !
-      if (ionode) then
-        if ( (ig == nPWsI(myid) + 1000) .or. (mod(ig, 25000) == 0) .or. (ig == nPWsF(myid)) ) then
-          call cpu_time(t2)
-          write(iostd, '("        Done ", i10, " of", i10, " k-vecs. ETR : ", f10.2, " secs.")') &
-                ig, nPWsF(myid) - nPWsI(myid) + 1, (t2-t1)*(nPWsF(myid) - nPWsI(myid) + 1 -ig )/ig
-          flush(iostd)
-          call cpu_time(t1)
-        endif
-      endif
-      q = sqrt(sum(gvecs(:,ig)*gvecs(:,ig)))
-      !
-      v_in(:) = gvecs(:,ig)
+
+      q = sqrt(sum(gCart(:)*gCart(:)))
+      
+      v_in(:) = gCart
       if ( abs(q) > 1.0e-6_dp ) v_in = v_in/q ! i have to determine v_in = q
       Y = cmplx(0.0_dp, 0.0_dp, kind = dp)
       CALL ylm(v_in, JMAX, Y) ! calculates all the needed spherical harmonics once
-      !
+      
       LMBASE = 0
-      !
+      
       do iT = 1, numOfTypes
-        !
+        
         DO I = 1, atoms(iT)%iRc
-          !
+          
           JL = 0.0_dp
           CALL bessel_j(q*atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
+            ! Previously used SD atoms structure here for both PC and SD
           atoms(iT)%bes_J_qr(:,I) = JL(:)
-          !
+          
         ENDDO
+        
       enddo
-      !
-      do ni = 1, nIonsSD ! LOOP OVER THE IONS
-        !
-        qDotR = sum(gvecs(:,ig)*posIonSD(:,ni))
-        !
-        ATOMIC_CENTER = exp( ii*cmplx(qDotR, 0.0_dp, kind = dp) )
-        !
-        iT = TYPNISD(ni)
+      
+      do ni = 1, nAtoms ! LOOP OVER THE IONS
+        
+        qDotR = sum(gCart(:)*atomPositions(:,ni))
+        
+        if(crystalType == 'PC') then
+          ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
+        else
+          ATOMIC_CENTER = exp( ii*cmplx(qDotR, 0.0_dp, kind = dp) )
+        endif
+        
+        iT = iType(ni)
         LM = 0
         DO LL = 1, atoms(iT)%lMax
           L = atoms(iT)%LPS(LL)
           DO M = -L, L
             LM = LM + 1 !1st index for CPROJ
-            !
+            
             FI = 0.0_dp
-            !
+            
             FI = sum(atoms(iT)%bes_J_qr(L,:)*atoms(iT)%F(:,LL)) ! radial part integration F contains rab
-            !
+            
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
-            VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**L*FI
-            !
+
+            if(crystalType == 'PC') then
+              VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**L*FI
+            else
+              VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**L*FI
+            endif
+            
             do ibi = iBandIinit, iBandIfinal
-              !
+              
               do ibf = iBandFinit, iBandFfinal
-                !
-                pawSDK(ibf, ibi, ig) = pawSDK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf, ISPIN))
-                !
+                
+                if(crystalType == 'PC') then
+                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi, ispin)
+                else
+                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf, ispin))
+                endif
+                
               enddo
-              !
+              
             enddo
-            !
+            
           ENDDO
         ENDDO
         LMBASE = LMBASE + atoms(iT)%lmMax
       ENDDO
-      !
+      
     enddo
-    !
+    
     return
-    !
-  end subroutine pawCorrectionSDK
-  !
-  !
+    
+  end subroutine pawCorrectionK
+  
+  
   subroutine readEigenvalues(ik)
     !
     implicit none
