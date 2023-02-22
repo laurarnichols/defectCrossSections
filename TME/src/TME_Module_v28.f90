@@ -1397,25 +1397,29 @@ contains
   end subroutine checkIfCalculated
   
 !----------------------------------------------------------------------------
-  subroutine calculatePWsOverlap(ik)
+  subroutine calculatePWsOverlap(ikLocal)
     
     implicit none
     
-    integer, intent(in) :: ik
+    integer, intent(in) :: ikLocal
+    integer :: ikGlobal
+      !! Current k point
     integer :: ibi, ibf
+
+    ikGlobal = ikLocal+ikStart_pool-1
     
-    call readWfc('PC', iBandIinit, iBandIfinal, ik, npwsPC, wfcPC)
-    call readWfc('SD', iBandFinit, iBandFfinal, ik, npwsSD, wfcSD)
+    call readWfc('PC', iBandIinit, iBandIfinal, ikGlobal, npwsPC, wfcPC)
+    call readWfc('SD', iBandFinit, iBandFfinal, ikGlobal, npwsSD, wfcSD)
       !! Read perfect crystal and defect wave functions and
       !! broadcast to processes
     
-    Ufi(:,:,ik) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    Ufi(:,:,ikLocal) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
     do ibi = iBandIinit, iBandIfinal 
       
       do ibf = iBandFinit, iBandFfinal
 
-        Ufi(ibf, ibi, ik) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
+        Ufi(ibf, ibi, ikLocal) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
           !! Calculate local overlap
 
       enddo
@@ -1915,7 +1919,7 @@ contains
     
   end subroutine pawCorrectionWfc
 
-  
+!----------------------------------------------------------------------------
   subroutine pawCorrectionK(crystalType, nAtoms, iType, numOfTypes, atomPositions, atoms, pawK)
     
     implicit none
@@ -2041,53 +2045,177 @@ contains
     
   end subroutine pawCorrectionK
   
-  
-  subroutine readEigenvalues(ik)
-    !
+!----------------------------------------------------------------------------
+  subroutine writeResults(ikLocal)
+    
     implicit none
-    !
-    integer, intent(in) :: ik
+    
+    integer, intent(in) :: ikLocal
+    integer :: ikGlobal
+      !! Current k point
+    
+    integer :: ibi, ibf, totalNumberOfElements
+    real(kind = dp) :: t1, t2
+    
+    character(len = 300) :: text, Uelements
+
+
+    ikGlobal = ikLocal+ikStart_pool-1
+    
+    call cpu_time(t1)
+    
+    call readEigenvalues(ikGlobal)
+    
+    write(iostd, '(" Writing Ufi(:,:).")')
+    
+    if ( ikGlobal < 10 ) then
+      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ikGlobal, ikGlobal
+    else if ( ikGlobal < 100 ) then
+      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ikGlobal, ikGlobal
+    else if ( ikGlobal < 1000 ) then
+      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ikGlobal, ikGlobal
+    else if ( ikGlobal < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ikGlobal, ikGlobal
+    else if ( ikGlobal < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ikGlobal, ikGlobal
+    endif
+    
+    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
+    
+    write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
+    
+    text = "# Total number of <f|U|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
+    write(17,'(a, " Format : ''(5i10)''")') trim(text)
+    
+    totalNumberOfElements = (iBandIfinal - iBandIinit + 1)*(iBandFfinal - iBandFinit + 1)
+    write(17,'(5i10)') totalNumberOfElements, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+    
+    write(17, '("# Final Band, Initial Band, Delta energy, Complex <f|U|i>, |<f|U|i>|^2 Format : ''(2i10,4ES24.15E3)''")')
+    
+    do ibf = iBandFinit, iBandFfinal
+      do ibi = iBandIinit, iBandIfinal
+        
+        write(17, 1001) ibf, ibi, eigvI(ibi) - eigvF(ibf), Ufi(ibf,ibi,ikLocal), abs(Ufi(ibf,ibi,ikLocal))**2
+            
+      enddo
+    enddo
+    
+    close(17)
+    
+    call cpu_time(t2)
+    write(iostd, '(" Writing Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
+    
+ 1001 format(2i10,4ES24.15E3)
+    
+    return
+    
+  end subroutine writeResults
+  
+!----------------------------------------------------------------------------
+  subroutine readEigenvalues(ikGlobal)
+    
+    implicit none
+    
+    integer, intent(in) :: ikGlobal
     integer :: ib
-    !
+    
     character(len = 300) :: iks
-    !
-    call int2str(ik, iks)
-    !
+    
+    call int2str(ikGlobal, iks)
+    
     open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(iks))
-    !
+    
     read(72, * )
     read(72, * )
-    !
+    
     do ib = 1, iBandIinit - 1
       read(72, *)
     enddo
-    !
+    
     do ib = iBandIinit, iBandIfinal
       read(72, '(ES24.15E3)') eigvI(ib)
     enddo
-    !
+    
     close(72)
-    !
+    
     open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(iks))
-    !
+    
     read(72, * )
     read(72, * ) 
-    !
+    
     do ib = 1, iBandFinit - 1
       read(72, *)
     enddo
-    !
+    
     do ib = iBandFinit, iBandFfinal
       read(72, '(ES24.15E3)') eigvF(ib)
     enddo
-    !
+    
     close(72)
-    !
+    
     return
-    !
+    
   end subroutine readEigenvalues
-  !
-  !
+  
+!----------------------------------------------------------------------------
+  subroutine readUfis(ikLocal)
+    
+    implicit none
+    
+    integer, intent(in) :: ikLocal
+    integer :: ikGlobal
+      !! Current k-point
+    
+    integer :: ibi, ibf, totalNumberOfElements, iDum, i
+    real(kind = dp) :: rDum, t1, t2
+    complex(kind = dp):: cUfi
+    
+    character(len = 300) :: Uelements
+
+
+    ikGlobal = ikLocal+ikStart_pool-1
+    
+    call cpu_time(t1)
+    write(iostd, '(" Reading Ufi(:,:) of k-point: ", i4)') ikGlobal
+    
+    if ( ik < 10 ) then
+      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ikGlobal, ikGlobal
+    else if ( ik < 100 ) then
+      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ikGlobal, ikGlobal
+    else if ( ik < 1000 ) then
+      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ikGlobal, ikGlobal
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ikGlobal, ikGlobal
+    else if ( ik < 10000 ) then
+      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ikGlobal, ikGlobal
+    endif
+    
+    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
+    
+    read(17, *) 
+    read(17, *) 
+    read(17,'(5i10)') totalNumberOfElements, iDum, iDum, iDum, iDum
+    read(17, *) 
+    
+    do i = 1, totalNumberOfElements
+      
+      read(17, 1001) ibf, ibi, rDum, cUfi, rDum
+      Ufi(ibf,ibi,ikLocal) = cUfi
+          
+    enddo
+    
+    close(17)
+    
+    call cpu_time(t2)
+    write(iostd, '(" Reading Ufi(:,:) of k-point ", i2, " done in:                   ", f10.2, " secs.")') ikGlobal, t2-t1
+    
+ 1001 format(2i10,4ES24.15E3)
+    
+    return
+    
+  end subroutine readUfis
+  
+  
   subroutine calculateVfiElements()
     !
     implicit none
@@ -2206,122 +2334,8 @@ contains
     return
     !
   end subroutine calculateVfiElements
-  
-  
-  subroutine readUfis(ik)
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    !
-    integer :: ibi, ibf, totalNumberOfElements, iDum, i
-    real(kind = dp) :: rDum, t1, t2
-    complex(kind = dp):: cUfi
-    !
-    character(len = 300) :: Uelements
-    !
-    call cpu_time(t1)
-    write(iostd, '(" Reading Ufi(:,:) of k-point: ", i4)') ik
-    !
-    if ( ik < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
-    else if ( ik < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
-    else if ( ik < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
-    endif
-    !
-    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
-    !
-    read(17, *) 
-    read(17, *) 
-    read(17,'(5i10)') totalNumberOfElements, iDum, iDum, iDum, iDum
-    read(17, *) 
-    !
-    do i = 1, totalNumberOfElements
-      !
-      read(17, 1001) ibf, ibi, rDum, cUfi, rDum
-      Ufi(ibf,ibi,ik) = cUfi
-      !    
-    enddo
-    !
-    close(17)
-    !
-    call cpu_time(t2)
-    write(iostd, '(" Reading Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
-    !
- 1001 format(2i10,4ES24.15E3)
-    !
-    return
-    !
-  end subroutine readUfis
-  !
-  !
-  subroutine writeResults(ik)
-    !
-    implicit none
-    !
-    integer, intent(in) :: ik
-    !
-    integer :: ibi, ibf, totalNumberOfElements
-    real(kind = dp) :: t1, t2
-    !
-    character(len = 300) :: text, Uelements
-    !
-    call cpu_time(t1)
-    !
-    call readEigenvalues(ik)
-    !
-    write(iostd, '(" Writing Ufi(:,:).")')
-    !
-    if ( ik < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
-    else if ( ik < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
-    else if ( ik < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
-    endif
-    !
-    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
-    !
-    write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
-    !
-    text = "# Total number of <f|U|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
-    write(17,'(a, " Format : ''(5i10)''")') trim(text)
-    !
-    totalNumberOfElements = (iBandIfinal - iBandIinit + 1)*(iBandFfinal - iBandFinit + 1)
-    write(17,'(5i10)') totalNumberOfElements, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-    !
-    write(17, '("# Final Band, Initial Band, Delta energy, Complex <f|U|i>, |<f|U|i>|^2 Format : ''(2i10,4ES24.15E3)''")')
-    !
-    do ibf = iBandFinit, iBandFfinal
-      do ibi = iBandIinit, iBandIfinal
-        !
-        write(17, 1001) ibf, ibi, eigvI(ibi) - eigvF(ibf), Ufi(ibf,ibi,ik), abs(Ufi(ibf,ibi,ik))**2
-        !    
-      enddo
-    enddo
-    !
-    close(17)
-    !
-    call cpu_time(t2)
-    write(iostd, '(" Writing Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
-    !
- 1001 format(2i10,4ES24.15E3)
-    !
-    return
-    !
-  end subroutine writeResults
-   !
-   !
+   
+   
   subroutine bessel_j (x, lmax, jl)
     !
     ! x is the argument of j, jl(0:lmax) is the output values.

@@ -36,7 +36,6 @@ program transitionMatrixElements
   allocate(paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
   allocate(paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
   if(ionode) then
-    allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( paw_fi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
     allocate ( eigvI (iBandIinit:iBandIfinal), eigvF (iBandFinit:iBandFfinal) )
     
@@ -181,7 +180,7 @@ program transitionMatrixElements
       !> Sum over PAW k corrections
         
       call cpu_time(t1)
-      if(indexInPool == 0) write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> begun.")')
+      if(indexInPool == 0) write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> for k-point ", i2, " begun.")') ikGlobal
       
 
       paw_id(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
@@ -194,32 +193,42 @@ program transitionMatrixElements
         
       enddo
 
-      
-      if(indexInPool == 0) paw_SDKKPC(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
-      
-      call MPI_REDUCE(paw_id, paw_SDKKPC, size(paw_id), MPI_DOUBLE_COMPLEX, MPI_SUM, root, intraPoolComm, ierr)
-      
+      Ufi(:,:,ikLocal) = Ufi(:,:,ikLocal) + paw_id(:,:)*16.0_dp*pi*pi/omega
+
+      if(indexInPool == 0) then
+        call MPI_REDUCE(MPI_IN_PLACE, Ufi(:,:,ikLocal), size(Ufi(:,:,ikLocal)), MPI_DOUBLE_COMPLEX, MPI_SUM, 0, intraPoolComm, ierr)
+      else
+        call MPI_REDUCE(Ufi(:,:,ikLocal), Ufi(:,:,ikLocal), size(Ufi(:,:,ikLocal)), MPI_DOUBLE_COMPLEX, MPI_SUM, 0, intraPoolComm, ierr)
+      endif
+
 
       call cpu_time(t2)
-      if(indexInPool == 0) then write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> done in", f10.2, " secs.")') t2-t1
-        flush(iostd)
+      if(indexInPool == 0) then 
+
+        write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
         
-        Ufi(:,:,ik) = Ufi(:,:,ik) + paw_SDPhi(:,:) + paw_PsiPC(:,:) + paw_SDKKPC(:,:)*16.0_dp*pi*pi/omega
+        Ufi(:,:,Local) = Ufi(:,:,Local) + paw_SDPhi(:,:) + paw_PsiPC(:,:)
         
-        call writeResults(ik)
+        call writeResults(ikLocal)
         
       endif
       
-      deallocate ( cProjPC, pawKPC )
-      deallocate ( cProjSD, pawSDK )
+      deallocate(cProjPC, pawKPC)
+      deallocate(cProjSD, pawSDK)
       
     else
       
-      if (ionode) call readUfis(ik)
+      if(indexInPool == 0) call readUfis(ikLocal)
        
     endif
+
+    call MPI_BCAST(Ufi(:,:,ikLocal), size(Ufi(:,:,ikLocal)), MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
     
   enddo
+
+    
+  if(calculateVfis) call calculateVfiElements()
+
 
   deallocate(npwsPC)
   deallocate(wkPC)
@@ -265,8 +274,6 @@ program transitionMatrixElements
   ! Calculating Vfi
   
   if (ionode) then
-    
-    if (calculateVfis ) call calculateVfiElements()
     
     ! Finalize Calculation
      
