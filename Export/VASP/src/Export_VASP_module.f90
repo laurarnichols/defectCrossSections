@@ -4019,9 +4019,12 @@ module wfcExportVASPMod
       write(iostd,*) "***************"
       write(iostd,*) "Getting ground state bands"
     
+      write(mainOutFileUnit, '("# Number of spins. Format: ''(i10)''")')
+      write(mainOutFileUnit, '(i10)') nSpins
+
       write(mainOutFileUnit, '("# Number of K-points. Format: ''(i10)''")')
-      write(mainOutFileUnit, '(i10)') nSpins*nKPoints
-        !! @todo Change `nSpins*nKPoints` back to `nKPoints` after spin polarization is implemented in `TME` #spin @endtodo
+      write(mainOutFileUnit, '(i10)') nKPoints
+
       write(mainOutFileUnit, '("# ik, groundState, nGkLessECutGlobal(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
       flush(mainOutFileUnit)
     
