@@ -55,6 +55,9 @@ module declarations
     !! Real space lattice vectors
   real(kind=dp) :: recipLattVec(3,3)
     !! Reciprocal lattice vectors
+  real(kind = dp) :: t1, t2
+    !! For timing different processes
+
 
   integer, allocatable :: gIndexGlobalToLocal(:)
     !! Converts global G-index to local G-index
@@ -98,7 +101,7 @@ module declarations
   !
   complex(kind = dp), allocatable :: wfcPC(:,:), wfcSD(:,:), Ufi(:,:,:), paw_SDKKPC(:,:), paw_id(:,:)
   complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
-  complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:), paw_fi(:,:)
+  complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)
   complex(kind = dp), allocatable :: paw_PsiPC(:,:), paw_SDPhi(:,:)
   complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:,:)
   complex(kind = dp), allocatable :: betaSD(:,:), cProjBetaSDPhiPC(:,:,:)
@@ -368,17 +371,17 @@ contains
         open (unit = 11, file = output, status = "old")
         close(unit = 11, status = "delete")
       endif
+    
+      open(iostd, file = output)
+        !! Open new output file.
 
     endif
-    
-    open (iostd, file = output)
-      !! Open new output file.
 
     if(ionode) then
     
       call initialize()
     
-      READ (5, TME_Input, iostat = ios)
+      READ(5, TME_Input, iostat = ios)
     
       call checkInitialization()
 
@@ -388,6 +391,10 @@ contains
     call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    call MPI_BCAST(calculateVfis, 1, MPI_LOGICAL, root, worldComm, ierr)
+
+    call MPI_BCAST(eBin, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call MPI_BCAST(exportDirSD, len(exportDirSD), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(exportDirPC, len(exportDirPC), MPI_CHARACTER, root, worldComm, ierr)
@@ -424,34 +431,34 @@ contains
     exportDirPC = ''
     elementsPath = ''
     VfisOutput = ''
-    !
+    
     ki = -1
     kf = -1
-    !
+    
     eBin = -1.0_dp
-    !
+    
     iBandIinit  = -1
     iBandIfinal = -1
     iBandFinit  = -1
     iBandFfinal = -1
-    !
+    
     calculateVfis = .false.
-    !
+    
     return
-    !
+    
   end subroutine initialize
   
 !----------------------------------------------------------------------------
   subroutine checkInitialization()
-    !
+    
     implicit none
-    !
+    
     logical :: file_exists, abortExecution
-    !
+    
     abortExecution = .false.
-    !
+    
     write(iostd, '(" Inputs : ")')
-    !
+    
     if ( trim(exportDirSD) == '' ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""exportDirSD"" is not defined!")')
@@ -460,9 +467,9 @@ contains
       abortExecution = .true.
     else
       input = trim(trim(exportDirSD)//'/input')
-      !
+      
       inquire(file =trim(input), exist = file_exists)
-      !
+      
       if ( file_exists .eqv. .false. ) then
         write(iostd, '(" File : ", a, " , does not exist!")') trim(input)
         write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirSD)
@@ -470,9 +477,9 @@ contains
         abortExecution = .true.
       endif
     endif
-    !
+    
     write(iostd, '("exportDirSD = ''", a, "''")') trim(exportDirSD)
-    !
+    
     if ( trim(exportDirPC) == '' ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""exportDirPC"" is not defined!")')
@@ -481,9 +488,9 @@ contains
       abortExecution = .true.
     else
       inputPC = trim(trim(exportDirPC)//'/input')
-      !
+      
       inquire(file =trim(inputPC), exist = file_exists)
-      !
+      
       if ( file_exists .eqv. .false. ) then
         write(iostd, '(" File : ", a, " , does not exist!")') trim(inputPC)
         write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirPC)
@@ -491,9 +498,9 @@ contains
         abortExecution = .true.
       endif
     endif
-    !
+    
     write(iostd, '("exportDirPC = ''", a, "''")') trim(exportDirPC)
-    !
+    
     if ( trim(elementsPath) == '' ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""elementsPath"" is not defined!")')
@@ -516,9 +523,9 @@ contains
       write(mkDir, '("mkdir -p ", a)') trim(elementsPath) 
       call system(mkDir)
     endif
-    !
+    
     write(iostd, '("elementsPath = ''", a, "''")') trim(elementsPath)
-    !
+    
     if ( iBandIinit < 0 ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandIinit"" is not defined!")')
@@ -526,9 +533,9 @@ contains
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
     endif
-    !
+    
     write(iostd, '("iBandIinit = ", i4)') iBandIinit
-    !
+    
     if ( iBandIfinal < 0 ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandIfinal"" is not defined!")')
@@ -536,9 +543,9 @@ contains
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
     endif
-    !
+    
     write(iostd, '("iBandIfinal = ", i4)') iBandIfinal
-    !
+    
     if ( iBandFinit < 0 ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandFinit"" is not defined!")')
@@ -546,9 +553,9 @@ contains
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
     endif
-    !
+    
     write(iostd, '("iBandFinit = ", i4)') iBandFinit
-    !
+    
     if ( iBandFfinal < 0 ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandFfinal"" is not defined!")')
@@ -556,9 +563,9 @@ contains
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
     endif
-    !
+    
     write(iostd, '("iBandFfinal = ", i4)') iBandFfinal
-    !
+    
     if ( ( calculateVfis ) .and. ( iBandFinit /= iBandFfinal ) ) then
       write(iostd, *)
       write(iostd, '(" Vfis can be calculated only if the final state is one and only one!")')
@@ -567,9 +574,9 @@ contains
       write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
     endif
-    !
+    
     write(iostd, '("calculateVfis = ", l )') calculateVfis
-    !
+    
     if ( trim(VfisOutput) == '' ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""VfisOutput"" is not defined!")')
@@ -577,29 +584,29 @@ contains
       write(iostd, '(" The default value ''VfisOutput'' will be used.")')
       VfisOutput = 'VfisVsE'
     endif
-    !
+    
     write(iostd, '("VfisOutput = ''", a, "''")') trim(VfisOutput)
-    !
+    
     if ( eBin < 0.0_dp ) then
       eBin = 0.01_dp ! eV
       write(iostd,'(" Variable : ""eBin"" is not defined!")')
       write(iostd,'(" usage : eBin = 0.01")')
       write(iostd,'(" A default value of 0.01 eV will be used !")')
     endif
-    !
+    
     write(iostd, '("eBin = ", f8.4, " (eV)")') eBin
-    !
+    
     eBin = eBin*evToHartree
-    !
+    
     if ( abortExecution ) then
       write(iostd, '(" Program stops!")')
       stop
     endif
-    !
+    
     flush(iostd)
-    !
+    
     return
-    !
+    
   end subroutine checkInitialization
   
 !----------------------------------------------------------------------------
@@ -628,7 +635,7 @@ contains
     if(ionode) then
       call cpu_time(t1)
     
-      write(iostd, *)
+      write(iostd,*)
       write(iostd, '(" Reading perfect crystal inputs.")')
       write(iostd, *)
     
@@ -780,11 +787,14 @@ contains
       endif
     
       call MPI_BCAST(atomsPC(iType)%lmMax, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(atomsPC(iType)%nMax, 1, MPI_INTEGER, root, worldComm, ierr)
       call MPI_BCAST(atomsPC(iType)%iRc, 1, MPI_INTEGER, root, worldComm, ierr)
+
+      allocate(atomsPC(iType)%r(atomsPC(iType)%nMax))
       
       if(ionode) then
       
-        allocate(atomsPC(iType)%r(atomsPC(iType)%nMax), atomsPC(iType)%rab(atomsPC(iType)%nMax))
+        allocate(atomsPC(iType)%rab(atomsPC(iType)%nMax))
 
         read(50, '(a)') textDum
 
@@ -834,7 +844,6 @@ contains
 
         deallocate(atomsPC(iType)%wae)
         deallocate(atomsPC(iType)%wps)
-        deallocate(atomsPC(iType)%r)
         deallocate(atomsPC(iType)%rab)
       
         nProjsPC = nProjsPC + atomsPC(iType)%numOfAtoms*atomsPC(iType)%lmMax
@@ -1083,11 +1092,14 @@ contains
       endif
     
       call MPI_BCAST(atoms(iType)%lmMax, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(atoms(iType)%nMax, 1, MPI_INTEGER, root, worldComm, ierr)
       call MPI_BCAST(atoms(iType)%iRc, 1, MPI_INTEGER, root, worldComm, ierr)
+
+      allocate(atoms(iType)%r(atoms(iType)%nMax))
 
       if(ionode) then
       
-        allocate(atoms(iType)%r(atoms(iType)%nMax), atoms(iType)%rab(atoms(iType)%nMax) )
+        allocate(atoms(iType)%rab(atoms(iType)%nMax))
       
         read(50, '(a)') textDum
         do i = 1, atoms(iType)%nMax
@@ -1137,8 +1149,9 @@ contains
       
         nProjsSD = nProjsSD + atoms(iType)%numOfAtoms*atoms(iType)%lmMax
       
-        deallocate(atoms(iType)%wae, atoms(iType)%wps)
-        deallocate(atoms(iType)%r, atoms(iType)%rab)
+        deallocate(atoms(iType)%wae)
+        deallocate(atoms(iType)%wps)
+        deallocate(atoms(iType)%rab)
 
       endif
 
@@ -1932,7 +1945,7 @@ contains
   end subroutine pawCorrectionWfc
 
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionK(crystalType, nAtoms, iType, numOfTypes, atomPositions, atoms, pawK)
+  subroutine pawCorrectionK(crystalType, nAtoms, iType, numOfTypes, atomPositions, atoms, atomsSD, pawK)
     
     implicit none
 
@@ -1952,6 +1965,10 @@ contains
 
     type(atom), intent(inout) :: atoms(nAtoms)
       !! Structure to hold details for each atom
+    type(atom), intent(in) :: atomsSD(nAtoms)
+      !! Structure to hold details for each atom
+      !! for SD (needed for grid for Bessel functions)
+
 
     ! Output variables:
     complex(kind=dp) :: pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal)
@@ -1995,7 +2012,7 @@ contains
         DO I = 1, atoms(iT)%iRc
           
           JL = 0.0_dp
-          CALL bessel_j(q*atoms(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
+          CALL bessel_j(q*atomsSD(iT)%r(I), JMAX, JL) ! returns the spherical bessel at qr point
             ! Previously used SD atoms structure here for both PC and SD
           atoms(iT)%bes_J_qr(:,I) = JL(:)
           
@@ -2078,7 +2095,7 @@ contains
     
     call readEigenvalues(ikGlobal)
     
-    write(iostd, '(" Writing Ufi(:,:).")')
+    write(*, '(" Writing Ufi(:,:) of k-point ", i2, ".")') ikGlobal
     
     if ( ikGlobal < 10 ) then
       write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ikGlobal, ikGlobal
@@ -2115,7 +2132,7 @@ contains
     close(17)
     
     call cpu_time(t2)
-    write(iostd, '(" Writing Ufi(:,:) done in:                   ", f10.2, " secs.")') t2-t1
+    write(*, '(" Writing Ufi(:,:) of k-point ", i2, " done in:                   ", f10.2, " secs.")') ikGlobal, t2-t1
     
  1001 format(2i10,4ES24.15E3)
     
@@ -2188,17 +2205,17 @@ contains
     ikGlobal = ikLocal+ikStart_pool-1
     
     call cpu_time(t1)
-    write(iostd, '(" Reading Ufi(:,:) of k-point: ", i4)') ikGlobal
+    write(*, '(" Reading Ufi(:,:) of k-point: ", i4)') ikGlobal
     
-    if ( ik < 10 ) then
+    if ( ikGlobal < 10 ) then
       write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ikGlobal, ikGlobal
-    else if ( ik < 100 ) then
+    else if ( ikGlobal < 100 ) then
       write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ikGlobal, ikGlobal
-    else if ( ik < 1000 ) then
+    else if ( ikGlobal < 1000 ) then
       write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ikGlobal, ikGlobal
-    else if ( ik < 10000 ) then
+    else if ( ikGlobal < 10000 ) then
       write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ikGlobal, ikGlobal
-    else if ( ik < 10000 ) then
+    else if ( ikGlobal < 10000 ) then
       write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ikGlobal, ikGlobal
     endif
     
@@ -2219,7 +2236,7 @@ contains
     close(17)
     
     call cpu_time(t2)
-    write(iostd, '(" Reading Ufi(:,:) of k-point ", i2, " done in:                   ", f10.2, " secs.")') ikGlobal, t2-t1
+    write(*, '(" Reading Ufi(:,:) of k-point ", i2, " done in:                   ", f10.2, " secs.")') ikGlobal, t2-t1
     
  1001 format(2i10,4ES24.15E3)
     
@@ -2243,7 +2260,7 @@ contains
     character (len = 300) :: fNameBase
     character (len = 300) :: fNameK
     character(len = 300) :: iks
-    
+
 
     allocate(DE(iBandIinit:iBandIfinal, nKPerPool), absVfi2(iBandIinit:iBandIfinal, nKPerPool))
      
@@ -2260,12 +2277,12 @@ contains
       call readEigenvalues(ikGlobal)
       
       do ib = iBandIinit, iBandIfinal
-        
+
         EiMinusEf = eigvI(ib) - eigvF(iBandFinit)
         absVfi2(ib,ikLocal) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ikLocal))**2 - abs(Ufi(iBandFinit,ib,ikLocal))**4 )
         
         DE(ib, ikLocal) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ikLocal))
-        
+
       enddo
       
     enddo
@@ -2275,7 +2292,7 @@ contains
 
     eMax = maxval(DE(:,:))
     call MPI_ALLREDUCE(MPI_IN_PLACE, eMax, 1, MPI_DOUBLE_PRECISION, MPI_MAX, interPoolComm, ierr)
-    
+
     nOfEnergies = int((eMax-eMin)/eBin) + 1
     
     allocate(absVfiOfE2(0:nOfEnergies), nKsInEbin(0:nOfEnergies), sumWk(0:nOfEnergies))
@@ -2304,7 +2321,7 @@ contains
           nKsInEbin(iE) = nKsInEbin(iE) + 1
 
         else
-          write(iostd,*) 'absVfi2', absVfi2(ib, ikLocal)
+          write(*,*) 'absVfi2', absVfi2(ib, ikLocal)
         endif
         
       enddo
@@ -2315,7 +2332,7 @@ contains
     call mpiSumDoubleV(absVfiOfE2, interPoolComm)
     call mpiSumDoubleV(sumWk, interPoolComm)
     call mpiSumIntV(nKsInEbin, interPoolComm)
-    
+
     allocate(sAbsVfiOfE2(0:nOfEnergies))
     
     sAbsVfiOfE2 = 0.0_dp
@@ -2708,18 +2725,18 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine finalizeCalculation()
-    !
+    
     implicit none
-    !
+    
     write(iostd,'("-----------------------------------------------------------------")')
-    !
+    
     call cpu_time(tf)
     write(iostd, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
-    !
+    
     close(iostd)
-    !
+    
     return
-    !
+    
   end subroutine finalizeCalculation
 
 !----------------------------------------------------------------------------

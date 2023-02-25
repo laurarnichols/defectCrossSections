@@ -3,9 +3,6 @@ program transitionMatrixElements
   
   implicit none
   
-  real(kind = dp) :: t1, t2
-    !! For timing different processes
-
   integer :: ikLocal, ikGlobal, iType
     !! Loop indices
   
@@ -35,16 +32,13 @@ program transitionMatrixElements
   allocate(paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
   allocate(paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
   allocate(paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
-  if(ionode) then
-    allocate ( paw_fi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-    allocate ( eigvI (iBandIinit:iBandIfinal), eigvF (iBandFinit:iBandFfinal) )
-    
-    
-  endif
 
+  if(indexInPool == 0) allocate(eigvI(iBandIinit:iBandIfinal), eigvF(iBandFinit:iBandFfinal))
+  
   allocate(Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPerPool))
   Ufi(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
   
+
   do ikLocal = 1, nkPerPool
     
     ikGlobal = ikLocal+ikStart_pool-1
@@ -64,58 +58,51 @@ program transitionMatrixElements
       !-----------------------------------------------------------------------------------------------
       !> Read wave functions and calculate overlap
       
-      if(indexInPool == 0) write(iostd, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4)') ikGlobal, nKPoints
-        
+      if(indexInPool == 0) write(*, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4)') ikGlobal, nKPoints
       call cpu_time(t1)
       
       allocate(wfcPC(nGVecsLocal, iBandIinit:iBandIfinal), wfcSD(nGVecsLocal, iBandFinit:iBandFfinal))
         
-      call calculatePWsOverlap(ikGlobal)
+      call calculatePWsOverlap(ikLocal)
         !! Read wave functions and get overlap
         
       call cpu_time(t2)
-      if(indexInPool == 0) write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> for k-point", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
-
-      !-----------------------------------------------------------------------------------------------
-      !> Read projections
-      
-      allocate(cProjPC(nProjsPC, nBands, nSpins))
-
-      call readProjections('PC', ikGlobal, nProjsPC, cProjPC)
-
-      allocate(cProjSD(nProjsSD, nBands, nSpins))
-
-      call readProjections('SD', ik, nProjsSD, cProjSD)
-        
+      if(indexInPool == 0) write(*, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> for k-point", i4, " done in", f10.2, " secs.")') ikGlobal, t2-t1
+      call cpu_time(t1)
 
       !-----------------------------------------------------------------------------------------------
       !> Calculate cross projections
-
+      
       allocate(cProjBetaPCPsiSD(nProjsPC, nBands, nSpins))
 
       call calculateCrossProjection('PC', iBandFinit, iBandFfinal, ikGlobal, nProjsPC, npwsPC, wfcSD, cProjBetaPCPsiSD)
         
       deallocate(wfcSD)
 
+      call cpu_time(t2)
+      if(indexInPool == 0) write(*, '("      Calculating <betaPC|wfcSD> for k-point", i4, " done in", f10.2, " secs.")') ikGlobal, t2-t1
+      call cpu_time(t1)
+      
       allocate(cProjBetaSDPhiPC(nProjsSD, nBands, nSpins))
 
       call calculateCrossProjection('SD', iBandIinit, iBandIfinal, ikGlobal, nProjsSD, npwsSD, wfcPC, cProjBetaSDPhiPC)
         
       deallocate(wfcPC)
 
+      call cpu_time(t2)
+      if(indexInPool == 0) write(*, '("      Calculating <betaSD|wfcPC> for k-point", i4, " done in", f10.2, " secs.")') ikGlobal, t2-t1
+
 
       !-----------------------------------------------------------------------------------------------
       !> Have process 0 in each pool calculate the PAW wave function correction for PC
+
+      allocate(cProjPC(nProjsPC, nBands, nSpins))
+
+      call readProjections('PC', ikGlobal, nProjsPC, cProjPC)
+
       if(indexInPool == 0) then
 
-        call cpu_time(t1)
-        write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> for k-point ", i2, " begun.")') ikGlobal
-        flush(iostd)
-
         call pawCorrectionWfc(nIonsPC, TYPNIPC, cProjPC, cProjBetaPCPsiSD, atomsPC, paw_PsiPC)
-
-        call cpu_time(t2)
-        write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
 
       endif
           
@@ -124,17 +111,14 @@ program transitionMatrixElements
 
       !-----------------------------------------------------------------------------------------------
       !> Have process 1 in each pool calculate the PAW wave function correction for PC
+
+      allocate(cProjSD(nProjsSD, nBands, nSpins))
+
+      call readProjections('SD', ikGlobal, nProjsSD, cProjSD)
+
       if(indexInPool == 1) then
 
-        call cpu_time(t1)
-        write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> for k-point ", i2, " begun.")') ikGlobal
-        flush(iostd)
-
         call pawCorrectionWfc(nIonsSD, TYPNISD, cProjBetaSDPhiPC, cProjSD, atoms, paw_SDPhi)
-
-        call cpu_time(t2)
-        write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> done in", f10.2, " secs.")') t2-t1
-        flush(iostd)
 
       endif
 
@@ -152,36 +136,28 @@ program transitionMatrixElements
       !> Have all processes calculate the PAW k correction
 
       call cpu_time(t1)
-      if(indexInPool == 0) write(iostd, '("      <\\vec{k}|PAW_PC> for k-point ", i2, " begun.")') ikGlobal
-      
 
       allocate(pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
       
-      call pawCorrectionK('PC', nIonsPC, TYPNIPC, numOfTypesPC, posIonPC, atomsPC, pawKPC)
+      call pawCorrectionK('PC', nIonsPC, TYPNIPC, numOfTypesPC, posIonPC, atomsPC, atoms, pawKPC)
       
 
       call cpu_time(t2)
-      if(indexInPool == 0) write(iostd, '("      <\\vec{k}|PAW_PC> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
-        
+      if(indexInPool == 0) write(*, '("      <\\vec{k}|PAW_PC> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
       call cpu_time(t1)
-      if(indexInPool == 0) write(iostd, '("      <PAW_SD|\\vec{k}> for k-point ", i2, " begun.")') ikGlobal
       
 
       allocate(pawSDK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
       
-      call pawCorrectionK('SD', nIonsSD, TYPNISD, numOfTypes, posIonSD, atoms, pawSDK)
+      call pawCorrectionK('SD', nIonsSD, TYPNISD, numOfTypes, posIonSD, atoms, atoms, pawSDK)
 
         
       call cpu_time(t2)
-      if(indexInPool == 0) write(iostd, '("      <PAW_SD|\\vec{k}> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
+      if(indexInPool == 0) write(*, '("      <PAW_SD|\\vec{k}> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
       
 
       !-----------------------------------------------------------------------------------------------
       !> Sum over PAW k corrections
-        
-      call cpu_time(t1)
-      if(indexInPool == 0) write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> for k-point ", i2, " begun.")') ikGlobal
-      
 
       paw_id(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
       
@@ -202,10 +178,7 @@ program transitionMatrixElements
       endif
 
 
-      call cpu_time(t2)
       if(indexInPool == 0) then 
-
-        write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
         
         Ufi(:,:,ikLocal) = Ufi(:,:,ikLocal) + paw_SDPhi(:,:) + paw_PsiPC(:,:)
         
@@ -224,6 +197,9 @@ program transitionMatrixElements
     
   enddo
 
+
+  call MPI_BARRIER(worldComm, ierr)
+  if(ionode) write(*,'("Done with k loop!")')
     
   if(calculateVfis .and. indexInPool == 0) call calculateVfiElements()
 
@@ -235,6 +211,7 @@ program transitionMatrixElements
   deallocate(TYPNIPC)
 
   do iType = 1, numOfTypesPC
+    deallocate(atomsPC(iType)%r)
     deallocate(atomsPC(iType)%lps)
     deallocate(atomsPC(iType)%F)
     deallocate(atomsPC(iType)%F1)
@@ -250,8 +227,9 @@ program transitionMatrixElements
   deallocate(posIonSD)
   deallocate(TYPNISD)
 
-  do iType = 1, numOfTypesPC
+  do iType = 1, numOfTypes
     deallocate(atoms(iType)%lps)
+    deallocate(atoms(iType)%r)
     deallocate(atoms(iType)%F)
     deallocate(atoms(iType)%F1)
     deallocate(atoms(iType)%F2)
@@ -268,6 +246,8 @@ program transitionMatrixElements
   deallocate(paw_id)
   deallocate(paw_PsiPC)
   deallocate(paw_SDPhi)
+
+  if(indexInPool == 0) deallocate(eigvI, eigvF)
   
   ! Calculating Vfi
   
