@@ -1,257 +1,164 @@
 program transitionMatrixElements
-  use mpi
   use declarations
   
   implicit none
   
-  real(kind = dp) :: t1, t2
-    !! For timing different processes
+  integer :: ikLocal, ikGlobal, iType
+    !! Loop indices
   
-  !> Initialize MPI
-  call MPI_INIT(ierr)
-  call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
-  call MPI_COMM_SIZE(MPI_COMM_WORLD, numprocs, ierr)
+  call mpiInitialization()
+    !! Initialize MPI
   
-  allocate ( nPWsI(0:numprocs-1), nPWsF(0:numprocs-1) )
-  
-  if ( myid == root ) then
+  if(ionode) call cpu_time(t0)
     
-    call cpu_time(t0)
+  call readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
+    !! Read input, initialize, check that required variables were set, and
+    !! distribute across processes
+    !! @todo Figure out if `realLattVec` used anywhere. If not remove. @endtodo
+
+
+  call distributeKpointsInPools(nKPoints)
+    !! Split the k-points across the pools
+
+
+  allocate(gIndexGlobalToLocal(nGVecsGlobal), gVecProcId(nGVecsGlobal))
+
+  call getFullPWGrid(nGVecsGlobal, gIndexGlobalToLocal, gVecProcId, mill_local, nGVecsLocal)
+    !! Read the full PW grid from `mgrid` and distribute
+    !! across processes
+
+
+
+  allocate(paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
+  allocate(paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
+  allocate(paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
+
+  if(indexInPool == 0) allocate(eigvI(iBandIinit:iBandIfinal), eigvF(iBandFinit:iBandFfinal))
+  
+  allocate(Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPerPool))
+  Ufi(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+  
+
+  do ikLocal = 1, nkPerPool
     
-    ! Reading input, initializing and checking all variables of the calculation.
+    ikGlobal = ikLocal+ikStart_pool-1
+      !! Get the global `ik` index from the local one
     
-    call readInput()
-    
-    call readPWsSet()
-    
-    allocate ( Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKptsPC) )
-    allocate ( paw_SDKKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-    allocate ( paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-    allocate ( paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-    allocate ( paw_fi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-    allocate ( eigvI (iBandIinit:iBandIfinal), eigvF (iBandFinit:iBandFfinal) )
-    
-    
-    Ufi(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    
-    allocate ( counts(0:numprocs-1), displmnt(0:numprocs-1) )
-    
-    call distributePWsToProcs(numOfGvecs, numprocs)
-    
-    nPWsI(:) = 0
-    nPWsF(:) = 0
-    
-    do i = 0, numprocs - 1
-      nPWsI(i) = 1 + sum(counts(:i-1))
-      nPWsF(i) = sum(counts(:i))
-    enddo
-      
-  endif
-  
-  call MPI_BCAST(iBandIinit,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(iBandFinit,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  
-  call MPI_BCAST(nKptsPC,     1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  
-  call MPI_BCAST(nProjsPC,    1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(nProjsSD,    1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(nBands,      1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(nSpins,      1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(numOfPWs,    1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  call MPI_BCAST(numOfGvecs,  1, MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-  
-  call MPI_BCAST(nPWsI, numprocs, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-  call MPI_BCAST(nPWsF, numprocs, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-  
-  if ( myid /= root ) allocate ( gvecs(3, numOfGvecs) )
-  call MPI_BCAST(gvecs, size(gvecs), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-  
-  call MPI_BCAST(numOfTypesPC, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-  
-  if ( myid /= root ) allocate ( atomsPC(numOfTypesPC) )
-  
-  call MPI_BCAST(JMAX, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-  
-  do i = 1, numOfTypesPC
-    
-    call MPI_BCAST(atomsPC(i)%numOfAtoms, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atomsPC(i)%lMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atomsPC(i)%lmMax,      1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atomsPC(i)%nMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atomsPC(i)%iRc,        1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    
-    if ( myid /= root ) then 
-      allocate( atomsPC(i)%lps(atomsPC(i)%lMax) )
-      allocate( atomsPC(i)%r  (atomsPC(i)%nMax) )
-      allocate( atomsPC(i)%rab(atomsPC(i)%nMax) )
-      allocate( atomsPC(i)%F(atomsPC(i)%iRc, atomsPC(i)%lMax ) )
-      allocate( atomsPC(i)%F1(atomsPC(i)%iRc, atomsPC(i)%lMax, atomsPC(i)%lMax ) )
-      allocate( atomsPC(i)%bes_J_qr ( 0:JMAX, atomsPC(i)%iRc) )
-    endif
-    
-    call MPI_BCAST(atomsPC(i)%lps, size(atomsPC(i)%lps), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atomsPC(i)%r,   size(atomsPC(i)%r),   MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atomsPC(i)%rab, size(atomsPC(i)%rab), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atomsPC(i)%F,   size(atomsPC(i)%F),   MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atomsPC(i)%F1,  size(atomsPC(i)%F1),  MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atomsPC(i)%bes_J_qr, size(atomsPC(i)%bes_J_qr), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-  enddo
-  
-  call MPI_BCAST(nIonsPC, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-  
-  if ( myid /= root ) allocate( posIonPC(3, nIonsPC), TYPNIPC(nIonsPC) )
-  call MPI_BCAST(TYPNIPC,  size(TYPNIPC),  MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-  call MPI_BCAST(posIonPC, size(posIonPC), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-  
-  call MPI_BCAST(numOfTypes, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-  
-  if ( myid /= root ) allocate ( atoms(numOfTypes) )
-  
-  do i = 1, numOfTypes
-    
-    call MPI_BCAST(atoms(i)%numOfAtoms, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atoms(i)%lMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atoms(i)%lmMax,      1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atoms(i)%nMax,       1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    call MPI_BCAST(atoms(i)%iRc,        1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-    
-    if ( myid /= root ) then 
-      allocate( atoms(i)%lps(atoms(i)%lMax) )
-      allocate( atoms(i)%r(atoms(i)%nMax) )
-      allocate( atoms(i)%rab(atoms(i)%nMax) )
-      allocate( atoms(i)%F(atoms(i)%iRc, atoms(i)%lMax ) )
-      allocate( atoms(i)%F1(atoms(i)%iRc, atoms(i)%lMax, atoms(i)%lMax ) )
-      allocate( atoms(i)%bes_J_qr( 0:JMAX, atoms(i)%iRc) )
-    endif
-    
-    call MPI_BCAST(atoms(i)%lps, size(atoms(i)%lps), MPI_INTEGER,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atoms(i)%r, size(atoms(i)%r), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atoms(i)%rab, size(atoms(i)%rab), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atoms(i)%F, size(atoms(i)%F), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atoms(i)%F1, size(atoms(i)%F1), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-    call MPI_BCAST(atoms(i)%bes_J_qr, size(atoms(i)%bes_J_qr), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-  enddo
-  
-  call MPI_BCAST(nIonsSD, 1, MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-  
-  if ( myid /= root ) allocate( posIonSD(3, nIonsSD), TYPNISD(nIonsSD) )
-  call MPI_BCAST(TYPNISD,  size(TYPNISD),  MPI_INTEGER, root, MPI_COMM_WORLD, ierr)
-  call MPI_BCAST(posIonSD, size(posIonSD), MPI_DOUBLE_PRECISION,root,MPI_COMM_WORLD,ierr)
-  
-  allocate ( paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal) )
-  
-  do ik = 1, nKptsPC
-    
-    if ( myid == root ) then
+    if(ionode) then
       
       tmes_file_exists = .false.
-      call checkIfCalculated(ik,tmes_file_exists)
+      call checkIfCalculated(ikGlobal,tmes_file_exists)
       
     endif
     
-    call MPI_BCAST(tmes_file_exists, 1, MPI_LOGICAL, root, MPI_COMM_WORLD, ierr)
+    call MPI_BCAST(tmes_file_exists, 1, MPI_LOGICAL, root, worldComm, ierr)
     
-    if ( .not.tmes_file_exists ) then
+    if(.not. tmes_file_exists) then
       
-      allocate ( cProjPC(nProjsPC, nBands, nSpins) )
-      allocate ( cProjSD(nProjsSD, nBands, nSpins) )
+      !-----------------------------------------------------------------------------------------------
+      !> Read wave functions and calculate overlap
       
-      if ( myid == root ) then
+      if(indexInPool == 0) write(*, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4)') ikGlobal, nKPoints
+      call cpu_time(t1)
+      
+      allocate(wfcPC(nGVecsLocal, iBandIinit:iBandIfinal), wfcSD(nGVecsLocal, iBandFinit:iBandFfinal))
         
-        write(iostd, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4)') ik, nKptsPC
-        flush(iostd)
+      call calculatePWsOverlap(ikLocal)
+        !! Read wave functions and get overlap
         
-        write(iostd, *)
-        write(iostd, '("    Plane waves part begun.")')
-        write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> begun.")')
-        call cpu_time(t1)
-        allocate( wfcPC (numOfPWs, iBandIinit:iBandIfinal), wfcSD (numOfPWs, iBandFinit:iBandFfinal ) )
+      call cpu_time(t2)
+      if(indexInPool == 0) write(*, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> for k-point", i4, " done in", f10.2, " secs.")') ikGlobal, t2-t1
+      call cpu_time(t1)
+
+      !-----------------------------------------------------------------------------------------------
+      !> Calculate cross projections
+      
+      allocate(cProjBetaPCPsiSD(nProjsPC, nBands, nSpins))
+
+      call calculateCrossProjection('PC', iBandFinit, iBandFfinal, ikGlobal, nProjsPC, npwsPC, wfcSD, cProjBetaPCPsiSD)
         
-        call calculatePWsOverlap(ik)
+      deallocate(wfcSD)
+
+      call cpu_time(t2)
+      if(indexInPool == 0) write(*, '("      Calculating <betaPC|wfcSD> for k-point", i4, " done in", f10.2, " secs.")') ikGlobal, t2-t1
+      call cpu_time(t1)
+      
+      allocate(cProjBetaSDPhiPC(nProjsSD, nBands, nSpins))
+
+      call calculateCrossProjection('SD', iBandIinit, iBandIfinal, ikGlobal, nProjsSD, npwsSD, wfcPC, cProjBetaSDPhiPC)
         
-        call cpu_time(t2)
-        write(iostd, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> done in", f10.2, " secs.")') t2-t1
-        flush(iostd)
-        
-        write(iostd, '("    Plane waves part done in", f10.2, " secs.")') t2-t1
-        write(iostd, *)
-        write(iostd, '("    PAW part begun.")')
-        
-        call cpu_time(t1)
-        write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> begun.")')
-        flush(iostd)
-        
-        call readProjectionsPC(ik)
-        
-        allocate ( cProjBetaPCPsiSD(nProjsPC, nBands, nSpins) )
-        call projectBetaPCwfcSD(ik)
-        
-        deallocate ( wfcSD )
-        
-        call pawCorrectionPsiPC()
-        
-        deallocate ( cProjBetaPCPsiSD )
-        
-        call cpu_time(t2)
-        write(iostd, '("      <\\tilde{Psi}_f|PAW_PC> done in", f10.2, " secs.")') t2-t1
-        call cpu_time(t1)
-        write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> begun.")')
-        flush(iostd)
-        
-        call readProjectionsSD(ik)
-        
-        allocate ( cProjBetaSDPhiPC(nProjsSD, nBands, nSpins) )
-        call projectBetaSDwfcPC(ik)
-        
-        deallocate ( wfcPC )
-        
-        call pawCorrectionSDPhi()
-        deallocate ( cProjBetaSDPhiPC )
-        
-        call cpu_time(t2)
-        write(iostd, '("      <PAW_SD|\\tilde{Phi}_i> done in", f10.2, " secs.")') t2-t1
-        flush(iostd)
-        
-        call cpu_time(t1)
-        write(iostd, '("      <\\vec{k}|PAW_PC> begun.")')
-        flush(iostd)
-        
+      deallocate(wfcPC)
+
+      call cpu_time(t2)
+      if(indexInPool == 0) write(*, '("      Calculating <betaSD|wfcPC> for k-point", i4, " done in", f10.2, " secs.")') ikGlobal, t2-t1
+
+
+      !-----------------------------------------------------------------------------------------------
+      !> Have process 0 in each pool calculate the PAW wave function correction for PC
+
+      allocate(cProjPC(nProjsPC, nBands, nSpins))
+
+      call readProjections('PC', ikGlobal, nProjsPC, cProjPC)
+
+      if(indexInPool == 0) then
+
+        call pawCorrectionWfc(nIonsPC, TYPNIPC, cProjPC, cProjBetaPCPsiSD, atomsPC, paw_PsiPC)
+
       endif
-      
-      call MPI_BCAST(cProjPC, size(cProjPC), MPI_DOUBLE_COMPLEX, root, MPI_COMM_WORLD, ierr)
-      call MPI_BCAST(cProjSD, size(cProjSD), MPI_DOUBLE_COMPLEX, root, MPI_COMM_WORLD, ierr)
-      
-      allocate ( pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid)) )
-      
-      call pawCorrectionKPC()
-      
-      if ( myid == root ) then
-        call cpu_time(t2)
-        write(iostd, '("      <\\vec{k}|PAW_PC> done in", f10.2, " secs.")') t2-t1
-        
-        call cpu_time(t1)
-        write(iostd, '("      <PAW_SD|\\vec{k}> begun.")')
-        flush(iostd)
-        
+          
+      deallocate(cProjBetaPCPsiSD)
+
+
+      !-----------------------------------------------------------------------------------------------
+      !> Have process 1 in each pool calculate the PAW wave function correction for PC
+
+      allocate(cProjSD(nProjsSD, nBands, nSpins))
+
+      call readProjections('SD', ikGlobal, nProjsSD, cProjSD)
+
+      if(indexInPool == 1) then
+
+        call pawCorrectionWfc(nIonsSD, TYPNISD, cProjBetaSDPhiPC, cProjSD, atoms, paw_SDPhi)
+
       endif
+
+      deallocate(cProjBetaSDPhiPC)
       
-      allocate ( pawSDK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nPWsI(myid):nPWsF(myid) ) )
       
-      call pawCorrectionSDK()
+      !-----------------------------------------------------------------------------------------------
+      !> Broadcast wave function corrections to other processes
+
+      call MPI_BCAST(paw_PsiPC, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
+      call MPI_BCAST(paw_SDPhi, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
+
+
+      !-----------------------------------------------------------------------------------------------
+      !> Have all processes calculate the PAW k correction
+
+      call cpu_time(t1)
+
+      allocate(pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
       
-      if ( myid == root) then
+      call pawCorrectionK('PC', nIonsPC, TYPNIPC, numOfTypesPC, posIonPC, atomsPC, atoms, pawKPC)
+      
+
+      call cpu_time(t2)
+      if(indexInPool == 0) write(*, '("      <\\vec{k}|PAW_PC> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
+      call cpu_time(t1)
+      
+
+      allocate(pawSDK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
+      
+      call pawCorrectionK('SD', nIonsSD, TYPNISD, numOfTypes, posIonSD, atoms, atoms, pawSDK)
+
         
-        call cpu_time(t2)
-        write(iostd, '("      <PAW_SD|\\vec{k}> done in", f10.2, " secs.")') t2-t1
-        
-        call cpu_time(t1)
-        write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> begun.")')
-        flush(iostd)
-        
-      endif
+      call cpu_time(t2)
+      if(indexInPool == 0) write(*, '("      <PAW_SD|\\vec{k}> for k-point ", i2, " done in", f10.2, " secs.")') ikGlobal, t2-t1
       
+
+      !-----------------------------------------------------------------------------------------------
+      !> Sum over PAW k corrections
+
       paw_id(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
       
       do ibi = iBandIinit, iBandIfinal
@@ -261,45 +168,90 @@ program transitionMatrixElements
         enddo
         
       enddo
-      
-      if ( myid == root ) paw_SDKKPC(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
-      
-      CALL MPI_REDUCE(paw_id, paw_SDKKPC, size(paw_id), MPI_DOUBLE_COMPLEX, MPI_SUM, root, MPI_COMM_WORLD, ierr)
-      
-      if ( myid == root ) then
+
+      Ufi(:,:,ikLocal) = Ufi(:,:,ikLocal) + paw_id(:,:)*16.0_dp*pi*pi/omega
+
+      if(indexInPool == 0) then
+        call MPI_REDUCE(MPI_IN_PLACE, Ufi(:,:,ikLocal), size(Ufi(:,:,ikLocal)), MPI_DOUBLE_COMPLEX, MPI_SUM, 0, intraPoolComm, ierr)
+      else
+        call MPI_REDUCE(Ufi(:,:,ikLocal), Ufi(:,:,ikLocal), size(Ufi(:,:,ikLocal)), MPI_DOUBLE_COMPLEX, MPI_SUM, 0, intraPoolComm, ierr)
+      endif
+
+
+      if(indexInPool == 0) then 
         
-        call cpu_time(t2)
-        write(iostd, '("      \\sum_k <PAW_SD|\\vec{k}><\\vec{k}|PAW_PC> done in", f10.2, " secs.")') t2-t1
-        flush(iostd)
+        Ufi(:,:,ikLocal) = Ufi(:,:,ikLocal) + paw_SDPhi(:,:) + paw_PsiPC(:,:)
         
-        Ufi(:,:,ik) = Ufi(:,:,ik) + paw_SDPhi(:,:) + paw_PsiPC(:,:) + paw_SDKKPC(:,:)*16.0_dp*pi*pi/omega
-        
-        call writeResults(ik)
+        call writeResults(ikLocal)
         
       endif
       
-      deallocate ( cProjPC, pawKPC )
-      deallocate ( cProjSD, pawSDK )
+      deallocate(cProjPC, pawKPC)
+      deallocate(cProjSD, pawSDK)
       
     else
       
-      if ( myid == root ) call readUfis(ik)
+      if(indexInPool == 0) call readUfis(ikLocal)
        
     endif
     
   enddo
+
+
+  call MPI_BARRIER(worldComm, ierr)
+  if(ionode) write(*,'("Done with k loop!")')
+    
+  if(calculateVfis .and. indexInPool == 0) call calculateVfiElements()
+
+
+  deallocate(npwsPC)
+  deallocate(wkPC)
+  deallocate(xkPC)
+  deallocate(posIonPC)
+  deallocate(TYPNIPC)
+
+  do iType = 1, numOfTypesPC
+    deallocate(atomsPC(iType)%r)
+    deallocate(atomsPC(iType)%lps)
+    deallocate(atomsPC(iType)%F)
+    deallocate(atomsPC(iType)%F1)
+    deallocate(atomsPC(iType)%F2)
+    deallocate(atomsPC(iType)%bes_J_qr)
+  enddo
+
+  deallocate(atomsPC)
+
+  deallocate(npwsSD)
+  deallocate(wk)
+  deallocate(xk)
+  deallocate(posIonSD)
+  deallocate(TYPNISD)
+
+  do iType = 1, numOfTypes
+    deallocate(atoms(iType)%lps)
+    deallocate(atoms(iType)%r)
+    deallocate(atoms(iType)%F)
+    deallocate(atoms(iType)%F1)
+    deallocate(atoms(iType)%F2)
+    deallocate(atoms(iType)%bes_J_qr)
+  enddo
+
+  deallocate(atoms)
+
+  deallocate(gIndexGlobalToLocal)
+  deallocate(gVecProcId)
+  deallocate(mill_local)
   
-  if ( allocated ( paw_id ) ) deallocate ( paw_id )
-  if ( myid == root ) then
-    if ( allocated ( paw_PsiPC ) ) deallocate ( paw_PsiPC )
-    if ( allocated ( paw_SDPhi ) ) deallocate ( paw_SDPhi )
-  endif
+  
+  deallocate(paw_id)
+  deallocate(paw_PsiPC)
+  deallocate(paw_SDPhi)
+
+  if(indexInPool == 0) deallocate(eigvI, eigvF)
   
   ! Calculating Vfi
   
-  if ( myid == root ) then
-    
-    if (calculateVfis ) call calculateVfiElements()
+  if (ionode) then
     
     ! Finalize Calculation
      

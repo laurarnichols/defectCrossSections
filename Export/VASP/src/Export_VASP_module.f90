@@ -8,8 +8,6 @@ module wfcExportVASPMod
   ! Parameters:
   integer, parameter :: root = 0
     !! ID of the root node
-  integer, parameter :: rootInPool = 0
-    !! Index of the root process within each pool
   integer, parameter :: mainOutFileUnit = 50
     !! Main output file unit
   integer, parameter :: potcarUnit = 71
@@ -40,8 +38,6 @@ module wfcExportVASPMod
     !! Error for input/output
   integer :: indexInPool
     !! Process index within pool
-  integer :: interPoolComm = 0
-    !! Inter-pool communicator
   integer :: intraPoolComm = 0
     !! Intra-pool communicator
   integer :: myid
@@ -222,8 +218,6 @@ module wfcExportVASPMod
     ! Output variables:
     !logical, intent(out) :: ionode
       ! If this node is the root node
-    !integer, intent(out) :: interPoolComm = 0
-      ! Inter-pool communicator
     !integer, intent(out) :: intraPoolComm = 0
       ! Intra-pool communicator
     !integer, intent(out) :: indexInPool
@@ -364,8 +358,6 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    !integer, intent(out) :: interPoolComm = 0
-      ! Inter-pool communicator
     !integer, intent(out) :: intraPoolComm = 0
       ! Intra-pool communicator
     !integer, intent(out) :: indexInPool
@@ -399,13 +391,6 @@ module wfcExportVASPMod
     call MPI_COMM_SPLIT(worldComm, myPoolId, myid, intraPoolComm, ierr)
     if(ierr /= 0) call mpiExitError(8008)
       !! * Create intra-pool communicator
-
-    call MPI_BARRIER(worldComm, ierr)
-    if(ierr /= 0) call mpiExitError(8009)
-
-    call MPI_COMM_SPLIT(worldComm, indexInPool, myid, interPoolComm, ierr)
-    if(ierr /= 0) call mpiExitError(8010)
-      !! * Create inter-pool communicator
 
     return
   end subroutine setUpPools
@@ -1645,7 +1630,7 @@ module wfcExportVASPMod
     
     ! Output variables:
     integer, allocatable, intent(out) :: gIndexLocalToGlobal(:)
-      ! Converts local index `ig` to global index
+      !! Converts local index `ig` to global index
     integer, allocatable, intent(out) :: mill_local(:,:)
       !! Integer coefficients for G-vectors
     integer, intent(out) :: nGVecsLocal
@@ -3983,7 +3968,7 @@ module wfcExportVASPMod
               ! Don't need to worry about sorting because projection
               ! has sum over plane waves.
 
-            call MPI_ALLREDUCE(projectionLocal, projection, 1, MPI_COMPLEX, MPI_SUM, intraPoolComm, ierr)
+            call MPI_REDUCE(projectionLocal, projection, 1, MPI_COMPLEX, MPI_SUM, root, intraPoolComm, ierr)
 
             if(indexInPool == 0) write(projOutUnit,'(2ES24.15E3)') projection
 
