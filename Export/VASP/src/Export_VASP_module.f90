@@ -4019,15 +4019,6 @@ module wfcExportVASPMod
       write(iostd,*) "***************"
       write(iostd,*) "Getting ground state bands"
     
-      write(mainOutFileUnit, '("# Number of spins. Format: ''(i10)''")')
-      write(mainOutFileUnit, '(i10)') nSpins
-
-      write(mainOutFileUnit, '("# Number of K-points. Format: ''(i10)''")')
-      write(mainOutFileUnit, '(i10)') nKPoints
-
-      write(mainOutFileUnit, '("# ik, groundState, nGkLessECutGlobal(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
-      flush(mainOutFileUnit)
-    
       allocate(groundState(nSpins,nKPoints))
 
       call getGroundState(nBands, nKPoints, nSpins, bandOccupation, groundState)
@@ -4039,6 +4030,23 @@ module wfcExportVASPMod
         !!  it is not currently used by the `TME` program.
         !! @endnote
 
+      open(72, file=trim(exportDir)//"/groundState")
+
+      write(72, '("# isp, ik, groundState(isp,ik). Format: ''(3i10)''")')
+
+      do isp = 1, nSpins
+        do ik = 1, nKPoints
+
+          write(72, '(3i10)') isp, ik, groundState(isp,ik)
+
+        enddo
+      enddo
+
+      close(72)
+
+      deallocate(groundState)
+          
+
       write(iostd,*) "Done getting ground state bands"
       write(iostd,*) "***************"
       write(iostd,*)
@@ -4046,19 +4054,22 @@ module wfcExportVASPMod
       write(iostd,*)
       write(iostd,*) "***************"
       write(iostd,*) "Writing out k info"
-
-      do isp = 1, nSpins
-        do ik = 1, nKPoints
-
-          write(iostd,*) "   Processing k-point ", ik, " Spin ", isp
     
-          write(mainOutFileUnit, '(3i10,4ES24.15E3)') ik, groundState(isp,ik), nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
-          flush(mainOutFileUnit)
-            !! * Write the k-point index, the ground state band, and
-            !!   the number of G-vectors, weight, and position for this 
-            !!   k-point
+      write(mainOutFileUnit, '("# Number of spins. Format: ''(i10)''")')
+      write(mainOutFileUnit, '(i10)') nSpins
+
+      write(mainOutFileUnit, '("# Number of K-points. Format: ''(i10)''")')
+      write(mainOutFileUnit, '(i10)') nKPoints
+
+      write(mainOutFileUnit, '("# ik, nGkLessECutGlobal(ik), wk(ik), xk(1:3,ik). Format: ''(2i10,4ES24.15E3)''")')
+      flush(mainOutFileUnit)
+
+      do ik = 1, nKPoints
     
-        enddo
+        write(mainOutFileUnit, '(2i10,4ES24.15E3)') ik, nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
+        flush(mainOutFileUnit)
+          !! * Write the k-point index, the number of G-vectors, 
+          !!   weight, and position for this k-point
 
       enddo
 
@@ -4066,8 +4077,6 @@ module wfcExportVASPMod
       write(iostd,*) "***************"
       write(iostd,*)
       flush(iostd)
-
-      deallocate(groundState)
 
     endif
 
