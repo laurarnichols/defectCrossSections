@@ -74,6 +74,10 @@ module declarations
     !! Local number of G-vectors on this processor
   integer :: nKPoints
     !! Total number of k-points
+  integer :: nSpinsPC
+    !! Number of spins for PC system
+  integer :: nSpinsSD
+    !! Number of spins for SD system
   
 
   character(len = 200) :: exportDirSD, exportDirPC, VfisOutput
@@ -83,7 +87,7 @@ module declarations
   integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ik, ki, kf, ig, ibi, ibf
   integer :: JMAX, iTypes, iPn
   integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
-  integer :: numOfTypes, nBands, nSpins, nProjsSD
+  integer :: numOfTypes, nBands, nProjsSD
   integer :: numOfUsedGvecsPP, ios, npwNi, npwNf, npwMi, npwMf
   integer :: gx, gy, gz, nGvsI, nGvsF, nGi, nGf
   integer :: np, nI, nF, nPP, ind2
@@ -656,10 +660,14 @@ contains
       read(50, * ) 
     
       read(50, '(a)') textDum
+      read(50, '(i10)') nSpinsPC
+    
+      read(50, '(a)') textDum
       read(50, '(i10)') nKPoints
 
     endif
 
+    call MPI_BCAST(nSpinsPC, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     
     allocate(npwsPC(nKPoints), wkPC(nKPoints), xkPC(3,nKPoints))
@@ -670,7 +678,7 @@ contains
     
       do ik = 1, nKPoints
       
-        read(50, '(3i10,4ES24.15E3)') iDum, iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
+        read(50, '(3i10,4ES24.15E3)') iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
       
       enddo
 
@@ -724,9 +732,6 @@ contains
     
       read(50, '(a)') textDum
       read(50, * )
-    
-      read(50, '(a)') textDum
-      read(50, * ) 
 
     endif
 
@@ -958,6 +963,9 @@ contains
     if(ionode) then
 
       read(50, '(a)') textDum
+      read(50, '(i10)') nSpinsSD
+
+      read(50, '(a)') textDum
       read(50, '(i10)') nKpts
 
       if(nKpts /= nKPoints) call exitError('readInputsSD', 'Number of k-points in systems must match', 1)
@@ -966,6 +974,8 @@ contains
 
     endif
 
+    call MPI_BCAST(nSpinsSD, 1, MPI_INTEGER, root, worldComm, ierr)
+
     
     allocate(npwsSD(nKPoints), wk(nKPoints), xk(3,nKPoints))
 
@@ -973,7 +983,7 @@ contains
     
       do ik = 1, nKPoints
       
-        read(50, '(3i10,4ES24.15E3)') iDum, iDum, npwsSD(ik), wk(ik), xk(1:3,ik)
+        read(50, '(3i10,4ES24.15E3)') iDum, npwsSD(ik), wk(ik), xk(1:3,ik)
       
       enddo
 
@@ -1037,14 +1047,10 @@ contains
     
       read(50, '(a)') textDum
       read(50, '(i10)') nBands
-    
-      read(50, '(a)') textDum
-      read(50, '(i10)') nSpins
 
     endif
 
     call MPI_BCAST(nBands, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
     
     allocate(atoms(numOfTypes))
     

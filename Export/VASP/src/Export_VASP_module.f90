@@ -4252,7 +4252,7 @@ module wfcExportVASPMod
 
 
 !----------------------------------------------------------------------------
-  subroutine writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realLattVec, recipLattVec, atomPositionsDir)
+  subroutine writeCellInfo(iType, nAtoms, nBands, nAtomTypes, realLattVec, recipLattVec, atomPositionsDir)
     !! Write out the real- and reciprocal-space lattice vectors, 
     !! the number of atoms, the number of types of atoms, the
     !! final atom positions, number of bands, and number of spins
@@ -4268,8 +4268,6 @@ module wfcExportVASPMod
       !! Total number of bands
     integer, intent(in) :: nAtomTypes
       !! Number of types of atoms
-    integer, intent(in) :: nSpins
-      !! Number of spins
 
     real(kind=dp), intent(in) :: realLattVec(3,3)
       !! Real space lattice vectors
@@ -4321,9 +4319,6 @@ module wfcExportVASPMod
     
       write(mainOutFileUnit, '("# Number of Bands. Format: ''(i10)''")')
       write(mainOutFileUnit, '(i10)') nBands
-
-      write(mainOutFileUnit, '("# Spin. Format: ''(i10)''")')
-      write(mainOutFileUnit, '(i10)') nSpins
 
     endif
 

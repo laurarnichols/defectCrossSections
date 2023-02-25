@@ -142,7 +142,7 @@ program wfcExportVASPMain
 
   if (ionode) write(iostd,*) "Writing cell info"
 
-  call writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realLattVec, recipLattVec, atomPositionsDir)
+  call writeCellInfo(iType, nAtoms, nBands, nAtomTypes, realLattVec, recipLattVec, atomPositionsDir)
     !! * Write out the real- and reciprocal-space lattice vectors, 
     !!   the number of atoms, the number of types of atoms, the
     !!   final atom positions, number of bands, and number of spins,
