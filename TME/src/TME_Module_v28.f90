@@ -114,7 +114,7 @@ module declarations
   
   complex(kind = dp), allocatable :: wfcPC(:,:), wfcSD(:,:), paw_SDKKPC(:,:), paw_id(:,:)
   complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
-  complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)
+  complex(kind = dp), allocatable :: cProjPC(:,:), cProjSD(:,:)
   complex(kind = dp), allocatable :: paw_PsiPC(:,:), paw_SDPhi(:,:)
   complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:,:)
   complex(kind = dp), allocatable :: betaSD(:,:), cProjBetaSDPhiPC(:,:,:)
@@ -1655,13 +1655,15 @@ contains
   end subroutine readWfc
   
 !----------------------------------------------------------------------------
-  subroutine readProjections(crystalType, ikGlobal, nProjs, cProj)
+  subroutine readProjections(crystalType, ikGlobal, isp, nProjs, cProj)
     
     implicit none
 
     ! Input variables:
     integer, intent(in) :: ikGlobal
       !! Current k point
+    integer, intent(in) :: isp
+      !! Current spin channel
     integer, intent(in) :: nProjs
       !! Number of projectors
 
@@ -1669,28 +1671,29 @@ contains
       !! Crystal type (PC or SD)
 
     ! Output variables:
-    complex(kind=dp), intent(out) :: cProj(nProjs,nBands,nSpins)
+    complex(kind=dp), intent(out) :: cProj(nProjs,nBands)
       !! Projections <beta|wfc>
 
     ! Local variables:
     integer :: ipr, ib
       !! Loop indices
     
-    character(len = 300) :: iks
-      !! String k-point
+    character(len = 300) :: ikC, ispC
+      !! Character indices
     
 
-    call int2str(ikGlobal, iks)
+    call int2str(ikGlobal, ikC)
+    call int2str(isp, ispC)
     
-    cProj(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
+    cProj(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
     
     if(indexInPool == 0) then
 
       ! Open the projections file for the given crystal type
       if(crystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/projections."//trim(iks))
+        open(72, file=trim(exportDirPC)//"/projections."//trim(ispC)//"."//trim(ikC))
       else
-        open(72, file=trim(exportDirSD)//"/projections."//trim(iks))
+        open(72, file=trim(exportDirSD)//"/projections."//trim(ispC)//"."//trim(ikC))
       endif
     
      read(72, *)
@@ -1700,7 +1703,7 @@ contains
       do ib = 1, nBands   
         do ipr = 1, nProjs 
 
-          read(72,'(2ES24.15E3)') cProj(ipr,ib,1)
+          read(72,'(2ES24.15E3)') cProj(ipr,ib)
 
         enddo
       enddo
@@ -1867,9 +1870,9 @@ contains
     integer, intent(in) :: iType(nAtoms)
       !! Atom type index
 
-    complex(kind = dp) :: cProjI(nProjsPC,nBands,nSpins)
+    complex(kind = dp) :: cProjI(nProjsPC,nBands)
       !! Initial-system (PC) projection
-    complex(kind = dp) :: cProjF(nProjsSD,nBands,nSpins)
+    complex(kind = dp) :: cProjF(nProjsSD,nBands)
       !! Final-system (SD) projection
 
     type(atom), intent(in) :: atoms(nAtoms)
@@ -1896,8 +1899,6 @@ contains
     real(kind = dp) :: atomicOverlap
     
     
-    ispin = 1
-    
     pawWfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
     LMBASE = 0
@@ -1923,10 +1924,10 @@ contains
                 atomicOverlap = sum(atoms(iT)%F1(:,LL, LLP))
                 
                 do ibi = iBandIinit, iBandIfinal
-                  cProjIe = cProjI(LMP + LMBASE, ibi, ispin)
+                  cProjIe = cProjI(LMP + LMBASE, ibi)
                   
                   do ibf = iBandFinit, iBandFfinal
-                    cProjFe = conjg(cProjF(LM + LMBASE, ibf, ispin))
+                    cProjFe = conjg(cProjF(LM + LMBASE, ibf))
                     
                     pawWfc(ibf, ibi) = pawWfc(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
                     
@@ -1988,8 +1989,6 @@ contains
     complex(kind = dp) :: Y( (JMAX+1)**2 )
     complex(kind = dp) :: VifQ_aug, ATOMIC_CENTER
     
-
-    ispin = 1
     
     call cpu_time(t1)
     
@@ -2057,9 +2056,9 @@ contains
               do ibf = iBandFinit, iBandFfinal
                 
                 if(crystalType == 'PC') then
-                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi, ispin)
+                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi)
                 else
-                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf, ispin))
+                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf))
                 endif
                 
               enddo

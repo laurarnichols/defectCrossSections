@@ -117,9 +117,9 @@ program transitionMatrixElements
       !-----------------------------------------------------------------------------------------------
       !> Have process 0 in each pool calculate the PAW wave function correction for PC
 
-      allocate(cProjPC(nProjsPC, nBands, nSpins))
+      allocate(cProjPC(nProjsPC, nBands))
 
-      call readProjections('PC', ikGlobal, nProjsPC, cProjPC)
+      call readProjections('PC', ikGlobal, isp, nProjsPC, cProjPC)
 
       if(indexInPool == 0) then
 
@@ -133,9 +133,9 @@ program transitionMatrixElements
       !-----------------------------------------------------------------------------------------------
       !> Have process 1 in each pool calculate the PAW wave function correction for PC
 
-      allocate(cProjSD(nProjsSD, nBands, nSpins))
+      allocate(cProjSD(nProjsSD, nBands))
 
-      call readProjections('SD', ikGlobal, nProjsSD, cProjSD)
+      call readProjections('SD', ikGlobal, isp, nProjsSD, cProjSD)
 
       if(indexInPool == 1) then
 
