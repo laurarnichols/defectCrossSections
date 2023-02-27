@@ -114,7 +114,7 @@ module declarations
   
   real(kind = dp), allocatable :: eigvI(:), eigvF(:), gvecs(:,:), posIonSD(:,:), posIonPC(:,:)
   real(kind = dp), allocatable :: wk(:), xk(:,:)
-  real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
+  real(kind = dp), allocatable :: DE(:,:,:), absVfi2(:,:,:)
   
   complex(kind = dp), allocatable :: wfcPC(:,:), wfcSD(:,:), paw_SDKKPC(:,:), paw_id(:,:)
   complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
@@ -2280,7 +2280,7 @@ contains
     
     implicit none
     
-    integer :: ikLocal, ikGlobal, ib, nOfEnergies, iE
+    integer :: ikLocal, ikGlobal, ib, nOfEnergies, iE, isp
     
     real(kind = dp) :: eMin, eMax, E, av, sd, x, EiMinusEf, A, DHifMin
     
@@ -2289,39 +2289,42 @@ contains
     
     character (len = 300) :: text
     character (len = 300) :: fNameBase
-    character (len = 300) :: fNameK
-    character(len = 300) :: iks
+    character (len = 300) :: fNameSK
+    character(len = 300) :: ikC, ispC
 
 
-    allocate(DE(iBandIinit:iBandIfinal, nKPerPool), absVfi2(iBandIinit:iBandIfinal, nKPerPool))
+    allocate(DE(iBandIinit:iBandIfinal, nKPerPool, nSpins))
+    allocate(absVfi2(iBandIinit:iBandIfinal, nKPerPool, nSpins))
      
-    DE(:,:) = 0.0_dp
-    absVfi2(:,:) = 0.0_dp 
+    DE(:,:,:) = 0.0_dp
+    absVfi2(:,:,:) = 0.0_dp 
     
-    do ikLocal = 1, nKPerPool
+    do isp = 1, nSpins
+  
+      do ikLocal = 1, nKPerPool
 
-      ikGlobal = ikLocal+ikStart_pool-1
+        ikGlobal = ikLocal+ikStart_pool-1
       
-      eigvI(:) = 0.0_dp
-      eigvF(:) = 0.0_dp
+        eigvI(:) = 0.0_dp
+        eigvF(:) = 0.0_dp
       
-      call readEigenvalues(ikGlobal, isp)
+        call readEigenvalues(ikGlobal, isp)
       
-      do ib = iBandIinit, iBandIfinal
+        do ib = iBandIinit, iBandIfinal
 
-        EiMinusEf = eigvI(ib) - eigvF(iBandFinit)
-        absVfi2(ib,ikLocal) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ikLocal,isp))**2 - abs(Ufi(iBandFinit,ib,ikLocal,isp))**4 )
+          EiMinusEf = eigvI(ib) - eigvF(iBandFinit)
+          absVfi2(ib,ikLocal,isp) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ikLocal,isp))**2 - abs(Ufi(iBandFinit,ib,ikLocal,isp))**4 )
         
-        DE(ib, ikLocal) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ikLocal))
+          DE(ib,ikLocal,isp) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ikLocal,isp))
 
       enddo
       
     enddo
     
-    eMin = minval(DE(:,:))
+    eMin = minval(DE(:,:,:))
     call MPI_ALLREDUCE(MPI_IN_PLACE, eMin, 1, MPI_DOUBLE_PRECISION, MPI_MIN, interPoolComm, ierr)
 
-    eMax = maxval(DE(:,:))
+    eMax = maxval(DE(:,:,:))
     call MPI_ALLREDUCE(MPI_IN_PLACE, eMax, 1, MPI_DOUBLE_PRECISION, MPI_MAX, interPoolComm, ierr)
 
     nOfEnergies = int((eMax-eMin)/eBin) + 1
@@ -2333,30 +2336,34 @@ contains
     sumWk(:) = 0.0_dp
     DHifMin = 0.0_dp
     
-    do ikLocal = 1, nKPerPool
-
-      ikGlobal = ikLocal+ikStart_pool-1
+    do isp = 1, nSpins
       
-      do ib = iBandIinit, iBandIfinal
+      do ikLocal = 1, nKPerPool
+
+        ikGlobal = ikLocal+ikStart_pool-1
+      
+        do ib = iBandIinit, iBandIfinal
         
-        if(abs(eMin - DE(ib,ikLocal)) < 1.0e-3_dp) DHifMin = absVfi2(ib, ikLocal)
+          if(abs(eMin - DE(ib, ikLocal, isp)) < 1.0e-3_dp) DHifMin = absVfi2(ib, ikLocal,isp)
 
-        iE = int((DE(ib, ikLocal)-eMin)/eBin)
+          iE = int((DE(ib, ikLocal)-eMin)/eBin)
 
-        if(absVfi2(ib, ikLocal) > 0.0_dp) then
+          if(absVfi2(ib, ikLocal, isp) > 0.0_dp) then
 
-          absVfiOfE2(iE) = absVfiOfE2(iE) + wkPC(ikGlobal)*absVfi2(ib, ikLocal)
+            absVfiOfE2(iE) = absVfiOfE2(iE) + wkPC(ikGlobal)*absVfi2(ib, ikLocal, isp)
+  
+            sumWk(iE) = sumWk(iE) + wkPC(ikGlobal)
 
-          sumWk(iE) = sumWk(iE) + wkPC(ikGlobal)
+            nKsInEbin(iE) = nKsInEbin(iE) + 1
 
-          nKsInEbin(iE) = nKsInEbin(iE) + 1
-
-        else
-          write(*,*) 'absVfi2', absVfi2(ib, ikLocal)
-        endif
+          else
+            write(*,*) 'absVfi2', absVfi2(ib, ikLocal, isp)
+          endif
         
+        enddo
+      
       enddo
-      
+
     enddo
 
     call MPI_ALLREDUCE(MPI_IN_PLACE, DHifMin, 1, MPI_DOUBLE_PRECISION, MPI_SUM, interPoolComm, ierr)
@@ -2368,31 +2375,36 @@ contains
     
     sAbsVfiOfE2 = 0.0_dp
     
-    do ikLocal = 1, nKPerPool
+    do isp = 1, nSpins
+  
+      do ikLocal = 1, nKPerPool
 
-      ikGlobal = ikLocal+ikStart_pool-1
+        ikGlobal = ikLocal+ikStart_pool-1
     
-      call int2str(ikGlobal, iks)
+        call int2str(ikGlobal, ikC)
+        call int2str(isp, ispC)
 
-      open(11, file=trim(VfisOutput)//'ofKpt.'//trim(iks), status='unknown')
+        open(11, file=trim(VfisOutput)//'ofKpt.'//trim(ispC)//'.'//trim(ikC), status='unknown')
       
-      do ib = iBandIinit, iBandIfinal
+        do ib = iBandIinit, iBandIfinal
         
-        iE = int((DE(ib,ikLocal)-eMin)/eBin)
+          iE = int((DE(ib,ikLocal)-eMin)/eBin)
 
-        av = absVfiOfE2(iE)/sumWk(iE)
+          av = absVfiOfE2(iE)/sumWk(iE)
 
-        x = absVfi2(ib,ikLocal)
+          x = absVfi2(ib,ikLocal)
 
-        write(11, '(2ES24.15E3,i10)') (eMin + iE*eBin), x, ikGlobal
-        !write(12, '(2ES24.15E3,i10)') DE(ib,ik), absVfi2(ib, ik), ik
+          write(11, '(2ES24.15E3,i2,i10)') (eMin + iE*eBin), x, isp, ikGlobal
+          !write(12, '(2ES24.15E3,i10)') DE(ib,ik), absVfi2(ib, ik), ik
 
-        sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + wkPC(ikGlobal)*(x - av)**2/sumWk(iE)
+          sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + wkPC(ikGlobal)*(x - av)**2/sumWk(iE)
         
+        enddo
+
+        close(11)
+      
       enddo
 
-      close(11)
-      
     enddo
 
     call mpiSumDoubleV(sAbsVfiOfE2, interPoolComm)
@@ -2403,19 +2415,24 @@ contains
     
       write(11, '("# |<f|V|i>|^2 versus energy for all the k-points.")')
       write(text, '("# Energy (shifted by eBin/2) (Hartree), |<f|V|i>|^2 (Hartree)^2,")')
-      write(11, '(a, " k-point index. Format : ''(2ES24.15E3,i10)''")') trim(text)
+      write(11, '(a, " spin index, k-point index. Format : ''(2ES24.15E3,,i2,i10)''")') trim(text)
 
       close(11)
 
-      do ikGlobal = 1, nKPoints
+      do isp = 1, nSpins
 
-        call int2str(ikGlobal, iks)
+        do ikGlobal = 1, nKPoints
 
-        fNameBase = trim(VfisOutput)//'ofKpt'
-        fNameK = trim(fNameBase)//'.'//trim(iks)
+          call int2str(ikGlobal, ikC)
+          call int2str(isp, ispC)
 
-        call execute_command_line('cat '//trim(fNameK)//' >> '//trim(fNameBase))
-        call execute_command_line('rm '//trim(fNameK))
+          fNameBase = trim(VfisOutput)//'ofKpt'
+          fNameSK = trim(fNameBase)//'.'//trim(ispC)//'.'//trim(ikC)
+
+          call execute_command_line('cat '//trim(fNameSK)//' >> '//trim(fNameBase))
+          call execute_command_line('rm '//trim(fNameSK))
+
+        enddo
 
       enddo
 
