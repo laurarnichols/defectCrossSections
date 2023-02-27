@@ -1596,46 +1596,6 @@ contains
     if(indexInPool == 0) close(72)
     
   end subroutine readProjectors
-  
-!----------------------------------------------------------------------------
-  subroutine calculatePWsOverlap(ikLocal,isp)
-    
-    implicit none
-    
-    ! Input variables:
-    integer, intent(in) :: ikLocal
-      !! Current local k-point
-    integer, intent(in) :: isp
-      !! Current spin channel
-
-    ! Local variables:
-    integer :: ikGlobal
-      !! Current global k-point
-    integer :: ibi, ibf
-
-    ikGlobal = ikLocal+ikStart_pool-1
-    
-    call readWfc('PC', iBandIinit, iBandIfinal, ikGlobal, isp, npwsPC(ikGlobal), gKIndexGlobalPC, wfcPC)
-    call readWfc('SD', iBandFinit, iBandFfinal, ikGlobal, isp, npwsSD(ikGlobal), gKIndexGlobalSD, wfcSD)
-      !! Read perfect crystal and defect wave functions and
-      !! broadcast to processes
-    
-    Ufi(:,:,ikLocal,isp) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    
-    do ibi = iBandIinit, iBandIfinal 
-      
-      do ibf = iBandFinit, iBandFfinal
-
-        Ufi(ibf, ibi, ikLocal,isp) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
-          !! Calculate local overlap
-
-      enddo
-      
-    enddo
-    
-    return
-    
-  end subroutine calculatePWsOverlap
 
 !----------------------------------------------------------------------------
   subroutine readWfc(crystalType, iBandinit, iBandfinal, ikGlobal, isp, npws, gKIndexGlobal, wfc)
@@ -1760,6 +1720,38 @@ contains
     return
     
   end subroutine readWfc
+  
+!----------------------------------------------------------------------------
+  subroutine calculatePWsOverlap(ikLocal,isp)
+    
+    implicit none
+    
+    ! Input variables:
+    integer, intent(in) :: ikLocal
+      !! Current local k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Local variables:
+    integer :: ibi, ibf
+
+    
+    Ufi(:,:,ikLocal,isp) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    
+    do ibi = iBandIinit, iBandIfinal 
+      
+      do ibf = iBandFinit, iBandFfinal
+
+        Ufi(ibf, ibi, ikLocal,isp) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
+          !! Calculate local overlap
+
+      enddo
+      
+    enddo
+    
+    return
+    
+  end subroutine calculatePWsOverlap
   
 !----------------------------------------------------------------------------
   subroutine readProjections(crystalType, ikGlobal, isp, nProjs, cProj)
