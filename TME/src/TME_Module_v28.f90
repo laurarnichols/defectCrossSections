@@ -1508,8 +1508,8 @@ contains
 
     ikGlobal = ikLocal+ikStart_pool-1
     
-    call readWfc('PC', iBandIinit, iBandIfinal, ikGlobal, npwsPC(ikGlobal), gKIndexGlobalPC, wfcPC)
-    call readWfc('SD', iBandFinit, iBandFfinal, ikGlobal, npwsSD(ikGlobal), gKIndexGlobalSD, wfcSD)
+    call readWfc('PC', iBandIinit, iBandIfinal, ikGlobal, isp, npwsPC(ikGlobal), gKIndexGlobalPC, wfcPC)
+    call readWfc('SD', iBandFinit, iBandFfinal, ikGlobal, isp, npwsSD(ikGlobal), gKIndexGlobalSD, wfcSD)
       !! Read perfect crystal and defect wave functions and
       !! broadcast to processes
     
@@ -1531,7 +1531,7 @@ contains
   end subroutine calculatePWsOverlap
 
 !----------------------------------------------------------------------------
-  subroutine readWfc(crystalType, iBandinit, iBandfinal, ikGlobal, npws, gKIndexGlobal, wfc)
+  subroutine readWfc(crystalType, iBandinit, iBandfinal, ikGlobal, isp, npws, gKIndexGlobal, wfc)
     !! Read wave function for given `crystalType` from `iBandinit`
     !! to `iBandfinal`
     
@@ -1544,6 +1544,8 @@ contains
       !! Ending band
     integer, intent(in) :: ikGlobal
       !! Current k point
+    integer, intent(in) :: isp
+      !! Current spin channel
     integer, intent(in) :: npws
       !! Number of G+k vectors less than
       !! the cutoff at this k-point
@@ -1565,19 +1567,22 @@ contains
     complex(kind=dp) :: wfcBuff(nProcPerPool)
       !! Wave function read from file
  
-    character(len = 300) :: iks
-      !! String k-point
+    character(len = 300) :: ikC, ispC
+      !! Character indices
 
 
     if(indexInPool == 0) then
       !! Have the root node in the pool read the wave
       !! function coefficients. Ignore the bands before 
       !! `iBandinit`
+
+      call int2str(ikGlobal, ikC)
+      call int2str(isp, ispC)
     
       if(crystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/wfc."//trim(iks))
+        open(72, file=trim(exportDirPC)//"/wfc."//trim(ispC)//"."//trim(ikC))
       else
-        open(72, file=trim(exportDirSD)//"/wfc."//trim(iks))
+        open(72, file=trim(exportDirSD)//"/wfc."//trim(ispC)//"."//trim(ikC))
       endif
     
       read(72, * )
