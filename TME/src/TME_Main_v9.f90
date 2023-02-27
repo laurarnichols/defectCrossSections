@@ -5,6 +5,10 @@ program transitionMatrixElements
   
   integer :: ikLocal, ikGlobal, iType
     !! Loop indices
+
+  character(len=300) :: ikC
+    !! Character index
+
   
   call mpiInitialization()
     !! Initialize MPI
@@ -54,6 +58,19 @@ program transitionMatrixElements
     call MPI_BCAST(tmes_file_exists, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
     
     if(.not. tmes_file_exists) then
+
+      !-----------------------------------------------------------------------------------------------
+      !> Read PW grids from `grid.ik` files
+
+      allocate(gKIndexGlobalPC(npwsPC(ikGlobal)))
+      allocate(gKIndexGlobalSD(npwsSD(ikGlobal)))
+
+      if(indexInPool == 0) call readGrid('PC', ikGlobal, npwsPC(ikGlobal), gKIndexGlobalPC)
+      if(indexInPool == 1) call readGrid('SD', ikGlobal, npwsSD(ikGlobal), gKIndexGlobalSD)
+
+      call MPI_BCAST(gKIndexGlobalPC, size(gKIndexGlobalPC), MPI_INT, 0, intraPoolComm, ierr)
+      call MPI_BCAST(gKIndexGlobalSD, size(gKIndexGlobalSD), MPI_INT, 1, intraPoolComm, ierr)
+
       
       !-----------------------------------------------------------------------------------------------
       !> Read wave functions and calculate overlap
@@ -75,9 +92,11 @@ program transitionMatrixElements
       
       allocate(cProjBetaPCPsiSD(nProjsPC, nBands, nSpins))
 
-      call calculateCrossProjection('PC', iBandFinit, iBandFfinal, ikGlobal, nProjsPC, npwsPC, wfcSD, cProjBetaPCPsiSD)
+      call calculateCrossProjection('PC', iBandFinit, iBandFfinal, ikGlobal, nProjsPC, npwsPC(ikGlobal), gKIndexGlobalPC, &
+            wfcSD, cProjBetaPCPsiSD)
         
       deallocate(wfcSD)
+      deallocate(gKIndexGlobalPC)
 
       call cpu_time(t2)
       if(indexInPool == 0) write(*, '("      Calculating <betaPC|wfcSD> for k-point", i4, " done in", f10.2, " secs.")') ikGlobal, t2-t1
@@ -85,9 +104,11 @@ program transitionMatrixElements
       
       allocate(cProjBetaSDPhiPC(nProjsSD, nBands, nSpins))
 
-      call calculateCrossProjection('SD', iBandIinit, iBandIfinal, ikGlobal, nProjsSD, npwsSD, wfcPC, cProjBetaSDPhiPC)
+      call calculateCrossProjection('SD', iBandIinit, iBandIfinal, ikGlobal, nProjsSD, npwsSD(ikGlobal), gKIndexGlobalSD, &
+            wfcPC, cProjBetaSDPhiPC)
         
       deallocate(wfcPC)
+      deallocate(gKIndexGlobalSD)
 
       call cpu_time(t2)
       if(indexInPool == 0) write(*, '("      Calculating <betaSD|wfcPC> for k-point", i4, " done in", f10.2, " secs.")') ikGlobal, t2-t1

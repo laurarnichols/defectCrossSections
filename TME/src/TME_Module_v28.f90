@@ -61,6 +61,10 @@ module declarations
 
   integer, allocatable :: gIndexGlobalToLocal(:)
     !! Converts global G-index to local G-index
+  integer, allocatable :: gKIndexGlobalPC(:)
+    !! Original G-index for G+k vectors in PC `grid.ik` files
+  integer, allocatable :: gKIndexGlobalSD(:)
+    !! Original G-index for G+k vectors in SD `grid.ik` files
   integer, allocatable :: gVecProcId(:)
     !! Index in pool where G-vector is distributed to
   integer :: maxGIndexGlobal
@@ -88,7 +92,7 @@ module declarations
   character(len = 200) :: exportDirSD, exportDirPC, VfisOutput
   character(len = 300) :: input, inputPC, textDum, elementsPath
   character(len = 320) :: mkdir
-  !
+  
   integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ik, ki, kf, ig, ibi, ibf
   integer :: JMAX, iTypes, iPn
   integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
@@ -97,54 +101,54 @@ module declarations
   integer :: gx, gy, gz, nGvsI, nGvsF, nGi, nGf
   integer :: np, nI, nF, nPP, ind2
   integer :: i, j, n1, n2, n3, n4, n, id, npw
-  !
+  
   integer, allocatable :: counts(:), displmnt(:), nPWsI(:), nPWsF(:)
-  !
+  
   real(kind = dp) t0, tf
-  !
+  
   real(kind = dp) :: omega, threej
-  !
+  
   real(kind = dp), allocatable :: eigvI(:), eigvF(:), gvecs(:,:), posIonSD(:,:), posIonPC(:,:)
   real(kind = dp), allocatable :: wk(:), xk(:,:)
   real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
-  !
+  
   complex(kind = dp), allocatable :: wfcPC(:,:), wfcSD(:,:), paw_SDKKPC(:,:), paw_id(:,:)
   complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
   complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)
   complex(kind = dp), allocatable :: paw_PsiPC(:,:), paw_SDPhi(:,:)
   complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:,:)
   complex(kind = dp), allocatable :: betaSD(:,:), cProjBetaSDPhiPC(:,:,:)
-  !
+  
   integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:)
-  integer, allocatable :: npwsSD(:), pwGindPC(:), pwGindSD(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
+  integer, allocatable :: npwsSD(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
   integer, allocatable :: npwsPC(:)
   real(kind = dp), allocatable :: wkPC(:), xkPC(:,:)
-  !
+  
   type :: atom
     integer :: numOfAtoms, lMax, lmMax, nMax, iRc
     integer, allocatable :: lps(:)
     real(kind = dp), allocatable :: r(:), rab(:), wae(:,:), wps(:,:), F(:,:), F1(:,:,:), F2(:,:,:), bes_J_qr(:,:)
   end type atom
-  !
+  
   TYPE(atom), allocatable :: atoms(:), atomsPC(:)
-  !
+  
   type :: vec
     integer :: ind
     integer, allocatable :: igN(:), igM(:)
   end type vec
-  !
+  
   TYPE(vec), allocatable :: vecs(:), newVecs(:)
-  !
+  
   real(kind = dp) :: eBin
   complex(kind = dp) :: paw, pseudo1, pseudo2, paw2
-  !
+  
   logical :: gamma_only, master, calculateVfis, coulomb, tmes_file_exists
-  !
+  
   NAMELIST /TME_Input/ exportDirSD, exportDirPC, elementsPath, &
                        iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
                        ki, kf, calculateVfis, VfisOutput, eBin
-  !
-  !
+  
+  
 contains
 
 !----------------------------------------------------------------------------
@@ -1431,6 +1435,60 @@ contains
     return
     
   end subroutine checkIfCalculated
+
+!----------------------------------------------------------------------------
+  subroutine readGrid(crystalType, ikGlobal, npws, gKIndexGlobal)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Current k point
+    integer, intent(in) :: npws
+      !! Number of G+k vectors less than
+      !! the cutoff at this k-point
+
+    character(len=2), intent(in) :: crystalType
+      !! Crystal type (PC or SD)
+
+    ! Output variables:
+    integer, intent(out) :: gKIndexGlobal(npws)
+      !! Original G-index for G+k vectors in `grid.ik` files
+
+    ! Local variables:
+    integer :: iDumV(3)
+      !! Vector to ignore G-vector Miller indices
+    integer :: ig
+      !! Loop index
+
+    character(len=300) :: ikC
+      !! Character index
+
+
+    call int2str(ikGlobal, ikC)
+    
+    if(crystalType == 'PC') then
+      open(72, file=trim(exportDirPC)//"/grid."//trim(ikC))
+    else
+      open(72, file=trim(exportDirSD)//"/grid."//trim(ikC))
+    endif
+    
+    read(72, * )
+    read(72, * )
+      ! Ignore the header
+    
+    do ig = 1, npws
+
+      read(72, '(4i10)') gKIndexGlobal(ig), iDumV(1:3)
+        !! Read the global PW indices that satisfy G+k < cutoff
+
+    enddo
+    
+    close(72)
+
+    return
+
+  end subroutine readGrid
   
 !----------------------------------------------------------------------------
   subroutine calculatePWsOverlap(ikLocal,isp)
@@ -1450,8 +1508,8 @@ contains
 
     ikGlobal = ikLocal+ikStart_pool-1
     
-    call readWfc('PC', iBandIinit, iBandIfinal, ikGlobal, npwsPC, wfcPC)
-    call readWfc('SD', iBandFinit, iBandFfinal, ikGlobal, npwsSD, wfcSD)
+    call readWfc('PC', iBandIinit, iBandIfinal, ikGlobal, npwsPC(ikGlobal), gKIndexGlobalPC, wfcPC)
+    call readWfc('SD', iBandFinit, iBandFfinal, ikGlobal, npwsSD(ikGlobal), gKIndexGlobalSD, wfcSD)
       !! Read perfect crystal and defect wave functions and
       !! broadcast to processes
     
@@ -1473,7 +1531,7 @@ contains
   end subroutine calculatePWsOverlap
 
 !----------------------------------------------------------------------------
-  subroutine readWfc(crystalType, iBandinit, iBandfinal, ikGlobal, npws, wfc)
+  subroutine readWfc(crystalType, iBandinit, iBandfinal, ikGlobal, npws, gKIndexGlobal, wfc)
     !! Read wave function for given `crystalType` from `iBandinit`
     !! to `iBandfinal`
     
@@ -1486,9 +1544,11 @@ contains
       !! Ending band
     integer, intent(in) :: ikGlobal
       !! Current k point
-    integer, intent(in) :: npws(nKPoints)
+    integer, intent(in) :: npws
       !! Number of G+k vectors less than
-      !! the cutoff at each k-point
+      !! the cutoff at this k-point
+    integer, intent(in) :: gKIndexGlobal(npws)
+      !! Original G-index for G+k vectors in `grid.ik` files
 
     character(len=2), intent(in) :: crystalType
       !! Crystal type (PC or SD)
@@ -1499,11 +1559,6 @@ contains
       !! local G-vectors
 
     ! Local variables:
-    integer :: iDumV(3)
-      !! Vector to ignore G-vector Miller indices
-    integer, allocatable :: pwGind(:)
-      !! G-vector indices for G+k vectors
-      !! less than cutoff
     integer :: ib, ig, igk, iproc
       !! Loop indices
 
@@ -1513,42 +1568,6 @@ contains
     character(len = 300) :: iks
       !! String k-point
 
-
-    if(indexInPool == 0) then
-      !! Have the root node in each pool open 
-      !! the grid file for the current crystal
-      !! type and k-point
-
-      call int2str(ikGlobal, iks)
-    
-      if(crystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
-      else
-        open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
-      endif
-    
-      read(72, * )
-      read(72, * )
-        ! Ignore the header
-
-    endif
-    
-    allocate(pwGind(npws(ikGlobal)))
-    
-    if(indexInPool == 0) then 
-      !! Have the root node in each pool read in
-      !! the global PW indices that satisfy 
-      !! G+k < cutoff
-
-      do ig = 1, npws(ikGlobal)
-        read(72, '(4i10)') pwGind(ig), iDumV(1:3)
-      enddo
-    
-      close(72)
-
-    endif
-
-    call MPI_BCAST(pwGind, size(pwGind), MPI_INTEGER, root, intraPoolComm, ierr)
 
     if(indexInPool == 0) then
       !! Have the root node in the pool read the wave
@@ -1566,7 +1585,7 @@ contains
         ! Ignore the header
     
       do ib = 1, iBandinit - 1
-        do ig = 1, npws(ikGlobal)
+        do ig = 1, npws
           read(72, *)
         enddo
       enddo
@@ -1586,7 +1605,7 @@ contains
         ! Loop over all G-vectors to make broadcasting
         ! clearer and simpler
 
-        if(ig == pwGind(igk)) then
+        if(ig == gKIndexGlobal(igk)) then
           ! If this G-vector satisfies G+k < cutoff
           ! for the current k-point
 
@@ -1625,8 +1644,6 @@ contains
     enddo
     
     if(indexInPool == 0) close(72)
-    
-    deallocate(pwGind)
     
     return
     
@@ -1695,7 +1712,8 @@ contains
   end subroutine readProjections
   
 !----------------------------------------------------------------------------
-  subroutine calculateCrossProjection(projCrystalType, iBandinit, iBandfinal, ikGlobal, nProjs, npws, wfc, crossProjection)
+  subroutine calculateCrossProjection(projCrystalType, iBandinit, iBandfinal, ikGlobal, nProjs, npws, gKIndexGlobal, &
+            wfc, crossProjection)
     
     implicit none
 
@@ -1710,9 +1728,11 @@ contains
       !! Current k point
     integer, intent(in) :: nProjs
       !! Number of projectors
-    integer, intent(in) :: npws(nKPoints)
+    integer, intent(in) :: npws
       !! Number of G+k vectors less than
       !! the cutoff at each k-point
+    integer, intent(in) :: gKIndexGlobal(npws)
+      !! Original G-index for G+k vectors in `grid.ik` files
 
     complex(kind=dp), intent(in) :: wfc(nGVecsLocal,iBandinit:iBandfinal)
       !! Wave function coefficients for local G-vectors
@@ -1728,11 +1748,6 @@ contains
       !! Projections <beta|wfc>
     
     ! Local variables:
-    integer :: iDumV(3)
-      !! Vector to ignore G-vector Miller indices
-    integer, allocatable :: pwGind(:)
-      !! G-vector indices for G+k vectors
-      !! less than cutoff
     integer :: ib, ipr, ig, igk, iproc
       !! Loop indices
 
@@ -1744,54 +1759,19 @@ contains
       !! Local version of cross projection to
       !! be summed across processors in pool
     
-    character(len = 300) :: iks
+    character(len = 300) :: ikC
     
-
-    if(indexInPool == 0) then
-      !! Have the root node in each pool open 
-      !! the grid file for the current crystal
-      !! type and k-point
-
-      call int2str(ikGlobal, iks)
-    
-      if(projCrystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
-      else
-        open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
-      endif
-    
-      read(72, * )
-      read(72, * )
-        ! Ignore the header
-
-    endif
-    
-    allocate(pwGind(npws(ikGlobal)))
-    
-    if(indexInPool == 0) then 
-      !! Have the root node in each pool read in
-      !! the global PW indices that satisfy 
-      !! G+k < cutoff
-
-      do ig = 1, npws(ikGlobal)
-        read(72, '(4i10)') pwGind(ig), iDumV(1:3)
-      enddo
-    
-      close(72)
-
-    endif
-
-    call MPI_BCAST(pwGind, size(pwGind), MPI_INTEGER, root, intraPoolComm, ierr)
-   
 
     if(indexInPool == 0) then
       !! Have the root node in the pool read the projectors
       !! of `projCrystalType`
+
+      call int2str(ikGlobal, ikC)
     
       if(projCrystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/projectors."//trim(iks))
+        open(72, file=trim(exportDirPC)//"/projectors."//trim(ikC))
       else
-        open(72, file=trim(exportDirSD)//"/projectors."//trim(iks))
+        open(72, file=trim(exportDirSD)//"/projectors."//trim(ikC))
       endif
     
       read(72, * )
@@ -1813,7 +1793,7 @@ contains
         ! Loop over all G-vectors to make broadcasting
         ! clearer and simpler
 
-        if(ig == pwGind(igk)) then
+        if(ig == gKIndexGlobal(igk)) then
           ! If this G-vector satisfies G+k < cutoff
           ! for the current k-point
 
@@ -1851,8 +1831,6 @@ contains
     enddo
     
     if(indexInPool == 0) close(72)
-    
-    deallocate(pwGind)
     
     
     !> Calculate the cross projection of one crystal's projectors
