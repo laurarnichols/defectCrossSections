@@ -74,10 +74,15 @@ module declarations
     !! Local number of G-vectors on this processor
   integer :: nKPoints
     !! Total number of k-points
+  integer :: nSpins
+    !! Max number of spins for both systems
   integer :: nSpinsPC
     !! Number of spins for PC system
   integer :: nSpinsSD
     !! Number of spins for SD system
+
+  complex(kind=dp), allocatable :: Ufi(:,:,:,:)
+    !! All-electron overlap
   
 
   character(len = 200) :: exportDirSD, exportDirPC, VfisOutput
@@ -103,7 +108,7 @@ module declarations
   real(kind = dp), allocatable :: wk(:), xk(:,:)
   real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
   !
-  complex(kind = dp), allocatable :: wfcPC(:,:), wfcSD(:,:), Ufi(:,:,:), paw_SDKKPC(:,:), paw_id(:,:)
+  complex(kind = dp), allocatable :: wfcPC(:,:), wfcSD(:,:), paw_SDKKPC(:,:), paw_id(:,:)
   complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
   complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)
   complex(kind = dp), allocatable :: paw_PsiPC(:,:), paw_SDPhi(:,:)
@@ -418,6 +423,8 @@ contains
     endif
 
     call MPI_BCAST(maxGIndexGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    nSpins = max(nSpinsPC,nSpinsSD)
     
     return
     
@@ -1425,13 +1432,19 @@ contains
   end subroutine checkIfCalculated
   
 !----------------------------------------------------------------------------
-  subroutine calculatePWsOverlap(ikLocal)
+  subroutine calculatePWsOverlap(ikLocal,isp)
     
     implicit none
     
+    ! Input variables:
     integer, intent(in) :: ikLocal
+      !! Current local k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Local variables:
     integer :: ikGlobal
-      !! Current k point
+      !! Current global k-point
     integer :: ibi, ibf
 
     ikGlobal = ikLocal+ikStart_pool-1
@@ -1441,13 +1454,13 @@ contains
       !! Read perfect crystal and defect wave functions and
       !! broadcast to processes
     
-    Ufi(:,:,ikLocal) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    Ufi(:,:,ikLocal,isp) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
     do ibi = iBandIinit, iBandIfinal 
       
       do ibf = iBandFinit, iBandFfinal
 
-        Ufi(ibf, ibi, ikLocal) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
+        Ufi(ibf, ibi, ikLocal,isp) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
           !! Calculate local overlap
 
       enddo
@@ -2081,13 +2094,19 @@ contains
   end subroutine pawCorrectionK
   
 !----------------------------------------------------------------------------
-  subroutine writeResults(ikLocal)
+  subroutine writeResults(ikLocal, isp)
     
     implicit none
     
+    ! Input variables:
     integer, intent(in) :: ikLocal
+      !! Current local k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Local variables:
     integer :: ikGlobal
-      !! Current k point
+      !! Current global k-point
     
     integer :: ibi, ibf, totalNumberOfElements
     real(kind = dp) :: t1, t2
@@ -2130,7 +2149,7 @@ contains
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
         
-        write(17, 1001) ibf, ibi, eigvI(ibi) - eigvF(ibf), Ufi(ibf,ibi,ikLocal), abs(Ufi(ibf,ibi,ikLocal))**2
+        write(17, 1001) ibf, ibi, eigvI(ibi) - eigvF(ibf), Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2
             
       enddo
     enddo
@@ -2193,13 +2212,19 @@ contains
   end subroutine readEigenvalues
   
 !----------------------------------------------------------------------------
-  subroutine readUfis(ikLocal)
+  subroutine readUfis(ikLocal,isp)
     
     implicit none
     
+    ! Input variables:
     integer, intent(in) :: ikLocal
+      !! Current local k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Local variables:
     integer :: ikGlobal
-      !! Current k-point
+      !! Current global k-point
     
     integer :: ibi, ibf, totalNumberOfElements, iDum, i
     real(kind = dp) :: rDum, t1, t2
@@ -2235,7 +2260,7 @@ contains
     do i = 1, totalNumberOfElements
       
       read(17, 1001) ibf, ibi, rDum, cUfi, rDum
-      Ufi(ibf,ibi,ikLocal) = cUfi
+      Ufi(ibf,ibi,ikLocal,isp) = cUfi
           
     enddo
     
@@ -2285,7 +2310,7 @@ contains
       do ib = iBandIinit, iBandIfinal
 
         EiMinusEf = eigvI(ib) - eigvF(iBandFinit)
-        absVfi2(ib,ikLocal) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ikLocal))**2 - abs(Ufi(iBandFinit,ib,ikLocal))**4 )
+        absVfi2(ib,ikLocal) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ikLocal,isp))**2 - abs(Ufi(iBandFinit,ib,ikLocal,isp))**4 )
         
         DE(ib, ikLocal) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ikLocal))
 

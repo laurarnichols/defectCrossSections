@@ -35,8 +35,8 @@ program transitionMatrixElements
 
   if(indexInPool == 0) allocate(eigvI(iBandIinit:iBandIfinal), eigvF(iBandFinit:iBandFfinal))
   
-  allocate(Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPerPool))
-  Ufi(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+  allocate(Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPerPool, nSpins))
+  Ufi(:,:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
   
 
   do ikLocal = 1, nkPerPool
@@ -63,7 +63,7 @@ program transitionMatrixElements
       
       allocate(wfcPC(nGVecsLocal, iBandIinit:iBandIfinal), wfcSD(nGVecsLocal, iBandFinit:iBandFfinal))
         
-      call calculatePWsOverlap(ikLocal)
+      call calculatePWsOverlap(ikLocal, isp)
         !! Read wave functions and get overlap
         
       call cpu_time(t2)
@@ -169,20 +169,22 @@ program transitionMatrixElements
         
       enddo
 
-      Ufi(:,:,ikLocal) = Ufi(:,:,ikLocal) + paw_id(:,:)*16.0_dp*pi*pi/omega
+      Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_id(:,:)*16.0_dp*pi*pi/omega
 
       if(indexInPool == 0) then
-        call MPI_REDUCE(MPI_IN_PLACE, Ufi(:,:,ikLocal), size(Ufi(:,:,ikLocal)), MPI_DOUBLE_COMPLEX, MPI_SUM, 0, intraPoolComm, ierr)
+        call MPI_REDUCE(MPI_IN_PLACE, Ufi(:,:,ikLocal,isp), size(Ufi(:,:,ikLocal,isp)), MPI_DOUBLE_COMPLEX, &
+                MPI_SUM, 0, intraPoolComm, ierr)
       else
-        call MPI_REDUCE(Ufi(:,:,ikLocal), Ufi(:,:,ikLocal), size(Ufi(:,:,ikLocal)), MPI_DOUBLE_COMPLEX, MPI_SUM, 0, intraPoolComm, ierr)
+        call MPI_REDUCE(Ufi(:,:,ikLocal,isp), Ufi(:,:,ikLocal,isp), size(Ufi(:,:,ikLocal,isp)), MPI_DOUBLE_COMPLEX, &
+                MPI_SUM, 0, intraPoolComm, ierr)
       endif
 
 
       if(indexInPool == 0) then 
         
-        Ufi(:,:,ikLocal) = Ufi(:,:,ikLocal) + paw_SDPhi(:,:) + paw_PsiPC(:,:)
+        Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_SDPhi(:,:) + paw_PsiPC(:,:)
         
-        call writeResults(ikLocal)
+        call writeResults(ikLocal,isp)
         
       endif
       
@@ -191,7 +193,7 @@ program transitionMatrixElements
       
     else
       
-      if(indexInPool == 0) call readUfis(ikLocal)
+      if(indexInPool == 0) call readUfis(ikLocal,isp)
        
     endif
     
