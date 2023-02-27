@@ -2122,7 +2122,7 @@ contains
     
     call cpu_time(t1)
     
-    call readEigenvalues(ikGlobal)
+    call readEigenvalues(ikGlobal, isp)
     
     write(*, '(" Writing Ufi(:,:) of k-point ", i2, " and spin ", i1, ".")') ikGlobal, isp
 
@@ -2162,18 +2162,27 @@ contains
   end subroutine writeResults
   
 !----------------------------------------------------------------------------
-  subroutine readEigenvalues(ikGlobal)
+  subroutine readEigenvalues(ikGlobal,isp)
     
     implicit none
     
+    ! Input variables
     integer, intent(in) :: ikGlobal
+      !! Current global k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Local variables:
     integer :: ib
+      !! Loop index
     
-    character(len = 300) :: iks
+    character(len = 300) :: ikC, ispC
+      !! Character indices
     
-    call int2str(ikGlobal, iks)
+    call int2str(ikGlobal, ikC)
+    call int2str(min(isp,nSpinsSD), ispC)
     
-    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(iks))
+    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(ispC)//"."//trim(ikC))
     
     read(72, * )
     read(72, * )
@@ -2188,7 +2197,9 @@ contains
     
     close(72)
     
-    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(iks))
+    call int2str(min(isp,nSpinsPC), ispC)
+    
+    open(72, file=trim(exportDirPC)//"/eigenvalues."//trim(ispC)//"."//trim(ikC))
     
     read(72, * )
     read(72, * ) 
@@ -2294,7 +2305,7 @@ contains
       eigvI(:) = 0.0_dp
       eigvF(:) = 0.0_dp
       
-      call readEigenvalues(ikGlobal)
+      call readEigenvalues(ikGlobal, isp)
       
       do ib = iBandIinit, iBandIfinal
 
