@@ -71,6 +71,17 @@ program transitionMatrixElements
       call MPI_BCAST(gKIndexGlobalPC, size(gKIndexGlobalPC), MPI_INT, 0, intraPoolComm, ierr)
       call MPI_BCAST(gKIndexGlobalSD, size(gKIndexGlobalSD), MPI_INT, 1, intraPoolComm, ierr)
 
+      !-----------------------------------------------------------------------------------------------
+      !> Read projectors
+
+      allocate(betaPC(nGVecsLocal,nProjsPC))
+
+      call readProjectors('PC', ikGlobal, nProjsPC, npwsPC(ikGlobal), gKIndexGlobalPC, betaPC)
+
+      allocate(betaSD(nGVecsLocal,nProjsSD))
+
+      call readProjectors('SD', ikGlobal, nProjsSD, npwsSD(ikGlobal), gKIndexGlobalSD, betaSD)
+
       
       !-----------------------------------------------------------------------------------------------
       !> Read wave functions and calculate overlap
@@ -90,25 +101,25 @@ program transitionMatrixElements
       !-----------------------------------------------------------------------------------------------
       !> Calculate cross projections
       
-      allocate(cProjBetaPCPsiSD(nProjsPC, nBands, nSpins))
+      allocate(cProjBetaPCPsiSD(nProjsPC, nBands))
 
-      call calculateCrossProjection('PC', iBandFinit, iBandFfinal, ikGlobal, nProjsPC, npwsPC(ikGlobal), gKIndexGlobalPC, &
-            wfcSD, cProjBetaPCPsiSD)
+      call calculateCrossProjection(iBandFinit, iBandFfinal, ikGlobal, nProjsPC, npwsPC(ikGlobal), betaPC, wfcSD, cProjBetaPCPsiSD)
         
       deallocate(wfcSD)
       deallocate(gKIndexGlobalPC)
+      deallocate(betaPC)
 
       call cpu_time(t2)
       if(indexInPool == 0) write(*, '("      Calculating <betaPC|wfcSD> for k-point", i4, " done in", f10.2, " secs.")') ikGlobal, t2-t1
       call cpu_time(t1)
       
-      allocate(cProjBetaSDPhiPC(nProjsSD, nBands, nSpins))
+      allocate(cProjBetaSDPhiPC(nProjsSD, nBands))
 
-      call calculateCrossProjection('SD', iBandIinit, iBandIfinal, ikGlobal, nProjsSD, npwsSD(ikGlobal), gKIndexGlobalSD, &
-            wfcPC, cProjBetaSDPhiPC)
+      call calculateCrossProjection(iBandIinit, iBandIfinal, ikGlobal, nProjsSD, npwsSD(ikGlobal), betaSD, wfcPC, cProjBetaSDPhiPC)
         
       deallocate(wfcPC)
       deallocate(gKIndexGlobalSD)
+      deallocate(betaSD)
 
       call cpu_time(t2)
       if(indexInPool == 0) write(*, '("      Calculating <betaSD|wfcPC> for k-point", i4, " done in", f10.2, " secs.")') ikGlobal, t2-t1

@@ -85,6 +85,10 @@ module declarations
   integer :: nSpinsSD
     !! Number of spins for SD system
 
+  complex(kind=dp), allocatable :: betaPC(:,:)
+    !! PC projectors
+  complex(kind=dp), allocatable :: betaSD(:,:)
+    !! SD projectors
   complex(kind=dp), allocatable :: Ufi(:,:,:,:)
     !! All-electron overlap
   
@@ -116,8 +120,8 @@ module declarations
   complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
   complex(kind = dp), allocatable :: cProjPC(:,:), cProjSD(:,:)
   complex(kind = dp), allocatable :: paw_PsiPC(:,:), paw_SDPhi(:,:)
-  complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:,:)
-  complex(kind = dp), allocatable :: betaSD(:,:), cProjBetaSDPhiPC(:,:,:)
+  complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:)
+  complex(kind = dp), allocatable :: cProjBetaSDPhiPC(:,:)
   
   integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:)
   integer, allocatable :: npwsSD(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
@@ -1489,6 +1493,109 @@ contains
     return
 
   end subroutine readGrid
+
+!----------------------------------------------------------------------------
+  subroutine readProjectors(crystalType, ikGlobal, nProjs, npws, gKIndexGlobal, beta)
+    
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Current k point
+    integer, intent(in) :: nProjs
+      !! Number of projectors
+    integer, intent(in) :: npws
+      !! Number of G+k vectors less than
+      !! the cutoff at each k-point
+    integer, intent(in) :: gKIndexGlobal(npws)
+      !! Original G-index for G+k vectors in `grid.ik` files
+
+    character(len=2), intent(in) :: crystalType
+      !! Crystal type (PC or SD) for projectors
+
+    ! Output variables:
+    complex(kind=dp), intent(out) :: beta(nGVecsLocal,nProjs)
+      !! Projector of `projCrystalType`
+    
+    ! Local variables:
+    integer :: ipr, ig, igk, iproc
+      !! Loop indices
+
+    complex(kind=dp) :: betaBuff(nProcPerPool)
+      !! Projector buffer for broadcasting
+    
+    character(len = 300) :: ikC
+    
+
+    if(indexInPool == 0) then
+
+      call int2str(ikGlobal, ikC)
+    
+      if(crystalType == 'PC') then
+        open(72, file=trim(exportDirPC)//"/projectors."//trim(ikC))
+      else
+        open(72, file=trim(exportDirSD)//"/projectors."//trim(ikC))
+      endif
+    
+      read(72, * )
+      read(72, * )
+        ! Ignore the header
+
+    endif
+    
+    beta(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    betaBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    
+    !> Have the root node read the projector
+    !> then broadcast to other processes
+    do ipr = 1, nProjs
+      igk = 1
+      iproc = 1
+
+      do ig = 1, nGVecsGlobal
+        ! Loop over all G-vectors to make broadcasting
+        ! clearer and simpler
+
+        if(ig == gKIndexGlobal(igk)) then
+          ! If this G-vector satisfies G+k < cutoff
+          ! for the current k-point
+
+          if(indexInPool == 0) read(72, '(2ES24.15E3)') betaBuff(iproc)
+            ! Read in the projector and store in the slot
+            ! for the process that holds the current G-vector
+
+          igk = igk + 1
+            ! Increment the G+k vector counter
+
+        endif
+
+        if(iproc == nProcPerPool) then
+          ! If the process counter is up to the number
+          ! of processes per pool
+
+          call MPI_BCAST(betaBuff, nProcPerPool, MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
+            ! Broadcast the projector buffer
+
+          beta(gIndexGlobalToLocal(ig),ipr) = betaBuff(indexInPool+1)
+            ! Store the value for this process locally
+
+          ! Reset the projector buffer and process counter
+          betaBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+          iproc = 1
+
+        else
+          ! Otherwise, increment the process counter
+
+          iproc = iproc + 1
+
+        endif
+
+      enddo
+    enddo
+    
+    if(indexInPool == 0) close(72)
+    
+  end subroutine readProjectors
   
 !----------------------------------------------------------------------------
   subroutine calculatePWsOverlap(ikLocal,isp)
@@ -1720,8 +1827,10 @@ contains
   end subroutine readProjections
   
 !----------------------------------------------------------------------------
-  subroutine calculateCrossProjection(projCrystalType, iBandinit, iBandfinal, ikGlobal, nProjs, npws, gKIndexGlobal, &
-            wfc, crossProjection)
+  subroutine calculateCrossProjection(iBandinit, iBandfinal, ikGlobal, nProjs, npws, beta, wfc, crossProjection)
+    !! Calculate the cross projection of one crystal's projectors
+    !! on the other crystal's wave function coefficients, distributing
+    !! the result to all processors
     
     implicit none
 
@@ -1739,30 +1848,21 @@ contains
     integer, intent(in) :: npws
       !! Number of G+k vectors less than
       !! the cutoff at each k-point
-    integer, intent(in) :: gKIndexGlobal(npws)
-      !! Original G-index for G+k vectors in `grid.ik` files
 
+    complex(kind=dp) :: beta(nGVecsLocal,nProjs)
+      !! Projector of one crystal type
     complex(kind=dp), intent(in) :: wfc(nGVecsLocal,iBandinit:iBandfinal)
       !! Wave function coefficients for local G-vectors
-      !! for crystal not of `projCrystalType`
-
-    character(len=2), intent(in) :: projCrystalType
-      !! Crystal type (PC or SD) for projectors.
-      !! Wave function will come from other crystal
-      !! type.
+      !! for other crystal type
 
     ! Output variables:
-    complex(kind=dp), intent(out) :: crossProjection(nProjs,nBands,nSpins)
+    complex(kind=dp), intent(out) :: crossProjection(nProjs,nBands)
       !! Projections <beta|wfc>
     
     ! Local variables:
-    integer :: ib, ipr, ig, igk, iproc
+    integer :: ib, ipr
       !! Loop indices
 
-    complex(kind=dp) :: beta(nGVecsLocal,nProjs)
-      !! Projector of `projCrystalType`
-    complex(kind=dp) :: betaBuff(nProcPerPool)
-      !! Projector buffer for broadcasting
     complex(kind=dp) :: crossProjectionLocal
       !! Local version of cross projection to
       !! be summed across processors in pool
@@ -1770,80 +1870,6 @@ contains
     character(len = 300) :: ikC
     
 
-    if(indexInPool == 0) then
-      !! Have the root node in the pool read the projectors
-      !! of `projCrystalType`
-
-      call int2str(ikGlobal, ikC)
-    
-      if(projCrystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/projectors."//trim(ikC))
-      else
-        open(72, file=trim(exportDirSD)//"/projectors."//trim(ikC))
-      endif
-    
-      read(72, * )
-      read(72, * )
-        ! Ignore the header
-
-    endif
-    
-    beta(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-    betaBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-    
-    !> Have the root node read the projector
-    !> then broadcast to other processes
-    do ipr = 1, nProjs
-      igk = 1
-      iproc = 1
-
-      do ig = 1, nGVecsGlobal
-        ! Loop over all G-vectors to make broadcasting
-        ! clearer and simpler
-
-        if(ig == gKIndexGlobal(igk)) then
-          ! If this G-vector satisfies G+k < cutoff
-          ! for the current k-point
-
-          if(indexInPool == 0) read(72, '(2ES24.15E3)') betaBuff(iproc)
-            ! Read in the projector and store in the slot
-            ! for the process that holds the current G-vector
-
-          igk = igk + 1
-            ! Increment the G+k vector counter
-
-        endif
-
-        if(iproc == nProcPerPool) then
-          ! If the process counter is up to the number
-          ! of processes per pool
-
-          call MPI_BCAST(betaBuff, nProcPerPool, MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
-            ! Broadcast the projector buffer
-
-          beta(gIndexGlobalToLocal(ig),ipr) = betaBuff(indexInPool+1)
-            ! Store the value for this process locally
-
-          ! Reset the projector buffer and process counter
-          betaBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-          iproc = 1
-
-        else
-          ! Otherwise, increment the process counter
-
-          iproc = iproc + 1
-
-        endif
-
-      enddo
-    enddo
-    
-    if(indexInPool == 0) close(72)
-    
-    
-    !> Calculate the cross projection of one crystal's projectors
-    !> on the other crystal's wave function coefficients, distributing
-    !> the result to all processors
     do ib = iBandinit, iBandfinal
       do ipr = 1, nProjs
 
