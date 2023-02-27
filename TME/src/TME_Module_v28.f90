@@ -1404,28 +1404,29 @@ contains
   end subroutine distributeGvecsOverProcessors
   
 !----------------------------------------------------------------------------
-  subroutine checkIfCalculated(ik, tmes_file_exists)
+  subroutine checkIfCalculated(ikGlobal, isp, tmes_file_exists)
     
     implicit none
     
-    integer, intent(in) :: ik
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Current global k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Output variables:
     logical, intent(out) :: tmes_file_exists
+      !! If the current overlap file exists
+
+    ! Local variables:
+    character(len=300) :: ikC, ispC
+      !! Character indices
+
     
-    character(len = 300) :: Uelements
+    call int2str(ikGlobal, ikC)
+    call int2str(isp, ispC)
     
-    if ( ik < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
-    else if ( ik < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
-    else if ( ik < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
-    endif
-    
-    inquire(file = trim(elementsPath)//trim(Uelements), exist = tmes_file_exists)
+    inquire(file=trim(elementsPath)//"allElecOverlap."//trim(ispC)//"."//trim(ikC), exist = tmes_file_exists)
     
     return
     
@@ -2107,11 +2108,14 @@ contains
     ! Local variables:
     integer :: ikGlobal
       !! Current global k-point
+ 
+    character(len = 300) :: ikC, ispC
+      !! Character indices
     
     integer :: ibi, ibf, totalNumberOfElements
     real(kind = dp) :: t1, t2
     
-    character(len = 300) :: text, Uelements
+    character(len = 300) :: text
 
 
     ikGlobal = ikLocal+ikStart_pool-1
@@ -2120,21 +2124,12 @@ contains
     
     call readEigenvalues(ikGlobal)
     
-    write(*, '(" Writing Ufi(:,:) of k-point ", i2, ".")') ikGlobal
+    write(*, '(" Writing Ufi(:,:) of k-point ", i2, " and spin ", i1, ".")') ikGlobal, isp
+
+    call int2str(ikGlobal, ikC)
+    call int2str(isp, ispC)
     
-    if ( ikGlobal < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ikGlobal, ikGlobal
-    endif
-    
-    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
+    open(17, file=trim(elementsPath)//"allElecOverlap."//trim(ispC)//"."//trim(ikC), status='unknown')
     
     write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
     
@@ -2157,7 +2152,8 @@ contains
     close(17)
     
     call cpu_time(t2)
-    write(*, '(" Writing Ufi(:,:) of k-point ", i2, " done in:                   ", f10.2, " secs.")') ikGlobal, t2-t1
+    write(*, '(" Writing Ufi(:,:) of k-point ", i4, "and spin ", i1, " done in:                   ", f10.2, " secs.")') &
+      ikGlobal, isp, t2-t1
     
  1001 format(2i10,4ES24.15E3)
     
@@ -2226,31 +2222,23 @@ contains
     integer :: ikGlobal
       !! Current global k-point
     
+    character(len = 300) :: ikC, ispC
+      !! Character indices
+    
     integer :: ibi, ibf, totalNumberOfElements, iDum, i
     real(kind = dp) :: rDum, t1, t2
     complex(kind = dp):: cUfi
-    
-    character(len = 300) :: Uelements
 
 
     ikGlobal = ikLocal+ikStart_pool-1
     
     call cpu_time(t1)
-    write(*, '(" Reading Ufi(:,:) of k-point: ", i4)') ikGlobal
+    write(*, '(" Reading Ufi(:,:) of k-point ", i4, " and spin ", i1)') ikGlobal, isp
     
-    if ( ikGlobal < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ikGlobal, ikGlobal
-    endif
+    call int2str(ikGlobal, ikC)
+    call int2str(isp, ispC)
     
-    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
+    open(17, file=trim(elementsPath)//"allElecOverlap."//trim(ispC)//"."//trim(ikC), status='unknown')
     
     read(17, *) 
     read(17, *) 
@@ -2267,7 +2255,8 @@ contains
     close(17)
     
     call cpu_time(t2)
-    write(*, '(" Reading Ufi(:,:) of k-point ", i2, " done in:                   ", f10.2, " secs.")') ikGlobal, t2-t1
+    write(*, '(" Reading Ufi(:,:) of k-point ", i4, "and spin ", i1, " done in:                   ", f10.2, " secs.")') &
+      ikGlobal, isp, t2-t1
     
  1001 format(2i10,4ES24.15E3)
     

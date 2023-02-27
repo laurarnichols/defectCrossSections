@@ -44,14 +44,14 @@ program transitionMatrixElements
     ikGlobal = ikLocal+ikStart_pool-1
       !! Get the global `ik` index from the local one
     
-    if(ionode) then
+    if(indexInPool == 0) then
       
       tmes_file_exists = .false.
-      call checkIfCalculated(ikGlobal,tmes_file_exists)
+      call checkIfCalculated(ikGlobal, isp, tmes_file_exists)
       
     endif
     
-    call MPI_BCAST(tmes_file_exists, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(tmes_file_exists, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
     
     if(.not. tmes_file_exists) then
       
