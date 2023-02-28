@@ -300,13 +300,8 @@ program transitionMatrixElements
 
           if(isp == nSpins) deallocate(paw_id)
 
-          if(indexInPool == 0) then
-            call MPI_REDUCE(MPI_IN_PLACE, Ufi(:,:,ikLocal,isp), size(Ufi(:,:,ikLocal,isp)), MPI_DOUBLE_COMPLEX, &
-                    MPI_SUM, 0, intraPoolComm, ierr)
-          else
-            call MPI_REDUCE(Ufi(:,:,ikLocal,isp), Ufi(:,:,ikLocal,isp), size(Ufi(:,:,ikLocal,isp)), MPI_DOUBLE_COMPLEX, &
-                    MPI_SUM, 0, intraPoolComm, ierr)
-          endif
+          call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(:,:,ikLocal,isp), size(Ufi(:,:,ikLocal,isp)), MPI_DOUBLE_COMPLEX, &
+                  MPI_SUM, intraPoolComm, ierr)
 
 
           if(indexInPool == 0) then 

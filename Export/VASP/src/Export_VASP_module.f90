@@ -55,6 +55,9 @@ module wfcExportVASPMod
   integer :: worldComm
     !! World communicator
 
+  real(kind=dp) :: t1, t2
+    !! Timers
+
   logical :: ionode
     !! If this node is the root node
 
@@ -2906,16 +2909,30 @@ module wfcExportVASPMod
       !> because they are not dependent on spin. Write them out as if 
       !> they were dependent on spin because that is how TME currently
       !> expects it.
+      call cpu_time(t1)
       call calculatePhase(ikLocal, nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
                 atomPositionsDir, phaseExp)
 
       call calculateRealProjWoPhase(fftGridSize, ikLocal, nAtomTypes, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
                 kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
-      if(indexInPool == 0) write(*,'("    Writing projectors of k-point ", i3)') ikGlobal
+
+      call cpu_time(t2)
+      if(indexInPool == 0) &
+        write(*, '("    Calculating projectors of k-point ", i4, " done in", f10.2, " secs.")') &
+              ikGlobal, t2-t1
+      call cpu_time(t1)
+
 
       call writeProjectors(ikLocal, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, nPWs1k, & 
                 gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot)
+
+
+      call cpu_time(t2)
+      if(indexInPool == 0) &
+        write(*, '("    Writing projectors of k-point ", i4, " done in", f10.2, " secs.")') &
+              ikGlobal, t2-t1
+
 
       do isp = 1, nSpins
 
@@ -2927,14 +2944,26 @@ module wfcExportVASPMod
           ! they know where they are supposed to access the WAVECAR
           ! once/if they are the I/O node
 
-        if(indexInPool == 0) write(*,'("    Reading and writing wave function for k-point ", i3, " and spin ", i2)') ikGlobal, isp
+        call cpu_time(t1)
 
         call readAndWriteWavefunction(ikLocal, isp, maxNumPWsGlobal, nBands, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
 
-        if(indexInPool == 0) write(*,'("    Getting and writing projections for k-point ", i3, " and spin ", i2)') ikGlobal, isp
+        call cpu_time(t2)
+        if(indexInPool == 0) &
+          write(*, '("    Reading and writing wave function for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
+                ikGlobal, isp, t2-t1 
+        call cpu_time(t1)
+
 
         call getAndWriteProjections(ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nBands, nGkVecsLocal_ik, nKPoints, realProjWoPhase, compFact, & 
                   phaseExp, coeffLocal, exportDir, pot)
+
+
+        call cpu_time(t2)
+        if(indexInPool == 0) &
+          write(*, '("    Getting and writing projections for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
+                ikGlobal, isp, t2-t1 
+        call cpu_time(t1)
 
       enddo
 
@@ -3792,7 +3821,7 @@ module wfcExportVASPMod
       !! scattering coefficients to each process
     integer :: wfcOutUnit
       !! Process-dependent file unit for `wfc.ik`
-    integer :: ib, ipw, iproc
+    integer :: ib, ipw, iproc, ikGlobal
       !! Loop indices
 
     complex*8, allocatable :: coeff(:,:)
@@ -3809,7 +3838,9 @@ module wfcExportVASPMod
 
       wfcOutUnit = 83 + myid
 
-      call int2str(ik+ikStart_pool-1, ikC)
+      ikGlobal = ik+ikStart_pool-1
+
+      call int2str(ikGlobal, ikC)
       call int2str(isp, ispC)
 
       open(wfcOutUnit, file=trim(exportDir)//"/wfc."//trim(ispC)//"."//trim(ikC))
@@ -3818,6 +3849,8 @@ module wfcExportVASPMod
       write(wfcOutUnit, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
       write(wfcOutUnit, '("# Complex : wavefunction coefficients. Format: ''(2ES24.15E3)''")')
         ! Write header to `wfc.isp.ik` file
+
+      call cpu_time(t1)
 
       do ib = 1, nBands
 
@@ -3828,7 +3861,7 @@ module wfcExportVASPMod
 
         do ipw = 1, nPWs1k
 
-          write(wfcOutUnit,'(2ES24.15E3)') coeff(gKSort(ipw,ik+ikStart_pool-1),ib)
+          write(wfcOutUnit,'(2ES24.15E3)') coeff(gKSort(ipw,ikGlobal),ib)
             ! Write out in sorted order
             !! @note
             !!  I was trying to convert these coefficients based
@@ -3845,6 +3878,11 @@ module wfcExportVASPMod
 
       close(wfcOutUnit)
         ! Close `wfc.ik` file
+
+      call cpu_time(t2)
+      write(*, '("       Reading and writing global wfc for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
+            ikGlobal, isp, t2-t1 
+
 
     endif
 
@@ -3959,7 +3997,7 @@ module wfcExportVASPMod
               ! Don't need to worry about sorting because projection
               ! has sum over plane waves.
 
-            call MPI_REDUCE(projectionLocal, projection, 1, MPI_COMPLEX, MPI_SUM, root, intraPoolComm, ierr)
+            call MPI_ALLREDUCE(projectionLocal, projection, 1, MPI_COMPLEX, MPI_SUM, intraPoolComm, ierr)
 
             if(indexInPool == 0) write(projOutUnit,'(2ES24.15E3)') projection
 

@@ -1867,7 +1867,7 @@ contains
 
         crossProjectionLocal = sum(conjg(beta(:,ipr))*wfc(:,ib))
 
-        call MPI_REDUCE(crossProjectionLocal, crossProjection(ipr,ib,1), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, root, intraPoolComm, ierr)
+        call MPI_ALLREDUCE(crossProjectionLocal, crossProjection(ipr,ib,1), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
 
       enddo
     enddo
