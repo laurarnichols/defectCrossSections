@@ -3,7 +3,7 @@ program transitionMatrixElements
   
   implicit none
   
-  integer :: ikLocal, ikGlobal, iType
+  integer :: ikLocal, ikGlobal, iType, isp
     !! Loop indices
 
   logical :: bothSpinChannelsExist = .false.

@@ -693,7 +693,7 @@ contains
     
       do ik = 1, nKPoints
       
-        read(50, '(3i10,4ES24.15E3)') iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
+        read(50, '(2i10,4ES24.15E3)') iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
       
       enddo
 
@@ -998,7 +998,7 @@ contains
     
       do ik = 1, nKPoints
       
-        read(50, '(3i10,4ES24.15E3)') iDum, npwsSD(ik), wk(ik), xk(1:3,ik)
+        read(50, '(2i10,4ES24.15E3)') iDum, npwsSD(ik), wk(ik), xk(1:3,ik)
       
       enddo
 
@@ -1867,7 +1867,7 @@ contains
 
         crossProjectionLocal = sum(conjg(beta(:,ipr))*wfc(:,ib))
 
-        call MPI_ALLREDUCE(crossProjectionLocal, crossProjection(ipr,ib,1), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
+        call MPI_ALLREDUCE(crossProjectionLocal, crossProjection(ipr,ib), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
 
       enddo
     enddo
@@ -2317,6 +2317,8 @@ contains
         
           DE(ib,ikLocal,isp) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ikLocal,isp))
 
+        enddo
+
       enddo
       
     enddo
@@ -2346,7 +2348,7 @@ contains
         
           if(abs(eMin - DE(ib, ikLocal, isp)) < 1.0e-3_dp) DHifMin = absVfi2(ib, ikLocal,isp)
 
-          iE = int((DE(ib, ikLocal)-eMin)/eBin)
+          iE = int((DE(ib, ikLocal, isp) - eMin)/eBin)
 
           if(absVfi2(ib, ikLocal, isp) > 0.0_dp) then
 
@@ -2388,11 +2390,11 @@ contains
       
         do ib = iBandIinit, iBandIfinal
         
-          iE = int((DE(ib,ikLocal)-eMin)/eBin)
+          iE = int((DE(ib, ikLocal, isp) - eMin)/eBin)
 
           av = absVfiOfE2(iE)/sumWk(iE)
 
-          x = absVfi2(ib,ikLocal)
+          x = absVfi2(ib, ikLocal, isp)
 
           write(11, '(2ES24.15E3,i2,i10)') (eMin + iE*eBin), x, isp, ikGlobal
           !write(12, '(2ES24.15E3,i10)') DE(ib,ik), absVfi2(ib, ik), ik
