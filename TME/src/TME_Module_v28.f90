@@ -1434,7 +1434,7 @@ contains
     call int2str(ikGlobal, ikC)
     call int2str(isp, ispC)
     
-    inquire(file=trim(elementsPath)//"allElecOverlap."//trim(ispC)//"."//trim(ikC), exist = tmes_file_exists)
+    inquire(file=trim(elementsPath)//"/allElecOverlap."//trim(ispC)//"."//trim(ikC), exist = tmes_file_exists)
     
     return
     
@@ -2129,7 +2129,7 @@ contains
     call int2str(ikGlobal, ikC)
     call int2str(isp, ispC)
     
-    open(17, file=trim(elementsPath)//"allElecOverlap."//trim(ispC)//"."//trim(ikC), status='unknown')
+    open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(ispC)//"."//trim(ikC), status='unknown')
     
     write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
     
@@ -2249,7 +2249,7 @@ contains
     call int2str(ikGlobal, ikC)
     call int2str(isp, ispC)
     
-    open(17, file=trim(elementsPath)//"allElecOverlap."//trim(ispC)//"."//trim(ikC), status='unknown')
+    open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(ispC)//"."//trim(ikC), status='unknown')
     
     read(17, *) 
     read(17, *) 
