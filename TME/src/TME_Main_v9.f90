@@ -289,12 +289,11 @@ program transitionMatrixElements
             enddo
         
           enddo
-        
+
           if(isp == nSpins) then
             deallocate(pawKPC)
             deallocate(pawSDK)
           endif
-
 
           Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_id(:,:)*16.0_dp*pi*pi/omega
 

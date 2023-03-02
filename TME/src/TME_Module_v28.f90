@@ -2068,23 +2068,26 @@ contains
             else
               VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**L*FI
             endif
-            
-            do ibi = iBandIinit, iBandIfinal
+
+            if(VfiQ_aug > 1e-8_dp) then
+
+              do ibi = iBandIinit, iBandIfinal
               
-              do ibf = iBandFinit, iBandFfinal
+                do ibf = iBandFinit, iBandFfinal
                 
-                if(crystalType == 'PC') then
-                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi)
-                else
-                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf))
-                endif
+                  if(crystalType == 'PC') then
+                    pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi)
+                  else
+                    pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf))
+                  endif
                 
+                enddo
+              
               enddo
-              
-            enddo
-            
+            endif
           ENDDO
         ENDDO
+
         LMBASE = LMBASE + atoms(iT)%lmMax
       ENDDO
       
@@ -2266,7 +2269,7 @@ contains
     close(17)
     
     call cpu_time(t2)
-    write(*, '(" Reading Ufi(:,:) of k-point ", i4, "and spin ", i1, " done in:                   ", f10.2, " secs.")') &
+    write(*, '(" Reading Ufi(:,:) of k-point ", i4, " and spin ", i1, " done in:                   ", f10.2, " secs.")') &
       ikGlobal, isp, t2-t1
     
  1001 format(2i10,4ES24.15E3)
