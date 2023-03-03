@@ -766,17 +766,12 @@ contains
         read(50, '(a)') textDum
         read(50, '(i10)') atomsPC(iType)%numOfAtoms
 
+        read(50, '(a)') textDum
+        read(50, '(i10)') atomsPC(iType)%lMax              ! number of projectors
+
       endif
 
       call MPI_BCAST(atomsPC(iType)%numOfAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
-      
-      if(ionode) then
-
-        read(50, '(a)') textDum
-        read(50, '(i10)') atomsPC(iType)%lMax              ! number of projectors
-      
-      endif
-
       call MPI_BCAST(atomsPC(iType)%lMax, 1, MPI_INTEGER, root, worldComm, ierr)
 
       allocate(atomsPC(iType)%lps(atomsPC(iType)%lMax))
@@ -870,6 +865,7 @@ contains
 
       endif
 
+      call MPI_BCAST(atomsPC(iType)%r, size(atomsPC(iType)%r), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(atomsPC(iType)%F, size(atomsPC(iType)%F), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(atomsPC(iType)%F1, size(atomsPC(iType)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(atomsPC(iType)%F2, size(atomsPC(iType)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -1176,6 +1172,7 @@ contains
 
       endif
 
+      call MPI_BCAST(atoms(iType)%r, size(atoms(iType)%r), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(atoms(iType)%F, size(atoms(iType)%F), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(atoms(iType)%F1, size(atoms(iType)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(atoms(iType)%F2, size(atoms(iType)%F2), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -1324,6 +1321,8 @@ contains
       close(72)
 
     endif
+
+    call MPI_BCAST(gVecMillerIndicesGlobal, size(gVecMillerIndicesGlobal), MPI_INTEGER, root, worldComm, ierr)
 
     call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexGlobalToLocal, gVecProcId, mill_local, nGVecsLocal)
     
@@ -2069,22 +2068,18 @@ contains
               VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**L*FI
             endif
 
-            if(VfiQ_aug > 1e-8_dp) then
-
-              do ibi = iBandIinit, iBandIfinal
+            do ibi = iBandIinit, iBandIfinal
               
-                do ibf = iBandFinit, iBandFfinal
+              do ibf = iBandFinit, iBandFfinal
                 
-                  if(crystalType == 'PC') then
-                    pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi)
-                  else
-                    pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf))
-                  endif
+                if(crystalType == 'PC') then
+                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi)
+                else
+                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf))
+                endif
                 
-                enddo
-              
               enddo
-            endif
+            enddo
           ENDDO
         ENDDO
 
