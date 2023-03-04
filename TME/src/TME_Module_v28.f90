@@ -1818,7 +1818,7 @@ contains
   end subroutine readProjections
   
 !----------------------------------------------------------------------------
-  subroutine calculateCrossProjection(iBandinit, iBandfinal, ikGlobal, nProjs, npws, beta, wfc, crossProjection)
+  subroutine calculateCrossProjection(iBandinit, iBandfinal, ikGlobal, nProjs, beta, wfc, crossProjection)
     !! Calculate the cross projection of one crystal's projectors
     !! on the other crystal's wave function coefficients, distributing
     !! the result to all processors
@@ -1836,9 +1836,6 @@ contains
       !! Current k point
     integer, intent(in) :: nProjs
       !! Number of projectors
-    integer, intent(in) :: npws
-      !! Number of G+k vectors less than
-      !! the cutoff at each k-point
 
     complex(kind=dp) :: beta(nGVecsLocal,nProjs)
       !! Projector of one crystal type
