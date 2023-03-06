@@ -2406,7 +2406,7 @@ contains
 
           x = absVfi2(ib, ikLocal, isp)
 
-          write(11, '(2ES24.15E3,i2,i10)') (eMin + iE*eBin), x, isp, ikGlobal
+          write(11, '(2ES24.15E3,2i10)') (eMin + iE*eBin), x, isp, ikGlobal
           !write(12, '(2ES24.15E3,i10)') DE(ib,ik), absVfi2(ib, ik), ik
 
           sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + wkPC(ikGlobal)*(x - av)**2/sumWk(iE)
