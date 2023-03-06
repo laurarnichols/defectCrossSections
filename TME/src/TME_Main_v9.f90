@@ -111,11 +111,11 @@ program transitionMatrixElements
       allocate(wfcPC(nGVecsLocal, iBandIinit:iBandIfinal))
       allocate(wfcSD(nGVecsLocal, iBandFinit:iBandFfinal))
       
-      allocate(cProjBetaPCPsiSD(nProjsPC, nBands))
-      allocate(cProjBetaSDPhiPC(nProjsSD, nBands))
+      allocate(cProjBetaPCPsiSD(nProjsPC, iBandFinit:iBandFfinal))
+      allocate(cProjBetaSDPhiPC(nProjsSD, iBandIinit:iBandIfinal))
 
-      allocate(cProjPC(nProjsPC, nBands))
-      allocate(cProjSD(nProjsSD, nBands))
+      allocate(cProjPC(nProjsPC, iBandIinit:iBandIfinal))
+      allocate(cProjSD(nProjsSD, iBandFinit:iBandFfinal))
 
       allocate(paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
       allocate(paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
@@ -179,7 +179,7 @@ program transitionMatrixElements
           !> Calculate cross projections
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
-            call calculateCrossProjection(iBandFinit, iBandFfinal, ikGlobal, nProjsPC, npwsPC(ikGlobal), betaPC, wfcSD, cProjBetaPCPsiSD)
+            call calculateCrossProjection(iBandFinit, iBandFfinal, ikGlobal, nProjsPC, betaPC, wfcSD, cProjBetaPCPsiSD)
 
           if(isp == nSpins) then
             deallocate(wfcSD)
@@ -196,7 +196,7 @@ program transitionMatrixElements
 
 
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
-            call calculateCrossProjection(iBandIinit, iBandIfinal, ikGlobal, nProjsSD, npwsSD(ikGlobal), betaSD, wfcPC, cProjBetaSDPhiPC)
+            call calculateCrossProjection(iBandIinit, iBandIfinal, ikGlobal, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
         
           if(isp == nSpins) then
             deallocate(wfcPC)
@@ -215,11 +215,11 @@ program transitionMatrixElements
           !> Have process 0 in each pool calculate the PAW wave function correction for PC
 
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
-            call readProjections('PC', ikGlobal, min(isp,nSpinsPC), nProjsPC, cProjPC)
+            call readProjections('PC', iBandIinit, iBandIfinal, ikGlobal, min(isp,nSpinsPC), nProjsPC, cProjPC)
 
           if(indexInPool == 0) then
 
-            call pawCorrectionWfc(nIonsPC, TYPNIPC, cProjPC, cProjBetaPCPsiSD, atomsPC, paw_PsiPC)
+            call pawCorrectionWfc(nIonsPC, TYPNIPC, nProjsPC, cProjPC, cProjBetaPCPsiSD, atomsPC, paw_PsiPC)
 
           endif
           
@@ -230,11 +230,11 @@ program transitionMatrixElements
           !> Have process 1 in each pool calculate the PAW wave function correction for PC
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
-            call readProjections('SD', ikGlobal, min(isp,nSpinsSD), nProjsSD, cProjSD)
+            call readProjections('SD', iBandFinit, iBandFfinal, ikGlobal, min(isp,nSpinsSD), nProjsSD, cProjSD)
 
           if(indexInPool == 1) then
 
-            call pawCorrectionWfc(nIonsSD, TYPNISD, cProjBetaSDPhiPC, cProjSD, atoms, paw_SDPhi)
+            call pawCorrectionWfc(nIonsSD, TYPNISD, nProjsSD, cProjBetaSDPhiPC, cProjSD, atoms, paw_SDPhi)
 
           endif
 

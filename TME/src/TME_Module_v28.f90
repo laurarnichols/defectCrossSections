@@ -1753,11 +1753,15 @@ contains
   end subroutine calculatePWsOverlap
   
 !----------------------------------------------------------------------------
-  subroutine readProjections(crystalType, ikGlobal, isp, nProjs, cProj)
+  subroutine readProjections(crystalType, iBandinit, iBandfinal, ikGlobal, isp, nProjs, cProj)
     
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: iBandinit
+      !! Starting band
+    integer, intent(in) :: iBandfinal
+      !! Ending band
     integer, intent(in) :: ikGlobal
       !! Current k point
     integer, intent(in) :: isp
@@ -1769,7 +1773,7 @@ contains
       !! Crystal type (PC or SD)
 
     ! Output variables:
-    complex(kind=dp), intent(out) :: cProj(nProjs,nBands)
+    complex(kind=dp), intent(out) :: cProj(nProjs,iBandinit:iBandfinal)
       !! Projections <beta|wfc>
 
     ! Local variables:
@@ -1794,11 +1798,18 @@ contains
         open(72, file=trim(exportDirSD)//"/projections."//trim(ispC)//"."//trim(ikC))
       endif
     
-     read(72, *)
-      ! Ignore the header
+      read(72, *)
+        ! Ignore the header
+
+      ! Ignore bands before initial band
+      do ib = 1, iBandinit-1
+        do ipr = 1, nProjs
+          read(72,*)
+        enddo
+      enddo
     
       ! Read the projections
-      do ib = 1, nBands   
+      do ib = iBandinit, iBandfinal
         do ipr = 1, nProjs 
 
           read(72,'(2ES24.15E3)') cProj(ipr,ib)
@@ -1844,7 +1855,7 @@ contains
       !! for other crystal type
 
     ! Output variables:
-    complex(kind=dp), intent(out) :: crossProjection(nProjs,nBands)
+    complex(kind=dp), intent(out) :: crossProjection(nProjs,iBandinit:iBandfinal)
       !! Projections <beta|wfc>
     
     ! Local variables:
@@ -1857,6 +1868,8 @@ contains
     
     character(len = 300) :: ikC
     
+
+    crossProjection(:,:) = cmplx(0.0_dp, 0.0_dp, kind=dp)
 
     do ib = iBandinit, iBandfinal
       do ipr = 1, nProjs
@@ -1873,7 +1886,7 @@ contains
   end subroutine calculateCrossProjection
   
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionWfc(nAtoms, iType, cProjI, cProjF, atoms, pawWfc)
+  subroutine pawCorrectionWfc(nAtoms, iType, nProjs, cProjI, cProjF, atoms, pawWfc)
     ! calculates the augmentation part of the transition matrix element
     
     implicit none
@@ -1883,10 +1896,12 @@ contains
       !! Number of atoms
     integer, intent(in) :: iType(nAtoms)
       !! Atom type index
+    integer, intent(in) :: nProjs
+      !! First index for `cProjI` and `cProjF`
 
-    complex(kind = dp) :: cProjI(nProjsPC,nBands)
+    complex(kind = dp) :: cProjI(nProjs,iBandIinit:iBandIfinal)
       !! Initial-system (PC) projection
-    complex(kind = dp) :: cProjF(nProjsSD,nBands)
+    complex(kind = dp) :: cProjF(nProjs,iBandFinit:iBandFfinal)
       !! Final-system (SD) projection
 
     type(atom), intent(in) :: atoms(nAtoms)
