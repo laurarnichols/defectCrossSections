@@ -2207,8 +2207,6 @@ contains
     
     close(72)
     
-    call int2str(min(isp,nSpinsPC), ispC)
-    
     open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(ispC)//"."//trim(ikC))
     
     read(72, * )
