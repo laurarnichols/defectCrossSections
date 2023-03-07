@@ -83,6 +83,9 @@ program transitionMatrixElements
 
       !-----------------------------------------------------------------------------------------------
       !> Read PW grids from `grid.ik` files
+      if(indexInPool == 0) &
+        write(*, '("Pre-spin-loop for k-point",i4,": [ ] Read grid  [ ] Read projectors")') &
+              ikGlobal
       call cpu_time(t1)
 
       allocate(gKIndexGlobalPC(npwsPC(ikGlobal)))
@@ -96,7 +99,7 @@ program transitionMatrixElements
 
       call cpu_time(t2)
       if(indexInPool == 0) &
-        write(*, '("Reading grid for k-point", i4, " done in", f10.2, " secs.")') &
+        write(*, '("Pre-spin-loop for k-point",i4,": [X] Read grid  [ ] Read projectors (",f10.2," secs)")') &
               ikGlobal, t2-t1
       call cpu_time(t1)
 
@@ -113,7 +116,7 @@ program transitionMatrixElements
 
       call cpu_time(t2)
       if(indexInPool == 0) &
-        write(*, '("Reading projectors for k-point", i4, " done in", f10.2, " secs.")') &
+        write(*, '("Pre-spin-loop for k-point",i4,": [X] Read grid  [X] Read projectors (",f10.2," secs)")') &
               ikGlobal, t2-t1
 
       
@@ -166,8 +169,9 @@ program transitionMatrixElements
           !-----------------------------------------------------------------------------------------------
           !> Read wave functions and calculate overlap
       
-          if(indexInPool == 0) write(*, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4, " and spin ", i2)') &
-                  ikGlobal, nKPoints, isp
+          if(indexInPool == 0) &
+            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [ ] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k")') &
+              ikGlobal, isp
           call cpu_time(t1)
 
 
@@ -182,8 +186,8 @@ program transitionMatrixElements
 
           call cpu_time(t2)
           if(indexInPool == 0) &
-            write(*, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> for k-point", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                  ikGlobal, isp, t2-t1
+            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [X] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') &
+              ikGlobal, isp, t2-t1
           call cpu_time(t1)
 
 
@@ -200,13 +204,6 @@ program transitionMatrixElements
           endif
 
 
-          call cpu_time(t2)
-          if(indexInPool == 0) &
-            write(*, '("      Calculating <betaPC|wfcSD> for k-point", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                  ikGlobal, isp, t2-t1
-          call cpu_time(t1)
-
-
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
             call calculateCrossProjection(iBandIinit, iBandIfinal, ikGlobal, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
         
@@ -219,8 +216,8 @@ program transitionMatrixElements
 
           call cpu_time(t2)
           if(indexInPool == 0) &
-            write(*, '("      Calculating <betaSD|wfcPC> for k-point", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                  ikGlobal, isp, t2-t1
+            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [X] Overlap  [X] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') &
+              ikGlobal, isp, t2-t1
           call cpu_time(t1)
 
 
@@ -237,12 +234,6 @@ program transitionMatrixElements
           endif
           
           if(isp == nSpins) deallocate(cProjBetaPCPsiSD)
-
-          call cpu_time(t2)
-          if(indexInPool == 0) &
-            write(*, '("      <\\tilde{Psi}_f|PAW_PC> for k-point", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                  ikGlobal, isp, t2-t1
-          call cpu_time(t1)
 
 
           !-----------------------------------------------------------------------------------------------
@@ -261,8 +252,8 @@ program transitionMatrixElements
 
           call cpu_time(t2)
           if(indexInPool == 0) &
-            write(*, '("      <PAW_SD|\\tilde{Phi}_i> for k-point", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                  ikGlobal, isp, t2-t1
+            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [X] Overlap  [X] Cross projections  [X] PAW wfc  [ ] PAW k (",f6.2," secs)")') &
+              ikGlobal, isp, t2-t1
           call cpu_time(t1)
       
       
@@ -282,13 +273,6 @@ program transitionMatrixElements
           if(isp == nSpins) deallocate(cProjPC)
       
 
-          call cpu_time(t2)
-          if(indexInPool == 0) &
-            write(*, '("      <\\vec{k}|PAW_PC> for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                  ikGlobal, isp, t2-t1
-          call cpu_time(t1)
-      
-
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
             call pawCorrectionK('SD', nIonsSD, TYPNISD, numOfTypes, posIonSD, atoms, atoms, pawSDK)
 
@@ -296,8 +280,9 @@ program transitionMatrixElements
 
         
           call cpu_time(t2)
-          if(indexInPool == 0) write(*, '("      <PAW_SD|\\vec{k}> for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                  ikGlobal, isp, t2-t1
+          if(indexInPool == 0) &
+            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [X] Overlap  [X] Cross projections  [X] PAW wfc  [X] PAW k (",f6.2," secs)")') &
+              ikGlobal, isp, t2-t1
           call cpu_time(t1)
       
 
@@ -330,10 +315,6 @@ program transitionMatrixElements
           if(indexInPool == 0) then 
           
             Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_SDPhi(:,:) + paw_PsiPC(:,:)
-        
-            call cpu_time(t2)
-            write(*, '("      Adding PAW corrections for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                  ikGlobal, isp, t2-t1
         
             call writeResults(ikLocal,isp)
         
