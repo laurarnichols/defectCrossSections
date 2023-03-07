@@ -61,6 +61,10 @@ module declarations
 
   integer, allocatable :: gIndexGlobalToLocal(:)
     !! Converts global G-index to local G-index
+  integer, allocatable :: gKIndexGlobalPC(:)
+    !! Original G-index for G+k vectors in PC `grid.ik` files
+  integer, allocatable :: gKIndexGlobalSD(:)
+    !! Original G-index for G+k vectors in SD `grid.ik` files
   integer, allocatable :: gVecProcId(:)
     !! Index in pool where G-vector is distributed to
   integer :: maxGIndexGlobal
@@ -74,68 +78,81 @@ module declarations
     !! Local number of G-vectors on this processor
   integer :: nKPoints
     !! Total number of k-points
+  integer :: nSpins
+    !! Max number of spins for both systems
+  integer :: nSpinsPC
+    !! Number of spins for PC system
+  integer :: nSpinsSD
+    !! Number of spins for SD system
+
+  complex(kind=dp), allocatable :: betaPC(:,:)
+    !! PC projectors
+  complex(kind=dp), allocatable :: betaSD(:,:)
+    !! SD projectors
+  complex(kind=dp), allocatable :: Ufi(:,:,:,:)
+    !! All-electron overlap
   
 
   character(len = 200) :: exportDirSD, exportDirPC, VfisOutput
   character(len = 300) :: input, inputPC, textDum, elementsPath
   character(len = 320) :: mkdir
-  !
+  
   integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ik, ki, kf, ig, ibi, ibf
   integer :: JMAX, iTypes, iPn
   integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
-  integer :: numOfTypes, nBands, nSpins, nProjsSD
+  integer :: numOfTypes, nBands, nProjsSD
   integer :: numOfUsedGvecsPP, ios, npwNi, npwNf, npwMi, npwMf
   integer :: gx, gy, gz, nGvsI, nGvsF, nGi, nGf
   integer :: np, nI, nF, nPP, ind2
   integer :: i, j, n1, n2, n3, n4, n, id, npw
-  !
+  
   integer, allocatable :: counts(:), displmnt(:), nPWsI(:), nPWsF(:)
-  !
+  
   real(kind = dp) t0, tf
-  !
+  
   real(kind = dp) :: omega, threej
-  !
+  
   real(kind = dp), allocatable :: eigvI(:), eigvF(:), gvecs(:,:), posIonSD(:,:), posIonPC(:,:)
   real(kind = dp), allocatable :: wk(:), xk(:,:)
-  real(kind = dp), allocatable :: DE(:,:), absVfi2(:,:)
-  !
-  complex(kind = dp), allocatable :: wfcPC(:,:), wfcSD(:,:), Ufi(:,:,:), paw_SDKKPC(:,:), paw_id(:,:)
+  real(kind = dp), allocatable :: DE(:,:,:), absVfi2(:,:,:)
+  
+  complex(kind = dp), allocatable :: wfcPC(:,:), wfcSD(:,:), paw_SDKKPC(:,:), paw_id(:,:)
   complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
-  complex(kind = dp), allocatable :: cProjPC(:,:,:), cProjSD(:,:,:)
+  complex(kind = dp), allocatable :: cProjPC(:,:), cProjSD(:,:)
   complex(kind = dp), allocatable :: paw_PsiPC(:,:), paw_SDPhi(:,:)
-  complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:,:)
-  complex(kind = dp), allocatable :: betaSD(:,:), cProjBetaSDPhiPC(:,:,:)
-  !
+  complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:)
+  complex(kind = dp), allocatable :: cProjBetaSDPhiPC(:,:)
+  
   integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:)
-  integer, allocatable :: npwsSD(:), pwGindPC(:), pwGindSD(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
+  integer, allocatable :: npwsSD(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
   integer, allocatable :: npwsPC(:)
   real(kind = dp), allocatable :: wkPC(:), xkPC(:,:)
-  !
+  
   type :: atom
     integer :: numOfAtoms, lMax, lmMax, nMax, iRc
     integer, allocatable :: lps(:)
     real(kind = dp), allocatable :: r(:), rab(:), wae(:,:), wps(:,:), F(:,:), F1(:,:,:), F2(:,:,:), bes_J_qr(:,:)
   end type atom
-  !
+  
   TYPE(atom), allocatable :: atoms(:), atomsPC(:)
-  !
+  
   type :: vec
     integer :: ind
     integer, allocatable :: igN(:), igM(:)
   end type vec
-  !
+  
   TYPE(vec), allocatable :: vecs(:), newVecs(:)
-  !
+  
   real(kind = dp) :: eBin
   complex(kind = dp) :: paw, pseudo1, pseudo2, paw2
-  !
+  
   logical :: gamma_only, master, calculateVfis, coulomb, tmes_file_exists
-  !
+  
   NAMELIST /TME_Input/ exportDirSD, exportDirPC, elementsPath, &
                        iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
                        ki, kf, calculateVfis, VfisOutput, eBin
-  !
-  !
+  
+  
 contains
 
 !----------------------------------------------------------------------------
@@ -414,6 +431,8 @@ contains
     endif
 
     call MPI_BCAST(maxGIndexGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    nSpins = max(nSpinsPC,nSpinsSD)
     
     return
     
@@ -656,10 +675,14 @@ contains
       read(50, * ) 
     
       read(50, '(a)') textDum
+      read(50, '(i10)') nSpinsPC
+    
+      read(50, '(a)') textDum
       read(50, '(i10)') nKPoints
 
     endif
 
+    call MPI_BCAST(nSpinsPC, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     
     allocate(npwsPC(nKPoints), wkPC(nKPoints), xkPC(3,nKPoints))
@@ -670,7 +693,7 @@ contains
     
       do ik = 1, nKPoints
       
-        read(50, '(3i10,4ES24.15E3)') iDum, iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
+        read(50, '(2i10,4ES24.15E3)') iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
       
       enddo
 
@@ -724,9 +747,6 @@ contains
     
       read(50, '(a)') textDum
       read(50, * )
-    
-      read(50, '(a)') textDum
-      read(50, * ) 
 
     endif
 
@@ -746,17 +766,12 @@ contains
         read(50, '(a)') textDum
         read(50, '(i10)') atomsPC(iType)%numOfAtoms
 
+        read(50, '(a)') textDum
+        read(50, '(i10)') atomsPC(iType)%lMax              ! number of projectors
+
       endif
 
       call MPI_BCAST(atomsPC(iType)%numOfAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
-      
-      if(ionode) then
-
-        read(50, '(a)') textDum
-        read(50, '(i10)') atomsPC(iType)%lMax              ! number of projectors
-      
-      endif
-
       call MPI_BCAST(atomsPC(iType)%lMax, 1, MPI_INTEGER, root, worldComm, ierr)
 
       allocate(atomsPC(iType)%lps(atomsPC(iType)%lMax))
@@ -850,6 +865,7 @@ contains
 
       endif
 
+      call MPI_BCAST(atomsPC(iType)%r, size(atomsPC(iType)%r), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(atomsPC(iType)%F, size(atomsPC(iType)%F), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(atomsPC(iType)%F1, size(atomsPC(iType)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(atomsPC(iType)%F2, size(atomsPC(iType)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -958,6 +974,9 @@ contains
     if(ionode) then
 
       read(50, '(a)') textDum
+      read(50, '(i10)') nSpinsSD
+
+      read(50, '(a)') textDum
       read(50, '(i10)') nKpts
 
       if(nKpts /= nKPoints) call exitError('readInputsSD', 'Number of k-points in systems must match', 1)
@@ -966,6 +985,8 @@ contains
 
     endif
 
+    call MPI_BCAST(nSpinsSD, 1, MPI_INTEGER, root, worldComm, ierr)
+
     
     allocate(npwsSD(nKPoints), wk(nKPoints), xk(3,nKPoints))
 
@@ -973,7 +994,7 @@ contains
     
       do ik = 1, nKPoints
       
-        read(50, '(3i10,4ES24.15E3)') iDum, iDum, npwsSD(ik), wk(ik), xk(1:3,ik)
+        read(50, '(2i10,4ES24.15E3)') iDum, npwsSD(ik), wk(ik), xk(1:3,ik)
       
       enddo
 
@@ -1037,14 +1058,10 @@ contains
     
       read(50, '(a)') textDum
       read(50, '(i10)') nBands
-    
-      read(50, '(a)') textDum
-      read(50, '(i10)') nSpins
 
     endif
 
     call MPI_BCAST(nBands, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
     
     allocate(atoms(numOfTypes))
     
@@ -1155,6 +1172,7 @@ contains
 
       endif
 
+      call MPI_BCAST(atoms(iType)%r, size(atoms(iType)%r), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(atoms(iType)%F, size(atoms(iType)%F), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(atoms(iType)%F1, size(atoms(iType)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(atoms(iType)%F2, size(atoms(iType)%F2), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -1304,6 +1322,8 @@ contains
 
     endif
 
+    call MPI_BCAST(gVecMillerIndicesGlobal, size(gVecMillerIndicesGlobal), MPI_INTEGER, root, worldComm, ierr)
+
     call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexGlobalToLocal, gVecProcId, mill_local, nGVecsLocal)
     
     return
@@ -1391,69 +1411,193 @@ contains
   end subroutine distributeGvecsOverProcessors
   
 !----------------------------------------------------------------------------
-  subroutine checkIfCalculated(ik, tmes_file_exists)
+  subroutine checkIfCalculated(ikGlobal, isp, tmes_file_exists)
     
     implicit none
     
-    integer, intent(in) :: ik
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Current global k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Output variables:
     logical, intent(out) :: tmes_file_exists
+      !! If the current overlap file exists
+
+    ! Local variables:
+    character(len=300) :: ikC, ispC
+      !! Character indices
+
     
-    character(len = 300) :: Uelements
+    call int2str(ikGlobal, ikC)
+    call int2str(isp, ispC)
     
-    if ( ik < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ik, ik
-    else if ( ik < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ik, ik
-    else if ( ik < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ik, ik
-    else if ( ik < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ik, ik
-    endif
-    
-    inquire(file = trim(elementsPath)//trim(Uelements), exist = tmes_file_exists)
+    inquire(file=trim(elementsPath)//"/allElecOverlap."//trim(ispC)//"."//trim(ikC), exist = tmes_file_exists)
     
     return
     
   end subroutine checkIfCalculated
-  
+
 !----------------------------------------------------------------------------
-  subroutine calculatePWsOverlap(ikLocal)
-    
+  subroutine readGrid(crystalType, ikGlobal, npws, gKIndexGlobal)
+
     implicit none
-    
-    integer, intent(in) :: ikLocal
-    integer :: ikGlobal
+
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
       !! Current k point
-    integer :: ibi, ibf
+    integer, intent(in) :: npws
+      !! Number of G+k vectors less than
+      !! the cutoff at this k-point
 
-    ikGlobal = ikLocal+ikStart_pool-1
-    
-    call readWfc('PC', iBandIinit, iBandIfinal, ikGlobal, npwsPC, wfcPC)
-    call readWfc('SD', iBandFinit, iBandFfinal, ikGlobal, npwsSD, wfcSD)
-      !! Read perfect crystal and defect wave functions and
-      !! broadcast to processes
-    
-    Ufi(:,:,ikLocal) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    
-    do ibi = iBandIinit, iBandIfinal 
-      
-      do ibf = iBandFinit, iBandFfinal
+    character(len=2), intent(in) :: crystalType
+      !! Crystal type (PC or SD)
 
-        Ufi(ibf, ibi, ikLocal) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
-          !! Calculate local overlap
+    ! Output variables:
+    integer, intent(out) :: gKIndexGlobal(npws)
+      !! Original G-index for G+k vectors in `grid.ik` files
 
-      enddo
-      
+    ! Local variables:
+    integer :: iDumV(3)
+      !! Vector to ignore G-vector Miller indices
+    integer :: ig
+      !! Loop index
+
+    character(len=300) :: ikC
+      !! Character index
+
+
+    call int2str(ikGlobal, ikC)
+    
+    if(crystalType == 'PC') then
+      open(72, file=trim(exportDirPC)//"/grid."//trim(ikC))
+    else
+      open(72, file=trim(exportDirSD)//"/grid."//trim(ikC))
+    endif
+    
+    read(72, * )
+    read(72, * )
+      ! Ignore the header
+    
+    do ig = 1, npws
+
+      read(72, '(4i10)') gKIndexGlobal(ig), iDumV(1:3)
+        !! Read the global PW indices that satisfy G+k < cutoff
+
     enddo
     
+    close(72)
+
     return
-    
-  end subroutine calculatePWsOverlap
+
+  end subroutine readGrid
 
 !----------------------------------------------------------------------------
-  subroutine readWfc(crystalType, iBandinit, iBandfinal, ikGlobal, npws, wfc)
+  subroutine readProjectors(crystalType, ikGlobal, nProjs, npws, gKIndexGlobal, beta)
+    
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Current k point
+    integer, intent(in) :: nProjs
+      !! Number of projectors
+    integer, intent(in) :: npws
+      !! Number of G+k vectors less than
+      !! the cutoff at each k-point
+    integer, intent(in) :: gKIndexGlobal(npws)
+      !! Original G-index for G+k vectors in `grid.ik` files
+
+    character(len=2), intent(in) :: crystalType
+      !! Crystal type (PC or SD) for projectors
+
+    ! Output variables:
+    complex(kind=dp), intent(out) :: beta(nGVecsLocal,nProjs)
+      !! Projector of `projCrystalType`
+    
+    ! Local variables:
+    integer :: ipr, ig, igk, iproc
+      !! Loop indices
+
+    complex(kind=dp) :: betaBuff(nProcPerPool)
+      !! Projector buffer for broadcasting
+    
+    character(len = 300) :: ikC
+    
+
+    if(indexInPool == 0) then
+
+      call int2str(ikGlobal, ikC)
+    
+      if(crystalType == 'PC') then
+        open(72, file=trim(exportDirPC)//"/projectors."//trim(ikC))
+      else
+        open(72, file=trim(exportDirSD)//"/projectors."//trim(ikC))
+      endif
+    
+      read(72, * )
+      read(72, * )
+        ! Ignore the header
+
+    endif
+    
+    beta(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    betaBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    
+    !> Have the root node read the projector
+    !> then broadcast to other processes
+    do ipr = 1, nProjs
+      igk = 1
+      iproc = 1
+
+      do ig = 1, nGVecsGlobal
+        ! Loop over all G-vectors to make broadcasting
+        ! clearer and simpler
+
+        if(ig == gKIndexGlobal(igk)) then
+          ! If this G-vector satisfies G+k < cutoff
+          ! for the current k-point
+
+          if(indexInPool == 0) read(72, '(2ES24.15E3)') betaBuff(iproc)
+            ! Read in the projector and store in the slot
+            ! for the process that holds the current G-vector
+
+          igk = igk + 1
+            ! Increment the G+k vector counter
+
+        endif
+
+        if(iproc == nProcPerPool) then
+          ! If the process counter is up to the number
+          ! of processes per pool
+
+          call MPI_BCAST(betaBuff, nProcPerPool, MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
+            ! Broadcast the projector buffer
+
+          beta(gIndexGlobalToLocal(ig),ipr) = betaBuff(indexInPool+1)
+            ! Store the value for this process locally
+
+          ! Reset the projector buffer and process counter
+          betaBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+          iproc = 1
+
+        else
+          ! Otherwise, increment the process counter
+
+          iproc = iproc + 1
+
+        endif
+
+      enddo
+    enddo
+    
+    if(indexInPool == 0) close(72)
+    
+  end subroutine readProjectors
+
+!----------------------------------------------------------------------------
+  subroutine readWfc(crystalType, iBandinit, iBandfinal, ikGlobal, isp, npws, gKIndexGlobal, wfc)
     !! Read wave function for given `crystalType` from `iBandinit`
     !! to `iBandfinal`
     
@@ -1466,9 +1610,13 @@ contains
       !! Ending band
     integer, intent(in) :: ikGlobal
       !! Current k point
-    integer, intent(in) :: npws(nKPoints)
+    integer, intent(in) :: isp
+      !! Current spin channel
+    integer, intent(in) :: npws
       !! Number of G+k vectors less than
-      !! the cutoff at each k-point
+      !! the cutoff at this k-point
+    integer, intent(in) :: gKIndexGlobal(npws)
+      !! Original G-index for G+k vectors in `grid.ik` files
 
     character(len=2), intent(in) :: crystalType
       !! Crystal type (PC or SD)
@@ -1479,66 +1627,28 @@ contains
       !! local G-vectors
 
     ! Local variables:
-    integer :: iDumV(3)
-      !! Vector to ignore G-vector Miller indices
-    integer, allocatable :: pwGind(:)
-      !! G-vector indices for G+k vectors
-      !! less than cutoff
     integer :: ib, ig, igk, iproc
       !! Loop indices
 
     complex(kind=dp) :: wfcBuff(nProcPerPool)
       !! Wave function read from file
  
-    character(len = 300) :: iks
-      !! String k-point
+    character(len = 300) :: ikC, ispC
+      !! Character indices
 
-
-    if(indexInPool == 0) then
-      !! Have the root node in each pool open 
-      !! the grid file for the current crystal
-      !! type and k-point
-
-      call int2str(ikGlobal, iks)
-    
-      if(crystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
-      else
-        open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
-      endif
-    
-      read(72, * )
-      read(72, * )
-        ! Ignore the header
-
-    endif
-    
-    allocate(pwGind(npws(ikGlobal)))
-    
-    if(indexInPool == 0) then 
-      !! Have the root node in each pool read in
-      !! the global PW indices that satisfy 
-      !! G+k < cutoff
-
-      do ig = 1, npws(ikGlobal)
-        read(72, '(4i10)') pwGind(ig), iDumV(1:3)
-      enddo
-    
-      close(72)
-
-    endif
-
-    call MPI_BCAST(pwGind, size(pwGind), MPI_INTEGER, root, intraPoolComm, ierr)
 
     if(indexInPool == 0) then
       !! Have the root node in the pool read the wave
       !! function coefficients. Ignore the bands before 
       !! `iBandinit`
+
+      call int2str(ikGlobal, ikC)
+      call int2str(isp, ispC)
     
       if(crystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/wfc."//trim(iks))
+        open(72, file=trim(exportDirPC)//"/wfc."//trim(ispC)//"."//trim(ikC))
       else
-        open(72, file=trim(exportDirSD)//"/wfc."//trim(iks))
+        open(72, file=trim(exportDirSD)//"/wfc."//trim(ispC)//"."//trim(ikC))
       endif
     
       read(72, * )
@@ -1546,7 +1656,7 @@ contains
         ! Ignore the header
     
       do ib = 1, iBandinit - 1
-        do ig = 1, npws(ikGlobal)
+        do ig = 1, npws
           read(72, *)
         enddo
       enddo
@@ -1566,7 +1676,7 @@ contains
         ! Loop over all G-vectors to make broadcasting
         ! clearer and simpler
 
-        if(ig == pwGind(igk)) then
+        if(ig == gKIndexGlobal(igk)) then
           ! If this G-vector satisfies G+k < cutoff
           ! for the current k-point
 
@@ -1606,20 +1716,56 @@ contains
     
     if(indexInPool == 0) close(72)
     
-    deallocate(pwGind)
-    
     return
     
   end subroutine readWfc
   
 !----------------------------------------------------------------------------
-  subroutine readProjections(crystalType, ikGlobal, nProjs, cProj)
+  subroutine calculatePWsOverlap(ikLocal,isp)
+    
+    implicit none
+    
+    ! Input variables:
+    integer, intent(in) :: ikLocal
+      !! Current local k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Local variables:
+    integer :: ibi, ibf
+
+    
+    Ufi(:,:,ikLocal,isp) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    
+    do ibi = iBandIinit, iBandIfinal 
+      
+      do ibf = iBandFinit, iBandFfinal
+
+        Ufi(ibf, ibi, ikLocal,isp) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
+          !! Calculate local overlap
+
+      enddo
+      
+    enddo
+    
+    return
+    
+  end subroutine calculatePWsOverlap
+  
+!----------------------------------------------------------------------------
+  subroutine readProjections(crystalType, iBandinit, iBandfinal, ikGlobal, isp, nProjs, cProj)
     
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: iBandinit
+      !! Starting band
+    integer, intent(in) :: iBandfinal
+      !! Ending band
     integer, intent(in) :: ikGlobal
       !! Current k point
+    integer, intent(in) :: isp
+      !! Current spin channel
     integer, intent(in) :: nProjs
       !! Number of projectors
 
@@ -1627,38 +1773,46 @@ contains
       !! Crystal type (PC or SD)
 
     ! Output variables:
-    complex(kind=dp), intent(out) :: cProj(nProjs,nBands,nSpins)
+    complex(kind=dp), intent(out) :: cProj(nProjs,iBandinit:iBandfinal)
       !! Projections <beta|wfc>
 
     ! Local variables:
     integer :: ipr, ib
       !! Loop indices
     
-    character(len = 300) :: iks
-      !! String k-point
+    character(len = 300) :: ikC, ispC
+      !! Character indices
     
 
-    call int2str(ikGlobal, iks)
+    call int2str(ikGlobal, ikC)
+    call int2str(isp, ispC)
     
-    cProj(:,:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
+    cProj(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
     
     if(indexInPool == 0) then
 
       ! Open the projections file for the given crystal type
       if(crystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/projections."//trim(iks))
+        open(72, file=trim(exportDirPC)//"/projections."//trim(ispC)//"."//trim(ikC))
       else
-        open(72, file=trim(exportDirSD)//"/projections."//trim(iks))
+        open(72, file=trim(exportDirSD)//"/projections."//trim(ispC)//"."//trim(ikC))
       endif
     
-     read(72, *)
-      ! Ignore the header
+      read(72, *)
+        ! Ignore the header
+
+      ! Ignore bands before initial band
+      do ib = 1, iBandinit-1
+        do ipr = 1, nProjs
+          read(72,*)
+        enddo
+      enddo
     
       ! Read the projections
-      do ib = 1, nBands   
+      do ib = iBandinit, iBandfinal
         do ipr = 1, nProjs 
 
-          read(72,'(2ES24.15E3)') cProj(ipr,ib,1)
+          read(72,'(2ES24.15E3)') cProj(ipr,ib)
 
         enddo
       enddo
@@ -1675,7 +1829,10 @@ contains
   end subroutine readProjections
   
 !----------------------------------------------------------------------------
-  subroutine calculateCrossProjection(projCrystalType, iBandinit, iBandfinal, ikGlobal, nProjs, npws, wfc, crossProjection)
+  subroutine calculateCrossProjection(iBandinit, iBandfinal, ikGlobal, nProjs, beta, wfc, crossProjection)
+    !! Calculate the cross projection of one crystal's projectors
+    !! on the other crystal's wave function coefficients, distributing
+    !! the result to all processors
     
     implicit none
 
@@ -1690,160 +1847,36 @@ contains
       !! Current k point
     integer, intent(in) :: nProjs
       !! Number of projectors
-    integer, intent(in) :: npws(nKPoints)
-      !! Number of G+k vectors less than
-      !! the cutoff at each k-point
 
+    complex(kind=dp) :: beta(nGVecsLocal,nProjs)
+      !! Projector of one crystal type
     complex(kind=dp), intent(in) :: wfc(nGVecsLocal,iBandinit:iBandfinal)
       !! Wave function coefficients for local G-vectors
-      !! for crystal not of `projCrystalType`
-
-    character(len=2), intent(in) :: projCrystalType
-      !! Crystal type (PC or SD) for projectors.
-      !! Wave function will come from other crystal
-      !! type.
+      !! for other crystal type
 
     ! Output variables:
-    complex(kind=dp), intent(out) :: crossProjection(nProjs,nBands,nSpins)
+    complex(kind=dp), intent(out) :: crossProjection(nProjs,iBandinit:iBandfinal)
       !! Projections <beta|wfc>
     
     ! Local variables:
-    integer :: iDumV(3)
-      !! Vector to ignore G-vector Miller indices
-    integer, allocatable :: pwGind(:)
-      !! G-vector indices for G+k vectors
-      !! less than cutoff
-    integer :: ib, ipr, ig, igk, iproc
+    integer :: ib, ipr
       !! Loop indices
 
-    complex(kind=dp) :: beta(nGVecsLocal,nProjs)
-      !! Projector of `projCrystalType`
-    complex(kind=dp) :: betaBuff(nProcPerPool)
-      !! Projector buffer for broadcasting
     complex(kind=dp) :: crossProjectionLocal
       !! Local version of cross projection to
       !! be summed across processors in pool
     
-    character(len = 300) :: iks
+    character(len = 300) :: ikC
     
 
-    if(indexInPool == 0) then
-      !! Have the root node in each pool open 
-      !! the grid file for the current crystal
-      !! type and k-point
+    crossProjection(:,:) = cmplx(0.0_dp, 0.0_dp, kind=dp)
 
-      call int2str(ikGlobal, iks)
-    
-      if(projCrystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/grid."//trim(iks))
-      else
-        open(72, file=trim(exportDirSD)//"/grid."//trim(iks))
-      endif
-    
-      read(72, * )
-      read(72, * )
-        ! Ignore the header
-
-    endif
-    
-    allocate(pwGind(npws(ikGlobal)))
-    
-    if(indexInPool == 0) then 
-      !! Have the root node in each pool read in
-      !! the global PW indices that satisfy 
-      !! G+k < cutoff
-
-      do ig = 1, npws(ikGlobal)
-        read(72, '(4i10)') pwGind(ig), iDumV(1:3)
-      enddo
-    
-      close(72)
-
-    endif
-
-    call MPI_BCAST(pwGind, size(pwGind), MPI_INTEGER, root, intraPoolComm, ierr)
-   
-
-    if(indexInPool == 0) then
-      !! Have the root node in the pool read the projectors
-      !! of `projCrystalType`
-    
-      if(projCrystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/projectors."//trim(iks))
-      else
-        open(72, file=trim(exportDirSD)//"/projectors."//trim(iks))
-      endif
-    
-      read(72, * )
-      read(72, * )
-        ! Ignore the header
-
-    endif
-    
-    beta(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-    betaBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-    
-    !> Have the root node read the projector
-    !> then broadcast to other processes
-    do ipr = 1, nProjs
-      igk = 1
-      iproc = 1
-
-      do ig = 1, nGVecsGlobal
-        ! Loop over all G-vectors to make broadcasting
-        ! clearer and simpler
-
-        if(ig == pwGind(igk)) then
-          ! If this G-vector satisfies G+k < cutoff
-          ! for the current k-point
-
-          if(indexInPool == 0) read(72, '(2ES24.15E3)') betaBuff(iproc)
-            ! Read in the projector and store in the slot
-            ! for the process that holds the current G-vector
-
-          igk = igk + 1
-            ! Increment the G+k vector counter
-
-        endif
-
-        if(iproc == nProcPerPool) then
-          ! If the process counter is up to the number
-          ! of processes per pool
-
-          call MPI_BCAST(betaBuff, nProcPerPool, MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
-            ! Broadcast the projector buffer
-
-          beta(gIndexGlobalToLocal(ig),ipr) = betaBuff(indexInPool+1)
-            ! Store the value for this process locally
-
-          ! Reset the projector buffer and process counter
-          betaBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-          iproc = 1
-
-        else
-          ! Otherwise, increment the process counter
-
-          iproc = iproc + 1
-
-        endif
-
-      enddo
-    enddo
-    
-    if(indexInPool == 0) close(72)
-    
-    deallocate(pwGind)
-    
-    
-    !> Calculate the cross projection of one crystal's projectors
-    !> on the other crystal's wave function coefficients, distributing
-    !> the result to all processors
     do ib = iBandinit, iBandfinal
       do ipr = 1, nProjs
 
         crossProjectionLocal = sum(conjg(beta(:,ipr))*wfc(:,ib))
 
-        call MPI_REDUCE(crossProjectionLocal, crossProjection(ipr,ib,1), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, root, intraPoolComm, ierr)
+        call MPI_ALLREDUCE(crossProjectionLocal, crossProjection(ipr,ib), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
 
       enddo
     enddo
@@ -1853,7 +1886,7 @@ contains
   end subroutine calculateCrossProjection
   
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionWfc(nAtoms, iType, cProjI, cProjF, atoms, pawWfc)
+  subroutine pawCorrectionWfc(nAtoms, iType, nProjs, cProjI, cProjF, atoms, pawWfc)
     ! calculates the augmentation part of the transition matrix element
     
     implicit none
@@ -1863,10 +1896,12 @@ contains
       !! Number of atoms
     integer, intent(in) :: iType(nAtoms)
       !! Atom type index
+    integer, intent(in) :: nProjs
+      !! First index for `cProjI` and `cProjF`
 
-    complex(kind = dp) :: cProjI(nProjsPC,nBands,nSpins)
+    complex(kind = dp) :: cProjI(nProjs,iBandIinit:iBandIfinal)
       !! Initial-system (PC) projection
-    complex(kind = dp) :: cProjF(nProjsSD,nBands,nSpins)
+    complex(kind = dp) :: cProjF(nProjs,iBandFinit:iBandFfinal)
       !! Final-system (SD) projection
 
     type(atom), intent(in) :: atoms(nAtoms)
@@ -1893,8 +1928,6 @@ contains
     real(kind = dp) :: atomicOverlap
     
     
-    ispin = 1
-    
     pawWfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
     LMBASE = 0
@@ -1920,10 +1953,10 @@ contains
                 atomicOverlap = sum(atoms(iT)%F1(:,LL, LLP))
                 
                 do ibi = iBandIinit, iBandIfinal
-                  cProjIe = cProjI(LMP + LMBASE, ibi, ispin)
+                  cProjIe = cProjI(LMP + LMBASE, ibi)
                   
                   do ibf = iBandFinit, iBandFfinal
-                    cProjFe = conjg(cProjF(LM + LMBASE, ibf, ispin))
+                    cProjFe = conjg(cProjF(LM + LMBASE, ibf))
                     
                     pawWfc(ibf, ibi) = pawWfc(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
                     
@@ -1985,8 +2018,6 @@ contains
     complex(kind = dp) :: Y( (JMAX+1)**2 )
     complex(kind = dp) :: VifQ_aug, ATOMIC_CENTER
     
-
-    ispin = 1
     
     call cpu_time(t1)
     
@@ -2048,23 +2079,22 @@ contains
             else
               VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**L*FI
             endif
-            
+
             do ibi = iBandIinit, iBandIfinal
               
               do ibf = iBandFinit, iBandFfinal
                 
                 if(crystalType == 'PC') then
-                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi, ispin)
+                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi)
                 else
-                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf, ispin))
+                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf))
                 endif
                 
               enddo
-              
             enddo
-            
           ENDDO
         ENDDO
+
         LMBASE = LMBASE + atoms(iT)%lmMax
       ENDDO
       
@@ -2075,41 +2105,41 @@ contains
   end subroutine pawCorrectionK
   
 !----------------------------------------------------------------------------
-  subroutine writeResults(ikLocal)
+  subroutine writeResults(ikLocal, isp)
     
     implicit none
     
+    ! Input variables:
     integer, intent(in) :: ikLocal
+      !! Current local k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Local variables:
     integer :: ikGlobal
-      !! Current k point
+      !! Current global k-point
+ 
+    character(len = 300) :: ikC, ispC
+      !! Character indices
     
     integer :: ibi, ibf, totalNumberOfElements
     real(kind = dp) :: t1, t2
     
-    character(len = 300) :: text, Uelements
+    character(len = 300) :: text
 
 
     ikGlobal = ikLocal+ikStart_pool-1
     
     call cpu_time(t1)
     
-    call readEigenvalues(ikGlobal)
+    call readEigenvalues(ikGlobal, isp)
     
-    write(*, '(" Writing Ufi(:,:) of k-point ", i2, ".")') ikGlobal
+    write(*, '(" Writing Ufi(:,:) of k-point ", i2, " and spin ", i1, ".")') ikGlobal, isp
+
+    call int2str(ikGlobal, ikC)
+    call int2str(isp, ispC)
     
-    if ( ikGlobal < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ikGlobal, ikGlobal
-    endif
-    
-    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
+    open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(ispC)//"."//trim(ikC), status='unknown')
     
     write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
     
@@ -2124,7 +2154,7 @@ contains
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
         
-        write(17, 1001) ibf, ibi, eigvI(ibi) - eigvF(ibf), Ufi(ibf,ibi,ikLocal), abs(Ufi(ibf,ibi,ikLocal))**2
+        write(17, 1001) ibf, ibi, eigvI(ibi) - eigvF(ibf), Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2
             
       enddo
     enddo
@@ -2132,7 +2162,8 @@ contains
     close(17)
     
     call cpu_time(t2)
-    write(*, '(" Writing Ufi(:,:) of k-point ", i2, " done in:                   ", f10.2, " secs.")') ikGlobal, t2-t1
+    write(*, '(" Writing Ufi(:,:) of k-point ", i4, "and spin ", i1, " done in:                   ", f10.2, " secs.")') &
+      ikGlobal, isp, t2-t1
     
  1001 format(2i10,4ES24.15E3)
     
@@ -2141,18 +2172,27 @@ contains
   end subroutine writeResults
   
 !----------------------------------------------------------------------------
-  subroutine readEigenvalues(ikGlobal)
+  subroutine readEigenvalues(ikGlobal,isp)
     
     implicit none
     
+    ! Input variables
     integer, intent(in) :: ikGlobal
+      !! Current global k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Local variables:
     integer :: ib
+      !! Loop index
     
-    character(len = 300) :: iks
+    character(len = 300) :: ikC, ispC
+      !! Character indices
     
-    call int2str(ikGlobal, iks)
+    call int2str(ikGlobal, ikC)
+    call int2str(min(isp,nSpinsSD), ispC)
     
-    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(iks))
+    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(ispC)//"."//trim(ikC))
     
     read(72, * )
     read(72, * )
@@ -2167,7 +2207,7 @@ contains
     
     close(72)
     
-    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(iks))
+    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(ispC)//"."//trim(ikC))
     
     read(72, * )
     read(72, * ) 
@@ -2187,39 +2227,37 @@ contains
   end subroutine readEigenvalues
   
 !----------------------------------------------------------------------------
-  subroutine readUfis(ikLocal)
+  subroutine readUfis(ikLocal,isp)
     
     implicit none
     
+    ! Input variables:
     integer, intent(in) :: ikLocal
+      !! Current local k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Local variables:
     integer :: ikGlobal
-      !! Current k-point
+      !! Current global k-point
+    
+    character(len = 300) :: ikC, ispC
+      !! Character indices
     
     integer :: ibi, ibf, totalNumberOfElements, iDum, i
     real(kind = dp) :: rDum, t1, t2
     complex(kind = dp):: cUfi
-    
-    character(len = 300) :: Uelements
 
 
     ikGlobal = ikLocal+ikStart_pool-1
     
     call cpu_time(t1)
-    write(*, '(" Reading Ufi(:,:) of k-point: ", i4)') ikGlobal
+    write(*, '(" Reading Ufi(:,:) of k-point ", i4, " and spin ", i1)') ikGlobal, isp
     
-    if ( ikGlobal < 10 ) then
-      write(Uelements, '("/TMEs_kptI_",i1,"_kptF_",i1)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 100 ) then
-      write(Uelements, '("/TMEs_kptI_",i2,"_kptF_",i2)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 1000 ) then
-      write(Uelements, '("/TMEs_kptI_",i3,"_kptF_",i3)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i4,"_kptF_",i4)') ikGlobal, ikGlobal
-    else if ( ikGlobal < 10000 ) then
-      write(Uelements, '("/TMEs_kptI_",i5,"_kptF_",i5)') ikGlobal, ikGlobal
-    endif
+    call int2str(ikGlobal, ikC)
+    call int2str(isp, ispC)
     
-    open(17, file=trim(elementsPath)//trim(Uelements), status='unknown')
+    open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(ispC)//"."//trim(ikC), status='unknown')
     
     read(17, *) 
     read(17, *) 
@@ -2229,14 +2267,15 @@ contains
     do i = 1, totalNumberOfElements
       
       read(17, 1001) ibf, ibi, rDum, cUfi, rDum
-      Ufi(ibf,ibi,ikLocal) = cUfi
+      Ufi(ibf,ibi,ikLocal,isp) = cUfi
           
     enddo
     
     close(17)
     
     call cpu_time(t2)
-    write(*, '(" Reading Ufi(:,:) of k-point ", i2, " done in:                   ", f10.2, " secs.")') ikGlobal, t2-t1
+    write(*, '(" Reading Ufi(:,:) of k-point ", i4, " and spin ", i1, " done in:                   ", f10.2, " secs.")') &
+      ikGlobal, isp, t2-t1
     
  1001 format(2i10,4ES24.15E3)
     
@@ -2249,7 +2288,7 @@ contains
     
     implicit none
     
-    integer :: ikLocal, ikGlobal, ib, nOfEnergies, iE
+    integer :: ikLocal, ikGlobal, ib, nOfEnergies, iE, isp
     
     real(kind = dp) :: eMin, eMax, E, av, sd, x, EiMinusEf, A, DHifMin
     
@@ -2258,39 +2297,44 @@ contains
     
     character (len = 300) :: text
     character (len = 300) :: fNameBase
-    character (len = 300) :: fNameK
-    character(len = 300) :: iks
+    character (len = 300) :: fNameSK
+    character(len = 300) :: ikC, ispC
 
 
-    allocate(DE(iBandIinit:iBandIfinal, nKPerPool), absVfi2(iBandIinit:iBandIfinal, nKPerPool))
+    allocate(DE(iBandIinit:iBandIfinal, nKPerPool, nSpins))
+    allocate(absVfi2(iBandIinit:iBandIfinal, nKPerPool, nSpins))
      
-    DE(:,:) = 0.0_dp
-    absVfi2(:,:) = 0.0_dp 
+    DE(:,:,:) = 0.0_dp
+    absVfi2(:,:,:) = 0.0_dp 
     
-    do ikLocal = 1, nKPerPool
+    do isp = 1, nSpins
+  
+      do ikLocal = 1, nKPerPool
 
-      ikGlobal = ikLocal+ikStart_pool-1
+        ikGlobal = ikLocal+ikStart_pool-1
       
-      eigvI(:) = 0.0_dp
-      eigvF(:) = 0.0_dp
+        eigvI(:) = 0.0_dp
+        eigvF(:) = 0.0_dp
       
-      call readEigenvalues(ikGlobal)
+        call readEigenvalues(ikGlobal, isp)
       
-      do ib = iBandIinit, iBandIfinal
+        do ib = iBandIinit, iBandIfinal
 
-        EiMinusEf = eigvI(ib) - eigvF(iBandFinit)
-        absVfi2(ib,ikLocal) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ikLocal))**2 - abs(Ufi(iBandFinit,ib,ikLocal))**4 )
+          EiMinusEf = eigvI(ib) - eigvF(iBandFinit)
+          absVfi2(ib,ikLocal,isp) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ikLocal,isp))**2 - abs(Ufi(iBandFinit,ib,ikLocal,isp))**4 )
         
-        DE(ib, ikLocal) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ikLocal))
+          DE(ib,ikLocal,isp) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ikLocal,isp))
+
+        enddo
 
       enddo
       
     enddo
     
-    eMin = minval(DE(:,:))
+    eMin = minval(DE(:,:,:))
     call MPI_ALLREDUCE(MPI_IN_PLACE, eMin, 1, MPI_DOUBLE_PRECISION, MPI_MIN, interPoolComm, ierr)
 
-    eMax = maxval(DE(:,:))
+    eMax = maxval(DE(:,:,:))
     call MPI_ALLREDUCE(MPI_IN_PLACE, eMax, 1, MPI_DOUBLE_PRECISION, MPI_MAX, interPoolComm, ierr)
 
     nOfEnergies = int((eMax-eMin)/eBin) + 1
@@ -2302,30 +2346,34 @@ contains
     sumWk(:) = 0.0_dp
     DHifMin = 0.0_dp
     
-    do ikLocal = 1, nKPerPool
-
-      ikGlobal = ikLocal+ikStart_pool-1
+    do isp = 1, nSpins
       
-      do ib = iBandIinit, iBandIfinal
+      do ikLocal = 1, nKPerPool
+
+        ikGlobal = ikLocal+ikStart_pool-1
+      
+        do ib = iBandIinit, iBandIfinal
         
-        if(abs(eMin - DE(ib,ikLocal)) < 1.0e-3_dp) DHifMin = absVfi2(ib, ikLocal)
+          if(abs(eMin - DE(ib, ikLocal, isp)) < 1.0e-3_dp) DHifMin = absVfi2(ib, ikLocal,isp)
 
-        iE = int((DE(ib, ikLocal)-eMin)/eBin)
+          iE = int((DE(ib, ikLocal, isp) - eMin)/eBin)
 
-        if(absVfi2(ib, ikLocal) > 0.0_dp) then
+          if(absVfi2(ib, ikLocal, isp) > 0.0_dp) then
 
-          absVfiOfE2(iE) = absVfiOfE2(iE) + wkPC(ikGlobal)*absVfi2(ib, ikLocal)
+            absVfiOfE2(iE) = absVfiOfE2(iE) + wkPC(ikGlobal)*absVfi2(ib, ikLocal, isp)
+  
+            sumWk(iE) = sumWk(iE) + wkPC(ikGlobal)
 
-          sumWk(iE) = sumWk(iE) + wkPC(ikGlobal)
+            nKsInEbin(iE) = nKsInEbin(iE) + 1
 
-          nKsInEbin(iE) = nKsInEbin(iE) + 1
-
-        else
-          write(*,*) 'absVfi2', absVfi2(ib, ikLocal)
-        endif
+          else
+            write(*,*) 'absVfi2', absVfi2(ib, ikLocal, isp)
+          endif
         
+        enddo
+      
       enddo
-      
+
     enddo
 
     call MPI_ALLREDUCE(MPI_IN_PLACE, DHifMin, 1, MPI_DOUBLE_PRECISION, MPI_SUM, interPoolComm, ierr)
@@ -2337,31 +2385,36 @@ contains
     
     sAbsVfiOfE2 = 0.0_dp
     
-    do ikLocal = 1, nKPerPool
+    do isp = 1, nSpins
+  
+      do ikLocal = 1, nKPerPool
 
-      ikGlobal = ikLocal+ikStart_pool-1
+        ikGlobal = ikLocal+ikStart_pool-1
     
-      call int2str(ikGlobal, iks)
+        call int2str(ikGlobal, ikC)
+        call int2str(isp, ispC)
 
-      open(11, file=trim(VfisOutput)//'ofKpt.'//trim(iks), status='unknown')
+        open(11, file=trim(VfisOutput)//'ofKpt.'//trim(ispC)//'.'//trim(ikC), status='unknown')
       
-      do ib = iBandIinit, iBandIfinal
+        do ib = iBandIinit, iBandIfinal
         
-        iE = int((DE(ib,ikLocal)-eMin)/eBin)
+          iE = int((DE(ib, ikLocal, isp) - eMin)/eBin)
 
-        av = absVfiOfE2(iE)/sumWk(iE)
+          av = absVfiOfE2(iE)/sumWk(iE)
 
-        x = absVfi2(ib,ikLocal)
+          x = absVfi2(ib, ikLocal, isp)
 
-        write(11, '(2ES24.15E3,i10)') (eMin + iE*eBin), x, ikGlobal
-        !write(12, '(2ES24.15E3,i10)') DE(ib,ik), absVfi2(ib, ik), ik
+          write(11, '(2ES24.15E3,2i10)') (eMin + iE*eBin), x, isp, ikGlobal
+          !write(12, '(2ES24.15E3,i10)') DE(ib,ik), absVfi2(ib, ik), ik
 
-        sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + wkPC(ikGlobal)*(x - av)**2/sumWk(iE)
+          sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + wkPC(ikGlobal)*(x - av)**2/sumWk(iE)
         
+        enddo
+
+        close(11)
+      
       enddo
 
-      close(11)
-      
     enddo
 
     call mpiSumDoubleV(sAbsVfiOfE2, interPoolComm)
@@ -2372,19 +2425,24 @@ contains
     
       write(11, '("# |<f|V|i>|^2 versus energy for all the k-points.")')
       write(text, '("# Energy (shifted by eBin/2) (Hartree), |<f|V|i>|^2 (Hartree)^2,")')
-      write(11, '(a, " k-point index. Format : ''(2ES24.15E3,i10)''")') trim(text)
+      write(11, '(a, " spin index, k-point index. Format : ''(2ES24.15E3,,i2,i10)''")') trim(text)
 
       close(11)
 
-      do ikGlobal = 1, nKPoints
+      do isp = 1, nSpins
 
-        call int2str(ikGlobal, iks)
+        do ikGlobal = 1, nKPoints
 
-        fNameBase = trim(VfisOutput)//'ofKpt'
-        fNameK = trim(fNameBase)//'.'//trim(iks)
+          call int2str(ikGlobal, ikC)
+          call int2str(isp, ispC)
 
-        call execute_command_line('cat '//trim(fNameK)//' >> '//trim(fNameBase))
-        call execute_command_line('rm '//trim(fNameK))
+          fNameBase = trim(VfisOutput)//'ofKpt'
+          fNameSK = trim(fNameBase)//'.'//trim(ispC)//'.'//trim(ikC)
+
+          call execute_command_line('cat '//trim(fNameSK)//' >> '//trim(fNameBase))
+          call execute_command_line('rm '//trim(fNameSK))
+
+        enddo
 
       enddo
 

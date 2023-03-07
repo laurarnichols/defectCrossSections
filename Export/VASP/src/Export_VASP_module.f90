@@ -55,6 +55,9 @@ module wfcExportVASPMod
   integer :: worldComm
     !! World communicator
 
+  real(kind=dp) :: t1, t2
+    !! Timers
+
   logical :: ionode
     !! If this node is the root node
 
@@ -2875,8 +2878,6 @@ module wfcExportVASPMod
 
     character(len=256) :: fileName
       !! Full WAVECAR file name including path
-    character(len=300) :: indexC1, indexC2
-      !! Character indices
 
     
     if(indexInPool == 0) then
@@ -2908,25 +2909,30 @@ module wfcExportVASPMod
       !> because they are not dependent on spin. Write them out as if 
       !> they were dependent on spin because that is how TME currently
       !> expects it.
+      call cpu_time(t1)
       call calculatePhase(ikLocal, nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
                 atomPositionsDir, phaseExp)
 
       call calculateRealProjWoPhase(fftGridSize, ikLocal, nAtomTypes, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
                 kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
-      if(indexInPool == 0) write(*,'("    Writing projectors of k-point ", i3)') ikGlobal
+
+      call cpu_time(t2)
+      if(indexInPool == 0) &
+        write(*, '("    Calculating projectors of k-point ", i4, " done in", f10.2, " secs.")') &
+              ikGlobal, t2-t1
+      call cpu_time(t1)
+
 
       call writeProjectors(ikLocal, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, nPWs1k, & 
                 gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot)
 
-      if(nSpins == 2) then
 
-        call int2str(ikGlobal, indexC1)
-        call int2str(ikGlobal+nKPoints, indexC2)
+      call cpu_time(t2)
+      if(indexInPool == 0) &
+        write(*, '("    Writing projectors of k-point ", i4, " done in", f10.2, " secs.")') &
+              ikGlobal, t2-t1
 
-        call execute_command_line('cp projectors.'//trim(indexC1)//' projectors.'//trim(indexC2))
-
-      endif
 
       do isp = 1, nSpins
 
@@ -2938,14 +2944,26 @@ module wfcExportVASPMod
           ! they know where they are supposed to access the WAVECAR
           ! once/if they are the I/O node
 
-        if(indexInPool == 0) write(*,'("    Reading and writing wave function for k-point ", i3, " and spin ", i2)') ikGlobal, isp
+        call cpu_time(t1)
 
         call readAndWriteWavefunction(ikLocal, isp, maxNumPWsGlobal, nBands, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
 
-        if(indexInPool == 0) write(*,'("    Getting and writing projections for k-point ", i3, " and spin ", i2)') ikGlobal, isp
+        call cpu_time(t2)
+        if(indexInPool == 0) &
+          write(*, '("    Reading and writing wave function for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
+                ikGlobal, isp, t2-t1 
+        call cpu_time(t1)
+
 
         call getAndWriteProjections(ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nBands, nGkVecsLocal_ik, nKPoints, realProjWoPhase, compFact, & 
                   phaseExp, coeffLocal, exportDir, pot)
+
+
+        call cpu_time(t2)
+        if(indexInPool == 0) &
+          write(*, '("    Getting and writing projections for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
+                ikGlobal, isp, t2-t1 
+        call cpu_time(t1)
 
       enddo
 
@@ -3647,7 +3665,7 @@ module wfcExportVASPMod
     complex(kind=dp) :: phaseExpGlobal(nPWs1k, nAtoms)
       !! Exponential phase factor
 
-    character(len=300) :: indexC
+    character(len=300) :: ikC
       !! Character index
 
 
@@ -3657,10 +3675,10 @@ module wfcExportVASPMod
 
       ikGlobal = ik+ikStart_pool-1
 
-      call int2str(ikGlobal, indexC)
+      call int2str(ikGlobal, ikC)
 
       projOutUnit = 83 + myid
-      open(projOutUnit, file=trim(exportDir)//"/projectors."//trim(indexC))
+      open(projOutUnit, file=trim(exportDir)//"/projectors."//trim(ikC))
         ! Open `projectors.ik` file
 
       write(projOutUnit, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
@@ -3803,13 +3821,13 @@ module wfcExportVASPMod
       !! scattering coefficients to each process
     integer :: wfcOutUnit
       !! Process-dependent file unit for `wfc.ik`
-    integer :: ib, ipw, iproc
+    integer :: ib, ipw, iproc, ikGlobal
       !! Loop indices
 
     complex*8, allocatable :: coeff(:,:)
       !! Plane wave coefficients
 
-    character(len=300) :: indexC
+    character(len=300) :: ikC, ispC
       !! Character index
 
 
@@ -3820,14 +3838,19 @@ module wfcExportVASPMod
 
       wfcOutUnit = 83 + myid
 
-      call int2str(ik+ikStart_pool-1+(isp-1)*nKPoints, indexC)
+      ikGlobal = ik+ikStart_pool-1
 
-      open(wfcOutUnit, file=trim(exportDir)//"/wfc."//trim(indexC))
+      call int2str(ikGlobal, ikC)
+      call int2str(isp, ispC)
+
+      open(wfcOutUnit, file=trim(exportDir)//"/wfc."//trim(ispC)//"."//trim(ikC))
         ! Open `wfc.ik` file to write plane wave coefficients
 
       write(wfcOutUnit, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
       write(wfcOutUnit, '("# Complex : wavefunction coefficients. Format: ''(2ES24.15E3)''")')
-        ! Write header to `wfc.ik` file
+        ! Write header to `wfc.isp.ik` file
+
+      call cpu_time(t1)
 
       do ib = 1, nBands
 
@@ -3838,7 +3861,7 @@ module wfcExportVASPMod
 
         do ipw = 1, nPWs1k
 
-          write(wfcOutUnit,'(2ES24.15E3)') coeff(gKSort(ipw,ik+ikStart_pool-1),ib)
+          write(wfcOutUnit,'(2ES24.15E3)') coeff(gKSort(ipw,ikGlobal),ib)
             ! Write out in sorted order
             !! @note
             !!  I was trying to convert these coefficients based
@@ -3855,6 +3878,11 @@ module wfcExportVASPMod
 
       close(wfcOutUnit)
         ! Close `wfc.ik` file
+
+      call cpu_time(t2)
+      write(*, '("       Reading and writing global wfc for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
+            ikGlobal, isp, t2-t1 
+
 
     endif
 
@@ -3935,7 +3963,7 @@ module wfcExportVASPMod
     integer :: ib, iT, ia, iaBase, ilm
       !! Loop indices
 
-    character(len=300) :: indexC
+    character(len=300) :: ikC, ispC
       !! Character index
 
     complex*8 :: projection, projectionLocal
@@ -3947,9 +3975,10 @@ module wfcExportVASPMod
 
       projOutUnit = 83 + myid
 
-      call int2str(ik+(isp-1)*nKPoints, indexC)
+      call int2str(ik, ikC)
+      call int2str(isp, ispC)
 
-      open(projOutUnit, file=trim(exportDir)//"/projections."//trim(indexC))
+      open(projOutUnit, file=trim(exportDir)//"/projections."//trim(ispC)//"."//trim(ikC))
         !! Open `projections.ik`
 
       write(projOutUnit, '("# Complex projections <beta|psi>. Format: ''(2ES24.15E3)''")')
@@ -3968,7 +3997,7 @@ module wfcExportVASPMod
               ! Don't need to worry about sorting because projection
               ! has sum over plane waves.
 
-            call MPI_REDUCE(projectionLocal, projection, 1, MPI_COMPLEX, MPI_SUM, root, intraPoolComm, ierr)
+            call MPI_ALLREDUCE(projectionLocal, projection, 1, MPI_COMPLEX, MPI_SUM, intraPoolComm, ierr)
 
             if(indexInPool == 0) write(projOutUnit,'(2ES24.15E3)') projection
 
@@ -4028,12 +4057,6 @@ module wfcExportVASPMod
       write(iostd,*) "***************"
       write(iostd,*) "Getting ground state bands"
     
-      write(mainOutFileUnit, '("# Number of K-points. Format: ''(i10)''")')
-      write(mainOutFileUnit, '(i10)') nSpins*nKPoints
-        !! @todo Change `nSpins*nKPoints` back to `nKPoints` after spin polarization is implemented in `TME` #spin @endtodo
-      write(mainOutFileUnit, '("# ik, groundState, nGkLessECutGlobal(ik), wk(ik), xk(1:3,ik). Format: ''(3i10,4ES24.15E3)''")')
-      flush(mainOutFileUnit)
-    
       allocate(groundState(nSpins,nKPoints))
 
       call getGroundState(nBands, nKPoints, nSpins, bandOccupation, groundState)
@@ -4045,6 +4068,23 @@ module wfcExportVASPMod
         !!  it is not currently used by the `TME` program.
         !! @endnote
 
+      open(72, file=trim(exportDir)//"/groundState")
+
+      write(72, '("# isp, ik, groundState(isp,ik). Format: ''(3i10)''")')
+
+      do isp = 1, nSpins
+        do ik = 1, nKPoints
+
+          write(72, '(3i10)') isp, ik, groundState(isp,ik)
+
+        enddo
+      enddo
+
+      close(72)
+
+      deallocate(groundState)
+          
+
       write(iostd,*) "Done getting ground state bands"
       write(iostd,*) "***************"
       write(iostd,*)
@@ -4052,19 +4092,22 @@ module wfcExportVASPMod
       write(iostd,*)
       write(iostd,*) "***************"
       write(iostd,*) "Writing out k info"
-
-      do isp = 1, nSpins
-        do ik = 1, nKPoints
-
-          write(iostd,*) "   Processing k-point ", ik, " Spin ", isp
     
-          write(mainOutFileUnit, '(3i10,4ES24.15E3)') ik, groundState(isp,ik), nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
-          flush(mainOutFileUnit)
-            !! * Write the k-point index, the ground state band, and
-            !!   the number of G-vectors, weight, and position for this 
-            !!   k-point
+      write(mainOutFileUnit, '("# Number of spins. Format: ''(i10)''")')
+      write(mainOutFileUnit, '(i10)') nSpins
+
+      write(mainOutFileUnit, '("# Number of K-points. Format: ''(i10)''")')
+      write(mainOutFileUnit, '(i10)') nKPoints
+
+      write(mainOutFileUnit, '("# ik, nGkLessECutGlobal(ik), wk(ik), xk(1:3,ik). Format: ''(2i10,4ES24.15E3)''")')
+      flush(mainOutFileUnit)
+
+      do ik = 1, nKPoints
     
-        enddo
+        write(mainOutFileUnit, '(2i10,4ES24.15E3)') ik, nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
+        flush(mainOutFileUnit)
+          !! * Write the k-point index, the number of G-vectors, 
+          !!   weight, and position for this k-point
 
       enddo
 
@@ -4072,8 +4115,6 @@ module wfcExportVASPMod
       write(iostd,*) "***************"
       write(iostd,*)
       flush(iostd)
-
-      deallocate(groundState)
 
     endif
 
@@ -4179,10 +4220,10 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: ik, ig, igk, isp
+    integer :: ikLocal, ikGlobal, ig, igk, isp
       !! Loop indices
 
-    character(len=300) :: indexC
+    character(len=300) :: ikC, ispC
       !! Character index
 
 
@@ -4201,30 +4242,34 @@ module wfcExportVASPMod
                           minval(gVecMillerIndicesGlobal(2,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobal(2,1:nGVecsGlobal)), &
                           minval(gVecMillerIndicesGlobal(3,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobal(3,1:nGVecsGlobal))
       flush(mainOutFileUnit)
+
+    endif
     
-      do isp = 1, nSpins
-        !! @todo Remove this loop after spin after spin polarization is implemented in `TME` #spin @endtodo
-        do ik = 1, nKPoints
-          !! * For each k-point, write out the miller indices
-          !!   resulting in \(G+k\) vectors less than the energy
-          !!   cutoff in a `grid.ik` file
+    if(indexInPool == 0) then
+      do ikLocal = 1, nKPerPool
+        !! * For each k-point, write out the miller indices
+        !!   resulting in \(G+k\) vectors less than the energy
+        !!   cutoff in a `grid.ik` file
       
-          call int2str(ik+(isp-1)*nKPoints, indexC)
-            !! @todo Change indexing back to just k-points after add spin in `TME` #spin @endtodo
-          open(72, file=trim(exportDir)//"/grid."//trim(indexC))
-          write(72, '("# Wave function G-vectors grid")')
-          write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
+        ikGlobal = ikLocal+ikStart_pool-1
+        call int2str(ikGlobal, ikC)
+
+        open(72, file=trim(exportDir)//"/grid."//trim(ikC))
+        write(72, '("# Wave function G-vectors grid")')
+        write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
       
-          do igk = 1, nGkLessECutGlobal(ik)
-            write(72, '(4i10)') gKIndexGlobal(igk,ik), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ik))
-            flush(72)
-          enddo
-      
-          close(72)
-      
+        do igk = 1, nGkLessECutGlobal(ikGlobal)
+          write(72, '(4i10)') gKIndexGlobal(igk,ikGlobal), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ikGlobal))
+          flush(72)
         enddo
+      
+        close(72)
 
       enddo
+
+    endif
+
+    if(ionode) then
 
       !> * Output all miller indices in `mgrid` file
       open(72, file=trim(exportDir)//"/mgrid")
@@ -4245,7 +4290,7 @@ module wfcExportVASPMod
 
 
 !----------------------------------------------------------------------------
-  subroutine writeCellInfo(iType, nAtoms, nBands, nAtomTypes, nSpins, realLattVec, recipLattVec, atomPositionsDir)
+  subroutine writeCellInfo(iType, nAtoms, nBands, nAtomTypes, realLattVec, recipLattVec, atomPositionsDir)
     !! Write out the real- and reciprocal-space lattice vectors, 
     !! the number of atoms, the number of types of atoms, the
     !! final atom positions, number of bands, and number of spins
@@ -4261,8 +4306,6 @@ module wfcExportVASPMod
       !! Total number of bands
     integer, intent(in) :: nAtomTypes
       !! Number of types of atoms
-    integer, intent(in) :: nSpins
-      !! Number of spins
 
     real(kind=dp), intent(in) :: realLattVec(3,3)
       !! Real space lattice vectors
@@ -4314,9 +4357,6 @@ module wfcExportVASPMod
     
       write(mainOutFileUnit, '("# Number of Bands. Format: ''(i10)''")')
       write(mainOutFileUnit, '(i10)') nBands
-
-      write(mainOutFileUnit, '("# Spin. Format: ''(i10)''")')
-      write(mainOutFileUnit, '(i10)') nSpins
 
     endif
 
@@ -4427,11 +4467,11 @@ module wfcExportVASPMod
     integer :: ik, ib, isp
       !! Loop indices
 
-    character(len=300) :: indexC
+    character(len=300) :: ikC, ispC
       !! Character index
 
 
-    if (ionode ) then
+    if(ionode) then
     
       write(mainOutFileUnit, '("# Fermi Energy (Hartree). Format: ''(ES24.15E3)''")')
       write(mainOutFileUnit, '(ES24.15E3)') eFermi*ryToHartree
@@ -4440,8 +4480,10 @@ module wfcExportVASPMod
       do isp = 1, nSpins
         do ik = 1, nKPoints
       
-          call int2str(ik+(isp-1)*nKPoints, indexC)
-          open(72, file=trim(exportDir)//"/eigenvalues."//trim(indexC))
+          call int2str(ik, ikC)
+          call int2str(isp, ispC)
+
+          open(72, file=trim(exportDir)//"/eigenvalues."//trim(ispC)//"."//trim(ikC))
       
           write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
           write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')

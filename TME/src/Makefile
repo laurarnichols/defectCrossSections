@@ -1,7 +1,7 @@
 
 -include ../../make.sys
 
-TME_OBJS = TME_Module_v28.o TME_Main_v9.o
+TME_OBJS = TME_module.o TME_main.o
 
 all : TME.x 
 	
