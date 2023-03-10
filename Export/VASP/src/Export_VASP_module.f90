@@ -2905,13 +2905,24 @@ module wfcExportVASPMod
 
       nPWs1k = nPWs1kGlobal(ikGlobal)
 
+      if(indexInPool == 0) &
+        write(*, '("   k-point ",i4,": [ ] Phase  [ ] Real(projector)  [ ] Write projectors")') ikGlobal
+      call cpu_time(t1)
+
       !> Calculate the projectors and phase only once for each k-point
       !> because they are not dependent on spin. Write them out as if 
       !> they were dependent on spin because that is how TME currently
       !> expects it.
-      call cpu_time(t1)
       call calculatePhase(ikLocal, nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
                 atomPositionsDir, phaseExp)
+
+
+      call cpu_time(t2)
+      if(indexInPool == 0) &
+        write(*, '("   k-point ",i4,": [X] Phase  [ ] Real(projector)  [ ] Write projectors (",f6.2," secs)")') &
+              ikGlobal, t2-t1
+      call cpu_time(t1)
+
 
       call calculateRealProjWoPhase(fftGridSize, ikLocal, nAtomTypes, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
                 kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
@@ -2919,7 +2930,7 @@ module wfcExportVASPMod
 
       call cpu_time(t2)
       if(indexInPool == 0) &
-        write(*, '("    Calculating projectors of k-point ", i4, " done in", f10.2, " secs.")') &
+        write(*, '("   k-point ",i4,": [X] Phase  [X] Real(projector)  [ ] Write projectors (",f6.2," secs)")') &
               ikGlobal, t2-t1
       call cpu_time(t1)
 
@@ -2930,8 +2941,9 @@ module wfcExportVASPMod
 
       call cpu_time(t2)
       if(indexInPool == 0) &
-        write(*, '("    Writing projectors of k-point ", i4, " done in", f10.2, " secs.")') &
+        write(*, '("   k-point ",i4,": [X] Phase  [X] Real(projector)  [X] Write projectors (",f6.2," secs)")') &
               ikGlobal, t2-t1
+      call cpu_time(t1)
 
 
       do isp = 1, nSpins
@@ -2944,14 +2956,17 @@ module wfcExportVASPMod
           ! they know where they are supposed to access the WAVECAR
           ! once/if they are the I/O node
 
+        if(indexInPool == 0) &
+          write(*, '("      k-point ",i4,", spin ",i1,": [ ] Wavefunctions  [ ] Projections")') ikGlobal, isp
         call cpu_time(t1)
 
         call readAndWriteWavefunction(ikLocal, isp, maxNumPWsGlobal, nBands, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
 
+
         call cpu_time(t2)
         if(indexInPool == 0) &
-          write(*, '("    Reading and writing wave function for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                ikGlobal, isp, t2-t1 
+          write(*, '("      k-point ",i4,", spin ",i1,": [X] Wavefunctions  [ ] Projections (",f6.2," secs)")') &
+                ikGlobal, isp, t2-t1
         call cpu_time(t1)
 
 
@@ -2961,9 +2976,10 @@ module wfcExportVASPMod
 
         call cpu_time(t2)
         if(indexInPool == 0) &
-          write(*, '("    Getting and writing projections for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                ikGlobal, isp, t2-t1 
+          write(*, '("      k-point ",i4,", spin ",i1,": [X] Wavefunctions  [X] Projections (",f6.2," secs)")') &
+                ikGlobal, isp, t2-t1
         call cpu_time(t1)
+
 
       enddo
 
