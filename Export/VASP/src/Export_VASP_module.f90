@@ -2797,6 +2797,8 @@ module wfcExportVASPMod
 
     real(kind=dp), allocatable :: realProjWoPhase(:,:,:)
       !! Real projectors without phase
+    real(kind=dp) :: t1, t2
+      !! Timers
 
     complex*8, allocatable :: coeffLocal(:,:)
       !! Plane wave coefficients
@@ -3769,6 +3771,9 @@ module wfcExportVASPMod
     integer :: ib, ipw, iproc, ikGlobal
       !! Loop indices
 
+    real(kind=dp) :: t1, t2
+      !! Timers
+
     complex*8, allocatable :: coeff(:,:)
       !! Plane wave coefficients
 
@@ -3795,12 +3800,51 @@ module wfcExportVASPMod
       write(wfcOutUnit, '("# Complex : wavefunction coefficients. Format: ''(2ES24.15E3)''")')
         ! Write header to `wfc.isp.ik` file
 
+    endif
+
+
+    if(indexInPool == 0) &
+      write(*, '("         k-point ",i4,", spin ",i1,": [ ] Read and scatter  [ ] Write")') ikGlobal, isp
+    call cpu_time(t1)
+
+
+    sendCount = 0
+    sendCount(indexInPool+1) = nGkVecsLocal_ik
+    call mpiSumIntV(sendCount, intraPoolComm)
+      !! * Put the number of G+k vectors on each process
+      !!   in a single array per pool
+
+    displacement = 0
+    displacement(indexInPool+1) = iGkStart_pool(ik)-1
+    call mpiSumIntV(displacement, intraPoolComm)
+      !! * Put the displacement from the beginning of the array
+      !!   for each process in a single array per pool
+
+    do ib = 1, nBands
+
+      irec = irec + 1
+
+      if(indexInPool == 0) read(unit=wavecarUnit,rec=irec) (coeff(ipw,ib), ipw=1,nPWs1k)
+        ! Read in the plane wave coefficients for each band
+
+      call MPI_SCATTERV(coeff(:,ib), sendCount, displacement, MPI_COMPLEX, coeffLocal(1:nGkVecsLocal_ik,ib), nGkVecsLocal_ik, &
+          MPI_COMPLEX, 0, intraPoolComm, ierr)
+      !! * For each band, scatter the coefficients across all 
+      !!   of the processes in the pool
+
+    enddo
+
+
+    call cpu_time(t2)
+    if(indexInPool == 0) &
+      write(*, '("         k-point ",i4,", spin ",i1,": [X] Read and scatter  [ ] Write (",f7.2," secs)")') &
+            ikGlobal, isp, t2-t1
+    call cpu_time(t1)
+
+
+    if(indexInPool == 0) then
+
       do ib = 1, nBands
-
-        irec = irec + 1
-
-        read(unit=wavecarUnit,rec=irec) (coeff(ipw,ib), ipw=1,nPWs1k)
-          ! Read in the plane wave coefficients for each band
 
         do ipw = 1, nPWs1k
 
@@ -3824,26 +3868,12 @@ module wfcExportVASPMod
 
     endif
 
-    sendCount = 0
-    sendCount(indexInPool+1) = nGkVecsLocal_ik
-    call mpiSumIntV(sendCount, intraPoolComm)
-      !! * Put the number of G+k vectors on each process
-      !!   in a single array per pool
 
-    displacement = 0
-    displacement(indexInPool+1) = iGkStart_pool(ik)-1
-    call mpiSumIntV(displacement, intraPoolComm)
-      !! * Put the displacement from the beginning of the array
-      !!   for each process in a single array per pool
+    call cpu_time(t2)
+    if(indexInPool == 0) &
+      write(*, '("         k-point ",i4,", spin ",i1,": [X] Read and scatter  [X] Write (",f7.2," secs)")') &
+            ikGlobal, isp, t2-t1
 
-    do ib = 1, nBands
-      !! * For each band, scatter the coefficients across all 
-      !!   of the processes in the pool
-
-      call MPI_SCATTERV(coeff(:,ib), sendCount, displacement, MPI_COMPLEX, coeffLocal(1:nGkVecsLocal_ik,ib), nGkVecsLocal_ik, &
-          MPI_COMPLEX, 0, intraPoolComm, ierr)
-
-    enddo
 
     if(indexInPool == 0) deallocate(coeff)
 
