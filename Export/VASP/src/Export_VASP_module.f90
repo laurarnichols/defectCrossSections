@@ -1031,8 +1031,6 @@ module wfcExportVASPMod
 
       irec=2
 
-      write(iostd,*) 'Completing preliminary scan of WAVECAR'
-
       do isp = 1, nSpins
         !! * For each spin:
         !!    * Go through each k-point
@@ -1042,8 +1040,6 @@ module wfcExportVASPMod
         !!         reciprocal space
         !!       * Read in the eigenvalue and occupation for
         !!         each band
-
-        write(iostd,*) '  Reading spin ', isp
 
         do ik = 1, nKPoints
         
@@ -1083,8 +1079,6 @@ module wfcExportVASPMod
     call MPI_BCAST(bandOccupation, size(bandOccupation), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(eigenE, size(eigenE), MPI_COMPLEX, root, worldComm, ierr)
     call MPI_BCAST(nPWs1kGlobal, size(nPWs1kGlobal), MPI_INTEGER, root, worldComm, ierr)
-
-    if(ionode) write(iostd,*) 'Preliminary scan complete.'
 
     return
 
@@ -1496,10 +1490,6 @@ module wfcExportVASPMod
 
       allocate(gVecMillerIndicesGlobal_tmp(3,npmax))
 
-      write(iostd,*)
-      write(iostd,*) "***************"
-      write(iostd,*) "Calculating miller indices"
-
       nGVecsGlobal = 0
       gVecMillerIndicesGlobal_tmp = 0
 
@@ -1542,8 +1532,6 @@ module wfcExportVASPMod
         '*** error - computed no. of G-vectors != estimated number of plane waves', 1)
         !! * Check that number of G-vectors are the same as the number of plane waves
 
-      write(iostd,*) "Sorting miller indices"
-
       allocate(iMill(nGVecsGlobal))
 
       do ig = 1, nGVecsGlobal
@@ -1568,25 +1556,14 @@ module wfcExportVASPMod
 
       deallocate(gVecMillerIndicesGlobal_tmp)
 
-      write(*,*) "Done calculating and sorting miller indices"
-      write(*,*) "***************"
-      write(*,*)
     endif
 
     call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(gVecMillerIndicesGlobal, size(gVecMillerIndicesGlobal), MPI_INTEGER, root, worldComm, ierr)
 
 
-    if (ionode) then
-      write(iostd,*)
-      write(iostd,*) "***************"
-      write(iostd,*) "Distributing G-vecs over processors"
-    endif
-
     call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexLocalToGlobal, mill_local, nGVecsLocal)
       !! * Split up the G-vectors and Miller indices over processors 
-
-    if (ionode) write(iostd,*) "Calculating G-vectors"
 
     allocate(gVecInCart(3,nGVecsLocal))
 
@@ -1600,11 +1577,6 @@ module wfcExportVASPMod
       enddo
       
     enddo
-
-    if (ionode) then
-      write(iostd,*) "***************"
-      write(iostd,*)
-    endif
 
     deallocate(mill_local)
 
@@ -1803,12 +1775,6 @@ module wfcExportVASPMod
     nGkLessECutLocal(:) = 0
     gToGkIndexMap(:,:) = 0
 
-    if (ionode) then
-      write(iostd,*)
-      write(iostd,*) "***************"
-      write(iostd,*) "Determining G+k combinations less than energy cutoff"
-    endif
-
     do ik = 1, nkPerPool
       !! * For each \(G+k\) combination, calculate the 
       !!   magnitude and, if it is less than the energy
@@ -1821,8 +1787,6 @@ module wfcExportVASPMod
       !!  All of the above calculations are local to a single
       !!  processor.
       !! @endnote
-
-      if (ionode) write(iostd,*) "Processing k-point ", ik
 
       do ix = 1, 3
         xkCart(ix) = sum(kPosition(:,ik+ikStart_pool-1)*recipLattVec(ix,:))
@@ -1889,12 +1853,6 @@ module wfcExportVASPMod
       enddo
     endif
 
-    if (ionode) then
-      write(iostd,*) "Done determining G+k combinations less than energy cutoff"
-      write(iostd,*) "***************"
-      write(iostd,*)
-    endif
-
     if (maxNumPWsLocal <= 0) call exitError('reconstructFFTGrid', &
                 'No plane waves found: running on too many processors?', 1)
       !! * Make sure that each processor gets some \(G+k\) vectors. If not,
@@ -1911,12 +1869,6 @@ module wfcExportVASPMod
 
     gKIndexLocalToGlobal = 0
     igk = 0
-
-    if (ionode) then
-      write(iostd,*)
-      write(iostd,*) "***************"
-      write(iostd,*) "Sorting G+k combinations by magnitude"
-    endif
 
 
     do ik = 1, nkPerPool
@@ -1941,12 +1893,6 @@ module wfcExportVASPMod
     enddo
 
 
-    if (ionode) then
-      write(iostd,*) "Done sorting G+k combinations by magnitude"
-      write(iostd,*) "***************"
-      write(iostd,*)
-    endif
-
     deallocate(igk)
 
 
@@ -1962,17 +1908,9 @@ module wfcExportVASPMod
 
     allocate(gKIndexGlobal(maxNumPWsGlobal, nKPoints))
 
-    if(ionode) then
-      write(iostd,*)
-      write(iostd,*) "***************"
-      write(iostd,*) "Getting global G+k indices"
-
-    endif
   
     gKIndexGlobal(:,:) = 0
     do ik = 1, nKPoints
-
-      if (ionode) write(iostd,*) "Processing k-point ", ik
 
       call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
           maxNumPWsGlobal, gKIndexGlobal)
@@ -2044,15 +1982,6 @@ module wfcExportVASPMod
       !! * Distribute the G+k vectors evenly across the processes in a single pool
 
     deallocate(gKIndexOrigOrderGlobal)
-
-    if(ionode) then
-
-      write(iostd,*) "Done getting global G+k indices"
-      write(iostd,*) "***************"
-      write(iostd,*)
-      flush(iostd)
-
-    endif
 
     return
   end subroutine reconstructFFTGrid
@@ -2919,7 +2848,7 @@ module wfcExportVASPMod
 
       call cpu_time(t2)
       if(indexInPool == 0) &
-        write(*, '("   k-point ",i4,": [X] Phase  [ ] Real(projector)  [ ] Write projectors (",f6.2," secs)")') &
+        write(*, '("   k-point ",i4,": [X] Phase  [ ] Real(projector)  [ ] Write projectors (",f7.2," secs)")') &
               ikGlobal, t2-t1
       call cpu_time(t1)
 
@@ -2930,7 +2859,7 @@ module wfcExportVASPMod
 
       call cpu_time(t2)
       if(indexInPool == 0) &
-        write(*, '("   k-point ",i4,": [X] Phase  [X] Real(projector)  [ ] Write projectors (",f6.2," secs)")') &
+        write(*, '("   k-point ",i4,": [X] Phase  [X] Real(projector)  [ ] Write projectors (",f7.2," secs)")') &
               ikGlobal, t2-t1
       call cpu_time(t1)
 
@@ -2941,7 +2870,7 @@ module wfcExportVASPMod
 
       call cpu_time(t2)
       if(indexInPool == 0) &
-        write(*, '("   k-point ",i4,": [X] Phase  [X] Real(projector)  [X] Write projectors (",f6.2," secs)")') &
+        write(*, '("   k-point ",i4,": [X] Phase  [X] Real(projector)  [X] Write projectors (",f7.2," secs)")') &
               ikGlobal, t2-t1
       call cpu_time(t1)
 
@@ -2965,7 +2894,7 @@ module wfcExportVASPMod
 
         call cpu_time(t2)
         if(indexInPool == 0) &
-          write(*, '("      k-point ",i4,", spin ",i1,": [X] Wavefunctions  [ ] Projections (",f6.2," secs)")') &
+          write(*, '("      k-point ",i4,", spin ",i1,": [X] Wavefunctions  [ ] Projections (",f7.2," secs)")') &
                 ikGlobal, isp, t2-t1
         call cpu_time(t1)
 
@@ -2976,7 +2905,7 @@ module wfcExportVASPMod
 
         call cpu_time(t2)
         if(indexInPool == 0) &
-          write(*, '("      k-point ",i4,", spin ",i1,": [X] Wavefunctions  [X] Projections (",f6.2," secs)")') &
+          write(*, '("      k-point ",i4,", spin ",i1,": [X] Wavefunctions  [X] Projections (",f7.2," secs)")') &
                 ikGlobal, isp, t2-t1
         call cpu_time(t1)
 
@@ -3866,8 +3795,6 @@ module wfcExportVASPMod
       write(wfcOutUnit, '("# Complex : wavefunction coefficients. Format: ''(2ES24.15E3)''")')
         ! Write header to `wfc.isp.ik` file
 
-      call cpu_time(t1)
-
       do ib = 1, nBands
 
         irec = irec + 1
@@ -3894,11 +3821,6 @@ module wfcExportVASPMod
 
       close(wfcOutUnit)
         ! Close `wfc.ik` file
-
-      call cpu_time(t2)
-      write(*, '("       Reading and writing global wfc for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-            ikGlobal, isp, t2-t1 
-
 
     endif
 
@@ -4068,10 +3990,6 @@ module wfcExportVASPMod
 
 
     if(ionode) then
-
-      write(iostd,*)
-      write(iostd,*) "***************"
-      write(iostd,*) "Getting ground state bands"
     
       allocate(groundState(nSpins,nKPoints))
 
@@ -4101,14 +4019,6 @@ module wfcExportVASPMod
       deallocate(groundState)
           
 
-      write(iostd,*) "Done getting ground state bands"
-      write(iostd,*) "***************"
-      write(iostd,*)
-
-      write(iostd,*)
-      write(iostd,*) "***************"
-      write(iostd,*) "Writing out k info"
-    
       write(mainOutFileUnit, '("# Number of spins. Format: ''(i10)''")')
       write(mainOutFileUnit, '(i10)') nSpins
 
@@ -4126,11 +4036,6 @@ module wfcExportVASPMod
           !!   weight, and position for this k-point
 
       enddo
-
-      write(iostd,*) "Done writing out k info"
-      write(iostd,*) "***************"
-      write(iostd,*)
-      flush(iostd)
 
     endif
 

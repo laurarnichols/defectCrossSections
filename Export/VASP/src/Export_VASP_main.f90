@@ -61,7 +61,7 @@ program wfcExportVASPMain
 
   call cpu_time(t2)
   if(ionode) &
-    write(*, '("[X] WAVECAR  [ ] vasprun.xml  [ ] Set up grid  [ ] POTCAR (",f10.2," secs)")') &
+    write(*, '("[X] WAVECAR  [ ] vasprun.xml  [ ] Set up grid  [ ] POTCAR (",f7.2," secs)")') &
           t2-t1
   call cpu_time(t1)
 
@@ -76,7 +76,7 @@ program wfcExportVASPMain
 
   call cpu_time(t2)
   if(ionode) &
-    write(*, '("[X] WAVECAR  [X] vasprun.xml  [ ] Set up grid  [ ] POTCAR (",f10.2," secs)")') &
+    write(*, '("[X] WAVECAR  [X] vasprun.xml  [ ] Set up grid  [ ] POTCAR (",f7.2," secs)")') &
           t2-t1
   call cpu_time(t1)
 
@@ -96,7 +96,7 @@ program wfcExportVASPMain
 
   call cpu_time(t2)
   if(ionode) &
-    write(*, '("[X] WAVECAR  [X] vasprun.xml  [X] Set up grid  [ ] POTCAR (",f10.2," secs)")') &
+    write(*, '("[X] WAVECAR  [X] vasprun.xml  [X] Set up grid  [ ] POTCAR (",f7.2," secs)")') &
           t2-t1
   call cpu_time(t1)
 
@@ -115,7 +115,7 @@ program wfcExportVASPMain
 
   call cpu_time(t2)
   if(ionode) &
-    write(*, '("[X] WAVECAR  [X] vasprun.xml  [X] Set up grid  [X] POTCAR (",f10.2," secs)")') &
+    write(*, '("[X] WAVECAR  [X] vasprun.xml  [X] Set up grid  [X] POTCAR (",f7.2," secs)")') &
           t2-t1
   call cpu_time(t1)
 
@@ -140,7 +140,7 @@ program wfcExportVASPMain
 
   call cpu_time(t2)
   if(ionode) &
-    write(*, '("[X] K-points  [ ] Grid  [ ] Cell  [ ] Pseudo  [ ] Eigenvalues (",f10.2," secs)")') &
+    write(*, '("[X] K-points  [ ] Grid  [ ] Cell  [ ] Pseudo  [ ] Eigenvalues (",f7.2," secs)")') &
           t2-t1
   call cpu_time(t1)
 
@@ -158,7 +158,7 @@ program wfcExportVASPMain
 
   call cpu_time(t2)
   if(ionode) &
-    write(*, '("[X] K-points  [X] Grid  [ ] Cell  [ ] Pseudo  [ ] Eigenvalues (",f10.2," secs)")') &
+    write(*, '("[X] K-points  [X] Grid  [ ] Cell  [ ] Pseudo  [ ] Eigenvalues (",f7.2," secs)")') &
           t2-t1
   call cpu_time(t1)
       
@@ -175,7 +175,7 @@ program wfcExportVASPMain
 
   call cpu_time(t2)
   if(ionode) &
-    write(*, '("[X] K-points  [X] Grid  [X] Cell  [ ] Pseudo  [ ] Eigenvalues (",f10.2," secs)")') &
+    write(*, '("[X] K-points  [X] Grid  [X] Cell  [ ] Pseudo  [ ] Eigenvalues (",f7.2," secs)")') &
           t2-t1
   call cpu_time(t1)
 
@@ -192,7 +192,7 @@ program wfcExportVASPMain
 
   call cpu_time(t2)
   if(ionode) &
-    write(*, '("[X] K-points  [X] Grid  [X] Cell  [X] Pseudo  [ ] Eigenvalues (",f10.2," secs)")') &
+    write(*, '("[X] K-points  [X] Grid  [X] Cell  [X] Pseudo  [ ] Eigenvalues (",f7.2," secs)")') &
           t2-t1
   call cpu_time(t1)
 
@@ -212,7 +212,7 @@ program wfcExportVASPMain
 
   call cpu_time(t2)
   if(ionode) &
-    write(*, '("[X] K-points  [X] Grid  [X] Cell  [X] Pseudo  [X] Eigenvalues (",f10.2," secs)")') &
+    write(*, '("[X] K-points  [X] Grid  [X] Cell  [X] Pseudo  [X] Eigenvalues (",f7.2," secs)")') &
           t2-t1
   call cpu_time(t1)
 
