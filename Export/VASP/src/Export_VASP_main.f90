@@ -69,6 +69,9 @@ program wfcExportVASPMain
   call distributeKpointsInPools(nKPoints)
     !! * Figure out how many k-points there should be per pool
 
+  call distributeBandsInGroups(nBands)
+    !! * Figure out how many bands there should be per band group
+
 
   call read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
