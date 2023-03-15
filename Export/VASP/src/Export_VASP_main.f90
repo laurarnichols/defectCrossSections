@@ -18,7 +18,6 @@ program wfcExportVASPMain
   integer :: iT
     !! Index for deallocating `pot` variables
 
-
   call mpiInitialization()
 
   call initialize(gammaOnly, exportDir, VASPDir)
@@ -49,45 +48,37 @@ program wfcExportVASPMain
   call MPI_BCAST(VASPDir, len(VASPDir), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(gammaOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
 
-  if(ionode) &
-    write(*, '("[ ] WAVECAR  [ ] vasprun.xml  [ ] Set up grid  [ ] POTCAR")')
-  call cpu_time(t1)
-
+  if (ionode) write(iostd,*) "Reading WAVECAR"
 
   call readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
       kPosition, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 
-
-  call cpu_time(t2)
-  if(ionode) &
-    write(*, '("[X] WAVECAR  [ ] vasprun.xml  [ ] Set up grid  [ ] POTCAR (",f7.2," secs)")') &
-          t2-t1
-  call cpu_time(t1)
+  if (ionode) write(iostd,*) "Done reading WAVECAR"
 
 
   call distributeKpointsInPools(nKPoints)
     !! * Figure out how many k-points there should be per pool
 
-  call distributeBandsInGroups(nBands)
-    !! * Figure out how many bands there should be per band group
 
+  if (ionode) write(iostd,*) "Reading vasprun.xml"
 
   call read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
+  if (ionode) write(iostd,*) "Done reading vasprun.xml"
 
-  call cpu_time(t2)
-  if(ionode) &
-    write(*, '("[X] WAVECAR  [X] vasprun.xml  [ ] Set up grid  [ ] POTCAR (",f7.2," secs)")') &
-          t2-t1
-  call cpu_time(t1)
 
+  if (ionode) write(iostd,*) "Calculating G-vectors"
 
   call calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, iMill, nGVecsGlobal, nGVecsLocal)
     !! * Calculate Miller indices and G-vectors and split
     !!   over processors
 
+  if (ionode) write(iostd,*) "Done calculating G-vectors"
+
+
+  if (ionode) write(iostd,*) "Reconstructing FFT grid"
 
   call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, wfcVecCut, gKIndexGlobal, &
       gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, gToGkIndexMap, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
@@ -96,12 +87,7 @@ program wfcExportVASPMain
     !!   below the energy cutoff for each k-point and
     !!   sort the indices based on \(|G+k|^2\)
 
-
-  call cpu_time(t2)
-  if(ionode) &
-    write(*, '("[X] WAVECAR  [X] vasprun.xml  [X] Set up grid  [ ] POTCAR (",f7.2," secs)")') &
-          t2-t1
-  call cpu_time(t1)
+  if (ionode) write(iostd,*) "Done reconstructing FFT grid"
 
 
   deallocate(gIndexLocalToGlobal)
@@ -115,42 +101,33 @@ program wfcExportVASPMain
   call readPOTCAR(nAtomTypes, VASPDir, pot)
     !! * Read in pseudopotential information from POTCAR
 
+  if (ionode) write(iostd,*) "Done reading POTCAR"
 
-  call cpu_time(t2)
-  if(ionode) &
-    write(*, '("[X] WAVECAR  [X] vasprun.xml  [X] Set up grid  [X] POTCAR (",f7.2," secs)")') &
-          t2-t1
-  call cpu_time(t1)
 
+  if (ionode) write(iostd,*) "Getting and writing projectors, projections, and wfc"
 
   call projAndWav(fftGridSize, maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
       nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
       recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
+  if (ionode) write(iostd,*) "Done getting and writing projectors, projections, and wfc"
 
   deallocate(nPWs1kGlobal, gKIndexOrigOrderLocal, gKSort, nGkVecsLocal, iGkStart_pool, iGkEnd_pool)
 
 
-  if(ionode) &
-    write(*, '("[ ] K-points  [ ] Grid  [ ] Cell  [ ] Pseudo  [ ] Eigenvalues")')
-  call cpu_time(t1)
-
+  if (ionode) write(iostd,*) "Writing k-point info"
 
   call writeKInfo(nBands, nKPoints, nGkLessECutGlobal, nSpins, bandOccupation, kWeight, kPosition)
     !! * Calculate ground state and write out k-point 
     !!   information to `input` file
 
-
-  call cpu_time(t2)
-  if(ionode) &
-    write(*, '("[X] K-points  [ ] Grid  [ ] Cell  [ ] Pseudo  [ ] Eigenvalues (",f7.2," secs)")') &
-          t2-t1
-  call cpu_time(t1)
+  if (ionode) write(iostd,*) "Done writing k-point info"
 
 
   deallocate(kPosition)
   deallocate(kWeight)
 
+  if (ionode) write(iostd,*) "Writing grid info"
 
   call writeGridInfo(nGVecsGlobal, nKPoints, nSpins, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
     !! * Write out grid boundaries and miller indices
@@ -158,16 +135,12 @@ program wfcExportVASPMain
     !!   in one file and all miller indices in another 
     !!   file
 
-
-  call cpu_time(t2)
-  if(ionode) &
-    write(*, '("[X] K-points  [X] Grid  [ ] Cell  [ ] Pseudo  [ ] Eigenvalues (",f7.2," secs)")') &
-          t2-t1
-  call cpu_time(t1)
+  if (ionode) write(iostd,*) "Done writing grid info"
       
 
   deallocate(gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal)
 
+  if (ionode) write(iostd,*) "Writing cell info"
 
   call writeCellInfo(iType, nAtoms, nBands, nAtomTypes, realLattVec, recipLattVec, atomPositionsDir)
     !! * Write out the real- and reciprocal-space lattice vectors, 
@@ -175,30 +148,20 @@ program wfcExportVASPMain
     !!   final atom positions, number of bands, and number of spins,
     !!   then calculate the number of atoms of each type
 
-
-  call cpu_time(t2)
-  if(ionode) &
-    write(*, '("[X] K-points  [X] Grid  [X] Cell  [ ] Pseudo  [ ] Eigenvalues (",f7.2," secs)")') &
-          t2-t1
-  call cpu_time(t1)
+  if (ionode) write(iostd,*) "Done writing cell info"
 
   
   deallocate(iType)
   deallocate(atomPositionsDir)
 
+  if (ionode) write(iostd,*) "Writing pseudo info"
 
   call writePseudoInfo(nAtomTypes, nAtomsEachType, pot)
     !! * For each atom type, write out the element name,
     !!   number of atoms of this type, projector info,
     !!   radial grid info, and partial waves
 
-
-  call cpu_time(t2)
-  if(ionode) &
-    write(*, '("[X] K-points  [X] Grid  [X] Cell  [X] Pseudo  [ ] Eigenvalues (",f7.2," secs)")') &
-          t2-t1
-  call cpu_time(t1)
-
+  if (ionode) write(iostd,*) "Done writing pseudo info"
 
   deallocate(nAtomsEachType)
 
@@ -209,15 +172,12 @@ program wfcExportVASPMain
   endif
 
 
+  if (ionode) write(iostd,*) "Writing eigenvalues"
+
   call writeEigenvalues(nBands, nKPoints, nSpins, eFermi, bandOccupation, eigenE)
     !! * Write Fermi energy and eigenvalues and occupations for each band
 
-
-  call cpu_time(t2)
-  if(ionode) &
-    write(*, '("[X] K-points  [X] Grid  [X] Cell  [X] Pseudo  [X] Eigenvalues (",f7.2," secs)")') &
-          t2-t1
-  call cpu_time(t1)
+  if (ionode) write(iostd,*) "Done writing eigenvalues"
 
 
   deallocate(eigenE)
@@ -231,5 +191,5 @@ program wfcExportVASPMain
 
   call MPI_FINALIZE(ierr)
 
-end program wfcExportVASPMain
+END PROGRAM wfcExportVASPMain
 
