@@ -1158,6 +1158,62 @@ module wfcExportVASPMod
   end subroutine preliminaryWAVECARScan
 
 !----------------------------------------------------------------------------
+  subroutine distributeBandsInGroups(nBands)
+    !! Figure out how many bands there should be per band group
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nBands
+      !! Total number of bands
+    !integer, intent(in) :: nProcPerBgrp
+      ! Number of processes per band group
+
+
+    ! Output variables:
+    !integer, intent(out) :: ibEnd_bgrp
+      ! Ending index for bands in single band group
+    !integer, intent(out) :: ibStart_bgrp
+      ! Starting index for bands in single band group
+    !integer, intent(out) :: nbPerBgrp
+      ! Number of bands in each band group
+
+
+    ! Local variables:
+    integer :: nbr
+      !! Number of bands left over after evenly divided across band groups
+
+
+    if( nBands > 0 ) then
+
+      IF( ( nProcPerBgrp > nProcPerPool ) .or. ( mod( nProcPerPool, nProcPerBgrp ) /= 0 ) ) &
+        CALL exitError( 'distributeKpointsInPools','nProcPerPool', 1 )
+
+      nbPerBgrp = nBands / nBandGroups
+        !!  * Calculate bands per band group
+
+      nbr = nBands - nbPerBgrp * nBandGroups
+        !! * Calculate the remainder `nbr`
+
+      IF( myBgrpId < nbr ) nbPerBgrp = nbPerBgrp + 1
+        !! * Assign the remainder to the first `nbr` band groups
+
+      !>  * Calculate the index of the first bannd in this band group
+      ibStart_bgrp = nbPerBgrp * myBgrpId + 1
+      IF( myBgrpId >= nbr ) ibStart_bgrp = ibStart_bgrp + nbr
+
+      ibEnd_bgrp = ibStart_bgrp + nbPerBgrp - 1
+        !!  * Calculate the index of the last band in this band group
+
+    endif
+
+    return
+  end subroutine distributeBandsInGroups
+
+!----------------------------------------------------------------------------
   subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
