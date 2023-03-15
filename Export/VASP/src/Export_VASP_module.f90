@@ -30,14 +30,12 @@ module wfcExportVASPMod
   integer, allocatable :: iGkStart_pool(:)
     ! Starting index for G+k vectors on
     ! single process in a given pool
-  integer :: ibEnd_bgrp
-    !! Ending index for bands in single band group
-  integer :: ibStart_bgrp
-    !! Starting index for bands in single band group
-  integer :: ikEnd_pool
-    !! Ending index for k-points in single pool 
-  integer :: ikStart_pool
-    !! Starting index for k-points in single pool 
+  integer :: iaStart_bgrp, iaEnd_bgrp
+    !! Start and end atoms for processes in band group
+  integer :: ibStart_bgrp, ibEnd_bgrp
+    !! Start and end bands for band group
+  integer :: ikStart_pool, ikEnd_pool
+    !! Start and end k-points for pool
   integer :: ios
     !! Error for input/output
   integer :: indexInBgrp
@@ -56,6 +54,8 @@ module wfcExportVASPMod
     !! Band-group index for this process
   integer :: myPoolId
     !! Pool index for this process
+  integer :: naPerProcInBgrp
+    !! Number of atoms per process in band group
   integer :: nbPerBgrp
     !! Number of bands in each band group
   integer :: nkPerPool
@@ -73,7 +73,7 @@ module wfcExportVASPMod
   integer :: worldComm
     !! World communicator
 
-  real(kind=dp) :: t1, t2
+  real(kind=dp) :: t1, t2, t0
     !! Timers
 
   logical :: ionode
@@ -1157,119 +1157,6 @@ module wfcExportVASPMod
 
   end subroutine preliminaryWAVECARScan
 
-
-!----------------------------------------------------------------------------
-  subroutine distributeKpointsInPools(nKPoints)
-    !! Figure out how many k-points there should be per pool
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-    !integer, intent(in) :: nProcPerPool
-      ! Number of processes per pool
-
-
-    ! Output variables:
-    !integer, intent(out) :: ikEnd_pool
-      ! Ending index for k-points in single pool 
-    !integer, intent(out) :: ikStart_pool
-      ! Starting index for k-points in single pool 
-    !integer, intent(out) :: nkPerPool
-      ! Number of k-points in each pool
-
-
-    ! Local variables:
-    integer :: nkr
-      !! Number of k-points left over after evenly divided across pools
-
-
-    if( nKPoints > 0 ) then
-
-      IF( ( nProcPerPool > nProcs ) .or. ( mod( nProcs, nProcPerPool ) /= 0 ) ) &
-        CALL exitError( 'distributeKpointsInPools','nProcPerPool', 1 )
-
-      nkPerPool = nKPoints / nPools
-        !!  * Calculate k-points per pool
-
-      nkr = nKPoints - nkPerPool * nPools 
-        !! * Calculate the remainder `nkr`
-
-      IF( myPoolId < nkr ) nkPerPool = nkPerPool + 1
-        !! * Assign the remainder to the first `nkr` pools
-
-      !>  * Calculate the index of the first k-point in this pool
-      ikStart_pool = nkPerPool * myPoolId + 1
-      IF( myPoolId >= nkr ) ikStart_pool = ikStart_pool + nkr
-
-      ikEnd_pool = ikStart_pool + nkPerPool - 1
-        !!  * Calculate the index of the last k-point in this pool
-
-    endif
-
-    return
-  end subroutine distributeKpointsInPools
-
-!----------------------------------------------------------------------------
-  subroutine distributeBandsInGroups(nBands)
-    !! Figure out how many bands there should be per band group
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nBands
-      !! Total number of bands
-    !integer, intent(in) :: nProcPerBgrp
-      ! Number of processes per band group
-
-
-    ! Output variables:
-    !integer, intent(out) :: ibEnd_bgrp
-      ! Ending index for bands in single band group
-    !integer, intent(out) :: ibStart_bgrp
-      ! Starting index for bands in single band group
-    !integer, intent(out) :: nbPerBgrp
-      ! Number of bands in each band group
-
-
-    ! Local variables:
-    integer :: nbr
-      !! Number of bands left over after evenly divided across band groups
-
-
-    if( nBands > 0 ) then
-
-      IF( ( nProcPerBgrp > nProcPerPool ) .or. ( mod( nProcPerPool, nProcPerBgrp ) /= 0 ) ) &
-        CALL exitError( 'distributeKpointsInPools','nProcPerPool', 1 )
-
-      nbPerBgrp = nBands / nBandGroups
-        !!  * Calculate bands per band group
-
-      nbr = nBands - nbPerBgrp * nBandGroups
-        !! * Calculate the remainder `nbr`
-
-      IF( myBgrpId < nbr ) nbPerBgrp = nbPerBgrp + 1
-        !! * Assign the remainder to the first `nbr` band groups
-
-      !>  * Calculate the index of the first bannd in this band group
-      ibStart_bgrp = nbPerBgrp * myBgrpId + 1
-      IF( myBgrpId >= nbr ) ibStart_bgrp = ibStart_bgrp + nbr
-
-      ibEnd_bgrp = ibStart_bgrp + nbPerBgrp - 1
-        !!  * Calculate the index of the last band in this band group
-
-    endif
-
-    return
-  end subroutine distributeBandsInGroups
-
 !----------------------------------------------------------------------------
   subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
@@ -1556,6 +1443,70 @@ module wfcExportVASPMod
 
     return
   end subroutine read_vasprun_xml
+
+!----------------------------------------------------------------------------
+  subroutine distributeItemsInSubgroups(mySubgroupId, nItemsToDistribute, nProcPerLargerGroup, nProcPerSubgroup, nSubgroups, &
+        iItemStart_subgroup, iItemEnd_subgroup, nItemsPerSubgroup)
+    !! Distribute items across a subgroup
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: mySubgroupId
+      !! Process ID in subgroup
+    integer, intent(in) :: nItemsToDistribute
+      !! Total number of items to distribute
+    integer, intent(in) :: nProcPerLargerGroup
+      !! Number of processes in group next
+      !! larger than this subgroup
+    integer, intent(in) :: nProcPerSubgroup
+      !! Number of processes per subgroup
+    integer, intent(in) :: nSubgroups
+      !! Number of subgroups
+
+
+    ! Output variables:
+    integer, intent(out) :: iItemStart_subgroup
+      !! Starting index for items in single subgroup
+    integer, intent(out) :: iItemEnd_subgroup
+      !! Ending index for items in single subgroup
+    integer, intent(out) :: nItemsPerSubgroup
+      !! Number of items in each subgroup
+
+
+    ! Local variables:
+    integer :: nr
+      !! Number of items left over after evenly divided across subgroups
+
+
+    if(nItemsToDistribute > 0) then
+
+      if(nProcPerSubgroup > nProcPerLargerGroup .or. mod(nProcPerLargerGroup, nProcPerSubgroup) /= 0) &
+        call exitError('distributeItemsInSubgroups','nProcPerSubgroup', 1)
+
+      nItemsPerSubgroup = nItemsToDistribute / nSubgroups
+        !!  * Calculate items per subgroup
+
+      nr = nItemsToDistribute - nItemsPerSubgroup * nSubgroups
+        !! * Calculate the remainder 
+
+      IF( mySubgroupId < nr ) nItemsPerSubgroup = nItemsPerSubgroup + 1
+        !! * Assign the remainder to the first `nr` subgroups
+
+      !>  * Calculate the index of the first item in this subgroup
+      iItemStart_subgroup = nItemsPerSubgroup * mySubgroupId + 1
+      IF( mySubgroupId >= nr ) iItemStart_subgroup = iItemStart_subgroup + nr
+
+      iItemEnd_subgroup = iItemStart_subgroup + nItemsPerSubgroup - 1
+        !!  * Calculate the index of the last k-point in this pool
+
+    endif
+
+    return
+  end subroutine distributeItemsInSubgroups
 
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, &
@@ -3728,6 +3679,9 @@ module wfcExportVASPMod
       !! Holds all information needed from POTCAR
 
     ! Local variables:
+    integer :: displacement(nProcPerBgrp)
+      !! Offset from beginning of array for
+      !! scattering coefficients to each process
     integer :: nProj
       !! Number of projectors across all atom types
     integer :: projOutUnit
@@ -3735,32 +3689,128 @@ module wfcExportVASPMod
     integer :: sendCount(nProcPerBgrp)
       !! Number of items to send to each process
       !! in the pool
-    integer :: displacement(nProcPerBgrp)
-      !! Offset from beginning of array for
-      !! scattering coefficients to each process
-    integer :: iT, ia, ilm, ipw, ikGlobal
+    integer :: endingAtom(nProcPerBgrp)
+      !! Ending atom for each proc in band group
+    integer :: iT, ia, ilm, ipw, ikGlobal, iproc
       !! Loop indices
 
     real(kind=dp) :: realProjWoPhaseGlobal(nPWs1k,64,nAtomTypes)
       !! Real projectors without phase
+    real(kind=dp) :: t1, t2
+      !! Timers
 
     complex(kind=dp) :: phaseExpGlobal(nPWs1k, nAtoms)
       !! Exponential phase factor
 
-    character(len=300) :: ikC
+    character(len=300) :: ikC, iprocC
       !! Character index
+    character(len=300) :: fNameBase, fNameProc
+      !! File names
 
 
-    if(indexInBgrp == 1 .or. nProcPerBgrp == 1) then
-      ! Have process 1 handle projectors output and
-      ! process 0 handle wfc output
+    !> Set up base file name
+    ikGlobal = ik+ikStart_pool-1
+    call int2str(ikGlobal, ikC)
+    fNameBase = trim(exportDir)//"/projectors."//trim(ikC)
 
-      ikGlobal = ik+ikStart_pool-1
 
-      call int2str(ikGlobal, ikC)
+    if(indexInBgrp == 0) &
+      write(*, '("         k-point ",i4,": [ ] Gather  [ ] Write")') ikGlobal
+    call cpu_time(t1)
+
+
+    sendCount = 0
+    sendCount(indexInBgrp+1) = nGkVecsLocal_ik
+    call mpiSumIntV(sendCount, intraBgrpComm)
+      !! * Put the number of G+k vectors on each process
+      !!   in a single array per pool
+
+    displacement = 0
+    displacement(indexInBgrp+1) = iGkStart_pool(ik)-1
+    call mpiSumIntV(displacement, intraBgrpComm)
+      !! * Put the displacement from the beginning of the array
+      !!   for each process in a single array per pool
+
+    endingAtom = 0
+    endingAtom(indexInBgrp+1) = iaEnd_bgrp
+    call mpiSumIntV(endingAtom, intraBgrpComm)
+
+
+    iproc = 0
+
+    do ia = 1, nAtoms
+
+      if(ia == endingAtom(iproc+1)+1) iproc = iproc + 1
+
+      iT = iType(ia)
+        !! Store the index of the type for this atom
+
+      call MPI_GATHERV(phaseExp(1:nGkVecsLocal_ik,ia), nGkVecsLocal_ik, MPI_DOUBLE_COMPLEX, phaseExpGlobal(:,ia), sendCount, &
+          displacement, MPI_DOUBLE_COMPLEX, iproc, intraBgrpComm, ierr)
+
+      do ilm = 1, pot(iT)%lmmax
+
+        call MPI_GATHERV(realProjWoPhase(1:nGkVecsLocal_ik,ilm,iT), nGkVecsLocal_ik, MPI_DOUBLE_PRECISION, realProjWoPhaseGlobal(:,ilm,iT), &
+            sendCount, displacement, MPI_DOUBLE_PRECISION, iproc, intraBgrpComm, ierr)
+
+      enddo
+
+    enddo
+
+
+    call cpu_time(t2)
+    if(indexInBgrp == 0) &
+      write(*, '("         k-point ",i4,": [X] Gather  [ ] Write (",f7.2," secs)")') &
+            ikGlobal, t2-t1
+    call cpu_time(t1)
+
+
+    call int2str(indexInBgrp, iprocC)
+
+    projOutUnit = 83 + myid
+    open(projOutUnit, file=trim(fNameBase)//"."//trim(iprocC))
+      ! Open `projectors.ik.indexInBgrp` file
+
+
+    do ia = iaStart_bgrp, iaEnd_bgrp
+    
+      iT = iType(ia)
+        !! Store the index of the type for this atom
+
+      do ilm = 1, pot(iT)%lmmax
+
+        do ipw = 1, nPWs1k
+          !! Calculate \(|\beta\rangle\)
+
+          write(projOutUnit,'(2ES24.15E3)') &
+            conjg(realProjWoPhaseGlobal(gKSort(ipw,ikGlobal),ilm,iT)*phaseExpGlobal(gKSort(ipw,ikGlobal),ia)*compFact(ilm,iT))
+            !! @note
+            !!    The projectors are stored as \(\langle\beta|\), so need to take the complex conjugate
+            !!    to output \(|\beta\rangle.
+            !! @endnote
+            !! @note
+            !!    The projectors should have units inverse to those of the coefficients. That was
+            !!    previously listed as (a.u.)^(-3/2), but the `TME` code seems to expect both the
+            !!    projectors and the wave function coefficients to be unitless, so there should be
+            !!    no unit conversion here.
+            !! @endnote
+            !! @note
+            !!    `NONL_S%LSPIRAL = .FALSE.`, so spin spirals are not calculated, which makes
+            !!    `NONL_S%QPROJ` spin-independent. This is why there is no spin index on `realProjWoPhase`.
+            !! @endnote
+
+        enddo
+      enddo
+    enddo
+
+    close(projOutUnit)
+
+
+    if(indexInBgrp == 0) then
+      !! Have root process merge output files
 
       projOutUnit = 83 + myid
-      open(projOutUnit, file=trim(exportDir)//"/projectors."//trim(ikC))
+      open(projOutUnit, file=trim(fNameBase))
         ! Open `projectors.ik` file
 
       write(projOutUnit, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
@@ -3780,74 +3830,28 @@ module wfcExportVASPMod
         !! \(G+k\) vectors at this k-point below the energy
         !! cutoff
 
-    endif
-
-    sendCount = 0
-    sendCount(indexInBgrp+1) = nGkVecsLocal_ik
-    call mpiSumIntV(sendCount, intraBgrpComm)
-      !! * Put the number of G+k vectors on each process
-      !!   in a single array per pool
-
-    displacement = 0
-    displacement(indexInBgrp+1) = iGkStart_pool(ik)-1
-    call mpiSumIntV(displacement, intraPoolComm)
-      !! * Put the displacement from the beginning of the array
-      !!   for each process in a single array per pool
-
-    do ia = 1, nAtoms
-      !! * Gather data to process 1 for outputting
-
-      iT = iType(ia)
-        !! Store the index of the type for this atom
-
-      call MPI_GATHERV(phaseExp(1:nGkVecsLocal_ik,ia), nGkVecsLocal_ik, MPI_DOUBLE_COMPLEX, phaseExpGlobal(:,ia), sendCount, &
-          displacement, MPI_DOUBLE_COMPLEX, 1, intraBgrpComm, ierr)
-
-      do ilm = 1, pot(iT)%lmmax
-
-        call MPI_GATHERV(realProjWoPhase(1:nGkVecsLocal_ik,ilm,iT), nGkVecsLocal_ik, MPI_DOUBLE_PRECISION, realProjWoPhaseGlobal(:,ilm,iT), &
-            sendCount, displacement, MPI_DOUBLE_PRECISION, 1, intraBgrpComm, ierr)
-
-      enddo
-
-    enddo
-
-    if(indexInBgrp == 1 .or. nProcPerBgrp == 1) then
-      !! Write out data from process 1
-
-      do ia = 1, nAtoms
-    
-        iT = iType(ia)
-          !! Store the index of the type for this atom
-
-        do ilm = 1, pot(iT)%lmmax
-
-          do ipw = 1, nPWs1k
-            !! Calculate \(|\beta\rangle\)
-
-            write(projOutUnit,'(2ES24.15E3)') &
-              conjg(realProjWoPhaseGlobal(gKSort(ipw,ikGlobal),ilm,iT)*phaseExpGlobal(gKSort(ipw,ikGlobal),ia)*compFact(ilm,iT))
-              !! @note
-              !!    The projectors are stored as \(\langle\beta|\), so need to take the complex conjugate
-              !!    to output \(|\beta\rangle.
-              !! @endnote
-              !! @note
-              !!    The projectors should have units inverse to those of the coefficients. That was
-              !!    previously listed as (a.u.)^(-3/2), but the `TME` code seems to expect both the
-              !!    projectors and the wave function coefficients to be unitless, so there should be
-              !!    no unit conversion here.
-              !! @endnote
-              !! @note
-              !!    `NONL_S%LSPIRAL = .FALSE.`, so spin spirals are not calculated, which makes
-              !!    `NONL_S%QPROJ` spin-independent. This is why there is no spin index on `realProjWoPhase`.
-              !! @endnote
-
-          enddo
-        enddo
-      enddo
-
       close(projOutUnit)
+
+      do iproc = 0, nProcPerBgrp-1
+
+        call int2str(iproc, iprocC)
+
+        fNameProc = trim(fNameBase)//"."//trim(iprocC)
+
+        call execute_command_line('cat '//trim(fNameProc)//' >> '//trim(fNameBase))
+        call execute_command_line('rm '//trim(fNameProc))
+
+      enddo
+
     endif
+
+
+    call cpu_time(t2)
+    if(indexInBgrp == 0) &
+      write(*, '("         k-point ",i4,": [X] Gather  [X] Write (",f7.2," secs)")') &
+            ikGlobal, t2-t1
+    call cpu_time(t1)
+
 
     return
   end subroutine writeProjectors
@@ -3918,6 +3922,7 @@ module wfcExportVASPMod
 
     if(indexInBgrp == 0) allocate(coeff(maxNumPWsGlobal, ibStart_bgrp:ibEnd_bgrp))
 
+    ikGlobal = ik+ikStart_pool-1
       
     if(indexInPool == 0) &
       write(*, '("         k-point ",i4,", spin ",i1,": [ ] Read and scatter  [ ] Write")') ikGlobal, isp
@@ -3963,8 +3968,6 @@ module wfcExportVASPMod
     if(indexInBgrp == 0) then
 
       wfcOutUnit = 83 + myid
-
-      ikGlobal = ik+ikStart_pool-1
 
       call int2str(ikGlobal, ikC)
       call int2str(isp, ispC)
@@ -4020,7 +4023,7 @@ module wfcExportVASPMod
       close(wfcOutUnit)
         ! Close `wfc.isp.ik.myBgrpId` file
 
-      do ibgrp = 1, nBandGroups
+      do ibgrp = 0, nBandGroups-1
 
         call int2str(ibgrp, ibgrpC)
 
@@ -4028,7 +4031,6 @@ module wfcExportVASPMod
 
         call execute_command_line('cat '//trim(fNameBgrp)//' >> '//trim(fNameBase))
         call execute_command_line('rm '//trim(fNameBgrp))
-
 
       enddo
 
@@ -4163,7 +4165,7 @@ module wfcExportVASPMod
 
       close(projOutUnit)
 
-      do ibgrp = 1, nBandGroups
+      do ibgrp = 0, nBandGroups-1
 
         call int2str(ibgrp, ibgrpC)
 

@@ -19,6 +19,8 @@ program wfcExportVASPMain
     !! Index for deallocating `pot` variables
 
 
+  call cpu_time(t0)
+
   call mpiInitialization()
 
   call initialize(gammaOnly, exportDir, VASPDir)
@@ -66,15 +68,18 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call distributeKpointsInPools(nKPoints)
-    !! * Figure out how many k-points there should be per pool
-
-  call distributeBandsInGroups(nBands)
-    !! * Figure out how many bands there should be per band group
-
-
   call read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
+
+
+  call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
+    !! * Distribute k-points in pools
+
+  call distributeItemsInSubgroups(myBgrpId, nBands, nProcPerPool, nProcPerBgrp, nBandGroups, ibStart_bgrp, ibEnd_bgrp, nbPerBgrp)
+    !! * Distribute bands in groups
+
+  call distributeItemsInSubgroups(indexInBgrp, nAtoms, nProcPerBgrp, nProcPerBgrp, nProcPerBgrp, iaStart_bgrp, iaEnd_bgrp, naPerProcInBgrp)
+    !! * Distribute atoms across processes in band group
 
 
   call cpu_time(t2)
@@ -109,8 +114,6 @@ program wfcExportVASPMain
 
 
   allocate(pot(nAtomTypes))
-
-  if (ionode) write(iostd,*) "Reading POTCAR"
 
   call readPOTCAR(nAtomTypes, VASPDir, pot)
     !! * Read in pseudopotential information from POTCAR
@@ -227,7 +230,8 @@ program wfcExportVASPMain
 
   call MPI_Barrier(worldComm, ierr)
  
-  if (ionode) write(iostd,*) "************ VASP Export complete! ************"
+  call cpu_time(t2)
+  if (ionode) write(iostd,'("************ VASP Export complete! (",f10.2," secs) ************")') t2-t0
 
   call MPI_FINALIZE(ierr)
 
