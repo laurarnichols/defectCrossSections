@@ -3955,7 +3955,7 @@ module wfcExportVASPMod
     ! Local variables:
     integer :: sendCount(nProcPerBgrp)
       !! Number of items to send to each process
-      !! in the pool
+      !! in the band group
     integer :: displacement(nProcPerBgrp)
       !! Offset from beginning of array for
       !! scattering coefficients to each process
