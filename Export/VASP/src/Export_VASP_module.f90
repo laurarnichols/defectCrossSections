@@ -3953,10 +3953,10 @@ module wfcExportVASPMod
       !! Plane wave coefficients
 
     ! Local variables:
-    integer :: sendCount(nProcPerPool)
+    integer :: sendCount(nProcPerBgrp)
       !! Number of items to send to each process
       !! in the pool
-    integer :: displacement(nProcPerPool)
+    integer :: displacement(nProcPerBgrp)
       !! Offset from beginning of array for
       !! scattering coefficients to each process
     integer :: wfcOutUnit
