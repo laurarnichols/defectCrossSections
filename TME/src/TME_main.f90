@@ -3,7 +3,7 @@ program transitionMatrixElements
   
   implicit none
   
-  integer :: ikLocal, ikGlobal, iType, isp
+  integer :: ikLocal, ikGlobal, isp
     !! Loop indices
 
   logical :: bothSpinChannelsExist = .false.
@@ -34,16 +34,8 @@ program transitionMatrixElements
     !! @todo Figure out if `realLattVec` used anywhere. If not remove. @endtodo
 
 
-  call distributeKpointsInPools(nKPoints)
-    !! Split the k-points across the pools
-
-
-  allocate(gIndexGlobalToLocal(nGVecsGlobal), gVecProcId(nGVecsGlobal))
-
-  call getFullPWGrid(nGVecsGlobal, gIndexGlobalToLocal, gVecProcId, mill_local, nGVecsLocal)
-    !! Read the full PW grid from `mgrid` and distribute
-    !! across processes
-
+  call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
+    !! * Distribute k-points in pools
 
 
   if(indexInPool == 0) allocate(eigvI(iBandIinit:iBandIfinal), eigvF(iBandFinit:iBandFfinal))
@@ -88,14 +80,19 @@ program transitionMatrixElements
               ikGlobal
       call cpu_time(t1)
 
-      allocate(gKIndexGlobalPC(npwsPC(ikGlobal)))
-      allocate(gKIndexGlobalSD(npwsSD(ikGlobal)))
+      allocate(gKVecMillerIndicesGlobalPC(3,npwsPC(ikGlobal)))
+      allocate(gKVecMillerIndicesGlobalSD(3,npwsSD(ikGlobal)))
 
-      if(indexInPool == 0) call readGrid('PC', ikGlobal, npwsPC(ikGlobal), gKIndexGlobalPC)
-      if(indexInPool == 1) call readGrid('SD', ikGlobal, npwsSD(ikGlobal), gKIndexGlobalSD)
+      if(indexInPool == 0) call readGrid('PC', ikGlobal, npwsPC(ikGlobal), gKVecMillerIndicesGlobalPC)
+      if(indexInPool == 1) call readGrid('SD', ikGlobal, npwsSD(ikGlobal), gKVecMillerIndicesGlobalSD)
 
-      call MPI_BCAST(gKIndexGlobalPC, size(gKIndexGlobalPC), MPI_INT, 0, intraPoolComm, ierr)
-      call MPI_BCAST(gKIndexGlobalSD, size(gKIndexGlobalSD), MPI_INT, 1, intraPoolComm, ierr)
+      call MPI_BCAST(gKVecMillerIndicesGlobalPC, size(gKVecMillerIndicesGlobalPC), MPI_INT, 0, intraPoolComm, ierr)
+      call MPI_BCAST(gKVecMillerIndicesGlobalSD, size(gKVecMillerIndicesGlobalSD), MPI_INT, 1, intraPoolComm, ierr)
+
+      call distributeItemsInSubgroups(indexInPool, npwsPC(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolPC, &
+              iGkEnd_poolPC, nGkVecsLocalPC)
+      call distributeItemsInSubgroups(indexInPool, npwsSD(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolSD, &
+              iGkEnd_poolSD, nGkVecsLocalSD)
 
       call cpu_time(t2)
       if(indexInPool == 0) &
@@ -106,13 +103,13 @@ program transitionMatrixElements
       !-----------------------------------------------------------------------------------------------
       !> Read projectors
 
-      allocate(betaPC(nGVecsLocal,nProjsPC))
+      allocate(betaPC(nGkVecsLocalPC,nProjsPC))
 
-      call readProjectors('PC', ikGlobal, nProjsPC, npwsPC(ikGlobal), gKIndexGlobalPC, betaPC)
+      call readProjectors('PC', iGkStart_poolPC, ikGlobal, nGkVecsLocalPC, nProjsPC, npwsPC(ikGlobal), betaPC)
 
-      allocate(betaSD(nGVecsLocal,nProjsSD))
+      allocate(betaSD(nGkVecsLocalSD,nProjsSD))
 
-      call readProjectors('SD', ikGlobal, nProjsSD, npwsSD(ikGlobal), gKIndexGlobalSD, betaSD)
+      call readProjectors('SD', iGkStart_poolSD, ikGlobal, nGkVecsLocalSD, nProjsSD, npwsSD(ikGlobal), betaSD)
 
       call cpu_time(t2)
       if(indexInPool == 0) &
@@ -123,8 +120,8 @@ program transitionMatrixElements
       !-----------------------------------------------------------------------------------------------
       !> Allocate arrays that are potentially spin-polarized and start spin loop
 
-      allocate(wfcPC(nGVecsLocal, iBandIinit:iBandIfinal))
-      allocate(wfcSD(nGVecsLocal, iBandFinit:iBandFfinal))
+      allocate(wfcPC(nGkVecsLocalPC, iBandIinit:iBandIfinal))
+      allocate(wfcSD(nGkVecsLocalSD, iBandFinit:iBandFfinal))
       
       allocate(cProjBetaPCPsiSD(nProjsPC, iBandFinit:iBandFfinal))
       allocate(cProjBetaSDPhiPC(nProjsSD, iBandIinit:iBandIfinal))
@@ -135,8 +132,8 @@ program transitionMatrixElements
       allocate(paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
       allocate(paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
 
-      allocate(pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
-      allocate(pawSDK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
+      allocate(pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGkVecsLocalPC))
+      allocate(pawSDK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGkVecsLocalSD))
 
       allocate(paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
 
@@ -176,10 +173,10 @@ program transitionMatrixElements
 
 
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
-            call readWfc('PC', iBandIinit, iBandIfinal, ikGlobal, min(isp,nSpinsPC), npwsPC(ikGlobal), gKIndexGlobalPC, wfcPC)
+            call readWfc('PC', iBandIinit, iBandIfinal, iGkStart_poolPC, ikGlobal, min(isp,nSpinsPC), nGkVecsLocalPC, npwsPC(ikGlobal), wfcPC)
         
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
-            call readWfc('SD', iBandFinit, iBandFfinal, ikGlobal, min(isp,nSpinsSD), npwsSD(ikGlobal), gKIndexGlobalSD, wfcSD)
+            call readWfc('SD', iBandFinit, iBandFfinal, iGkStart_poolSD, ikGlobal, min(isp,nSpinsSD), nGkVecsLocalSD, npwsSD(ikGlobal), wfcSD)
         
           call calculatePWsOverlap(ikLocal, isp)
         
@@ -195,21 +192,19 @@ program transitionMatrixElements
           !> Calculate cross projections
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
-            call calculateCrossProjection(iBandFinit, iBandFfinal, ikGlobal, nProjsPC, betaPC, wfcSD, cProjBetaPCPsiSD)
+            call calculateCrossProjection(iBandFinit, iBandFfinal, ikGlobal, nGkVecsLocalPC, nGkVecsLocalSD, nProjsPC, betaPC, wfcSD, cProjBetaPCPsiSD)
 
           if(isp == nSpins) then
             deallocate(wfcSD)
-            deallocate(gKIndexGlobalPC)
             deallocate(betaPC)
           endif
 
 
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
-            call calculateCrossProjection(iBandIinit, iBandIfinal, ikGlobal, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
+            call calculateCrossProjection(iBandIinit, iBandIfinal, ikGlobal, nGkVecsLocalSD, nGkVecsLocalPC, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
         
           if(isp == nSpins) then
             deallocate(wfcPC)
-            deallocate(gKIndexGlobalSD)
             deallocate(betaSD)
           endif
 
@@ -268,15 +263,23 @@ program transitionMatrixElements
           !> Have all processes calculate the PAW k correction
       
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
-            call pawCorrectionK('PC', nIonsPC, TYPNIPC, numOfTypesPC, posIonPC, atomsPC, atoms, pawKPC)
+            call pawCorrectionK('PC', nIonsPC, TYPNIPC, nGkVecsLocalPC, numOfTypesPC, gKVecMillerIndicesGlobalPC(:,iGkStart_poolPC:iGkEnd_poolPC), &
+                  posIonPC, atomsPC, atoms, pawKPC)
 
-          if(isp == nSpins) deallocate(cProjPC)
+          if(isp == nSpins) then
+            deallocate(cProjPC)
+            deallocate(gKVecMillerIndicesGlobalPC)
+          endif
       
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
-            call pawCorrectionK('SD', nIonsSD, TYPNISD, numOfTypes, posIonSD, atoms, atoms, pawSDK)
+            call pawCorrectionK('SD', nIonsSD, TYPNISD, nGkVecsLocalSD, numOfTypes, gKVecMillerIndicesGlobalSD(:,iGkStart_poolSD:iGkEnd_poolSD), &
+                  posIonSD, atoms, atoms, pawSDK)
 
-          if(isp == nSpins) deallocate(cProjSD)
+          if(isp == nSpins) then
+            deallocate(cProjSD)
+            deallocate(gKVecMillerIndicesGlobalSD)
+          endif
 
         
           call cpu_time(t2)
@@ -336,57 +339,8 @@ program transitionMatrixElements
     
   if(calculateVfis .and. indexInPool == 0) call calculateVfiElements()
 
-
-  deallocate(npwsPC)
-  deallocate(wkPC)
-  deallocate(xkPC)
-  deallocate(posIonPC)
-  deallocate(TYPNIPC)
-
-  do iType = 1, numOfTypesPC
-    deallocate(atomsPC(iType)%r)
-    deallocate(atomsPC(iType)%lps)
-    deallocate(atomsPC(iType)%F)
-    deallocate(atomsPC(iType)%F1)
-    deallocate(atomsPC(iType)%F2)
-    deallocate(atomsPC(iType)%bes_J_qr)
-  enddo
-
-  deallocate(atomsPC)
-
-  deallocate(npwsSD)
-  deallocate(wk)
-  deallocate(xk)
-  deallocate(posIonSD)
-  deallocate(TYPNISD)
-
-  do iType = 1, numOfTypes
-    deallocate(atoms(iType)%lps)
-    deallocate(atoms(iType)%r)
-    deallocate(atoms(iType)%F)
-    deallocate(atoms(iType)%F1)
-    deallocate(atoms(iType)%F2)
-    deallocate(atoms(iType)%bes_J_qr)
-  enddo
-
-  deallocate(atoms)
-
-  deallocate(gIndexGlobalToLocal)
-  deallocate(gVecProcId)
-  deallocate(mill_local)
   
-
-  if(indexInPool == 0) deallocate(eigvI, eigvF)
-  
-  ! Calculating Vfi
-  
-  if (ionode) then
-    
-    ! Finalize Calculation
-     
-    call finalizeCalculation()
-    
-  endif
+  call finalizeCalculation()
   
   call MPI_FINALIZE(ierr)
   

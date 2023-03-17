@@ -21,10 +21,10 @@ module declarations
   ! Global variables not passed as arguments:
   integer :: ierr
     !! Error returned by MPI
-  integer :: ikEnd_pool
-    !! Ending index for k-points in single pool
-  integer :: ikStart_pool
-    !! Starting index for k-points in single pool
+  integer :: iGkStart_poolPC, iGkEnd_poolPC, iGkStart_poolSD, iGkEnd_poolSD
+    !! Start and end G+k vector for process in pool
+  integer :: ikStart_pool, ikEnd_pool
+    !! Start and end k-points in pool
   integer :: indexInPool
     !! Process index within pool
   integer :: intraPoolComm = 0
@@ -59,23 +59,15 @@ module declarations
     !! For timing different processes
 
 
-  integer, allocatable :: gIndexGlobalToLocal(:)
-    !! Converts global G-index to local G-index
-  integer, allocatable :: gKIndexGlobalPC(:)
-    !! Original G-index for G+k vectors in PC `grid.ik` files
-  integer, allocatable :: gKIndexGlobalSD(:)
-    !! Original G-index for G+k vectors in SD `grid.ik` files
-  integer, allocatable :: gVecProcId(:)
-    !! Index in pool where G-vector is distributed to
+  integer, allocatable :: gKVecMillerIndicesGlobalPC(:,:), gkVecMillerIndicesGlobalSD(:,:)
+    !! Integer coefficients for G+k vectors
   integer :: maxGIndexGlobal
     !! Maximum G-vector index among all \(G+k\)
     !! and processors for PC and SD
-  integer, allocatable :: mill_local(:,:)
-    !! Integer coefficients for G-vectors
   integer :: nGVecsGlobal
     !! Global number of G-vectors
-  integer :: nGVecsLocal
-    !! Local number of G-vectors on this processor
+  integer :: nGkVecsLocalPC, nGkVecsLocalSD
+    !! Local number of G+k vectors on this processor
   integer :: nKPoints
     !! Total number of k-points
   integer :: nSpins
@@ -1219,8 +1211,9 @@ contains
   end subroutine readInputSD
 
 !----------------------------------------------------------------------------
-  subroutine distributeKpointsInPools(nKPoints)
-    !! Figure out how many k-points there should be per pool
+  subroutine distributeItemsInSubgroups(mySubgroupId, nItemsToDistribute, nProcPerLargerGroup, nProcPerSubgroup, nSubgroups, &
+        iItemStart_subgroup, iItemEnd_subgroup, nItemsPerSubgroup)
+    !! Distribute items across a subgroup
     !!
     !! <h2>Walkthrough</h2>
     !!
@@ -1228,187 +1221,58 @@ contains
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-    !integer, intent(in) :: nProcPerPool
-      ! Number of processes per pool
+    integer, intent(in) :: mySubgroupId
+      !! Process ID in subgroup
+    integer, intent(in) :: nItemsToDistribute
+      !! Total number of items to distribute
+    integer, intent(in) :: nProcPerLargerGroup
+      !! Number of processes in group next
+      !! larger than this subgroup
+    integer, intent(in) :: nProcPerSubgroup
+      !! Number of processes per subgroup
+    integer, intent(in) :: nSubgroups
+      !! Number of subgroups
 
 
     ! Output variables:
-    !integer, intent(out) :: ikEnd_pool
-      ! Ending index for k-points in single pool 
-    !integer, intent(out) :: ikStart_pool
-      ! Starting index for k-points in single pool 
-    !integer, intent(out) :: nkPerPool
-      ! Number of k-points in each pool
+    integer, intent(out) :: iItemStart_subgroup
+      !! Starting index for items in single subgroup
+    integer, intent(out) :: iItemEnd_subgroup
+      !! Ending index for items in single subgroup
+    integer, intent(out) :: nItemsPerSubgroup
+      !! Number of items in each subgroup
 
 
     ! Local variables:
-    integer :: nkr
-      !! Number of k-points left over after evenly divided across pools
+    integer :: nr
+      !! Number of items left over after evenly divided across subgroups
 
 
-    if( nKPoints > 0 ) then
+    if(nItemsToDistribute > 0) then
 
-      IF( ( nProcPerPool > nProcs ) .or. ( mod( nProcs, nProcPerPool ) /= 0 ) ) &
-        CALL exitError( 'distributeKpointsInPools','nProcPerPool', 1 )
+      if(nProcPerSubgroup > nProcPerLargerGroup .or. mod(nProcPerLargerGroup, nProcPerSubgroup) /= 0) &
+        call exitError('distributeItemsInSubgroups','nProcPerSubgroup', 1)
 
-      nkPerPool = nKPoints / nPools
-        !!  * Calculate k-points per pool
+      nItemsPerSubgroup = nItemsToDistribute / nSubgroups
+        !!  * Calculate items per subgroup
 
-      nkr = nKPoints - nkPerPool * nPools 
-        !! * Calculate the remainder `nkr`
+      nr = nItemsToDistribute - nItemsPerSubgroup * nSubgroups
+        !! * Calculate the remainder 
 
-      IF( myPoolId < nkr ) nkPerPool = nkPerPool + 1
-        !! * Assign the remainder to the first `nkr` pools
+      IF( mySubgroupId < nr ) nItemsPerSubgroup = nItemsPerSubgroup + 1
+        !! * Assign the remainder to the first `nr` subgroups
 
-      !>  * Calculate the index of the first k-point in this pool
-      ikStart_pool = nkPerPool * myPoolId + 1
-      IF( myPoolId >= nkr ) ikStart_pool = ikStart_pool + nkr
+      !>  * Calculate the index of the first item in this subgroup
+      iItemStart_subgroup = nItemsPerSubgroup * mySubgroupId + 1
+      IF( mySubgroupId >= nr ) iItemStart_subgroup = iItemStart_subgroup + nr
 
-      ikEnd_pool = ikStart_pool + nkPerPool - 1
+      iItemEnd_subgroup = iItemStart_subgroup + nItemsPerSubgroup - 1
         !!  * Calculate the index of the last k-point in this pool
 
     endif
 
     return
-  end subroutine distributeKpointsInPools
-  
-!----------------------------------------------------------------------------
-  subroutine getFullPWGrid(nGVecsGlobal, gIndexGlobalToLocal, gVecProcId, mill_local, nGVecsLocal)
-    !! Read full PW grid from mgrid file
-    
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nGVecsGlobal
-      !! Global number of G-vectors
-
-    ! Output variables:
-    integer, intent(out) :: gIndexGlobalToLocal(nGVecsGlobal)
-      !! Converts global G-index to local G-index
-    integer, intent(out) :: gVecProcId(nGVecsGlobal)
-      !! Index in pool where G-vector is distributed to
-    integer, allocatable, intent(out) :: mill_local(:,:)
-      !! Integer coefficients for G-vectors
-    integer, intent(out) :: nGVecsLocal
-      !! Local number of G-vectors on this processor
-    
-    ! Local variables:
-    integer :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors
-    integer :: iDum
-      !! Ignore dummy integer
-    integer :: ig
-      !! Loop index
-    
-
-    if(ionode) then
-
-      open(72, file=trim(exportDirSD)//"/mgrid")
-        !! Read full G-vector grid from defect folder.
-        !! This assumes that the grids are the same.
-    
-      read(72, * )
-      read(72, * )
-    
-      do ig = 1, nGVecsGlobal
-
-        read(72, '(4i10)') iDum, gVecMillerIndicesGlobal(1:3,ig)
-
-      enddo
-    
-      close(72)
-
-    endif
-
-    call MPI_BCAST(gVecMillerIndicesGlobal, size(gVecMillerIndicesGlobal), MPI_INTEGER, root, worldComm, ierr)
-
-    call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexGlobalToLocal, gVecProcId, mill_local, nGVecsLocal)
-    
-    return
-    
-  end subroutine getFullPWGrid
-
-!----------------------------------------------------------------------------
-  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexGlobalToLocal, gVecProcId, mill_local, nGVecsLocal)
-    !! Figure out how many G-vectors there should be per processor.
-    !! G-vectors are split up in a round robin fashion over processors
-    !! in a single k-point pool.
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nGVecsGlobal
-      !! Global number of G-vectors
-    !integer, intent(in) :: nProcPerPool
-      ! Number of processes per pool
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors
-
-    
-    ! Output variables:
-    integer, intent(out) :: gIndexGlobalToLocal(nGVecsGlobal)
-      !! Converts global G-index to local G-index
-    integer, intent(out) :: gVecProcId(nGVecsGlobal)
-      !! Index in pool where G-vector is distributed to
-    integer, allocatable, intent(out) :: mill_local(:,:)
-      !! Integer coefficients for G-vectors
-    integer, intent(out) :: nGVecsLocal
-      !! Local number of G-vectors on this processor
-
-
-    ! Local variables:
-    integer :: ig_l, ig_g
-      !! Loop indices
-    integer :: ngr
-      !! Number of G-vectors left over after evenly divided across processors
-
-
-    if( nGVecsGlobal > 0 ) then
-      nGVecsLocal = nGVecsGlobal/nProcPerPool
-        !!  * Calculate number of G-vectors per processor
-
-      ngr = nGVecsGlobal - nGVecsLocal*nProcPerPool 
-        !! * Calculate the remainder
-
-      if( indexInPool < ngr ) nGVecsLocal = nGVecsLocal + 1
-        !! * Assign the remainder to the first `ngr` processors
-
-
-      allocate(mill_local(3,nGVecsLocal))
-      gIndexGlobalToLocal = 0
-      gVecProcId = 0
-
-      !> * Get local Miller indices, store map from global
-      !>   G-vector index to local G-vector index, and store
-      !>   index in pool where each G-vector is distributed
-      ig_l = 0
-      do ig_g = 1, nGVecsGlobal
-
-        if(indexInPool == mod(ig_g-1,nProcPerPool)) then
-
-          ig_l = ig_l + 1
-          gIndexGlobalToLocal(ig_g) = ig_l
-          gVecProcId(ig_g) = indexInPool
-          mill_local(:,ig_l) = gVecMillerIndicesGlobal(:,ig_g)
-
-        endif
-
-      enddo
-
-      if (ig_l /= nGVecsLocal) call exitError('distributeGvecsOverProcessors', 'unexpected number of G-vecs for this processor', 1)
-
-      call mpiSumIntV(gIndexGlobalToLocal, intraPoolComm)
-      call mpiSumIntV(gVecProcId, intraPoolComm)
-
-    endif
-
-    return
-  end subroutine distributeGvecsOverProcessors
+  end subroutine distributeItemsInSubgroups
   
 !----------------------------------------------------------------------------
   subroutine checkIfCalculated(ikGlobal, isp, tmes_file_exists)
@@ -1440,7 +1304,7 @@ contains
   end subroutine checkIfCalculated
 
 !----------------------------------------------------------------------------
-  subroutine readGrid(crystalType, ikGlobal, npws, gKIndexGlobal)
+  subroutine readGrid(crystalType, ikGlobal, npws, gKVecMillerIndicesGlobal)
 
     implicit none
 
@@ -1455,12 +1319,12 @@ contains
       !! Crystal type (PC or SD)
 
     ! Output variables:
-    integer, intent(out) :: gKIndexGlobal(npws)
-      !! Original G-index for G+k vectors in `grid.ik` files
+    integer, intent(out) :: gKVecMillerIndicesGlobal(3,npws)
+      !! Miller indices for G+k vectors for this k-point
 
     ! Local variables:
-    integer :: iDumV(3)
-      !! Vector to ignore G-vector Miller indices
+    integer :: iDum
+      !! Ignore index
     integer :: ig
       !! Loop index
 
@@ -1482,7 +1346,7 @@ contains
     
     do ig = 1, npws
 
-      read(72, '(4i10)') gKIndexGlobal(ig), iDumV(1:3)
+      read(72, '(4i10)') iDum, gKVecMillerIndicesGlobal(:,ig)
         !! Read the global PW indices that satisfy G+k < cutoff
 
     enddo
@@ -1494,110 +1358,179 @@ contains
   end subroutine readGrid
 
 !----------------------------------------------------------------------------
-  subroutine readProjectors(crystalType, ikGlobal, nProjs, npws, gKIndexGlobal, beta)
+  subroutine readProjectors(crystalType, iGkStart_pool, ikGlobal, nGkVecsLocal, nProjs, npws, betaLocalPWs)
     
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: iGkStart_pool
+      !! Start G+k index for this process in pool
     integer, intent(in) :: ikGlobal
       !! Current k point
+    integer, intent(in) :: nGkVecsLocal
+      !! Local number of G+k vectors on this processor
     integer, intent(in) :: nProjs
       !! Number of projectors
     integer, intent(in) :: npws
       !! Number of G+k vectors less than
       !! the cutoff at each k-point
-    integer, intent(in) :: gKIndexGlobal(npws)
-      !! Original G-index for G+k vectors in `grid.ik` files
 
     character(len=2), intent(in) :: crystalType
       !! Crystal type (PC or SD) for projectors
 
     ! Output variables:
-    complex(kind=dp), intent(out) :: beta(nGVecsLocal,nProjs)
-      !! Projector of `projCrystalType`
+    complex(kind=dp), intent(out) :: betaLocalPWs(nGkVecsLocal,nProjs)
+      !! Projector of `projCrystalType` with all projectors
+      !! and only local PWs/G+k vectors
     
     ! Local variables:
-    integer :: ipr, ig, igk, iproc
+    integer :: displacement(nProcPerPool)
+      !! Offset from beginning of array for
+      !! scattering coefficients to each process
+    integer :: endingProj(nProcPerPool)
+      !! End projector for each process in pool
+    integer :: iprStart_pool, iprEnd_pool
+      !! Start and end projector for process in pool
+    integer :: nProjsLocal
+      !! Number of projectors read by this process
+    integer :: sendCount(nProcPerPool)
+      !! Number of items to send to each process
+      !! in the pool
+    integer :: suffixLength
+      !! Length of split-file suffix
+    integer :: ipr, igk, iproc
       !! Loop indices
 
-    complex(kind=dp) :: betaBuff(nProcPerPool)
-      !! Projector buffer for broadcasting
+    complex(kind=dp), allocatable :: betaLocalProjs(:,:)
+      !! Projector of `projCrystalType` with all PWs/G+k 
+      !! vectors and only local projectors
     
-    character(len = 300) :: ikC
+    character(len=300) :: splitCommand
+      !! Command for splitting `projectors.ik` file
+    character(len=300) :: fNameExport, splitFilePrefix
+      !! File names
+    character(len=300) :: ikC, ngkC, sLC, iprC
+      !! Character index
     
+
+    call int2str(ikGlobal, ikC)
+    
+    if(crystalType == 'PC') then
+      fNameExport = trim(exportDirPC)//"/projectors."//trim(ikC) 
+    else
+      fNameExport = trim(exportDirSD)//"/projectors."//trim(ikC)
+    endif
+
 
     if(indexInPool == 0) then
 
-      call int2str(ikGlobal, ikC)
-    
-      if(crystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/projectors."//trim(ikC))
-      else
-        open(72, file=trim(exportDirSD)//"/projectors."//trim(ikC))
-      endif
-    
-      read(72, * )
-      read(72, * )
-        ! Ignore the header
+      call int2str(npws,ngkC)
+
+      splitCommand = 'cat '//trim(fNameExport)//' | tail -n +3 | split -l '//trim(ngkC)//' -d -a '
+        !! Split the projectors file into separate files for each `nProj`
+        !! so that the length of each file is equal to the number of 
+        !! G+k vectors < cutoff at this k-point. Ignore the two header
+        !! lines using `tail`. `-d` makes suffix numeric. `-a plus 
+        !! `suffixLength` below sets the length of the suffix with leading
+        !! zeros as needed.
 
     endif
-    
-    beta(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-    betaBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-    
-    !> Have the root node read the projector
-    !> then broadcast to other processes
-    do ipr = 1, nProjs
-      igk = 1
-      iproc = 1
 
-      do ig = 1, nGVecsGlobal
-        ! Loop over all G-vectors to make broadcasting
-        ! clearer and simpler
+    if(nProjs < 10) then
+      suffixLength = 1
+    else if(nProjs < 100) then
+      suffixLength = 2
+    else if(nProjs < 1000) then
+      suffixLength = 3
+    else if(nProjs < 10000) then
+      suffixLength = 4
+    else if(nProjs < 100000) then
+      suffixLength = 5
+    endif
 
-        if(ig == gKIndexGlobal(igk)) then
-          ! If this G-vector satisfies G+k < cutoff
-          ! for the current k-point
+    splitFilePrefix = './workingFiles/projectors.'//trim(ikC)//'.split.'
 
-          if(indexInPool == 0) read(72, '(2ES24.15E3)') betaBuff(iproc)
-            ! Read in the projector and store in the slot
-            ! for the process that holds the current G-vector
+    if(indexInPool == 0) then
 
-          igk = igk + 1
-            ! Increment the G+k vector counter
+      call int2str(suffixLength, sLC)
+      splitCommand = trim(splitCommand)//trim(sLC)//' - '//trim(splitFilePrefix)
+        !! Finish the split command with the suffix length. `-` stands for
+        !! `stdin` and allows the piped output from `tail` to be used as the
+        !! input file to be split.
 
-        endif
+      call execute_command_line('mkdir -p workingFiles')
+        !!  Make the `workingFiles` directory
+      call execute_command_line(splitCommand)
+        !! Split files
 
-        if(iproc == nProcPerPool) then
-          ! If the process counter is up to the number
-          ! of processes per pool
+    endif
 
-          call MPI_BCAST(betaBuff, nProcPerPool, MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
-            ! Broadcast the projector buffer
 
-          beta(gIndexGlobalToLocal(ig),ipr) = betaBuff(indexInPool+1)
-            ! Store the value for this process locally
+    call distributeItemsInSubgroups(indexInPool, nProjs, nProcPerPool, nProcPerPool, nProcPerPool, iprStart_pool, iprEnd_pool, nProjsLocal)
 
-          ! Reset the projector buffer and process counter
-          betaBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-          iproc = 1
+    allocate(betaLocalProjs(npws,iprStart_pool:iprEnd_pool))
 
-        else
-          ! Otherwise, increment the process counter
+    betaLocalProjs(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    betaLocalPWs(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
 
-          iproc = iproc + 1
+    call MPI_Barrier(intraPoolComm, ierr)
 
-        endif
+
+    !> Have each process open the split files for just their
+    !> projectors and then delete the files
+    do ipr = iprStart_pool, iprEnd_pool
+      
+      call int2strLeadZero(ipr-1, suffixLength, iprC)
+
+      open(72,file=trim(splitFilePrefix)//trim(iprC))
+
+      do igk = 1, npws
+
+        read(72, '(2ES24.15E3)') betaLocalProjs(igk,ipr)
 
       enddo
+
+      close(72, status="delete")
+
     enddo
     
-    if(indexInPool == 0) close(72)
+    call MPI_Barrier(intraPoolComm, ierr)
+
+    sendCount = 0
+    sendCount(indexInPool+1) = nGkVecsLocal
+    call mpiSumIntV(sendCount, intraPoolComm)
+      !! * Put the number of G+k vectors on each process
+      !!   in a single array per pool
+
+    displacement = 0
+    displacement(indexInPool+1) = iGkStart_pool-1
+    call mpiSumIntV(displacement, intraPoolComm)
+      !! * Put the displacement from the beginning of the array
+      !!   for each process in a single array per pool
+
+    endingProj = 0
+    endingProj(indexInPool+1) = iprEnd_pool
+    call mpiSumIntV(endingProj, intraPoolComm)
+
+
+    !> Distribute projectors across processors so that PWs are local
+    !> instead of projectors
+    iproc = 0
+    do ipr = 1, nProjs
+
+      if(ipr == endingProj(iproc+1)+1) iproc = iproc + 1
+
+      call MPI_SCATTERV(betaLocalProjs(:,ipr), sendCount, displacement, MPI_COMPLEX, betaLocalPWs(1:nGkVecsLocal,ipr), nGkVecsLocal, &
+          MPI_COMPLEX, iproc, intraPoolComm, ierr)
+
+    enddo
+
+    deallocate(betaLocalProjs)
     
   end subroutine readProjectors
 
 !----------------------------------------------------------------------------
-  subroutine readWfc(crystalType, iBandinit, iBandfinal, ikGlobal, isp, npws, gKIndexGlobal, wfc)
+  subroutine readWfc(crystalType, iBandinit, iBandfinal, iGkStart_pool, ikGlobal, isp, nGkVecsLocal, npws, wfc)
     !! Read wave function for given `crystalType` from `iBandinit`
     !! to `iBandfinal`
     
@@ -1608,29 +1541,37 @@ contains
       !! Starting band
     integer, intent(in) :: iBandfinal
       !! Ending band
+    integer, intent(in) :: iGkStart_pool
+      !! Start G+k index for this process in pool
     integer, intent(in) :: ikGlobal
       !! Current k point
     integer, intent(in) :: isp
       !! Current spin channel
+    integer, intent(in) :: nGkVecsLocal
+      !! Local number of G+k vectors on this processor
     integer, intent(in) :: npws
       !! Number of G+k vectors less than
       !! the cutoff at this k-point
-    integer, intent(in) :: gKIndexGlobal(npws)
-      !! Original G-index for G+k vectors in `grid.ik` files
 
     character(len=2), intent(in) :: crystalType
       !! Crystal type (PC or SD)
 
     ! Output variables
-    complex(kind=dp), intent(out) :: wfc(nGVecsLocal,iBandinit:iBandfinal)
+    complex(kind=dp), intent(out) :: wfc(nGkVecsLocal,iBandinit:iBandfinal)
       !! Wave function coefficients for 
       !! local G-vectors
 
     ! Local variables:
+    integer :: displacement(nProcPerPool)
+      !! Offset from beginning of array for
+      !! scattering coefficients to each process
+    integer :: sendCount(nProcPerPool)
+      !! Number of items to send to each process
+      !! in the pool
     integer :: ib, ig, igk, iproc
       !! Loop indices
 
-    complex(kind=dp) :: wfcBuff(nProcPerPool)
+    complex(kind=dp) :: wfcAllPWs(npws)
       !! Wave function read from file
  
     character(len = 300) :: ikC, ispC
@@ -1664,56 +1605,30 @@ contains
     endif
     
     wfc(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-    wfcBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+
+    sendCount = 0
+    sendCount(indexInPool+1) = nGkVecsLocal
+    call mpiSumIntV(sendCount, intraPoolComm)
+      !! * Put the number of G+k vectors on each process
+      !!   in a single array per pool
+
+    displacement = 0
+    displacement(indexInPool+1) = iGkStart_pool-1
+    call mpiSumIntV(displacement, intraPoolComm)
+      !! * Put the displacement from the beginning of the array
+      !!   for each process in a single array per pool
     
     !> Have the root node read the PW coefficients
     !> then broadcast to other processes
     do ib = iBandinit, iBandfinal
-      igk = 1
-      iproc = 1
 
-      do ig = 1, nGVecsGlobal
-        ! Loop over all G-vectors to make broadcasting
-        ! clearer and simpler
+      if(indexInPool == 0) read(72,'(2ES24.15E3)') wfcAllPWs(ig)
 
-        if(ig == gKIndexGlobal(igk)) then
-          ! If this G-vector satisfies G+k < cutoff
-          ! for the current k-point
+      call MPI_SCATTERV(wfcAllPWs(:), sendCount, displacement, MPI_COMPLEX, wfc(1:nGkVecsLocal,ib), nGkVecsLocal, &
+        MPI_COMPLEX, 0, intraPoolComm, ierr)
 
-          if(indexInPool == 0) read(72, '(2ES24.15E3)') wfcBuff(iproc)
-            ! Read in the PW coefficient and store in the
-            ! slot for the process that holds the current
-            ! G-vector
-
-          igk = igk + 1
-            ! Increment the G+k vector counter
-
-        endif
-
-        if(iproc == nProcPerPool) then
-          ! If the process counter is up to the number
-          ! of processes per pool
-
-          call MPI_BCAST(wfcBuff, nProcPerPool, MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
-            ! Broadcast the wave function buffer
-
-          wfc(gIndexGlobalToLocal(ig),ib) = wfcBuff(indexInPool+1)
-            ! Store the value for this process locally
-
-          ! Reset the wave function buffer and process counter
-          wfcBuff(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-          iproc = 1
-
-        else
-          ! Otherwise, increment the process counter
-
-          iproc = iproc + 1
-
-        endif
-
-      enddo
     enddo
-    
+
     if(indexInPool == 0) close(72)
     
     return
@@ -1829,7 +1744,7 @@ contains
   end subroutine readProjections
   
 !----------------------------------------------------------------------------
-  subroutine calculateCrossProjection(iBandinit, iBandfinal, ikGlobal, nProjs, beta, wfc, crossProjection)
+  subroutine calculateCrossProjection(iBandinit, iBandfinal, ikGlobal, nGkVecsLocal1, nGkVecsLocal2, nProjs, beta, wfc, crossProjection)
     !! Calculate the cross projection of one crystal's projectors
     !! on the other crystal's wave function coefficients, distributing
     !! the result to all processors
@@ -1845,12 +1760,18 @@ contains
       !! (not `projCrystalType`)
     integer, intent(in) :: ikGlobal
       !! Current k point
+    integer, intent(in) :: nGkVecsLocal1
+      !! Local number of G+k vectors on this processor
+      !! for projectors
+    integer, intent(in) :: nGkVecsLocal2
+      !! Local number of G+k vectors on this processor
+      !! for wave function
     integer, intent(in) :: nProjs
       !! Number of projectors
 
-    complex(kind=dp) :: beta(nGVecsLocal,nProjs)
+    complex(kind=dp) :: beta(nGkVecsLocal1,nProjs)
       !! Projector of one crystal type
-    complex(kind=dp), intent(in) :: wfc(nGVecsLocal,iBandinit:iBandfinal)
+    complex(kind=dp), intent(in) :: wfc(nGkVecsLocal2,iBandinit:iBandfinal)
       !! Wave function coefficients for local G-vectors
       !! for other crystal type
 
@@ -1978,7 +1899,7 @@ contains
   end subroutine pawCorrectionWfc
 
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionK(crystalType, nAtoms, iType, numOfTypes, atomPositions, atoms, atomsSD, pawK)
+  subroutine pawCorrectionK(crystalType, nAtoms, iType, nGkVecsLocal, numOfTypes, mill_local, atomPositions, atoms, atomsSD, pawK)
     
     implicit none
 
@@ -1987,8 +1908,12 @@ contains
       !! Number of atoms
     integer, intent(in) :: iType(nAtoms)
       !! Atom type index
+    integer, intent(in) :: nGkVecsLocal
+      !! Local number of G+k vectors on this processor
     integer, intent(in) :: numOfTypes
       !! Number of different atom types
+    integer, intent(in) :: mill_local(3,nGkVecsLocal)
+      !! Miller indices for local G+k vectors
 
     real(kind=dp), intent(in) :: atomPositions(3,nAtoms)
       !! Atom positions in Cartesian coordinates
@@ -2004,7 +1929,7 @@ contains
 
 
     ! Output variables:
-    complex(kind=dp) :: pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal)
+    complex(kind=dp) :: pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGkVecsLocal)
 
     ! Local variables:
     real(kind=dp) :: gCart(3)
@@ -2023,7 +1948,7 @@ contains
     
     pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
-    do ig = 1, nGVecsLocal
+    do ig = 1, nGkVecsLocal
       
       do ix = 1, 3
         gCart(ix) = sum(mill_local(:,ig)*recipLattVec(ix,:))
@@ -2785,13 +2710,61 @@ contains
   subroutine finalizeCalculation()
     
     implicit none
+
+    integer :: iType
+      !! Loop index
+
+
+    deallocate(npwsPC)
+    deallocate(wkPC)
+    deallocate(xkPC)
+    deallocate(posIonPC)
+    deallocate(TYPNIPC)
+
+    do iType = 1, numOfTypesPC
+      deallocate(atomsPC(iType)%r)
+      deallocate(atomsPC(iType)%lps)
+      deallocate(atomsPC(iType)%F)
+      deallocate(atomsPC(iType)%F1)
+      deallocate(atomsPC(iType)%F2)
+      deallocate(atomsPC(iType)%bes_J_qr)
+    enddo
+
+    deallocate(atomsPC)
+
+    deallocate(npwsSD)
+    deallocate(wk)
+    deallocate(xk)
+    deallocate(posIonSD)
+    deallocate(TYPNISD)
+
+    do iType = 1, numOfTypes
+      deallocate(atoms(iType)%lps)
+      deallocate(atoms(iType)%r)
+      deallocate(atoms(iType)%F)
+      deallocate(atoms(iType)%F1)
+      deallocate(atoms(iType)%F2)
+      deallocate(atoms(iType)%bes_J_qr)
+    enddo
+
+    deallocate(atoms)
+
+    if(indexInPool == 0) deallocate(eigvI, eigvF)
+
+    call MPI_Barrier(worldComm, ierr)
     
-    write(iostd,'("-----------------------------------------------------------------")')
+    if(ionode) then
     
-    call cpu_time(tf)
-    write(iostd, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
+      call execute_command_line('rm -r ./workingFiles')
+
+      write(iostd,'("-----------------------------------------------------------------")')
     
-    close(iostd)
+      call cpu_time(tf)
+      write(iostd, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
+    
+      close(iostd)
+
+    endif
     
     return
     
@@ -3006,6 +2979,12 @@ contains
       write(string, '(i3)') integ
     else if ( integ < 10000 ) then
       write(string, '(i4)') integ
+    else if ( integ < 100000 ) then
+      write(string, '(i5)') integ
+    else if ( integ < 1000000 ) then
+      write(string, '(i6)') integ
+    else if ( integ < 10000000 ) then
+      write(string, '(i7)') integ
     endif
     
     string = trim(string)
@@ -3013,6 +2992,27 @@ contains
     return
     
   end subroutine int2str
+  
+!----------------------------------------------------------------------------
+  subroutine int2strLeadZero(integ, length, string)
+    
+    implicit none
+    integer :: integ
+    integer :: length
+    character(len = 300) :: string
+    character(len = 300) :: lengthC
+    character(len = 300) :: formatString
+    
+    call int2str(length, lengthC)
+    formatString = '(i'//trim(lengthC)//'.'//trim(lengthC)//')'
+
+    write(string, formatString) integ
+    
+    string = trim(string)
+    
+    return
+    
+  end subroutine int2strLeadZero
   
   
 end module declarations
