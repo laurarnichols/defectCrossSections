@@ -1568,7 +1568,7 @@ contains
     integer :: sendCount(nProcPerPool)
       !! Number of items to send to each process
       !! in the pool
-    integer :: ib, ig, igk, iproc
+    integer :: ib, igk, iproc
       !! Loop indices
 
     complex(kind=dp) :: wfcAllPWs(npws)
@@ -1597,7 +1597,7 @@ contains
         ! Ignore the header
     
       do ib = 1, iBandinit - 1
-        do ig = 1, npws
+        do igk = 1, npws
           read(72, *)
         enddo
       enddo
@@ -1622,7 +1622,13 @@ contains
     !> then broadcast to other processes
     do ib = iBandinit, iBandfinal
 
-      if(indexInPool == 0) read(72,'(2ES24.15E3)') wfcAllPWs(ig)
+      if(indexInPool == 0) then
+
+        do igk = 1, npws
+          read(72,'(2ES24.15E3)') wfcAllPWs(igk)
+        enddo
+
+      endif
 
       call MPI_SCATTERV(wfcAllPWs(:), sendCount, displacement, MPI_COMPLEX, wfc(1:nGkVecsLocal,ib), nGkVecsLocal, &
         MPI_COMPLEX, 0, intraPoolComm, ierr)
@@ -2765,6 +2771,8 @@ contains
       close(iostd)
 
     endif
+
+    call MPI_Barrier(worldComm, ierr)
     
     return
     
