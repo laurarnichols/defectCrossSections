@@ -37,6 +37,14 @@ program transitionMatrixElements
   call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
     !! * Distribute k-points in pools
 
+  call distributeItemsInSubgroups(indexInPool, nGVecsGlobal, nProcPerPool, nProcPerPool, nProcPerPool, iGStart_pool, &
+          iGEnd_pool, nGVecsLocal)
+    !! * Distribute G-vectors across processes in pool
+
+  allocate(mill_local(3,nGVecsLocal))
+
+  call getFullPWGrid(iGStart_pool, iGEnd_pool, nGVecsLocal, nGVecsGlobal, mill_local)
+    
 
   if(indexInPool == 0) allocate(eigvI(iBandIinit:iBandIfinal), eigvF(iBandFinit:iBandFfinal))
   
@@ -74,38 +82,24 @@ program transitionMatrixElements
     else
 
       !-----------------------------------------------------------------------------------------------
-      !> Read PW grids from `grid.ik` files
+      !> Read projectors
+
       if(indexInPool == 0) &
-        write(*, '("Pre-spin-loop for k-point",i4,": [ ] Read grid  [ ] Read projectors")') &
+        write(*, '("Pre-spin-loop for k-point",i4,": [ ] Read projectors ")') &
               ikGlobal
       call cpu_time(t1)
 
-      allocate(gKVecMillerIndicesGlobalPC(3,npwsPC(ikGlobal)))
-      allocate(gKVecMillerIndicesGlobalSD(3,npwsSD(ikGlobal)))
-
-      if(indexInPool == 0) call readGrid('PC', ikGlobal, npwsPC(ikGlobal), gKVecMillerIndicesGlobalPC)
-      if(indexInPool == 1) call readGrid('SD', ikGlobal, npwsSD(ikGlobal), gKVecMillerIndicesGlobalSD)
-
-      call MPI_BCAST(gKVecMillerIndicesGlobalPC, size(gKVecMillerIndicesGlobalPC), MPI_INT, 0, intraPoolComm, ierr)
-      call MPI_BCAST(gKVecMillerIndicesGlobalSD, size(gKVecMillerIndicesGlobalSD), MPI_INT, 1, intraPoolComm, ierr)
 
       call distributeItemsInSubgroups(indexInPool, npwsPC(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolPC, &
               iGkEnd_poolPC, nGkVecsLocalPC)
-      call distributeItemsInSubgroups(indexInPool, npwsSD(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolSD, &
-              iGkEnd_poolSD, nGkVecsLocalSD)
-
-      call cpu_time(t2)
-      if(indexInPool == 0) &
-        write(*, '("Pre-spin-loop for k-point",i4,": [X] Read grid  [ ] Read projectors (",f10.2," secs)")') &
-              ikGlobal, t2-t1
-      call cpu_time(t1)
-
-      !-----------------------------------------------------------------------------------------------
-      !> Read projectors
 
       allocate(betaPC(nGkVecsLocalPC,nProjsPC))
 
       call readProjectors('PC', iGkStart_poolPC, ikGlobal, nGkVecsLocalPC, nProjsPC, npwsPC(ikGlobal), betaPC)
+
+
+      call distributeItemsInSubgroups(indexInPool, npwsSD(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolSD, &
+              iGkEnd_poolSD, nGkVecsLocalSD)
 
       allocate(betaSD(nGkVecsLocalSD,nProjsSD))
 
@@ -132,8 +126,8 @@ program transitionMatrixElements
       allocate(paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
       allocate(paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
 
-      allocate(pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGkVecsLocalPC))
-      allocate(pawSDK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGkVecsLocalSD))
+      allocate(pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
+      allocate(pawSDK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
 
       allocate(paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
 
@@ -263,22 +257,18 @@ program transitionMatrixElements
           !> Have all processes calculate the PAW k correction
       
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
-            call pawCorrectionK('PC', nIonsPC, TYPNIPC, nGkVecsLocalPC, numOfTypesPC, gKVecMillerIndicesGlobalPC(:,iGkStart_poolPC:iGkEnd_poolPC), &
-                  posIonPC, atomsPC, atoms, pawKPC)
+            call pawCorrectionK('PC', nIonsPC, TYPNIPC, numOfTypesPC, posIonPC, atomsPC, atoms, pawKPC)
 
           if(isp == nSpins) then
             deallocate(cProjPC)
-            deallocate(gKVecMillerIndicesGlobalPC)
           endif
       
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
-            call pawCorrectionK('SD', nIonsSD, TYPNISD, nGkVecsLocalSD, numOfTypes, gKVecMillerIndicesGlobalSD(:,iGkStart_poolSD:iGkEnd_poolSD), &
-                  posIonSD, atoms, atoms, pawSDK)
+            call pawCorrectionK('SD', nIonsSD, TYPNISD, numOfTypes, posIonSD, atoms, atoms, pawSDK)
 
           if(isp == nSpins) then
             deallocate(cProjSD)
-            deallocate(gKVecMillerIndicesGlobalSD)
           endif
 
         
