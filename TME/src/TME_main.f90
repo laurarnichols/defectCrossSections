@@ -27,7 +27,14 @@ program transitionMatrixElements
     !! Initialize MPI
   
   if(ionode) call cpu_time(t0)
-    
+
+
+  if(ionode) &
+    write(*, '("Pre-k-loop: [ ] Read inputs  [ ] Read full PW grid ")') &
+          ikGlobal
+    call cpu_time(t1)
+
+
   call readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
@@ -41,9 +48,18 @@ program transitionMatrixElements
           iGEnd_pool, nGVecsLocal)
     !! * Distribute G-vectors across processes in pool
 
+
+  call cpu_time(t2)
+  if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [ ] Read full PW grid (",f10.2," secs)")') t2-t1
+  call cpu_time(t1)
+
   allocate(mill_local(3,nGVecsLocal))
 
   call getFullPWGrid(iGStart_pool, iGEnd_pool, nGVecsLocal, nGVecsGlobal, mill_local)
+
+  
+  call cpu_time(t2)
+  if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid (",f10.2," secs)")') t2-t1
     
 
   if(indexInPool == 0) allocate(eigvI(iBandIinit:iBandIfinal), eigvF(iBandFinit:iBandFfinal))
@@ -107,7 +123,7 @@ program transitionMatrixElements
 
       call cpu_time(t2)
       if(indexInPool == 0) &
-        write(*, '("Pre-spin-loop for k-point",i4,": [X] Read grid  [X] Read projectors (",f10.2," secs)")') &
+        write(*, '("Pre-spin-loop for k-point",i4,": [X] Read projectors (",f10.2," secs)")') &
               ikGlobal, t2-t1
 
       
