@@ -29,10 +29,8 @@ program transitionMatrixElements
   if(ionode) call cpu_time(t0)
 
 
-  if(ionode) &
-    write(*, '("Pre-k-loop: [ ] Read inputs  [ ] Read full PW grid ")') &
-          ikGlobal
-    call cpu_time(t1)
+  if(ionode) write(*, '("Pre-k-loop: [ ] Read inputs  [ ] Read full PW grid ")')
+  call cpu_time(t1)
 
 
   call readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
