@@ -7,6 +7,7 @@ I was not the best in the past at having specific demarcations of working versio
 * Must have a copy of VASP source to use for `ExportFromSrc` compilation
 * Make sure to re-run `make initialize` in the main directory to get the `make.sys` file set up with the needed paths
 * Copy over original VASP source to VASP directory used for `ExportFromSrc` compilation
+* For running `ExportFromVASPSrc` make sure you set `ISTART=1`, `ICHARG=1`, `NCORE=1`, and `KPAR=1`
 * Exported files have old format, so will need to update if want to use with newer version of `TME`
 
 ### Versions
