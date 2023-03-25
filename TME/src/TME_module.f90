@@ -2370,8 +2370,7 @@ contains
           fNameBase = trim(VfisOutput)//'ofKpt'
           fNameSK = trim(fNameBase)//'.'//trim(ispC)//'.'//trim(ikC)
 
-          call execute_command_line('cat '//trim(fNameSK)//' >> '//trim(fNameBase))
-          call execute_command_line('rm '//trim(fNameSK))
+          call execute_command_line('cat '//trim(fNameSK)//' >> '//trim(fNameBase)//'&& rm '//trim(fNameSK))
 
         enddo
 

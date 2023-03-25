@@ -3894,8 +3894,7 @@ module wfcExportVASPMod
 
         fNameProc = trim(fNameBase)//"."//trim(iprocC)
 
-        call execute_command_line('cat '//trim(fNameProc)//' >> '//trim(fNameBase))
-        call execute_command_line('rm '//trim(fNameProc))
+        call execute_command_line('cat '//trim(fNameProc)//' >> '//trim(fNameBase)//' && rm '//trim(fNameProc))
 
       enddo
 
@@ -4085,8 +4084,7 @@ module wfcExportVASPMod
 
         fNameBgrp = trim(fNameBase)//"."//trim(ibgrpC)
 
-        call execute_command_line('cat '//trim(fNameBgrp)//' >> '//trim(fNameBase))
-        call execute_command_line('rm '//trim(fNameBgrp))
+        call execute_command_line('cat '//trim(fNameBgrp)//' >> '//trim(fNameBase)//'&& rm '//trim(fNameBgrp))
 
       enddo
 
@@ -4227,8 +4225,7 @@ module wfcExportVASPMod
 
         fNameBgrp = trim(fNameBase)//"."//trim(ibgrpC)
 
-        call execute_command_line('cat '//trim(fNameBgrp)//' >> '//trim(fNameBase))
-        call execute_command_line('rm '//trim(fNameBgrp))
+        call execute_command_line('cat '//trim(fNameBgrp)//' >> '//trim(fNameBase)//'&& rm '//trim(fNameBgrp))
 
 
       enddo
