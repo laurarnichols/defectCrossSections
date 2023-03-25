@@ -68,8 +68,11 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
+  call read_vasprun_xml(realLattVec, nKPoints, VASPDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
+
+  call readCONTCAR(nAtoms, VASPDir, atomPositionsDir)
+    !! * Get coordinates from CONTCAR
 
 
   call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)

@@ -1214,7 +1214,7 @@ module wfcExportVASPMod
   end subroutine distributeBandsInGroups
 
 !----------------------------------------------------------------------------
-  subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
+  subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
     !! <h2>Walkthrough</h2>
@@ -1234,8 +1234,6 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: atomPositionsDir(:,:)
-      !! Atom positions in direct coordinates
     real(kind=dp), intent(out) :: eFermi
       !! Fermi energy
     real(kind=dp), allocatable, intent(out) :: kWeight(:)
@@ -1254,7 +1252,7 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: ik, ia, ix, i
+    integer :: ik, ia, ix
       !! Loop indices
 
     character(len=256) :: cDum
@@ -1459,25 +1457,6 @@ module wfcExportVASPMod
         
       enddo
 
-      allocate(atomPositionsDir(3,nAtoms))
-
-      do ia = 1, nAtoms
-        !! * Read in the final position for each atom
-
-        read(57,*) cDum, (atomPositionsDir(i,ia),i=1,3), cDum
-          !! @note
-          !!  I assume that the coordinates are always direct
-          !!  in the `vasprun.xml` file and that the scaling
-          !!  factor is already included as I cannot find it 
-          !!  listed anywhere in that file. Extensive testing
-          !!  needs to be done to confirm this assumption.
-          !! @endnote
-
-      enddo
-
-      if(maxval(atomPositionsDir) > 1) call exitError('read_vasprun_xml', &
-        '*** error - expected direct coordinates', 1)
-
       close(57)
 
     endif
@@ -1489,16 +1468,88 @@ module wfcExportVASPMod
 
     if (.not. ionode) then
       allocate(iType(nAtoms))
-      allocate(atomPositionsDir(3,nAtoms))
       allocate(nAtomsEachType(nAtomTypes))
     endif
 
     call MPI_BCAST(iType, size(iType), MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(atomPositionsDir, size(atomPositionsDir), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(nAtomsEachType, size(nAtomsEachType), MPI_INTEGER, root, worldComm, ierr)
 
     return
   end subroutine read_vasprun_xml
+
+!----------------------------------------------------------------------------
+  subroutine readCONTCAR(nAtoms, VASPDir, atomPositionsDir)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+    character(len=256), intent(in) :: VASPDir
+      !! Directory with VASP files
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: atomPositionsDir(:,:)
+      !! Atom positions in direct coordinates
+
+    ! Local variables:
+    integer :: ia, i
+      !! Loop indices
+
+    logical :: fileExists
+      !! If the `CONTCAR` file exists
+
+    character(len=256) :: fileName
+      !! `CONTCAR` with path
+
+
+    allocate(atomPositionsDir(3,nAtoms))
+
+    if (ionode) then
+
+      fileName = trim(VASPDir)//'/CONTCAR'
+
+      inquire(file = fileName, exist = fileExists)
+
+      if (.not. fileExists) call exitError('readCONTCAR', 'Required file CONTCAR does not exist', 1)
+
+      open(57, file=fileName)
+        !! * If root node, open `vasprun.xml`
+
+      !> Ignore lines before coordinates
+      read(57,*)
+      read(57,*)
+      read(57,*)
+      read(57,*)
+      read(57,*)
+      read(57,*)
+      read(57,*)
+      read(57,*)
+
+      do ia = 1, nAtoms
+        !! * Read in the final position for each atom
+
+        read(57,*) (atomPositionsDir(i,ia),i=1,3)
+          !! @note
+          !!  For now, I assume that the scaling factor is 1
+          !!  and that the coordinates are direct. Will need
+          !!  to implement proper reading later.
+          !! @endnote
+
+      enddo
+
+      if(maxval(atomPositionsDir) > 1) call exitError('read_vasprun_xml', &
+        '*** error - expected direct coordinates', 1)
+
+      close(57)
+
+    endif
+
+    call MPI_BCAST(atomPositionsDir, size(atomPositionsDir), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return
+
+  end subroutine readCONTCAR
 
 !----------------------------------------------------------------------------
   subroutine distributeItemsInSubgroups(mySubgroupId, nItemsToDistribute, nProcPerLargerGroup, nProcPerSubgroup, nSubgroups, &
@@ -3067,6 +3118,7 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine calculatePhase(ik, nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
                 atomPositionsDir, phaseExp)
+
     implicit none
 
     ! Input variables: 
