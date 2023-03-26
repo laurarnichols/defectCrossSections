@@ -4203,7 +4203,7 @@ module wfcExportVASPMod
     character(len=300) :: ikC, ispC, ibgrpC, nbgrpC
       !! Character index
 
-    complex*8 :: projection, projectionLocal
+    complex(kind=dp) :: projection, projectionLocal
       !! Projection for current atom/band/lm channel
 
 
@@ -4236,7 +4236,7 @@ module wfcExportVASPMod
               ! Don't need to worry about sorting because projection
               ! has sum over plane waves.
 
-            call MPI_ALLREDUCE(projectionLocal, projection, 1, MPI_COMPLEX, MPI_SUM, intraBgrpComm, ierr)
+            call MPI_ALLREDUCE(projectionLocal, projection, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraBgrpComm, ierr)
 
             if(indexInBgrp == 0) write(projOutUnit,'(2ES24.15E3)') projection
 
