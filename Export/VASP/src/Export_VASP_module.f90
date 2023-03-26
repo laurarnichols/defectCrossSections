@@ -3810,9 +3810,9 @@ module wfcExportVASPMod
     complex(kind=dp) :: phaseExpGlobal(nPWs1k, nAtoms)
       !! Exponential phase factor
 
-    character(len=300) :: ikC, iprocC
+    character(len=300) :: ikC, iprocC, procNumC
       !! Character index
-    character(len=300) :: fNameBase, fNameProc
+    character(len=300) :: fNameBase
       !! File names
 
 
@@ -3940,15 +3940,12 @@ module wfcExportVASPMod
 
       close(projOutUnit)
 
-      do iproc = 0, nProcPerBgrp-1
 
-        call int2str(iproc, iprocC)
+      call int2str(nProcPerBgrp-1, procNumC)
 
-        fNameProc = trim(fNameBase)//"."//trim(iprocC)
-
-        call execute_command_line('cat '//trim(fNameProc)//' >> '//trim(fNameBase)//' && rm '//trim(fNameProc))
-
-      enddo
+      !> Merge all of the individual-processor files and delete
+      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(procNumC)//'} >> '//trim(fNameBase)//&
+                                ' && rm '//trim(fNameBase)//'.{0..'//trim(procNumC)//'}')
 
     endif
 
@@ -4023,7 +4020,7 @@ module wfcExportVASPMod
 
     character(len=300) :: fNameBase, fNameBgrp
       !! File names for merging output
-    character(len=300) :: ikC, ispC, ibgrpC
+    character(len=300) :: ikC, ispC, ibgrpC, nbgrpC
       !! Character index
 
 
@@ -4129,16 +4126,14 @@ module wfcExportVASPMod
 
       close(wfcOutUnit)
         ! Close `wfc.isp.ik.myBgrpId` file
+      
 
-      do ibgrp = 0, nBandGroups-1
+      call int2str(nBandGroups-1, nbgrpC)
 
-        call int2str(ibgrp, ibgrpC)
+      !> Merge all of the individual-processor files and delete
+      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'} >> '//trim(fNameBase)//&
+                                ' && rm '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'}')
 
-        fNameBgrp = trim(fNameBase)//"."//trim(ibgrpC)
-
-        call execute_command_line('cat '//trim(fNameBgrp)//' >> '//trim(fNameBase)//'&& rm '//trim(fNameBgrp))
-
-      enddo
 
     endif
 
@@ -4205,7 +4200,7 @@ module wfcExportVASPMod
 
     character(len=300) :: fNameBase, fNameBgrp
       !! Character index
-    character(len=300) :: ikC, ispC, ibgrpC
+    character(len=300) :: ikC, ispC, ibgrpC, nbgrpC
       !! Character index
 
     complex*8 :: projection, projectionLocal
@@ -4271,16 +4266,11 @@ module wfcExportVASPMod
 
       close(projOutUnit)
 
-      do ibgrp = 0, nBandGroups-1
+      call int2str(nBandGroups-1, nbgrpC)
 
-        call int2str(ibgrp, ibgrpC)
-
-        fNameBgrp = trim(fNameBase)//"."//trim(ibgrpC)
-
-        call execute_command_line('cat '//trim(fNameBgrp)//' >> '//trim(fNameBase)//'&& rm '//trim(fNameBgrp))
-
-
-      enddo
+      !> Merge all of the individual-processor files and delete
+      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'} >> '//trim(fNameBase)//&
+                                ' && rm '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'}')
 
     endif
 
