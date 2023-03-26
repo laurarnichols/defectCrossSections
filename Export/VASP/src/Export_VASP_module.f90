@@ -4242,6 +4242,9 @@ module wfcExportVASPMod
 
           enddo
         enddo
+
+        iaBase = iaBase + nAtomsEachType(iT)
+
       enddo
     enddo
 
