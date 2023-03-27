@@ -1524,8 +1524,8 @@ contains
 
       if(ipr == endingProj(iproc+1)+1) iproc = iproc + 1
 
-      call MPI_SCATTERV(betaLocalProjs(:,ipr), sendCount, displacement, MPI_COMPLEX, betaLocalPWs(1:nGkVecsLocal,ipr), nGkVecsLocal, &
-          MPI_COMPLEX, iproc, intraPoolComm, ierr)
+      call MPI_SCATTERV(betaLocalProjs(:,ipr), sendCount, displacement, MPI_DOUBLE_COMPLEX, betaLocalPWs(1:nGkVecsLocal,ipr), nGkVecsLocal, &
+          MPI_DOUBLE_COMPLEX, iproc, intraPoolComm, ierr)
 
     enddo
 
@@ -1634,8 +1634,8 @@ contains
 
       endif
 
-      call MPI_SCATTERV(wfcAllPWs(:), sendCount, displacement, MPI_COMPLEX, wfc(1:nGkVecsLocal,ib), nGkVecsLocal, &
-        MPI_COMPLEX, 0, intraPoolComm, ierr)
+      call MPI_SCATTERV(wfcAllPWs(:), sendCount, displacement, MPI_DOUBLE_COMPLEX, wfc(1:nGkVecsLocal,ib), nGkVecsLocal, &
+        MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
 
     enddo
 
