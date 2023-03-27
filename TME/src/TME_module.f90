@@ -23,6 +23,8 @@ module declarations
     !! Error returned by MPI
   integer :: iGkStart_poolPC, iGkEnd_poolPC, iGkStart_poolSD, iGkEnd_poolSD
     !! Start and end G+k vector for process in pool
+  integer :: iGStart_pool, iGEnd_pool
+    !! Start and end G-vector for process in pool
   integer :: ikStart_pool, ikEnd_pool
     !! Start and end k-points in pool
   integer :: indexInPool
@@ -59,13 +61,15 @@ module declarations
     !! For timing different processes
 
 
-  integer, allocatable :: gKVecMillerIndicesGlobalPC(:,:), gkVecMillerIndicesGlobalSD(:,:)
-    !! Integer coefficients for G+k vectors
   integer :: maxGIndexGlobal
     !! Maximum G-vector index among all \(G+k\)
     !! and processors for PC and SD
+  integer, allocatable :: mill_local(:,:)
+    !! Local Miller indices
   integer :: nGVecsGlobal
     !! Global number of G-vectors
+  integer :: nGVecsLocal
+    !! Local number of G-vectors
   integer :: nGkVecsLocalPC, nGkVecsLocalSD
     !! Local number of G+k vectors on this processor
   integer :: nKPoints
@@ -1304,58 +1308,58 @@ contains
   end subroutine checkIfCalculated
 
 !----------------------------------------------------------------------------
-  subroutine readGrid(crystalType, ikGlobal, npws, gKVecMillerIndicesGlobal)
-
+  subroutine getFullPWGrid(iGStart_pool, iGEnd_pool, nGVecsLocal, nGVecsGlobal, mill_local)
+    !! Read full PW grid from mgrid file
+    
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ikGlobal
-      !! Current k point
-    integer, intent(in) :: npws
-      !! Number of G+k vectors less than
-      !! the cutoff at this k-point
-
-    character(len=2), intent(in) :: crystalType
-      !! Crystal type (PC or SD)
+    integer, intent(in) :: iGStart_pool, iGEnd_pool
+      !! Start and end G-vectors for each process in pool
+    integer, intent(in) :: nGVecsLocal
+      !! Local number of G-vectors
+    integer, intent(in) :: nGVecsGlobal
+      !! Global number of G-vectors
 
     ! Output variables:
-    integer, intent(out) :: gKVecMillerIndicesGlobal(3,npws)
-      !! Miller indices for G+k vectors for this k-point
-
+    integer, intent(out) :: mill_local(3,nGVecsLocal)
+      !! Integer coefficients for G-vectors
+    
     ! Local variables:
+    integer :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
     integer :: iDum
-      !! Ignore index
+      !! Ignore dummy integer
     integer :: ig
       !! Loop index
-
-    character(len=300) :: ikC
-      !! Character index
-
-
-    call int2str(ikGlobal, ikC)
     
-    if(crystalType == 'PC') then
-      open(72, file=trim(exportDirPC)//"/grid."//trim(ikC))
-    else
-      open(72, file=trim(exportDirSD)//"/grid."//trim(ikC))
+
+    if(ionode) then
+
+      open(72, file=trim(exportDirSD)//"/mgrid")
+        !! Read full G-vector grid from defect folder.
+        !! This assumes that the grids are the same.
+    
+      read(72, * )
+      read(72, * )
+    
+      do ig = 1, nGVecsGlobal
+
+        read(72, '(4i10)') iDum, gVecMillerIndicesGlobal(1:3,ig)
+
+      enddo
+    
+      close(72)
+
     endif
-    
-    read(72, * )
-    read(72, * )
-      ! Ignore the header
-    
-    do ig = 1, npws
 
-      read(72, '(4i10)') iDum, gKVecMillerIndicesGlobal(:,ig)
-        !! Read the global PW indices that satisfy G+k < cutoff
+    call MPI_BCAST(gVecMillerIndicesGlobal, size(gVecMillerIndicesGlobal), MPI_INTEGER, root, worldComm, ierr)
 
-    enddo
+    mill_local(:,:) = gVecMillerIndicesGlobal(:,iGStart_pool:iGEnd_pool)
     
-    close(72)
-
     return
-
-  end subroutine readGrid
+    
+  end subroutine getFullPWGrid
 
 !----------------------------------------------------------------------------
   subroutine readProjectors(crystalType, iGkStart_pool, ikGlobal, nGkVecsLocal, nProjs, npws, betaLocalPWs)
@@ -1905,7 +1909,7 @@ contains
   end subroutine pawCorrectionWfc
 
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionK(crystalType, nAtoms, iType, nGkVecsLocal, numOfTypes, mill_local, atomPositions, atoms, atomsSD, pawK)
+  subroutine pawCorrectionK(crystalType, nAtoms, iType, numOfTypes, atomPositions, atoms, atomsSD, pawK)
     
     implicit none
 
@@ -1914,12 +1918,8 @@ contains
       !! Number of atoms
     integer, intent(in) :: iType(nAtoms)
       !! Atom type index
-    integer, intent(in) :: nGkVecsLocal
-      !! Local number of G+k vectors on this processor
     integer, intent(in) :: numOfTypes
       !! Number of different atom types
-    integer, intent(in) :: mill_local(3,nGkVecsLocal)
-      !! Miller indices for local G+k vectors
 
     real(kind=dp), intent(in) :: atomPositions(3,nAtoms)
       !! Atom positions in Cartesian coordinates
@@ -1935,7 +1935,7 @@ contains
 
 
     ! Output variables:
-    complex(kind=dp) :: pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGkVecsLocal)
+    complex(kind=dp), intent(out) :: pawK(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,nGVecsLocal)
 
     ! Local variables:
     real(kind=dp) :: gCart(3)
@@ -1951,10 +1951,10 @@ contains
     
     
     call cpu_time(t1)
-    
+
     pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
-    do ig = 1, nGkVecsLocal
+    do ig = 1, nGVecsLocal
       
       do ix = 1, 3
         gCart(ix) = sum(mill_local(:,ig)*recipLattVec(ix,:))
@@ -2370,8 +2370,7 @@ contains
           fNameBase = trim(VfisOutput)//'ofKpt'
           fNameSK = trim(fNameBase)//'.'//trim(ispC)//'.'//trim(ikC)
 
-          call execute_command_line('cat '//trim(fNameSK)//' >> '//trim(fNameBase))
-          call execute_command_line('rm '//trim(fNameSK))
+          call execute_command_line('cat '//trim(fNameSK)//' >> '//trim(fNameBase)//'&& rm '//trim(fNameSK))
 
         enddo
 
@@ -2726,6 +2725,7 @@ contains
     deallocate(xkPC)
     deallocate(posIonPC)
     deallocate(TYPNIPC)
+    deallocate(mill_local)
 
     do iType = 1, numOfTypesPC
       deallocate(atomsPC(iType)%r)

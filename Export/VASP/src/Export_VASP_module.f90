@@ -107,8 +107,6 @@ module wfcExportVASPMod
   complex*16, allocatable :: eigenE(:,:,:)
     !! Band eigenvalues
   
-  integer :: fftGridSize(3)
-    !! Number of points on the FFT grid in each direction
   integer, allocatable :: gIndexLocalToGlobal(:)
     !! Converts local index `ig` to global index
   integer, allocatable :: gKIndexLocalToGlobal(:,:)
@@ -128,12 +126,14 @@ module wfcExportVASPMod
   integer, allocatable :: gKSort(:,:)
     !! Indices to recover sorted order on reduced
     !! \(G+k\) grid
+  integer, allocatable :: gVecMillerIndicesGlobal(:,:)
+    !! Integer coefficients for G-vectors on all processors
   integer, allocatable :: iMill(:)
     !! Indices of miller indices after sorting
   integer, allocatable :: iType(:)
     !! Atom type index
-  integer, allocatable :: gVecMillerIndicesGlobal(:,:)
-    !! Integer coefficients for G-vectors on all processors
+  integer :: fftGridSize(3)
+    !! Max number of points on the FFT grid in each direction
   integer :: nAtoms
     !! Number of atoms
   integer :: nBands
@@ -788,7 +788,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
-        kPosition, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
+        kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -815,6 +815,8 @@ module wfcExportVASPMod
     real(kind=dp), allocatable, intent(out) :: kPosition(:,:)
       !! Position of k-points in reciprocal space
 
+    integer, intent(out) :: fftGridSize(3)
+      !! Max number of points on the FFT grid in each direction
     integer, intent(out) :: nBands
       !! Total number of bands
     integer, intent(out) :: nKPoints
@@ -903,6 +905,9 @@ module wfcExportVASPMod
         !! * Calculate the reciprocal lattice vectors from the real-space
         !!   lattice vectors and the cell volume
 
+      call estimateMaxNumPlanewaves(recipLattVec, wfcECut*eVToRy, fftGridSize)
+        !! * Get the maximum number of plane waves
+
       !> * Write out total number of k-points, number of bands, 
       !>   the energy cutoff, the real-space-lattice vectors,
       !>   the cell volume, and the reciprocal lattice vectors
@@ -944,6 +949,7 @@ module wfcExportVASPMod
     call MPI_BCAST(nBands, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(wfcVecCut, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(fftGridSize, 3, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(recipLattVec, size(recipLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
@@ -1018,6 +1024,119 @@ module wfcExportVASPMod
 
     return
   end subroutine getReciprocalVectors
+
+!----------------------------------------------------------------------------
+  subroutine estimateMaxNumPlanewaves(recipLattVec, wfcECut, fftGridSize)
+    !! Get the maximum number of plane waves. I'm not sure how 
+    !! this is done completely. It seems to be just basic vector
+    !! stuff, but I haven't been able to make sense of it.
+    !! 
+    !! @todo Figure out how `estimateMaxNumPlanewaves` works @endtodo
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    real(kind=dp), intent(in) :: recipLattVec(3,3)
+      !! Reciprocal lattice vectors
+    real(kind=dp), intent(in) :: wfcECut
+      !! Plane wave energy cutoff in Ry
+
+    ! Output variables:
+    integer, intent(out) :: fftGridSize(3)
+      !! Max number of points on the FFT grid in each direction
+
+    ! Local variables:
+    real(kind=dp) :: b1mag, b2mag, b3mag
+      !! Reciprocal vector magnitudes
+    real(kind=dp) :: c = 0.26246582250210965422
+      !! \(2m/\hbar^2\) converted from J\(^{-1}\)m\(^{-2}\)
+      !! to eV\(^{-1}\)A\(^{-2}\)
+    real(kind=dp) :: phi12, phi13, phi23
+      !! Angle between vectors
+    real(kind=dp) :: sinphi123
+      !! \(\sin\phi_{123}\)
+    real(kind=dp) :: vmag
+      !! Magnitude of temporary vector
+    real(kind=dp) :: vtmp(3)
+      !! Temporary vector for calculating angles
+
+    integer :: nb1max, nb2max, nb3max
+      !! Max magnitude of G-vectors in each direction
+    integer :: nb1maxA, nb2maxA, nb3maxA
+      !! First estimate of max
+    integer :: nb1maxB, nb2maxB, nb3maxB
+      !! Second estimate of max
+    integer :: nb1maxC, nb2maxC, nb3maxC
+      !! Third estimate of max
+
+
+    b1mag = sqrt(sum(recipLattVec(:,1)**2))
+    b2mag = sqrt(sum(recipLattVec(:,2)**2))
+    b3mag = sqrt(sum(recipLattVec(:,3)**2))
+
+    write(iostd,*) 'reciprocal lattice vector magnitudes:'
+    write(iostd,*) sngl(b1mag),sngl(b2mag),sngl(b3mag)
+      !! * Calculate and output reciprocal vector magnitudes
+
+
+    phi12 = acos(sum(recipLattVec(:,1)*recipLattVec(:,2))/(b1mag*b2mag))
+      !! * Calculate angle between \(b_1\) and \(b_2\)
+
+    call vcross(recipLattVec(:,1), recipLattVec(:,2), vtmp)
+    vmag = sqrt(sum(vtmp(:)**2))
+    sinphi123 = sum(recipLattVec(:,3)*vtmp(:))/(vmag*b3mag)
+      !! * Get \(\sin\phi_{123}\)
+
+    nb1maxA = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sin(phi12)))) + 1
+    nb2maxA = (dsqrt(wfcECut/eVToRy*c)/(b2mag*abs(sin(phi12)))) + 1
+    nb3maxA = (dsqrt(wfcECut/eVToRy*c)/(b3mag*abs(sinphi123))) + 1
+      !! * Get first set of max values
+
+
+    phi13 = acos(sum(recipLattVec(:,1)*recipLattVec(:,3))/(b1mag*b3mag))
+      !! * Calculate angle between \(b_1\) and \(b_3\)
+
+    call vcross(recipLattVec(:,1), recipLattVec(:,3), vtmp)
+    vmag = sqrt(sum(vtmp(:)**2))
+    sinphi123 = sum(recipLattVec(:,2)*vtmp(:))/(vmag*b2mag)
+      !! * Get \(\sin\phi_{123}\)
+
+    nb1maxB = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sin(phi13)))) + 1
+    nb2maxB = (dsqrt(wfcECut/eVToRy*c)/(b2mag*abs(sinphi123))) + 1
+    nb3maxB = (dsqrt(wfcECut/eVToRy*c)/(b3mag*abs(sin(phi13)))) + 1
+      !! * Get first set of max values
+
+
+    phi23 = acos(sum(recipLattVec(:,2)*recipLattVec(:,3))/(b2mag*b3mag))
+      !! * Calculate angle between \(b_2\) and \(b_3\)
+
+    call vcross(recipLattVec(:,2), recipLattVec(:,3), vtmp)
+    vmag = sqrt(sum(vtmp(:)**2))
+    sinphi123 = sum(recipLattVec(:,1)*vtmp(:))/(vmag*b1mag)
+      !! * Get \(\sin\phi_{123}\)
+
+    nb1maxC = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sinphi123))) + 1
+    nb2maxC = (dsqrt(wfcECut/eVToRy*c)/(b2mag*abs(sin(phi23)))) + 1
+    nb3maxC = (dsqrt(wfcECut/eVToRy*c)/(b3mag*abs(sin(phi23)))) + 1
+      !! * Get first set of max values
+
+
+    nb1max = max0(nb1maxA,nb1maxB,nb1maxC)
+    nb2max = max0(nb2maxA,nb2maxB,nb2maxC)
+    nb3max = max0(nb3maxA,nb3maxB,nb3maxC)
+
+    fftGridSize(1) = 2*nb1max + 1
+    fftGridSize(2) = 2*nb2max + 1
+    fftGridSize(3) = 2*nb3max + 1
+
+    write(iostd,*) 'max. no. G values; 1,2,3 =', nb1max, nb2max, nb3max
+    write(iostd,*) ' '
+
+    return
+  end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
   subroutine vcross(vec1, vec2, crossProd)
@@ -1214,7 +1333,7 @@ module wfcExportVASPMod
   end subroutine distributeBandsInGroups
 
 !----------------------------------------------------------------------------
-  subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, atomPositionsDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
+  subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
     !! <h2>Walkthrough</h2>
@@ -1234,15 +1353,11 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: atomPositionsDir(:,:)
-      !! Atom positions in direct coordinates
     real(kind=dp), intent(out) :: eFermi
       !! Fermi energy
     real(kind=dp), allocatable, intent(out) :: kWeight(:)
       !! K-point weights
 
-    integer, intent(out) :: fftGridSize(3)
-      !! Number of points on the FFT grid in each direction
     integer, allocatable, intent(out) :: iType(:)
       !! Atom type index
     integer, intent(out) :: nAtoms
@@ -1254,7 +1369,7 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: ik, ia, ix, i
+    integer :: ik, ia, ix
       !! Loop indices
 
     character(len=256) :: cDum
@@ -1350,26 +1465,6 @@ module wfcExportVASPMod
       found = .false.
       do while (.not. found)
         !! * Ignore everything until you get to a
-        !!   line with `'grids'`, indicating the
-        !!   tag surrounding the k-point weights
-        
-        read(57, '(A)') line
-
-        if (index(line,'grids') /= 0) found = .true.
-        
-      enddo
-
-      do ix = 1, 3
-        !! * Read in the FFT grid size in each direction
-
-        read(57,'(a28,i6,a4)') cDum, fftGridSize(ix), cDum
-
-      enddo
-
-
-      found = .false.
-      do while (.not. found)
-        !! * Ignore everything until you get to a
         !!   line with `'ORBITALMAG'`, indicating the
         !!   tag that determines if can ignore `VKPT_SHIFT`
         
@@ -1459,18 +1554,82 @@ module wfcExportVASPMod
         
       enddo
 
-      allocate(atomPositionsDir(3,nAtoms))
+      close(57)
+
+    endif
+
+    call MPI_BCAST(kWeight, size(kWeight), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(nAtomTypes, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    if (.not. ionode) then
+      allocate(iType(nAtoms))
+      allocate(nAtomsEachType(nAtomTypes))
+    endif
+
+    call MPI_BCAST(iType, size(iType), MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(nAtomsEachType, size(nAtomsEachType), MPI_INTEGER, root, worldComm, ierr)
+
+    return
+  end subroutine read_vasprun_xml
+
+!----------------------------------------------------------------------------
+  subroutine readCONTCAR(nAtoms, VASPDir, atomPositionsDir)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+    character(len=256), intent(in) :: VASPDir
+      !! Directory with VASP files
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: atomPositionsDir(:,:)
+      !! Atom positions in direct coordinates
+
+    ! Local variables:
+    integer :: ia, i
+      !! Loop indices
+
+    logical :: fileExists
+      !! If the `CONTCAR` file exists
+
+    character(len=256) :: fileName
+      !! `CONTCAR` with path
+
+
+    allocate(atomPositionsDir(3,nAtoms))
+
+    if (ionode) then
+
+      fileName = trim(VASPDir)//'/CONTCAR'
+
+      inquire(file = fileName, exist = fileExists)
+
+      if (.not. fileExists) call exitError('readCONTCAR', 'Required file CONTCAR does not exist', 1)
+
+      open(57, file=fileName)
+        !! * If root node, open `vasprun.xml`
+
+      !> Ignore lines before coordinates
+      read(57,*)
+      read(57,*)
+      read(57,*)
+      read(57,*)
+      read(57,*)
+      read(57,*)
+      read(57,*)
+      read(57,*)
 
       do ia = 1, nAtoms
         !! * Read in the final position for each atom
 
-        read(57,*) cDum, (atomPositionsDir(i,ia),i=1,3), cDum
+        read(57,*) (atomPositionsDir(i,ia),i=1,3)
           !! @note
-          !!  I assume that the coordinates are always direct
-          !!  in the `vasprun.xml` file and that the scaling
-          !!  factor is already included as I cannot find it 
-          !!  listed anywhere in that file. Extensive testing
-          !!  needs to be done to confirm this assumption.
+          !!  For now, I assume that the scaling factor is 1
+          !!  and that the coordinates are direct. Will need
+          !!  to implement proper reading later.
           !! @endnote
 
       enddo
@@ -1482,23 +1641,11 @@ module wfcExportVASPMod
 
     endif
 
-    call MPI_BCAST(kWeight, size(kWeight), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(fftGridSize, size(fftGridSize), MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(nAtomTypes, 1, MPI_INTEGER, root, worldComm, ierr)
-
-    if (.not. ionode) then
-      allocate(iType(nAtoms))
-      allocate(atomPositionsDir(3,nAtoms))
-      allocate(nAtomsEachType(nAtomTypes))
-    endif
-
-    call MPI_BCAST(iType, size(iType), MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(atomPositionsDir, size(atomPositionsDir), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(nAtomsEachType, size(nAtomsEachType), MPI_INTEGER, root, worldComm, ierr)
 
     return
-  end subroutine read_vasprun_xml
+
+  end subroutine readCONTCAR
 
 !----------------------------------------------------------------------------
   subroutine distributeItemsInSubgroups(mySubgroupId, nItemsToDistribute, nProcPerLargerGroup, nProcPerSubgroup, nSubgroups, &
@@ -1577,7 +1724,7 @@ module wfcExportVASPMod
 
     ! Input variables:
     integer, intent(in) :: fftGridSize(3)
-      !! Number of points on the FFT grid in each direction
+      !! Max number of points on the FFT grid in each direction
 
     real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
@@ -1613,7 +1760,7 @@ module wfcExportVASPMod
       !! Integer coefficients for G-vectors
     integer :: millX, millY, millZ
       !! Miller indices for each direction; in order
-      !! 0,1,...,(fftGridSize(:)/2),-(fftGridSize(:)/2-1),...,-1
+      !! 0,1,...,((fftGridSize(:)-1)/2),-((fftGridSize(:)-1)/2-1),...,-1
     integer :: npmax
       !! Max number of plane waves
 
@@ -1635,19 +1782,19 @@ module wfcExportVASPMod
 
         millZ = igz - 1
 
-        if (igz - 1 .gt. fftGridSize(3)/2) millZ = igz - 1 - fftGridSize(3)
+        if (igz - 1 .gt. (fftGridSize(3)-1)/2) millZ = igz - 1 - fftGridSize(3)
 
         do igy = 1, fftGridSize(2)
 
           millY = igy - 1
 
-          if (igy - 1 .gt. fftGridSize(2)/2) millY = igy - 1 - fftGridSize(2)
+          if (igy - 1 .gt. (fftGridSize(2)-1)/2) millY = igy - 1 - fftGridSize(2)
 
           do igx = 1, fftGridSize(1)
 
             millX = igx - 1
 
-            if (igx - 1 .gt. fftGridSize(1)/2) millX = igx - 1 - fftGridSize(1)
+            if (igx - 1 .gt. (fftGridSize(1)-1)/2) millX = igx - 1 - fftGridSize(1)
 
             nGVecsGlobal = nGVecsGlobal + 1
 
@@ -2797,11 +2944,11 @@ module wfcExportVASPMod
             
             read(potcarUnit,'(1X,A1)') charSwitch
             if (charSwitch /= 'p') call exitError('readPOTCAR', 'expected pseudowavefunction section', 1)
-            read(potcarUnit,*) (pot(iT)%wps(i,ip), i=1,pot(iT)%nmax)
+            read(potcarUnit,*) (pot(iT)%wps(ip,i), i=1,pot(iT)%nmax)
 
             read(potcarUnit,'(1X,A1)') charSwitch
             if (charSwitch /= 'a') call exitError('readPOTCAR', 'expected aewavefunction section', 1)
-            read(potcarUnit,*) (pot(iT)%wae(i,ip), i=1,pot(iT)%nmax)
+            read(potcarUnit,*) (pot(iT)%wae(ip,i), i=1,pot(iT)%nmax)
 
           enddo
 
@@ -2849,7 +2996,7 @@ module wfcExportVASPMod
   end subroutine readPOTCAR
 
 !----------------------------------------------------------------------------
-  subroutine projAndWav(fftGridSize, maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
+  subroutine projAndWav(maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
       nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
       recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
@@ -2858,8 +3005,6 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables: 
-    integer, intent(in) :: fftGridSize(3)
-      !! Number of points on the FFT grid in each direction
     integer, intent(in) :: maxGkVecsLocal
       !! Max number of G+k vectors across all k-points
       !! in this pool
@@ -2994,7 +3139,7 @@ module wfcExportVASPMod
       call cpu_time(t1)
 
 
-      if(myBgrpId == 0) call calculateRealProjWoPhase(fftGridSize, ikLocal, nAtomTypes, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, &
+      if(myBgrpId == 0) call calculateRealProjWoPhase(ikLocal, nAtomTypes, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, &
                 gVecMillerIndicesGlobal, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
       call MPI_BCAST(realProjWoPhase, size(realProjWoPhase), MPI_DOUBLE_PRECISION, 0, interBgrpComm, ierr)
@@ -3067,6 +3212,7 @@ module wfcExportVASPMod
 !----------------------------------------------------------------------------
   subroutine calculatePhase(ik, nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
                 atomPositionsDir, phaseExp)
+
     implicit none
 
     ! Input variables: 
@@ -3128,13 +3274,11 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(fftGridSize, ik, nAtomTypes, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
+  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
       kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: fftGridSize(3)
-      !! Number of points on the FFT grid in each direction
     integer, intent(in) :: ik
       !! Current k-point 
     integer, intent(in) :: nAtomTypes
@@ -3210,7 +3354,7 @@ module wfcExportVASPMod
       !! Spherical harmonics
 
 
-    call generateGridTable(fftGridSize, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, ik, kPosition, &
+    call generateGridTable(nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, ik, kPosition, &
           recipLattVec, gammaOnly, gkMod, gkUnit, multFact)
 
     YDimL = maxL(nAtomTypes, pot)
@@ -3299,13 +3443,11 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine generateGridTable(fftGridSize, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, ik, kPosition, &
+  subroutine generateGridTable(nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, ik, kPosition, &
         recipLattVec, gammaOnly, gkMod, gkUnit, multFact)
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: fftGridSize(3)
-      !! Number of points on the FFT grid in each direction
     integer, intent(in) :: nGkVecsLocal_ik
       !! Local number of G-vectors on this processor
       !! for a given k-point
@@ -3758,9 +3900,9 @@ module wfcExportVASPMod
     complex(kind=dp) :: phaseExpGlobal(nPWs1k, nAtoms)
       !! Exponential phase factor
 
-    character(len=300) :: ikC, iprocC
+    character(len=300) :: ikC, iprocC, procNumC
       !! Character index
-    character(len=300) :: fNameBase, fNameProc
+    character(len=300) :: fNameBase
       !! File names
 
 
@@ -3888,16 +4030,12 @@ module wfcExportVASPMod
 
       close(projOutUnit)
 
-      do iproc = 0, nProcPerBgrp-1
 
-        call int2str(iproc, iprocC)
+      call int2str(nProcPerBgrp-1, procNumC)
 
-        fNameProc = trim(fNameBase)//"."//trim(iprocC)
-
-        call execute_command_line('cat '//trim(fNameProc)//' >> '//trim(fNameBase))
-        call execute_command_line('rm '//trim(fNameProc))
-
-      enddo
+      !> Merge all of the individual-processor files and delete
+      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(procNumC)//'} >> '//trim(fNameBase)//&
+                                ' && rm '//trim(fNameBase)//'.{0..'//trim(procNumC)//'}')
 
     endif
 
@@ -3972,7 +4110,7 @@ module wfcExportVASPMod
 
     character(len=300) :: fNameBase, fNameBgrp
       !! File names for merging output
-    character(len=300) :: ikC, ispC, ibgrpC
+    character(len=300) :: ikC, ispC, ibgrpC, nbgrpC
       !! Character index
 
 
@@ -4078,17 +4216,14 @@ module wfcExportVASPMod
 
       close(wfcOutUnit)
         ! Close `wfc.isp.ik.myBgrpId` file
+      
 
-      do ibgrp = 0, nBandGroups-1
+      call int2str(nBandGroups-1, nbgrpC)
 
-        call int2str(ibgrp, ibgrpC)
+      !> Merge all of the individual-processor files and delete
+      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'} >> '//trim(fNameBase)//&
+                                ' && rm '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'}')
 
-        fNameBgrp = trim(fNameBase)//"."//trim(ibgrpC)
-
-        call execute_command_line('cat '//trim(fNameBgrp)//' >> '//trim(fNameBase))
-        call execute_command_line('rm '//trim(fNameBgrp))
-
-      enddo
 
     endif
 
@@ -4155,10 +4290,10 @@ module wfcExportVASPMod
 
     character(len=300) :: fNameBase, fNameBgrp
       !! Character index
-    character(len=300) :: ikC, ispC, ibgrpC
+    character(len=300) :: ikC, ispC, ibgrpC, nbgrpC
       !! Character index
 
-    complex*8 :: projection, projectionLocal
+    complex(kind=dp) :: projection, projectionLocal
       !! Projection for current atom/band/lm channel
 
 
@@ -4191,12 +4326,15 @@ module wfcExportVASPMod
               ! Don't need to worry about sorting because projection
               ! has sum over plane waves.
 
-            call MPI_ALLREDUCE(projectionLocal, projection, 1, MPI_COMPLEX, MPI_SUM, intraBgrpComm, ierr)
+            call MPI_ALLREDUCE(projectionLocal, projection, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraBgrpComm, ierr)
 
             if(indexInBgrp == 0) write(projOutUnit,'(2ES24.15E3)') projection
 
           enddo
         enddo
+
+        iaBase = iaBase + nAtomsEachType(iT)
+
       enddo
     enddo
 
@@ -4221,17 +4359,11 @@ module wfcExportVASPMod
 
       close(projOutUnit)
 
-      do ibgrp = 0, nBandGroups-1
+      call int2str(nBandGroups-1, nbgrpC)
 
-        call int2str(ibgrp, ibgrpC)
-
-        fNameBgrp = trim(fNameBase)//"."//trim(ibgrpC)
-
-        call execute_command_line('cat '//trim(fNameBgrp)//' >> '//trim(fNameBase))
-        call execute_command_line('rm '//trim(fNameBgrp))
-
-
-      enddo
+      !> Merge all of the individual-processor files and delete
+      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'} >> '//trim(fNameBase)//&
+                                ' && rm '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'}')
 
     endif
 
@@ -4634,7 +4766,7 @@ module wfcExportVASPMod
         write(mainOutFileUnit, '("# AE, PS radial wfc for each beta function. Format: ''(2ES24.15E3)''")')
         do ip = 1, pot(iT)%nChannels
           do ir = 1, pot(iT)%nmax
-            write(mainOutFileUnit, '(2ES24.15E3)') pot(iT)%wae(ir,ip), pot(iT)%wps(ir,ip)
+            write(mainOutFileUnit, '(2ES24.15E3)') pot(iT)%wae(ip,ir), pot(iT)%wps(ip,ir)
           enddo
         enddo
       
