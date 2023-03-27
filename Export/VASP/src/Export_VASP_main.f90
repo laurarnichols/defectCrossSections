@@ -57,7 +57,7 @@ program wfcExportVASPMain
 
 
   call readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
-      kPosition, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
+      kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 
 
@@ -68,7 +68,7 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call read_vasprun_xml(realLattVec, nKPoints, VASPDir, eFermi, kWeight, fftGridSize, iType, nAtoms, nAtomsEachType, nAtomTypes)
+  call read_vasprun_xml(realLattVec, nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
   call readCONTCAR(nAtoms, VASPDir, atomPositionsDir)
@@ -129,7 +129,7 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call projAndWav(fftGridSize, maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
+  call projAndWav(maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
       nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
       recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
