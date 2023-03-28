@@ -9,7 +9,7 @@ program shifterMain
 
   call mpiInitialization()
 
-  call initialize()
+  call initialize(poscarFName, phononFName, shift)
 
   call splitModesOverProcesses()
 
