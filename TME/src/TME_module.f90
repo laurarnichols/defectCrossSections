@@ -1,26 +1,20 @@
 module declarations
+  use constants, only: dp, pi, sq4pi, eVToHartree, ii
+  use miscUtilities, only: int2str, int2strLeadZero
+  use errorsAndMPI
   use mpi
   
   implicit none
 
   ! Parameters:
-  integer, parameter :: dp = selected_real_kind(15, 307)
   integer, parameter :: iostd = 16
   integer, parameter :: root  = 0
     !! ID of the root node
-
-  real(kind = dp), parameter ::          pi = 3.141592653589793_dp
-  real(kind = dp), parameter ::       sq4pi = 3.544907701811032_dp
-  real(kind = dp), parameter :: evToHartree = 0.03674932538878_dp
-  
-  complex(kind = dp), parameter :: ii = cmplx(0.0_dp, 1.0_dp, kind = dp)
   
   character(len = 6), parameter :: output = 'output'
 
 
   ! Global variables not passed as arguments:
-  integer :: ierr
-    !! Error returned by MPI
   integer :: iGkStart_poolPC, iGkEnd_poolPC, iGkStart_poolSD, iGkEnd_poolSD
     !! Start and end G+k vector for process in pool
   integer :: iGStart_pool, iGEnd_pool
@@ -33,23 +27,14 @@ module declarations
     !! Intra-pool communicator
   integer :: interPoolComm = 0
     !! Intra-pool communicator
-  integer :: myid
-    !! ID of this process
   integer :: myPoolId
     !! Pool index for this process
   integer :: nkPerPool
     !! Number of k-points in each pool
   integer :: nPools = 1
     !! Number of pools for k-point parallelization
-  integer :: nProcs
-    !! Number of processes
   integer :: nProcPerPool
     !! Number of processes per pool
-  integer :: worldComm
-    !! World communicator
-
-  logical :: ionode
-    !! If this node is the root node
 
 
   ! Variables that should be passed as arguments:
@@ -611,7 +596,7 @@ contains
     
     write(iostd, '("eBin = ", f8.4, " (eV)")') eBin
     
-    eBin = eBin*evToHartree
+    eBin = eBin*eVToHartree
     
     if ( abortExecution ) then
       write(iostd, '(" Program stops!")')
@@ -2777,250 +2762,6 @@ contains
     return
     
   end subroutine finalizeCalculation
-
-!----------------------------------------------------------------------------
-  subroutine mpiExitError(code)
-    !! Exit on error with MPI communication
-
-    implicit none
-    
-    integer, intent(in) :: code
-
-    write( iostd, '( "*** MPI error ***")' )
-    write( iostd, '( "*** error code: ",I5, " ***")' ) code
-
-    call MPI_ABORT(worldComm,code,ierr)
-    
-    stop
-
-    return
-  end subroutine mpiExitError
-
-!----------------------------------------------------------------------------
-  subroutine exitError(calledFrom, message, ierror)
-    !! Output error message and abort if ierr > 0
-    !!
-    !! Can ensure that error will cause abort by
-    !! passing abs(ierror)
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    
-    implicit none
-
-    integer, intent(in) :: ierror
-      !! Error
-
-    character(len=*), intent(in) :: calledFrom
-      !! Place where this subroutine was called from
-    character(len=*), intent(in) :: message
-      !! Error message
-
-    integer :: id
-      !! ID of this process
-    integer :: mpierr
-      !! Error output from MPI
-
-    character(len=6) :: cerr
-      !! String version of error
-
-
-    if ( ierror <= 0 ) return
-      !! * Do nothing if the error is less than or equal to zero
-
-    write( cerr, fmt = '(I6)' ) ierror
-      !! * Write ierr to a string
-    write(unit=*, fmt = '(/,1X,78("%"))' )
-      !! * Output a dividing line
-    write(unit=*, fmt = '(5X,"Error in ",A," (",A,"):")' ) trim(calledFrom), trim(adjustl(cerr))
-      !! * Output where the error occurred and the error
-    write(unit=*, fmt = '(5X,A)' ) TRIM(message)
-      !! * Output the error message
-    write(unit=*, fmt = '(1X,78("%"),/)' )
-      !! * Output a dividing line
-
-    write( *, '("     stopping ...")' )
-  
-    call flush( iostd )
-  
-    id = 0
-  
-    !> * For MPI, get the id of this process and abort
-    call MPI_COMM_RANK( worldComm, id, mpierr )
-    call MPI_ABORT( worldComm, mpierr, ierr )
-    call MPI_FINALIZE( mpierr )
-
-    stop 2
-
-    return
-
-  end subroutine exitError
-
-!----------------------------------------------------------------------------
-  subroutine mpiSumIntV(msg, comm)
-    !! Perform `MPI_ALLREDUCE` sum for an integer vector
-    !! using a max buffer size
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input/output variables:
-    integer, intent(in) :: comm
-      !! MPI communicator
-    integer, intent(inout) :: msg(:)
-      !! Message to be sent
-
-
-    ! Local variables:
-    integer, parameter :: maxb = 100000
-      !! Max buffer size
-
-    integer :: ib
-      !! Loop index
-    integer :: buff(maxb)
-      !! Buffer
-    integer :: msglen
-      !! Length of message to be sent
-    integer :: nbuf
-      !! Number of buffers
-
-    msglen = size(msg)
-
-    nbuf = msglen/maxb
-      !! * Get the number of buffers of size `maxb` needed
-  
-    do ib = 1, nbuf
-      !! * Send message in buffers of size `maxb`
-     
-        call MPI_ALLREDUCE(msg(1+(ib-1)*maxb), buff, maxb, MPI_INTEGER, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumIntV', 'error in mpi_allreduce 1', ierr)
-
-        msg((1+(ib-1)*maxb):(ib*maxb)) = buff(1:maxb)
-
-    enddo
-
-    if((msglen - nbuf*maxb) > 0 ) then
-      !! * Send any data left of size less than `maxb`
-
-        call MPI_ALLREDUCE(msg(1+nbuf*maxb), buff, (msglen-nbuf*maxb), MPI_INTEGER, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumIntV', 'error in mpi_allreduce 2', ierr)
-
-        msg((1+nbuf*maxb):msglen) = buff(1:(msglen-nbuf*maxb))
-    endif
-
-    return
-  end subroutine mpiSumIntV
-
-!----------------------------------------------------------------------------
-  subroutine mpiSumDoubleV(msg, comm)
-    !! Perform `MPI_ALLREDUCE` sum for a double-precision vector
-    !! using a max buffer size
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input/output variables:
-    integer, intent(in) :: comm
-      !! MPI communicator
-
-    real(kind=dp), intent(inout) :: msg(:)
-      !! Message to be sent
-
-
-    ! Local variables:
-    integer, parameter :: maxb = 20000
-      !! Max buffer size
-
-    integer :: ib
-      !! Loop index
-    integer :: msglen
-      !! Length of message to be sent
-    integer :: nbuf
-      !! Number of buffers
-
-    real(kind=dp) :: buff(maxb)
-      !! Buffer
-
-    msglen = size(msg)
-
-    nbuf = msglen/maxb
-      !! * Get the number of buffers of size `maxb` needed
-
-    do ib = 1, nbuf
-      !! * Send message in buffers of size `maxb`
-     
-        call MPI_ALLREDUCE(msg(1+(ib-1)*maxb), buff, maxb, MPI_DOUBLE_PRECISION, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumDoubleV', 'error in mpi_allreduce 1', ierr)
-
-        msg((1+(ib-1)*maxb):(ib*maxb)) = buff(1:maxb)
-
-    enddo
-
-    if((msglen - nbuf*maxb) > 0 ) then
-      !! * Send any data left of size less than `maxb`
-
-        call MPI_ALLREDUCE(msg(1+nbuf*maxb), buff, (msglen-nbuf*maxb), MPI_DOUBLE_PRECISION, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumDoubleV', 'error in mpi_allreduce 2', ierr)
-
-        msg((1+nbuf*maxb):msglen) = buff(1:(msglen-nbuf*maxb))
-    endif
-
-    return
-  end subroutine mpiSumDoubleV
-  
-!----------------------------------------------------------------------------
-  subroutine int2str(integ, string)
-    
-    implicit none
-    integer :: integ
-    character(len = 300) :: string
-    
-    if ( integ < 10 ) then
-      write(string, '(i1)') integ
-    else if ( integ < 100 ) then
-      write(string, '(i2)') integ
-    else if ( integ < 1000 ) then
-      write(string, '(i3)') integ
-    else if ( integ < 10000 ) then
-      write(string, '(i4)') integ
-    else if ( integ < 100000 ) then
-      write(string, '(i5)') integ
-    else if ( integ < 1000000 ) then
-      write(string, '(i6)') integ
-    else if ( integ < 10000000 ) then
-      write(string, '(i7)') integ
-    endif
-    
-    string = trim(string)
-    
-    return
-    
-  end subroutine int2str
-  
-!----------------------------------------------------------------------------
-  subroutine int2strLeadZero(integ, length, string)
-    
-    implicit none
-    integer :: integ
-    integer :: length
-    character(len = 300) :: string
-    character(len = 300) :: lengthC
-    character(len = 300) :: formatString
-    
-    call int2str(length, lengthC)
-    formatString = '(i'//trim(lengthC)//'.'//trim(lengthC)//')'
-
-    write(string, formatString) integ
-    
-    string = trim(string)
-    
-    return
-    
-  end subroutine int2strLeadZero
   
   
 end module declarations

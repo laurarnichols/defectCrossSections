@@ -29,10 +29,10 @@ program wfcExportVASPMain
 
   if ( ionode ) then
     
-    read(5, inputParams, iostat=ios)
+    read(5, inputParams, iostat=ierr)
       !! * Read input variables
     
-    if (ios /= 0) call exitError('export main', 'reading inputParams namelist', abs(ios))
+    if(ierr /= 0) call exitError('export main', 'reading inputParams namelist', abs(ierr))
       !! * Exit calculation if there's an error
 
     call execute_command_line('mkdir -p '//trim(exportDir))
@@ -234,7 +234,7 @@ program wfcExportVASPMain
   call MPI_Barrier(worldComm, ierr)
  
   call cpu_time(t2)
-  if (ionode) write(iostd,'("************ VASP Export complete! (",f10.2," secs) ************")') t2-t0
+  if (ionode) write(*,'("************ VASP Export complete! (",f10.2," secs) ************")') t2-t0
 
   call MPI_FINALIZE(ierr)
 
