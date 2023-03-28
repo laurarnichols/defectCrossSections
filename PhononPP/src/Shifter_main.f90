@@ -4,6 +4,8 @@ program shifterMain
   
   implicit none
 
+  integer :: j 
+    !! Mode index
 
   call cpu_time(t0)
 
@@ -24,7 +26,8 @@ program shifterMain
 
   call checkInitialization(shift, phononFName, poscarFName)
 
-  call splitModesOverProcesses()
+  call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeStart, nModesLocal)
+    !! @todo Get modes from somewhere @endtodo
 
   do j = iModeStart, iModeEnd
 

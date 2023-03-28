@@ -10,7 +10,19 @@ module shifterMod
   integer, parameter :: root = 0
     !! ID of the root node
 
+  ! Variables that should not be passed as arguments:
+  integer :: iModeStart, iModeEnd
+    !! Start and end mode for this process
+
+  real(kind=dp) :: t0, t1, t2
+    !! Timers
+
   ! Variables that should be passed as arguments:
+  integer :: nModes
+    !! Number of phonon modes
+  integer :: nModesLocal
+    !! Local number of phonon modes
+
   real(kind=dp) :: shift
     !! Magnitude of shift along phonon eigenvectors
 
