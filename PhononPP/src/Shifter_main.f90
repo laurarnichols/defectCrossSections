@@ -26,6 +26,10 @@ program shifterMain
 
   call checkInitialization(shift, phononFName, poscarFName)
 
+  call readPOSCAR()
+
+  call readPhonons()
+
   call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeStart, nModesLocal)
     !! @todo Get modes from somewhere @endtodo
 
