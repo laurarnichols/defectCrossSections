@@ -25,6 +25,13 @@ program transitionMatrixElements
   
   call mpiInitialization()
     !! Initialize MPI
+
+  call getCommandLineArguments()
+    !! * Get the number of pools from the command line
+
+  call setUpPools()
+    !! * Split up processors between pools and generate MPI
+    !!   communicators for pools
   
   if(ionode) call cpu_time(t0)
 

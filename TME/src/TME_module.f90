@@ -8,8 +8,6 @@ module declarations
 
   ! Parameters:
   integer, parameter :: iostd = 16
-  integer, parameter :: root  = 0
-    !! ID of the root node
   
   character(len = 6), parameter :: output = 'output'
 
@@ -135,61 +133,6 @@ module declarations
   
   
 contains
-
-!----------------------------------------------------------------------------
-  subroutine mpiInitialization()
-    !! Generate MPI processes and communicators 
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Output variables:
-    !logical, intent(out) :: ionode
-      ! If this node is the root node
-    !integer, intent(out) :: intraPoolComm = 0
-      ! Intra-pool communicator
-    !integer, intent(out) :: indexInPool
-      ! Process index within pool
-    !integer, intent(out) :: myid
-      ! ID of this process
-    !integer, intent(out) :: myPoolId
-      ! Pool index for this process
-    !integer, intent(out) :: nPools
-      ! Number of pools for k-point parallelization
-    !integer, intent(out) :: nProcs
-      ! Number of processes
-    !integer, intent(out) :: nProcPerPool
-      ! Number of processes per pool
-    !integer, intent(out) :: worldComm
-      ! World communicator
-
-
-    call MPI_Init(ierr)
-    if (ierr /= 0) call mpiExitError( 8001 )
-
-    worldComm = MPI_COMM_WORLD
-
-    call MPI_COMM_RANK(worldComm, myid, ierr)
-    if (ierr /= 0) call mpiExitError( 8002 )
-      !! * Determine the rank or ID of the calling process
-    call MPI_COMM_SIZE(worldComm, nProcs, ierr)
-    if (ierr /= 0) call mpiExitError( 8003 )
-      !! * Determine the size of the MPI pool (i.e., the number of processes)
-
-    ionode = (myid == root)
-      ! Set a boolean for if this is the root process
-
-    call getCommandLineArguments()
-      !! * Get the number of pools from the command line
-
-    call setUpPools()
-      !! * Split up processors between pools and generate MPI
-      !!   communicators for pools
-
-    return
-  end subroutine mpiInitialization
 
 !----------------------------------------------------------------------------
   subroutine getCommandLineArguments()

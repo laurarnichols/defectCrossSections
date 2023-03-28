@@ -23,6 +23,13 @@ program wfcExportVASPMain
 
   call mpiInitialization()
 
+  call getCommandLineArguments()
+    !! * Get the number of pools from the command line
+
+  call setUpPools()
+    !! * Split up processors between pools and generate MPI
+    !!   communicators for pools
+
   call initialize(gammaOnly, exportDir, VASPDir)
     !! * Set default values for input variables, open output file,
     !!   and start timers
