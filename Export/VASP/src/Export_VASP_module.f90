@@ -953,62 +953,6 @@ module wfcExportVASPMod
   end subroutine preliminaryWAVECARScan
 
 !----------------------------------------------------------------------------
-  subroutine distributeBandsInGroups(nBands)
-    !! Figure out how many bands there should be per band group
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nBands
-      !! Total number of bands
-    !integer, intent(in) :: nProcPerBgrp
-      ! Number of processes per band group
-
-
-    ! Output variables:
-    !integer, intent(out) :: ibEnd_bgrp
-      ! Ending index for bands in single band group
-    !integer, intent(out) :: ibStart_bgrp
-      ! Starting index for bands in single band group
-    !integer, intent(out) :: nbPerBgrp
-      ! Number of bands in each band group
-
-
-    ! Local variables:
-    integer :: nbr
-      !! Number of bands left over after evenly divided across band groups
-
-
-    if( nBands > 0 ) then
-
-      IF( ( nProcPerBgrp > nProcPerPool ) .or. ( mod( nProcPerPool, nProcPerBgrp ) /= 0 ) ) &
-        CALL exitError( 'distributeKpointsInPools','nProcPerPool', 1 )
-
-      nbPerBgrp = nBands / nBandGroups
-        !!  * Calculate bands per band group
-
-      nbr = nBands - nbPerBgrp * nBandGroups
-        !! * Calculate the remainder `nbr`
-
-      IF( myBgrpId < nbr ) nbPerBgrp = nbPerBgrp + 1
-        !! * Assign the remainder to the first `nbr` band groups
-
-      !>  * Calculate the index of the first bannd in this band group
-      ibStart_bgrp = nbPerBgrp * myBgrpId + 1
-      IF( myBgrpId >= nbr ) ibStart_bgrp = ibStart_bgrp + nbr
-
-      ibEnd_bgrp = ibStart_bgrp + nbPerBgrp - 1
-        !!  * Calculate the index of the last band in this band group
-
-    endif
-
-    return
-  end subroutine distributeBandsInGroups
-
-!----------------------------------------------------------------------------
   subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
@@ -1322,70 +1266,6 @@ module wfcExportVASPMod
     return
 
   end subroutine readCONTCAR
-
-!----------------------------------------------------------------------------
-  subroutine distributeItemsInSubgroups(mySubgroupId, nItemsToDistribute, nProcPerLargerGroup, nProcPerSubgroup, nSubgroups, &
-        iItemStart_subgroup, iItemEnd_subgroup, nItemsPerSubgroup)
-    !! Distribute items across a subgroup
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: mySubgroupId
-      !! Process ID in subgroup
-    integer, intent(in) :: nItemsToDistribute
-      !! Total number of items to distribute
-    integer, intent(in) :: nProcPerLargerGroup
-      !! Number of processes in group next
-      !! larger than this subgroup
-    integer, intent(in) :: nProcPerSubgroup
-      !! Number of processes per subgroup
-    integer, intent(in) :: nSubgroups
-      !! Number of subgroups
-
-
-    ! Output variables:
-    integer, intent(out) :: iItemStart_subgroup
-      !! Starting index for items in single subgroup
-    integer, intent(out) :: iItemEnd_subgroup
-      !! Ending index for items in single subgroup
-    integer, intent(out) :: nItemsPerSubgroup
-      !! Number of items in each subgroup
-
-
-    ! Local variables:
-    integer :: nr
-      !! Number of items left over after evenly divided across subgroups
-
-
-    if(nItemsToDistribute > 0) then
-
-      if(nProcPerSubgroup > nProcPerLargerGroup .or. mod(nProcPerLargerGroup, nProcPerSubgroup) /= 0) &
-        call exitError('distributeItemsInSubgroups','nProcPerSubgroup', 1)
-
-      nItemsPerSubgroup = nItemsToDistribute / nSubgroups
-        !!  * Calculate items per subgroup
-
-      nr = nItemsToDistribute - nItemsPerSubgroup * nSubgroups
-        !! * Calculate the remainder 
-
-      IF( mySubgroupId < nr ) nItemsPerSubgroup = nItemsPerSubgroup + 1
-        !! * Assign the remainder to the first `nr` subgroups
-
-      !>  * Calculate the index of the first item in this subgroup
-      iItemStart_subgroup = nItemsPerSubgroup * mySubgroupId + 1
-      IF( mySubgroupId >= nr ) iItemStart_subgroup = iItemStart_subgroup + nr
-
-      iItemEnd_subgroup = iItemStart_subgroup + nItemsPerSubgroup - 1
-        !!  * Calculate the index of the last k-point in this pool
-
-    endif
-
-    return
-  end subroutine distributeItemsInSubgroups
 
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, &
