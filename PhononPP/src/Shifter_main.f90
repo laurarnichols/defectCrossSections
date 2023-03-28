@@ -9,10 +9,21 @@ program shifterMain
 
   call mpiInitialization()
 
+  call initialize()
+
+  call splitModesOverProcesses()
+
+  do j = iModeStart, iModeEnd
+
+    call shiftMode()
+    call writeShiftedPOSCAR()
+
+  enddo
+
   call MPI_Barrier(worldComm, ierr)
  
   call cpu_time(t2)
-  if (ionode) write(iostd,'("************ VASP Export complete! (",f10.2," secs) ************")') t2-t0
+  if (ionode) write(iostd,'("************ Shifter complete! (",f10.2," secs) ************")') t2-t0
 
   call MPI_FINALIZE(ierr)
 
