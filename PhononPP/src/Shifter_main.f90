@@ -9,7 +9,20 @@ program shifterMain
 
   call mpiInitialization()
 
-  call initialize(poscarFName, phononFName, shift)
+  call initialize(shift, phononFName, poscarFName)
+    !! * Set default values for input variables and start timers
+
+  if(ionode) then
+    
+    read(5, inputParams, iostat=ierr)
+      !! * Read input variables
+    
+    if(ierr /= 0) call exitError('export main', 'reading inputParams namelist', abs(ierr))
+      !! * Exit calculation if there's an error
+
+  endif
+
+  call checkInitialization(shift, phononFName, poscarFName)
 
   call splitModesOverProcesses()
 
