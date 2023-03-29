@@ -92,12 +92,12 @@ module shifterMod
     implicit none
 
     ! Input variables:
-    real(kind=dp), intent(out) :: shift
+    real(kind=dp), intent(inout) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
-    character(len=300), intent(out) :: phononFName
+    character(len=300), intent(inout) :: phononFName
       !! File name for mesh.yaml phonon file
-    character(len=300), intent(out) :: poscarFName
+    character(len=300), intent(inout) :: poscarFName
       !! File name for POSCAR
 
     ! Local variables:
