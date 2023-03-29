@@ -11,7 +11,7 @@ program shifterMain
 
   call mpiInitialization()
 
-  call initialize(shift, phononFName, poscarFName)
+  call initialize(nAtoms, shift, phononFName, poscarFName)
     !! * Set default values for input variables and start timers
 
   if(ionode) then
@@ -24,28 +24,32 @@ program shifterMain
 
   endif
 
-  call checkInitialization(shift, phononFName, poscarFName)
+  call checkInitialization(nAtoms, shift, phononFName, poscarFName)
 
-  call readPOSCAR()
+  allocate(atomPositionsDir(3,nAtoms))
 
-  call readPhonons()
+  call readPOSCAR(nAtoms, poscarFName, atomPositionsDir, omega, realLattVec)
 
-  call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeStart, nModesLocal)
+  !call readPhonons()
+
+  !call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeStart, nModesLocal)
     !! @todo Get modes from somewhere @endtodo
 
-  do j = iModeStart, iModeEnd
+  !do j = iModeStart, iModeEnd
 
-    call shiftMode()
-    call writeShiftedPOSCAR()
+  !  call shiftMode()
+  !  call writeShiftedPOSCAR()
 
-  enddo
+  !enddo
+
+  deallocate(atomPositionsDir)
 
   call MPI_Barrier(worldComm, ierr)
  
   call cpu_time(t2)
-  if (ionode) write(iostd,'("************ Shifter complete! (",f10.2," secs) ************")') t2-t0
+  if(ionode) write(*,'("************ Shifter complete! (",f10.2," secs) ************")') t2-t0
 
   call MPI_FINALIZE(ierr)
 
-end program wfcExportVASPMain
+end program shifterMain
 

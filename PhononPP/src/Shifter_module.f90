@@ -1,14 +1,11 @@
 module shifterMod
   
   use constants, only: dp
+  use cell
   use errorsAndMPI
   use mpi
 
   implicit none
-
-  ! Parameters:
-  integer, parameter :: root = 0
-    !! ID of the root node
 
   ! Variables that should not be passed as arguments:
   integer :: iModeStart, iModeEnd
@@ -32,13 +29,13 @@ module shifterMod
     !! File name for POSCAR
 
 
-  namelist /inputParams/ poscarFName, phononFName, shift
+  namelist /inputParams/ poscarFName, phononFName, nAtoms, shift
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine initialize(shift, phononFName, poscarFName)
+  subroutine initialize(nAtoms, shift, phononFName, poscarFName)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -53,6 +50,9 @@ module shifterMod
 
 
     ! Output variables:
+    integer, intent(out) :: nAtoms
+      !! Number of atoms
+
     real(kind=dp), intent(out) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -68,6 +68,7 @@ module shifterMod
     character(len=10) :: ctime
       !! String for time
 
+    nAtoms = -1
     poscarFName = 'POSCAR'
     phononFName = 'mesh.yaml'
     shift = 0.01_dp
@@ -87,17 +88,20 @@ module shifterMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(shift, phononFName, poscarFName)
+  subroutine checkInitialization(nAtoms, shift, phononFName, poscarFName)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+
     real(kind=dp), intent(inout) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
-    character(len=300), intent(inout) :: phononFName
+    character(len=300), intent(in) :: phononFName
       !! File name for mesh.yaml phonon file
-    character(len=300), intent(inout) :: poscarFName
+    character(len=300), intent(in) :: poscarFName
       !! File name for POSCAR
 
     ! Local variables:
@@ -160,6 +164,17 @@ module shifterMod
 
     write(*, '("phononFName = ''", a, "''")') trim(phononFName)
 
+    if(nAtoms < 0) then
+
+      write(*,*)
+      write(*,'(" Variable : ""nAtoms"" is not defined!")')
+      write(*,'(" usage : nAtoms = 100")')
+      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
+
+      abortExecution = .true.
+
+    endif
+
 
     if(shift < 0.0_dp ) then
 
@@ -184,7 +199,7 @@ module shifterMod
     
 
     if(abortExecution) then
-      write(iostd, '(" Program stops!")')
+      write(*, '(" Program stops!")')
       stop
     endif
     
