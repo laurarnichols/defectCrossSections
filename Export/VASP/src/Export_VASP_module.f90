@@ -861,6 +861,8 @@ module wfcExportVASPMod
     !! <h2>Walkthrough</h2>
     !!
 
+    use miscUtilities, only: getFirstLineWithKeyword
+
     implicit none
 
     ! Input variables:
@@ -898,13 +900,11 @@ module wfcExportVASPMod
       !! Dummy variable to ignore input
     character(len=256) :: fileName
       !! `vasprun.xml` with path
-    character(len=256) :: line
+    character(len=300) :: line
       !! Line read from file
 
     logical :: fileExists
       !! If the `vasprun.xml` file exists
-    logical :: found
-      !! If the required tag was found
     logical :: orbitalMag
       !! If can safely ignore `VKPT_SHIFT`
     logical :: spinSpiral
@@ -926,17 +926,10 @@ module wfcExportVASPMod
         !! * If root node, open `vasprun.xml`
 
 
-      found = .false.
-      do while (.not. found)
+      line = getFirstLineWithKeyword(57,'weights')
         !! * Ignore everything until you get to a
         !!   line with `'weights'`, indicating the
         !!   tag surrounding the k-point weights
-        
-        read(57, '(A)') line
-
-        if (index(line,'weights') /= 0) found = .true.
-        
-      enddo
 
       do ik = 1, nKPoints
         !! * Read in the weight for each k-point
@@ -946,18 +939,11 @@ module wfcExportVASPMod
       enddo
 
 
-      found = .false.
-      do while (.not. found)
+      line = getFirstLineWithKeyword(57,'LREAL')
         !! * Ignore everything until you get to a
         !!   line with `'LREAL'`, indicating the
         !!   tag that determines if real-space 
         !!   projectors are used
-        
-        read(57, '(A)') line
-
-        if (index(line,'LREAL') /= 0) found = .true.
-        
-      enddo
 
       read(line,'(a35,L4,a4)') cDum, useRealProj, cDum
 
@@ -965,18 +951,11 @@ module wfcExportVASPMod
         '*** error - expected LREAL = F but got T', 1)
 
 
-      found = .false.
-      do while (.not. found)
+      line = getFirstLineWithKeyword(57,'LSPIRAL')
         !! * Ignore everything until you get to a
         !!   line with `'LSPIRAL'`, indicating the
         !!   tag that determines if spin spirals are
         !!   included
-        
-        read(57, '(A)') line
-
-        if (index(line,'LSPIRAL') /= 0) found = .true.
-        
-      enddo
 
       read(line,'(a37,L4,a4)') cDum, spinSpiral, cDum
 
@@ -984,17 +963,10 @@ module wfcExportVASPMod
         '*** error - expected LSPIRAL = F but got T', 1)
 
 
-      found = .false.
-      do while (.not. found)
+      line = getFirstLineWithKeyword(57,'ORBITALMAG')
         !! * Ignore everything until you get to a
         !!   line with `'ORBITALMAG'`, indicating the
         !!   tag that determines if can ignore `VKPT_SHIFT`
-        
-        read(57, '(A)') line
-
-        if (index(line,'ORBITALMAG') /= 0) found = .true.
-        
-      enddo
 
       read(line,'(a39,L4,a4)') cDum, orbitalMag, cDum
 
@@ -1002,17 +974,10 @@ module wfcExportVASPMod
         '*** error - expected ORBITALMAG = F but got T', 1)
 
 
-      found = .false.
-      do while (.not. found)
+      line = getFirstLineWithKeyword(57,'atominfo')
         !! * Ignore everything until you get to a
         !!   line with `'atominfo'`, indicating the
         !!   tag surrounding the cell info
-        
-        read(57, '(A)') line
-
-        if (index(line,'atominfo') /= 0) found = .true.
-        
-      enddo
 
       read(57,*) cDum, nAtoms, cDum
       read(57,*) cDum, nAtomTypes, cDum
@@ -1036,45 +1001,13 @@ module wfcExportVASPMod
 
       enddo
 
-      found = .false.
-      do while (.not. found)
+      line = getFirstLineWithKeyword(potcarUnit,'efermi')
         !! * Ignore everything until you get to a
         !!   line with `'efermi'`, indicating the
         !!   tag with the Fermi energy
-        
-        read(57, '(A)') line
-
-        if (index(line,'efermi') /= 0) found = .true.
-        
-      enddo
 
       read(line,*) cDum, cDum, eFermi, cDum
       eFermi = eFermi*eVToRy
-
-      found = .false.
-      do while (.not. found)
-        !! * Ignore everything until you get to a
-        !!   line with `'finalpos'`, indicating the
-        !!   tag surrounding the final cell parameters
-        !!   and positions
-        
-        read(57, '(A)') line
-
-        if (index(line,'finalpos') /= 0) found = .true.
-        
-      enddo
-
-      found = .false.
-      do while (.not. found)
-        !! * Ignore everything until you get to a
-        !!   line with `'positions'`, indicating the
-        !!   tag surrounding the final positions
-        
-        read(57, '(A)') line
-
-        if (index(line,'positions') /= 0) found = .true.
-        
-      enddo
 
       close(57)
 
@@ -1094,78 +1027,6 @@ module wfcExportVASPMod
 
     return
   end subroutine read_vasprun_xml
-
-!----------------------------------------------------------------------------
-  subroutine readCONTCAR(nAtoms, VASPDir, atomPositionsDir)
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nAtoms
-      !! Number of atoms
-    character(len=256), intent(in) :: VASPDir
-      !! Directory with VASP files
-
-    ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: atomPositionsDir(:,:)
-      !! Atom positions in direct coordinates
-
-    ! Local variables:
-    integer :: ia, i
-      !! Loop indices
-
-    logical :: fileExists
-      !! If the `CONTCAR` file exists
-
-    character(len=256) :: fileName
-      !! `CONTCAR` with path
-
-
-    allocate(atomPositionsDir(3,nAtoms))
-
-    if (ionode) then
-
-      fileName = trim(VASPDir)//'/CONTCAR'
-
-      inquire(file = fileName, exist = fileExists)
-
-      if (.not. fileExists) call exitError('readCONTCAR', 'Required file CONTCAR does not exist', 1)
-
-      open(57, file=fileName)
-        !! * If root node, open `vasprun.xml`
-
-      !> Ignore lines before coordinates
-      read(57,*)
-      read(57,*)
-      read(57,*)
-      read(57,*)
-      read(57,*)
-      read(57,*)
-      read(57,*)
-      read(57,*)
-
-      do ia = 1, nAtoms
-        !! * Read in the final position for each atom
-
-        read(57,*) (atomPositionsDir(i,ia),i=1,3)
-          !! @note
-          !!  For now, I assume that the scaling factor is 1
-          !!  and that the coordinates are direct. Will need
-          !!  to implement proper reading later.
-          !! @endnote
-
-      enddo
-
-      if(maxval(atomPositionsDir) > 1) call exitError('read_vasprun_xml', &
-        '*** error - expected direct coordinates', 1)
-
-      close(57)
-
-    endif
-
-    return
-
-  end subroutine readCONTCAR
 
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, &
@@ -2068,6 +1929,8 @@ module wfcExportVASPMod
     !! <h2>Walkthrough</h2>
     !!
 
+    use miscUtilities, only: getFirstLineWithKeyword
+
     implicit none
 
     ! Input variables:
@@ -2105,9 +1968,11 @@ module wfcExportVASPMod
       !! Dummy character to ignore input
     character(len=256) :: fileName
       !! Full WAVECAR file name including path
+    character(len=300) :: line
+      !! Line read from file
 
     logical :: found
-      !! If the required tag was found
+      !! If min index has been found
 
 
     if(ionode) then
@@ -2137,16 +2002,9 @@ module wfcExportVASPMod
           !!  will need to be updated.
           !! @endnote
 
-        found = .false.
-        do while (.not. found)
+        line = getFirstLineWithKeyword(potcarUnit,'END')
           !! * Ignore all lines until you get to the `END` of
           !!   the PSCRT section
-        
-          read(potcarUnit, '(A)') dummyC
-
-          if (dummyC(1:3) == 'END') found = .true.
-        
-        enddo
 
         read(potcarUnit,'(1X,A1)') charSwitch
           !! * Read character switch (switch not used)
@@ -2424,15 +2282,8 @@ module wfcExportVASPMod
 
         endif
 
-        found = .false.
-        do while (.not. found)
+        line = getFirstLineWithKeyword(potcarUnit,'End of Dataset')
           !! * Ignore all lines until you get to the `End of Dataset`
-        
-          read(potcarUnit, '(A)') dummyC
-
-          if (index(dummyC,'End of Dataset') /= 0) found = .true.
-        
-        enddo
 
       enddo
 

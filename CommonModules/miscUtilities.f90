@@ -55,8 +55,43 @@ module miscUtilities
     return
     
   end subroutine int2strLeadZero
+
+!----------------------------------------------------------------------------
+  function getFirstLineWithKeyword(fUnit, keyword) result(line)
+    !! Read from file until ecounter keyword
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: fUnit
+      !! Unit for file to read from
+    
+    character(*) :: keyword
+      !! Keyword to search for
+
+    ! Output variables:
+    character(len=300) :: line
+      !! First line with keyword
+
+    ! Local variables:
+    logical :: found
+      !! If the line has been found
+
+
+    found = .false.
+    do while (.not. found)
+      !! * Ignore everything until you get to a
+      !!   line with keyword
+
+      read(fUnit, '(A)') line
+
+      if (index(line,keyword) /= 0) found = .true.
+
+    enddo
+
+  end function getFirstLineWithKeyword
   
-  !---------------------------------------------------------------------------------------------------------------------------------
+!----------------------------------------------------------------------------
   subroutine arrangeLargerToSmaller(nModes, x, s2L)
     !! Sort `s2L` based on descending order
     !! of `x`
