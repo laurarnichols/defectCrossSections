@@ -2,6 +2,7 @@ module wfcExportVASPMod
   
   use constants, only: dp, iostd, angToBohr, eVToRy, ryToHartree, pi, twopi
   use errorsAndMPI
+  use cell
   use mpi
 
   implicit none
@@ -67,20 +68,12 @@ module wfcExportVASPMod
 
 
   ! Variables that should be passed as arguments:
-  real(kind=dp) :: realLattVec(3,3)
-    !! Real space lattice vectors
-  real(kind=dp) :: recipLattVec(3,3)
-    !! Reciprocal lattice vectors
   real(kind=dp) :: eFermi
     !! Fermi energy
   real(kind=dp), allocatable :: gVecInCart(:,:)
     !! G-vectors in Cartesian coordinates
   real(kind=dp), allocatable :: bandOccupation(:,:,:)
     !! Occupation of band
-  real(kind=dp) :: omega
-    !! Volume of unit cell
-  real(kind=dp), allocatable :: atomPositionsDir(:,:)
-    !! Atom positions in direct coordinates
   real(kind=dp) :: tStart
     !! Start time
   real(kind=dp) :: wfcVecCut
@@ -120,8 +113,6 @@ module wfcExportVASPMod
     !! Atom type index
   integer :: fftGridSize(3)
     !! Max number of points on the FFT grid in each direction
-  integer :: nAtoms
-    !! Number of atoms
   integer :: nBands
     !! Total number of bands
   integer, allocatable :: nGkLessECutGlobal(:)
@@ -139,8 +130,6 @@ module wfcExportVASPMod
     !! Local number of G-vectors on this processor
   integer :: nKPoints
     !! Total number of k-points
-  integer, allocatable :: nAtomsEachType(:)
-    !! Number of atoms of each type
   integer, allocatable :: nPWs1kGlobal(:)
     !! Input number of plane waves for a single k-point for all processors
   integer :: maxGIndexGlobal
@@ -156,8 +145,6 @@ module wfcExportVASPMod
     !! Maximum number of \(G+k\) vectors
     !! across all k-points for just this
     !! ppool
-  integer :: nAtomTypes
-    !! Number of types of atoms
   integer :: nRecords
     !! Number of records in WAVECAR file
   integer :: nSpins
@@ -639,69 +626,6 @@ module wfcExportVASPMod
   end subroutine readWAVECAR
 
 !----------------------------------------------------------------------------
-  subroutine calculateOmega(realLattVec, omega)
-    !! Calculate the cell volume as \(a_1\cdot a_2\times a_3\)
-
-    implicit none
-
-    ! Input variables:
-    real(kind=dp), intent(in) :: realLattVec(3,3)
-      !! Real space lattice vectors
-
-
-    ! Output variables:
-    real(kind=dp), intent(out) :: omega
-      !! Volume of unit cell
-
-
-    ! Local variables:
-    real(kind=dp) :: vtmp(3)
-      !! \(a_2\times a_3\)
-
-
-    call vcross(realLattVec(:,2), realLattVec(:,3), vtmp)
-
-    omega = sum(realLattVec(:,1)*vtmp(:))
-
-    return
-  end subroutine calculateOmega
-
-!----------------------------------------------------------------------------
-  subroutine getReciprocalVectors(realLattVec, omega, recipLattVec)
-    !! Calculate the reciprocal lattice vectors from the real-space
-    !! lattice vectors and the cell volume
-
-    implicit none
-
-    ! Input variables:
-    real(kind=dp), intent(in) :: realLattVec(3,3)
-      !! Real space lattice vectors
-    real(kind=dp), intent(in) :: omega
-      !! Volume of unit cell
-
-
-    ! Output variables:
-    real(kind=dp), intent(out) :: recipLattVec(3,3)
-      !! Reciprocal lattice vectors
-
-
-    ! Local variables:
-    integer :: i
-      !! Loop index
-    
-
-    call vcross(2.0d0*pi*realLattVec(:,2)/omega, realLattVec(:,3), recipLattVec(:,1))
-      ! \(b_1 = 2\pi/\Omega a_2\times a_3\)
-    call vcross(2.0d0*pi*realLattVec(:,3)/omega, realLattVec(:,1), recipLattVec(:,2))
-      ! \(b_2 = 2\pi/\Omega a_3\times a_1\)
-    call vcross(2.0d0*pi*realLattVec(:,1)/omega, realLattVec(:,2), recipLattVec(:,3))
-      ! \(b_3 = 2\pi/\Omega a_1\times a_2\)
-
-
-    return
-  end subroutine getReciprocalVectors
-
-!----------------------------------------------------------------------------
   subroutine estimateMaxNumPlanewaves(recipLattVec, wfcECut, fftGridSize)
     !! Get the maximum number of plane waves. I'm not sure how 
     !! this is done completely. It seems to be just basic vector
@@ -711,6 +635,8 @@ module wfcExportVASPMod
     !!
     !! <h2>Walkthrough</h2>
     !!
+
+    use generalComputations, only: vcross
 
     implicit none
 
@@ -813,30 +739,6 @@ module wfcExportVASPMod
 
     return
   end subroutine estimateMaxNumPlanewaves
-
-!----------------------------------------------------------------------------
-  subroutine vcross(vec1, vec2, crossProd)
-    !! Calculate the cross product `crossProd` of 
-    !! two vectors `vec1` and `vec2`
-
-    implicit none
-
-    ! Input variables:
-    real(kind=dp), intent(in) :: vec1(3), vec2(3)
-      !! Input vectors
-
-
-    ! Output variables:
-    real(kind=dp), intent(out) :: crossProd(3)
-      !! Cross product of input vectors
-
-
-    crossProd(1) = vec1(2)*vec2(3) - vec1(3)*vec2(2)
-    crossProd(2) = vec1(3)*vec2(1) - vec1(1)*vec2(3)
-    crossProd(3) = vec1(1)*vec2(2) - vec1(2)*vec2(1)
-
-    return
-  end subroutine vcross
 
 !----------------------------------------------------------------------------
   subroutine preliminaryWAVECARScan(nBands, nKPoints, nRecords, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
@@ -1260,8 +1162,6 @@ module wfcExportVASPMod
       close(57)
 
     endif
-
-    call MPI_BCAST(atomPositionsDir, size(atomPositionsDir), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 

@@ -1,11 +1,61 @@
 module generalComputations
-  !
+  
   use constants
-  !
+  
   implicit none
-  !
+  
   contains
-  !
+
+!----------------------------------------------------------------------------
+  pure function matinv3(A) result(B)
+    !! Performs a direct calculation of the inverse of a 3×3 matrix.
+    real(kind=dp), intent(in) :: A(3,3)   !! Matrix
+    real(kind=dp)             :: B(3,3)   !! Inverse matrix
+    real(kind=dp)             :: detinv
+
+    ! Calculate the inverse determinant of the matrix
+    detinv = 1/(A(1,1)*A(2,2)*A(3,3) - A(1,1)*A(2,3)*A(3,2)&
+              - A(1,2)*A(2,1)*A(3,3) + A(1,2)*A(2,3)*A(3,1)&
+              + A(1,3)*A(2,1)*A(3,2) - A(1,3)*A(2,2)*A(3,1))
+
+    ! Calculate the inverse of the matrix
+    B(1,1) = +detinv * (A(2,2)*A(3,3) - A(2,3)*A(3,2))
+    B(2,1) = -detinv * (A(2,1)*A(3,3) - A(2,3)*A(3,1))
+    B(3,1) = +detinv * (A(2,1)*A(3,2) - A(2,2)*A(3,1))
+    B(1,2) = -detinv * (A(1,2)*A(3,3) - A(1,3)*A(3,2))
+    B(2,2) = +detinv * (A(1,1)*A(3,3) - A(1,3)*A(3,1))
+    B(3,2) = -detinv * (A(1,1)*A(3,2) - A(1,2)*A(3,1))
+    B(1,3) = +detinv * (A(1,2)*A(2,3) - A(1,3)*A(2,2))
+    B(2,3) = -detinv * (A(1,1)*A(2,3) - A(1,3)*A(2,1))
+    B(3,3) = +detinv * (A(1,1)*A(2,2) - A(1,2)*A(2,1))
+  end function
+
+!----------------------------------------------------------------------------
+  subroutine vcross(vec1, vec2, crossProd)
+    !! Calculate the cross product `crossProd` of
+    !! two vectors `vec1` and `vec2`
+
+    implicit none
+
+    ! Input variables:
+    real(kind=dp), intent(in) :: vec1(3), vec2(3)
+      !! Input vectors
+
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: crossProd(3)
+      !! Cross product of input vectors
+
+
+    crossProd(1) = vec1(2)*vec2(3) - vec1(3)*vec2(2)
+    crossProd(2) = vec1(3)*vec2(1) - vec1(1)*vec2(3)
+    crossProd(3) = vec1(1)*vec2(2) - vec1(2)*vec2(1)
+
+    return
+  end subroutine vcross
+
+  
+!----------------------------------------------------------------------------
   subroutine computeGeneralizedDisplacements(nOfqPoints, nModes, genCoord, nAtoms, atomM, phonD, atomD)
     !! Calculate the generalized displacements
     !! by dotting the phonon displacements with

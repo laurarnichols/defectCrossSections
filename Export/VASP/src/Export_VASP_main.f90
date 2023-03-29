@@ -18,6 +18,12 @@ program wfcExportVASPMain
   integer :: iT
     !! Index for deallocating `pot` variables
 
+  real(kind=dp) :: omegaPOS, realLattVecPOS(3,3)
+    !! Variables from POSCAR to compare to WAVECAR
+
+  character(len=300) :: fName
+    !! File name for CONTCAR
+
 
   call cpu_time(t0)
 
@@ -78,8 +84,23 @@ program wfcExportVASPMain
   call read_vasprun_xml(realLattVec, nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
-  call readCONTCAR(nAtoms, VASPDir, atomPositionsDir)
-    !! * Get coordinates from CONTCAR
+  allocate(atomPositionsDir(3,nAtoms))
+
+  if(ionode) then
+    fName = trim(VASPDir)//'CONTCAR'
+
+    call readPOSCAR(nAtoms, fName, atomPositionsDir, omegaPOS, realLattVecPOS)
+      !! * Get coordinates from CONTCAR
+
+    omegaPOS = omegaPOS*angToBohr**3
+    realLattVecPOS = realLattVecPOS*angToBohr
+
+    if(abs(omegaPOS - omega) > 1e-5 .or. maxval(abs(realLattVecPOS-realLattVec)) > 1e-5) &
+      call exitError('export main', 'omega and lattice vectors from POSCAR and WAVECAR not consistent', 1)
+
+  endif
+
+  call MPI_BCAST(atomPositionsDir, size(atomPositionsDir), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
 
   call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
