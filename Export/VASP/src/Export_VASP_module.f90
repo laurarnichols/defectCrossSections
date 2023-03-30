@@ -2307,8 +2307,6 @@ module wfcExportVASPMod
       nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
       recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
-    use miscUtilities, only: int2str
-
     implicit none
 
     ! Input variables: 
@@ -3207,16 +3205,13 @@ module wfcExportVASPMod
     complex(kind=dp) :: phaseExpGlobal(nPWs1k, nAtoms)
       !! Exponential phase factor
 
-    character(len=300) :: ikC, iprocC, procNumC
-      !! Character index
     character(len=300) :: fNameBase
       !! File names
 
 
     !> Set up base file name
     ikGlobal = ik+ikStart_pool-1
-    call int2str(ikGlobal, ikC)
-    fNameBase = trim(exportDir)//"/projectors."//trim(ikC)
+    fNameBase = trim(exportDir)//"/projectors."//trim(int2str(ikGlobal))
 
 
     if(indexInBgrp == 0) &
@@ -3270,10 +3265,8 @@ module wfcExportVASPMod
     call cpu_time(t1)
 
 
-    call int2str(indexInBgrp, iprocC)
-
     projOutUnit = 83 + myid
-    open(projOutUnit, file=trim(fNameBase)//"."//trim(iprocC))
+    open(projOutUnit, file=trim(fNameBase)//"."//trim(int2str(indexInBgrp)))
       ! Open `projectors.ik.indexInBgrp` file
 
 
@@ -3338,11 +3331,9 @@ module wfcExportVASPMod
       close(projOutUnit)
 
 
-      call int2str(nProcPerBgrp-1, procNumC)
-
       !> Merge all of the individual-processor files and delete
-      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(procNumC)//'} >> '//trim(fNameBase)//&
-                                ' && rm '//trim(fNameBase)//'.{0..'//trim(procNumC)//'}')
+      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(int2str(nProcPerBgrp-1))//'} >> '//trim(fNameBase)//&
+                                ' && rm '//trim(fNameBase)//'.{0..'//trim(int2str(nProcPerBgrp-1))//'}')
 
     endif
 
@@ -3417,8 +3408,6 @@ module wfcExportVASPMod
 
     character(len=300) :: fNameBase, fNameBgrp
       !! File names for merging output
-    character(len=300) :: ikC, ispC, ibgrpC, nbgrpC
-      !! Character index
 
 
     if(indexInBgrp == 0) allocate(coeff(maxNumPWsGlobal, ibStart_bgrp:ibEnd_bgrp))
@@ -3470,11 +3459,7 @@ module wfcExportVASPMod
 
       wfcOutUnit = 83 + myid
 
-      call int2str(ikGlobal, ikC)
-      call int2str(isp, ispC)
-      call int2str(myBgrpId, ibgrpC)
-
-      open(wfcOutUnit, file=trim(exportDir)//"/wfc."//trim(ispC)//"."//trim(ikC)//"."//trim(ibgrpC))
+      open(wfcOutUnit, file=trim(exportDir)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))//"."//trim(int2str(myBgrpId)))
         ! Open `wfc.isp.ik.myBgrpId` file to write plane wave coefficients
 
       do ib = ibStart_bgrp, ibEnd_bgrp
@@ -3509,10 +3494,7 @@ module wfcExportVASPMod
 
       ikGlobal = ik+ikStart_pool-1
 
-      call int2str(ikGlobal, ikC)
-      call int2str(isp, ispC)
-
-      fNameBase = trim(exportDir)//"/wfc."//trim(ispC)//"."//trim(ikC) 
+      fNameBase = trim(exportDir)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)) 
 
       open(wfcOutUnit, file=trim(fNameBase))
         ! Open `wfc.isp.ik` file to write plane wave coefficients
@@ -3525,11 +3507,9 @@ module wfcExportVASPMod
         ! Close `wfc.isp.ik.myBgrpId` file
       
 
-      call int2str(nBandGroups-1, nbgrpC)
-
       !> Merge all of the individual-processor files and delete
-      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'} >> '//trim(fNameBase)//&
-                                ' && rm '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'}')
+      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'} >> '//trim(fNameBase)//&
+                                ' && rm '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'}')
 
 
     endif
@@ -3597,8 +3577,6 @@ module wfcExportVASPMod
 
     character(len=300) :: fNameBase, fNameBgrp
       !! Character index
-    character(len=300) :: ikC, ispC, ibgrpC, nbgrpC
-      !! Character index
 
     complex(kind=dp) :: projection, projectionLocal
       !! Projection for current atom/band/lm channel
@@ -3609,12 +3587,8 @@ module wfcExportVASPMod
 
       projOutUnit = 83 + myid
 
-      call int2str(ik, ikC)
-      call int2str(isp, ispC)
-      call int2str(myBgrpId, ibgrpC)
-
-      fNameBase = trim(exportDir)//"/projections."//trim(ispC)//"."//trim(ikC) 
-      fNameBgrp = trim(fNameBase)//"."//trim(ibgrpC)
+      fNameBase = trim(exportDir)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ik)) 
+      fNameBgrp = trim(fNameBase)//"."//trim(int2str(myBgrpId))
 
       open(projOutUnit, file=trim(fNameBgrp))
         !! Open `projections.ik`
@@ -3653,11 +3627,7 @@ module wfcExportVASPMod
 
       projOutUnit = 83 + myid
 
-      call int2str(ik, ikC)
-      call int2str(isp, ispC)
-      call int2str(myBgrpId, ibgrpC)
-
-      fNameBase = trim(exportDir)//"/projections."//trim(ispC)//"."//trim(ikC) 
+      fNameBase = trim(exportDir)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ik)) 
 
       open(projOutUnit, file=trim(fNameBase))
         !! Open `projections.ik`
@@ -3666,11 +3636,9 @@ module wfcExportVASPMod
 
       close(projOutUnit)
 
-      call int2str(nBandGroups-1, nbgrpC)
-
       !> Merge all of the individual-processor files and delete
-      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'} >> '//trim(fNameBase)//&
-                                ' && rm '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'}')
+      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'} >> '//trim(fNameBase)//&
+                                ' && rm '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'}')
 
     endif
 
@@ -3872,9 +3840,6 @@ module wfcExportVASPMod
     integer :: ikLocal, ikGlobal, ig, igk, isp
       !! Loop indices
 
-    character(len=300) :: ikC, ispC
-      !! Character index
-
 
     if (ionode) then
     
@@ -3900,10 +3865,7 @@ module wfcExportVASPMod
         !!   resulting in \(G+k\) vectors less than the energy
         !!   cutoff in a `grid.ik` file
       
-        ikGlobal = ikLocal+ikStart_pool-1
-        call int2str(ikGlobal, ikC)
-
-        open(72, file=trim(exportDir)//"/grid."//trim(ikC))
+        open(72, file=trim(exportDir)//"/grid."//trim(int2str(ikGlobal)))
         write(72, '("# Wave function G-vectors grid")')
         write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
       
@@ -4116,9 +4078,6 @@ module wfcExportVASPMod
     integer :: ik, ib, isp
       !! Loop indices
 
-    character(len=300) :: ikC, ispC
-      !! Character index
-
 
     if(ionode) then
     
@@ -4128,11 +4087,8 @@ module wfcExportVASPMod
     
       do isp = 1, nSpins
         do ik = 1, nKPoints
-      
-          call int2str(ik, ikC)
-          call int2str(isp, ispC)
 
-          open(72, file=trim(exportDir)//"/eigenvalues."//trim(ispC)//"."//trim(ikC))
+          open(72, file=trim(exportDir)//"/eigenvalues."//trim(int2str(isp))//"."//trim(int2str(ik)))
       
           write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
           write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')

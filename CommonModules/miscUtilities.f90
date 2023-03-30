@@ -7,7 +7,7 @@ module miscUtilities
   contains
   
 !----------------------------------------------------------------------------
-  subroutine int2str(integ, string)
+  function int2str(integ) result(string)
     
     implicit none
     integer :: integ
@@ -31,12 +31,10 @@ module miscUtilities
     
     string = trim(string)
     
-    return
-    
-  end subroutine int2str
+  end function int2str
   
 !----------------------------------------------------------------------------
-  subroutine int2strLeadZero(integ, length, string)
+  function int2strLeadZero(integ, length) result(string)
     
     implicit none
     integer :: integ
@@ -45,16 +43,13 @@ module miscUtilities
     character(len = 300) :: lengthC
     character(len = 300) :: formatString
     
-    call int2str(length, lengthC)
-    formatString = '(i'//trim(lengthC)//'.'//trim(lengthC)//')'
+    formatString = '(i'//trim(int2str(length))//'.'//trim(int2str(length))//')'
 
     write(string, formatString) integ
     
     string = trim(string)
     
-    return
-    
-  end subroutine int2strLeadZero
+  end function int2strLeadZero
 
 !----------------------------------------------------------------------------
   function getFirstLineWithKeyword(fUnit, keyword) result(line)
