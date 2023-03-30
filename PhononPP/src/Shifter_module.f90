@@ -261,7 +261,7 @@ module shifterMod
     read(57,'(A)') line
       !! Ignore next 3 lines
 
-    do j = 1, nModes
+    do j = 1, nModes+3
 
       read(57,'(A)') ! Ignore mode number
       read(57,'(A)') ! Ignore frequency
@@ -274,7 +274,10 @@ module shifterMod
         do ix = 1, 3
 
           read(57,'(A)') line
-          read(line(10:len(trim(line))-1),*) eigenvector(ix,ia,j)
+          if(j > 3) read(line(10:len(trim(line))-1),*) eigenvector(ix,ia,j-3)
+            !! Only store the eigenvectors after the first 3 modes 
+            !! because those are the acoustic modes and we only want
+            !! the optical modes.
 
         enddo
 

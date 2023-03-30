@@ -26,7 +26,7 @@ program shifterMain
 
   call checkInitialization(nAtoms, shift, phononFName, poscarFName)
 
-  nModes = 3*nAtoms
+  nModes = 3*nAtoms - 3
     !! * Calculate the total number of modes
 
   allocate(atomPositionsDir(3,nAtoms))
