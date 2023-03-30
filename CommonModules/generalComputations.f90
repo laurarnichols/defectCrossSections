@@ -7,6 +7,71 @@ module generalComputations
   contains
 
 !----------------------------------------------------------------------------
+  function direct2cart(nVecs, dir, lattVec) result(cart)
+
+    implicit none
+  
+    ! Input variables:
+    integer, intent(in) :: nVecs
+      !! Number of atoms
+    real(kind=dp), intent(in) :: dir(3,nVecs)
+      !! Vectors in direct coordinates
+    real(kind=dp), intent(in) :: lattVec(3,3)
+      !! Lattice vectors
+
+    ! Output variables:
+    real(kind=dp) :: cart(3,nVecs)
+      !! Vector in Cartesian coordinates
+
+    ! Local variables:
+    integer :: iv
+      !! Loop index
+
+
+    do iv = 1, nVecs
+
+      cart(:,iv) = matmul(lattVec,dir(:,iv))
+
+    enddo
+
+  end function direct2cart
+
+!----------------------------------------------------------------------------
+  function cart2direct(nVecs, cart, lattVec) result(dir)
+
+    implicit none
+  
+    ! Input variables:
+    integer, intent(in) :: nVecs
+      !! Number of atoms
+    real(kind=dp), intent(in) :: cart(3,nVecs)
+      !! Vectors in Cartesian coordinates
+    real(kind=dp), intent(in) :: lattVec(3,3)
+      !! Lattice vectors
+
+    ! Output variables:
+    real(kind=dp) :: dir(3,nVecs)
+      !! Vectors in direct coordinates
+
+    ! Local variables:
+    integer :: iv
+      !! Loop index
+
+    real(kind=dp) :: invLattVec(3,3)
+      !! Inverse of real-space lattice vectors
+
+
+    invLattVec = matinv3(lattVec)
+
+    do iv = 1, nVecs
+
+      dir(:,iv) = matmul(invLattVec,cart(:,iv))
+
+    enddo
+
+  end function cart2direct
+
+!----------------------------------------------------------------------------
   pure function matinv3(A) result(B)
     !! Performs a direct calculation of the inverse of a 3×3 matrix.
     real(kind=dp), intent(in) :: A(3,3)   !! Matrix

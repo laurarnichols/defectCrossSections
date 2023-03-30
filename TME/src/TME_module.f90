@@ -1508,7 +1508,7 @@ contains
       
       do ibf = iBandFinit, iBandFfinal
 
-        Ufi(ibf, ibi, ikLocal,isp) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
+        Ufi(ibf, ibi, ikLocal,isp) = dot_product(conjg(wfcSD(:,ibf)),wfcPC(:,ibi))
           !! Calculate local overlap
 
       enddo
@@ -1639,7 +1639,7 @@ contains
     do ib = iBandinit, iBandfinal
       do ipr = 1, nProjs
 
-        crossProjectionLocal = sum(conjg(beta(:,ipr))*wfc(:,ib))
+        crossProjectionLocal = dot_product(conjg(beta(:,ipr)),wfc(:,ib))
 
         call MPI_ALLREDUCE(crossProjectionLocal, crossProjection(ipr,ib), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
 
@@ -1790,11 +1790,9 @@ contains
     
     do ig = 1, nGVecsLocal
       
-      do ix = 1, 3
-        gCart(ix) = sum(mill_local(:,ig)*recipLattVec(ix,:))
-      enddo
+      gCart = matmul(recipLattVec, mill_local(:,ig))
 
-      q = sqrt(sum(gCart(:)*gCart(:)))
+      q = sqrt(dot_product(gCart,gCart))
       
       v_in(:) = gCart
       if ( abs(q) > 1.0e-6_dp ) v_in = v_in/q ! i have to determine v_in = q
@@ -1818,7 +1816,7 @@ contains
       
       do ni = 1, nAtoms ! LOOP OVER THE IONS
         
-        qDotR = sum(gCart(:)*atomPositions(:,ni))
+        qDotR = dot_product(gCart, atomPositions(:,ni))
         
         if(crystalType == 'PC') then
           ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
@@ -1835,7 +1833,7 @@ contains
             
             FI = 0.0_dp
             
-            FI = sum(atoms(iT)%bes_J_qr(L,:)*atoms(iT)%F(:,LL)) ! radial part integration F contains rab
+            FI = dot_product(atoms(iT)%bes_J_qr(L,:),atoms(iT)%F(:,LL)) ! radial part integration F contains rab
             
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
 

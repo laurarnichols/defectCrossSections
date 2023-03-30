@@ -26,7 +26,7 @@ module cell
 !----------------------------------------------------------------------------
   subroutine readPOSCAR(nAtoms, poscarFName, atomPositionsDir, omega, realLattVec)
 
-    use generalComputations, only: matinv3
+    use generalComputations, only: cart2direct
 
     implicit none
 
@@ -135,17 +135,10 @@ module cell
 
       write(*,*) "Positions in Cartesian coordinates"
 
-      invLattVec = matinv3(realLattVec)
       pos = pos*scaleParam
 
-      !> Convert Cartesian coordinates to direct
-      do ia = 1, nAtoms
-        do ix = 1, 3
-
-          atomPositionsDir(ix,ia) = sum(pos(:,ia)*invLattVec(ix,:))
-
-        enddo
-      enddo
+      atomPositionsDir = cart2direct(nAtoms, pos, realLattVec)
+        !! Convert Cartesian coordinates to direct
 
     else
 

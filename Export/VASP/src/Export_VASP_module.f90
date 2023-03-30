@@ -684,12 +684,12 @@ module wfcExportVASPMod
       !! * Calculate and output reciprocal vector magnitudes
 
 
-    phi12 = acos(sum(recipLattVec(:,1)*recipLattVec(:,2))/(b1mag*b2mag))
+    phi12 = acos(dot_product(recipLattVec(:,1),recipLattVec(:,2))/(b1mag*b2mag))
       !! * Calculate angle between \(b_1\) and \(b_2\)
 
     call vcross(recipLattVec(:,1), recipLattVec(:,2), vtmp)
-    vmag = sqrt(sum(vtmp(:)**2))
-    sinphi123 = sum(recipLattVec(:,3)*vtmp(:))/(vmag*b3mag)
+    vmag = sqrt(dot_product(vtmp,vtmp))
+    sinphi123 = dot_product(recipLattVec(:,3),vtmp(:))/(vmag*b3mag)
       !! * Get \(\sin\phi_{123}\)
 
     nb1maxA = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sin(phi12)))) + 1
@@ -698,12 +698,12 @@ module wfcExportVASPMod
       !! * Get first set of max values
 
 
-    phi13 = acos(sum(recipLattVec(:,1)*recipLattVec(:,3))/(b1mag*b3mag))
+    phi13 = acos(dot_product(recipLattVec(:,1),recipLattVec(:,3))/(b1mag*b3mag))
       !! * Calculate angle between \(b_1\) and \(b_3\)
 
     call vcross(recipLattVec(:,1), recipLattVec(:,3), vtmp)
-    vmag = sqrt(sum(vtmp(:)**2))
-    sinphi123 = sum(recipLattVec(:,2)*vtmp(:))/(vmag*b2mag)
+    vmag = sqrt(dot_product(vtmp,vtmp))
+    sinphi123 = dot_product(recipLattVec(:,2),vtmp(:))/(vmag*b2mag)
       !! * Get \(\sin\phi_{123}\)
 
     nb1maxB = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sin(phi13)))) + 1
@@ -712,12 +712,12 @@ module wfcExportVASPMod
       !! * Get first set of max values
 
 
-    phi23 = acos(sum(recipLattVec(:,2)*recipLattVec(:,3))/(b2mag*b3mag))
+    phi23 = acos(dot_product(recipLattVec(:,2),recipLattVec(:,3))/(b2mag*b3mag))
       !! * Calculate angle between \(b_2\) and \(b_3\)
 
     call vcross(recipLattVec(:,2), recipLattVec(:,3), vtmp)
-    vmag = sqrt(sum(vtmp(:)**2))
-    sinphi123 = sum(recipLattVec(:,1)*vtmp(:))/(vmag*b1mag)
+    vmag = sqrt(dot_product(vtmp,vtmp))
+    sinphi123 = dot_product(recipLattVec(:,1),vtmp(:))/(vmag*b1mag)
       !! * Get \(\sin\phi_{123}\)
 
     nb1maxC = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sinphi123))) + 1
@@ -855,7 +855,7 @@ module wfcExportVASPMod
   end subroutine preliminaryWAVECARScan
 
 !----------------------------------------------------------------------------
-  subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
+  subroutine read_vasprun_xml(nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
     !! <h2>Walkthrough</h2>
@@ -866,9 +866,6 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    real(kind=dp), intent(in) :: realLattVec(3,3)
-      !! Real space lattice vectors
-
     integer, intent(in) :: nKPoints
       !! Total number of k-points
 
@@ -893,7 +890,7 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: ik, ia, ix
+    integer :: ik, ia
       !! Loop indices
 
     character(len=256) :: cDum
@@ -1037,6 +1034,8 @@ module wfcExportVASPMod
     !! <h2>Walkthrough</h2>
     !!
 
+    use generalComputations, only: direct2cart
+
     implicit none
 
     ! Input variables:
@@ -1068,8 +1067,10 @@ module wfcExportVASPMod
       !! Double precision zero
     real(kind=dp), allocatable :: millSum(:)
       !! Sum of integer coefficients for G-vectors
+    real(kind=dp), allocatable :: realMillLocal(:,:)
+      !! Real version of integer coefficients for G-vectors
 
-    integer :: igx, igy, igz, ig, ix
+    integer :: igx, igy, igz, ig
       !! Loop indices
     integer, allocatable :: gVecMillerIndicesGlobal_tmp(:,:)
       !! Integer coefficients for G-vectors on all processors
@@ -1166,19 +1167,14 @@ module wfcExportVASPMod
       !! * Split up the G-vectors and Miller indices over processors 
 
     allocate(gVecInCart(3,nGVecsLocal))
+    allocate(realMillLocal(3,nGVecsLocal))
 
-    do ig = 1, nGVecsLocal
-
-      do ix = 1, 3
-        !! * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
-
-        gVecInCart(ix,ig) = sum(mill_local(:,ig)*recipLattVec(ix,:))
-
-      enddo
-      
-    enddo
-
+    realMillLocal = real(mill_local)
     deallocate(mill_local)
+
+    gVecInCart = direct2cart(nGVecsLocal, realMillLocal, recipLattVec)
+
+    deallocate(realMillLocal)
 
     return
   end subroutine calculateGvecs
@@ -1348,7 +1344,7 @@ module wfcExportVASPMod
     real(kind=dp) :: xkCart(3)
       !! Cartesian coordinates for given k-point
 
-    integer :: ik, ig, ix
+    integer :: ik, ig
       !! Loop indices
     integer, allocatable :: gKIndexOrigOrderGlobal(:,:)
       !! Indices of \(G+k\) vectors for each k-point
@@ -1388,9 +1384,7 @@ module wfcExportVASPMod
       !!  processor.
       !! @endnote
 
-      do ix = 1, 3
-        xkCart(ix) = sum(kPosition(:,ik+ikStart_pool-1)*recipLattVec(ix,:))
-      enddo
+      xkCart = matmul(recipLattVec,kPosition(:,ik+ikStart_pool-1))
 
       ngk_tmp = 0
 
@@ -2567,7 +2561,7 @@ module wfcExportVASPMod
 
       do ipw = 1, nGkVecsLocal_ik
 
-        expArg = itwopi*sum(atomPosDir(:)*gVecMillerIndicesGlobal(:,gKIndexOrigOrderLocal_ik(ipw)))
+        expArg = itwopi*dot_product(atomPosDir, gVecMillerIndicesGlobal(:,gKIndexOrigOrderLocal_ik(ipw)))
           !! \(2\pi i (\mathbf{G} \cdot \mathbf{r})\)
 
         phaseExp(ipw, ia) = exp(expArg)
@@ -2789,7 +2783,7 @@ module wfcExportVASPMod
     ! Local variables:
     integer :: gVec(3)
       !! Local storage of this G-vector
-    integer :: ipw, ix
+    integer :: ipw
       !! Loop indices
 
     real(kind=dp) :: gkCart(3)
@@ -2844,14 +2838,12 @@ module wfcExportVASPMod
 
       if(gammaOnly .and. (gVec(1) /= 0 .or. gVec(2) /= 0 .or. gVec(3) /= 0)) multFact(ipw) = sqrt(2._dp)
 
-      do ix = 1, 3
-        gkCart(ix) = sum(gkDir(:)*recipLattVec(ix,:))
-          ! VASP has a factor of `twopi` here, but I removed
-          ! it because the vectors in `reconstructFFTGrid` 
-          ! do not have that factor, but they result in the
-          ! number of \(G+k\) vectors for each k-point matching
-          ! the value input from the WAVECAR.
-      enddo
+      gkCart = matmul(recipLattVec, gkDir)
+        ! VASP has a factor of `twopi` here, but I removed
+        ! it because the vectors in `reconstructFFTGrid` 
+        ! do not have that factor, but they result in the
+        ! number of \(G+k\) vectors for each k-point matching
+        ! the value input from the WAVECAR.
         !! @note
         !!  There was originally a subtraction within the parentheses of `QX`/`QY`/`QZ`
         !!  representing the spin spiral propagation vector. It was removed here because 
@@ -2859,7 +2851,7 @@ module wfcExportVASPMod
         !! @endnote
 
 
-      gkMod(ipw) = max(sqrt(sum(gkCart(:)**2 )), 1e-10_dp)
+      gkMod(ipw) = max(sqrt(dot_product(gkCart,gkCart)), 1e-10_dp)
         !! * Get magnitude of G+k vector 
 
       gkUnit(:,ipw)  = gkCart(:)/gkMod(ipw)
@@ -3906,6 +3898,8 @@ module wfcExportVASPMod
     !! the number of atoms, the number of types of atoms, the
     !! final atom positions, number of bands, and number of spins
 
+    use generalComputations, only: direct2cart
+
     implicit none
 
     ! Input variables:
@@ -3926,10 +3920,10 @@ module wfcExportVASPMod
       !! Atom positions
 
     ! Local variables:
-    real(kind=dp) :: atomPositionCart(3)
+    real(kind=dp) :: atomPositionsCart(3,nAtoms)
       !! Position of given atom in cartesian coordinates
 
-    integer :: i, ia, ix
+    integer :: i, ia
       !! Loop indices
 
 
@@ -3953,16 +3947,11 @@ module wfcExportVASPMod
     
       write(mainOutFileUnit, '("# Atoms type, position(1:3) (a.u.). Format: ''(i10,3ES24.15E3)''")')
 
+      atomPositionsCart = direct2cart(nAtoms, atomPositionsDir, realLattVec)
+
       do ia = 1, nAtoms
 
-        do ix = 1, 3
-
-          atomPositionCart(ix) = sum(atomPositionsDir(:,ia)*realLattVec(ix,:))
-            !! @todo Test logic of direct to cartesian coordinates with scaling factor @endtodo
-
-        enddo
-
-        write(mainOutFileUnit,'(i10,3ES24.15E3)') iType(ia), atomPositionCart(:)
+        write(mainOutFileUnit,'(i10,3ES24.15E3)') iType(ia), atomPositionsCart(:,ia)
 
       enddo
     

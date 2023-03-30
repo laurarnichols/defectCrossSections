@@ -81,7 +81,7 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call read_vasprun_xml(realLattVec, nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
+  call read_vasprun_xml(nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
   allocate(atomPositionsDir(3,nAtoms))
