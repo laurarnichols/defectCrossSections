@@ -998,7 +998,7 @@ module wfcExportVASPMod
 
       enddo
 
-      line = getFirstLineWithKeyword(potcarUnit,'efermi')
+      line = getFirstLineWithKeyword(57,'efermi')
         !! * Ignore everything until you get to a
         !!   line with `'efermi'`, indicating the
         !!   tag with the Fermi energy
