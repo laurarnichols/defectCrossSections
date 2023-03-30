@@ -10,7 +10,7 @@ COMMONMODS = $(CommonModules_srcPath)/commonmodules.a
 all : Shifter.x 
 	
 Shifter.x : mods $(COMMONMODS) $(SHIFTER_OBJS)
-	$(mpif90) $(MODFLAGS) -o TME.x $(SHIFTER_OBJS) $(COMMONMODS)
+	$(mpif90) $(MODFLAGS) -o Shifter.x $(SHIFTER_OBJS) $(COMMONMODS)
 	- ( cd $(Home_Path)/bin ; ln -fs $(PhononPP_srcPath)/$@ . )
 
 	@echo "" ; \
