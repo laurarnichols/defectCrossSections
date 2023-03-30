@@ -35,15 +35,14 @@ program shifterMain
 
   call readPhonons(nAtoms, nModes, phononFName)
 
-  !call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeStart, nModesLocal)
-    !! @todo Get modes from somewhere @endtodo
+  call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
 
-  !do j = iModeStart, iModeEnd
+  do j = iModeStart, iModeEnd
 
   !  call shiftMode()
   !  call writeShiftedPOSCAR()
 
-  !enddo
+  enddo
 
   deallocate(atomPositionsDir)
 
