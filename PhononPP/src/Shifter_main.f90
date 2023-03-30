@@ -26,11 +26,14 @@ program shifterMain
 
   call checkInitialization(nAtoms, shift, phononFName, poscarFName)
 
+  nModes = 3*nAtoms
+    !! * Calculate the total number of modes
+
   allocate(atomPositionsDir(3,nAtoms))
 
   call readPOSCAR(nAtoms, poscarFName, atomPositionsDir, omega, realLattVec)
 
-  !call readPhonons()
+  call readPhonons(nAtoms, nModes, phononFName)
 
   !call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeStart, nModesLocal)
     !! @todo Get modes from somewhere @endtodo

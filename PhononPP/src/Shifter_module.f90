@@ -207,4 +207,85 @@ module shifterMod
 
   end subroutine checkInitialization
 
+!----------------------------------------------------------------------------
+  subroutine readPhonons(nAtoms, nModes, phononFName)
+
+    use miscUtilities, only: getFirstLineWithKeyword
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    character(len=300), intent(in) :: phononFName
+      !! File name for mesh.yaml phonon file
+
+    ! Output variables:
+    real(kind=dp) :: eigenvector(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each mode
+
+    ! Local variables:
+    integer :: j, ia, ix
+      !! Loop index
+
+    real(kind=dp) :: qPos(3)
+      !! Phonon q position
+
+    character(len=300) :: line
+      !! Line read from file
+
+    logical :: fileExists
+      !! If phonon file exists
+
+
+    inquire(file=phononFName, exist=fileExists)
+
+    if(.not. fileExists) call exitError('readPhonons', 'Phonon file '//trim(phononFName)//' does not exist', 1)
+
+    open(57, file=phononFName)
+
+    line = getFirstLineWithKeyword(57,'q-position')
+      !! Ignore everything until you get to q-position line
+
+    read(line(16:len(trim(line))-1),*) qPos
+      !! Read in the q position
+
+    if(qPos(1) > 1e-8 .or. qPos(2) > 1e-8 .or. qPos(3) > 1e-8) &
+      call exitError('readPhonons', 'Code assumes phonons have no momentum (at q=0)!',1)
+
+    read(57,'(A)') line
+    read(57,'(A)') line
+    read(57,'(A)') line
+      !! Ignore next 3 lines
+
+    do j = 1, nModes
+
+      read(57,'(A)') ! Ignore mode number
+      read(57,'(A)') ! Ignore frequency
+      read(57,'(A)') ! Ignore eigenvector section header
+
+      do ia = 1, nAtoms
+
+        read(57,'(A)') line ! Ignore atom number
+
+        do ix = 1, 3
+
+          read(57,'(A)') line
+          read(line(10:len(trim(line))-1),*) eigenvector(ix,ia,j)
+
+        enddo
+
+      enddo
+      
+    enddo
+
+    close(57)
+
+    return
+
+  end subroutine readPhonons
+
 end module shifterMod

@@ -1,0 +1,9 @@
+&inputParams
+ 
+  poscarFName = './POSCAR'
+  phononFName = './mesh.yaml'
+
+  nAtoms = 514
+  shift = 0.01
+
+/
