@@ -235,6 +235,8 @@ module shifterMod
     integer :: j, ia, ix
       !! Loop index
 
+    real(kind=dp) :: mass(nAtoms)
+      !! Masses of atoms
     real(kind=dp) :: qPos(3)
       !! Phonon q position
 
@@ -251,8 +253,20 @@ module shifterMod
 
     open(57, file=phononFName)
 
+    line = getFirstLineWithKeyword(57,'points')
+      !! Ignore everything until you get to points line
+
+    do ia = 1, nAtoms
+
+      read(57,'(A)') ! Ignore symbol 
+      read(57,'(A)') ! Ignore coordinates
+      read(57,'(a7,f)') line, mass(ia)
+        !! Read mass
+      
+    enddo
+
     line = getFirstLineWithKeyword(57,'q-position')
-      !! Ignore everything until you get to q-position line
+      !! Ignore everything next until you get to q-position line
 
     read(line(16:len(trim(line))-1),*) qPos
       !! Read in the q position
@@ -287,6 +301,12 @@ module shifterMod
 
       enddo
       
+    enddo
+
+    do ia = 1, nAtoms
+      
+      eigenvector(:,ia,:) = eigenvector(:,ia,:)/sqrt(mass(ia))
+
     enddo
 
     close(57)
