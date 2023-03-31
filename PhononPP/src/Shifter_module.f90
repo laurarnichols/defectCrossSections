@@ -20,8 +20,12 @@ module shifterMod
   integer :: nModesLocal
     !! Local number of phonon modes
 
+  real(kind=dp), allocatable :: eigenvector(:,:,:)
+    !! Eigenvectors for each atom for each mode
   real(kind=dp) :: shift
     !! Magnitude of shift along phonon eigenvectors
+  real(kind=dp), allocatable :: shiftedPositions(:,:)
+    !! Positions after shift along eigenvector
 
   character(len=300) :: phononFName
     !! File name for mesh.yaml phonon file
@@ -208,7 +212,7 @@ module shifterMod
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine readPhonons(nAtoms, nModes, phononFName)
+  subroutine readPhonons(nAtoms, nModes, phononFName, eigenvector)
 
     use miscUtilities, only: getFirstLineWithKeyword
 
@@ -224,7 +228,7 @@ module shifterMod
       !! File name for mesh.yaml phonon file
 
     ! Output variables:
-    real(kind=dp) :: eigenvector(3,nAtoms,nModes)
+    real(kind=dp), intent(out) :: eigenvector(3,nAtoms,nModes)
       !! Eigenvectors for each atom for each mode
 
     ! Local variables:
@@ -290,5 +294,44 @@ module shifterMod
     return
 
   end subroutine readPhonons
+
+!----------------------------------------------------------------------------
+  function getDisplacement(j, nAtoms, nModes, eigenvector, shift) result(displacement)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: j
+      !! Phonon mode index
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: eigenvector(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each mode
+    real(kind=dp), intent(in) :: shift
+      !! Magnitude of shift along phonon eigenvectors
+
+    ! Output variables:
+    real(kind=dp) :: displacement(3,nAtoms)
+      !! Displacements for each atom for this mode
+    real(kind=dp) :: eig(3)
+      !! Eigenvector for single mode and atom
+
+    ! Local variables:
+    integer :: ia
+      !! Loop indices
+
+
+    do ia = 1, nAtoms
+
+      eig = eigenvector(:,ia,j)
+
+      displacement(:,ia) = eig*shift/sqrt(dot_product(eig, eig))
+
+    enddo
+
+  end function getDisplacement
 
 end module shifterMod

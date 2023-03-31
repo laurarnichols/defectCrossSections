@@ -1,6 +1,7 @@
 program shifterMain
 
   use shifterMod
+  use generalComputations, only: direct2cart
   
   implicit none
 
@@ -30,21 +31,26 @@ program shifterMain
     !! * Calculate the total number of modes
 
   allocate(atomPositionsDir(3,nAtoms))
+  allocate(eigenvector(3,nAtoms,nModes))
 
   call readPOSCAR(nAtoms, poscarFName, atomPositionsDir, omega, realLattVec)
 
-  call readPhonons(nAtoms, nModes, phononFName)
+  call readPhonons(nAtoms, nModes, phononFName, eigenvector)
 
   call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
 
+  allocate(shiftedPositions(3,nAtoms))
+
   do j = iModeStart, iModeEnd
 
-  !  call shiftMode()
+    shiftedPositions = direct2cart(nAtoms, atomPositionsDir, realLattVec) + getDisplacement(j, nAtoms, nModes, eigenvector, shift)
   !  call writeShiftedPOSCAR()
 
   enddo
 
   deallocate(atomPositionsDir)
+  deallocate(eigenvector)
+  deallocate(shiftedPositions)
 
   call MPI_Barrier(worldComm, ierr)
  
