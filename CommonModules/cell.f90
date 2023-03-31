@@ -22,6 +22,95 @@ module cell
     !! Reciprocal lattice vectors
 
   contains
+
+!----------------------------------------------------------------------------
+  subroutine writePOSCARNewPos(nAtoms, atomPositions, initFName, newFName, cart_)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+
+    real(kind=dp), intent(in) :: atomPositions(3,nAtoms)
+      !! Atom positions
+
+    character(len=300), intent(in) :: initFName
+      !! File name for initial POSCAR
+    character(len=300), intent(in) :: newFName
+      !! File name for POSCAR with new positions
+
+    logical, optional :: cart_
+      !! Input for whether or not to write coordinates in Cartesian
+
+    ! Local variables:
+    integer :: ix, ia, iLine
+      !! Loop indices
+
+    logical :: cart
+      !! Whether or not to write coordinates in Cartesian
+    logical :: fileExists
+      !! If the POSCAR file exists
+
+    character(len=1) :: charSwitch
+      !! Single character for testing input
+    character(len=300) :: line
+      !! Line to read from file
+
+
+    cart = .false.
+    if(present(cart_)) cart = cart_
+      !! Set optional argument cart with default value false
+
+    !> Make sure the POSCAR file exists
+    inquire(file=trim(initFName), exist=fileExists)
+
+    if(.not. fileExists) call exitError('writePOSCARNewPos', 'POSCAR file does not exist', 1)
+
+    open(unit=15, file=trim(initFName))
+    open(unit=20, file=trim(newFName))
+
+  
+    !> Write first 6 lines as-is
+    do iLine = 1, 6
+      read(15,'(A)') line 
+      write(20,'(A)') trim(line) 
+    enddo
+
+
+    read(line,'(A1)') charSwitch
+    if(.not. (charSwitch >= '0' .and. charSwitch <= '9')) then
+      !! Determine if the 6th line contains numbers or characters
+      !! (i.e., if the optional atom-name line exists) and read
+      !! the next line if it does. Ignore both the atom-name 
+      !! line and the atom-number line as we get this info from
+      !! the vasprun.xml file because it is more structured and
+      !! easier to read.
+
+      read(15,'(A)') line
+      write(20,'(A)') trim(line)
+    
+    endif
+
+    
+    if(cart) then
+      write(20,*) "Cartesian"
+    else
+      write(20,*) "Direct"
+    endif
+
+    do ia = 1, nAtoms
+
+      write(20,'(3f20.16)') (atomPositions(ix,ia), ix=1,3) 
+
+    enddo
+
+    close(15)
+    close(20)
+  
+    return
+
+  end subroutine writePOSCARNewPOS
       
 !----------------------------------------------------------------------------
   subroutine readPOSCAR(nAtoms, poscarFName, atomPositionsDir, omega, realLattVec)
@@ -65,7 +154,7 @@ module cell
       !! Line to read from file
 
 
-    !! Make sure the POSCAR file exists
+    !> Make sure the POSCAR file exists
     inquire(file=trim(poscarFName), exist=fileExists)
 
     if(.not. fileExists) call exitError('readPOSCAR', 'POSCAR file does not exist', 1)
@@ -101,7 +190,7 @@ module cell
     call calculateOmega(realLattVec, omega)
       !! Recalculate volume based on scaled lattice vectors
 
-    if(omega < 0) call exitError('readPOSCARHead', 'volume is less than zero', 1)
+    if(omega < 0) call exitError('readPOSCAR', 'volume is less than zero', 1)
 
     
     read(15,'(A)') line
@@ -133,16 +222,12 @@ module cell
     if(charSwitch == 'K' .or. charSwitch == 'k' .or. &
        charSwitch == 'C' .or. charSwitch == 'c') then
 
-      write(*,*) "Positions in Cartesian coordinates"
-
       pos = pos*scaleParam
 
       atomPositionsDir = cart2direct(nAtoms, pos, realLattVec)
         !! Convert Cartesian coordinates to direct
 
     else
-
-      write(*,*) "Positions in direct coordinates"
 
       atomPositionsDir = pos
 

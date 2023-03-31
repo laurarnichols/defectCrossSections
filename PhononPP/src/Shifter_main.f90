@@ -2,6 +2,7 @@ program shifterMain
 
   use shifterMod
   use generalComputations, only: direct2cart
+  use miscUtilities, only: int2strLeadZero
   
   implicit none
 
@@ -12,7 +13,7 @@ program shifterMain
 
   call mpiInitialization()
 
-  call initialize(nAtoms, shift, phononFName, poscarFName)
+  call initialize(nAtoms, shift, phononFName, poscarFName, prefix)
     !! * Set default values for input variables and start timers
 
   if(ionode) then
@@ -25,7 +26,7 @@ program shifterMain
 
   endif
 
-  call checkInitialization(nAtoms, shift, phononFName, poscarFName)
+  call checkInitialization(nAtoms, shift, phononFName, poscarFName, prefix)
 
   nModes = 3*nAtoms - 3
     !! * Calculate the total number of modes
@@ -41,10 +42,26 @@ program shifterMain
 
   allocate(shiftedPositions(3,nAtoms))
 
+  if(nModes < 10) then
+    suffixLength = 1
+  else if(nModes < 100) then
+    suffixLength = 2
+  else if(nModes < 1000) then
+    suffixLength = 3
+  else if(nModes < 10000) then
+    suffixLength = 4
+  else if(nModes < 100000) then
+    suffixLength = 5
+  endif
+
+
   do j = iModeStart, iModeEnd
 
     shiftedPositions = direct2cart(nAtoms, atomPositionsDir, realLattVec) + getDisplacement(j, nAtoms, nModes, eigenvector, shift)
-  !  call writeShiftedPOSCAR()
+
+    shiftedPOSCARFName = trim(prefix)//"_"//trim(int2strLeadZero(j,suffixLength))
+
+    call writePOSCARNewPos(nAtoms, shiftedPositions, poscarFName, shiftedPOSCARFName, .true.)
 
   enddo
 

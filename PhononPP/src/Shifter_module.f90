@@ -19,6 +19,8 @@ module shifterMod
     !! Number of phonon modes
   integer :: nModesLocal
     !! Local number of phonon modes
+  integer :: suffixLength
+    !! Length of shifted POSCAR file suffix
 
   real(kind=dp), allocatable :: eigenvector(:,:,:)
     !! Eigenvectors for each atom for each mode
@@ -31,15 +33,19 @@ module shifterMod
     !! File name for mesh.yaml phonon file
   character(len=300) :: poscarFName
     !! File name for POSCAR
+  character(len=300) :: prefix
+    !! Prefix for shifted POSCARs
+  character(len=300) :: shiftedPOSCARFName
+    !! File name for shifted POSCAR
 
 
-  namelist /inputParams/ poscarFName, phononFName, nAtoms, shift
+  namelist /inputParams/ poscarFName, phononFName, prefix, nAtoms, shift
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine initialize(nAtoms, shift, phononFName, poscarFName)
+  subroutine initialize(nAtoms, shift, phononFName, poscarFName, prefix)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -64,6 +70,8 @@ module shifterMod
       !! File name for mesh.yaml phonon file
     character(len=300), intent(out) :: poscarFName
       !! File name for POSCAR
+    character(len=300), intent(out) :: prefix
+      !! Prefix for shifted POSCARs
 
 
     ! Local variables:
@@ -75,6 +83,7 @@ module shifterMod
     nAtoms = -1
     poscarFName = 'POSCAR'
     phononFName = 'mesh.yaml'
+    prefix = 'ph_POSCAR'
     shift = 0.01_dp
 
     call date_and_time(cdate, ctime)
@@ -92,7 +101,7 @@ module shifterMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(nAtoms, shift, phononFName, poscarFName)
+  subroutine checkInitialization(nAtoms, shift, phononFName, poscarFName, prefix)
 
     implicit none
 
@@ -107,6 +116,8 @@ module shifterMod
       !! File name for mesh.yaml phonon file
     character(len=300), intent(in) :: poscarFName
       !! File name for POSCAR
+    character(len=300), intent(in) :: prefix
+      !! Prefix for shifted POSCARs
 
     ! Local variables:
     logical :: abortExecution
@@ -167,6 +178,22 @@ module shifterMod
 
 
     write(*, '("phononFName = ''", a, "''")') trim(phononFName)
+
+
+    if(trim(prefix) == '' ) then
+
+      write(*,*)
+      write(*,'(" Variable : ""prefix"" is not defined!")')
+      write(*,'(" usage : prefix = ''ph_POSCAR''")')
+      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
+
+      abortExecution = .true.
+
+    endif
+    
+
+    write(*, '("prefix = ''", a, "''")') trim(prefix)
+
 
     if(nAtoms < 0) then
 
@@ -235,8 +262,6 @@ module shifterMod
     integer :: j, ia, ix
       !! Loop index
 
-    real(kind=dp) :: mass(nAtoms)
-      !! Masses of atoms
     real(kind=dp) :: qPos(3)
       !! Phonon q position
 
@@ -253,20 +278,8 @@ module shifterMod
 
     open(57, file=phononFName)
 
-    line = getFirstLineWithKeyword(57,'points')
-      !! Ignore everything until you get to points line
-
-    do ia = 1, nAtoms
-
-      read(57,'(A)') ! Ignore symbol 
-      read(57,'(A)') ! Ignore coordinates
-      read(57,'(a7,f)') line, mass(ia)
-        !! Read mass
-      
-    enddo
-
     line = getFirstLineWithKeyword(57,'q-position')
-      !! Ignore everything next until you get to q-position line
+      !! Ignore everything next you get to q-position line
 
     read(line(16:len(trim(line))-1),*) qPos
       !! Read in the q position
@@ -301,12 +314,6 @@ module shifterMod
 
       enddo
       
-    enddo
-
-    do ia = 1, nAtoms
-      
-      eigenvector(:,ia,:) = eigenvector(:,ia,:)/sqrt(mass(ia))
-
     enddo
 
     close(57)
