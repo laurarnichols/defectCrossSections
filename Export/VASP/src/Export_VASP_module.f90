@@ -3856,6 +3856,8 @@ module wfcExportVASPMod
         !! * For each k-point, write out the miller indices
         !!   resulting in \(G+k\) vectors less than the energy
         !!   cutoff in a `grid.ik` file
+
+        ikGlobal = ikLocal+ikStart_pool-1
       
         open(72, file=trim(exportDir)//"/grid."//trim(int2str(ikGlobal)))
         write(72, '("# Wave function G-vectors grid")')
