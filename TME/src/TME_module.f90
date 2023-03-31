@@ -1,26 +1,18 @@
 module declarations
+  use constants, only: dp, pi, sq4pi, eVToHartree, ii
+  use miscUtilities, only: int2str, int2strLeadZero
+  use errorsAndMPI
   use mpi
   
   implicit none
 
   ! Parameters:
-  integer, parameter :: dp = selected_real_kind(15, 307)
   integer, parameter :: iostd = 16
-  integer, parameter :: root  = 0
-    !! ID of the root node
-
-  real(kind = dp), parameter ::          pi = 3.141592653589793_dp
-  real(kind = dp), parameter ::       sq4pi = 3.544907701811032_dp
-  real(kind = dp), parameter :: evToHartree = 0.03674932538878_dp
-  
-  complex(kind = dp), parameter :: ii = cmplx(0.0_dp, 1.0_dp, kind = dp)
   
   character(len = 6), parameter :: output = 'output'
 
 
   ! Global variables not passed as arguments:
-  integer :: ierr
-    !! Error returned by MPI
   integer :: iGkStart_poolPC, iGkEnd_poolPC, iGkStart_poolSD, iGkEnd_poolSD
     !! Start and end G+k vector for process in pool
   integer :: iGStart_pool, iGEnd_pool
@@ -33,23 +25,14 @@ module declarations
     !! Intra-pool communicator
   integer :: interPoolComm = 0
     !! Intra-pool communicator
-  integer :: myid
-    !! ID of this process
   integer :: myPoolId
     !! Pool index for this process
   integer :: nkPerPool
     !! Number of k-points in each pool
   integer :: nPools = 1
     !! Number of pools for k-point parallelization
-  integer :: nProcs
-    !! Number of processes
   integer :: nProcPerPool
     !! Number of processes per pool
-  integer :: worldComm
-    !! World communicator
-
-  logical :: ionode
-    !! If this node is the root node
 
 
   ! Variables that should be passed as arguments:
@@ -150,61 +133,6 @@ module declarations
   
   
 contains
-
-!----------------------------------------------------------------------------
-  subroutine mpiInitialization()
-    !! Generate MPI processes and communicators 
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Output variables:
-    !logical, intent(out) :: ionode
-      ! If this node is the root node
-    !integer, intent(out) :: intraPoolComm = 0
-      ! Intra-pool communicator
-    !integer, intent(out) :: indexInPool
-      ! Process index within pool
-    !integer, intent(out) :: myid
-      ! ID of this process
-    !integer, intent(out) :: myPoolId
-      ! Pool index for this process
-    !integer, intent(out) :: nPools
-      ! Number of pools for k-point parallelization
-    !integer, intent(out) :: nProcs
-      ! Number of processes
-    !integer, intent(out) :: nProcPerPool
-      ! Number of processes per pool
-    !integer, intent(out) :: worldComm
-      ! World communicator
-
-
-    call MPI_Init(ierr)
-    if (ierr /= 0) call mpiExitError( 8001 )
-
-    worldComm = MPI_COMM_WORLD
-
-    call MPI_COMM_RANK(worldComm, myid, ierr)
-    if (ierr /= 0) call mpiExitError( 8002 )
-      !! * Determine the rank or ID of the calling process
-    call MPI_COMM_SIZE(worldComm, nProcs, ierr)
-    if (ierr /= 0) call mpiExitError( 8003 )
-      !! * Determine the size of the MPI pool (i.e., the number of processes)
-
-    ionode = (myid == root)
-      ! Set a boolean for if this is the root process
-
-    call getCommandLineArguments()
-      !! * Get the number of pools from the command line
-
-    call setUpPools()
-      !! * Split up processors between pools and generate MPI
-      !!   communicators for pools
-
-    return
-  end subroutine mpiInitialization
 
 !----------------------------------------------------------------------------
   subroutine getCommandLineArguments()
@@ -611,7 +539,7 @@ contains
     
     write(iostd, '("eBin = ", f8.4, " (eV)")') eBin
     
-    eBin = eBin*evToHartree
+    eBin = eBin*eVToHartree
     
     if ( abortExecution ) then
       write(iostd, '(" Program stops!")')
@@ -1213,70 +1141,6 @@ contains
     return
     
   end subroutine readInputSD
-
-!----------------------------------------------------------------------------
-  subroutine distributeItemsInSubgroups(mySubgroupId, nItemsToDistribute, nProcPerLargerGroup, nProcPerSubgroup, nSubgroups, &
-        iItemStart_subgroup, iItemEnd_subgroup, nItemsPerSubgroup)
-    !! Distribute items across a subgroup
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: mySubgroupId
-      !! Process ID in subgroup
-    integer, intent(in) :: nItemsToDistribute
-      !! Total number of items to distribute
-    integer, intent(in) :: nProcPerLargerGroup
-      !! Number of processes in group next
-      !! larger than this subgroup
-    integer, intent(in) :: nProcPerSubgroup
-      !! Number of processes per subgroup
-    integer, intent(in) :: nSubgroups
-      !! Number of subgroups
-
-
-    ! Output variables:
-    integer, intent(out) :: iItemStart_subgroup
-      !! Starting index for items in single subgroup
-    integer, intent(out) :: iItemEnd_subgroup
-      !! Ending index for items in single subgroup
-    integer, intent(out) :: nItemsPerSubgroup
-      !! Number of items in each subgroup
-
-
-    ! Local variables:
-    integer :: nr
-      !! Number of items left over after evenly divided across subgroups
-
-
-    if(nItemsToDistribute > 0) then
-
-      if(nProcPerSubgroup > nProcPerLargerGroup .or. mod(nProcPerLargerGroup, nProcPerSubgroup) /= 0) &
-        call exitError('distributeItemsInSubgroups','nProcPerSubgroup', 1)
-
-      nItemsPerSubgroup = nItemsToDistribute / nSubgroups
-        !!  * Calculate items per subgroup
-
-      nr = nItemsToDistribute - nItemsPerSubgroup * nSubgroups
-        !! * Calculate the remainder 
-
-      IF( mySubgroupId < nr ) nItemsPerSubgroup = nItemsPerSubgroup + 1
-        !! * Assign the remainder to the first `nr` subgroups
-
-      !>  * Calculate the index of the first item in this subgroup
-      iItemStart_subgroup = nItemsPerSubgroup * mySubgroupId + 1
-      IF( mySubgroupId >= nr ) iItemStart_subgroup = iItemStart_subgroup + nr
-
-      iItemEnd_subgroup = iItemStart_subgroup + nItemsPerSubgroup - 1
-        !!  * Calculate the index of the last k-point in this pool
-
-    endif
-
-    return
-  end subroutine distributeItemsInSubgroups
   
 !----------------------------------------------------------------------------
   subroutine checkIfCalculated(ikGlobal, isp, tmes_file_exists)
@@ -1293,15 +1157,8 @@ contains
     logical, intent(out) :: tmes_file_exists
       !! If the current overlap file exists
 
-    ! Local variables:
-    character(len=300) :: ikC, ispC
-      !! Character indices
 
-    
-    call int2str(ikGlobal, ikC)
-    call int2str(isp, ispC)
-    
-    inquire(file=trim(elementsPath)//"/allElecOverlap."//trim(ispC)//"."//trim(ikC), exist = tmes_file_exists)
+    inquire(file=trim(elementsPath)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), exist = tmes_file_exists)
     
     return
     
@@ -1413,24 +1270,18 @@ contains
       !! Command for splitting `projectors.ik` file
     character(len=300) :: fNameExport, splitFilePrefix
       !! File names
-    character(len=300) :: ikC, ngkC, sLC, iprC
-      !! Character index
     
 
-    call int2str(ikGlobal, ikC)
-    
     if(crystalType == 'PC') then
-      fNameExport = trim(exportDirPC)//"/projectors."//trim(ikC) 
+      fNameExport = trim(exportDirPC)//"/projectors."//trim(int2str(ikGlobal)) 
     else
-      fNameExport = trim(exportDirSD)//"/projectors."//trim(ikC)
+      fNameExport = trim(exportDirSD)//"/projectors."//trim(int2str(ikGlobal))
     endif
 
 
     if(indexInPool == 0) then
 
-      call int2str(npws,ngkC)
-
-      splitCommand = 'cat '//trim(fNameExport)//' | tail -n +3 | split -l '//trim(ngkC)//' -d -a '
+      splitCommand = 'cat '//trim(fNameExport)//' | tail -n +3 | split -l '//trim(int2str(npws))//' -d -a '
         !! Split the projectors file into separate files for each `nProj`
         !! so that the length of each file is equal to the number of 
         !! G+k vectors < cutoff at this k-point. Ignore the two header
@@ -1452,12 +1303,11 @@ contains
       suffixLength = 5
     endif
 
-    splitFilePrefix = './workingFiles/projectors.'//trim(ikC)//'.split.'
+    splitFilePrefix = './workingFiles/projectors.'//trim(int2str(ikGlobal))//'.split.'
 
     if(indexInPool == 0) then
 
-      call int2str(suffixLength, sLC)
-      splitCommand = trim(splitCommand)//trim(sLC)//' - '//trim(splitFilePrefix)
+      splitCommand = trim(splitCommand)//trim(int2str(suffixLength))//' - '//trim(splitFilePrefix)
         !! Finish the split command with the suffix length. `-` stands for
         !! `stdin` and allows the piped output from `tail` to be used as the
         !! input file to be split.
@@ -1483,10 +1333,8 @@ contains
     !> Have each process open the split files for just their
     !> projectors and then delete the files
     do ipr = iprStart_pool, iprEnd_pool
-      
-      call int2strLeadZero(ipr-1, suffixLength, iprC)
 
-      open(72,file=trim(splitFilePrefix)//trim(iprC))
+      open(72,file=trim(splitFilePrefix)//trim(int2strLeadZero(ipr-1,suffixLength)))
 
       do igk = 1, npws
 
@@ -1577,23 +1425,17 @@ contains
 
     complex(kind=dp) :: wfcAllPWs(npws)
       !! Wave function read from file
- 
-    character(len = 300) :: ikC, ispC
-      !! Character indices
 
 
     if(indexInPool == 0) then
       !! Have the root node in the pool read the wave
       !! function coefficients. Ignore the bands before 
       !! `iBandinit`
-
-      call int2str(ikGlobal, ikC)
-      call int2str(isp, ispC)
     
       if(crystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/wfc."//trim(ispC)//"."//trim(ikC))
+        open(72, file=trim(exportDirPC)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)))
       else
-        open(72, file=trim(exportDirSD)//"/wfc."//trim(ispC)//"."//trim(ikC))
+        open(72, file=trim(exportDirSD)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)))
       endif
     
       read(72, * )
@@ -1666,7 +1508,7 @@ contains
       
       do ibf = iBandFinit, iBandFfinal
 
-        Ufi(ibf, ibi, ikLocal,isp) = sum(conjg(wfcSD(:,ibf))*wfcPC(:,ibi))
+        Ufi(ibf, ibi, ikLocal,isp) = dot_product(conjg(wfcSD(:,ibf)),wfcPC(:,ibi))
           !! Calculate local overlap
 
       enddo
@@ -1705,12 +1547,6 @@ contains
     integer :: ipr, ib
       !! Loop indices
     
-    character(len = 300) :: ikC, ispC
-      !! Character indices
-    
-
-    call int2str(ikGlobal, ikC)
-    call int2str(isp, ispC)
     
     cProj(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
     
@@ -1718,9 +1554,9 @@ contains
 
       ! Open the projections file for the given crystal type
       if(crystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/projections."//trim(ispC)//"."//trim(ikC))
+        open(72, file=trim(exportDirPC)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)))
       else
-        open(72, file=trim(exportDirSD)//"/projections."//trim(ispC)//"."//trim(ikC))
+        open(72, file=trim(exportDirSD)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)))
       endif
     
       read(72, *)
@@ -1797,15 +1633,13 @@ contains
       !! Local version of cross projection to
       !! be summed across processors in pool
     
-    character(len = 300) :: ikC
-    
 
     crossProjection(:,:) = cmplx(0.0_dp, 0.0_dp, kind=dp)
 
     do ib = iBandinit, iBandfinal
       do ipr = 1, nProjs
 
-        crossProjectionLocal = sum(conjg(beta(:,ipr))*wfc(:,ib))
+        crossProjectionLocal = dot_product(conjg(beta(:,ipr)),wfc(:,ib))
 
         call MPI_ALLREDUCE(crossProjectionLocal, crossProjection(ipr,ib), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
 
@@ -1956,11 +1790,9 @@ contains
     
     do ig = 1, nGVecsLocal
       
-      do ix = 1, 3
-        gCart(ix) = sum(mill_local(:,ig)*recipLattVec(ix,:))
-      enddo
+      gCart = matmul(recipLattVec, mill_local(:,ig))
 
-      q = sqrt(sum(gCart(:)*gCart(:)))
+      q = sqrt(dot_product(gCart,gCart))
       
       v_in(:) = gCart
       if ( abs(q) > 1.0e-6_dp ) v_in = v_in/q ! i have to determine v_in = q
@@ -1984,7 +1816,7 @@ contains
       
       do ni = 1, nAtoms ! LOOP OVER THE IONS
         
-        qDotR = sum(gCart(:)*atomPositions(:,ni))
+        qDotR = dot_product(gCart, atomPositions(:,ni))
         
         if(crystalType == 'PC') then
           ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
@@ -2001,7 +1833,7 @@ contains
             
             FI = 0.0_dp
             
-            FI = sum(atoms(iT)%bes_J_qr(L,:)*atoms(iT)%F(:,LL)) ! radial part integration F contains rab
+            FI = dot_product(atoms(iT)%bes_J_qr(L,:),atoms(iT)%F(:,LL)) ! radial part integration F contains rab
             
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
 
@@ -2049,9 +1881,6 @@ contains
     ! Local variables:
     integer :: ikGlobal
       !! Current global k-point
- 
-    character(len = 300) :: ikC, ispC
-      !! Character indices
     
     integer :: ibi, ibf, totalNumberOfElements
     real(kind = dp) :: t1, t2
@@ -2066,11 +1895,8 @@ contains
     call readEigenvalues(ikGlobal, isp)
     
     write(*, '(" Writing Ufi(:,:) of k-point ", i2, " and spin ", i1, ".")') ikGlobal, isp
-
-    call int2str(ikGlobal, ikC)
-    call int2str(isp, ispC)
     
-    open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(ispC)//"."//trim(ikC), status='unknown')
+    open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
     
     write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
     
@@ -2116,14 +1942,9 @@ contains
     ! Local variables:
     integer :: ib
       !! Loop index
+
     
-    character(len = 300) :: ikC, ispC
-      !! Character indices
-    
-    call int2str(ikGlobal, ikC)
-    call int2str(min(isp,nSpinsSD), ispC)
-    
-    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(ispC)//"."//trim(ikC))
+    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(int2str(min(isp,nSpinsSD)))//"."//trim(int2str(ikGlobal)))
     
     read(72, * )
     read(72, * )
@@ -2138,7 +1959,7 @@ contains
     
     close(72)
     
-    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(ispC)//"."//trim(ikC))
+    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(int2str(min(isp,nSpinsSD)))//"."//trim(int2str(ikGlobal)))
     
     read(72, * )
     read(72, * ) 
@@ -2172,9 +1993,6 @@ contains
     integer :: ikGlobal
       !! Current global k-point
     
-    character(len = 300) :: ikC, ispC
-      !! Character indices
-    
     integer :: ibi, ibf, totalNumberOfElements, iDum, i
     real(kind = dp) :: rDum, t1, t2
     complex(kind = dp):: cUfi
@@ -2185,10 +2003,7 @@ contains
     call cpu_time(t1)
     write(*, '(" Reading Ufi(:,:) of k-point ", i4, " and spin ", i1)') ikGlobal, isp
     
-    call int2str(ikGlobal, ikC)
-    call int2str(isp, ispC)
-    
-    open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(ispC)//"."//trim(ikC), status='unknown')
+    open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
     
     read(17, *) 
     read(17, *) 
@@ -2229,7 +2044,6 @@ contains
     character (len = 300) :: text
     character (len = 300) :: fNameBase
     character (len = 300) :: fNameSK
-    character(len = 300) :: ikC, ispC
 
 
     allocate(DE(iBandIinit:iBandIfinal, nKPerPool, nSpins))
@@ -2322,10 +2136,7 @@ contains
 
         ikGlobal = ikLocal+ikStart_pool-1
     
-        call int2str(ikGlobal, ikC)
-        call int2str(isp, ispC)
-
-        open(11, file=trim(VfisOutput)//'ofKpt.'//trim(ispC)//'.'//trim(ikC), status='unknown')
+        open(11, file=trim(VfisOutput)//'ofKpt.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal)), status='unknown')
       
         do ib = iBandIinit, iBandIfinal
         
@@ -2364,11 +2175,8 @@ contains
 
         do ikGlobal = 1, nKPoints
 
-          call int2str(ikGlobal, ikC)
-          call int2str(isp, ispC)
-
           fNameBase = trim(VfisOutput)//'ofKpt'
-          fNameSK = trim(fNameBase)//'.'//trim(ispC)//'.'//trim(ikC)
+          fNameSK = trim(fNameBase)//'.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal))
 
           call execute_command_line('cat '//trim(fNameSK)//' >> '//trim(fNameBase)//'&& rm '//trim(fNameSK))
 
@@ -2777,250 +2585,6 @@ contains
     return
     
   end subroutine finalizeCalculation
-
-!----------------------------------------------------------------------------
-  subroutine mpiExitError(code)
-    !! Exit on error with MPI communication
-
-    implicit none
-    
-    integer, intent(in) :: code
-
-    write( iostd, '( "*** MPI error ***")' )
-    write( iostd, '( "*** error code: ",I5, " ***")' ) code
-
-    call MPI_ABORT(worldComm,code,ierr)
-    
-    stop
-
-    return
-  end subroutine mpiExitError
-
-!----------------------------------------------------------------------------
-  subroutine exitError(calledFrom, message, ierror)
-    !! Output error message and abort if ierr > 0
-    !!
-    !! Can ensure that error will cause abort by
-    !! passing abs(ierror)
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    
-    implicit none
-
-    integer, intent(in) :: ierror
-      !! Error
-
-    character(len=*), intent(in) :: calledFrom
-      !! Place where this subroutine was called from
-    character(len=*), intent(in) :: message
-      !! Error message
-
-    integer :: id
-      !! ID of this process
-    integer :: mpierr
-      !! Error output from MPI
-
-    character(len=6) :: cerr
-      !! String version of error
-
-
-    if ( ierror <= 0 ) return
-      !! * Do nothing if the error is less than or equal to zero
-
-    write( cerr, fmt = '(I6)' ) ierror
-      !! * Write ierr to a string
-    write(unit=*, fmt = '(/,1X,78("%"))' )
-      !! * Output a dividing line
-    write(unit=*, fmt = '(5X,"Error in ",A," (",A,"):")' ) trim(calledFrom), trim(adjustl(cerr))
-      !! * Output where the error occurred and the error
-    write(unit=*, fmt = '(5X,A)' ) TRIM(message)
-      !! * Output the error message
-    write(unit=*, fmt = '(1X,78("%"),/)' )
-      !! * Output a dividing line
-
-    write( *, '("     stopping ...")' )
-  
-    call flush( iostd )
-  
-    id = 0
-  
-    !> * For MPI, get the id of this process and abort
-    call MPI_COMM_RANK( worldComm, id, mpierr )
-    call MPI_ABORT( worldComm, mpierr, ierr )
-    call MPI_FINALIZE( mpierr )
-
-    stop 2
-
-    return
-
-  end subroutine exitError
-
-!----------------------------------------------------------------------------
-  subroutine mpiSumIntV(msg, comm)
-    !! Perform `MPI_ALLREDUCE` sum for an integer vector
-    !! using a max buffer size
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input/output variables:
-    integer, intent(in) :: comm
-      !! MPI communicator
-    integer, intent(inout) :: msg(:)
-      !! Message to be sent
-
-
-    ! Local variables:
-    integer, parameter :: maxb = 100000
-      !! Max buffer size
-
-    integer :: ib
-      !! Loop index
-    integer :: buff(maxb)
-      !! Buffer
-    integer :: msglen
-      !! Length of message to be sent
-    integer :: nbuf
-      !! Number of buffers
-
-    msglen = size(msg)
-
-    nbuf = msglen/maxb
-      !! * Get the number of buffers of size `maxb` needed
-  
-    do ib = 1, nbuf
-      !! * Send message in buffers of size `maxb`
-     
-        call MPI_ALLREDUCE(msg(1+(ib-1)*maxb), buff, maxb, MPI_INTEGER, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumIntV', 'error in mpi_allreduce 1', ierr)
-
-        msg((1+(ib-1)*maxb):(ib*maxb)) = buff(1:maxb)
-
-    enddo
-
-    if((msglen - nbuf*maxb) > 0 ) then
-      !! * Send any data left of size less than `maxb`
-
-        call MPI_ALLREDUCE(msg(1+nbuf*maxb), buff, (msglen-nbuf*maxb), MPI_INTEGER, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumIntV', 'error in mpi_allreduce 2', ierr)
-
-        msg((1+nbuf*maxb):msglen) = buff(1:(msglen-nbuf*maxb))
-    endif
-
-    return
-  end subroutine mpiSumIntV
-
-!----------------------------------------------------------------------------
-  subroutine mpiSumDoubleV(msg, comm)
-    !! Perform `MPI_ALLREDUCE` sum for a double-precision vector
-    !! using a max buffer size
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input/output variables:
-    integer, intent(in) :: comm
-      !! MPI communicator
-
-    real(kind=dp), intent(inout) :: msg(:)
-      !! Message to be sent
-
-
-    ! Local variables:
-    integer, parameter :: maxb = 20000
-      !! Max buffer size
-
-    integer :: ib
-      !! Loop index
-    integer :: msglen
-      !! Length of message to be sent
-    integer :: nbuf
-      !! Number of buffers
-
-    real(kind=dp) :: buff(maxb)
-      !! Buffer
-
-    msglen = size(msg)
-
-    nbuf = msglen/maxb
-      !! * Get the number of buffers of size `maxb` needed
-
-    do ib = 1, nbuf
-      !! * Send message in buffers of size `maxb`
-     
-        call MPI_ALLREDUCE(msg(1+(ib-1)*maxb), buff, maxb, MPI_DOUBLE_PRECISION, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumDoubleV', 'error in mpi_allreduce 1', ierr)
-
-        msg((1+(ib-1)*maxb):(ib*maxb)) = buff(1:maxb)
-
-    enddo
-
-    if((msglen - nbuf*maxb) > 0 ) then
-      !! * Send any data left of size less than `maxb`
-
-        call MPI_ALLREDUCE(msg(1+nbuf*maxb), buff, (msglen-nbuf*maxb), MPI_DOUBLE_PRECISION, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumDoubleV', 'error in mpi_allreduce 2', ierr)
-
-        msg((1+nbuf*maxb):msglen) = buff(1:(msglen-nbuf*maxb))
-    endif
-
-    return
-  end subroutine mpiSumDoubleV
-  
-!----------------------------------------------------------------------------
-  subroutine int2str(integ, string)
-    
-    implicit none
-    integer :: integ
-    character(len = 300) :: string
-    
-    if ( integ < 10 ) then
-      write(string, '(i1)') integ
-    else if ( integ < 100 ) then
-      write(string, '(i2)') integ
-    else if ( integ < 1000 ) then
-      write(string, '(i3)') integ
-    else if ( integ < 10000 ) then
-      write(string, '(i4)') integ
-    else if ( integ < 100000 ) then
-      write(string, '(i5)') integ
-    else if ( integ < 1000000 ) then
-      write(string, '(i6)') integ
-    else if ( integ < 10000000 ) then
-      write(string, '(i7)') integ
-    endif
-    
-    string = trim(string)
-    
-    return
-    
-  end subroutine int2str
-  
-!----------------------------------------------------------------------------
-  subroutine int2strLeadZero(integ, length, string)
-    
-    implicit none
-    integer :: integ
-    integer :: length
-    character(len = 300) :: string
-    character(len = 300) :: lengthC
-    character(len = 300) :: formatString
-    
-    call int2str(length, lengthC)
-    formatString = '(i'//trim(lengthC)//'.'//trim(lengthC)//')'
-
-    write(string, formatString) integ
-    
-    string = trim(string)
-    
-    return
-    
-  end subroutine int2strLeadZero
   
   
 end module declarations

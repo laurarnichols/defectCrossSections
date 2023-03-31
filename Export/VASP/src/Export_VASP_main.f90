@@ -18,10 +18,23 @@ program wfcExportVASPMain
   integer :: iT
     !! Index for deallocating `pot` variables
 
+  real(kind=dp) :: omegaPOS, realLattVecPOS(3,3)
+    !! Variables from POSCAR to compare to WAVECAR
+
+  character(len=300) :: fName
+    !! File name for CONTCAR
+
 
   call cpu_time(t0)
 
   call mpiInitialization()
+
+  call getCommandLineArguments()
+    !! * Get the number of pools from the command line
+
+  call setUpPools()
+    !! * Split up processors between pools and generate MPI
+    !!   communicators for pools
 
   call initialize(gammaOnly, exportDir, VASPDir)
     !! * Set default values for input variables, open output file,
@@ -29,10 +42,10 @@ program wfcExportVASPMain
 
   if ( ionode ) then
     
-    read(5, inputParams, iostat=ios)
+    read(5, inputParams, iostat=ierr)
       !! * Read input variables
     
-    if (ios /= 0) call exitError('export main', 'reading inputParams namelist', abs(ios))
+    if(ierr /= 0) call exitError('export main', 'reading inputParams namelist', abs(ierr))
       !! * Exit calculation if there's an error
 
     call execute_command_line('mkdir -p '//trim(exportDir))
@@ -68,11 +81,26 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call read_vasprun_xml(realLattVec, nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
+  call read_vasprun_xml(nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
-  call readCONTCAR(nAtoms, VASPDir, atomPositionsDir)
-    !! * Get coordinates from CONTCAR
+  allocate(atomPositionsDir(3,nAtoms))
+
+  if(ionode) then
+    fName = trim(VASPDir)//'CONTCAR'
+
+    call readPOSCAR(nAtoms, fName, atomPositionsDir, omegaPOS, realLattVecPOS)
+      !! * Get coordinates from CONTCAR
+
+    omegaPOS = omegaPOS*angToBohr**3
+    realLattVecPOS = realLattVecPOS*angToBohr
+
+    if(abs(omegaPOS - omega) > 1e-5 .or. maxval(abs(realLattVecPOS-realLattVec)) > 1e-5) &
+      call exitError('export main', 'omega and lattice vectors from POSCAR and WAVECAR not consistent', 1)
+
+  endif
+
+  call MPI_BCAST(atomPositionsDir, size(atomPositionsDir), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
 
   call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
@@ -234,7 +262,7 @@ program wfcExportVASPMain
   call MPI_Barrier(worldComm, ierr)
  
   call cpu_time(t2)
-  if (ionode) write(iostd,'("************ VASP Export complete! (",f10.2," secs) ************")') t2-t0
+  if (ionode) write(*,'("************ VASP Export complete! (",f10.2," secs) ************")') t2-t0
 
   call MPI_FINALIZE(ierr)
 

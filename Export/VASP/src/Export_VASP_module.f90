@@ -1,13 +1,13 @@
 module wfcExportVASPMod
   
   use constants, only: dp, iostd, angToBohr, eVToRy, ryToHartree, pi, twopi
+  use errorsAndMPI
+  use cell
   use mpi
 
   implicit none
 
   ! Parameters:
-  integer, parameter :: root = 0
-    !! ID of the root node
   integer, parameter :: mainOutFileUnit = 50
     !! Main output file unit
   integer, parameter :: potcarUnit = 71
@@ -22,8 +22,6 @@ module wfcExportVASPMod
 
 
   ! Global variables not passed as arguments:
-  integer :: ierr
-    !! Error returned by MPI
   integer, allocatable :: iGkEnd_pool(:)
     ! Ending index for G+k vectors on
     ! single process in a given pool
@@ -36,8 +34,6 @@ module wfcExportVASPMod
     !! Start and end bands for band group
   integer :: ikStart_pool, ikEnd_pool
     !! Start and end k-points for pool
-  integer :: ios
-    !! Error for input/output
   integer :: indexInBgrp
     !! Process index within band group
   integer :: indexInPool
@@ -48,8 +44,6 @@ module wfcExportVASPMod
     !! Intra-band-group communicator
   integer :: intraPoolComm = 0
     !! Intra-pool communicator
-  integer :: myid
-    !! ID of this process
   integer :: myBgrpId
     !! Band-group index for this process
   integer :: myPoolId
@@ -64,37 +58,22 @@ module wfcExportVASPMod
     !! Number of band groups for parallelization
   integer :: nPools = 1
     !! Number of pools for k-point parallelization
-  integer :: nProcs
-    !! Number of processes
   integer :: nProcPerBgrp
     !! Number of processes per band group
   integer :: nProcPerPool
     !! Number of processes per pool
-  integer :: worldComm
-    !! World communicator
 
   real(kind=dp) :: t1, t2, t0
     !! Timers
 
-  logical :: ionode
-    !! If this node is the root node
-
 
   ! Variables that should be passed as arguments:
-  real(kind=dp) :: realLattVec(3,3)
-    !! Real space lattice vectors
-  real(kind=dp) :: recipLattVec(3,3)
-    !! Reciprocal lattice vectors
   real(kind=dp) :: eFermi
     !! Fermi energy
   real(kind=dp), allocatable :: gVecInCart(:,:)
     !! G-vectors in Cartesian coordinates
   real(kind=dp), allocatable :: bandOccupation(:,:,:)
     !! Occupation of band
-  real(kind=dp) :: omega
-    !! Volume of unit cell
-  real(kind=dp), allocatable :: atomPositionsDir(:,:)
-    !! Atom positions in direct coordinates
   real(kind=dp) :: tStart
     !! Start time
   real(kind=dp) :: wfcVecCut
@@ -134,8 +113,6 @@ module wfcExportVASPMod
     !! Atom type index
   integer :: fftGridSize(3)
     !! Max number of points on the FFT grid in each direction
-  integer :: nAtoms
-    !! Number of atoms
   integer :: nBands
     !! Total number of bands
   integer, allocatable :: nGkLessECutGlobal(:)
@@ -153,8 +130,6 @@ module wfcExportVASPMod
     !! Local number of G-vectors on this processor
   integer :: nKPoints
     !! Total number of k-points
-  integer, allocatable :: nAtomsEachType(:)
-    !! Number of atoms of each type
   integer, allocatable :: nPWs1kGlobal(:)
     !! Input number of plane waves for a single k-point for all processors
   integer :: maxGIndexGlobal
@@ -170,8 +145,6 @@ module wfcExportVASPMod
     !! Maximum number of \(G+k\) vectors
     !! across all k-points for just this
     !! ppool
-  integer :: nAtomTypes
-    !! Number of types of atoms
   integer :: nRecords
     !! Number of records in WAVECAR file
   integer :: nSpins
@@ -226,61 +199,6 @@ module wfcExportVASPMod
 
 
   contains
-
-!----------------------------------------------------------------------------
-  subroutine mpiInitialization()
-    !! Generate MPI processes and communicators 
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Output variables:
-    !logical, intent(out) :: ionode
-      ! If this node is the root node
-    !integer, intent(out) :: intraPoolComm = 0
-      ! Intra-pool communicator
-    !integer, intent(out) :: indexInPool
-      ! Process index within pool
-    !integer, intent(out) :: myid
-      ! ID of this process
-    !integer, intent(out) :: myPoolId
-      ! Pool index for this process
-    !integer, intent(out) :: nPools
-      ! Number of pools for k-point parallelization
-    !integer, intent(out) :: nProcs
-      ! Number of processes
-    !integer, intent(out) :: nProcPerPool
-      ! Number of processes per pool
-    !integer, intent(out) :: worldComm
-      ! World communicator
-
-
-    call MPI_Init(ierr)
-    if (ierr /= 0) call mpiExitError( 8001 )
-
-    worldComm = MPI_COMM_WORLD
-
-    call MPI_COMM_RANK(worldComm, myid, ierr)
-    if (ierr /= 0) call mpiExitError( 8002 )
-      !! * Determine the rank or ID of the calling process
-    call MPI_COMM_SIZE(worldComm, nProcs, ierr)
-    if (ierr /= 0) call mpiExitError( 8003 )
-      !! * Determine the size of the MPI pool (i.e., the number of processes)
-
-    ionode = (myid == root)
-      ! Set a boolean for if this is the root process
-
-    call getCommandLineArguments()
-      !! * Get the number of pools from the command line
-
-    call setUpPools()
-      !! * Split up processors between pools and generate MPI
-      !!   communicators for pools
-
-    return
-  end subroutine mpiInitialization
 
 !----------------------------------------------------------------------------
   subroutine getCommandLineArguments()
@@ -532,261 +450,6 @@ module wfcExportVASPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine mpiSumIntV(msg, comm)
-    !! Perform `MPI_ALLREDUCE` sum for an integer vector
-    !! using a max buffer size
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input/output variables:
-    integer, intent(in) :: comm
-      !! MPI communicator
-    integer, intent(inout) :: msg(:)
-      !! Message to be sent
-
-
-    ! Local variables:
-    integer, parameter :: maxb = 100000
-      !! Max buffer size
-
-    integer :: ib
-      !! Loop index
-    integer :: buff(maxb)
-      !! Buffer
-    integer :: msglen
-      !! Length of message to be sent
-    integer :: nbuf
-      !! Number of buffers
-
-    msglen = size(msg)
-
-    nbuf = msglen/maxb
-      !! * Get the number of buffers of size `maxb` needed
-  
-    do ib = 1, nbuf
-      !! * Send message in buffers of size `maxb`
-     
-        call MPI_ALLREDUCE(msg(1+(ib-1)*maxb), buff, maxb, MPI_INTEGER, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumIntV', 'error in mpi_allreduce 1', ierr)
-
-        msg((1+(ib-1)*maxb):(ib*maxb)) = buff(1:maxb)
-
-    enddo
-
-    if((msglen - nbuf*maxb) > 0 ) then
-      !! * Send any data left of size less than `maxb`
-
-        call MPI_ALLREDUCE(msg(1+nbuf*maxb), buff, (msglen-nbuf*maxb), MPI_INTEGER, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumIntV', 'error in mpi_allreduce 2', ierr)
-
-        msg((1+nbuf*maxb):msglen) = buff(1:(msglen-nbuf*maxb))
-    endif
-
-    return
-  end subroutine mpiSumIntV
-
-!----------------------------------------------------------------------------
-  subroutine mpiSumDoubleV(msg, comm)
-    !! Perform `MPI_ALLREDUCE` sum for a double-precision vector
-    !! using a max buffer size
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input/output variables:
-    integer, intent(in) :: comm
-      !! MPI communicator
-
-    real(kind=dp), intent(inout) :: msg(:)
-      !! Message to be sent
-
-
-    ! Local variables:
-    integer, parameter :: maxb = 20000
-      !! Max buffer size
-
-    integer :: ib
-      !! Loop index
-    integer :: msglen
-      !! Length of message to be sent
-    integer :: nbuf
-      !! Number of buffers
-
-    real(kind=dp) :: buff(maxb)
-      !! Buffer
-
-    msglen = size(msg)
-
-    nbuf = msglen/maxb
-      !! * Get the number of buffers of size `maxb` needed
-
-    do ib = 1, nbuf
-      !! * Send message in buffers of size `maxb`
-     
-        call MPI_ALLREDUCE(msg(1+(ib-1)*maxb), buff, maxb, MPI_DOUBLE_PRECISION, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumDoubleV', 'error in mpi_allreduce 1', ierr)
-
-        msg((1+(ib-1)*maxb):(ib*maxb)) = buff(1:maxb)
-
-    enddo
-
-    if((msglen - nbuf*maxb) > 0 ) then
-      !! * Send any data left of size less than `maxb`
-
-        call MPI_ALLREDUCE(msg(1+nbuf*maxb), buff, (msglen-nbuf*maxb), MPI_DOUBLE_PRECISION, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumDoubleV', 'error in mpi_allreduce 2', ierr)
-
-        msg((1+nbuf*maxb):msglen) = buff(1:(msglen-nbuf*maxb))
-    endif
-
-    return
-  end subroutine mpiSumDoubleV
-
-!----------------------------------------------------------------------------
-  subroutine mpiSumComplexV(msg, comm)
-    !! Perform `MPI_ALLREDUCE` sum for a complex vector
-    !! using a max buffer size
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input/output variables:
-    integer, intent(in) :: comm
-      !! MPI communicator
-
-    complex(kind=dp), intent(inout) :: msg(:)
-      !! Message to be sent
-
-
-    ! Local variables:
-    integer, parameter :: maxb = 10000
-      !! Max buffer size
-
-    integer :: ib
-      !! Loop index
-    integer :: msglen
-      !! Length of message to be sent
-    integer :: nbuf
-      !! Number of buffers
-    integer :: commSize
-
-    complex(kind=dp) :: buff(maxb)
-      !! Buffer
-
-
-    msglen = size(msg)
-
-    nbuf = msglen/maxb
-      !! * Get the number of buffers of size `maxb` needed
-  
-    do ib = 1, nbuf
-      !! * Send message in buffers of size `maxb`
-     
-        call MPI_ALLREDUCE(msg(1+(ib-1)*maxb), buff, maxb, MPI_DOUBLE_COMPLEX, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumComplexV', 'error in mpi_allreduce 1', ierr)
-
-        msg((1+(ib-1)*maxb):(ib*maxb)) = buff(1:maxb)
-
-    enddo
-
-    if((msglen - nbuf*maxb) > 0 ) then
-      !! * Send any data left of size less than `maxb`
-
-        call MPI_ALLREDUCE(msg(1+nbuf*maxb), buff, (msglen-nbuf*maxb), MPI_DOUBLE_COMPLEX, MPI_SUM, comm, ierr)
-        if(ierr /= 0) call exitError('mpiSumComplexV', 'error in mpi_allreduce 2', ierr)
-
-        msg((1+nbuf*maxb):msglen) = buff(1:(msglen-nbuf*maxb))
-    endif
-
-    return
-  end subroutine mpiSumComplexV
-
-!----------------------------------------------------------------------------
-  subroutine mpiExitError(code)
-    !! Exit on error with MPI communication
-
-    implicit none
-    
-    integer, intent(in) :: code
-
-    write( iostd, '( "*** MPI error ***")' )
-    write( iostd, '( "*** error code: ",I5, " ***")' ) code
-
-    call MPI_ABORT(worldComm,code,ierr)
-    
-    stop
-
-    return
-  end subroutine mpiExitError
-
-!----------------------------------------------------------------------------
-  subroutine exitError(calledFrom, message, ierror)
-    !! Output error message and abort if ierr > 0
-    !!
-    !! Can ensure that error will cause abort by
-    !! passing abs(ierror)
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    
-    implicit none
-
-    integer, intent(in) :: ierror
-      !! Error
-
-    character(len=*), intent(in) :: calledFrom
-      !! Place where this subroutine was called from
-    character(len=*), intent(in) :: message
-      !! Error message
-
-    integer :: id
-      !! ID of this process
-    integer :: mpierr
-      !! Error output from MPI
-
-    character(len=6) :: cerr
-      !! String version of error
-
-
-    if ( ierror <= 0 ) return
-      !! * Do nothing if the error is less than or equal to zero
-
-    write( cerr, fmt = '(I6)' ) ierror
-      !! * Write ierr to a string
-    write(unit=*, fmt = '(/,1X,78("%"))' )
-      !! * Output a dividing line
-    write(unit=*, fmt = '(5X,"Error in ",A," (",A,"):")' ) trim(calledFrom), trim(adjustl(cerr))
-      !! * Output where the error occurred and the error
-    write(unit=*, fmt = '(5X,A)' ) TRIM(message)
-      !! * Output the error message
-    write(unit=*, fmt = '(1X,78("%"),/)' )
-      !! * Output a dividing line
-
-    write( *, '("     stopping ...")' )
-  
-    call flush( iostd )
-  
-    id = 0
-  
-    !> * For MPI, get the id of this process and abort
-    call MPI_COMM_RANK( worldComm, id, mpierr )
-    call MPI_ABORT( worldComm, mpierr, ierr )
-    call MPI_FINALIZE( mpierr )
-
-    stop 2
-
-    return
-
-  end subroutine exitError
-
-!----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
         kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
@@ -963,69 +626,6 @@ module wfcExportVASPMod
   end subroutine readWAVECAR
 
 !----------------------------------------------------------------------------
-  subroutine calculateOmega(realLattVec, omega)
-    !! Calculate the cell volume as \(a_1\cdot a_2\times a_3\)
-
-    implicit none
-
-    ! Input variables:
-    real(kind=dp), intent(in) :: realLattVec(3,3)
-      !! Real space lattice vectors
-
-
-    ! Output variables:
-    real(kind=dp), intent(out) :: omega
-      !! Volume of unit cell
-
-
-    ! Local variables:
-    real(kind=dp) :: vtmp(3)
-      !! \(a_2\times a_3\)
-
-
-    call vcross(realLattVec(:,2), realLattVec(:,3), vtmp)
-
-    omega = sum(realLattVec(:,1)*vtmp(:))
-
-    return
-  end subroutine calculateOmega
-
-!----------------------------------------------------------------------------
-  subroutine getReciprocalVectors(realLattVec, omega, recipLattVec)
-    !! Calculate the reciprocal lattice vectors from the real-space
-    !! lattice vectors and the cell volume
-
-    implicit none
-
-    ! Input variables:
-    real(kind=dp), intent(in) :: realLattVec(3,3)
-      !! Real space lattice vectors
-    real(kind=dp), intent(in) :: omega
-      !! Volume of unit cell
-
-
-    ! Output variables:
-    real(kind=dp), intent(out) :: recipLattVec(3,3)
-      !! Reciprocal lattice vectors
-
-
-    ! Local variables:
-    integer :: i
-      !! Loop index
-    
-
-    call vcross(2.0d0*pi*realLattVec(:,2)/omega, realLattVec(:,3), recipLattVec(:,1))
-      ! \(b_1 = 2\pi/\Omega a_2\times a_3\)
-    call vcross(2.0d0*pi*realLattVec(:,3)/omega, realLattVec(:,1), recipLattVec(:,2))
-      ! \(b_2 = 2\pi/\Omega a_3\times a_1\)
-    call vcross(2.0d0*pi*realLattVec(:,1)/omega, realLattVec(:,2), recipLattVec(:,3))
-      ! \(b_3 = 2\pi/\Omega a_1\times a_2\)
-
-
-    return
-  end subroutine getReciprocalVectors
-
-!----------------------------------------------------------------------------
   subroutine estimateMaxNumPlanewaves(recipLattVec, wfcECut, fftGridSize)
     !! Get the maximum number of plane waves. I'm not sure how 
     !! this is done completely. It seems to be just basic vector
@@ -1035,6 +635,8 @@ module wfcExportVASPMod
     !!
     !! <h2>Walkthrough</h2>
     !!
+
+    use generalComputations, only: vcross
 
     implicit none
 
@@ -1082,12 +684,12 @@ module wfcExportVASPMod
       !! * Calculate and output reciprocal vector magnitudes
 
 
-    phi12 = acos(sum(recipLattVec(:,1)*recipLattVec(:,2))/(b1mag*b2mag))
+    phi12 = acos(dot_product(recipLattVec(:,1),recipLattVec(:,2))/(b1mag*b2mag))
       !! * Calculate angle between \(b_1\) and \(b_2\)
 
     call vcross(recipLattVec(:,1), recipLattVec(:,2), vtmp)
-    vmag = sqrt(sum(vtmp(:)**2))
-    sinphi123 = sum(recipLattVec(:,3)*vtmp(:))/(vmag*b3mag)
+    vmag = sqrt(dot_product(vtmp,vtmp))
+    sinphi123 = dot_product(recipLattVec(:,3),vtmp(:))/(vmag*b3mag)
       !! * Get \(\sin\phi_{123}\)
 
     nb1maxA = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sin(phi12)))) + 1
@@ -1096,12 +698,12 @@ module wfcExportVASPMod
       !! * Get first set of max values
 
 
-    phi13 = acos(sum(recipLattVec(:,1)*recipLattVec(:,3))/(b1mag*b3mag))
+    phi13 = acos(dot_product(recipLattVec(:,1),recipLattVec(:,3))/(b1mag*b3mag))
       !! * Calculate angle between \(b_1\) and \(b_3\)
 
     call vcross(recipLattVec(:,1), recipLattVec(:,3), vtmp)
-    vmag = sqrt(sum(vtmp(:)**2))
-    sinphi123 = sum(recipLattVec(:,2)*vtmp(:))/(vmag*b2mag)
+    vmag = sqrt(dot_product(vtmp,vtmp))
+    sinphi123 = dot_product(recipLattVec(:,2),vtmp(:))/(vmag*b2mag)
       !! * Get \(\sin\phi_{123}\)
 
     nb1maxB = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sin(phi13)))) + 1
@@ -1110,12 +712,12 @@ module wfcExportVASPMod
       !! * Get first set of max values
 
 
-    phi23 = acos(sum(recipLattVec(:,2)*recipLattVec(:,3))/(b2mag*b3mag))
+    phi23 = acos(dot_product(recipLattVec(:,2),recipLattVec(:,3))/(b2mag*b3mag))
       !! * Calculate angle between \(b_2\) and \(b_3\)
 
     call vcross(recipLattVec(:,2), recipLattVec(:,3), vtmp)
-    vmag = sqrt(sum(vtmp(:)**2))
-    sinphi123 = sum(recipLattVec(:,1)*vtmp(:))/(vmag*b1mag)
+    vmag = sqrt(dot_product(vtmp,vtmp))
+    sinphi123 = dot_product(recipLattVec(:,1),vtmp(:))/(vmag*b1mag)
       !! * Get \(\sin\phi_{123}\)
 
     nb1maxC = (dsqrt(wfcECut/eVToRy*c)/(b1mag*abs(sinphi123))) + 1
@@ -1137,30 +739,6 @@ module wfcExportVASPMod
 
     return
   end subroutine estimateMaxNumPlanewaves
-
-!----------------------------------------------------------------------------
-  subroutine vcross(vec1, vec2, crossProd)
-    !! Calculate the cross product `crossProd` of 
-    !! two vectors `vec1` and `vec2`
-
-    implicit none
-
-    ! Input variables:
-    real(kind=dp), intent(in) :: vec1(3), vec2(3)
-      !! Input vectors
-
-
-    ! Output variables:
-    real(kind=dp), intent(out) :: crossProd(3)
-      !! Cross product of input vectors
-
-
-    crossProd(1) = vec1(2)*vec2(3) - vec1(3)*vec2(2)
-    crossProd(2) = vec1(3)*vec2(1) - vec1(1)*vec2(3)
-    crossProd(3) = vec1(1)*vec2(2) - vec1(2)*vec2(1)
-
-    return
-  end subroutine vcross
 
 !----------------------------------------------------------------------------
   subroutine preliminaryWAVECARScan(nBands, nKPoints, nRecords, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
@@ -1277,74 +855,17 @@ module wfcExportVASPMod
   end subroutine preliminaryWAVECARScan
 
 !----------------------------------------------------------------------------
-  subroutine distributeBandsInGroups(nBands)
-    !! Figure out how many bands there should be per band group
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nBands
-      !! Total number of bands
-    !integer, intent(in) :: nProcPerBgrp
-      ! Number of processes per band group
-
-
-    ! Output variables:
-    !integer, intent(out) :: ibEnd_bgrp
-      ! Ending index for bands in single band group
-    !integer, intent(out) :: ibStart_bgrp
-      ! Starting index for bands in single band group
-    !integer, intent(out) :: nbPerBgrp
-      ! Number of bands in each band group
-
-
-    ! Local variables:
-    integer :: nbr
-      !! Number of bands left over after evenly divided across band groups
-
-
-    if( nBands > 0 ) then
-
-      IF( ( nProcPerBgrp > nProcPerPool ) .or. ( mod( nProcPerPool, nProcPerBgrp ) /= 0 ) ) &
-        CALL exitError( 'distributeKpointsInPools','nProcPerPool', 1 )
-
-      nbPerBgrp = nBands / nBandGroups
-        !!  * Calculate bands per band group
-
-      nbr = nBands - nbPerBgrp * nBandGroups
-        !! * Calculate the remainder `nbr`
-
-      IF( myBgrpId < nbr ) nbPerBgrp = nbPerBgrp + 1
-        !! * Assign the remainder to the first `nbr` band groups
-
-      !>  * Calculate the index of the first bannd in this band group
-      ibStart_bgrp = nbPerBgrp * myBgrpId + 1
-      IF( myBgrpId >= nbr ) ibStart_bgrp = ibStart_bgrp + nbr
-
-      ibEnd_bgrp = ibStart_bgrp + nbPerBgrp - 1
-        !!  * Calculate the index of the last band in this band group
-
-    endif
-
-    return
-  end subroutine distributeBandsInGroups
-
-!----------------------------------------------------------------------------
-  subroutine read_vasprun_xml(realLattVec, nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
+  subroutine read_vasprun_xml(nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
     !! <h2>Walkthrough</h2>
     !!
 
+    use miscUtilities, only: getFirstLineWithKeyword
+
     implicit none
 
     ! Input variables:
-    real(kind=dp), intent(in) :: realLattVec(3,3)
-      !! Real space lattice vectors
-
     integer, intent(in) :: nKPoints
       !! Total number of k-points
 
@@ -1369,20 +890,18 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: ik, ia, ix
+    integer :: ik, ia
       !! Loop indices
 
     character(len=256) :: cDum
       !! Dummy variable to ignore input
     character(len=256) :: fileName
       !! `vasprun.xml` with path
-    character(len=256) :: line
+    character(len=300) :: line
       !! Line read from file
 
     logical :: fileExists
       !! If the `vasprun.xml` file exists
-    logical :: found
-      !! If the required tag was found
     logical :: orbitalMag
       !! If can safely ignore `VKPT_SHIFT`
     logical :: spinSpiral
@@ -1404,17 +923,10 @@ module wfcExportVASPMod
         !! * If root node, open `vasprun.xml`
 
 
-      found = .false.
-      do while (.not. found)
+      line = getFirstLineWithKeyword(57,'weights')
         !! * Ignore everything until you get to a
         !!   line with `'weights'`, indicating the
         !!   tag surrounding the k-point weights
-        
-        read(57, '(A)') line
-
-        if (index(line,'weights') /= 0) found = .true.
-        
-      enddo
 
       do ik = 1, nKPoints
         !! * Read in the weight for each k-point
@@ -1424,18 +936,11 @@ module wfcExportVASPMod
       enddo
 
 
-      found = .false.
-      do while (.not. found)
+      line = getFirstLineWithKeyword(57,'LREAL')
         !! * Ignore everything until you get to a
         !!   line with `'LREAL'`, indicating the
         !!   tag that determines if real-space 
         !!   projectors are used
-        
-        read(57, '(A)') line
-
-        if (index(line,'LREAL') /= 0) found = .true.
-        
-      enddo
 
       read(line,'(a35,L4,a4)') cDum, useRealProj, cDum
 
@@ -1443,18 +948,11 @@ module wfcExportVASPMod
         '*** error - expected LREAL = F but got T', 1)
 
 
-      found = .false.
-      do while (.not. found)
+      line = getFirstLineWithKeyword(57,'LSPIRAL')
         !! * Ignore everything until you get to a
         !!   line with `'LSPIRAL'`, indicating the
         !!   tag that determines if spin spirals are
         !!   included
-        
-        read(57, '(A)') line
-
-        if (index(line,'LSPIRAL') /= 0) found = .true.
-        
-      enddo
 
       read(line,'(a37,L4,a4)') cDum, spinSpiral, cDum
 
@@ -1462,17 +960,10 @@ module wfcExportVASPMod
         '*** error - expected LSPIRAL = F but got T', 1)
 
 
-      found = .false.
-      do while (.not. found)
+      line = getFirstLineWithKeyword(57,'ORBITALMAG')
         !! * Ignore everything until you get to a
         !!   line with `'ORBITALMAG'`, indicating the
         !!   tag that determines if can ignore `VKPT_SHIFT`
-        
-        read(57, '(A)') line
-
-        if (index(line,'ORBITALMAG') /= 0) found = .true.
-        
-      enddo
 
       read(line,'(a39,L4,a4)') cDum, orbitalMag, cDum
 
@@ -1480,17 +971,10 @@ module wfcExportVASPMod
         '*** error - expected ORBITALMAG = F but got T', 1)
 
 
-      found = .false.
-      do while (.not. found)
+      line = getFirstLineWithKeyword(57,'atominfo')
         !! * Ignore everything until you get to a
         !!   line with `'atominfo'`, indicating the
         !!   tag surrounding the cell info
-        
-        read(57, '(A)') line
-
-        if (index(line,'atominfo') /= 0) found = .true.
-        
-      enddo
 
       read(57,*) cDum, nAtoms, cDum
       read(57,*) cDum, nAtomTypes, cDum
@@ -1514,45 +998,13 @@ module wfcExportVASPMod
 
       enddo
 
-      found = .false.
-      do while (.not. found)
+      line = getFirstLineWithKeyword(57,'efermi')
         !! * Ignore everything until you get to a
         !!   line with `'efermi'`, indicating the
         !!   tag with the Fermi energy
-        
-        read(57, '(A)') line
-
-        if (index(line,'efermi') /= 0) found = .true.
-        
-      enddo
 
       read(line,*) cDum, cDum, eFermi, cDum
       eFermi = eFermi*eVToRy
-
-      found = .false.
-      do while (.not. found)
-        !! * Ignore everything until you get to a
-        !!   line with `'finalpos'`, indicating the
-        !!   tag surrounding the final cell parameters
-        !!   and positions
-        
-        read(57, '(A)') line
-
-        if (index(line,'finalpos') /= 0) found = .true.
-        
-      enddo
-
-      found = .false.
-      do while (.not. found)
-        !! * Ignore everything until you get to a
-        !!   line with `'positions'`, indicating the
-        !!   tag surrounding the final positions
-        
-        read(57, '(A)') line
-
-        if (index(line,'positions') /= 0) found = .true.
-        
-      enddo
 
       close(57)
 
@@ -1574,144 +1026,6 @@ module wfcExportVASPMod
   end subroutine read_vasprun_xml
 
 !----------------------------------------------------------------------------
-  subroutine readCONTCAR(nAtoms, VASPDir, atomPositionsDir)
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nAtoms
-      !! Number of atoms
-    character(len=256), intent(in) :: VASPDir
-      !! Directory with VASP files
-
-    ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: atomPositionsDir(:,:)
-      !! Atom positions in direct coordinates
-
-    ! Local variables:
-    integer :: ia, i
-      !! Loop indices
-
-    logical :: fileExists
-      !! If the `CONTCAR` file exists
-
-    character(len=256) :: fileName
-      !! `CONTCAR` with path
-
-
-    allocate(atomPositionsDir(3,nAtoms))
-
-    if (ionode) then
-
-      fileName = trim(VASPDir)//'/CONTCAR'
-
-      inquire(file = fileName, exist = fileExists)
-
-      if (.not. fileExists) call exitError('readCONTCAR', 'Required file CONTCAR does not exist', 1)
-
-      open(57, file=fileName)
-        !! * If root node, open `vasprun.xml`
-
-      !> Ignore lines before coordinates
-      read(57,*)
-      read(57,*)
-      read(57,*)
-      read(57,*)
-      read(57,*)
-      read(57,*)
-      read(57,*)
-      read(57,*)
-
-      do ia = 1, nAtoms
-        !! * Read in the final position for each atom
-
-        read(57,*) (atomPositionsDir(i,ia),i=1,3)
-          !! @note
-          !!  For now, I assume that the scaling factor is 1
-          !!  and that the coordinates are direct. Will need
-          !!  to implement proper reading later.
-          !! @endnote
-
-      enddo
-
-      if(maxval(atomPositionsDir) > 1) call exitError('read_vasprun_xml', &
-        '*** error - expected direct coordinates', 1)
-
-      close(57)
-
-    endif
-
-    call MPI_BCAST(atomPositionsDir, size(atomPositionsDir), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-
-    return
-
-  end subroutine readCONTCAR
-
-!----------------------------------------------------------------------------
-  subroutine distributeItemsInSubgroups(mySubgroupId, nItemsToDistribute, nProcPerLargerGroup, nProcPerSubgroup, nSubgroups, &
-        iItemStart_subgroup, iItemEnd_subgroup, nItemsPerSubgroup)
-    !! Distribute items across a subgroup
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: mySubgroupId
-      !! Process ID in subgroup
-    integer, intent(in) :: nItemsToDistribute
-      !! Total number of items to distribute
-    integer, intent(in) :: nProcPerLargerGroup
-      !! Number of processes in group next
-      !! larger than this subgroup
-    integer, intent(in) :: nProcPerSubgroup
-      !! Number of processes per subgroup
-    integer, intent(in) :: nSubgroups
-      !! Number of subgroups
-
-
-    ! Output variables:
-    integer, intent(out) :: iItemStart_subgroup
-      !! Starting index for items in single subgroup
-    integer, intent(out) :: iItemEnd_subgroup
-      !! Ending index for items in single subgroup
-    integer, intent(out) :: nItemsPerSubgroup
-      !! Number of items in each subgroup
-
-
-    ! Local variables:
-    integer :: nr
-      !! Number of items left over after evenly divided across subgroups
-
-
-    if(nItemsToDistribute > 0) then
-
-      if(nProcPerSubgroup > nProcPerLargerGroup .or. mod(nProcPerLargerGroup, nProcPerSubgroup) /= 0) &
-        call exitError('distributeItemsInSubgroups','nProcPerSubgroup', 1)
-
-      nItemsPerSubgroup = nItemsToDistribute / nSubgroups
-        !!  * Calculate items per subgroup
-
-      nr = nItemsToDistribute - nItemsPerSubgroup * nSubgroups
-        !! * Calculate the remainder 
-
-      IF( mySubgroupId < nr ) nItemsPerSubgroup = nItemsPerSubgroup + 1
-        !! * Assign the remainder to the first `nr` subgroups
-
-      !>  * Calculate the index of the first item in this subgroup
-      iItemStart_subgroup = nItemsPerSubgroup * mySubgroupId + 1
-      IF( mySubgroupId >= nr ) iItemStart_subgroup = iItemStart_subgroup + nr
-
-      iItemEnd_subgroup = iItemStart_subgroup + nItemsPerSubgroup - 1
-        !!  * Calculate the index of the last k-point in this pool
-
-    endif
-
-    return
-  end subroutine distributeItemsInSubgroups
-
-!----------------------------------------------------------------------------
   subroutine calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, &
       iMill, nGVecsGlobal, nGVecsLocal)
     !! Calculate Miller indices and G-vectors and split
@@ -1719,6 +1033,8 @@ module wfcExportVASPMod
     !!
     !! <h2>Walkthrough</h2>
     !!
+
+    use generalComputations, only: direct2cart
 
     implicit none
 
@@ -1751,8 +1067,10 @@ module wfcExportVASPMod
       !! Double precision zero
     real(kind=dp), allocatable :: millSum(:)
       !! Sum of integer coefficients for G-vectors
+    real(kind=dp), allocatable :: realMillLocal(:,:)
+      !! Real version of integer coefficients for G-vectors
 
-    integer :: igx, igy, igz, ig, ix
+    integer :: igx, igy, igz, ig
       !! Loop indices
     integer, allocatable :: gVecMillerIndicesGlobal_tmp(:,:)
       !! Integer coefficients for G-vectors on all processors
@@ -1849,19 +1167,14 @@ module wfcExportVASPMod
       !! * Split up the G-vectors and Miller indices over processors 
 
     allocate(gVecInCart(3,nGVecsLocal))
+    allocate(realMillLocal(3,nGVecsLocal))
 
-    do ig = 1, nGVecsLocal
-
-      do ix = 1, 3
-        !! * Calculate \(G = m_1b_1 + m_2b_2 + m_3b_3\)
-
-        gVecInCart(ix,ig) = sum(mill_local(:,ig)*recipLattVec(ix,:))
-
-      enddo
-      
-    enddo
-
+    realMillLocal = real(mill_local)
     deallocate(mill_local)
+
+    gVecInCart = direct2cart(nGVecsLocal, realMillLocal, recipLattVec)
+
+    deallocate(realMillLocal)
 
     return
   end subroutine calculateGvecs
@@ -2031,7 +1344,7 @@ module wfcExportVASPMod
     real(kind=dp) :: xkCart(3)
       !! Cartesian coordinates for given k-point
 
-    integer :: ik, ig, ix
+    integer :: ik, ig
       !! Loop indices
     integer, allocatable :: gKIndexOrigOrderGlobal(:,:)
       !! Indices of \(G+k\) vectors for each k-point
@@ -2071,9 +1384,7 @@ module wfcExportVASPMod
       !!  processor.
       !! @endnote
 
-      do ix = 1, 3
-        xkCart(ix) = sum(kPosition(:,ik+ikStart_pool-1)*recipLattVec(ix,:))
-      enddo
+      xkCart = matmul(recipLattVec,kPosition(:,ik+ikStart_pool-1))
 
       ngk_tmp = 0
 
@@ -2612,6 +1923,8 @@ module wfcExportVASPMod
     !! <h2>Walkthrough</h2>
     !!
 
+    use miscUtilities, only: getFirstLineWithKeyword
+
     implicit none
 
     ! Input variables:
@@ -2649,9 +1962,11 @@ module wfcExportVASPMod
       !! Dummy character to ignore input
     character(len=256) :: fileName
       !! Full WAVECAR file name including path
+    character(len=300) :: line
+      !! Line read from file
 
     logical :: found
-      !! If the required tag was found
+      !! If min index has been found
 
 
     if(ionode) then
@@ -2681,16 +1996,9 @@ module wfcExportVASPMod
           !!  will need to be updated.
           !! @endnote
 
-        found = .false.
-        do while (.not. found)
+        line = getFirstLineWithKeyword(potcarUnit,'END')
           !! * Ignore all lines until you get to the `END` of
           !!   the PSCRT section
-        
-          read(potcarUnit, '(A)') dummyC
-
-          if (dummyC(1:3) == 'END') found = .true.
-        
-        enddo
 
         read(potcarUnit,'(1X,A1)') charSwitch
           !! * Read character switch (switch not used)
@@ -2968,15 +2276,8 @@ module wfcExportVASPMod
 
         endif
 
-        found = .false.
-        do while (.not. found)
+        line = getFirstLineWithKeyword(potcarUnit,'End of Dataset')
           !! * Ignore all lines until you get to the `End of Dataset`
-        
-          read(potcarUnit, '(A)') dummyC
-
-          if (index(dummyC,'End of Dataset') /= 0) found = .true.
-        
-        enddo
 
       enddo
 
@@ -2999,8 +2300,6 @@ module wfcExportVASPMod
   subroutine projAndWav(maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
       nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
       recipLattVec, exportDir, VASPDir, gammaOnly, pot)
-
-    use miscUtilities, only: int2str
 
     implicit none
 
@@ -3262,7 +2561,7 @@ module wfcExportVASPMod
 
       do ipw = 1, nGkVecsLocal_ik
 
-        expArg = itwopi*sum(atomPosDir(:)*gVecMillerIndicesGlobal(:,gKIndexOrigOrderLocal_ik(ipw)))
+        expArg = itwopi*dot_product(atomPosDir, gVecMillerIndicesGlobal(:,gKIndexOrigOrderLocal_ik(ipw)))
           !! \(2\pi i (\mathbf{G} \cdot \mathbf{r})\)
 
         phaseExp(ipw, ia) = exp(expArg)
@@ -3484,7 +2783,7 @@ module wfcExportVASPMod
     ! Local variables:
     integer :: gVec(3)
       !! Local storage of this G-vector
-    integer :: ipw, ix
+    integer :: ipw
       !! Loop indices
 
     real(kind=dp) :: gkCart(3)
@@ -3539,14 +2838,12 @@ module wfcExportVASPMod
 
       if(gammaOnly .and. (gVec(1) /= 0 .or. gVec(2) /= 0 .or. gVec(3) /= 0)) multFact(ipw) = sqrt(2._dp)
 
-      do ix = 1, 3
-        gkCart(ix) = sum(gkDir(:)*recipLattVec(ix,:))
-          ! VASP has a factor of `twopi` here, but I removed
-          ! it because the vectors in `reconstructFFTGrid` 
-          ! do not have that factor, but they result in the
-          ! number of \(G+k\) vectors for each k-point matching
-          ! the value input from the WAVECAR.
-      enddo
+      gkCart = matmul(recipLattVec, gkDir)
+        ! VASP has a factor of `twopi` here, but I removed
+        ! it because the vectors in `reconstructFFTGrid` 
+        ! do not have that factor, but they result in the
+        ! number of \(G+k\) vectors for each k-point matching
+        ! the value input from the WAVECAR.
         !! @note
         !!  There was originally a subtraction within the parentheses of `QX`/`QY`/`QZ`
         !!  representing the spin spiral propagation vector. It was removed here because 
@@ -3554,7 +2851,7 @@ module wfcExportVASPMod
         !! @endnote
 
 
-      gkMod(ipw) = max(sqrt(sum(gkCart(:)**2 )), 1e-10_dp)
+      gkMod(ipw) = max(sqrt(dot_product(gkCart,gkCart)), 1e-10_dp)
         !! * Get magnitude of G+k vector 
 
       gkUnit(:,ipw)  = gkCart(:)/gkMod(ipw)
@@ -3900,16 +3197,13 @@ module wfcExportVASPMod
     complex(kind=dp) :: phaseExpGlobal(nPWs1k, nAtoms)
       !! Exponential phase factor
 
-    character(len=300) :: ikC, iprocC, procNumC
-      !! Character index
     character(len=300) :: fNameBase
       !! File names
 
 
     !> Set up base file name
     ikGlobal = ik+ikStart_pool-1
-    call int2str(ikGlobal, ikC)
-    fNameBase = trim(exportDir)//"/projectors."//trim(ikC)
+    fNameBase = trim(exportDir)//"/projectors."//trim(int2str(ikGlobal))
 
 
     if(indexInBgrp == 0) &
@@ -3963,10 +3257,8 @@ module wfcExportVASPMod
     call cpu_time(t1)
 
 
-    call int2str(indexInBgrp, iprocC)
-
     projOutUnit = 83 + myid
-    open(projOutUnit, file=trim(fNameBase)//"."//trim(iprocC))
+    open(projOutUnit, file=trim(fNameBase)//"."//trim(int2str(indexInBgrp)))
       ! Open `projectors.ik.indexInBgrp` file
 
 
@@ -4031,11 +3323,9 @@ module wfcExportVASPMod
       close(projOutUnit)
 
 
-      call int2str(nProcPerBgrp-1, procNumC)
-
       !> Merge all of the individual-processor files and delete
-      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(procNumC)//'} >> '//trim(fNameBase)//&
-                                ' && rm '//trim(fNameBase)//'.{0..'//trim(procNumC)//'}')
+      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(int2str(nProcPerBgrp-1))//'} >> '//trim(fNameBase)//&
+                                ' && rm '//trim(fNameBase)//'.{0..'//trim(int2str(nProcPerBgrp-1))//'}')
 
     endif
 
@@ -4110,8 +3400,6 @@ module wfcExportVASPMod
 
     character(len=300) :: fNameBase, fNameBgrp
       !! File names for merging output
-    character(len=300) :: ikC, ispC, ibgrpC, nbgrpC
-      !! Character index
 
 
     if(indexInBgrp == 0) allocate(coeff(maxNumPWsGlobal, ibStart_bgrp:ibEnd_bgrp))
@@ -4163,11 +3451,7 @@ module wfcExportVASPMod
 
       wfcOutUnit = 83 + myid
 
-      call int2str(ikGlobal, ikC)
-      call int2str(isp, ispC)
-      call int2str(myBgrpId, ibgrpC)
-
-      open(wfcOutUnit, file=trim(exportDir)//"/wfc."//trim(ispC)//"."//trim(ikC)//"."//trim(ibgrpC))
+      open(wfcOutUnit, file=trim(exportDir)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))//"."//trim(int2str(myBgrpId)))
         ! Open `wfc.isp.ik.myBgrpId` file to write plane wave coefficients
 
       do ib = ibStart_bgrp, ibEnd_bgrp
@@ -4202,10 +3486,7 @@ module wfcExportVASPMod
 
       ikGlobal = ik+ikStart_pool-1
 
-      call int2str(ikGlobal, ikC)
-      call int2str(isp, ispC)
-
-      fNameBase = trim(exportDir)//"/wfc."//trim(ispC)//"."//trim(ikC) 
+      fNameBase = trim(exportDir)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)) 
 
       open(wfcOutUnit, file=trim(fNameBase))
         ! Open `wfc.isp.ik` file to write plane wave coefficients
@@ -4218,11 +3499,9 @@ module wfcExportVASPMod
         ! Close `wfc.isp.ik.myBgrpId` file
       
 
-      call int2str(nBandGroups-1, nbgrpC)
-
       !> Merge all of the individual-processor files and delete
-      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'} >> '//trim(fNameBase)//&
-                                ' && rm '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'}')
+      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'} >> '//trim(fNameBase)//&
+                                ' && rm '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'}')
 
 
     endif
@@ -4290,8 +3569,6 @@ module wfcExportVASPMod
 
     character(len=300) :: fNameBase, fNameBgrp
       !! Character index
-    character(len=300) :: ikC, ispC, ibgrpC, nbgrpC
-      !! Character index
 
     complex(kind=dp) :: projection, projectionLocal
       !! Projection for current atom/band/lm channel
@@ -4302,12 +3579,8 @@ module wfcExportVASPMod
 
       projOutUnit = 83 + myid
 
-      call int2str(ik, ikC)
-      call int2str(isp, ispC)
-      call int2str(myBgrpId, ibgrpC)
-
-      fNameBase = trim(exportDir)//"/projections."//trim(ispC)//"."//trim(ikC) 
-      fNameBgrp = trim(fNameBase)//"."//trim(ibgrpC)
+      fNameBase = trim(exportDir)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ik)) 
+      fNameBgrp = trim(fNameBase)//"."//trim(int2str(myBgrpId))
 
       open(projOutUnit, file=trim(fNameBgrp))
         !! Open `projections.ik`
@@ -4346,11 +3619,7 @@ module wfcExportVASPMod
 
       projOutUnit = 83 + myid
 
-      call int2str(ik, ikC)
-      call int2str(isp, ispC)
-      call int2str(myBgrpId, ibgrpC)
-
-      fNameBase = trim(exportDir)//"/projections."//trim(ispC)//"."//trim(ikC) 
+      fNameBase = trim(exportDir)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ik)) 
 
       open(projOutUnit, file=trim(fNameBase))
         !! Open `projections.ik`
@@ -4359,11 +3628,9 @@ module wfcExportVASPMod
 
       close(projOutUnit)
 
-      call int2str(nBandGroups-1, nbgrpC)
-
       !> Merge all of the individual-processor files and delete
-      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'} >> '//trim(fNameBase)//&
-                                ' && rm '//trim(fNameBase)//'.{0..'//trim(nbgrpC)//'}')
+      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'} >> '//trim(fNameBase)//&
+                                ' && rm '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'}')
 
     endif
 
@@ -4565,9 +3832,6 @@ module wfcExportVASPMod
     integer :: ikLocal, ikGlobal, ig, igk, isp
       !! Loop indices
 
-    character(len=300) :: ikC, ispC
-      !! Character index
-
 
     if (ionode) then
     
@@ -4592,11 +3856,10 @@ module wfcExportVASPMod
         !! * For each k-point, write out the miller indices
         !!   resulting in \(G+k\) vectors less than the energy
         !!   cutoff in a `grid.ik` file
-      
-        ikGlobal = ikLocal+ikStart_pool-1
-        call int2str(ikGlobal, ikC)
 
-        open(72, file=trim(exportDir)//"/grid."//trim(ikC))
+        ikGlobal = ikLocal+ikStart_pool-1
+      
+        open(72, file=trim(exportDir)//"/grid."//trim(int2str(ikGlobal)))
         write(72, '("# Wave function G-vectors grid")')
         write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
       
@@ -4637,6 +3900,8 @@ module wfcExportVASPMod
     !! the number of atoms, the number of types of atoms, the
     !! final atom positions, number of bands, and number of spins
 
+    use generalComputations, only: direct2cart
+
     implicit none
 
     ! Input variables:
@@ -4657,10 +3922,10 @@ module wfcExportVASPMod
       !! Atom positions
 
     ! Local variables:
-    real(kind=dp) :: atomPositionCart(3)
+    real(kind=dp) :: atomPositionsCart(3,nAtoms)
       !! Position of given atom in cartesian coordinates
 
-    integer :: i, ia, ix
+    integer :: i, ia
       !! Loop indices
 
 
@@ -4684,16 +3949,11 @@ module wfcExportVASPMod
     
       write(mainOutFileUnit, '("# Atoms type, position(1:3) (a.u.). Format: ''(i10,3ES24.15E3)''")')
 
+      atomPositionsCart = direct2cart(nAtoms, atomPositionsDir, realLattVec)
+
       do ia = 1, nAtoms
 
-        do ix = 1, 3
-
-          atomPositionCart(ix) = sum(atomPositionsDir(:,ia)*realLattVec(ix,:))
-            !! @todo Test logic of direct to cartesian coordinates with scaling factor @endtodo
-
-        enddo
-
-        write(mainOutFileUnit,'(i10,3ES24.15E3)') iType(ia), atomPositionCart(:)
+        write(mainOutFileUnit,'(i10,3ES24.15E3)') iType(ia), atomPositionsCart(:,ia)
 
       enddo
     
@@ -4809,9 +4069,6 @@ module wfcExportVASPMod
     integer :: ik, ib, isp
       !! Loop indices
 
-    character(len=300) :: ikC, ispC
-      !! Character index
-
 
     if(ionode) then
     
@@ -4821,11 +4078,8 @@ module wfcExportVASPMod
     
       do isp = 1, nSpins
         do ik = 1, nKPoints
-      
-          call int2str(ik, ikC)
-          call int2str(isp, ispC)
 
-          open(72, file=trim(exportDir)//"/eigenvalues."//trim(ispC)//"."//trim(ikC))
+          open(72, file=trim(exportDir)//"/eigenvalues."//trim(int2str(isp))//"."//trim(int2str(ik)))
       
           write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
           write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')

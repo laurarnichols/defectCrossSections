@@ -25,6 +25,13 @@ program transitionMatrixElements
   
   call mpiInitialization()
     !! Initialize MPI
+
+  call getCommandLineArguments()
+    !! * Get the number of pools from the command line
+
+  call setUpPools()
+    !! * Split up processors between pools and generate MPI
+    !!   communicators for pools
   
   if(ionode) call cpu_time(t0)
 
@@ -301,7 +308,7 @@ program transitionMatrixElements
           do ibi = iBandIinit, iBandIfinal
         
             do ibf = iBandFinit, iBandFfinal   
-              paw_id(ibf,ibi) = sum(pawSDK(ibf,ibi,:)*pawKPC(ibf,ibi,:))
+              paw_id(ibf,ibi) = dot_product(pawSDK(ibf,ibi,:),pawKPC(ibf,ibi,:))
             enddo
         
           enddo

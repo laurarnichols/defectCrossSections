@@ -4,18 +4,18 @@
 # location of needed modules
 MODFLAGS= -I$(CommonModules_srcPath) -I.
 
-TME_OBJS = TME_module.o TME_main.o
+SHIFTER_OBJS = Shifter_module.o Shifter_main.o
 COMMONMODS = $(CommonModules_srcPath)/commonmodules.a
 
-all : TME.x 
+all : Shifter.x 
 	
-TME.x : mods $(COMMONMODS) $(TME_OBJS)
-	$(mpif90) $(MODFLAGS) -o TME.x $(TME_OBJS) $(COMMONMODS)
-	- ( cd $(Home_Path)/bin ; ln -fs $(TME_srcPath)/$@ . )
+Shifter.x : mods $(COMMONMODS) $(SHIFTER_OBJS)
+	$(mpif90) $(MODFLAGS) -o Shifter.x $(SHIFTER_OBJS) $(COMMONMODS)
+	- ( cd $(Home_Path)/bin ; ln -fs $(PhononPP_srcPath)/$@ . )
 
 	@echo "" ; \
 	echo "" ; \
-	echo "Module 'TME' compiled successfully !" ; \
+	echo "Program 'Shifter' compiled successfully !" ; \
 	echo "" ; \
 	echo "" ; 
 
@@ -29,8 +29,8 @@ mods :
 clean :
 
 	@echo "" ; \
-	echo "Cleaning module 'TME' ... " ; \
+	echo "Cleaning folder 'PhononPP' ... " ; \
 	/bin/rm -f *.x *.o *.mod .DS_Store ; \
-	echo "Cleaning module 'TME' done !" ; \
+	echo "Cleaning folder 'PhononPP' done !" ; \
 	echo "" ;
 
