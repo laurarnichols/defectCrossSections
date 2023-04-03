@@ -262,6 +262,8 @@ module shifterMod
     integer :: j, ia, ix
       !! Loop index
 
+    real(kind=dp) :: mass(nAtoms)
+      !! Masses of atoms
     real(kind=dp) :: qPos(3)
       !! Phonon q position
 
@@ -278,8 +280,19 @@ module shifterMod
 
     open(57, file=phononFName)
 
+    line = getFirstLineWithKeyword(57,'points')
+      !! Ignore everything next until you get to points line
+
+    do ia = 1, nAtoms
+
+      read(57,'(A)') ! Ignore symbol 
+      read(57,'(A)') ! Ignore coordinates
+      read(57,'(a7,f)') line, mass(ia)
+        !! Read mass
+
+    enddo
     line = getFirstLineWithKeyword(57,'q-position')
-      !! Ignore everything next you get to q-position line
+      !! Ignore everything next until you get to q-position line
 
     read(line(16:len(trim(line))-1),*) qPos
       !! Read in the q position
@@ -316,6 +329,12 @@ module shifterMod
       
     enddo
 
+    do ia = 1, nAtoms
+
+      eigenvector(:,ia,:) = eigenvector(:,ia,:)/sqrt(mass(ia))
+
+    enddo
+
     close(57)
 
     return
@@ -345,19 +364,26 @@ module shifterMod
       !! Displacements for each atom for this mode
     real(kind=dp) :: eig(3)
       !! Eigenvector for single mode and atom
+    real(kind=dp) :: norm
+      !! Norm of eigenvectors scaled by mass
 
     ! Local variables:
     integer :: ia
       !! Loop indices
 
-
     do ia = 1, nAtoms
 
       eig = eigenvector(:,ia,j)
 
-      displacement(:,ia) = eig*shift/sqrt(dot_product(eig, eig))
+      displacement(:,ia) = eig*shift
+
+      norm = norm + dot_product(eig,eig)
 
     enddo
+
+    norm = sqrt(norm)
+
+    displacement = displacement/norm
 
   end function getDisplacement
 
