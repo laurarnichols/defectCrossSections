@@ -2571,10 +2571,10 @@ contains
     
       call execute_command_line('rm -r ./workingFiles')
 
-      write(iostd,'("-----------------------------------------------------------------")')
+      write(*,'("-----------------------------------------------------------------")')
     
       call cpu_time(tf)
-      write(iostd, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
+      write(*, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
     
       close(iostd)
 
