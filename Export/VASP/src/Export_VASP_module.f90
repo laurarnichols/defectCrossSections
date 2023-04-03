@@ -2965,30 +2965,26 @@ module wfcExportVASPMod
     if(YDimL < 1) return
       !! Return if the max L quantum number is 0
 
+
     !> Directly calculate L=1 case
     multFactTmp = multFact*sqrt(3._dp)
-    do ipw = 1, nGkVecsLocal_ik
 
-      Ylm(ipw,2)  = multFactTmp*gkUnit(2,ipw)
-      Ylm(ipw,3)  = multFactTmp*gkUnit(3,ipw)
-      Ylm(ipw,4)  = multFactTmp*gkUnit(1,ipw)
-
-    enddo
+    Ylm(:,2)  = multFactTmp*gkUnit(2,:)
+    Ylm(:,3)  = multFactTmp*gkUnit(3,:)
+    Ylm(:,4)  = multFactTmp*gkUnit(1,:)
 
     if(YDimL < 2) return
       !! Return if the max L quantum number is 1
 
+
     !> Directly calculate L=2 case
     multFactTmp = multFact*sqrt(15._dp)
-    do ipw = 1, nGkVecsLocal_ik
 
-        Ylm(ipw,5)= multFactTmp*gkUnit(1,ipw)*gkUnit(2,ipw)
-        Ylm(ipw,6)= multFactTmp*gkUnit(2,ipw)*gkUnit(3,ipw)
-        Ylm(ipw,7)= (multFact*sqrt(5._dp)/2._dp)*(3._dp*gkUnit(3,ipw)*gkUnit(3,ipw) - 1)
-        Ylm(ipw,8)= multFactTmp*gkUnit(1,ipw)*gkUnit(3,ipw)
-        Ylm(ipw,9)= (multFactTmp/2._dp)*(gkUnit(1,ipw)*gkUnit(1,ipw) - gkUnit(2,ipw)*gkUnit(2,ipw))
-
-    enddo
+    Ylm(:,5)= multFactTmp*gkUnit(1,:)*gkUnit(2,:)
+    Ylm(:,6)= multFactTmp*gkUnit(2,:)*gkUnit(3,:)
+    Ylm(:,7)= (multFact*sqrt(5._dp)/2._dp)*(3._dp*gkUnit(3,:)*gkUnit(3,:) - 1)
+    Ylm(:,8)= multFactTmp*gkUnit(1,:)*gkUnit(3,:)
+    Ylm(:,9)= (multFactTmp/2._dp)*(gkUnit(1,:)*gkUnit(1,:) - gkUnit(2,:)*gkUnit(2,:))
 
     if(YDimL < 3) return
       !! Return if the max L quantum number is 2
