@@ -11,7 +11,9 @@ DEBUGFLAGS = -check -traceback -gen-interfaces
 
 all : Export_VASP.x 
 
-Export_VASP.x : mods $(COMMONMODS) $(EXPORTOBJS)
+test : Export_VASP_test.x
+
+%.x : mods $(COMMONMODS) $(EXPORTOBJS)
 	$(mpif90) $(MODFLAGS) -o $@	$(EXPORTOBJS) $(COMMONMODS)
 	- ( cd $(Home_Path)/bin ; ln -fs $(Export_VASP_srcPath)/$@ . )
 	
