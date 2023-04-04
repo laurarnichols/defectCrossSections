@@ -308,7 +308,7 @@ program transitionMatrixElements
           do ibi = iBandIinit, iBandIfinal
         
             do ibf = iBandFinit, iBandFfinal   
-              paw_id(ibf,ibi) = dot_product(pawSDK(ibf,ibi,:),pawKPC(ibf,ibi,:))
+              paw_id(ibf,ibi) = dot_product(conjg(pawSDK(ibf,ibi,:)),pawKPC(ibf,ibi,:))
             enddo
         
           enddo

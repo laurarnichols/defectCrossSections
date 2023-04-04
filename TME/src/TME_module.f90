@@ -1508,8 +1508,10 @@ contains
       
       do ibf = iBandFinit, iBandFfinal
 
-        Ufi(ibf, ibi, ikLocal,isp) = dot_product(conjg(wfcSD(:,ibf)),wfcPC(:,ibi))
+        Ufi(ibf, ibi, ikLocal,isp) = dot_product(wfcSD(:,ibf),wfcPC(:,ibi))
           !! Calculate local overlap
+          ! `dot_product` automatically conjugates first argument for 
+          ! complex variables.
 
       enddo
       
@@ -1639,7 +1641,9 @@ contains
     do ib = iBandinit, iBandfinal
       do ipr = 1, nProjs
 
-        crossProjectionLocal = dot_product(conjg(beta(:,ipr)),wfc(:,ib))
+        crossProjectionLocal = dot_product(beta(:,ipr),wfc(:,ib))
+          ! `dot_product` automatically conjugates first argument for 
+          ! complex variables.
 
         call MPI_ALLREDUCE(crossProjectionLocal, crossProjection(ipr,ib), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
 
