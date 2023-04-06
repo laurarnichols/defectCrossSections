@@ -36,7 +36,7 @@ program transitionMatrixElements
   if(ionode) call cpu_time(t0)
 
 
-  if(ionode) write(*, '("Pre-k-loop: [ ] Read inputs  [ ] Read full PW grid ")')
+  if(ionode) write(*, '("Pre-k-loop: [ ] Read inputs  [ ] Read full PW grid  [ ] Set up tables ")')
   call cpu_time(t1)
 
 
@@ -55,7 +55,7 @@ program transitionMatrixElements
 
 
   call cpu_time(t2)
-  if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [ ] Read full PW grid (",f10.2," secs)")') t2-t1
+  if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [ ] Read full PW grid  [ ] Set up tables (",f10.2," secs)")') t2-t1
   call cpu_time(t1)
 
   allocate(mill_local(3,nGVecsLocal))
@@ -64,7 +64,21 @@ program transitionMatrixElements
 
   
   call cpu_time(t2)
-  if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid (",f10.2," secs)")') t2-t1
+  if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid  [ ] Set up tables (",f10.2," secs)")') t2-t1
+  call cpu_time(t1)
+
+
+  allocate(gCart(3,nGVecsLocal))
+  allocate(Ylm((JMAX+1)**2,nGVecsLocal))
+
+  call setUpTables(JMAX, nGVecsLocal, mill_local, recipLattVec, gCart, Ylm)
+
+  deallocate(mill_local)
+
+  
+  call cpu_time(t2)
+  if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid  [X] Set up tables (",f10.2," secs)")') t2-t1
+  call cpu_time(t1)
     
 
   if(indexInPool == 0) allocate(eigvI(iBandIinit:iBandIfinal), eigvF(iBandFinit:iBandFfinal))
@@ -278,7 +292,7 @@ program transitionMatrixElements
           !> Have all processes calculate the PAW k correction
       
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
-            call pawCorrectionK('PC', nIonsPC, TYPNIPC, numOfTypesPC, posIonPC, atomsPC, atoms, pawKPC)
+            call pawCorrectionK('PC', nIonsPC, TYPNIPC, numOfTypesPC, posIonPC, gCart, Ylm, atomsPC, atoms, pawKPC)
 
           if(isp == nSpins) then
             deallocate(cProjPC)
@@ -286,7 +300,7 @@ program transitionMatrixElements
       
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
-            call pawCorrectionK('SD', nIonsSD, TYPNISD, numOfTypes, posIonSD, atoms, atoms, pawSDK)
+            call pawCorrectionK('SD', nIonsSD, TYPNISD, numOfTypes, posIonSD, gCart, Ylm, atoms, atoms, pawSDK)
 
           if(isp == nSpins) then
             deallocate(cProjSD)
