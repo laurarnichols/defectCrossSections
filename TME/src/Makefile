@@ -8,9 +8,11 @@ TME_OBJS = TME_module.o TME_main.o
 COMMONMODS = $(CommonModules_srcPath)/commonmodules.a
 
 all : TME.x 
+
+test : TME_test.x 
 	
-TME.x : mods $(COMMONMODS) $(TME_OBJS)
-	$(mpif90) $(MODFLAGS) -o TME.x $(TME_OBJS) $(COMMONMODS)
+%.x : mods $(COMMONMODS) $(TME_OBJS)
+	$(mpif90) $(MODFLAGS) -o $@ $(TME_OBJS) $(COMMONMODS)
 	- ( cd $(Home_Path)/bin ; ln -fs $(TME_srcPath)/$@ . )
 
 	@echo "" ; \
