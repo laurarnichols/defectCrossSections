@@ -1846,25 +1846,19 @@ contains
               VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**L*FI
 
               do ibi = iBandIinit, iBandIfinal
+
+                pawK(:, ibi, ig) = pawK(:, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi)
               
-                do ibf = iBandFinit, iBandFfinal
-                
-                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi)
-                
-                enddo
               enddo
 
             else
 
               VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**L*FI
 
-              do ibi = iBandIinit, iBandIfinal
-              
-                do ibf = iBandFinit, iBandFfinal
+              do ibf = iBandFinit, iBandFfinal
                 
-                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf))
+                pawK(ibf, :, ig) = pawK(ibf, :, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf))
                 
-                enddo
               enddo
             endif
           ENDDO
