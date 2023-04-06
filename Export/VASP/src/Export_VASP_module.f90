@@ -3320,8 +3320,8 @@ module wfcExportVASPMod
 
 
       !> Merge all of the individual-processor files and delete
-      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(int2str(nProcPerBgrp-1))//'} >> '//trim(fNameBase)//&
-                                ' && rm '//trim(fNameBase)//'.{0..'//trim(int2str(nProcPerBgrp-1))//'}')
+      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(int2str(nProcPerBgrp-1))//'} >> '//trim(fNameBase))!//&
+!                                ' && rm '//trim(fNameBase)//'.{0..'//trim(int2str(nProcPerBgrp-1))//'}')
 
     endif
 
