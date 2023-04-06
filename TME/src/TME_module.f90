@@ -1842,23 +1842,31 @@ contains
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
 
             if(crystalType == 'PC') then
-              VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**L*FI
-            else
-              VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**L*FI
-            endif
 
-            do ibi = iBandIinit, iBandIfinal
+              VifQ_aug = ATOMIC_CENTER*Y(ind)*(-II)**L*FI
+
+              do ibi = iBandIinit, iBandIfinal
               
-              do ibf = iBandFinit, iBandFfinal
+                do ibf = iBandFinit, iBandFfinal
                 
-                if(crystalType == 'PC') then
                   pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi)
-                else
-                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf))
-                endif
                 
+                enddo
               enddo
-            enddo
+
+            else
+
+              VifQ_aug = ATOMIC_CENTER*conjg(Y(ind))*(II)**L*FI
+
+              do ibi = iBandIinit, iBandIfinal
+              
+                do ibf = iBandFinit, iBandFfinal
+                
+                  pawK(ibf, ibi, ig) = pawK(ibf, ibi, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf))
+                
+                enddo
+              enddo
+            endif
           ENDDO
         ENDDO
 
