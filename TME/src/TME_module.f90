@@ -114,7 +114,7 @@ module declarations
   type :: atom
     integer :: numOfAtoms, lMax, lmMax, nMax, iRc
     integer, allocatable :: lps(:)
-    real(kind = dp), allocatable :: r(:), rab(:), wae(:,:), wps(:,:), F(:,:), F1(:,:,:), F2(:,:,:), bes_J_qr(:,:)
+    real(kind = dp), allocatable :: r(:), rab(:), wae(:,:), wps(:,:), F(:,:), F1(:,:,:), F2(:,:,:), bes_J_qr(:,:,:)
   end type atom
   
   TYPE(atom), allocatable :: atoms(:), atomsPC(:)
@@ -806,27 +806,6 @@ contains
     
       close(50)
     
-      JMAX = 0
-      do iType = 1, numOfTypesPC
-        do i = 1, atomsPC(iType)%lMax
-          if ( atomsPC(iType)%lps(i) > JMAX ) JMAX = atomsPC(iType)%lps(i)
-        enddo
-      enddo
-    
-      JMAX = 2*JMAX + 1
-
-    endif
-
-    call MPI_BCAST(JMAX, 1, MPI_INTEGER, root, worldComm, ierr)
-    
-    do iType = 1, numOfTypesPC
-
-      allocate(atomsPC(iType)%bes_J_qr(0:JMAX, atomsPC(iType)%iRc))
-      atomsPC(iType)%bes_J_qr(:,:) = 0.0_dp
-      
-    enddo
-
-    if(ionode) then
       call cpu_time(t2)
       write(iostd, '(" Reading input files done in:                ", f10.2, " secs.")') t2-t1
       write(iostd, *)
@@ -1126,13 +1105,6 @@ contains
 
     call MPI_BCAST(JMAX, 1, MPI_INTEGER, root, worldComm, ierr)
     
-    do iType = 1, numOfTypes
-
-      allocate(atoms(iType)%bes_J_qr( 0:JMAX, atoms(iType)%iRc))
-      atoms(iType)%bes_J_qr(:,:) = 0.0_dp
-      
-    enddo
-    
     if(ionode) then
 
       call cpu_time(t2)
@@ -1223,26 +1195,24 @@ contains
   end subroutine getFullPWGrid
 
 !----------------------------------------------------------------------------
-  subroutine setUpTables(JMAX, nGVecsLocal, mill_local, recipLattVec, gCart, Ylm)
+  subroutine setUpTables(JMAX, nGVecsLocal, mill_local, numOfTypes, recipLattVec, atomsSD, gCart, Ylm)
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: JMAX
       !! Max J index from L and M
-    !integer, intent(in) :: nAtoms
-      !! Number of atoms
     integer, intent(in) :: nGVecsLocal
       !! Number of local G-vectors
     integer, intent(in) :: mill_local(3,nGVecsLocal)
       !! Miller indices for local G-vectors
-    !integer, intent(in) :: numOfTypes
+    integer, intent(in) :: numOfTypes
       !! Number of different atom types
 
     real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal-space lattice vectors
 
-    !type(atom), intent(inout) :: atomsSD(nAtoms)
+    type(atom), intent(inout) :: atomsSD(numOfTypes)
       !! Structure to hold details for each atom for SD
 
     ! Output variables:
@@ -1253,17 +1223,25 @@ contains
       !! Spherical harmonics
 
     ! Local variables:
-    integer :: ig!, iT, iR
+    integer :: ig, iT, iR
       !! Loop indices
 
     real(kind=dp) :: gUnit(3)
       !! Unit G-vector
-    !real(kind=dp) :: JL(0:JMAX)
+    real(kind=dp) :: JL(0:JMAX)
       !! Bessel_j temporary variable
     real(kind=dp) :: q
       !! Magnitude of G-vector
 
+
     Ylm = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    
+    do iT = 1, numOfTypes
+
+      allocate(atomsSD(iT)%bes_J_qr( 0:JMAX, atomsSD(iT)%iRc, nGVecsLocal))
+      atomsSD(iT)%bes_J_qr(:,:,:) = 0.0_dp
+      
+    enddo
 
     do ig = 1, nGVecsLocal
 
@@ -1278,18 +1256,18 @@ contains
       call getYlm(gUnit, JMAX, Ylm(:,ig))
         !! Calculate all the needed spherical harmonics
 
-      !do iT = 1, numOfTypes
+      do iT = 1, numOfTypes
 
-      !  do iR = 1, atomsSD(iT)%iRc
+        do iR = 1, atomsSD(iT)%iRc
 
-      !    JL = 0.0_dp
-      !    call bessel_j(q*atomsSD(iT)%r(iR), JMAX, JL) ! returns the spherical bessel at qr point
+          JL = 0.0_dp
+          call bessel_j(q*atomsSD(iT)%r(iR), JMAX, JL) ! returns the spherical bessel at qr point
             ! Previously used SD atoms structure here for both PC and SD
-      !    atomsSD(iT)%bes_J_qr(:,iR,ig) = JL(:)
+          atomsSD(iT)%bes_J_qr(:,iR,ig) = JL(:)
 
-      !  enddo
+        enddo
 
-      !enddo
+      enddo
 
     enddo
 
@@ -1735,7 +1713,7 @@ contains
   end subroutine calculateCrossProjection
   
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionWfc(nAtoms, iType, nProjs, cProjI, cProjF, atoms, pawWfc)
+  subroutine pawCorrectionWfc(nAtoms, iType, nProjs, numOfTypes, cProjI, cProjF, atoms, pawWfc)
     ! calculates the augmentation part of the transition matrix element
     
     implicit none
@@ -1747,13 +1725,15 @@ contains
       !! Atom type index
     integer, intent(in) :: nProjs
       !! First index for `cProjI` and `cProjF`
+    integer, intent(in) :: numOfTypes
+      !! Number of different atom types
 
     complex(kind = dp) :: cProjI(nProjs,iBandIinit:iBandIfinal)
       !! Initial-system (PC) projection
     complex(kind = dp) :: cProjF(nProjs,iBandFinit:iBandFfinal)
       !! Final-system (SD) projection
 
-    type(atom), intent(in) :: atoms(nAtoms)
+    type(atom), intent(in) :: atoms(numOfTypes)
       !! Structure to hold details for each atom
 
     ! Output variables:
@@ -1761,7 +1741,7 @@ contains
       !! Augmentation part of the transition matrix element
 
     ! Local variables:
-    integer :: ia, ispin
+    integer :: ia
       !! Loop index
 
     complex(kind = dp) :: cProjIe
@@ -1827,7 +1807,7 @@ contains
   end subroutine pawCorrectionWfc
 
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionK(crystalType, nAtoms, iType, numOfTypes, atomPositions, gCart, Ylm, atoms, atomsSD, pawK)
+  subroutine pawCorrectionK(crystalType, nAtoms, iType, JMAX, nGVecsLocal, numOfTypes, numOfTypesSD, atomPositions, gCart, Ylm, atoms, atomsSD, pawK)
     
     implicit none
 
@@ -1836,8 +1816,14 @@ contains
       !! Number of atoms
     integer, intent(in) :: iType(nAtoms)
       !! Atom type index
+    integer, intent(in) :: JMAX
+      !! Max J index from L and M
+    integer, intent(in) :: nGVecsLocal
+      !! Number of local G-vectors
     integer, intent(in) :: numOfTypes
       !! Number of different atom types
+    integer, intent(in) :: numOfTypesSD
+      !! Number of different atom types for SD
 
     real(kind=dp), intent(in) :: atomPositions(3,nAtoms)
       !! Atom positions in Cartesian coordinates
@@ -1850,9 +1836,9 @@ contains
     character(len=2), intent(in) :: crystalType
       !! Crystal type (PC or SD)
 
-    type(atom), intent(inout) :: atoms(nAtoms)
+    type(atom), intent(inout) :: atoms(numOfTypes)
       !! Structure to hold details for each atom
-    type(atom), intent(in) :: atomsSD(nAtoms)
+    type(atom), intent(in) :: atomsSD(numOfTypesSD)
       !! Structure to hold details for each atom
       !! for SD (needed for grid for Bessel functions)
 
@@ -1865,34 +1851,16 @@ contains
       !! Loop indices
     integer :: LL, LMBASE, LM, L, M
       !! L and M quantum number trackers
-    real(kind = dp) :: q, qDotR, FI
+    real(kind = dp) :: qDotR, FI
     
-    real(kind = dp) :: JL(0:JMAX)
     complex(kind = dp) :: VifQ_aug, ATOMIC_CENTER
     
     
-    call cpu_time(t1)
-
     pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
     do ig = 1, nGVecsLocal
-
-      q = sqrt(dot_product(gCart(:,ig),gCart(:,ig)))
       
       LMBASE = 0
-      
-      do iT = 1, numOfTypes
-        
-        do iR = 1, atoms(iT)%iRc
-          
-          JL = 0.0_dp
-          CALL bessel_j(q*atomsSD(iT)%r(iR), JMAX, JL) ! returns the spherical bessel at qr point
-            ! Previously used SD atoms structure here for both PC and SD
-          atoms(iT)%bes_J_qr(:,iR) = JL(:)
-          
-        ENDDO
-        
-      enddo
       
       do ni = 1, nAtoms ! LOOP OVER THE IONS
         
@@ -1913,7 +1881,7 @@ contains
             
             FI = 0.0_dp
             
-            FI = dot_product(atoms(iT)%bes_J_qr(L,:),atoms(iT)%F(:,LL)) ! radial part integration F contains rab
+            FI = dot_product(atomsSD(iT)%bes_J_qr(L,:,ig),atoms(iT)%F(:,LL)) ! radial part integration F contains rab
             
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
 
@@ -2624,7 +2592,6 @@ contains
       deallocate(atomsPC(iType)%F)
       deallocate(atomsPC(iType)%F1)
       deallocate(atomsPC(iType)%F2)
-      deallocate(atomsPC(iType)%bes_J_qr)
     enddo
 
     deallocate(atomsPC)

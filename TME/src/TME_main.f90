@@ -71,7 +71,7 @@ program transitionMatrixElements
   allocate(gCart(3,nGVecsLocal))
   allocate(Ylm((JMAX+1)**2,nGVecsLocal))
 
-  call setUpTables(JMAX, nGVecsLocal, mill_local, recipLattVec, gCart, Ylm)
+  call setUpTables(JMAX, nGVecsLocal, mill_local, numOfTypes, recipLattVec, atoms, gCart, Ylm)
 
   deallocate(mill_local)
 
@@ -253,7 +253,7 @@ program transitionMatrixElements
 
           if(indexInPool == 0) then
 
-            call pawCorrectionWfc(nIonsPC, TYPNIPC, nProjsPC, cProjPC, cProjBetaPCPsiSD, atomsPC, paw_PsiPC)
+            call pawCorrectionWfc(nIonsPC, TYPNIPC, nProjsPC, numOfTypesPC, cProjPC, cProjBetaPCPsiSD, atomsPC, paw_PsiPC)
 
           endif
           
@@ -268,7 +268,7 @@ program transitionMatrixElements
 
           if(indexInPool == 1) then
 
-            call pawCorrectionWfc(nIonsSD, TYPNISD, nProjsSD, cProjBetaSDPhiPC, cProjSD, atoms, paw_SDPhi)
+            call pawCorrectionWfc(nIonsSD, TYPNISD, nProjsSD, numOfTypes, cProjBetaSDPhiPC, cProjSD, atoms, paw_SDPhi)
 
           endif
 
@@ -292,7 +292,7 @@ program transitionMatrixElements
           !> Have all processes calculate the PAW k correction
       
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
-            call pawCorrectionK('PC', nIonsPC, TYPNIPC, numOfTypesPC, posIonPC, gCart, Ylm, atomsPC, atoms, pawKPC)
+            call pawCorrectionK('PC', nIonsPC, TYPNIPC, JMAX, nGVecsLocal, numOfTypesPC, numOfTypes, posIonPC, gCart, Ylm, atomsPC, atoms, pawKPC)
 
           if(isp == nSpins) then
             deallocate(cProjPC)
@@ -300,7 +300,7 @@ program transitionMatrixElements
       
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
-            call pawCorrectionK('SD', nIonsSD, TYPNISD, numOfTypes, posIonSD, gCart, Ylm, atoms, atoms, pawSDK)
+            call pawCorrectionK('SD', nIonsSD, TYPNISD, JMAX, nGVecsLocal, numOfTypes, numOfTypes, posIonSD, gCart, Ylm, atoms, atoms, pawSDK)
 
           if(isp == nSpins) then
             deallocate(cProjSD)
