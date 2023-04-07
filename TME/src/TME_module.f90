@@ -1263,6 +1263,8 @@ contains
     real(kind=dp) :: q
       !! Magnitude of G-vector
 
+    Ylm = cmplx(0.0_dp, 0.0_dp, kind = dp)
+
     do ig = 1, nGVecsLocal
 
       gCart(:,ig) = matmul(recipLattVec, mill_local(:,ig))
@@ -1273,7 +1275,6 @@ contains
       if(abs(q) > 1.0e-6_dp) gUnit = gUnit/q
         !! Get unit vector for Ylm calculation
 
-      Ylm = cmplx(0.0_dp, 0.0_dp, kind = dp)
       call getYlm(gUnit, JMAX, Ylm(:,ig))
         !! Calculate all the needed spherical harmonics
 
