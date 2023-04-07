@@ -1312,21 +1312,19 @@ contains
       !! Start and end projector for process in pool
     integer :: nProjsLocal
       !! Number of projectors read by this process
+    integer :: reclen
+      !! Record length for projectors file
     integer :: sendCount(nProcPerPool)
       !! Number of items to send to each process
       !! in the pool
-    integer :: suffixLength
-      !! Length of split-file suffix
-    integer :: ipr, igk, iproc
+    integer :: ipr, igk, iproc, irec
       !! Loop indices
 
     complex(kind=dp), allocatable :: betaLocalProjs(:,:)
       !! Projector of `projCrystalType` with all PWs/G+k 
       !! vectors and only local projectors
     
-    character(len=300) :: splitCommand
-      !! Command for splitting `projectors.ik` file
-    character(len=300) :: fNameExport, splitFilePrefix
+    character(len=300) :: fNameExport
       !! File names
     
 
@@ -1334,47 +1332,6 @@ contains
       fNameExport = trim(exportDirPC)//"/projectors."//trim(int2str(ikGlobal)) 
     else
       fNameExport = trim(exportDirSD)//"/projectors."//trim(int2str(ikGlobal))
-    endif
-
-
-    if(indexInPool == 0) then
-
-      splitCommand = 'cat '//trim(fNameExport)//' | tail -n +3 | split -l '//trim(int2str(npws))//' -d -a '
-        !! Split the projectors file into separate files for each `nProj`
-        !! so that the length of each file is equal to the number of 
-        !! G+k vectors < cutoff at this k-point. Ignore the two header
-        !! lines using `tail`. `-d` makes suffix numeric. `-a plus 
-        !! `suffixLength` below sets the length of the suffix with leading
-        !! zeros as needed.
-
-    endif
-
-    if(nProjs < 10) then
-      suffixLength = 1
-    else if(nProjs < 100) then
-      suffixLength = 2
-    else if(nProjs < 1000) then
-      suffixLength = 3
-    else if(nProjs < 10000) then
-      suffixLength = 4
-    else if(nProjs < 100000) then
-      suffixLength = 5
-    endif
-
-    splitFilePrefix = './workingFiles/projectors.'//trim(int2str(ikGlobal))//'.split.'
-
-    if(indexInPool == 0) then
-
-      splitCommand = trim(splitCommand)//trim(int2str(suffixLength))//' - '//trim(splitFilePrefix)
-        !! Finish the split command with the suffix length. `-` stands for
-        !! `stdin` and allows the piped output from `tail` to be used as the
-        !! input file to be split.
-
-      call execute_command_line('mkdir -p workingFiles')
-        !!  Make the `workingFiles` directory
-      call execute_command_line(splitCommand)
-        !! Split files
-
     endif
 
 
@@ -1388,21 +1345,23 @@ contains
     call MPI_Barrier(intraPoolComm, ierr)
 
 
-    !> Have each process open the split files for just their
-    !> projectors and then delete the files
-    do ipr = iprStart_pool, iprEnd_pool
+    inquire(iolength=reclen) betaLocalProjs(:,iprStart_pool)
+      !! Get the record length needed to write a double complex
+      !! array of length nPWs1k
 
-      open(72,file=trim(splitFilePrefix)//trim(int2strLeadZero(ipr-1,suffixLength)))
+    open(unit=72, file=trim(fNameExport), access='direct', recl=reclen, iostat=ierr, status='old', SHARED)
 
-      do igk = 1, npws
+    irec = 1
 
-        read(72, '(2ES24.15E3)') betaLocalProjs(igk,ipr)
+    do ipr = 1, nProjs
+      
+      irec = irec + 1
 
-      enddo
-
-      close(72, status="delete")
+      if(ipr >= iprStart_pool .and. ipr <= iprEnd_pool) read(72,rec=irec) (betaLocalProjs(igk,ipr), igk=1,npws)
 
     enddo
+
+    close(72)
     
     call MPI_Barrier(intraPoolComm, ierr)
 
@@ -2618,8 +2577,6 @@ contains
     call MPI_Barrier(worldComm, ierr)
     
     if(ionode) then
-    
-      call execute_command_line('rm -r ./workingFiles')
 
       write(*,'("-----------------------------------------------------------------")')
     
