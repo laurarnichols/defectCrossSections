@@ -2477,7 +2477,7 @@ module wfcExportVASPMod
           write(*, '("      k-point ",i4,", spin ",i1,": [ ] Wavefunctions  [ ] Projections")') ikGlobal, isp
         call cpu_time(t1)
 
-        call readAndWriteWavefunction(ikLocal, isp, maxNumPWsGlobal, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
+        call readAndWriteWavefunction(ikLocal, isp, maxNumPWsGlobal, nBands, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
 
 
         call cpu_time(t2)
@@ -3175,31 +3175,30 @@ module wfcExportVASPMod
       !! scattering coefficients to each process
     integer :: nProj
       !! Number of projectors across all atom types
-    integer :: projOutUnit
-      !! Process-dependent file unit for `projectors.ik`
+    integer :: reclen
+      !! Record length for projectors file
     integer :: sendCount(nProcPerBgrp)
       !! Number of items to send to each process
       !! in the pool
     integer :: endingAtom(nProcPerBgrp)
       !! Ending atom for each proc in band group
-    integer :: iT, ia, ilm, ipw, ikGlobal, iproc
+    integer :: iT, ia, ilm, ipw, ikGlobal, iproc, irec
       !! Loop indices
 
     real(kind=dp) :: realProjWoPhaseGlobal(nPWs1k,64,nAtomTypes)
       !! Real projectors without phase
+    real(kind=dp) :: nProj_real, nPWs1k_real
+      !! Real versions of output variables for better 
+      !! compatibility of binary file
     real(kind=dp) :: t1, t2
       !! Timers
 
     complex(kind=dp) :: phaseExpGlobal(nPWs1k, nAtoms)
       !! Exponential phase factor
 
-    character(len=300) :: fNameBase
-      !! File names
-
 
     !> Set up base file name
     ikGlobal = ik+ikStart_pool-1
-    fNameBase = trim(exportDir)//"/projectors."//trim(int2str(ikGlobal))
 
 
     if(indexInBgrp == 0) &
@@ -3253,23 +3252,49 @@ module wfcExportVASPMod
     call cpu_time(t1)
 
 
-    projOutUnit = 83 + myid
-    open(projOutUnit, file=trim(fNameBase)//"."//trim(int2str(indexInBgrp)))
-      ! Open `projectors.ik.indexInBgrp` file
+    inquire(iolength=reclen) phaseExpGlobal(:,1)
+      !! Get the record length needed to write a double complex
+      !! array of length nPWs1k
+
+    open(63, file=trim(exportDir)//'/projectors.'//trim(int2str(ikGlobal)), access='direct', form='unformatted', recl=reclen)
+      !! Open output file with direct access
 
 
-    do ia = iaStart_bgrp, iaEnd_bgrp
+    if(indexInBgrp == 0) then
+      !! Have root process merge output files
+
+      nProj = 0
+      do iT = 1, nAtomTypes
+        !! Calculate the total number of projectors across all
+        !! atom types
+
+        nProj = nProj + pot(iT)%lmmax*nAtomsEachType(iT)
+
+      enddo
+
+      nProj_real = nProj
+      nPWs1k_real = nPWs1k
+      write(63,rec=1) nProj_real, nPWs1k_real
+        !! Write out the number of projectors and number of
+        !! \(G+k\) vectors at this k-point below the energy
+        !! cutoff
+
+    endif
+    
+
+    irec = 1
+
+    do ia = 1, nAtoms
     
       iT = iType(ia)
         !! Store the index of the type for this atom
 
       do ilm = 1, pot(iT)%lmmax
 
-        do ipw = 1, nPWs1k
-          !! Calculate \(|\beta\rangle\)
+        irec = irec + 1
 
-          write(projOutUnit,'(2ES24.15E3)') &
-            conjg(realProjWoPhaseGlobal(gKSort(ipw,ikGlobal),ilm,iT)*phaseExpGlobal(gKSort(ipw,ikGlobal),ia)*compFact(ilm,iT))
+        if(ia >= iaStart_bgrp .and. ia <= iaEnd_bgrp) write(63,rec=irec) &
+            (conjg(realProjWoPhaseGlobal(gKSort(ipw,ikGlobal),ilm,iT)*phaseExpGlobal(gKSort(ipw,ikGlobal),ia)*compFact(ilm,iT)), ipw=1,nPWs1k)
             !! @note
             !!    The projectors are stored as \(\langle\beta|\), so need to take the complex conjugate
             !!    to output \(|\beta\rangle.
@@ -3285,45 +3310,10 @@ module wfcExportVASPMod
             !!    `NONL_S%QPROJ` spin-independent. This is why there is no spin index on `realProjWoPhase`.
             !! @endnote
 
-        enddo
       enddo
     enddo
 
-    close(projOutUnit)
-
-
-    if(indexInBgrp == 0) then
-      !! Have root process merge output files
-
-      projOutUnit = 83 + myid
-      open(projOutUnit, file=trim(fNameBase))
-        ! Open `projectors.ik` file
-
-      write(projOutUnit, '("# Complex projectors |beta>. Format: ''(2ES24.15E3)''")')
-        !! Write header for projectors file
-
-      nProj = 0
-      do iT = 1, nAtomTypes
-        !! Calculate the total number of projectors across all
-        !! atom types
-
-        nProj = nProj + pot(iT)%lmmax*nAtomsEachType(iT)
-
-      enddo
-
-      write(projOutUnit,'(2i10)') nProj, nPWs1k
-        !! Write out the number of projectors and number of
-        !! \(G+k\) vectors at this k-point below the energy
-        !! cutoff
-
-      close(projOutUnit)
-
-
-      !> Merge all of the individual-processor files and delete
-      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(int2str(nProcPerBgrp-1))//'} >> '//trim(fNameBase))!//&
-!                                ' && rm '//trim(fNameBase)//'.{0..'//trim(int2str(nProcPerBgrp-1))//'}')
-
-    endif
+    close(63)
 
 
     call cpu_time(t2)
@@ -3337,7 +3327,7 @@ module wfcExportVASPMod
   end subroutine writeProjectors
 
 !----------------------------------------------------------------------------
-  subroutine readAndWriteWavefunction(ik, isp, maxNumPWsGlobal, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
+  subroutine readAndWriteWavefunction(ik, isp, maxNumPWsGlobal, nBands, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
     !! For each spin and k-point, read and write the plane
     !! wave coefficients for each band
     !!
@@ -3356,6 +3346,8 @@ module wfcExportVASPMod
     integer, intent(in) :: maxNumPWsGlobal
       !! Max number of \(G+k\) vectors with magnitude
       !! less than `wfcVecCut` among all k-points
+    integer, intent(in) :: nBands
+      !! Total number of bands
     integer, intent(in) :: nGkVecsLocal_ik
       !! Local number of G-vectors on this processor
       !! for a given k-point
@@ -3377,15 +3369,15 @@ module wfcExportVASPMod
       !! Plane wave coefficients
 
     ! Local variables:
+    integer :: reclen
+      !! Record length for projectors file
     integer :: sendCount(nProcPerBgrp)
       !! Number of items to send to each process
       !! in the band group
     integer :: displacement(nProcPerBgrp)
       !! Offset from beginning of array for
       !! scattering coefficients to each process
-    integer :: wfcOutUnit
-      !! Process-dependent file unit for `wfc.ik`
-    integer :: ib, ipw, iproc, ikGlobal, ibgrp
+    integer :: ib, ipw, iproc, ikGlobal
       !! Loop indices
 
     real(kind=dp) :: t1, t2
@@ -3394,8 +3386,8 @@ module wfcExportVASPMod
     complex*8, allocatable :: coeff(:,:)
       !! Plane wave coefficients
 
-    character(len=300) :: fNameBase, fNameBgrp
-      !! File names for merging output
+    character(len=300) :: fNameExport
+      !! Output file name
 
 
     if(indexInBgrp == 0) allocate(coeff(maxNumPWsGlobal, ibStart_bgrp:ibEnd_bgrp))
@@ -3445,60 +3437,32 @@ module wfcExportVASPMod
 
     if(indexInBgrp == 0) then
 
-      wfcOutUnit = 83 + myid
+      fNameExport = trim(exportDir)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)) 
 
-      open(wfcOutUnit, file=trim(exportDir)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))//"."//trim(int2str(myBgrpId)))
-        ! Open `wfc.isp.ik.myBgrpId` file to write plane wave coefficients
+      inquire(iolength=reclen) coeff(1:nPWs1k,ibStart_bgrp)
+        !! Get the record length needed to write a double complex
+        !! array of length nPWs1k
 
-      do ib = ibStart_bgrp, ibEnd_bgrp
+      open(63, file=trim(fNameExport), access='direct', form='unformatted', recl=reclen)
+        !! Open output file with direct access
 
-        do ipw = 1, nPWs1k
+      do ib = 1, nBands
 
-          write(wfcOutUnit,'(2ES24.15E3)') coeff(gKSort(ipw,ikGlobal),ib)
-            ! Write out in sorted order
-            !! @note
-            !!  I was trying to convert these coefficients based
-            !!  on the units previously listed in the `wfc.ik` file, 
-            !!  but I don't think those are accurate. Based on the 
-            !!  `TME` code, it seems like these coefficients are 
-            !!  actually treated as unitless, so there should be no 
-            !!  unit conversion here.
-            !! @endnote
+        if(ib >= ibStart_bgrp .and. ib <= ibEnd_bgrp) write(63,rec=ib) (coeff(gKSort(ipw,ikGlobal),ib), ipw=1,nPWs1k)
+          ! Write out in sorted order
+          !! @note
+          !!  I was trying to convert these coefficients based
+          !!  on the units previously listed in the `wfc.ik` file, 
+          !!  but I don't think those are accurate. Based on the 
+          !!  `TME` code, it seems like these coefficients are 
+          !!  actually treated as unitless, so there should be no 
+          !!  unit conversion here.
+          !! @endnote
 
-        enddo
 
       enddo
 
-      close(wfcOutUnit)
-        ! Close `wfc.isp.ik.myBgrpId` file
-
-    endif
-
-
-    if(indexInPool == 0) then
-      !! Have the root node within the pool merge the `wfc` files
-
-      wfcOutUnit = 83 + myid
-
-      ikGlobal = ik+ikStart_pool-1
-
-      fNameBase = trim(exportDir)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)) 
-
-      open(wfcOutUnit, file=trim(fNameBase))
-        ! Open `wfc.isp.ik` file to write plane wave coefficients
-
-      write(wfcOutUnit, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
-      write(wfcOutUnit, '("# Complex : wavefunction coefficients. Format: ''(2ES24.15E3)''")')
-        ! Write header to `wfc.isp.ik` file
-
-      close(wfcOutUnit)
-        ! Close `wfc.isp.ik.myBgrpId` file
-      
-
-      !> Merge all of the individual-processor files and delete
-      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'} >> '//trim(fNameBase)//&
-                                ' && rm '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'}')
-
+      close(63)
 
     endif
 
