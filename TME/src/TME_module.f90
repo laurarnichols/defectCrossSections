@@ -61,17 +61,15 @@ module declarations
     !! Total number of k-points
   integer :: nSpins
     !! Max number of spins for both systems
-  integer :: nSpinsPC
-    !! Number of spins for PC system
-  integer :: nSpinsSD
-    !! Number of spins for SD system
+  integer :: nSpinsPC, nSpinsSD
+    !! Number of spins for PC/SD system
 
-  complex(kind=dp), allocatable :: betaPC(:,:)
-    !! PC projectors
-  complex(kind=dp), allocatable :: betaSD(:,:)
-    !! SD projectors
+  complex(kind=dp), allocatable :: betaPC(:,:), betaSD(:,:)
+    !! Projectors
   complex(kind=dp), allocatable :: Ufi(:,:,:,:)
     !! All-electron overlap
+  complex*8, allocatable :: wfcPC(:,:), wfcSD(:,:)
+    !! Wave function coefficients
   complex(kind=dp), allocatable :: Ylm(:,:)
     !! Spherical harmonics
   
@@ -99,7 +97,7 @@ module declarations
   real(kind = dp), allocatable :: wk(:), xk(:,:)
   real(kind = dp), allocatable :: DE(:,:,:), absVfi2(:,:,:)
   
-  complex(kind = dp), allocatable :: wfcPC(:,:), wfcSD(:,:), paw_SDKKPC(:,:), paw_id(:,:)
+  complex(kind = dp), allocatable :: paw_SDKKPC(:,:), paw_id(:,:)
   complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
   complex(kind = dp), allocatable :: cProjPC(:,:), cProjSD(:,:)
   complex(kind = dp), allocatable :: paw_PsiPC(:,:), paw_SDPhi(:,:)
@@ -1426,7 +1424,7 @@ contains
       !! Crystal type (PC or SD)
 
     ! Output variables
-    complex(kind=dp), intent(out) :: wfc(nGkVecsLocal,iBandinit:iBandfinal)
+    complex*8, intent(out) :: wfc(nGkVecsLocal,iBandinit:iBandfinal)
       !! Wave function coefficients for 
       !! local G-vectors
 
@@ -1434,40 +1432,28 @@ contains
     integer :: displacement(nProcPerPool)
       !! Offset from beginning of array for
       !! scattering coefficients to each process
+    integer :: reclen
+      !! Record length for projectors file
     integer :: sendCount(nProcPerPool)
       !! Number of items to send to each process
       !! in the pool
     integer :: ib, igk, iproc
       !! Loop indices
 
-    complex(kind=dp) :: wfcAllPWs(npws)
+    complex*8 :: wfcAllPWs(npws)
       !! Wave function read from file
 
+    character(len=300) :: fNameExport
+      !! File names
 
-    if(indexInPool == 0) then
-      !! Have the root node in the pool read the wave
-      !! function coefficients. Ignore the bands before 
-      !! `iBandinit`
-    
-      if(crystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)))
-      else
-        open(72, file=trim(exportDirSD)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)))
-      endif
-    
-      read(72, * )
-      read(72, * )
-        ! Ignore the header
-    
-      do ib = 1, iBandinit - 1
-        do igk = 1, npws
-          read(72, *)
-        enddo
-      enddo
 
+    if(crystalType == 'PC') then
+      fNameExport = trim(exportDirPC)//'/wfc.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal))
+    else
+      fNameExport = trim(exportDirSD)//'/wfc.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal))
     endif
     
-    wfc(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
+    wfc(:,:) = cmplx(0.0_dp, 0.0_dp)
 
     sendCount = 0
     sendCount(indexInPool+1) = nGkVecsLocal
@@ -1481,20 +1467,19 @@ contains
       !! * Put the displacement from the beginning of the array
       !!   for each process in a single array per pool
     
-    !> Have the root node read the PW coefficients
-    !> then broadcast to other processes
+
+    inquire(iolength=reclen) wfcAllPWs(:)
+      !! Get the record length needed to write a complex
+      !! array of length nPWs1k
+
+    if(indexInPool == 0) open(unit=72, file=trim(fNameExport), access='direct', recl=reclen, iostat=ierr, status='old', SHARED)
+
     do ib = iBandinit, iBandfinal
 
-      if(indexInPool == 0) then
+      if(indexInPool == 0) read(72,rec=ib) (wfcAllPWs(igk), igk=1,npws)
 
-        do igk = 1, npws
-          read(72,'(2ES24.15E3)') wfcAllPWs(igk)
-        enddo
-
-      endif
-
-      call MPI_SCATTERV(wfcAllPWs(:), sendCount, displacement, MPI_DOUBLE_COMPLEX, wfc(1:nGkVecsLocal,ib), nGkVecsLocal, &
-        MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
+      call MPI_SCATTERV(wfcAllPWs(:), sendCount, displacement, MPI_COMPLEX, wfc(1:nGkVecsLocal,ib), nGkVecsLocal, &
+        MPI_COMPLEX, 0, intraPoolComm, ierr)
 
     enddo
 
@@ -1636,7 +1621,7 @@ contains
 
     complex(kind=dp) :: beta(nGkVecsLocal1,nProjs)
       !! Projector of one crystal type
-    complex(kind=dp), intent(in) :: wfc(nGkVecsLocal2,iBandinit:iBandfinal)
+    complex*8, intent(in) :: wfc(nGkVecsLocal2,iBandinit:iBandfinal)
       !! Wave function coefficients for local G-vectors
       !! for other crystal type
 

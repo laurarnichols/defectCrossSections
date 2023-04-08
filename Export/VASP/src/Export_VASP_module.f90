@@ -2477,7 +2477,7 @@ module wfcExportVASPMod
           write(*, '("      k-point ",i4,", spin ",i1,": [ ] Wavefunctions  [ ] Projections")') ikGlobal, isp
         call cpu_time(t1)
 
-        call readAndWriteWavefunction(ikLocal, isp, maxNumPWsGlobal, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
+        call readAndWriteWavefunction(ikLocal, isp, maxNumPWsGlobal, nBands, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
 
 
         call cpu_time(t2)
@@ -3327,7 +3327,7 @@ module wfcExportVASPMod
   end subroutine writeProjectors
 
 !----------------------------------------------------------------------------
-  subroutine readAndWriteWavefunction(ik, isp, maxNumPWsGlobal, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
+  subroutine readAndWriteWavefunction(ik, isp, maxNumPWsGlobal, nBands, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
     !! For each spin and k-point, read and write the plane
     !! wave coefficients for each band
     !!
@@ -3346,6 +3346,8 @@ module wfcExportVASPMod
     integer, intent(in) :: maxNumPWsGlobal
       !! Max number of \(G+k\) vectors with magnitude
       !! less than `wfcVecCut` among all k-points
+    integer, intent(in) :: nBands
+      !! Total number of bands
     integer, intent(in) :: nGkVecsLocal_ik
       !! Local number of G-vectors on this processor
       !! for a given k-point
@@ -3367,15 +3369,15 @@ module wfcExportVASPMod
       !! Plane wave coefficients
 
     ! Local variables:
+    integer :: reclen
+      !! Record length for projectors file
     integer :: sendCount(nProcPerBgrp)
       !! Number of items to send to each process
       !! in the band group
     integer :: displacement(nProcPerBgrp)
       !! Offset from beginning of array for
       !! scattering coefficients to each process
-    integer :: wfcOutUnit
-      !! Process-dependent file unit for `wfc.ik`
-    integer :: ib, ipw, iproc, ikGlobal, ibgrp
+    integer :: ib, ipw, iproc, ikGlobal
       !! Loop indices
 
     real(kind=dp) :: t1, t2
@@ -3384,8 +3386,8 @@ module wfcExportVASPMod
     complex*8, allocatable :: coeff(:,:)
       !! Plane wave coefficients
 
-    character(len=300) :: fNameBase, fNameBgrp
-      !! File names for merging output
+    character(len=300) :: fNameExport
+      !! Output file name
 
 
     if(indexInBgrp == 0) allocate(coeff(maxNumPWsGlobal, ibStart_bgrp:ibEnd_bgrp))
@@ -3435,60 +3437,32 @@ module wfcExportVASPMod
 
     if(indexInBgrp == 0) then
 
-      wfcOutUnit = 83 + myid
+      fNameExport = trim(exportDir)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)) 
 
-      open(wfcOutUnit, file=trim(exportDir)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))//"."//trim(int2str(myBgrpId)))
-        ! Open `wfc.isp.ik.myBgrpId` file to write plane wave coefficients
+      inquire(iolength=reclen) coeff(1:nPWs1k,ibStart_bgrp)
+        !! Get the record length needed to write a double complex
+        !! array of length nPWs1k
 
-      do ib = ibStart_bgrp, ibEnd_bgrp
+      open(63, file=trim(fNameExport), access='direct', form='unformatted', recl=reclen)
+        !! Open output file with direct access
 
-        do ipw = 1, nPWs1k
+      do ib = 1, nBands
 
-          write(wfcOutUnit,'(2ES24.15E3)') coeff(gKSort(ipw,ikGlobal),ib)
-            ! Write out in sorted order
-            !! @note
-            !!  I was trying to convert these coefficients based
-            !!  on the units previously listed in the `wfc.ik` file, 
-            !!  but I don't think those are accurate. Based on the 
-            !!  `TME` code, it seems like these coefficients are 
-            !!  actually treated as unitless, so there should be no 
-            !!  unit conversion here.
-            !! @endnote
+        if(ib >= ibStart_bgrp .and. ib <= ibEnd_bgrp) write(63,rec=ib) (coeff(gKSort(ipw,ikGlobal),ib), ipw=1,nPWs1k)
+          ! Write out in sorted order
+          !! @note
+          !!  I was trying to convert these coefficients based
+          !!  on the units previously listed in the `wfc.ik` file, 
+          !!  but I don't think those are accurate. Based on the 
+          !!  `TME` code, it seems like these coefficients are 
+          !!  actually treated as unitless, so there should be no 
+          !!  unit conversion here.
+          !! @endnote
 
-        enddo
 
       enddo
 
-      close(wfcOutUnit)
-        ! Close `wfc.isp.ik.myBgrpId` file
-
-    endif
-
-
-    if(indexInPool == 0) then
-      !! Have the root node within the pool merge the `wfc` files
-
-      wfcOutUnit = 83 + myid
-
-      ikGlobal = ik+ikStart_pool-1
-
-      fNameBase = trim(exportDir)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)) 
-
-      open(wfcOutUnit, file=trim(fNameBase))
-        ! Open `wfc.isp.ik` file to write plane wave coefficients
-
-      write(wfcOutUnit, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
-      write(wfcOutUnit, '("# Complex : wavefunction coefficients. Format: ''(2ES24.15E3)''")')
-        ! Write header to `wfc.isp.ik` file
-
-      close(wfcOutUnit)
-        ! Close `wfc.isp.ik.myBgrpId` file
-      
-
-      !> Merge all of the individual-processor files and delete
-      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'} >> '//trim(fNameBase)//&
-                                ' && rm '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'}')
-
+      close(63)
 
     endif
 
