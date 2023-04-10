@@ -259,7 +259,6 @@ program wfcExportVASPMain
 
   if(ionode) then
    close(mainOutFileUnit)
-   call execute_command_line('rm '//trim(exportDir)//'projectors.*.*')
   endif
 
   call MPI_Barrier(worldComm, ierr)
