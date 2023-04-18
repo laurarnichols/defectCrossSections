@@ -70,6 +70,8 @@ module wfcExportVASPMod
   ! Variables that should be passed as arguments:
   real(kind=dp) :: eFermi
     !! Fermi energy
+  real(kind=dp) :: eTot
+    !! Total energy
   real(kind=dp), allocatable :: gVecInCart(:,:)
     !! G-vectors in Cartesian coordinates
   real(kind=dp), allocatable :: bandOccupation(:,:,:)
@@ -855,7 +857,7 @@ module wfcExportVASPMod
   end subroutine preliminaryWAVECARScan
 
 !----------------------------------------------------------------------------
-  subroutine read_vasprun_xml(nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
+  subroutine read_vasprun_xml(nKPoints, VASPDir, eFermi, eTot, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! Read the k-point weights and cell info from the `vasprun.xml` file
     !!
     !! <h2>Walkthrough</h2>
@@ -876,6 +878,8 @@ module wfcExportVASPMod
     ! Output variables:
     real(kind=dp), intent(out) :: eFermi
       !! Fermi energy
+    real(kind=dp), intent(out) :: eTot
+      !! Total energy
     real(kind=dp), allocatable, intent(out) :: kWeight(:)
       !! K-point weights
 
@@ -997,6 +1001,37 @@ module wfcExportVASPMod
         nAtomsEachType(iType(ia)) = nAtomsEachType(iType(ia)) + 1
 
       enddo
+
+
+      line = getFirstLineWithKeyword(57,'alphaZ')
+        !! * Read until first occurence of `'alphaZ'`. 
+        !!   This is the first step in the electronic
+        !!   minimization. 
+
+      line = getFirstLineWithKeyword(57,'alphaZ')
+        !! * Read until next (last) occurence of `'alphaZ'`. 
+        !!   This is the last step in the electronic
+        !!   minimization. 
+        !! @note
+        !!    The `Export` code assumes that there are only
+        !!    two occurences of `alphaZ` in the `vasprun.xml`
+        !!    file indicating the beginning and end of the
+        !!    electronic minimization. This may not be the
+        !!    case for structural relaxations, but this code
+        !!    should always be run on the SCF calculation that
+        !!    follows a potential relaxation because that is
+        !!    required for VASP to set the correct energy 
+        !!    density.
+        !! @endnote
+
+      line = getFirstLineWithKeyword(57,'e_wo_entrp')
+        !! * Ignore everything until you get to a
+        !!   line with `'e_wo_entrp'`, indicating the
+        !!   tag with the total energy
+
+      read(line,'(a25,f16.8,a5)') cDum, eTot, cDum
+      eTot = eTot*eVToRy
+
 
       line = getFirstLineWithKeyword(57,'efermi')
         !! * Ignore everything until you get to a
@@ -3998,7 +4033,7 @@ module wfcExportVASPMod
   end subroutine writePseudoInfo
 
 !----------------------------------------------------------------------------
-  subroutine writeEigenvalues(nBands, nKPoints, nSpins, eFermi, bandOccupation, eigenE)
+  subroutine writeEigenvalues(nBands, nKPoints, nSpins, eFermi, eTot, bandOccupation, eigenE)
     !! Write Fermi energy and eigenvalues and occupations for each band
 
     use miscUtilities
@@ -4015,6 +4050,8 @@ module wfcExportVASPMod
       
     real(kind=dp), intent(in) :: eFermi
       !! Fermi energy
+    real(kind=dp), intent(in) :: eTot
+      !! Total energy
     real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands,nKPoints)
       !! Occupation of band
 
@@ -4034,6 +4071,8 @@ module wfcExportVASPMod
     
       write(mainOutFileUnit, '("# Fermi Energy (Hartree). Format: ''(ES24.15E3)''")')
       write(mainOutFileUnit, '(ES24.15E3)') eFermi*ryToHartree
+      write(mainOutFileUnit, '("# Total Energy (Hartree). Format: ''(ES24.15E3)''")')
+      write(mainOutFileUnit, '(ES24.15E3)') eTot*ryToHartree
       flush(mainOutFileUnit)
     
       do isp = 1, nSpins
