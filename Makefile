@@ -51,17 +51,19 @@ help :
 	@echo "    make Export_QE-6.3            to built the Quantum Espresso 6.3 dependent Export module."
 	@echo "    make Export_VASP              to built the VASP Export code"
 	@echo "    make TME                      to built the Transition Matrix Elements (TME) module."
+	@echo "    make PhononPP                 to built the phonon post-processing module."
 	@echo "    make Mj                       to built the Mj module."
 	@echo "    make LSF                      to built the Line Shape Function (LSF) module."
 	@echo "    make Sigma                    to built the Cross Section (Sigma) module."
 	@echo ""
 	@echo ""
 	@echo "    make clean_all_QE-5.3.0            to clean all the modules of the package using Quantum Espresso 5.3.0."
-	@echo "    make clean_all_QE-6.3            to clean all the modules of the package using Quantum Espresso 6.3."
+	@echo "    make clean_all_QE-6.3              to clean all the modules of the package using Quantum Espresso 6.3."
 	@echo "    make clean_QE-5.3.0_dependent      to clean all the Quantum Espresso 5.3.0 dependent modules."
-	@echo "    make clean_QE-6.3_dependent      to clean all the Quantum Espresso 6.3 dependent modules."
+	@echo "    make clean_QE-6.3_dependent        to clean all the Quantum Espresso 6.3 dependent modules."
 	@echo "    make cleanExport_QE-5.3.0          to clean the Quantum Espresso 5.3.0 dependent Export module."
-	@echo "    make cleanExport_QE-6.3          to clean the Quantum Espresso 6.3 dependent Export module."
+	@echo "    make cleanExport_QE-6.3            to clean the Quantum Espresso 6.3 dependent Export module."
+	@echo "    make cleanPhononPP                 to clean the phonon post-processing module."
 	@echo "    make cleanMj                       to clean the Mj module."
 	@echo "    make cleanTME                      to clean the Transition Matrix Elements (TME) module."
 	@echo "    make cleanLSF                      to clean the Line Shape Function (LSF) module."
@@ -81,16 +83,17 @@ LSF0_srcPath   = $(LSF_srcPath)/zerothOrder
 LSF1_srcPath   = $(LSF_srcPath)/linearTerms
 Sigma_srcPath  = Sigma/src
 CommonModules_srcPath  = CommonModules
+PhononPP_srcPath = PhononPP/src
 
 bin = './bin'
 
-all_QE-5.0.2 : initialize QE-5.0.2_dependent TME LSF0 Mj LSF1 Sigma
+all_QE-5.0.2 : initialize QE-5.0.2_dependent base
 
-all_QE-5.3.0 : initialize QE-5.3.0_dependent TME LSF0 Mj LSF1 Sigma
+all_QE-5.3.0 : initialize QE-5.3.0_dependent base
 
-all_QE-6.3 : initialize QE-6.3_dependent TME LSF0 Mj LSF1 Sigma
+all_QE-6.3 : initialize QE-6.3_dependent base
 
-all_VASP : initialize Export_VASP TME LSF0 Mj LSF1 Sigma
+all_VASP : initialize Export_VASP base
 
 QE-5.0.2_dependent : initialize Export_QE-5.0.2
 
@@ -98,24 +101,27 @@ QE-5.3.0_dependent : initialize Export_QE-5.3.0
 
 QE-6.3_dependent : initialize Export_QE-6.3
 
+base : TME LSF0 LSF1 Mj PhononPP Sigma
+
 initialize :
 
 	@echo "" > make.sys ; \
 	echo "Home_Path      = " $(PWD) >> make.sys ; \
 	echo "QE-5.0.2_Path           = " $(QE-5.0.2_Path) >> make.sys ; \
 	echo "QE-5.3.0_Path           = " $(QE-5.3.0_Path) >> make.sys ; \
-	echo "QE-6.3_Path           = " $(QE-6.3_Path) >> make.sys ; \
+	echo "QE-6.3_Path             = " $(QE-6.3_Path) >> make.sys ; \
 	echo "Export_QE-5.0.2_srcPath = " $(PWD)/$(Export_QE-5.0.2_srcPath) >> make.sys ; \
 	echo "Export_QE-5.3.0_srcPath = " $(PWD)/$(Export_QE-5.3.0_srcPath) >> make.sys ; \
-	echo "Export_QE-6.3_srcPath = " $(PWD)/$(Export_QE-6.3_srcPath) >> make.sys ; \
-	echo "Export_VASP_srcPath = " $(PWD)/$(Export_VASP_srcPath) >> make.sys ; \
-	echo "TME_srcPath    = " $(PWD)/$(TME_srcPath) >> make.sys ; \
-	echo "Mj_srcPath    = " $(PWD)/$(Mj_srcPath) >> make.sys ; \
-	echo "LSF_srcPath = " $(PWD)/$(LSF_srcPath) >> make.sys ; \
-	echo "LSF0_srcPath = " $(PWD)/$(LSF0_srcPath) >> make.sys ; \
-	echo "LSF1_srcPath = " $(PWD)/$(LSF1_srcPath) >> make.sys ; \
-	echo "Sigma_srcPath = " $(PWD)/$(Sigma_srcPath) >> make.sys ; \
-	echo "CommonModules_srcPath = " $(PWD)/$(CommonModules_srcPath) >> make.sys ; \
+	echo "Export_QE-6.3_srcPath   = " $(PWD)/$(Export_QE-6.3_srcPath) >> make.sys ; \
+	echo "Export_VASP_srcPath     = " $(PWD)/$(Export_VASP_srcPath) >> make.sys ; \
+	echo "TME_srcPath             = " $(PWD)/$(TME_srcPath) >> make.sys ; \
+	echo "PhononPP_srcPath        = " $(PWD)/$(PhononPP_srcPath) >> make.sys ; \
+	echo "Mj_srcPath              = " $(PWD)/$(Mj_srcPath) >> make.sys ; \
+	echo "LSF_srcPath             = " $(PWD)/$(LSF_srcPath) >> make.sys ; \
+	echo "LSF0_srcPath            = " $(PWD)/$(LSF0_srcPath) >> make.sys ; \
+	echo "LSF1_srcPath            = " $(PWD)/$(LSF1_srcPath) >> make.sys ; \
+	echo "Sigma_srcPath           = " $(PWD)/$(Sigma_srcPath) >> make.sys ; \
+	echo "CommonModules_srcPath   = " $(PWD)/$(CommonModules_srcPath) >> make.sys ; \
 	echo "" >> make.sys ; \
 	echo "f90    = "$(f90) >> make.sys ; \
 	echo "mpif90 = "$(mpif90) >> make.sys ; \
@@ -159,6 +165,11 @@ TME : initialize
 	@cd $(TME_srcPath) ; \
         	make all
 
+PhononPP : initialize
+
+	@cd $(PhononPP_srcPath) ; \
+        	make all
+
 Mj : initialize
 
 	@cd $(Mj_srcPath) ; \
@@ -182,13 +193,13 @@ Sigma : initialize
 	@cd $(Sigma_srcPath) ; \
         	make all
 
-clean : cleanExport_VASP clean_QE-5.0.2_dependent clean_QE-5.3.0_dependent clean_QE-6.3_dependent cleanTME cleanInitialization cleanMj cleanLSF0 cleanLSF1 cleanSigma
+clean : cleanExport_VASP clean_QE-5.0.2_dependent clean_QE-5.3.0_dependent clean_QE-6.3_dependent cleanTME cleanInitialization cleanPhononPP cleanMj cleanLSF0 cleanLSF1 cleanSigma
 
-clean_all_QE-5.0.2 : clean_QE-5.0.2_dependent cleanTME cleanInitialization cleanMj cleanLSF0 cleanLSF1 cleanSigma
+clean_all_QE-5.0.2 : clean_QE-5.0.2_dependent cleanTME cleanInitialization cleanPhononPP cleanMj cleanLSF0 cleanLSF1 cleanSigma
 
-clean_all_QE-5.3.0 : clean_QE-5.3.0_dependent cleanTME cleanInitialization cleanMj cleanLSF0 cleanLSF1 cleanSigma
+clean_all_QE-5.3.0 : clean_QE-5.3.0_dependent cleanTME cleanInitialization cleanPhononPP cleanMj cleanLSF0 cleanLSF1 cleanSigma
 
-clean_all_QE-6.3 : clean_QE-6.3_dependent cleanTME cleanInitialization cleanMj cleanLSF0 cleanLSF1 cleanSigma
+clean_all_QE-6.3 : clean_QE-6.3_dependent cleanTME cleanInitialization cleanPhononPP cleanMj cleanLSF0 cleanLSF1 cleanSigma
 
 clean_QE-5.0.2_dependent : cleanExport_QE-5.0.2
 
@@ -227,6 +238,11 @@ cleanExport_VASP :
 cleanTME :
 
 	@cd $(TME_srcPath) ; \
+		make clean
+
+cleanPhononPP :
+
+	@cd $(PhononPP_srcPath) ; \
 		make clean
 
 cleanMj :

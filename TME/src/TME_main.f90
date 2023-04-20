@@ -3,7 +3,7 @@ program transitionMatrixElements
   
   implicit none
   
-  integer :: ikLocal, ikGlobal, iType, isp
+  integer :: ikLocal, ikGlobal, isp
     !! Loop indices
 
   logical :: bothSpinChannelsExist = .false.
@@ -25,26 +25,61 @@ program transitionMatrixElements
   
   call mpiInitialization()
     !! Initialize MPI
+
+  call getCommandLineArguments()
+    !! * Get the number of pools from the command line
+
+  call setUpPools()
+    !! * Split up processors between pools and generate MPI
+    !!   communicators for pools
   
   if(ionode) call cpu_time(t0)
-    
+
+
+  if(ionode) write(*, '("Pre-k-loop: [ ] Read inputs  [ ] Read full PW grid  [ ] Set up tables ")')
+  call cpu_time(t1)
+
+
   call readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     !! @todo Figure out if `realLattVec` used anywhere. If not remove. @endtodo
 
 
-  call distributeKpointsInPools(nKPoints)
-    !! Split the k-points across the pools
+  call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
+    !! * Distribute k-points in pools
+
+  call distributeItemsInSubgroups(indexInPool, nGVecsGlobal, nProcPerPool, nProcPerPool, nProcPerPool, iGStart_pool, &
+          iGEnd_pool, nGVecsLocal)
+    !! * Distribute G-vectors across processes in pool
 
 
-  allocate(gIndexGlobalToLocal(nGVecsGlobal), gVecProcId(nGVecsGlobal))
+  call cpu_time(t2)
+  if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [ ] Read full PW grid  [ ] Set up tables (",f10.2," secs)")') t2-t1
+  call cpu_time(t1)
 
-  call getFullPWGrid(nGVecsGlobal, gIndexGlobalToLocal, gVecProcId, mill_local, nGVecsLocal)
-    !! Read the full PW grid from `mgrid` and distribute
-    !! across processes
+  allocate(mill_local(3,nGVecsLocal))
+
+  call getFullPWGrid(iGStart_pool, iGEnd_pool, nGVecsLocal, nGVecsGlobal, mill_local)
+
+  
+  call cpu_time(t2)
+  if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid  [ ] Set up tables (",f10.2," secs)")') t2-t1
+  call cpu_time(t1)
 
 
+  allocate(gCart(3,nGVecsLocal))
+  allocate(Ylm((JMAX+1)**2,nGVecsLocal))
+
+  call setUpTables(JMAX, nGVecsLocal, mill_local, numOfTypes, recipLattVec, atoms, gCart, Ylm)
+
+  deallocate(mill_local)
+
+  
+  call cpu_time(t2)
+  if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid  [X] Set up tables (",f10.2," secs)")') t2-t1
+  call cpu_time(t1)
+    
 
   if(indexInPool == 0) allocate(eigvI(iBandIinit:iBandIfinal), eigvF(iBandFinit:iBandFfinal))
   
@@ -82,40 +117,46 @@ program transitionMatrixElements
     else
 
       !-----------------------------------------------------------------------------------------------
-      !> Read PW grids from `grid.ik` files
-
-      allocate(gKIndexGlobalPC(npwsPC(ikGlobal)))
-      allocate(gKIndexGlobalSD(npwsSD(ikGlobal)))
-
-      if(indexInPool == 0) call readGrid('PC', ikGlobal, npwsPC(ikGlobal), gKIndexGlobalPC)
-      if(indexInPool == 1) call readGrid('SD', ikGlobal, npwsSD(ikGlobal), gKIndexGlobalSD)
-
-      call MPI_BCAST(gKIndexGlobalPC, size(gKIndexGlobalPC), MPI_INT, 0, intraPoolComm, ierr)
-      call MPI_BCAST(gKIndexGlobalSD, size(gKIndexGlobalSD), MPI_INT, 1, intraPoolComm, ierr)
-
-      !-----------------------------------------------------------------------------------------------
       !> Read projectors
 
-      allocate(betaPC(nGVecsLocal,nProjsPC))
+      if(indexInPool == 0) &
+        write(*, '("Pre-spin-loop for k-point",i4,": [ ] Read projectors ")') &
+              ikGlobal
+      call cpu_time(t1)
 
-      call readProjectors('PC', ikGlobal, nProjsPC, npwsPC(ikGlobal), gKIndexGlobalPC, betaPC)
 
-      allocate(betaSD(nGVecsLocal,nProjsSD))
+      call distributeItemsInSubgroups(indexInPool, npwsPC(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolPC, &
+              iGkEnd_poolPC, nGkVecsLocalPC)
 
-      call readProjectors('SD', ikGlobal, nProjsSD, npwsSD(ikGlobal), gKIndexGlobalSD, betaSD)
+      allocate(betaPC(nGkVecsLocalPC,nProjsPC))
+
+      call readProjectors('PC', iGkStart_poolPC, ikGlobal, nGkVecsLocalPC, nProjsPC, npwsPC(ikGlobal), betaPC)
+
+
+      call distributeItemsInSubgroups(indexInPool, npwsSD(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolSD, &
+              iGkEnd_poolSD, nGkVecsLocalSD)
+
+      allocate(betaSD(nGkVecsLocalSD,nProjsSD))
+
+      call readProjectors('SD', iGkStart_poolSD, ikGlobal, nGkVecsLocalSD, nProjsSD, npwsSD(ikGlobal), betaSD)
+
+      call cpu_time(t2)
+      if(indexInPool == 0) &
+        write(*, '("Pre-spin-loop for k-point",i4,": [X] Read projectors (",f10.2," secs)")') &
+              ikGlobal, t2-t1
 
       
       !-----------------------------------------------------------------------------------------------
       !> Allocate arrays that are potentially spin-polarized and start spin loop
 
-      allocate(wfcPC(nGVecsLocal, iBandIinit:iBandIfinal))
-      allocate(wfcSD(nGVecsLocal, iBandFinit:iBandFfinal))
+      allocate(wfcPC(nGkVecsLocalPC, iBandIinit:iBandIfinal))
+      allocate(wfcSD(nGkVecsLocalSD, iBandFinit:iBandFfinal))
       
-      allocate(cProjBetaPCPsiSD(nProjsPC, nBands))
-      allocate(cProjBetaSDPhiPC(nProjsSD, nBands))
+      allocate(cProjBetaPCPsiSD(nProjsPC, iBandFinit:iBandFfinal))
+      allocate(cProjBetaSDPhiPC(nProjsSD, iBandIinit:iBandIfinal))
 
-      allocate(cProjPC(nProjsPC, nBands))
-      allocate(cProjSD(nProjsSD, nBands))
+      allocate(cProjPC(nProjsPC, iBandIinit:iBandIfinal))
+      allocate(cProjSD(nProjsSD, iBandFinit:iBandFfinal))
 
       allocate(paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
       allocate(paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
@@ -154,24 +195,25 @@ program transitionMatrixElements
           !-----------------------------------------------------------------------------------------------
           !> Read wave functions and calculate overlap
       
-          if(indexInPool == 0) write(*, '(" Starting Ufi(:,:) calculation for k-point", i4, " of", i4, " and spin ", i2)') &
-                  ikGlobal, nKPoints, isp
+          if(indexInPool == 0) &
+            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [ ] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k")') &
+              ikGlobal, isp
           call cpu_time(t1)
 
 
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
-            call readWfc('PC', iBandIinit, iBandIfinal, ikGlobal, min(isp,nSpinsPC), npwsPC(ikGlobal), gKIndexGlobalPC, wfcPC)
+            call readWfc('PC', iBandIinit, iBandIfinal, iGkStart_poolPC, ikGlobal, min(isp,nSpinsPC), nGkVecsLocalPC, npwsPC(ikGlobal), wfcPC)
         
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
-            call readWfc('SD', iBandFinit, iBandFfinal, ikGlobal, min(isp,nSpinsSD), npwsSD(ikGlobal), gKIndexGlobalSD, wfcSD)
+            call readWfc('SD', iBandFinit, iBandFfinal, iGkStart_poolSD, ikGlobal, min(isp,nSpinsSD), nGkVecsLocalSD, npwsSD(ikGlobal), wfcSD)
         
           call calculatePWsOverlap(ikLocal, isp)
         
 
           call cpu_time(t2)
           if(indexInPool == 0) &
-            write(*, '("      <\\tilde{Psi}_f|\\tilde{Phi}_i> for k-point", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                  ikGlobal, isp, t2-t1
+            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [X] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') &
+              ikGlobal, isp, t2-t1
           call cpu_time(t1)
 
 
@@ -179,47 +221,39 @@ program transitionMatrixElements
           !> Calculate cross projections
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
-            call calculateCrossProjection(iBandFinit, iBandFfinal, ikGlobal, nProjsPC, npwsPC(ikGlobal), betaPC, wfcSD, cProjBetaPCPsiSD)
+            call calculateCrossProjection(iBandFinit, iBandFfinal, ikGlobal, nGkVecsLocalPC, nGkVecsLocalSD, nProjsPC, betaPC, wfcSD, cProjBetaPCPsiSD)
 
           if(isp == nSpins) then
             deallocate(wfcSD)
-            deallocate(gKIndexGlobalPC)
             deallocate(betaPC)
           endif
 
 
-          call cpu_time(t2)
-          if(indexInPool == 0) &
-            write(*, '("      Calculating <betaPC|wfcSD> for k-point", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                  ikGlobal, isp, t2-t1
-          call cpu_time(t1)
-
-
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
-            call calculateCrossProjection(iBandIinit, iBandIfinal, ikGlobal, nProjsSD, npwsSD(ikGlobal), betaSD, wfcPC, cProjBetaSDPhiPC)
+            call calculateCrossProjection(iBandIinit, iBandIfinal, ikGlobal, nGkVecsLocalSD, nGkVecsLocalPC, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
         
           if(isp == nSpins) then
             deallocate(wfcPC)
-            deallocate(gKIndexGlobalSD)
             deallocate(betaSD)
           endif
 
 
           call cpu_time(t2)
           if(indexInPool == 0) &
-            write(*, '("      Calculating <betaSD|wfcPC> for k-point", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                  ikGlobal, isp, t2-t1
+            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [X] Overlap  [X] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') &
+              ikGlobal, isp, t2-t1
+          call cpu_time(t1)
 
 
           !-----------------------------------------------------------------------------------------------
           !> Have process 0 in each pool calculate the PAW wave function correction for PC
 
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
-            call readProjections('PC', ikGlobal, min(isp,nSpinsPC), nProjsPC, cProjPC)
+            call readProjections('PC', iBandIinit, iBandIfinal, ikGlobal, min(isp,nSpinsPC), nProjsPC, cProjPC)
 
           if(indexInPool == 0) then
 
-            call pawCorrectionWfc(nIonsPC, TYPNIPC, cProjPC, cProjBetaPCPsiSD, atomsPC, paw_PsiPC)
+            call pawCorrectionWfc(nIonsPC, TYPNIPC, nProjsPC, numOfTypesPC, cProjPC, cProjBetaPCPsiSD, atomsPC, paw_PsiPC)
 
           endif
           
@@ -230,15 +264,21 @@ program transitionMatrixElements
           !> Have process 1 in each pool calculate the PAW wave function correction for PC
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
-            call readProjections('SD', ikGlobal, min(isp,nSpinsSD), nProjsSD, cProjSD)
+            call readProjections('SD', iBandFinit, iBandFfinal, ikGlobal, min(isp,nSpinsSD), nProjsSD, cProjSD)
 
           if(indexInPool == 1) then
 
-            call pawCorrectionWfc(nIonsSD, TYPNISD, cProjBetaSDPhiPC, cProjSD, atoms, paw_SDPhi)
+            call pawCorrectionWfc(nIonsSD, TYPNISD, nProjsSD, numOfTypes, cProjBetaSDPhiPC, cProjSD, atoms, paw_SDPhi)
 
           endif
 
           if(isp == nSpins) deallocate(cProjBetaSDPhiPC)
+
+          call cpu_time(t2)
+          if(indexInPool == 0) &
+            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [X] Overlap  [X] Cross projections  [X] PAW wfc  [ ] PAW k (",f6.2," secs)")') &
+              ikGlobal, isp, t2-t1
+          call cpu_time(t1)
       
       
           !-----------------------------------------------------------------------------------------------
@@ -250,31 +290,28 @@ program transitionMatrixElements
 
           !-----------------------------------------------------------------------------------------------
           !> Have all processes calculate the PAW k correction
-
-          call cpu_time(t1)
       
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
-            call pawCorrectionK('PC', nIonsPC, TYPNIPC, numOfTypesPC, posIonPC, atomsPC, atoms, pawKPC)
+            call pawCorrectionK('PC', nIonsPC, TYPNIPC, JMAX, nGVecsLocal, numOfTypesPC, numOfTypes, posIonPC, gCart, Ylm, atomsPC, atoms, pawKPC)
 
-          if(isp == nSpins) deallocate(cProjPC)
-      
-
-          call cpu_time(t2)
-          if(indexInPool == 0) &
-            write(*, '("      <\\vec{k}|PAW_PC> for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                  ikGlobal, isp, t2-t1
-          call cpu_time(t1)
+          if(isp == nSpins) then
+            deallocate(cProjPC)
+          endif
       
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
-            call pawCorrectionK('SD', nIonsSD, TYPNISD, numOfTypes, posIonSD, atoms, atoms, pawSDK)
+            call pawCorrectionK('SD', nIonsSD, TYPNISD, JMAX, nGVecsLocal, numOfTypes, numOfTypes, posIonSD, gCart, Ylm, atoms, atoms, pawSDK)
 
-          if(isp == nSpins) deallocate(cProjSD)
+          if(isp == nSpins) then
+            deallocate(cProjSD)
+          endif
 
         
           call cpu_time(t2)
-          if(indexInPool == 0) write(*, '("      <PAW_SD|\\vec{k}> for k-point ", i4, " and spin ", i1, " done in", f10.2, " secs.")') &
-                  ikGlobal, isp, t2-t1
+          if(indexInPool == 0) &
+            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [X] Overlap  [X] Cross projections  [X] PAW wfc  [X] PAW k (",f6.2," secs)")') &
+              ikGlobal, isp, t2-t1
+          call cpu_time(t1)
       
 
           !-----------------------------------------------------------------------------------------------
@@ -285,7 +322,7 @@ program transitionMatrixElements
           do ibi = iBandIinit, iBandIfinal
         
             do ibf = iBandFinit, iBandFfinal   
-              paw_id(ibf,ibi) = sum(pawSDK(ibf,ibi,:)*pawKPC(ibf,ibi,:))
+              paw_id(ibf,ibi) = dot_product(conjg(pawSDK(ibf,ibi,:)),pawKPC(ibf,ibi,:))
             enddo
         
           enddo
@@ -327,57 +364,8 @@ program transitionMatrixElements
     
   if(calculateVfis .and. indexInPool == 0) call calculateVfiElements()
 
-
-  deallocate(npwsPC)
-  deallocate(wkPC)
-  deallocate(xkPC)
-  deallocate(posIonPC)
-  deallocate(TYPNIPC)
-
-  do iType = 1, numOfTypesPC
-    deallocate(atomsPC(iType)%r)
-    deallocate(atomsPC(iType)%lps)
-    deallocate(atomsPC(iType)%F)
-    deallocate(atomsPC(iType)%F1)
-    deallocate(atomsPC(iType)%F2)
-    deallocate(atomsPC(iType)%bes_J_qr)
-  enddo
-
-  deallocate(atomsPC)
-
-  deallocate(npwsSD)
-  deallocate(wk)
-  deallocate(xk)
-  deallocate(posIonSD)
-  deallocate(TYPNISD)
-
-  do iType = 1, numOfTypes
-    deallocate(atoms(iType)%lps)
-    deallocate(atoms(iType)%r)
-    deallocate(atoms(iType)%F)
-    deallocate(atoms(iType)%F1)
-    deallocate(atoms(iType)%F2)
-    deallocate(atoms(iType)%bes_J_qr)
-  enddo
-
-  deallocate(atoms)
-
-  deallocate(gIndexGlobalToLocal)
-  deallocate(gVecProcId)
-  deallocate(mill_local)
   
-
-  if(indexInPool == 0) deallocate(eigvI, eigvF)
-  
-  ! Calculating Vfi
-  
-  if (ionode) then
-    
-    ! Finalize Calculation
-     
-    call finalizeCalculation()
-    
-  endif
+  call finalizeCalculation()
   
   call MPI_FINALIZE(ierr)
   
