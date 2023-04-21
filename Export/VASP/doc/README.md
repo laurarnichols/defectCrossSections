@@ -8,7 +8,7 @@ The following VASP calculations are needed for a capture calculation:
 The results must then be post-processed to be used as input to the other programs in the suite. **The `Export` code is not currently tested on relaxation calculations (the total energy may be extracted incorrectly), but you should always run an SCF calculation after relaxation in VASP to get the charge density correct for the final positions anyways.** The program needs to know where the output files are and where to put the exported data.
 
 The input file should look like
-```
+```fortran
 &inputParams
   VASPDir = 'path-to-VASP-output'
   exportDir = 'path-to-put-exported-files'
