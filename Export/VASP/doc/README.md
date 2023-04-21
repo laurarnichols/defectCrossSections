@@ -1,6 +1,11 @@
 # Export From VASP
 
-This program exports the data from VASP output files into a form that can be processed by the matrix element code (`TME`). The program needs to know where the output files are and where to put the exported data.
+The following VASP calculations are needed for a capture calculation:
+* relaxed final charge state (plus SCF after)
+* relaxed initial charge state (plus SCF after)
+* final charge state in initial positions
+
+The results must then be post-processed to be used as input to the other programs in the suite. **The `Export` code is not currently tested on relaxation calculations (the total energy may be extracted incorrectly), but you should always run an SCF calculation after relaxation in VASP to get the charge density correct for the final positions anyways.** The program needs to know where the output files are and where to put the exported data.
 
 The input file should look like
 ```
@@ -27,11 +32,11 @@ The output files are
 * `eigenvalues.isp.ik` -- eigenvalues for each band for given spin channel and k-point
 * `grid.ik` -- Miller indices for G-vectors such that $G+k <$ cutoff
 * `groundState` -- highest occupied band for each spin channel and k-point
-* `input` -- main output file with cell, k-point, and pseudopotential information
+* `input` -- main output file with cell, k-point, pseudopotential information, and total energy
 * `mgrid` -- full G-vector grid in Miller indices
 * `projections.isp.ik` -- $\langle \beta | \psi \rangle$ for given spin channel and k-point
-* `projectors.ik` -- $|\beta\rangle$ for given k-point
-* `wfc.isp.ik` -- wave function coefficients for given spin channel and k-point
+* `projectors.ik` -- $|\beta\rangle$ for given k-point (binary)
+* `wfc.isp.ik` -- wave function coefficients for given spin channel and k-point (binary)
 
 ## Running and parallelization
 
