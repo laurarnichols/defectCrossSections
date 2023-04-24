@@ -62,8 +62,7 @@ program shifterMain
     write(60,'("# Norm of generalized displacement vectors after scaling Cartesoam displacement Format: ''(1i7, 1ES24.15E3)''")')
   endif
 
-!  do j = iModeStart, iModeEnd
-    do j = 1, 2
+  do j = iModeStart, iModeEnd
 
     shiftedPositions = direct2cart(nAtoms, atomPositionsDir, realLattVec) + getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift)
     !shiftedPositions = getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift)
