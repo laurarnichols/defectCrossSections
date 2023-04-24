@@ -63,9 +63,9 @@ The `TME` input file for the first-order term should look like
   order = 1
   
   ! Parameters for change in energy
-  capturing = 'elec' or 'hole'					! what kind of carrier is being captured
-  eCorrect = real						! size of energy correction in eV; default 0.0
-  refBand = integer						! band location of reference carrier
+  capturing = 'elec' or 'hole'		! what kind of carrier is being captured
+  eCorrect = real						      ! size of energy correction in eV; default 0.0
+  refBand = integer						    ! band location of reference carrier
   
   ! Systems used for overlaps
   exportDirSD = 'path-to-displaced-defect-export'
@@ -77,6 +77,10 @@ The `TME` input file for the first-order term should look like
   iBandFinit = integer						! lowest final-state band
   iBandFfinal = integer						! highest final-state band
     ! Note: code logic only currently tested for single final band state (iBandFinit = iBandFfinal)
+
+  ! Parameters to get dq_j
+  dqFName = 'path-to-dq-file-from-shifter'
+  phononModeJ = integer           ! phonon-mode index
   
   ! Output info
   elementsPath = 'path-to-store-overlap-files' 			! default './TMEs'

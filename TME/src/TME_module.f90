@@ -36,6 +36,9 @@ module declarations
 
 
   ! Variables that should be passed as arguments:
+  real(kind=dp) :: dq_j
+    !! \(\delta q_j) for displaced wave functions
+    !! (only order = 1)
   real(kind=dp) :: eCorrect
     !! Potential energy correction to account for
     !! band-gap underestimation
@@ -72,6 +75,9 @@ module declarations
     !! Number of spins for PC/SD system
   integer :: order
     !! Order of matrix element (0 or 1)
+  integer :: phononModeJ
+    !! Index of phonon mode for the calculation
+    !! of \(M_j\) (only for order=1)
   integer :: refBand
     !! Reference band for carrier (usually
     !! CBM for electrons and VBM for holes)
@@ -88,7 +94,9 @@ module declarations
   character(len=4) :: capturing
     !! What carrier is being captured
     !! (`hole` or `elec`)
-  character(len = 200) :: exportDirSD, exportDirPC
+  character(len=300) :: dqFName
+    !! File name for generalized-coordinate norms
+  character(len=300) :: exportDirSD, exportDirPC
     !! Paths to exports for SD (left) and PC (right) 
     !! systems to use for wave function overlaps <SD|PC>
   character(len=300) :: exportDirInit, exportDirFinal
@@ -155,7 +163,7 @@ module declarations
   NAMELIST /TME_Input/ exportDirSD, exportDirPC, exportDirFinal, exportDirInit, &
                        elementsPath, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
                        ki, kf, calculateVfis, VfisOutput, eBin, order, eCorrect, refBand, &
-                       capturing
+                       capturing, dqFName, phononModeJ
   
   
 contains
@@ -304,7 +312,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
 
-    use miscUtilities, only: getFirstLineWithKeyword
+    use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
     
     implicit none
 
@@ -323,6 +331,8 @@ contains
       !! Reciprocal lattice vectors
 
     ! Local variables:    
+    integer :: iDum
+      !! Dummy integer to ignore file input
     integer :: maxGIndexGlobalPC
       !! Maximum G-vector index among all \(G+k\)
       !! and processors for PC
@@ -367,6 +377,8 @@ contains
 
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
 
+    call MPI_BCAST(phononModeJ, 1, MPI_INTEGER, root, worldComm, ierr)
+
     call MPI_BCAST(calculateVfis, 1, MPI_LOGICAL, root, worldComm, ierr)
 
     call MPI_BCAST(eBin, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -386,6 +398,7 @@ contains
     if(ionode) then
 
       if(order == 0) then
+
         open(30,file=trim(exportDirInit)//'/input')
         line = getFirstLineWithKeyword(30, 'Total Energy')
         read(30,*) eTotInit
@@ -397,6 +410,17 @@ contains
         read(30,*) eTotFinal
         close(30)
           !! Get the total energy of the final configuration
+
+      endif
+      
+      if(order == 1) then
+
+        open(30,file=trim(dqFName))
+        call ignoreNextNLinesFromFile(30, 1+phononModeJ-1)
+          ! Ignore header and all modes before phononModeJ
+        read(30,*) iDum, dq_j
+        close(30)
+
       endif
 
       maxGIndexGlobal = max(maxGIndexGlobalPC, maxGIndexGlobalSD)
@@ -409,6 +433,10 @@ contains
     if(order == 0) then
       call MPI_BCAST(eTotInit, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(eTotFinal, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    endif
+
+    if(order == 1) then
+      call MPI_BCAST(dq_j, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     endif
 
     call MPI_BCAST(maxGIndexGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -431,6 +459,7 @@ contains
     exportDirPC = ''
     exportDirInit = ''
     exportDirFinal = ''
+    dqFName = ''
     elementsPath = ''
     VfisOutput = ''
     capturing = ''
@@ -439,6 +468,8 @@ contains
     kf = -1
 
     order = -1
+
+    phononModeJ = -1
     
     eBin = -1.0_dp
     eCorrect = 0.0_dp
@@ -577,6 +608,26 @@ contains
     endif
 
 
+    if ( order == 1 .and. trim(dqFName) == '' ) then
+      write(iostd, *)
+      write(iostd, '(" Variable : ""dqFName"" is not defined!")')
+      write(iostd, '(" usage : dqFName = ''./dq.txt''")')
+      write(iostd, '(" This variable is mandatory for the first-order matrix element and thus the program will not be executed!")')
+      abortExecution = .true.
+    else if(order == 1) then
+      
+      inquire(file =trim(dqFName), exist = file_exists)
+      
+      if ( file_exists .eqv. .false. ) then
+        write(iostd, '(" File : ", a, " , does not exist!")') trim(dqFName)
+        write(iostd, '(" This variable is mandatory for the first-order matrix element and thus the program will not be executed!")')
+        abortExecution = .true.
+      endif
+    
+      write(iostd, '("dqFName = ''", a, "''")') trim(dqFName)
+    endif
+
+
     write(iostd, '("eCorrect = ", f8.4, " (eV)")') eCorrect
     
     eCorrect = eCorrect*eVToHartree
@@ -667,6 +718,21 @@ contains
     endif
     
 
+    if ( order == 1 .and. phononModeJ < 0 ) then
+
+      write(iostd, *)
+      write(iostd, '(" Variable : ""phononModeJ"" is not defined!")')
+      write(iostd, '(" usage : phononModeJ = 9")')
+      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+      abortExecution = .true.
+    
+    else if(order == 1) then
+
+      write(iostd, '("phononModeJ = ", i4)') phononModeJ
+
+    endif
+    
+
     if ( ( calculateVfis ) .and. ( iBandFinit /= iBandFfinal ) ) then
       write(iostd, *)
       write(iostd, '(" Vfis can be calculated only if the final state is one and only one!")')
@@ -715,6 +781,8 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine readInputPC(nKPoints, maxGIndexGlobalPC)
+
+    use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
 
@@ -795,19 +863,8 @@ contains
     
       read(50, '(a)') textDum
       read(50, '(i10)') maxGIndexGlobalPC
-    
-      read(50, '(a)') textDum     
-      read(50, * ) ! fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
-    
-      read(50, '(a)') textDum
-      read(50,  * )
-      read(50,  * )
-      read(50,  * )
-    
-      read(50, '(a)') textDum
-      read(50, * )
-      read(50, * )
-      read(50, * )
+
+      call ignoreNextNLinesFromFile(50, 10)
     
       read(50, '(a)') textDum
       read(50, '(i10)') nIonsPC
@@ -1685,6 +1742,8 @@ contains
 !----------------------------------------------------------------------------
   subroutine readProjections(crystalType, iBandinit, iBandfinal, ikGlobal, isp, nProjs, cProj)
     
+    use miscUtilities, only: ignoreNextNLinesFromFile
+    
     implicit none
 
     ! Input variables:
@@ -1722,15 +1781,9 @@ contains
         open(72, file=trim(exportDirSD)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)))
       endif
     
-      read(72, *)
-        ! Ignore the header
 
-      ! Ignore bands before initial band
-      do ib = 1, iBandinit-1
-        do ipr = 1, nProjs
-          read(72,*)
-        enddo
-      enddo
+      call ignoreNextNLinesFromFile(72, 1 + (iBandinit-1)*nProjs)
+        ! Ignore header and all bands before initial band
     
       ! Read the projections
       do ib = iBandinit, iBandfinal
@@ -2068,12 +2121,14 @@ contains
     
 
     if(order == 0) then
-    
-      text = "# Final Band, Initial Band, Delta total elec. energy (Hartree), Complex <f|i>, |<f|i>|^2, |dE*<f|i>|^2 (Hartree^2)" 
-      write(17, '(a, " Format : ''(2i10,5ES24.15E3)''")') trim(text)
 
       dETot = eTotInit - eTotFinal + eCorrect
         !! Subtract total energies and add a potential energy correction
+
+      write(17,'("# Total-energy difference (Hartree). Format: ''(a64, ES24.15E3)'' ", ES24.15E3)') dETot
+    
+      text = "# Final Band, Initial Band, Delta total elec. energy (Hartree), Complex <f|i>, |<f|i>|^2, |dE*<f|i>|^2 (Hartree^2)" 
+      write(17, '(a, " Format : ''(2i10,5ES24.15E3)''")') trim(text)
 
 
       call readEigenvalues(ikGlobal, isp)
@@ -2109,8 +2164,10 @@ contains
       enddo
 
     else if(order == 1) then
+
+      write(17,'("# Phonon mode j, dq_j (Bohr*sqrt(elec. mass)). Format: ''(a78, i7, ES24.15E3)'' ", i7, ES24.15E3)') phononModeJ, dq_j
     
-      text = "# Final Band, Initial Band, Delta eigenvalues (Hartree), Complex <f|i>, |<f|i>|^2, |dE*<f|i>|^2 (Hartree^2)" 
+      text = "# Final Band, Initial Band, Delta eigenvalues (Hartree), Complex <f|i>, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2)" 
       write(17, '(a, " Format : ''(2i10,5ES24.15E3)''")') trim(text)
 
       call readEigenvalues(ikGlobal, isp)
@@ -2126,7 +2183,7 @@ contains
             dE = eigvF(ibf) - eigvI(ibi) + eCorrect
           endif
         
-          write(17, 1001) ibf, ibi, -dE, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE*Ufi(ibf,ibi,ikLocal,isp))**2
+          write(17, 1001) ibf, ibi, -dE, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE*Ufi(ibf,ibi,ikLocal,isp)/dq_j)**2
             
         enddo
       enddo
@@ -2147,6 +2204,8 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine readEigenvalues(ikGlobal,isp)
+
+    use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
     
@@ -2171,13 +2230,9 @@ contains
     endif
 
     open(72, file=fName)
-    
-    read(72,*)
-    read(72,*)
-    
-    do ib = 1, iBandIinit - 1
-      read(72,*)
-    enddo
+
+    call ignoreNextNLinesFromFile(72, 2 + (iBandIinit-1))
+      ! Ignore header and all bands before lowest initial-state band
     
     do ib = iBandIinit, iBandIfinal
       read(72, '(ES24.15E3)') eigvI(ib)
@@ -2187,13 +2242,9 @@ contains
     
 
     open(72, file=fName)
-    
-    read(72,*)
-    read(72,*) 
-    
-    do ib = 1, iBandFinit - 1
-      read(72,*)
-    enddo
+
+    call ignoreNextNLinesFromFile(72, 2 + (iBandFinit-1))
+      ! Ignore header and all bands before lowest final-state band
     
     do ib = iBandFinit, iBandFfinal
       read(72, '(ES24.15E3)') eigvF(ib)
@@ -2205,13 +2256,9 @@ contains
     if(order == 0) then
     
       open(72, file=fName)
-    
-      read(72,*)
-      read(72,*) 
-    
-      do ib = 1, refBand-1
-        read(72,*)
-      enddo
+
+      call ignoreNextNLinesFromFile(72, 2 + (refBand-1))
+        ! Ignore header and all bands before reference band
     
       read(72, '(ES24.15E3)') refEig
     

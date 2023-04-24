@@ -863,7 +863,7 @@ module wfcExportVASPMod
     !! <h2>Walkthrough</h2>
     !!
 
-    use miscUtilities, only: getFirstLineWithKeyword
+    use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
 
     implicit none
 
@@ -982,11 +982,8 @@ module wfcExportVASPMod
 
       read(57,*) cDum, nAtoms, cDum
       read(57,*) cDum, nAtomTypes, cDum
-      read(57,*) 
-      read(57,*) 
-      read(57,*) 
-      read(57,*) 
-      read(57,*) 
+
+      call ignoreNextNLinesFromFile(57, 5)
 
       allocate(iType(nAtoms), nAtomsEachType(nAtomTypes))
 
