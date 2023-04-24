@@ -2,6 +2,8 @@
  
   poscarFName = './POSCAR'
   phononFName = './mesh.yaml'
+  prefix = './ph_POSCAR'
+  dqFName = './dq.txt'
 
   nAtoms = 514
   shift = 0.01

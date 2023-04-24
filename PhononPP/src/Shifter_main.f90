@@ -13,7 +13,7 @@ program shifterMain
 
   call mpiInitialization()
 
-  call initialize(nAtoms, shift, phononFName, poscarFName, prefix)
+  call initialize(nAtoms, shift, dqFName, phononFName, poscarFName, prefix)
     !! * Set default values for input variables and start timers
 
   if(ionode) then
@@ -26,17 +26,19 @@ program shifterMain
 
   endif
 
-  call checkInitialization(nAtoms, shift, phononFName, poscarFName, prefix)
+  call checkInitialization(nAtoms, shift, dqFName, phononFName, poscarFName, prefix)
 
   nModes = 3*nAtoms - 3
     !! * Calculate the total number of modes
 
   allocate(atomPositionsDir(3,nAtoms))
-  allocate(eigenvector(3,nAtoms,nModes))
 
   call readPOSCAR(nAtoms, poscarFName, atomPositionsDir, omega, realLattVec)
 
-  call readPhonons(nAtoms, nModes, phononFName, eigenvector)
+  allocate(eigenvector(3,nAtoms,nModes))
+  allocate(mass(nAtoms))
+
+  call readPhonons(nAtoms, nModes, phononFName, eigenvector, mass)
 
   call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
 
@@ -54,10 +56,17 @@ program shifterMain
     suffixLength = 5
   endif
 
+  if(ionode) then
+    open(60, file=dqFName)
 
-  do j = iModeStart, iModeEnd
+    write(60,'("# Norm of generalized displacement vectors after scaling Cartesoam displacement Format: ''(1i7, 1ES24.15E3)''")')
+  endif
 
-    shiftedPositions = direct2cart(nAtoms, atomPositionsDir, realLattVec) + getDisplacement(j, nAtoms, nModes, eigenvector, shift)
+!  do j = iModeStart, iModeEnd
+    do j = 1, 2
+
+    shiftedPositions = direct2cart(nAtoms, atomPositionsDir, realLattVec) + getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift)
+    !shiftedPositions = getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift)
 
     shiftedPOSCARFName = trim(prefix)//"_"//trim(int2strLeadZero(j,suffixLength))
 

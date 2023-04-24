@@ -1,6 +1,6 @@
 module shifterMod
   
-  use constants, only: dp
+  use constants, only: dp, angToBohr, daltonToElecM
   use cell
   use errorsAndMPI
   use mpi
@@ -24,11 +24,15 @@ module shifterMod
 
   real(kind=dp), allocatable :: eigenvector(:,:,:)
     !! Eigenvectors for each atom for each mode
+  real(kind=dp), allocatable :: mass(:)
+    !! Masses of atoms
   real(kind=dp) :: shift
     !! Magnitude of shift along phonon eigenvectors
   real(kind=dp), allocatable :: shiftedPositions(:,:)
     !! Positions after shift along eigenvector
 
+  character(len=300) :: dqFName
+    !! File name for generalized-coordinate norms
   character(len=300) :: phononFName
     !! File name for mesh.yaml phonon file
   character(len=300) :: poscarFName
@@ -39,13 +43,13 @@ module shifterMod
     !! File name for shifted POSCAR
 
 
-  namelist /inputParams/ poscarFName, phononFName, prefix, nAtoms, shift
+  namelist /inputParams/ poscarFName, phononFName, prefix, nAtoms, shift, dqFName
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine initialize(nAtoms, shift, phononFName, poscarFName, prefix)
+  subroutine initialize(nAtoms, shift, dqFName, phononFName, poscarFName, prefix)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -66,6 +70,8 @@ module shifterMod
     real(kind=dp), intent(out) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
+    character(len=300), intent(out) :: dqFName
+      !! File name for generalized-coordinate norms
     character(len=300), intent(out) :: phononFName
       !! File name for mesh.yaml phonon file
     character(len=300), intent(out) :: poscarFName
@@ -81,6 +87,7 @@ module shifterMod
       !! String for time
 
     nAtoms = -1
+    dqFName = 'dq.txt'
     poscarFName = 'POSCAR'
     phononFName = 'mesh.yaml'
     prefix = 'ph_POSCAR'
@@ -101,7 +108,7 @@ module shifterMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(nAtoms, shift, phononFName, poscarFName, prefix)
+  subroutine checkInitialization(nAtoms, shift, dqFName, phononFName, poscarFName, prefix)
 
     implicit none
 
@@ -112,6 +119,8 @@ module shifterMod
     real(kind=dp), intent(inout) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
+    character(len=300), intent(in) :: dqFName
+      !! File name for generalized-coordinate norms
     character(len=300), intent(in) :: phononFName
       !! File name for mesh.yaml phonon file
     character(len=300), intent(in) :: poscarFName
@@ -227,6 +236,21 @@ module shifterMod
     endif
     
     write(*, '("shift = ", f8.4, " (A)")') shift
+
+
+    if(trim(dqFName) == '' ) then
+
+      write(*,*)
+      write(*,'(" Variable : ""dqFName"" is not defined!")')
+      write(*,'(" usage : dqFName = ''./dq.txt''")')
+      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
+
+      abortExecution = .true.
+
+    endif
+    
+
+    write(*, '("dqFName = ''", a, "''")') trim(dqFName)
     
 
     if(abortExecution) then
@@ -239,7 +263,7 @@ module shifterMod
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine readPhonons(nAtoms, nModes, phononFName, eigenvector)
+  subroutine readPhonons(nAtoms, nModes, phononFName, eigenvector, mass)
 
     use miscUtilities, only: getFirstLineWithKeyword
 
@@ -257,13 +281,13 @@ module shifterMod
     ! Output variables:
     real(kind=dp), intent(out) :: eigenvector(3,nAtoms,nModes)
       !! Eigenvectors for each atom for each mode
+    real(kind=dp), intent(out) :: mass(nAtoms)
+      !! Masses of atoms
 
     ! Local variables:
     integer :: j, ia, ix
       !! Loop index
 
-    real(kind=dp) :: mass(nAtoms)
-      !! Masses of atoms
     real(kind=dp) :: qPos(3)
       !! Phonon q position
 
@@ -329,12 +353,6 @@ module shifterMod
       
     enddo
 
-    do ia = 1, nAtoms
-
-      eigenvector(:,ia,:) = eigenvector(:,ia,:)/sqrt(mass(ia))
-
-    enddo
-
     close(57)
 
     return
@@ -342,7 +360,7 @@ module shifterMod
   end subroutine readPhonons
 
 !----------------------------------------------------------------------------
-  function getDisplacement(j, nAtoms, nModes, eigenvector, shift) result(displacement)
+  function getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift) result(displacement)
 
     implicit none
 
@@ -356,6 +374,8 @@ module shifterMod
 
     real(kind=dp), intent(in) :: eigenvector(3,nAtoms,nModes)
       !! Eigenvectors for each atom for each mode
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Masses of atoms
     real(kind=dp), intent(in) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -364,26 +384,63 @@ module shifterMod
       !! Displacements for each atom for this mode
     real(kind=dp) :: eig(3)
       !! Eigenvector for single mode and atom
-    real(kind=dp) :: norm
-      !! Norm of eigenvectors scaled by mass
+    real(kind=dp) :: cartNorm
+      !! Norm of eigenvectors in Cartesian coordinates
+    real(kind=dp) :: generalizedNorm
+      !! Norm of eigenvectors in generalized coordinates
+      !! after being scaled by `shift` in Cartesian space
 
     ! Local variables:
     integer :: ia
       !! Loop indices
 
+
+    !> Convert from generalized to Cartesian coordinates
+    !> and scale displacement to 0.01 A (?) for norm of 
+    !> entire displacement vector
+    cartNorm = 0.0_dp
     do ia = 1, nAtoms
 
-      eig = eigenvector(:,ia,j)
+      eig = eigenvector(:,ia,j)/sqrt(mass(ia))
 
       displacement(:,ia) = eig*shift
 
-      norm = norm + dot_product(eig,eig)
+      cartNorm = cartNorm + dot_product(eig,eig)
 
     enddo
 
-    norm = sqrt(norm)
+    cartNorm = sqrt(cartNorm)
 
-    displacement = displacement/norm
+    displacement = displacement/cartNorm
+      !! @note
+      !!  Input positions and shift magnitude are in
+      !!  Angstrom, and the output positions are to
+      !!  POSCARs for VASP calculations, so the units
+      !!  should still be Angstrom.
+      !! @endnote
+
+    !> Convert scaled displacement back to generalized
+    !> coordinates and get norm
+    generalizedNorm = 0.0_dp
+    do ia = 1, nAtoms
+
+      eig = displacement(:,ia)*sqrt(mass(ia))
+
+      generalizedNorm = generalizedNorm + dot_product(eig,eig)
+
+    enddo
+
+    generalizedNorm = sqrt(generalizedNorm)*angToBohr*sqrt(daltonToElecM)
+      !! @note
+      !!   Input positions are in Angstrom and input
+      !!   masses are in amu, but the dq output is going
+      !!   to our code, which uses Hartree atomic units
+      !!   (Bohr and electron masses), so this value
+      !!   must have a unit conversion.
+      !! @endnote
+
+    write(60,'(1i7, 1ES24.15E3)') j, generalizedNorm
+      !! Output norm to file
 
   end function getDisplacement
 
