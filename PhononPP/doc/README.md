@@ -15,15 +15,11 @@ Input should look like
 /
 ```
 
-Run time is seconds, so you should be able to use
-```
-path-to-package/bin/Shifter.x < shifter.in
-```
-without submitting to the queue, but parallelization is also implemented in case there is a large number of modes, so you can also use
+To run, use
 ```
 aprun -n num-procs path-to-package/bin/Shifter.x < shifter.in
 ```
-in a PBS/SLURM script.
+in a PBS/SLURM script. Parallelization is implemented, but is usually not needed. Although you may be able to get away with running without submitting to the queue because the run time is in seconds, the array sizes needed are not insignificant, so it is best practice to submit it to the queue. 
 
 Output is `3*nAtoms-3` shifted POSCAR files with name `prefix_j`, where j is the mode number padded by leading zeros. 
 
