@@ -24,6 +24,47 @@ module cell
   contains
 
 !----------------------------------------------------------------------------
+  function cartDisplacementToGeneralizedNorm(nAtoms, displacement, mass) result(generalizedNorm)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+
+    real(kind=dp), intent(out) :: displacement(3,nAtoms)
+      !! Displacements for each atom for this mode
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Masses of atoms
+
+    ! Output variables:
+    real(kind=dp) :: generalizedNorm
+      !! Norm in generalized coordinates
+
+    ! Local variables:
+    integer :: ia
+      !! Loop index
+
+    real(kind=dp) :: eig(3)
+      !! Displacement vector for single atom
+
+
+    !> Convert scaled displacement back to generalized
+    !> coordinates and get norm
+    generalizedNorm = 0.0_dp
+    do ia = 1, nAtoms
+
+      eig = displacement(:,ia)*sqrt(mass(ia))
+
+      generalizedNorm = generalizedNorm + dot_product(eig,eig)
+
+    enddo
+
+    generalizedNorm = sqrt(generalizedNorm)
+
+  end function cartDisplacementToGeneralizedNorm
+
+!----------------------------------------------------------------------------
   subroutine writePOSCARNewPos(nAtoms, atomPositions, initFName, newFName, cart_)
 
     implicit none

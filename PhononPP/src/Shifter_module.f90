@@ -425,18 +425,9 @@ module shifterMod
       !!  should still be angstrom.
       !! @endnote
 
-    !> Convert scaled displacement back to generalized
-    !> coordinates and get norm
-    generalizedNorm_j = 0.0_dp
-    do ia = 1, nAtoms
-
-      eig = displacement(:,ia)*sqrt(mass(ia))
-
-      generalizedNorm_j = generalizedNorm_j + dot_product(eig,eig)
-
-    enddo
-
-    generalizedNorm_j = sqrt(generalizedNorm_j)*angToBohr*sqrt(daltonToElecM)
+    generalizedNorm_j = cartDisplacementToGeneralizedNorm(nAtoms, displacement, mass)*angToBohr*sqrt(daltonToElecM)
+      !! Convert scaled displacement back to generalized
+      !! coordinates and get norm
       !! @note
       !!   Input positions are in angstrom and input
       !!   masses are in amu, but the dq output is going
