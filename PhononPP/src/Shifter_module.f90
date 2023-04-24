@@ -22,8 +22,12 @@ module shifterMod
   integer :: suffixLength
     !! Length of shifted POSCAR file suffix
 
+  real(kind=dp), allocatable :: displacement(:,:)
+    !! Atom displacements in angstrom
   real(kind=dp), allocatable :: eigenvector(:,:,:)
     !! Eigenvectors for each atom for each mode
+  real(kind=dp), allocatable :: generalizedNorm(:)
+    !! Generalized norms after displacement
   real(kind=dp), allocatable :: mass(:)
     !! Masses of atoms
   real(kind=dp) :: shift
@@ -218,7 +222,7 @@ module shifterMod
 
     if(shift < 0.0_dp ) then
 
-      shift = 0.01_dp ! Angstrom?
+      shift = 0.01_dp ! angstrom
 
       write(*,'(" Variable : ""shift"" is less than zero!")')
       write(*,'(" usage : shift = 0.01")')
@@ -360,7 +364,7 @@ module shifterMod
   end subroutine readPhonons
 
 !----------------------------------------------------------------------------
-  function getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift) result(displacement)
+  subroutine getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift, displacement, generalizedNorm_j)
 
     implicit none
 
@@ -380,19 +384,21 @@ module shifterMod
       !! Magnitude of shift along phonon eigenvectors
 
     ! Output variables:
-    real(kind=dp) :: displacement(3,nAtoms)
+    real(kind=dp), intent(out) :: displacement(3,nAtoms)
       !! Displacements for each atom for this mode
-    real(kind=dp) :: eig(3)
-      !! Eigenvector for single mode and atom
-    real(kind=dp) :: cartNorm
-      !! Norm of eigenvectors in Cartesian coordinates
-    real(kind=dp) :: generalizedNorm
+    real(kind=dp), intent(out) :: generalizedNorm_j
       !! Norm of eigenvectors in generalized coordinates
       !! after being scaled by `shift` in Cartesian space
+      !! for a given mode j
 
     ! Local variables:
     integer :: ia
       !! Loop indices
+
+    real(kind=dp) :: eig(3)
+      !! Eigenvector for single mode and atom
+    real(kind=dp) :: cartNorm
+      !! Norm of eigenvectors in Cartesian coordinates
 
 
     !> Convert from generalized to Cartesian coordinates
@@ -414,34 +420,78 @@ module shifterMod
     displacement = displacement/cartNorm
       !! @note
       !!  Input positions and shift magnitude are in
-      !!  Angstrom, and the output positions are to
+      !!  angstrom, and the output positions are to
       !!  POSCARs for VASP calculations, so the units
-      !!  should still be Angstrom.
+      !!  should still be angstrom.
       !! @endnote
 
     !> Convert scaled displacement back to generalized
     !> coordinates and get norm
-    generalizedNorm = 0.0_dp
+    generalizedNorm_j = 0.0_dp
     do ia = 1, nAtoms
 
       eig = displacement(:,ia)*sqrt(mass(ia))
 
-      generalizedNorm = generalizedNorm + dot_product(eig,eig)
+      generalizedNorm_j = generalizedNorm_j + dot_product(eig,eig)
 
     enddo
 
-    generalizedNorm = sqrt(generalizedNorm)*angToBohr*sqrt(daltonToElecM)
+    generalizedNorm_j = sqrt(generalizedNorm_j)*angToBohr*sqrt(daltonToElecM)
       !! @note
-      !!   Input positions are in Angstrom and input
+      !!   Input positions are in angstrom and input
       !!   masses are in amu, but the dq output is going
       !!   to our code, which uses Hartree atomic units
       !!   (Bohr and electron masses), so this value
       !!   must have a unit conversion.
       !! @endnote
 
-    write(60,'(1i7, 1ES24.15E3)') j, generalizedNorm
-      !! Output norm to file
+    return
 
-  end function getDisplacement
+  end subroutine getDisplacement
+
+!----------------------------------------------------------------------------
+  subroutine writeDqs(nModes, generalizedNorm, dqFName)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(inout) :: generalizedNorm(nModes)
+      !! Generalized norms after displacement
+
+    character(len=300), intent(in) :: dqFName
+      !! File name for generalized-coordinate norms
+
+    ! Local variables:
+    integer :: j
+      !! Loop index
+
+
+    call mpiSumDoubleV(generalizedNorm, worldComm)
+      !! * Get the generalized-displacement norms
+      !!   from all processes
+
+    if(ionode) then
+
+      open(60, file=dqFName)
+
+      write(60,'("# Norm of generalized displacement vectors after scaling Cartesian displacement Format: ''(1i7, 1ES24.15E3)''")')
+
+      do j = 1, nModes
+
+        write(60,'(1i7, 1ES24.15E3)') j, generalizedNorm(j)
+          !! Output norm to file
+
+      enddo
+
+      close(60)
+
+    endif
+      
+    return
+
+  endsubroutine writeDqs
 
 end module shifterMod

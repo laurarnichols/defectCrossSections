@@ -24,9 +24,16 @@ program shifterMain
     if(ierr /= 0) call exitError('export main', 'reading inputParams namelist', abs(ierr))
       !! * Exit calculation if there's an error
 
+    call checkInitialization(nAtoms, shift, dqFName, phononFName, poscarFName, prefix)
+
   endif
 
-  call checkInitialization(nAtoms, shift, dqFName, phononFName, poscarFName, prefix)
+  call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(shift, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+  call MPI_BCAST(dqFName, len(dqFName), MPI_CHARACTER, root, worldComm, ierr)
+  call MPI_BCAST(phononFName, len(phononFName), MPI_CHARACTER, root, worldComm, ierr)
+  call MPI_BCAST(poscarFName, len(poscarFName), MPI_CHARACTER, root, worldComm, ierr)
+  call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
 
   nModes = 3*nAtoms - 3
     !! * Calculate the total number of modes
@@ -42,8 +49,6 @@ program shifterMain
 
   call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
 
-  allocate(shiftedPositions(3,nAtoms))
-
   if(nModes < 10) then
     suffixLength = 1
   else if(nModes < 100) then
@@ -56,15 +61,17 @@ program shifterMain
     suffixLength = 5
   endif
 
-  if(ionode) then
-    open(60, file=dqFName)
+  allocate(shiftedPositions(3,nAtoms))
+  allocate(displacement(3,nAtoms))
+  allocate(generalizedNorm(nModes))
 
-    write(60,'("# Norm of generalized displacement vectors after scaling Cartesoam displacement Format: ''(1i7, 1ES24.15E3)''")')
-  endif
+  generalizedNorm = 0.0_dp
 
   do j = iModeStart, iModeEnd
 
-    shiftedPositions = direct2cart(nAtoms, atomPositionsDir, realLattVec) + getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift)
+    call getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift, displacement, generalizedNorm(j))
+
+    shiftedPositions = direct2cart(nAtoms, atomPositionsDir, realLattVec) + displacement
     !shiftedPositions = getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift)
 
     shiftedPOSCARFName = trim(prefix)//"_"//trim(int2strLeadZero(j,suffixLength))
@@ -76,6 +83,11 @@ program shifterMain
   deallocate(atomPositionsDir)
   deallocate(eigenvector)
   deallocate(shiftedPositions)
+  deallocate(displacement)
+
+  call writeDqs(nModes, generalizedNorm, dqFName)
+
+  deallocate(generalizedNorm)
 
   call MPI_Barrier(worldComm, ierr)
  
