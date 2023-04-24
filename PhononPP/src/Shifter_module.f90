@@ -402,8 +402,8 @@ module shifterMod
 
 
     !> Convert from generalized to Cartesian coordinates
-    !> and scale displacement to 0.01 A (?) for norm of 
-    !> entire displacement vector
+    !> and scale displacement based on norm of entire
+    !> displacement vector
     cartNorm = 0.0_dp
     do ia = 1, nAtoms
 
