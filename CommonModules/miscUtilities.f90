@@ -85,6 +85,33 @@ module miscUtilities
     enddo
 
   end function getFirstLineWithKeyword
+
+!----------------------------------------------------------------------------
+  subroutine ignoreNextNLinesFromFile(fUnit, n)
+    !! Ignore next n lines from a file
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: fUnit
+      !! Unit for file to read from
+    integer, intent(in) :: n
+      !! Number of lines to ignore
+
+    ! Local variables:
+    integer :: iLine
+      !! Loop index
+    
+
+    do iLine = 1, n
+
+      read(fUnit,*)
+
+    enddo
+
+    return
+
+  end subroutine ignoreNextNLinesFromFile
   
 !----------------------------------------------------------------------------
   subroutine arrangeLargerToSmaller(nModes, x, s2L)

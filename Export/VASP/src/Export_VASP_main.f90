@@ -81,7 +81,7 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call read_vasprun_xml(nKPoints, VASPDir, eFermi, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
+  call read_vasprun_xml(nKPoints, VASPDir, eFermi, eTot, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
   allocate(atomPositionsDir(3,nAtoms))
@@ -243,7 +243,7 @@ program wfcExportVASPMain
   endif
 
 
-  call writeEigenvalues(nBands, nKPoints, nSpins, eFermi, bandOccupation, eigenE)
+  call writeEigenvalues(nBands, nKPoints, nSpins, eFermi, eTot, bandOccupation, eigenE)
     !! * Write Fermi energy and eigenvalues and occupations for each band
 
 

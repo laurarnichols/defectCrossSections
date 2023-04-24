@@ -1,43 +1,101 @@
-# TME Module
-## Directory Structure and Files
+# Transition matrix element (`TME`)
+
+The `TME` program outputs matrix elements for a range of initial and final band states using all-electron overlaps from the PAW method and the appropriate energy difference to get the correct matrix element. The `Export` code must be run on all VASP calculations before `TME` can be run. The code assumes that the WZP method is used, where carriers are excited to achieve desired charge states rather than adding/removing electrons using the jellium method. 
+
+The code also assumes that all atom types in the `PC` system are also in the `SD` system in the same order and that any atoms in the SD system not in the PC system are at the end.
+
+Output files are 
+* `allElecOverlap.isp.ik` -- for each band in range and a given spin and k-point: initial and final band, energy difference, all-electron overlaps, and matrix elements
+* `output` -- information about input variables
+* `VfisVsEofKpt`/`VfisVsE` -- optional k-binned matrix elements
+* stdout -- timing information and status updates
+
+## Zeroth-order
+
+The zeroth-order term has a single matrix element that is shown in the GaN paper to be $$M_{\text{e}}^{\text{BO}} = \langle \phi_f | \psi_i^0 \rangle (E_f - E_i),$$ where $E_f - E_i$ is the total electronic energy difference of the defect crystal before and after capture and $|\phi_f\rangle$ and $|\psi_i^0\rangle$ are the single-quasiparticle orbitals of the final defect state and the perfect-crystal initial state, respectively. 
+
+For capture, you must do two separate total-energy calculations for the different defect charge states because the system will relax. The position of the carrier to be captured in the excited-state total-energy calculation is the reference position. You must be clear on where your WZP reference carrier is for the energy difference to be correct. For example, if you consider the $0/-$ transition in $\text{Si}_{\text{V}}\text{H}_3$, your initial state should really have an electron in the conduction band and a hole in the valence band or a donor. However, when using a hole as the compensating charge rather than a donor, the wave functions will not be significantly changed by moving the delocalized electron from the conduction band to the valence band. However, the energy must be adjusted based on the different positions of your reference carrier. 
+
+The `TME` input file for the zeroth-order term should look like
+```f90
+&TME_Input
+  ! Which order of matrix element to calculate
+  order = 0
+  
+  ! Parameters for change in energy
+  capturing = 'elec' or 'hole'					! what kind of carrier is being captured
+  eCorrect = real						! size of energy correction in eV; default 0.0
+  refBand = integer						! band location of reference carrier
+  
+  ! Systems used for overlaps
+  exportDirSD = 'path-to-final-charge-state-initial-positions-export'
+  exportDirPC = 'path-to-perfect-crystal-export'
+  
+  ! Band range for overlaps
+  iBandIinit = integer						! lowest initial-state band
+  iBandIfinal = integer						! highest initial-state band
+  iBandFinit = integer						! lowest final-state band
+  iBandFfinal = integer						! highest final-state band
+    ! Note: code logic only currently tested for single final band state (iBandFinit = iBandFfinal)
+  
+  
+  ! Systems used for total energy difference (only for order = 0)
+  exportDirInit = 'path-to-relaxed-initial-charge-state-export'
+  exportDirFinal = 'path-to-relaxed-final-charge-state-export'
+  
+  ! Output info
+  elementsPath = 'path-to-store-overlap-files' 			! default './TMEs'
+  calculateVfis = .true. or .false.				! if k-binned overlaps should be calculated and output; default .false.
+  eBin = real							! size of energy bin if used
+  VfisOutput = 'path-to-write-k-binned-overlaps' 		! default './VfisVsE'
+/
 ```
-TME
-|	README.md
-|-------DOC
-|	|	TME_Input.in
-|-------src
-	|	Makefile
-	|	TME_Main_v9.f90
-	|	TME_Module_v28.f90
-```
-
-## How to Run
-* Ensure that the executables are up to date by going to the main folder and running `make TME`
-* Make sure that you have already run [`Export_QE-5.3.0.x`](../QE-dependent/QE-5.3.0/Export/README.md)
-* Run the program and send the contents of the `TME_Input.in` file in as input (e.g., `./bin/TME.x < ExampleRun/TME/input/TME_Input.in`)
-
-## Inputs
-* `TME_Input.in`
-	* `exportDirSD` (string) -- directs the program to the output directory for the solid defect crystal (from `Export` program)
-	* `exportDirPC` (string) -- directs the program to the output directory for the perfect crystal (from `Export` program)
-	* `elementsPath` (string) -- path to store outputs (matrix elements)
-	* `iBandIinit` (integer) -- initial state (perfect crystal) initial band
-	* `iBandIfinal` (integer) -- initial state (perfect crystal) final band
-	* `iBandFinit` (integer) -- final state (solid defect) initial band
-	* `iBandFfinal` (integer) -- final state (solid defect) final band
-	* `ki` (integer) -- initial k-point
-	* `kf` (integer) -- final k-point
-	_Note: if `ki` and `kf` are not set, all k-points will be calculated_
-
-	* `calculateVfis` (boolean) -- set to true if there is an incoming electron that will be captured in the system (_Note: The whole function is outputting energy differences and values for Delta H_if as if for plotting, so I'm not sure what that has to do with an incoming electron_)
-	* `eBin` (real) -- size of energy bin used in `calculateVfiElements`
-	
 _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of the file. They represent a namelist and fortran will not recognize the group of variables without this specific format_
 
-* `exportDirSD`/`exportDirPC` -- See `Export` program
+## First-order
 
-## Outputs 
+The first-order term has a matrix element for each mode: $$M_j = \frac{\varepsilon_i - \varepsilon_f}{\delta q_j} \langle \phi_f^j | \phi_i\rangle,$$ where $\varepsilon_i - \varepsilon_f$ is the eigenvalue energy difference between the initial and final band states and $|\phi_f^j\rangle$ is the final-state defect orbital after displacing the atoms along the phonon directions by a small $\delta q_j$. The formalism assumes that the phonon modes are the same in the initial and final electronic states, so it doesn't matter which electronic state is used as long as the same charge state is used for both input wave functions and the atoms are in the initial positions. In practice, the ground state is usually simplest and fastest.
 
-* `output` -- gives status update along the way along with times taken at some steps
-* `TMEs_kptI_*_kptF_*` -- matrix elements for a given k point
-* `VfisVsEofKpt`/`VfisVsE` -- energy differences and values for Delta H_if as if for plotting; I'm not really sure what the purpose of this is
+The `TME` input file for the first-order term should look like
+```f90
+&TME_Input
+  ! Which order of matrix element to calculate
+  order = 1
+  
+  ! Parameters for change in energy
+  capturing = 'elec' or 'hole'		! what kind of carrier is being captured
+  eCorrect = real						      ! size of energy correction in eV; default 0.0
+  refBand = integer						    ! band location of reference carrier
+  
+  ! Systems used for overlaps
+  exportDirSD = 'path-to-displaced-defect-export'
+  exportDirPC = 'path-to-undisplaced-defect-export'
+  
+  ! Band range for overlaps
+  iBandIinit = integer						! lowest initial-state band
+  iBandIfinal = integer						! highest initial-state band
+  iBandFinit = integer						! lowest final-state band
+  iBandFfinal = integer						! highest final-state band
+    ! Note: code logic only currently tested for single final band state (iBandFinit = iBandFfinal)
+
+  ! Parameters to get dq_j
+  dqFName = 'path-to-dq-file-from-shifter'
+  phononModeJ = integer           ! phonon-mode index
+  
+  ! Output info
+  elementsPath = 'path-to-store-overlap-files' 			! default './TMEs'
+  calculateVfis = .true. or .false.				! if k-binned overlaps should be calculated and output; default .false.
+  eBin = real							! size of energy bin if used
+  VfisOutput = 'path-to-write-k-binned-overlaps' 		! default './VfisVsE'
+/
+```
+_Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of the file. They represent a namelist and fortran will not recognize the group of variables without this specific format_
+
+## Running and parallelization
+
+To run the code, use something like 
+```bash
+aprun -n num-procs path-to-package/bin/TME.x -nk num-k-pools < TME.in > TME.out
+```
+
+All processors get divided into k-point pools, then plane waves get divided over the processes in each pool. There must be the same number of processes per pool, so `num-procs` must be evenly divisible by `num-k-pools`. The k-points, $G$ vectors, and $G+k$ vectors are split up sequentially (i.e., k-points get assigned to pool 1 first then pool 2, etc.). 

@@ -36,12 +36,22 @@ module declarations
 
 
   ! Variables that should be passed as arguments:
+  real(kind=dp) :: dq_j
+    !! \(\delta q_j) for displaced wave functions
+    !! (only order = 1)
+  real(kind=dp) :: eCorrect
+    !! Potential energy correction to account for
+    !! band-gap underestimation
+  real(kind=dp) :: eTotInit, eTotFinal
+    !! Initial and final total energies
   real(kind=dp), allocatable :: gCart(:,:)
     !! G-vectors in Cartesian coordinates
   real(kind=dp) :: realLattVec(3,3)
     !! Real space lattice vectors
   real(kind=dp) :: recipLattVec(3,3)
     !! Reciprocal lattice vectors
+  real(kind=dp) :: refEig
+    !! Reference eigenvalue (see `refBand`)
   real(kind = dp) :: t1, t2
     !! For timing different processes
 
@@ -63,6 +73,14 @@ module declarations
     !! Max number of spins for both systems
   integer :: nSpinsPC, nSpinsSD
     !! Number of spins for PC/SD system
+  integer :: order
+    !! Order of matrix element (0 or 1)
+  integer :: phononModeJ
+    !! Index of phonon mode for the calculation
+    !! of \(M_j\) (only for order=1)
+  integer :: refBand
+    !! Reference band for carrier (usually
+    !! CBM for electrons and VBM for holes)
 
   complex(kind=dp), allocatable :: betaPC(:,:), betaSD(:,:)
     !! Projectors
@@ -73,8 +91,21 @@ module declarations
   complex(kind=dp), allocatable :: Ylm(:,:)
     !! Spherical harmonics
   
+  character(len=4) :: capturing
+    !! What carrier is being captured
+    !! (`hole` or `elec`)
+  character(len=300) :: dqFName
+    !! File name for generalized-coordinate norms
+  character(len=300) :: exportDirSD, exportDirPC
+    !! Paths to exports for SD (left) and PC (right) 
+    !! systems to use for wave function overlaps <SD|PC>
+  character(len=300) :: exportDirInit, exportDirFinal
+    !! Path to exports for initial and final relaxed
+    !! charge states of the defect (used for total 
+    !! energy difference)
 
-  character(len = 200) :: exportDirSD, exportDirPC, VfisOutput
+
+  character(len = 200) :: VfisOutput
   character(len = 300) :: input, inputPC, textDum, elementsPath
   character(len = 320) :: mkdir
   
@@ -129,9 +160,10 @@ module declarations
   
   logical :: gamma_only, master, calculateVfis, coulomb, tmes_file_exists
   
-  NAMELIST /TME_Input/ exportDirSD, exportDirPC, elementsPath, &
-                       iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
-                       ki, kf, calculateVfis, VfisOutput, eBin
+  NAMELIST /TME_Input/ exportDirSD, exportDirPC, exportDirFinal, exportDirInit, &
+                       elementsPath, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
+                       ki, kf, calculateVfis, VfisOutput, eBin, order, eCorrect, refBand, &
+                       capturing, dqFName, phononModeJ
   
   
 contains
@@ -279,6 +311,8 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
+
+    use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
     
     implicit none
 
@@ -297,6 +331,8 @@ contains
       !! Reciprocal lattice vectors
 
     ! Local variables:    
+    integer :: iDum
+      !! Dummy integer to ignore file input
     integer :: maxGIndexGlobalPC
       !! Maximum G-vector index among all \(G+k\)
       !! and processors for PC
@@ -305,6 +341,9 @@ contains
       !! and processors for SD
 
     logical :: file_exists
+
+    character(len=300) :: line
+      !! Line from file
     
     
     if(ionode) then
@@ -334,13 +373,22 @@ contains
     call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(refBand, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    call MPI_BCAST(phononModeJ, 1, MPI_INTEGER, root, worldComm, ierr)
 
     call MPI_BCAST(calculateVfis, 1, MPI_LOGICAL, root, worldComm, ierr)
 
     call MPI_BCAST(eBin, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(eCorrect, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call MPI_BCAST(exportDirSD, len(exportDirSD), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(exportDirPC, len(exportDirPC), MPI_CHARACTER, root, worldComm, ierr)
+
+    call MPI_BCAST(capturing, len(capturing), MPI_CHARACTER, root, worldComm, ierr)
+
     call MPI_BCAST(elementsPath, len(elementsPath), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(VfisOutput, len(exportDirSD), MPI_CHARACTER, root, worldComm, ierr)
 
@@ -349,11 +397,46 @@ contains
     
     if(ionode) then
 
+      if(order == 0) then
+
+        open(30,file=trim(exportDirInit)//'/input')
+        line = getFirstLineWithKeyword(30, 'Total Energy')
+        read(30,*) eTotInit
+        close(30)
+          !! Get the total energy of the initial configuration
+
+        open(30,file=trim(exportDirFinal)//'/input')
+        line = getFirstLineWithKeyword(30, 'Total Energy')
+        read(30,*) eTotFinal
+        close(30)
+          !! Get the total energy of the final configuration
+
+      endif
+      
+      if(order == 1) then
+
+        open(30,file=trim(dqFName))
+        call ignoreNextNLinesFromFile(30, 1+phononModeJ-1)
+          ! Ignore header and all modes before phononModeJ
+        read(30,*) iDum, dq_j
+        close(30)
+
+      endif
+
       maxGIndexGlobal = max(maxGIndexGlobalPC, maxGIndexGlobalSD)
 
       if(maxGIndexGlobal > nGVecsGlobal) call exitError('readInput', &
           'Trying to reference G vecs outside of max grid size. Try switching which grid is read.', 1)
 
+    endif
+
+    if(order == 0) then
+      call MPI_BCAST(eTotInit, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(eTotFinal, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    endif
+
+    if(order == 1) then
+      call MPI_BCAST(dq_j, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     endif
 
     call MPI_BCAST(maxGIndexGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -374,18 +457,28 @@ contains
 
     exportDirSD = ''
     exportDirPC = ''
+    exportDirInit = ''
+    exportDirFinal = ''
+    dqFName = ''
     elementsPath = ''
     VfisOutput = ''
+    capturing = ''
     
     ki = -1
     kf = -1
+
+    order = -1
+
+    phononModeJ = -1
     
     eBin = -1.0_dp
+    eCorrect = 0.0_dp
     
     iBandIinit  = -1
     iBandIfinal = -1
     iBandFinit  = -1
     iBandFfinal = -1
+    refBand = -1
     
     calculateVfis = .false.
     
@@ -398,6 +491,7 @@ contains
     
     implicit none
     
+    character(len=300) :: inputFName
     logical :: file_exists, abortExecution
     
     abortExecution = .false.
@@ -425,6 +519,7 @@ contains
     
     write(iostd, '("exportDirSD = ''", a, "''")') trim(exportDirSD)
     
+
     if ( trim(exportDirPC) == '' ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""exportDirPC"" is not defined!")')
@@ -446,6 +541,98 @@ contains
     
     write(iostd, '("exportDirPC = ''", a, "''")') trim(exportDirPC)
     
+
+    if ( trim(capturing) == '' .or. (trim(capturing) /= 'hole' .and. trim(capturing) /= 'elec')) then
+      write(iostd, *)
+      write(iostd, '(" Variable : ""capturing"" is not defined or is invalid!")')
+      write(iostd, '(" usage : capturing = ''elec'' or ''hole''")')
+      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+      abortExecution = .true.
+    endif
+    
+    write(iostd, '("capturing = ''", a, "''")') trim(capturing)
+
+
+    if ( order < 0 .or. order > 1) then
+      write(iostd, *)
+      write(iostd, '(" Variable : ""order"" should be 0 or 1!")')
+      write(iostd, '(" usage : order = 0")')
+      write(iostd, '(" The default value 0 will be used.")')
+      order = 0
+    endif
+    
+    write(iostd, '("order = ", i2)') order
+
+
+    if ( order == 0 .and. trim(exportDirInit) == '' ) then
+      write(iostd, *)
+      write(iostd, '(" Variable : ""exportDirInit"" is not defined!")')
+      write(iostd, '(" usage : exportDirInit = ''./Export/''")')
+      write(iostd, '(" This variable is mandatory for the zeroth-order matrix element and thus the program will not be executed!")')
+      abortExecution = .true.
+    else if(order == 0) then
+      inputFName = trim(trim(exportDirInit)//'/input')
+      
+      inquire(file =trim(inputFName), exist = file_exists)
+      
+      if ( file_exists .eqv. .false. ) then
+        write(iostd, '(" File : ", a, " , does not exist!")') trim(inputFName)
+        write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirInit)
+        write(iostd, '(" This variable is mandatory for the zeroth-order matrix element and thus the program will not be executed!")')
+        abortExecution = .true.
+      endif
+    
+      write(iostd, '("exportDirInit = ''", a, "''")') trim(exportDirInit)
+    endif
+
+
+    if ( order == 0 .and. trim(exportDirFinal) == '' ) then
+      write(iostd, *)
+      write(iostd, '(" Variable : ""exportDirFinal"" is not defined!")')
+      write(iostd, '(" usage : exportDirFinal = ''./Export/''")')
+      write(iostd, '(" This variable is mandatory for the zeroth-order matrix element and thus the program will not be executed!")')
+      abortExecution = .true.
+    else if(order == 0) then
+      inputFName = trim(trim(exportDirFinal)//'/input')
+      
+      inquire(file =trim(inputFName), exist = file_exists)
+      
+      if ( file_exists .eqv. .false. ) then
+        write(iostd, '(" File : ", a, " , does not exist!")') trim(inputFName)
+        write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirFinal)
+        write(iostd, '(" This variable is mandatory for the zeroth-order matrix element and thus the program will not be executed!")')
+        abortExecution = .true.
+      endif
+    
+      write(iostd, '("exportDirFinal = ''", a, "''")') trim(exportDirFinal)
+    endif
+
+
+    if ( order == 1 .and. trim(dqFName) == '' ) then
+      write(iostd, *)
+      write(iostd, '(" Variable : ""dqFName"" is not defined!")')
+      write(iostd, '(" usage : dqFName = ''./dq.txt''")')
+      write(iostd, '(" This variable is mandatory for the first-order matrix element and thus the program will not be executed!")')
+      abortExecution = .true.
+    else if(order == 1) then
+      
+      inquire(file =trim(dqFName), exist = file_exists)
+      
+      if ( file_exists .eqv. .false. ) then
+        write(iostd, '(" File : ", a, " , does not exist!")') trim(dqFName)
+        write(iostd, '(" This variable is mandatory for the first-order matrix element and thus the program will not be executed!")')
+        abortExecution = .true.
+      endif
+    
+      write(iostd, '("dqFName = ''", a, "''")') trim(dqFName)
+    endif
+
+
+    write(iostd, '("eCorrect = ", f8.4, " (eV)")') eCorrect
+    
+    eCorrect = eCorrect*eVToHartree
+
+
     if ( trim(elementsPath) == '' ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""elementsPath"" is not defined!")')
@@ -471,6 +658,7 @@ contains
     
     write(iostd, '("elementsPath = ''", a, "''")') trim(elementsPath)
     
+
     if ( iBandIinit < 0 ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandIinit"" is not defined!")')
@@ -481,6 +669,7 @@ contains
     
     write(iostd, '("iBandIinit = ", i4)') iBandIinit
     
+
     if ( iBandIfinal < 0 ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandIfinal"" is not defined!")')
@@ -491,6 +680,7 @@ contains
     
     write(iostd, '("iBandIfinal = ", i4)') iBandIfinal
     
+
     if ( iBandFinit < 0 ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandFinit"" is not defined!")')
@@ -501,6 +691,7 @@ contains
     
     write(iostd, '("iBandFinit = ", i4)') iBandFinit
     
+
     if ( iBandFfinal < 0 ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""iBandFfinal"" is not defined!")')
@@ -511,6 +702,37 @@ contains
     
     write(iostd, '("iBandFfinal = ", i4)') iBandFfinal
     
+
+    if ( order == 0 .and. refBand < 0 ) then
+
+      write(iostd, *)
+      write(iostd, '(" Variable : ""refBand"" is not defined!")')
+      write(iostd, '(" usage : refBand = 9")')
+      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+      abortExecution = .true.
+    
+    else if(order == 0) then
+
+      write(iostd, '("refBand = ", i4)') refBand
+
+    endif
+    
+
+    if ( order == 1 .and. phononModeJ < 0 ) then
+
+      write(iostd, *)
+      write(iostd, '(" Variable : ""phononModeJ"" is not defined!")')
+      write(iostd, '(" usage : phononModeJ = 9")')
+      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+      abortExecution = .true.
+    
+    else if(order == 1) then
+
+      write(iostd, '("phononModeJ = ", i4)') phononModeJ
+
+    endif
+    
+
     if ( ( calculateVfis ) .and. ( iBandFinit /= iBandFfinal ) ) then
       write(iostd, *)
       write(iostd, '(" Vfis can be calculated only if the final state is one and only one!")')
@@ -522,6 +744,7 @@ contains
     
     write(iostd, '("calculateVfis = ", l )') calculateVfis
     
+
     if ( trim(VfisOutput) == '' ) then
       write(iostd, *)
       write(iostd, '(" Variable : ""VfisOutput"" is not defined!")')
@@ -532,6 +755,7 @@ contains
     
     write(iostd, '("VfisOutput = ''", a, "''")') trim(VfisOutput)
     
+
     if ( eBin < 0.0_dp ) then
       eBin = 0.01_dp ! eV
       write(iostd,'(" Variable : ""eBin"" is not defined!")')
@@ -543,6 +767,7 @@ contains
     
     eBin = eBin*eVToHartree
     
+
     if ( abortExecution ) then
       write(iostd, '(" Program stops!")')
       stop
@@ -556,6 +781,8 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine readInputPC(nKPoints, maxGIndexGlobalPC)
+
+    use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
 
@@ -636,19 +863,8 @@ contains
     
       read(50, '(a)') textDum
       read(50, '(i10)') maxGIndexGlobalPC
-    
-      read(50, '(a)') textDum     
-      read(50, * ) ! fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
-    
-      read(50, '(a)') textDum
-      read(50,  * )
-      read(50,  * )
-      read(50,  * )
-    
-      read(50, '(a)') textDum
-      read(50, * )
-      read(50, * )
-      read(50, * )
+
+      call ignoreNextNLinesFromFile(50, 10)
     
       read(50, '(a)') textDum
       read(50, '(i10)') nIonsPC
@@ -1526,6 +1742,8 @@ contains
 !----------------------------------------------------------------------------
   subroutine readProjections(crystalType, iBandinit, iBandfinal, ikGlobal, isp, nProjs, cProj)
     
+    use miscUtilities, only: ignoreNextNLinesFromFile
+    
     implicit none
 
     ! Input variables:
@@ -1563,15 +1781,9 @@ contains
         open(72, file=trim(exportDirSD)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)))
       endif
     
-      read(72, *)
-        ! Ignore the header
 
-      ! Ignore bands before initial band
-      do ib = 1, iBandinit-1
-        do ipr = 1, nProjs
-          read(72,*)
-        enddo
-      enddo
+      call ignoreNextNLinesFromFile(72, 1 + (iBandinit-1)*nProjs)
+        ! Ignore header and all bands before initial band
     
       ! Read the projections
       do ib = iBandinit, iBandfinal
@@ -1873,20 +2085,27 @@ contains
       !! Current spin channel
 
     ! Local variables:
+    integer :: ibi, ibf
+      !! Loop indices
     integer :: ikGlobal
       !! Current global k-point
-    
-    integer :: ibi, ibf, totalNumberOfElements
-    real(kind = dp) :: t1, t2
+    integer :: totalNumberOfElements
+      !! Total number of overlaps to output
+
+    real(kind=dp) :: dE
+      !! Energy difference to be output
+    real(kind=dp) :: dETot
+      !! Total energy difference
+    real(kind=dp) :: t1, t2
+      !! Timers
     
     character(len = 300) :: text
+      !! Text for header
 
 
     ikGlobal = ikLocal+ikStart_pool-1
     
     call cpu_time(t1)
-    
-    call readEigenvalues(ikGlobal, isp)
     
     write(*, '(" Writing Ufi(:,:) of k-point ", i2, " and spin ", i1, ".")') ikGlobal, isp
     
@@ -1894,21 +2113,82 @@ contains
     
     write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
     
-    text = "# Total number of <f|U|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
+    text = "# Total number of <f|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
     write(17,'(a, " Format : ''(5i10)''")') trim(text)
     
     totalNumberOfElements = (iBandIfinal - iBandIinit + 1)*(iBandFfinal - iBandFinit + 1)
     write(17,'(5i10)') totalNumberOfElements, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
     
-    write(17, '("# Final Band, Initial Band, Delta energy, Complex <f|U|i>, |<f|U|i>|^2 Format : ''(2i10,4ES24.15E3)''")')
+
+    if(order == 0) then
+
+      dETot = eTotInit - eTotFinal + eCorrect
+        !! Subtract total energies and add a potential energy correction
+
+      write(17,'("# Total-energy difference (Hartree). Format: ''(a64, ES24.15E3)'' ", ES24.15E3)') dETot
     
-    do ibf = iBandFinit, iBandFfinal
-      do ibi = iBandIinit, iBandIfinal
+      text = "# Final Band, Initial Band, Delta total elec. energy (Hartree), Complex <f|i>, |<f|i>|^2, |dE*<f|i>|^2 (Hartree^2)" 
+      write(17, '(a, " Format : ''(2i10,5ES24.15E3)''")') trim(text)
+
+
+      call readEigenvalues(ikGlobal, isp)
+
+      do ibf = iBandFinit, iBandFfinal
+        do ibi = iBandIinit, iBandIfinal
+
+          !> @note
+          !>  In electron capture, more energy gets released as the electron
+          !>  gets higher in the conduction band. In hole capture, more
+          !>  energy gets release as the hole gets lower in the conduction
+          !>  band. But higher bands are always higher in energy, so the 
+          !>  order of subtracting the reference eigenvalue must be switched
+          !>  to capture the positive distance between the reference band
+          !>  and the carrier band.
+          !> @endnote
+          if(trim(capturing) == 'elec') then
+            dE = dETot + eigvI(ibi) - refEig
+          else if(trim(capturing) == 'hole') then
+            dE = dETot + refEig - eigvI(ibi)
+          endif
         
-        write(17, 1001) ibf, ibi, eigvI(ibi) - eigvF(ibf), Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2
+          write(17, 1001) ibf, ibi, -dE, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE*Ufi(ibf,ibi,ikLocal,isp))**2
+            !! @note
+            !!  Change in energy is defined as the negative of the
+            !!  energy the carrier releases so that including the
+            !!  energy correction is more straightforward and the
+            !!  change in energy can be directly plugged into the
+            !!  delta function.
+            !! @endnote
             
+        enddo
       enddo
-    enddo
+
+    else if(order == 1) then
+
+      write(17,'("# Phonon mode j, dq_j (Bohr*sqrt(elec. mass)). Format: ''(a78, i7, ES24.15E3)'' ", i7, ES24.15E3)') phononModeJ, dq_j
+    
+      text = "# Final Band, Initial Band, Delta eigenvalues (Hartree), Complex <f|i>, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2)" 
+      write(17, '(a, " Format : ''(2i10,5ES24.15E3)''")') trim(text)
+
+      call readEigenvalues(ikGlobal, isp)
+
+      do ibf = iBandFinit, iBandFfinal
+        do ibi = iBandIinit, iBandIfinal
+
+          ! See note under order == 0 for why energies 
+          ! have to be switched
+          if(trim(capturing) == 'elec') then
+            dE = eigvI(ibi) - eigvF(ibf) + eCorrect
+          else if(trim(capturing) == 'hole') then
+            dE = eigvF(ibf) - eigvI(ibi) + eCorrect
+          endif
+        
+          write(17, 1001) ibf, ibi, -dE, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE*Ufi(ibf,ibi,ikLocal,isp)/dq_j)**2
+            
+        enddo
+      enddo
+
+    endif
     
     close(17)
     
@@ -1916,7 +2196,7 @@ contains
     write(*, '(" Writing Ufi(:,:) of k-point ", i4, "and spin ", i1, " done in:                   ", f10.2, " secs.")') &
       ikGlobal, isp, t2-t1
     
- 1001 format(2i10,4ES24.15E3)
+ 1001 format(2i7,5ES24.15E3)
     
     return
     
@@ -1924,6 +2204,8 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine readEigenvalues(ikGlobal,isp)
+
+    use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
     
@@ -1937,15 +2219,20 @@ contains
     integer :: ib
       !! Loop index
 
+    character(len=300) :: fName
+      !! File name
+
     
-    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(int2str(min(isp,nSpinsSD)))//"."//trim(int2str(ikGlobal)))
-    
-    read(72, * )
-    read(72, * )
-    
-    do ib = 1, iBandIinit - 1
-      read(72, *)
-    enddo
+    if(order == 0) then
+      fName = trim(exportDirInit)//"/eigenvalues."//trim(int2str(min(isp,nSpinsSD)))//"."//trim(int2str(ikGlobal))
+    else if(order == 1) then
+      fName = trim(exportDirSD)//"/eigenvalues."//trim(int2str(min(isp,nSpinsSD)))//"."//trim(int2str(ikGlobal))
+    endif
+
+    open(72, file=fName)
+
+    call ignoreNextNLinesFromFile(72, 2 + (iBandIinit-1))
+      ! Ignore header and all bands before lowest initial-state band
     
     do ib = iBandIinit, iBandIfinal
       read(72, '(ES24.15E3)') eigvI(ib)
@@ -1953,20 +2240,31 @@ contains
     
     close(72)
     
-    open(72, file=trim(exportDirSD)//"/eigenvalues."//trim(int2str(min(isp,nSpinsSD)))//"."//trim(int2str(ikGlobal)))
-    
-    read(72, * )
-    read(72, * ) 
-    
-    do ib = 1, iBandFinit - 1
-      read(72, *)
-    enddo
+
+    open(72, file=fName)
+
+    call ignoreNextNLinesFromFile(72, 2 + (iBandFinit-1))
+      ! Ignore header and all bands before lowest final-state band
     
     do ib = iBandFinit, iBandFfinal
       read(72, '(ES24.15E3)') eigvF(ib)
     enddo
     
     close(72)
+
+
+    if(order == 0) then
+    
+      open(72, file=fName)
+
+      call ignoreNextNLinesFromFile(72, 2 + (refBand-1))
+        ! Ignore header and all bands before reference band
+    
+      read(72, '(ES24.15E3)') refEig
+    
+      close(72)
+
+    endif
     
     return
     

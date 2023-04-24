@@ -10,6 +10,7 @@ Input should look like
   poscarFName = 'path-to-input-poscar'               ! Default: './POSCAR'
   phononFName = 'path-to-phonopy-output-yaml-file'   ! Default: './mesh.yaml'
   prefix = 'prefix-for-shifted-poscars'              ! Default: './ph_POSCAR'
+  dqFName = 'file-to-output-generalized-coord-norms' ! Default: './dq.txt'
   nAtoms = n-atoms                                   ! Integer
   shift = shift-magnitude                            ! Real (Angstrom), default 0.01 A
 /
