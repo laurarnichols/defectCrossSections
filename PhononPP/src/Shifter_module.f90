@@ -492,6 +492,6 @@ module shifterMod
       
     return
 
-  endsubroutine writeDqs
+  end subroutine writeDqs
 
 end module shifterMod
