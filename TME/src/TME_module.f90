@@ -6,12 +6,6 @@ module declarations
   
   implicit none
 
-  ! Parameters:
-  integer, parameter :: iostd = 16
-  
-  character(len = 6), parameter :: output = 'output'
-
-
   ! Global variables not passed as arguments:
   integer :: iGkStart_poolPC, iGkEnd_poolPC, iGkStart_poolSD, iGkEnd_poolSD
     !! Start and end G+k vector for process in pool
@@ -340,30 +334,15 @@ contains
       !! Maximum G-vector index among all \(G+k\)
       !! and processors for SD
 
-    logical :: file_exists
-
     character(len=300) :: line
       !! Line from file
     
-    
-    if(ionode) then
-      !> Check if file output exists. If it does, delete it.
-      inquire(file = output, exist = file_exists)
-      if ( file_exists ) then
-        open (unit = 11, file = output, status = "old")
-        close(unit = 11, status = "delete")
-      endif
-    
-      open(iostd, file = output)
-        !! Open new output file.
-
-    endif
 
     if(ionode) then
     
       call initialize()
     
-      READ(5, TME_Input, iostat = ios)
+      read(5, TME_Input, iostat=ios)
     
       call checkInitialization()
 
@@ -460,7 +439,7 @@ contains
     exportDirInit = ''
     exportDirFinal = ''
     dqFName = ''
-    elementsPath = ''
+    elementsPath = './TMEs'
     VfisOutput = ''
     capturing = ''
     
@@ -471,7 +450,7 @@ contains
 
     phononModeJ = -1
     
-    eBin = -1.0_dp
+    eBin = 0.01_dp
     eCorrect = 0.0_dp
     
     iBandIinit  = -1
@@ -491,289 +470,67 @@ contains
     
     implicit none
     
-    character(len=300) :: inputFName
-    logical :: file_exists, abortExecution
+    ! Local variables
+    logical :: abortExecution
+      !! If program should stop
     
-    abortExecution = .false.
     
-    write(iostd, '(" Inputs : ")')
+    write(*,'("Inputs: ")')
     
-    if ( trim(exportDirSD) == '' ) then
-      write(iostd, *)
-      write(iostd, '(" Variable : ""exportDirSD"" is not defined!")')
-      write(iostd, '(" usage : exportDirSD = ''./Export/''")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
-    else
-      input = trim(trim(exportDirSD)//'/input')
-      
-      inquire(file =trim(input), exist = file_exists)
-      
-      if ( file_exists .eqv. .false. ) then
-        write(iostd, '(" File : ", a, " , does not exist!")') trim(input)
-        write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirSD)
-        write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-        abortExecution = .true.
-      endif
-    endif
-    
-    write(iostd, '("exportDirSD = ''", a, "''")') trim(exportDirSD)
-    
+    abortExecution = checkDirInitialization('exportDirSD', exportDirSD, 'input')
+    abortExecution = checkDirInitialization('exportDirPC', exportDirPC, 'input') .or. abortExecution
+    abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution
+    abortExecution = (order == 0 .and. checkDirInitialization('exportDirInit', exportDirInit, 'input')) .or. abortExecution
+    abortExecution = (order == 0 .and. checkDirInitialization('exportDirFinal', exportDirFinal, 'input')) .or. abortExecution
+    abortExecution = (order == 0 .and. checkIntInitialization('refBand', refBand, 1, int(1e10))) .or. abortExecution
+    abortExecution = (order == 1 .and. checkFileInitialization('dqFName', dqFName)) .or. abortExecution
+    abortExecution = (order == 1 .and. checkIntInitialization('phononModeJ', phononModeJ, 1, int(1e10))) .or. abortExecution
+    abortExecution = checkStringInitialization('elementsPath', elementsPath) .or. abortExecution
+    abortExecution = checkIntInitialization('iBandIinit', iBandIinit, 1, int(1e10)) .or. abortExecution
+    abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e10)) .or. abortExecution
+    abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e10)) .or. abortExecution
+    abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e10)) .or. abortExecution 
 
-    if ( trim(exportDirPC) == '' ) then
-      write(iostd, *)
-      write(iostd, '(" Variable : ""exportDirPC"" is not defined!")')
-      write(iostd, '(" usage : exportDirPC = ''./Export/''")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
-    else
-      inputPC = trim(trim(exportDirPC)//'/input')
-      
-      inquire(file =trim(inputPC), exist = file_exists)
-      
-      if ( file_exists .eqv. .false. ) then
-        write(iostd, '(" File : ", a, " , does not exist!")') trim(inputPC)
-        write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirPC)
-        write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-        abortExecution = .true.
-      endif
-    endif
-    
-    write(iostd, '("exportDirPC = ''", a, "''")') trim(exportDirPC)
-    
 
-    if ( trim(capturing) == '' .or. (trim(capturing) /= 'hole' .and. trim(capturing) /= 'elec')) then
-      write(iostd, *)
-      write(iostd, '(" Variable : ""capturing"" is not defined or is invalid!")')
-      write(iostd, '(" usage : capturing = ''elec'' or ''hole''")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+    call system('mkdir -p '//trim(elementsPath))
+
+
+    if(trim(capturing) == '' .or. (trim(capturing) /= 'hole' .and. trim(capturing) /= 'elec')) then
+      write(*,*)
+      write(*,'(" Variable ""capturing"" is not defined or is invalid!")')
+      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
     endif
     
-    write(iostd, '("capturing = ''", a, "''")') trim(capturing)
+    write(*,'("capturing = ''", a, "''")') trim(capturing)
 
 
-    if ( order < 0 .or. order > 1) then
-      write(iostd, *)
-      write(iostd, '(" Variable : ""order"" should be 0 or 1!")')
-      write(iostd, '(" usage : order = 0")')
-      write(iostd, '(" The default value 0 will be used.")')
-      order = 0
-    endif
-    
-    write(iostd, '("order = ", i2)') order
-
-
-    if ( order == 0 .and. trim(exportDirInit) == '' ) then
-      write(iostd, *)
-      write(iostd, '(" Variable : ""exportDirInit"" is not defined!")')
-      write(iostd, '(" usage : exportDirInit = ''./Export/''")')
-      write(iostd, '(" This variable is mandatory for the zeroth-order matrix element and thus the program will not be executed!")')
-      abortExecution = .true.
-    else if(order == 0) then
-      inputFName = trim(trim(exportDirInit)//'/input')
-      
-      inquire(file =trim(inputFName), exist = file_exists)
-      
-      if ( file_exists .eqv. .false. ) then
-        write(iostd, '(" File : ", a, " , does not exist!")') trim(inputFName)
-        write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirInit)
-        write(iostd, '(" This variable is mandatory for the zeroth-order matrix element and thus the program will not be executed!")')
-        abortExecution = .true.
-      endif
-    
-      write(iostd, '("exportDirInit = ''", a, "''")') trim(exportDirInit)
-    endif
-
-
-    if ( order == 0 .and. trim(exportDirFinal) == '' ) then
-      write(iostd, *)
-      write(iostd, '(" Variable : ""exportDirFinal"" is not defined!")')
-      write(iostd, '(" usage : exportDirFinal = ''./Export/''")')
-      write(iostd, '(" This variable is mandatory for the zeroth-order matrix element and thus the program will not be executed!")')
-      abortExecution = .true.
-    else if(order == 0) then
-      inputFName = trim(trim(exportDirFinal)//'/input')
-      
-      inquire(file =trim(inputFName), exist = file_exists)
-      
-      if ( file_exists .eqv. .false. ) then
-        write(iostd, '(" File : ", a, " , does not exist!")') trim(inputFName)
-        write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirFinal)
-        write(iostd, '(" This variable is mandatory for the zeroth-order matrix element and thus the program will not be executed!")')
-        abortExecution = .true.
-      endif
-    
-      write(iostd, '("exportDirFinal = ''", a, "''")') trim(exportDirFinal)
-    endif
-
-
-    if ( order == 1 .and. trim(dqFName) == '' ) then
-      write(iostd, *)
-      write(iostd, '(" Variable : ""dqFName"" is not defined!")')
-      write(iostd, '(" usage : dqFName = ''./dq.txt''")')
-      write(iostd, '(" This variable is mandatory for the first-order matrix element and thus the program will not be executed!")')
-      abortExecution = .true.
-    else if(order == 1) then
-      
-      inquire(file =trim(dqFName), exist = file_exists)
-      
-      if ( file_exists .eqv. .false. ) then
-        write(iostd, '(" File : ", a, " , does not exist!")') trim(dqFName)
-        write(iostd, '(" This variable is mandatory for the first-order matrix element and thus the program will not be executed!")')
-        abortExecution = .true.
-      endif
-    
-      write(iostd, '("dqFName = ''", a, "''")') trim(dqFName)
-    endif
-
-
-    write(iostd, '("eCorrect = ", f8.4, " (eV)")') eCorrect
+    write(*,'("eCorrect = ", f8.4, " (eV)")') eCorrect
     
     eCorrect = eCorrect*eVToHartree
-
-
-    if ( trim(elementsPath) == '' ) then
-      write(iostd, *)
-      write(iostd, '(" Variable : ""elementsPath"" is not defined!")')
-      write(iostd, '(" usage : elementsPath = ''./''")')
-      write(iostd, '(" The homepath will be used as elementsPath.")')
-      elementsPath = './TMEs'
-    endif
-    inquire(file= trim(elementsPath), exist = file_exists)
-      !! @note 
-      !!   `inquire` only works for directories using the `gfortran` compiler, not
-      !!   `ifort`. For portability, I updated the `inquire` check for `exportDirSD`
-      !!   and `exportDirPC` to check for the `input` file in those directories. 
-      !!   that test will work for both compilers. However, I can't change the `inquire`
-      !!   test for `elementsPath` in the same way because `elementsPath` is expected
-      !!   to be empty. With `ifort`, the `mkdir` command will always be run, but I
-      !!   don't think that will cause any issues. 
-      !! @endnote
-
-    if ( .not.file_exists ) then
-      write(mkDir, '("mkdir -p ", a)') trim(elementsPath) 
-      call system(mkDir)
-    endif
-    
-    write(iostd, '("elementsPath = ''", a, "''")') trim(elementsPath)
     
 
-    if ( iBandIinit < 0 ) then
-      write(iostd, *)
-      write(iostd, '(" Variable : ""iBandIinit"" is not defined!")')
-      write(iostd, '(" usage : iBandIinit = 10")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
+    if(calculateVfis .and. iBandFinit /= iBandFfinal) then
+      write(*,*)
+      write(*,'(" Vfis can be calculated only if there is a single final-state band!")')
+      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
       abortExecution = .true.
     endif
     
-    write(iostd, '("iBandIinit = ", i4)') iBandIinit
+    write(*,'("calculateVfis = ", l )') calculateVfis
+
+
+    abortExecution = (calculateVfis .and. checkStringInitialization('VfisOutput', VfisOutput)) .or. abortExecution
+    abortExecution = (calculateVfis .and. checkDoubleInitialization('eBin', eBin, 0.0_dp, 2.0_dp)) .or. abortExecution
     
 
-    if ( iBandIfinal < 0 ) then
-      write(iostd, *)
-      write(iostd, '(" Variable : ""iBandIfinal"" is not defined!")')
-      write(iostd, '(" usage : iBandIfinal = 20")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
-    endif
-    
-    write(iostd, '("iBandIfinal = ", i4)') iBandIfinal
-    
-
-    if ( iBandFinit < 0 ) then
-      write(iostd, *)
-      write(iostd, '(" Variable : ""iBandFinit"" is not defined!")')
-      write(iostd, '(" usage : iBandFinit = 9")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
-    endif
-    
-    write(iostd, '("iBandFinit = ", i4)') iBandFinit
-    
-
-    if ( iBandFfinal < 0 ) then
-      write(iostd, *)
-      write(iostd, '(" Variable : ""iBandFfinal"" is not defined!")')
-      write(iostd, '(" usage : iBandFfinal = 9")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
-    endif
-    
-    write(iostd, '("iBandFfinal = ", i4)') iBandFfinal
-    
-
-    if ( order == 0 .and. refBand < 0 ) then
-
-      write(iostd, *)
-      write(iostd, '(" Variable : ""refBand"" is not defined!")')
-      write(iostd, '(" usage : refBand = 9")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
-    
-    else if(order == 0) then
-
-      write(iostd, '("refBand = ", i4)') refBand
-
-    endif
-    
-
-    if ( order == 1 .and. phononModeJ < 0 ) then
-
-      write(iostd, *)
-      write(iostd, '(" Variable : ""phononModeJ"" is not defined!")')
-      write(iostd, '(" usage : phononModeJ = 9")')
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
-    
-    else if(order == 1) then
-
-      write(iostd, '("phononModeJ = ", i4)') phononModeJ
-
-    endif
-    
-
-    if ( ( calculateVfis ) .and. ( iBandFinit /= iBandFfinal ) ) then
-      write(iostd, *)
-      write(iostd, '(" Vfis can be calculated only if the final state is one and only one!")')
-      write(iostd, '(" ''iBandFInit'' = ", i10)') iBandFinit
-      write(iostd, '(" ''iBandFfinal'' = ", i10)') iBandFfinal
-      write(iostd, '(" This variable is mandatory and thus the program will not be executed!")')
-      abortExecution = .true.
-    endif
-    
-    write(iostd, '("calculateVfis = ", l )') calculateVfis
-    
-
-    if ( trim(VfisOutput) == '' ) then
-      write(iostd, *)
-      write(iostd, '(" Variable : ""VfisOutput"" is not defined!")')
-      write(iostd, '(" usage : VfisOutput = ''VfisVsE''")')
-      write(iostd, '(" The default value ''VfisOutput'' will be used.")')
-      VfisOutput = 'VfisVsE'
-    endif
-    
-    write(iostd, '("VfisOutput = ''", a, "''")') trim(VfisOutput)
-    
-
-    if ( eBin < 0.0_dp ) then
-      eBin = 0.01_dp ! eV
-      write(iostd,'(" Variable : ""eBin"" is not defined!")')
-      write(iostd,'(" usage : eBin = 0.01")')
-      write(iostd,'(" A default value of 0.01 eV will be used !")')
-    endif
-    
-    write(iostd, '("eBin = ", f8.4, " (eV)")') eBin
-    
     eBin = eBin*eVToHartree
     
 
-    if ( abortExecution ) then
-      write(iostd, '(" Program stops!")')
+    if(abortExecution) then
+      write(*,'(" Program stops!")')
       stop
     endif
-    
-    flush(iostd)
     
     return
     
@@ -802,25 +559,15 @@ contains
     
     character(len = 300) :: textDum
     
-    logical :: file_exists
     
     if(ionode) then
       call cpu_time(t1)
     
-      write(iostd,*)
-      write(iostd, '(" Reading perfect crystal inputs.")')
-      write(iostd, *)
+      write(*,*)
+      write(*,'(" Reading perfect crystal inputs.")')
+      write(*,*)
     
       inputPC = trim(trim(exportDirPC)//'/input')
-    
-      inquire(file =trim(inputPC), exist = file_exists)
-    
-      if ( file_exists .eqv. .false. ) then
-        write(iostd, '(" File : ", a, " , does not exist!")') trim(inputPC)
-        write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirPC)
-        write(iostd, '(" Program stops!")')
-        flush(iostd)
-      endif
     
       open(50, file=trim(inputPC), status = 'old')
     
@@ -1021,9 +768,8 @@ contains
       close(50)
     
       call cpu_time(t2)
-      write(iostd, '(" Reading input files done in:                ", f10.2, " secs.")') t2-t1
-      write(iostd, *)
-      flush(iostd)
+      write(*,'(" Reading input files done in:                ", f10.2, " secs.")') t2-t1
+      write(*,*)
 
     endif
     
@@ -1062,26 +808,15 @@ contains
     
     character(len = 300) :: textDum
     
-    logical :: file_exists
-    
 
     if(ionode) then
       call cpu_time(t1)
     
-      write(iostd, *)
-      write(iostd, '(" Reading solid defect inputs.")')
-      write(iostd, *)
+      write(*,*)
+      write(*,'(" Reading solid defect inputs.")')
+      write(*,*)
     
       input = trim(trim(exportDirSD)//'/input')
-    
-      inquire(file = trim(input), exist = file_exists)
-    
-      if ( file_exists .eqv. .false. ) then
-        write(iostd, '(" File : ", a, " , does not exist!")') trim(input)
-        write(iostd, '(" Please make sure that folder : ", a, " has been created successfully !")') trim(exportDirSD)
-        write(iostd, '(" Program stops!")')
-        flush(iostd)
-      endif
     
       open(50, file=trim(input), status = 'old')
     
@@ -1322,9 +1057,8 @@ contains
     if(ionode) then
 
       call cpu_time(t2)
-      write(iostd, '(" Reading solid defect inputs done in:                ", f10.2, " secs.")') t2-t1
-      write(iostd, *)
-      flush(iostd)
+      write(*,'(" Reading solid defect inputs done in:                ", f10.2, " secs.")') t2-t1
+      write(*,*)
 
     endif
     
@@ -2865,8 +2599,6 @@ contains
     
       call cpu_time(tf)
       write(*, '(" Total time needed:                         ", f10.2, " secs.")') tf-t0
-    
-      close(iostd)
 
     endif
 

@@ -135,127 +135,15 @@ module shifterMod
     ! Local variables:
     logical :: abortExecution
       !! Whether or not to abort the execution
-    logical :: fileExists
-      !! If a file exists
 
 
-    if(trim(poscarFName) == '' ) then
+    abortExecution = checkFileInitialization('poscarFName', poscarFName)
+    abortExecution = checkFileInitialization('phononFName', phononFName) .or. abortExecution
+    abortExecution = checkStringInitialization('prefix', prefix) .or. abortExecution
+    abortExecution = checkIntInitialization('nAtoms', nAtoms, 0, 5000) .or. abortExecution
+    abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 1.0_dp) .or. abortExecution
+    abortExecution = checkStringInitialization('dqFName', dqFName) .or. abortExecution
 
-      write(*,*)
-      write(*,'(" Variable : ""poscarFName"" is not defined!")')
-      write(*,'(" usage : poscarFName = ''./POSCAR''")')
-      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-      abortExecution = .true.
-
-    else
-      
-      inquire(file=trim(poscarFName), exist=fileExists)
-      
-      if(fileExists .eqv. .false.) then
-
-        write(*,'(" File : ", a, " , does not exist!")') trim(poscarFName)
-        write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-        abortExecution = .true.
-
-      endif
-    endif
-    
-
-    write(*, '("poscarFName = ''", a, "''")') trim(poscarFName)
-
-
-    if(trim(phononFName) == '' ) then
-
-      write(*,*)
-      write(*,'(" Variable : ""phononFName"" is not defined!")')
-      write(*,'(" usage : phononFName = ''./mesh.yaml''")')
-      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-      abortExecution = .true.
-
-    else
-      
-      inquire(file=trim(phononFName), exist=fileExists)
-      
-      if(fileExists .eqv. .false.) then
-
-        write(*,'(" File : ", a, " , does not exist!")') trim(phononFName)
-        write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-        abortExecution = .true.
-
-      endif
-    endif
-
-
-    write(*, '("phononFName = ''", a, "''")') trim(phononFName)
-
-
-    if(trim(prefix) == '' ) then
-
-      write(*,*)
-      write(*,'(" Variable : ""prefix"" is not defined!")')
-      write(*,'(" usage : prefix = ''ph_POSCAR''")')
-      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-      abortExecution = .true.
-
-    endif
-    
-
-    write(*, '("prefix = ''", a, "''")') trim(prefix)
-
-
-    if(nAtoms < 0) then
-
-      write(*,*)
-      write(*,'(" Variable : ""nAtoms"" is not defined!")')
-      write(*,'(" usage : nAtoms = 100")')
-      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-      abortExecution = .true.
-
-    endif
-
-
-    if(shift < 0.0_dp ) then
-
-      shift = 0.01_dp ! angstrom
-
-      write(*,'(" Variable : ""shift"" is less than zero!")')
-      write(*,'(" usage : shift = 0.01")')
-      write(*,'(" A default value of 0.01 A will be used !")')
-
-    else if(shift > 0.2_dp) then
-      ! This limit is arbitrary. Seems like a good number for right now.
-
-      write(*,'(" Variable : ""shift"" is too large!")')
-      write(*,'(" usage : shift = 0.01")')
-      write(*,'(" Re-run with a value less than 0.2 A!")')
-
-      abortExecution = .true.
-
-    endif
-    
-    write(*, '("shift = ", f8.4, " (A)")') shift
-
-
-    if(trim(dqFName) == '' ) then
-
-      write(*,*)
-      write(*,'(" Variable : ""dqFName"" is not defined!")')
-      write(*,'(" usage : dqFName = ''./dq.txt''")')
-      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-      abortExecution = .true.
-
-    endif
-    
-
-    write(*, '("dqFName = ''", a, "''")') trim(dqFName)
-    
 
     if(abortExecution) then
       write(*, '(" Program stops!")')
