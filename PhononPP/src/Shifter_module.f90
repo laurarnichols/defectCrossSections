@@ -53,7 +53,7 @@ module shifterMod
   contains
 
 !----------------------------------------------------------------------------
-  subroutine initialize(nAtoms, shift, dqFName, phononFName, poscarFName, prefix)
+  subroutine initialize(shift, dqFName, phononFName, poscarFName, prefix)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -68,9 +68,6 @@ module shifterMod
 
 
     ! Output variables:
-    integer, intent(out) :: nAtoms
-      !! Number of atoms
-
     real(kind=dp), intent(out) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -90,7 +87,6 @@ module shifterMod
     character(len=10) :: ctime
       !! String for time
 
-    nAtoms = -1
     dqFName = 'dq.txt'
     poscarFName = 'POSCAR'
     phononFName = 'mesh.yaml'
@@ -112,14 +108,11 @@ module shifterMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(nAtoms, shift, dqFName, phononFName, poscarFName, prefix)
+  subroutine checkInitialization(shift, dqFName, phononFName, poscarFName, prefix)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: nAtoms
-      !! Number of atoms
-
     real(kind=dp), intent(inout) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -140,7 +133,6 @@ module shifterMod
     abortExecution = checkFileInitialization('poscarFName', poscarFName)
     abortExecution = checkFileInitialization('phononFName', phononFName) .or. abortExecution
     abortExecution = checkStringInitialization('prefix', prefix) .or. abortExecution
-    abortExecution = checkIntInitialization('nAtoms', nAtoms, 0, 5000) .or. abortExecution
     abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 1.0_dp) .or. abortExecution
     abortExecution = checkStringInitialization('dqFName', dqFName) .or. abortExecution
 

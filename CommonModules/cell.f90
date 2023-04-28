@@ -32,7 +32,7 @@ module cell
     integer, intent(in) :: nAtoms
       !! Number of atoms
 
-    real(kind=dp), intent(out) :: displacement(3,nAtoms)
+    real(kind=dp), intent(in) :: displacement(3,nAtoms)
       !! Displacements for each atom for this mode
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Masses of atoms
@@ -154,21 +154,21 @@ module cell
   end subroutine writePOSCARNewPOS
       
 !----------------------------------------------------------------------------
-  subroutine readPOSCAR(nAtoms, poscarFName, atomPositionsDir, omega, realLattVec)
+  subroutine readPOSCAR(poscarFName, nAtoms, atomPositionsDir, omega, realLattVec)
 
     use generalComputations, only: cart2direct
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: nAtoms
-      !! Number of atoms
-
     character(len=300), intent(in) :: poscarFName
       !! File name for POSCAR
 
     ! Output variables:
-    real(kind=dp), intent(out) :: atomPositionsDir(3,nAtoms)
+    integer, intent(out) :: nAtoms
+      !! Number of atoms
+
+    real(kind=dp), allocatable, intent(out) :: atomPositionsDir(:,:)
       !! Atom positions in direct coordinates
     real(kind=dp), intent(out) :: omega
       !! Volume of unit cell
@@ -181,7 +181,7 @@ module cell
 
     real(kind=dp) :: invLattVec(3,3)
       !! Inverse of real space lattice vectors
-    real(kind=dp) :: pos(3,nAtoms)
+    real(kind=dp) :: pos(3,7000)
       !! Positions as read from file
     real(kind=dp) :: scaleParam
       !! Scale parameter for lattice vectors
@@ -253,24 +253,37 @@ module cell
       !! but do the processing of the coordinates after reading.
 
     !> Read in atom positions
-    do ia = 1, nAtoms
+    ia = 0
+    do while(.true.)
 
-      read(15,*) (pos(ix,ia), ix=1,3)
+      read(15,'(a)') line
+      if(trim(line) == '') goto 200
+        ! Read line to see if it's blank, which would
+        ! indicate the end of the positions section
+
+      ia = ia + 1
+      read(line,*,end=200) (pos(ix,ia), ix=1,3)
+        ! If the line isn't blank, increment the atom
+        ! number and read the position for this atom 
 
     enddo
 
+200 continue
+    nAtoms = ia
+
+    allocate(atomPositionsDir(3,nAtoms))
 
     if(charSwitch == 'K' .or. charSwitch == 'k' .or. &
        charSwitch == 'C' .or. charSwitch == 'c') then
 
       pos = pos*scaleParam
 
-      atomPositionsDir = cart2direct(nAtoms, pos, realLattVec)
+      atomPositionsDir = cart2direct(nAtoms, pos(:,1:nAtoms), realLattVec)
         !! Convert Cartesian coordinates to direct
 
     else
 
-      atomPositionsDir = pos
+      atomPositionsDir = pos(:,1:nAtoms)
 
     endif
 
