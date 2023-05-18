@@ -2868,7 +2868,12 @@ module wfcExportVASPMod
         !  if not.
         ! @endnote
 
-      if(gammaOnly .and. (gVec(1) /= 0 .or. gVec(2) /= 0 .or. gVec(3) /= 0)) multFact(ipw) = sqrt(2._dp)
+      !if(gammaOnly .and. (gVec(1) /= 0 .or. gVec(2) /= 0 .or. gVec(3) /= 0)) multFact(ipw) = sqrt(2._dp)
+        ! VASP has this line, but I can't figure out how to take advantage
+        ! of the gamma-only simplification. Instead, I am just going to
+        ! copy over the coefficients using C(G) = C*(-G) and calculate
+        ! everything else as if the gamma-only version was not used. Will
+        ! need this if we figure out how to implement it in the future, though.
 
       gkCart = matmul(recipLattVec, gkDir)
         ! VASP has a factor of `twopi` here, but I removed
