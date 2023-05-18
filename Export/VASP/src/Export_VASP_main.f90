@@ -126,7 +126,7 @@ program wfcExportVASPMain
 
 
   call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, gVecMillerIndicesLocal, nKPoints, nPWs1kGlobal, kPosition, recipLattVec, wfcVecCut, &
-      gKIndexGlobal, gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, gToGkIndexMap, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
+      gKIndexGlobal, gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, igk2igLocal, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
       nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
     !! * Determine which G-vectors result in \(G+k\)
     !!   below the energy cutoff for each k-point and

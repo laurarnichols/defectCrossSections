@@ -91,7 +91,7 @@ module wfcExportVASPMod
   integer, allocatable :: gKIndexLocalToGlobal(:,:)
     !! Local to global indices for \(G+k\) vectors 
     !! ordered by magnitude at a given k-point
-  integer, allocatable :: gToGkIndexMap(:,:)
+  integer, allocatable :: igk2igLocal(:,:)
     !! Index map from \(G\) to \(G+k\);
     !! indexed up to `nGVecsLocal` which
     !! is greater than `maxNumPWsPool` and
@@ -1267,7 +1267,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, gVecMillerIndicesLocal, nKPoints, nPWs1kGlobal, kPosition, recipLattVec, wfcVecCut, &
-      gKIndexGlobal, gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, gToGkIndexMap, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
+      gKIndexGlobal, gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, igk2igLocal, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
       nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
@@ -1313,7 +1313,7 @@ module wfcExportVASPMod
     integer, allocatable, intent(out) :: gKSort(:,:)
       !! Indices to recover sorted order on reduced
       !! \(G+k\) grid
-    integer, allocatable, intent(out) :: gToGkIndexMap(:,:)
+    integer, allocatable, intent(out) :: igk2igLocal(:,:)
       !! Index map from \(G\) to \(G+k\);
       !! indexed up to `nGVecsLocal` which
       !! is greater than `maxNumPWsPool` and
@@ -1343,15 +1343,15 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    integer :: ik, ig
+    integer :: ik, ig, igk
       !! Loop indices
     integer, allocatable :: gKIndexOrigOrderGlobal(:,:)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors in the original order
-    integer, allocatable :: igk(:)
+    integer, allocatable :: igk2igLocal_ik(:)
       !! Index map from \(G\) to \(G+k\)
       !! indexed up to `maxNumPWsPool`
-    integer :: ngk_tmp
+    integer :: ngk
       !! Temporary variable to hold `nGkLessECutLocal`
       !! value so that don't have to keep accessing
       !! array
@@ -1385,11 +1385,11 @@ module wfcExportVASPMod
 
 
     allocate(nGkLessECutLocal(nkPerPool))
-    allocate(gToGkIndexMap(nkPerPool,nGVecsLocal))
+    allocate(igk2igLocal(nkPerPool,nGVecsLocal))
     
     maxNumPWsLocal = 0
     nGkLessECutLocal(:) = 0
-    gToGkIndexMap(:,:) = 0
+    igk2igLocal(:,:) = 0
 
     do ik = 1, nkPerPool
       !! * For each \(G+k\) combination, calculate the 
@@ -1404,7 +1404,7 @@ module wfcExportVASPMod
       !!  processor.
       !! @endnote
 
-      ngk_tmp = 0
+      ngk = 0
 
       do ig = 1, nGVecsLocal
         gkDir(:) = gVecMillerIndicesLocal(:,ig) + kPosition(:,ik+ikStart_pool-1)
@@ -1418,14 +1418,14 @@ module wfcExportVASPMod
 
         if (q <= wfcVecCut) then
 
-          ngk_tmp = ngk_tmp + 1
+          ngk = ngk + 1
             ! If \(|G+k| \leq \) `wfcVecCut` increment the count for
             ! this k-point
 
-          gkMod(ik,ngk_tmp) = q
+          gkMod(ik,ngk) = q
             ! Store the modulus for sorting
 
-          gToGkIndexMap(ik,ngk_tmp) = ig
+          igk2igLocal(ik,ngk) = ig
             ! Store the index for this G-vector
 
         !else
@@ -1438,13 +1438,13 @@ module wfcExportVASPMod
         endif
       enddo
 
-      if (ngk_tmp == 0) call exitError('reconstructFFTGrid', 'no G+k vectors on this processor', 1) 
+      if (ngk == 0) call exitError('reconstructFFTGrid', 'no G+k vectors on this processor', 1) 
 
-100   maxNumPWsLocal = max(maxNumPWsLocal, ngk_tmp)
+100   maxNumPWsLocal = max(maxNumPWsLocal, ngk)
         ! Track the maximum number of \(G+k\)
         ! vectors among all k-points
 
-      nGkLessECutLocal(ik) = ngk_tmp
+      nGkLessECutLocal(ik) = ngk
         ! Store the total number of \(G+k\)
         ! vectors for this k-point
 
@@ -1480,35 +1480,35 @@ module wfcExportVASPMod
 
 
     allocate(gKIndexLocalToGlobal(maxNumPWsPool,nkPerPool))
-    allocate(igk(maxNumPWsPool))
+    allocate(igk2igLocal_ik(maxNumPWsPool))
 
     gKIndexLocalToGlobal = 0
-    igk = 0
+    igk2igLocal_ik = 0
 
 
     do ik = 1, nkPerPool
       !! * Reorder the indices of the G-vectors so that
       !!   they are sorted by \(|G+k|^2\) for each k-point
 
-      ngk_tmp = nGkLessECutLocal(ik)
+      ngk = nGkLessECutLocal(ik)
 
-      igk(1:ngk_tmp) = gToGkIndexMap(ik,1:ngk_tmp)
+      igk2igLocal_ik(1:ngk) = igk2igLocal(ik,1:ngk)
 
-      call hpsort_eps(ngk_tmp, gkMod(ik,:), igk, eps8)
-        ! Order vector `igk` by \(|G+k|\) (`gkMod`)
+      call hpsort_eps(ngk, gkMod(ik,:), igk2igLocal_ik, eps8)
+        ! Order vector `igk2igLocal_ik` by \(|G+k|\) (`gkMod`)
 
-      do ig = 1, ngk_tmp
+      do igk = 1, ngk
         
-        gKIndexLocalToGlobal(ig,ik) = gIndexLocalToGlobal(igk(ig))
+        gKIndexLocalToGlobal(igk,ik) = gIndexLocalToGlobal(igk2igLocal_ik(igk))
         
       enddo
      
-      gKIndexLocalToGlobal(ngk_tmp+1:maxNumPWsPool, ik) = 0
+      gKIndexLocalToGlobal(ngk+1:maxNumPWsPool, ik) = 0
 
     enddo
 
 
-    deallocate(igk)
+    deallocate(igk2igLocal_ik)
 
 
     maxGIndexLocal = maxval(gKIndexLocalToGlobal(:,:))
@@ -1549,23 +1549,23 @@ module wfcExportVASPMod
 
         realiMillGk = 0._dp
         realGKOrigOrder = 0._dp
-        ngk_tmp = nGkLessECutGlobal(ik)
+        ngk = nGkLessECutGlobal(ik)
 
-        do ig = 1, ngk_tmp
+        do igk = 1, ngk
 
-          realiMillGk(ig) = real(iMill(gKIndexGlobal(ig,ik)))
+          realiMillGk(igk) = real(iMill(gKIndexGlobal(igk,ik)))
             !! * Get only the original indices that correspond
             !!   to G vectors s.t. \(|G+k|\) is less than the
             !!   cutoff
 
-          gKSort(ig,ik) = ig
+          gKSort(igk,ik) = igk
             !! * Initialize an array that will recover the sorted
             !!   order of the G-vectors from only the \(G+k\) sub-grid
             !!   rather than the full G-vector grid like `gKIndexGlobal`
 
         enddo
 
-        call hpsort_eps(ngk_tmp, realiMillGk(1:ngk_tmp), gKIndexOrigOrderGlobal(1:ngk_tmp,ik), eps8)
+        call hpsort_eps(ngk, realiMillGk(1:ngk), gKIndexOrigOrderGlobal(1:ngk,ik), eps8)
           !! * Order the \(G+k\) indices by the original indices `realiMillGk`. 
           !!   This will allow us to recover only specific G-vectors in the 
           !!   original ordering. Have to cast to `real` because that is what the 
@@ -1574,9 +1574,9 @@ module wfcExportVASPMod
           !!   and it shouldn't affect the results. 
 
 
-        realGKOrigOrder(1:ngk_tmp) = real(gKIndexOrigOrderGlobal(1:ngk_tmp,ik))
+        realGKOrigOrder(1:ngk) = real(gKIndexOrigOrderGlobal(1:ngk,ik))
 
-        call hpsort_eps(ngk_tmp, realGKOrigOrder(1:ngk_tmp), gKSort(1:ngk_tmp,ik), eps8)
+        call hpsort_eps(ngk, realGKOrigOrder(1:ngk), gKSort(1:ngk,ik), eps8)
           !! * Sort another index by `gKIndexOrigOrder`. This index will allow
           !!   us to recreate the sorted order on the reduced \(G+k\) grid. We
           !!   need this for outputting the wave functions, projectors, and
@@ -1702,10 +1702,13 @@ module wfcExportVASPMod
     enddo
 
 
-    if(ionode .and. ngg /= nGkLessECutGlobal(ik)) call exitError('writeKInfo', 'Unexpected number of G+k vectors', 1)
+    if(ionode .and. ngg /= nGkLessECutGlobal(ik)) then
+      write(*,*) ngg, nGkLessECutGlobal
+      call exitError('getGlobalGkIndices', 'Unexpected number of G+k vectors', 1)
       !! * Make sure that the total number of non-zero
       !!   indices matches the global number of \(G+k\)
       !!   vectors for this k-point
+    endif
     
     deallocate( itmp1 )
 
