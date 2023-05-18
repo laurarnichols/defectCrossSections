@@ -72,8 +72,6 @@ module wfcExportVASPMod
     !! Fermi energy
   real(kind=dp) :: eTot
     !! Total energy
-  real(kind=dp), allocatable :: gVecInCart(:,:)
-    !! G-vectors in Cartesian coordinates
   real(kind=dp), allocatable :: bandOccupation(:,:,:)
     !! Occupation of band
   real(kind=dp) :: tStart
@@ -108,7 +106,9 @@ module wfcExportVASPMod
     !! Indices to recover sorted order on reduced
     !! \(G+k\) grid
   integer, allocatable :: gVecMillerIndicesGlobal(:,:)
-    !! Integer coefficients for G-vectors on all processors
+    !! Integer coefficients for G-vectors on all processes
+  integer, allocatable :: gVecMillerIndicesLocal(:,:)
+    !! Integer coefficients for G-vectors on this process
   integer, allocatable :: iMill(:)
     !! Indices of miller indices after sorting
   integer, allocatable :: iType(:)
@@ -125,11 +125,11 @@ module wfcExportVASPMod
     !! less than `wfcVecCut` for each
     !! k-point, on this processor
   integer, allocatable :: nGkVecsLocal(:)
-    !! Local number of G-vectors on this processor
+    !! Local number of G-vectors on this process
   integer :: nGVecsGlobal
     !! Global number of G-vectors
   integer :: nGVecsLocal
-    !! Local number of G-vectors on this processor
+    !! Local number of G-vectors on this process
   integer :: nKPoints
     !! Total number of k-points
   integer, allocatable :: nPWs1kGlobal(:)
@@ -1058,8 +1058,7 @@ module wfcExportVASPMod
   end subroutine read_vasprun_xml
 
 !----------------------------------------------------------------------------
-  subroutine calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, &
-      iMill, nGVecsGlobal, nGVecsLocal)
+  subroutine calculateGvecs(fftGridSize, gIndexLocalToGlobal, gVecMillerIndicesGlobal, gVecMillerIndicesLocal, iMill, nGVecsGlobal, nGVecsLocal)
     !! Calculate Miller indices and G-vectors and split
     !! over processors
     !!
@@ -1074,24 +1073,20 @@ module wfcExportVASPMod
     integer, intent(in) :: fftGridSize(3)
       !! Max number of points on the FFT grid in each direction
 
-    real(kind=dp), intent(in) :: recipLattVec(3,3)
-      !! Reciprocal lattice vectors
-
 
     ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: gVecInCart(:,:)
-      !! G-vectors in Cartesian coordinates
-
     integer, allocatable, intent(out) :: gIndexLocalToGlobal(:)
       !! Converts local index `ig` to global index
     integer, allocatable, intent(out) :: gVecMillerIndicesGlobal(:,:)
-      !! Integer coefficients for G-vectors on all processors
+      !! Integer coefficients for G-vectors on all processes
+    integer, allocatable :: gVecMillerIndicesLocal(:,:)
+      !! Integer coefficients for G-vectors for this process
     integer, allocatable, intent(out) :: iMill(:)
       !! Indices of miller indices after sorting
     integer, intent(out) :: nGVecsGlobal
       !! Global number of G-vectors
     integer, intent(out) :: nGVecsLocal
-      !! Local number of G-vectors on this processor
+      !! Local number of G-vectors on this process
 
 
     ! Local variables:
@@ -1099,15 +1094,11 @@ module wfcExportVASPMod
       !! Double precision zero
     real(kind=dp), allocatable :: millSum(:)
       !! Sum of integer coefficients for G-vectors
-    real(kind=dp), allocatable :: realMillLocal(:,:)
-      !! Real version of integer coefficients for G-vectors
 
     integer :: igx, igy, igz, ig
       !! Loop indices
     integer, allocatable :: gVecMillerIndicesGlobal_tmp(:,:)
       !! Integer coefficients for G-vectors on all processors
-    integer, allocatable :: mill_local(:,:)
-      !! Integer coefficients for G-vectors
     integer :: millX, millY, millZ
       !! Miller indices for each direction; in order
       !! 0,1,...,((fftGridSize(:)-1)/2),-((fftGridSize(:)-1)/2-1),...,-1
@@ -1195,24 +1186,14 @@ module wfcExportVASPMod
     call MPI_BCAST(gVecMillerIndicesGlobal, size(gVecMillerIndicesGlobal), MPI_INTEGER, root, worldComm, ierr)
 
 
-    call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexLocalToGlobal, mill_local, nGVecsLocal)
+    call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexLocalToGlobal, gVecMillerIndicesLocal, nGVecsLocal)
       !! * Split up the G-vectors and Miller indices over processors 
-
-    allocate(gVecInCart(3,nGVecsLocal))
-    allocate(realMillLocal(3,nGVecsLocal))
-
-    realMillLocal = real(mill_local)
-    deallocate(mill_local)
-
-    gVecInCart = direct2cart(nGVecsLocal, realMillLocal, recipLattVec)
-
-    deallocate(realMillLocal)
 
     return
   end subroutine calculateGvecs
 
 !----------------------------------------------------------------------------
-  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexLocalToGlobal, mill_local, nGVecsLocal)
+  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexLocalToGlobal, gVecMillerIndicesLocal, nGVecsLocal)
     !! Figure out how many G-vectors there should be per processor.
     !! G-vectors are split up in a round robin fashion over processors
     !! in a single k-point pool.
@@ -1228,23 +1209,23 @@ module wfcExportVASPMod
     !integer, intent(in) :: nProcPerPool
       ! Number of processes per pool
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors
+      !! Integer coefficients for G-vectors on all processes
 
     
     ! Output variables:
     integer, allocatable, intent(out) :: gIndexLocalToGlobal(:)
       !! Converts local index `ig` to global index
-    integer, allocatable, intent(out) :: mill_local(:,:)
-      !! Integer coefficients for G-vectors
+    integer, allocatable, intent(out) :: gVecMillerIndicesLocal(:,:)
+      !! Integer coefficients for G-vectors on this process
     integer, intent(out) :: nGVecsLocal
-      !! Local number of G-vectors on this processor
+      !! Local number of G-vectors on this process
 
 
     ! Local variables:
     integer :: ig_l, ig_g
       !! Loop indices
     integer :: ngr
-      !! Number of G-vectors left over after evenly divided across processors
+      !! Number of G-vectors left over after evenly divided across processes
 
 
     if( nGVecsGlobal > 0 ) then
@@ -1262,7 +1243,7 @@ module wfcExportVASPMod
       !>   index (the value stored at `gIndexLocalToGlobal(ig)`)
       !>   and get local miller indices
       allocate(gIndexLocalToGlobal(nGVecsLocal))
-      allocate(mill_local(3,nGVecsLocal))
+      allocate(gVecMillerIndicesLocal(3,nGVecsLocal))
 
       ig_l = 0
       do ig_g = 1, nGVecsGlobal
@@ -1271,7 +1252,7 @@ module wfcExportVASPMod
         
           ig_l = ig_l + 1
           gIndexLocalToGlobal(ig_l) = ig_g
-          mill_local(:,ig_l) = gVecMillerIndicesGlobal(:,ig_g)
+          gVecMillerIndicesLocal(:,ig_l) = gVecMillerIndicesGlobal(:,ig_g)
 
         endif
 
@@ -1285,8 +1266,8 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, wfcVecCut, gKIndexGlobal, &
-      gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, gToGkIndexMap, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
+  subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, gVecMillerIndicesLocal, nKPoints, nPWs1kGlobal, kPosition, recipLattVec, wfcVecCut, &
+      gKIndexGlobal, gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, gToGkIndexMap, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
       nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
@@ -1302,6 +1283,8 @@ module wfcExportVASPMod
       !! Number of G-vectors on this processor
     integer, intent(in) :: gIndexLocalToGlobal(nGVecsLocal)
       ! Converts local index `ig` to global index
+    integer, intent(in) :: gVecMillerIndicesLocal(3,nGVecsLocal)
+      !! Integer coefficients for G-vectors on this process
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     !integer, intent(in) :: nkPerPool
@@ -1311,8 +1294,6 @@ module wfcExportVASPMod
 
     real(kind=dp), intent(in) :: kPosition(3,nKPoints)
       !! Position of k-points in reciprocal space
-    real(kind=dp), intent(in) :: gVecInCart(3,nGVecsLocal)
-      !! G-vectors in Cartesian coordinates
     real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
     real(kind=dp), intent(in) :: wfcVecCut
@@ -1362,20 +1343,6 @@ module wfcExportVASPMod
 
 
     ! Local variables:
-    real(kind=dp) :: eps8 = 1.0E-8_dp
-      !! Double precision zero
-    real(kind=dp) :: gkMod(nkPerPool,nGVecsLocal)
-      !! \(|G+k|^2\);
-      !! only stored if less than `wfcVecCut`
-    real(kind=dp) :: q
-      !! \(|q|^2\) where \(q = G+k\)
-    real(kind=dp), allocatable :: realGKOrigOrder(:)
-      !! Indices of \(G+k\) in original order
-    real(kind=dp), allocatable :: realiMillGk(:)
-      !! Indices of miller indices after sorting
-    real(kind=dp) :: xkCart(3)
-      !! Cartesian coordinates for given k-point
-
     integer :: ik, ig
       !! Loop indices
     integer, allocatable :: gKIndexOrigOrderGlobal(:,:)
@@ -1395,6 +1362,27 @@ module wfcExportVASPMod
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this 
       !! processor
+
+    real(kind=dp) :: eps8 = 1.0E-8_dp
+      !! Double precision zero
+    real(kind=dp) :: gkCart(3)
+      !! \(G+k\) in Cartesian coordinates for only
+      !! vectors that satisfy the cutoff
+    real(kind=dp) :: gkDir(3)
+      !! \(G+k\) in direct coordinates for only
+      !! vectors that satisfy the cutoff
+    real(kind=dp) :: gkMod(nkPerPool,nGVecsLocal)
+      !! \(|G+k|^2\);
+      !! only stored if less than `wfcVecCut`
+    real(kind=dp) :: gVecInCart(3,nGVecsLocal)
+      !! G-vectors in Cartesian coordinates
+    real(kind=dp) :: q
+      !! \(|q|^2\) where \(q = G+k\)
+    real(kind=dp), allocatable :: realGKOrigOrder(:)
+      !! Indices of \(G+k\) in original order
+    real(kind=dp), allocatable :: realiMillGk(:)
+      !! Indices of miller indices after sorting
+
 
     allocate(nGkLessECutLocal(nkPerPool))
     allocate(gToGkIndexMap(nkPerPool,nGVecsLocal))
@@ -1416,13 +1404,14 @@ module wfcExportVASPMod
       !!  processor.
       !! @endnote
 
-      xkCart = matmul(recipLattVec,kPosition(:,ik+ikStart_pool-1))
-
       ngk_tmp = 0
 
       do ig = 1, nGVecsLocal
+        gkDir(:) = gVecMillerIndicesLocal(:,ig) + kPosition(:,ik+ikStart_pool-1)
 
-        q = sqrt(sum((xkCart(:) + gVecInCart(:,ig))**2))
+        gkCart = matmul(recipLattVec, gkDir)
+
+        q = sqrt(sum(gkCart(:)**2))
           ! Calculate \(|G+k|\)
 
         if (q <= eps8) q = 0.d0
