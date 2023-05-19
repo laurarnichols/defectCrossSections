@@ -126,8 +126,8 @@ program wfcExportVASPMain
 
 
   call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, gVecMillerIndicesLocal, nKPoints, nPWs1kGlobal, kPosition, recipLattVec, wfcVecCut, &
-      gKIndexGlobal, gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, igk2igLocal, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
-      nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
+      gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, ig2igkGlobal, igk2igGlobal, igk2igLocal, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, &
+      maxNumPWsPool, nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
     !! * Determine which G-vectors result in \(G+k\)
     !!   below the energy cutoff for each k-point and
     !!   sort the indices based on \(|G+k|^2\)
@@ -140,6 +140,7 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
+  deallocate(ig2igkGlobal)
   deallocate(gIndexLocalToGlobal)
   deallocate(gVecMillerIndicesLocal)
 
@@ -186,7 +187,7 @@ program wfcExportVASPMain
   deallocate(kWeight)
 
 
-  call writeGridInfo(nGVecsGlobal, nKPoints, nSpins, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
+  call writeGridInfo(nGVecsGlobal, nKPoints, nSpins, maxNumPWsGlobal, igk2igGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
     !! * Write out grid boundaries and miller indices
     !!   for just \(G+k\) combinations below cutoff energy
     !!   in one file and all miller indices in another 
@@ -200,7 +201,7 @@ program wfcExportVASPMain
   call cpu_time(t1)
       
 
-  deallocate(gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal)
+  deallocate(igk2igGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal)
 
 
   call writeCellInfo(iType, nAtoms, nBands, nAtomTypes, realLattVec, recipLattVec, atomPositionsDir)

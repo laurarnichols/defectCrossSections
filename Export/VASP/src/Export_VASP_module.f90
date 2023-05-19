@@ -91,14 +91,15 @@ module wfcExportVASPMod
   integer, allocatable :: gKIndexLocalToGlobal(:,:)
     !! Local to global indices for \(G+k\) vectors 
     !! ordered by magnitude at a given k-point
+  integer, allocatable :: ig2igkGlobal(:,:)
+    !! Map from G index to G+k index for all processes
   integer, allocatable :: igk2igLocal(:,:)
     !! Index map from \(G\) to \(G+k\);
     !! indexed up to `nGVecsLocal` which
     !! is greater than `maxNumPWsPool` and
     !! stored for each k-point
   integer, allocatable :: igk2igGlobal(:,:)
-    !! Indices of \(G+k\) vectors for each k-point
-    !! and all processors
+    !! Map from G+k index to G index for all processes
   integer, allocatable :: gKIndexOrigOrderLocal(:,:)
     !! Indices of \(G+k\) vectors in just this pool
     !! and for local PWs in the original order
@@ -1267,8 +1268,8 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, gVecMillerIndicesLocal, nKPoints, nPWs1kGlobal, kPosition, recipLattVec, wfcVecCut, &
-      igk2igGlobal, gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, igk2igLocal, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
-      nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
+      gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, ig2igkGlobal, igk2igGlobal, igk2igLocal, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, &
+      maxNumPWsPool, nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
     !! sort the indices based on \(|G+k|^2\)
@@ -1301,9 +1302,6 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    integer, allocatable, intent(out) :: igk2igGlobal(:,:)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors
     integer, allocatable, intent(out) :: gKIndexLocalToGlobal(:,:)
       !! Local to global indices for \(G+k\) vectors 
       !! ordered by magnitude at a given k-point
@@ -1313,6 +1311,10 @@ module wfcExportVASPMod
     integer, allocatable, intent(out) :: gKSort(:,:)
       !! Indices to recover sorted order on reduced
       !! \(G+k\) grid
+    integer, allocatable, intent(out) :: ig2igkGlobal(:,:)
+      !! Map from G index to G+k index for all processes
+    integer, allocatable, intent(out) :: igk2igGlobal(:,:)
+      !! Map from G+k index to G index for all processes
     integer, allocatable, intent(out) :: igk2igLocal(:,:)
       !! Index map from \(G\) to \(G+k\);
       !! indexed up to `nGVecsLocal` which
@@ -1522,15 +1524,24 @@ module wfcExportVASPMod
       !!   among all k-points
 
     allocate(igk2igGlobal(maxNumPWsGlobal, nKPoints))
+    allocate(ig2igkGlobal(maxNumPWsGlobal, nKPoints))
 
   
     igk2igGlobal(:,:) = 0
+    ig2igkGlobal(:,:) = 0
     do ik = 1, nKPoints
 
       call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
           maxNumPWsGlobal, igk2igGlobal)
         !! * For each k-point, gather all of the \(G+k\) indices
         !!   among all processors in a single global array
+
+      
+      do igk = 1, nGkLessECutGlobal(ik)
+
+        ig2igkGlobal(igk2igGlobal(igk,ik),ik) = igk
+
+      enddo
     
     enddo
 
