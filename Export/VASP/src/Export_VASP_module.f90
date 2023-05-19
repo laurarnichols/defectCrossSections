@@ -96,7 +96,7 @@ module wfcExportVASPMod
     !! indexed up to `nGVecsLocal` which
     !! is greater than `maxNumPWsPool` and
     !! stored for each k-point
-  integer, allocatable :: gKIndexGlobal(:,:)
+  integer, allocatable :: igk2igGlobal(:,:)
     !! Indices of \(G+k\) vectors for each k-point
     !! and all processors
   integer, allocatable :: gKIndexOrigOrderLocal(:,:)
@@ -1267,7 +1267,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, gVecMillerIndicesLocal, nKPoints, nPWs1kGlobal, kPosition, recipLattVec, wfcVecCut, &
-      gKIndexGlobal, gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, igk2igLocal, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
+      igk2igGlobal, gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, igk2igLocal, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
       nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
@@ -1301,7 +1301,7 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    integer, allocatable, intent(out) :: gKIndexGlobal(:,:)
+    integer, allocatable, intent(out) :: igk2igGlobal(:,:)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors
     integer, allocatable, intent(out) :: gKIndexLocalToGlobal(:,:)
@@ -1521,14 +1521,14 @@ module wfcExportVASPMod
       !! * Calculate the maximum number of G-vectors 
       !!   among all k-points
 
-    allocate(gKIndexGlobal(maxNumPWsGlobal, nKPoints))
+    allocate(igk2igGlobal(maxNumPWsGlobal, nKPoints))
 
   
-    gKIndexGlobal(:,:) = 0
+    igk2igGlobal(:,:) = 0
     do ik = 1, nKPoints
 
       call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
-          maxNumPWsGlobal, gKIndexGlobal)
+          maxNumPWsGlobal, igk2igGlobal)
         !! * For each k-point, gather all of the \(G+k\) indices
         !!   among all processors in a single global array
     
@@ -1537,7 +1537,7 @@ module wfcExportVASPMod
     allocate(gKIndexOrigOrderGlobal(maxNumPWsGlobal, nKPoints))
     allocate(gKSort(maxNumPWsGlobal, nKPoints))
 
-    gKIndexOrigOrderGlobal = gKIndexGlobal
+    gKIndexOrigOrderGlobal = igk2igGlobal
     gKSort = 0._dp
 
     if(ionode) then
@@ -1553,7 +1553,7 @@ module wfcExportVASPMod
 
         do igk = 1, ngk
 
-          realiMillGk(igk) = real(iMill(gKIndexGlobal(igk,ik)))
+          realiMillGk(igk) = real(iMill(igk2igGlobal(igk,ik)))
             !! * Get only the original indices that correspond
             !!   to G vectors s.t. \(|G+k|\) is less than the
             !!   cutoff
@@ -1561,7 +1561,7 @@ module wfcExportVASPMod
           gKSort(igk,ik) = igk
             !! * Initialize an array that will recover the sorted
             !!   order of the G-vectors from only the \(G+k\) sub-grid
-            !!   rather than the full G-vector grid like `gKIndexGlobal`
+            !!   rather than the full G-vector grid like `igk2igGlobal`
 
         enddo
 
@@ -1603,7 +1603,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
-      maxNumPWsGlobal, gKIndexGlobal)
+      maxNumPWsGlobal, igk2igGlobal)
     !! Gather the \(G+k\) vector indices in single, global 
     !! array
     !!
@@ -1645,7 +1645,7 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    integer, intent(out) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
+    integer, intent(out) :: igk2igGlobal(maxNumPWsGlobal, nKPoints)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors
 
@@ -1696,7 +1696,7 @@ module wfcExportVASPMod
 
         ngg = ngg + 1
 
-        gKIndexGlobal(ngg, ik) = ig
+        igk2igGlobal(ngg, ik) = ig
 
       endif
     enddo
@@ -3774,7 +3774,7 @@ module wfcExportVASPMod
   end subroutine getGroundState
 
 !----------------------------------------------------------------------------
-  subroutine writeGridInfo(nGVecsGlobal, nKPoints, nSpins, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
+  subroutine writeGridInfo(nGVecsGlobal, nKPoints, nSpins, maxNumPWsGlobal, igk2igGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
     !! Write out grid boundaries and miller indices
     !! for just \(G+k\) combinations below cutoff energy
     !! in one file and all miller indices in another 
@@ -3798,7 +3798,7 @@ module wfcExportVASPMod
       !! Max number of \(G+k\) vectors with magnitude
       !! less than `wfcVecCut` among all k-points
 
-    integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
+    integer, intent(in) :: igk2igGlobal(maxNumPWsGlobal, nKPoints)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
@@ -3853,7 +3853,7 @@ module wfcExportVASPMod
         write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
       
         do igk = 1, nGkLessECutGlobal(ikGlobal)
-          write(72, '(4i10)') gKIndexGlobal(igk,ikGlobal), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ikGlobal))
+          write(72, '(4i10)') igk2igGlobal(igk,ikGlobal), gVecMillerIndicesGlobal(1:3,igk2igGlobal(igk,ikGlobal))
           flush(72)
         enddo
       
