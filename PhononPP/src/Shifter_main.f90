@@ -13,7 +13,7 @@ program shifterMain
 
   call mpiInitialization()
 
-  call initialize(nAtoms, shift, dqFName, phononFName, poscarFName, prefix)
+  call initialize(shift, dqFName, phononFName, poscarFName, prefix)
     !! * Set default values for input variables and start timers
 
   if(ionode) then
@@ -24,23 +24,20 @@ program shifterMain
     if(ierr /= 0) call exitError('export main', 'reading inputParams namelist', abs(ierr))
       !! * Exit calculation if there's an error
 
-    call checkInitialization(nAtoms, shift, dqFName, phononFName, poscarFName, prefix)
+    call checkInitialization(shift, dqFName, phononFName, poscarFName, prefix)
 
   endif
 
-  call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
   call MPI_BCAST(shift, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   call MPI_BCAST(dqFName, len(dqFName), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(phononFName, len(phononFName), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(poscarFName, len(poscarFName), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
 
+  call readPOSCAR(poscarFName, nAtoms, atomPositionsDir, omega, realLattVec)
+
   nModes = 3*nAtoms - 3
     !! * Calculate the total number of modes
-
-  allocate(atomPositionsDir(3,nAtoms))
-
-  call readPOSCAR(nAtoms, poscarFName, atomPositionsDir, omega, realLattVec)
 
   allocate(eigenvector(3,nAtoms,nModes))
   allocate(mass(nAtoms))

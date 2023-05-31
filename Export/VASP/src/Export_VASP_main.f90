@@ -17,6 +17,8 @@ program wfcExportVASPMain
 
   integer :: iT
     !! Index for deallocating `pot` variables
+  integer :: nAtoms_
+    !! Input number of atoms from CONTCAR file
 
   real(kind=dp) :: omegaPOS, realLattVecPOS(3,3)
     !! Variables from POSCAR to compare to WAVECAR
@@ -84,13 +86,13 @@ program wfcExportVASPMain
   call read_vasprun_xml(nKPoints, VASPDir, eFermi, eTot, kWeight, iType, nAtoms, nAtomsEachType, nAtomTypes)
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
-  allocate(atomPositionsDir(3,nAtoms))
-
   if(ionode) then
     fName = trim(VASPDir)//'CONTCAR'
 
-    call readPOSCAR(nAtoms, fName, atomPositionsDir, omegaPOS, realLattVecPOS)
+    call readPOSCAR(fName, nAtoms_, atomPositionsDir, omegaPOS, realLattVecPOS)
       !! * Get coordinates from CONTCAR
+
+    if(nAtoms_ /= nAtoms) call exitError('export main', 'nAtoms from vasprun.xml and '//trim(fName)//' don''t match!', 1)
 
     omegaPOS = omegaPOS*angToBohr**3
     realLattVecPOS = realLattVecPOS*angToBohr
@@ -99,6 +101,8 @@ program wfcExportVASPMain
       call exitError('export main', 'omega and lattice vectors from POSCAR and WAVECAR not consistent', 1)
 
   endif
+
+  if(.not. ionode) allocate(atomPositionsDir(3,nAtoms))
 
   call MPI_BCAST(atomPositionsDir, size(atomPositionsDir), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 

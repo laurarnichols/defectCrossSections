@@ -63,6 +63,208 @@ module errorsAndMPI
   end subroutine mpiInitialization
 
 !----------------------------------------------------------------------------
+  function checkDirInitialization(variableName, variableValue, fileInDir) result(abortExecution)
+
+    implicit none
+
+    ! Input variables:
+    character(*), intent(in) :: fileInDir
+      !! File to look for in directory 
+      !! (for compiler compatibility)
+    character(*), intent(in) :: variableName
+      !! Name of variable to be tested
+    character(*), intent(in) :: variableValue
+      !! Value of variable to be tested
+
+    ! Output variables:
+    logical :: abortExecution
+      !! If execution should stop
+    logical :: fileExists
+      !! If file exists
+
+
+    abortExecution = .false.
+
+    if(trim(variableValue) == '' ) then
+
+      write(*,*)
+      write(*,'(" Variable ",a," is not defined!")') trim(variableName)
+      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
+
+      abortExecution = .true.
+
+    else
+      
+      inquire(file=trim(variableValue)//'/'//trim(fileInDir), exist=fileExists)
+      
+      if(fileExists .eqv. .false.) then
+
+        write(*,'(" File ", a, " , does not exist!")') trim(variableValue)//'/'//trim(fileInDir)
+        write(*,'(" This variable is mandatory and thus the program will not be executed!")')
+
+        abortExecution = .true.
+
+      endif
+    endif
+
+
+    write(*, '(a," = ''", a, "''")') trim(variableName), trim(variableValue)
+
+  end function checkDirInitialization
+
+!----------------------------------------------------------------------------
+  function checkFileInitialization(variableName, variableValue) result(abortExecution)
+
+    implicit none
+
+    ! Input variables:
+    character(*), intent(in) :: variableName
+      !! Name of variable to be tested
+    character(*), intent(in) :: variableValue
+      !! Value of variable to be tested
+
+    ! Output variables:
+    logical :: abortExecution
+      !! If execution should stop
+    logical :: fileExists
+      !! If file exists
+
+
+    abortExecution = .false.
+
+    if(trim(variableValue) == '' ) then
+
+      write(*,*)
+      write(*,'(" Variable ",a," is not defined!")') trim(variableName)
+      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
+
+      abortExecution = .true.
+
+    else
+      
+      inquire(file=trim(variableValue), exist=fileExists)
+      
+      if(fileExists .eqv. .false.) then
+
+        write(*,'(" File ", a, " , does not exist!")') trim(variableValue)
+        write(*,'(" This variable is mandatory and thus the program will not be executed!")')
+
+        abortExecution = .true.
+
+      endif
+    endif
+
+
+    write(*, '(a," = ''", a, "''")') trim(variableName), trim(variableValue)
+
+  end function checkFileInitialization
+
+!----------------------------------------------------------------------------
+  function checkStringInitialization(variableName, variableValue) result(abortExecution)
+
+    implicit none
+
+    ! Input variables:
+    character(*), intent(in) :: variableName
+      !! Name of variable to be tested
+    character(*), intent(in) :: variableValue
+      !! Value of variable to be tested
+
+    ! Output variables:
+    logical :: abortExecution
+      !! If execution should stop
+
+
+    abortExecution = .false.
+
+    if(trim(variableValue) == '' ) then
+
+      write(*,*)
+      write(*,'(" Variable ",a," is not defined!")') trim(variableName)
+      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
+
+      abortExecution = .true.
+
+    endif
+
+
+    write(*, '(a," = ''", a, "''")') trim(variableName), trim(variableValue)
+
+  end function checkStringInitialization
+
+!----------------------------------------------------------------------------
+  function checkIntInitialization(variableName, variableValue, minValue, maxValue) result(abortExecution)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: minValue, maxValue
+      !! Max and min value of variable to test
+    integer, intent(in) :: variableValue
+      !! Value of variable to be tested
+
+    character(*), intent(in) :: variableName
+      !! Name of variable to be tested
+
+    ! Output variables:
+    logical :: abortExecution
+      !! If execution should stop
+
+
+    abortExecution = .false.
+
+    if(variableValue < minValue .or. variableValue > maxValue) then
+
+      write(*,*)
+      write(*,'(" Variable ",a," is not defined or is out of range!")') trim(variableName)
+      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
+
+      abortExecution = .true.
+
+    endif
+
+
+    write(*, '(a," = ", i7)') trim(variableName), variableValue
+
+  end function checkIntInitialization
+
+!----------------------------------------------------------------------------
+  function checkDoubleInitialization(variableName, variableValue, minValue, maxValue) result(abortExecution)
+
+    implicit none
+
+    ! Input variables:
+    real(kind=dp), intent(in) :: minValue, maxValue
+      !! Max and min value of variable to test
+    real(kind=dp), intent(in) :: variableValue
+      !! Value of variable to be tested
+
+    character(*), intent(in) :: variableName
+      !! Name of variable to be tested
+
+    ! Output variables:
+    logical :: abortExecution
+      !! If execution should stop
+
+
+    abortExecution = .false.
+
+    if(variableValue < minValue .or. variableValue > maxValue) then
+
+      write(*,*)
+      write(*,'(" Variable ",a," is not defined or is out of range!")') trim(variableName)
+      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
+
+      abortExecution = .true.
+
+    endif
+
+
+    write(*, '(a," = ", ES10.3E1)') trim(variableName), variableValue
+
+  end function checkDoubleInitialization
+
+!----------------------------------------------------------------------------
   subroutine distributeItemsInSubgroups(mySubgroupId, nItemsToDistribute, nProcPerLargerGroup, nProcPerSubgroup, nSubgroups, &
         iItemStart_subgroup, iItemEnd_subgroup, nItemsPerSubgroup)
     !! Distribute items across a subgroup

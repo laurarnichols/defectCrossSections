@@ -53,7 +53,7 @@ module shifterMod
   contains
 
 !----------------------------------------------------------------------------
-  subroutine initialize(nAtoms, shift, dqFName, phononFName, poscarFName, prefix)
+  subroutine initialize(shift, dqFName, phononFName, poscarFName, prefix)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -68,9 +68,6 @@ module shifterMod
 
 
     ! Output variables:
-    integer, intent(out) :: nAtoms
-      !! Number of atoms
-
     real(kind=dp), intent(out) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -90,7 +87,6 @@ module shifterMod
     character(len=10) :: ctime
       !! String for time
 
-    nAtoms = -1
     dqFName = 'dq.txt'
     poscarFName = 'POSCAR'
     phononFName = 'mesh.yaml'
@@ -112,14 +108,11 @@ module shifterMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(nAtoms, shift, dqFName, phononFName, poscarFName, prefix)
+  subroutine checkInitialization(shift, dqFName, phononFName, poscarFName, prefix)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: nAtoms
-      !! Number of atoms
-
     real(kind=dp), intent(inout) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -135,127 +128,14 @@ module shifterMod
     ! Local variables:
     logical :: abortExecution
       !! Whether or not to abort the execution
-    logical :: fileExists
-      !! If a file exists
 
 
-    if(trim(poscarFName) == '' ) then
+    abortExecution = checkFileInitialization('poscarFName', poscarFName)
+    abortExecution = checkFileInitialization('phononFName', phononFName) .or. abortExecution
+    abortExecution = checkStringInitialization('prefix', prefix) .or. abortExecution
+    abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 1.0_dp) .or. abortExecution
+    abortExecution = checkStringInitialization('dqFName', dqFName) .or. abortExecution
 
-      write(*,*)
-      write(*,'(" Variable : ""poscarFName"" is not defined!")')
-      write(*,'(" usage : poscarFName = ''./POSCAR''")')
-      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-      abortExecution = .true.
-
-    else
-      
-      inquire(file=trim(poscarFName), exist=fileExists)
-      
-      if(fileExists .eqv. .false.) then
-
-        write(*,'(" File : ", a, " , does not exist!")') trim(poscarFName)
-        write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-        abortExecution = .true.
-
-      endif
-    endif
-    
-
-    write(*, '("poscarFName = ''", a, "''")') trim(poscarFName)
-
-
-    if(trim(phononFName) == '' ) then
-
-      write(*,*)
-      write(*,'(" Variable : ""phononFName"" is not defined!")')
-      write(*,'(" usage : phononFName = ''./mesh.yaml''")')
-      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-      abortExecution = .true.
-
-    else
-      
-      inquire(file=trim(phononFName), exist=fileExists)
-      
-      if(fileExists .eqv. .false.) then
-
-        write(*,'(" File : ", a, " , does not exist!")') trim(phononFName)
-        write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-        abortExecution = .true.
-
-      endif
-    endif
-
-
-    write(*, '("phononFName = ''", a, "''")') trim(phononFName)
-
-
-    if(trim(prefix) == '' ) then
-
-      write(*,*)
-      write(*,'(" Variable : ""prefix"" is not defined!")')
-      write(*,'(" usage : prefix = ''ph_POSCAR''")')
-      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-      abortExecution = .true.
-
-    endif
-    
-
-    write(*, '("prefix = ''", a, "''")') trim(prefix)
-
-
-    if(nAtoms < 0) then
-
-      write(*,*)
-      write(*,'(" Variable : ""nAtoms"" is not defined!")')
-      write(*,'(" usage : nAtoms = 100")')
-      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-      abortExecution = .true.
-
-    endif
-
-
-    if(shift < 0.0_dp ) then
-
-      shift = 0.01_dp ! angstrom
-
-      write(*,'(" Variable : ""shift"" is less than zero!")')
-      write(*,'(" usage : shift = 0.01")')
-      write(*,'(" A default value of 0.01 A will be used !")')
-
-    else if(shift > 0.2_dp) then
-      ! This limit is arbitrary. Seems like a good number for right now.
-
-      write(*,'(" Variable : ""shift"" is too large!")')
-      write(*,'(" usage : shift = 0.01")')
-      write(*,'(" Re-run with a value less than 0.2 A!")')
-
-      abortExecution = .true.
-
-    endif
-    
-    write(*, '("shift = ", f8.4, " (A)")') shift
-
-
-    if(trim(dqFName) == '' ) then
-
-      write(*,*)
-      write(*,'(" Variable : ""dqFName"" is not defined!")')
-      write(*,'(" usage : dqFName = ''./dq.txt''")')
-      write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-
-      abortExecution = .true.
-
-    endif
-    
-
-    write(*, '("dqFName = ''", a, "''")') trim(dqFName)
-    
 
     if(abortExecution) then
       write(*, '(" Program stops!")')
@@ -425,18 +305,9 @@ module shifterMod
       !!  should still be angstrom.
       !! @endnote
 
-    !> Convert scaled displacement back to generalized
-    !> coordinates and get norm
-    generalizedNorm_j = 0.0_dp
-    do ia = 1, nAtoms
-
-      eig = displacement(:,ia)*sqrt(mass(ia))
-
-      generalizedNorm_j = generalizedNorm_j + dot_product(eig,eig)
-
-    enddo
-
-    generalizedNorm_j = sqrt(generalizedNorm_j)*angToBohr*sqrt(daltonToElecM)
+    generalizedNorm_j = cartDisplacementToGeneralizedNorm(nAtoms, displacement, mass)*angToBohr*sqrt(daltonToElecM)
+      !! Convert scaled displacement back to generalized
+      !! coordinates and get norm
       !! @note
       !!   Input positions are in angstrom and input
       !!   masses are in amu, but the dq output is going
