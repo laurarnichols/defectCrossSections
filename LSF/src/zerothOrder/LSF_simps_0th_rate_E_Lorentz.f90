@@ -18,7 +18,7 @@ module capcs
 
   real(kind=dp), allocatable :: EDelta(:,:)
     !! Energy for delta function
-  real(kind=dp), allocatable :: maxtrixElement(:,:)
+  real(kind=dp), allocatable :: matrixElement(:,:)
     !! Electronic matrix element
 
   character(len=300) :: EInput
@@ -32,7 +32,7 @@ module capcs
 
   real(kind=dp),allocatable :: ipfreq(:),Sj(:)
   real(kind=dp) :: temperature,beta
-  real(kind=dp) :: limit,alpha,dstep,bin,gamma0, Eif, ematrix_real, ematrix_img, lambda
+  real(kind=dp) :: limit,alpha,dstep,bin,gamma0, ematrix_real, ematrix_img, lambda
   complex(kind=dp) ::  G1t, wif,wif0,wif1
   character(len=256) :: dummy
   integer :: nstep, nw, nfreq, nn, nE
@@ -61,7 +61,7 @@ end subroutine
       !! Energy for delta function
 
     ! Local variables:
-    integer :: _iBandIinit, _iBandIfinal, _iBandFinit, _iBandFfinal
+    integer :: iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
       !! Band bounds from energy table
     integer :: iDum
       !! Dummy integer
@@ -75,16 +75,16 @@ end subroutine
     open(12,file=trim(EInput))
 
     read(12,*)
-    read(12,*) iDum, _iBandIinit, _iBandIfinal, _iBandFinit, _iBandFfinal
+    read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
       ! @todo Test these values against the input values
       
 
-    allocate(EDelta(iBandIinit:iBandIfinal,iBandFinit:iBandFfinal))
+    allocate(EDelta(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
 
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
 
-        read(12,*) iDum, iDum, EDelta(ibi,ibf) ! in Hartree
+        read(12,*) iDum, iDum, EDelta(ibf,ibi) ! in Hartree
 
       enddo
     enddo
@@ -103,11 +103,11 @@ end subroutine
     implicit none
 
     ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: maxtrixElement(:,:)
+    real(kind=dp), allocatable, intent(out) :: matrixElement(:,:)
       !! Electronic matrix element
 
     ! Local variables:
-    integer :: _iBandIinit, _iBandIfinal, _iBandFinit, _iBandFfinal
+    integer :: iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
       !! Band bounds from energy table
     integer :: iDum
       !! Dummy integer
@@ -120,16 +120,16 @@ end subroutine
     open(12,file=trim(M0Input))
 
     read(12,*)
-    read(12,*) iDum, _iBandIinit, _iBandIfinal, _iBandFinit, _iBandFfinal
+    read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
       ! @todo Test these values against the input values
       
 
-    allocate(matrixElement(iBandIinit:iBandIfinal,iBandFinit:iBandFfinal))
+    allocate(matrixElement(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
 
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
 
-        read(12,*) iDum, iDum, rDum, rDum, rDum, matrixElement(ibi,ibf) ! in Hartree^2
+        read(12,*) iDum, iDum, rDum, rDum, rDum, matrixElement(ibf,ibi) ! in Hartree^2
 
       enddo
     enddo
@@ -217,15 +217,19 @@ program captureCS
   implicit none
 
   ! Local variables:
-  integer :: iTime
-    !! Loop index
+  integer :: iTime, ibi, ibf
+    !! Loop indices
+
+  real(kind=dp) :: Eif
+    !! Local storage of EDelta(ibi,ibf)
+  real(kind=dp) :: Mif
+    !! Local storage of matrixElement(ibi,ibf)
 
   integer :: j,k,numofcores
   real(kind=dp) :: rangemax, dtime, dw, inputt, t1, t2, inta, intb, S1, S2, sinc
   complex(kind=dp) :: temp,tmpa1,tmpa2,G0_t,tmpb1,tmpb2, intg, fa, fb, fc, fd, tmpa3, tmpb3
   real(kind=dp)::omega_tmp
   real(kind=dp),allocatable :: S(:)
-
 
   call init()
   call readphonon()
@@ -243,41 +247,54 @@ program captureCS
 
   gamma0 = gamma0*meV/hbar
   
-  nstep=200000000!Ceiling(rangemax/dstep)
+  nstep=200000000
   write(*,*) nstep*dstep
 
-  S1=0.0d0!+Real(ematrixif*exp(G0_t(inputt)+cmplx(0.0,inputt*EE/hbar,dp)-gamma0*inputt*inputt))*dstep
+  S1=0.0d0
 
 !$OMP PARALLEL DO default(shared) private(inputt,t1,t2,S2,iTime,j,k,omega_tmp,tmpa1,tmpa2,tmpa3,tmpb1,tmpb2,tmpb3)&
 & firstprivate(Eif,inta,dstep,nw,dw,nstep) reduction(+:S1,S) 
-  do iTime = 1, nstep-1, 2!nstep-1, 0, -1
+  do iTime = 1, nstep-1, 2
     inputt=(float(iTime))*dstep
 
     t1=inputt + nstep*dstep*nn
-    tmpa1 = (ematrixif)
     tmpa2 = G0_t(t1)-gamma0*t1 ! Lorentz
 
     t2 = t1 + dstep
-    tmpb1 = (ematrixif)
     tmpb2 = G0_t(t2)-gamma0*t2 ! Lorentz
 
-    do j = 1, nE
-      Eif = EDelta(j)
-      tmpa3 = tmpa2+cmplx(0.0,t1*Eif/hbar,dp)
-      tmpb3 = tmpb2+cmplx(0.0,t2*Eif/hbar,dp)
-      S(j) = S(j) + Real(4d0*tmpa1*exp(tmpa3)+2d0*tmpb1*exp(tmpb3))
+    do ibi = iBandIinit, iBandIfinal
+      do ibf = iBandFinit, iBandFfinal
+
+        Mif = matrixElement(ibf,ibi)
+        Eif = EDelta(ibf,ibi)
+
+        tmpa3 = tmpa2+cmplx(0.0,t1*Eif/hbar,dp)
+        tmpb3 = tmpb2+cmplx(0.0,t2*Eif/hbar,dp)
+
+        S(j) = S(j) + Real(4d0*Mif*exp(tmpa3) + 2d0*Mif*exp(tmpb3))
+      enddo
     enddo
   enddo
 
-  do i = 1, nE
-     Eif = EDelta(i)
-     t1 = nstep*dstep*nn
-     t2 = (float(nstep))*dstep+nstep*dstep*nn
-     S(i) = S(i) + Real(ematrixif*exp(G0_t(t1)+cmplx(0.0,t1*Eif/hbar,dp)-gamma0*t1)) ! Lorentz
-     S(i) = S(i) - Real(ematrixif*exp(G0_t(t2)+cmplx(0.0,t2*Eif/hbar,dp)-gamma0*t2)) ! Lorentz
-     S(i) = S(i)*2.0d0/3.0d0*dstep
-     S(i) = S(i)/hbar/hbar
-     write(*,'(f10.5,f7.1,i5,ES35.14E3)') EDelta(i)/eV, temperature, nn, S(i)
-  END DO
+  do ibi = iBandIinit, iBandIfinal
+    do ibf = iBandFinit, iBandFfinal
+
+      Mif = matrixElement(ibf,ibi)
+      Eif = EDelta(ibf,ibi)
+
+      t1 = nstep*dstep*nn
+      t2 = (float(nstep))*dstep+nstep*dstep*nn
+
+      S(i) = S(i) + Real(Mif*exp(G0_t(t1)+cmplx(0.0,t1*Eif/hbar,dp)-gamma0*t1)) ! Lorentz
+      S(i) = S(i) - Real(Mif*exp(G0_t(t2)+cmplx(0.0,t2*Eif/hbar,dp)-gamma0*t2)) ! Lorentz
+
+      S(i) = S(i)*2.0d0/3.0d0*dstep
+      S(i) = S(i)/hbar/hbar
+
+      write(*,'(f10.5,f7.1,i5,ES35.14E3)') Eif/eV, temperature, nn, S(i)
+
+    enddo
+  enddo
 
 end program
