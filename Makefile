@@ -24,7 +24,7 @@ mpif90 = ftn
 ########################################################################
 
 
-all : initialize QE-5.0.2_dependent QE-5.3.0_dependent QE-6.3_dependent Export_VASP TME LSF0 Mj LSF1 Sigma
+all : initialize QE-5.0.2_dependent QE-5.3.0_dependent QE-6.3_dependent Export_VASP EnergyTabulator TME LSF0 Mj LSF1 Sigma
 
 help :
 
@@ -50,6 +50,7 @@ help :
 	@echo "    make Export_QE-5.3.0          to built the Quantum Espresso 5.3.0 dependent Export module."
 	@echo "    make Export_QE-6.3            to built the Quantum Espresso 6.3 dependent Export module."
 	@echo "    make Export_VASP              to built the VASP Export code"
+	@echo "    make EnergyTabulator          to built the energy tabulation code."
 	@echo "    make TME                      to built the Transition Matrix Elements (TME) module."
 	@echo "    make PhononPP                 to built the phonon post-processing module."
 	@echo "    make Mj                       to built the Mj module."
@@ -65,6 +66,7 @@ help :
 	@echo "    make cleanExport_QE-6.3            to clean the Quantum Espresso 6.3 dependent Export module."
 	@echo "    make cleanPhononPP                 to clean the phonon post-processing module."
 	@echo "    make cleanMj                       to clean the Mj module."
+	@echo "    make cleanEnergyTabulator          to clean the energy tabulation code."
 	@echo "    make cleanTME                      to clean the Transition Matrix Elements (TME) module."
 	@echo "    make cleanLSF                      to clean the Line Shape Function (LSF) module."
 	@echo "    make cleanSigma                    to clean the Cross Section (Sigma) module."
@@ -74,16 +76,17 @@ help :
 
 Export_QE-5.0.2_srcPath = Export/QE/5.0.2/src
 Export_QE-5.3.0_srcPath = Export/QE/5.3/src
-Export_QE-6.3_srcPath = Export/QE/6.3/src
-Export_VASP_srcPath = Export/VASP/src
-TME_srcPath    = TME/src
-Mj_srcPath     = Mj/src
-LSF_srcPath    = LSF/src
-LSF0_srcPath   = $(LSF_srcPath)/zerothOrder
-LSF1_srcPath   = $(LSF_srcPath)/linearTerms
-Sigma_srcPath  = Sigma/src
-CommonModules_srcPath  = CommonModules
-PhononPP_srcPath = PhononPP/src
+Export_QE-6.3_srcPath   = Export/QE/6.3/src
+Export_VASP_srcPath     = Export/VASP/src
+EnergyTabulator_srcPath = EnergyTabulator/src
+TME_srcPath             = TME/src
+Mj_srcPath              = Mj/src
+LSF_srcPath             = LSF/src
+LSF0_srcPath            = $(LSF_srcPath)/zerothOrder
+LSF1_srcPath            = $(LSF_srcPath)/linearTerms
+Sigma_srcPath           = Sigma/src
+CommonModules_srcPath   = CommonModules
+PhononPP_srcPath        = PhononPP/src
 
 bin = './bin'
 
@@ -101,12 +104,12 @@ QE-5.3.0_dependent : initialize Export_QE-5.3.0
 
 QE-6.3_dependent : initialize Export_QE-6.3
 
-base : TME LSF0 LSF1 Mj PhononPP Sigma
+base : EnergyTabulator TME LSF0 LSF1 Mj PhononPP Sigma
 
 initialize :
 
 	@echo "" > make.sys ; \
-	echo "Home_Path      = " $(PWD) >> make.sys ; \
+	echo "Home_Path               = " $(PWD) >> make.sys ; \
 	echo "QE-5.0.2_Path           = " $(QE-5.0.2_Path) >> make.sys ; \
 	echo "QE-5.3.0_Path           = " $(QE-5.3.0_Path) >> make.sys ; \
 	echo "QE-6.3_Path             = " $(QE-6.3_Path) >> make.sys ; \
@@ -114,6 +117,7 @@ initialize :
 	echo "Export_QE-5.3.0_srcPath = " $(PWD)/$(Export_QE-5.3.0_srcPath) >> make.sys ; \
 	echo "Export_QE-6.3_srcPath   = " $(PWD)/$(Export_QE-6.3_srcPath) >> make.sys ; \
 	echo "Export_VASP_srcPath     = " $(PWD)/$(Export_VASP_srcPath) >> make.sys ; \
+	echo "EnergyTabulator_srcPath = " $(PWD)/$(EnergyTabulator_srcPath) >> make.sys ; \
 	echo "TME_srcPath             = " $(PWD)/$(TME_srcPath) >> make.sys ; \
 	echo "PhononPP_srcPath        = " $(PWD)/$(PhononPP_srcPath) >> make.sys ; \
 	echo "Mj_srcPath              = " $(PWD)/$(Mj_srcPath) >> make.sys ; \
@@ -160,6 +164,11 @@ Export_VASP : initialize
 	@cd $(Export_VASP_srcPath) ; \
 		make all
 
+EnergyTabulator : initialize
+
+	@cd $(EnergyTabulator_srcPath) ; \
+        	make all
+
 TME : initialize
 
 	@cd $(TME_srcPath) ; \
@@ -193,19 +202,15 @@ Sigma : initialize
 	@cd $(Sigma_srcPath) ; \
         	make all
 
-clean : cleanExport_VASP clean_QE-5.0.2_dependent clean_QE-5.3.0_dependent clean_QE-6.3_dependent cleanTME cleanInitialization cleanPhononPP cleanMj cleanLSF0 cleanLSF1 cleanSigma
+clean : cleanExport_VASP cleanExport_QE-5.0.2 cleanExport_QE-5.3.0 cleanExport_QE-6.3 cleanBase
 
-clean_all_QE-5.0.2 : clean_QE-5.0.2_dependent cleanTME cleanInitialization cleanPhononPP cleanMj cleanLSF0 cleanLSF1 cleanSigma
+clean_all_QE-5.0.2 : cleanExport_QE-5.0.2 cleanBase
 
-clean_all_QE-5.3.0 : clean_QE-5.3.0_dependent cleanTME cleanInitialization cleanPhononPP cleanMj cleanLSF0 cleanLSF1 cleanSigma
+clean_all_QE-5.3.0 : cleanExport_QE-5.3.0 cleanBase
 
-clean_all_QE-6.3 : clean_QE-6.3_dependent cleanTME cleanInitialization cleanPhononPP cleanMj cleanLSF0 cleanLSF1 cleanSigma
+clean_all_QE-6.3 : cleanExport_QE-6.3 cleanBase
 
-clean_QE-5.0.2_dependent : cleanExport_QE-5.0.2
-
-clean_QE-5.3.0_dependent : cleanExport_QE-5.3.0
-
-clean_QE-6.3_dependent : cleanExport_QE-6.3
+cleanBase : cleanInitialization cleanEnergyTabulator cleanTME cleanPhononPP cleanMj cleanLSF0 cleanLSF1 cleanSigma
 
 cleanInitialization :
 
@@ -235,6 +240,12 @@ cleanExport_VASP :
 
 	@cd $(Export_VASP_srcPath) ; \
         	make clean
+
+cleanEnergyTabulator :
+
+	@cd $(EnergyTabulator_srcPath) ; \
+		make clean
+
 cleanTME :
 
 	@cd $(TME_srcPath) ; \
