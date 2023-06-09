@@ -1,6 +1,8 @@
 module capcs
+  
+  use constants, only: dp, HartreeToJ
+
   implicit none 
-  integer,parameter:: dp = selected_real_kind(15,307)
   real(kind=dp),parameter :: Kb =  1.38064852d-23
   real(kind=dp),parameter :: pi= 3.14159265358979
   real(kind=dp),parameter :: tpi = 6.2831853071795864769 
@@ -8,9 +10,8 @@ module capcs
   real(kind=dp),parameter :: hbar = 1.0545718d-34
   real(kind=dp),parameter :: eV = 1.6021766208d-19
   real(kind=dp),parameter :: meV =  1.6021766208d-22
-  real(kind=dp),parameter :: Hartree = 4.359744650d-18 !convert from Hartree to J
   real(kind=dp),parameter :: q_comvert = 3.920205055d50
-  real(kind=dp),allocatable :: ipfreq(:),Sj(:),Mj(:),E(:),EeV(:)
+  real(kind=dp),allocatable :: ipfreq(:),Sj(:),Mj(:),E(:)
   real(kind=dp) :: temperature,beta,ematrixif
   real(kind=dp) :: limit,alpha,dstep,bin,gamma0, Eif, Ei, Ef, ematrix_real, ematrix_img, lambda
   complex(kind=dp) ::  G1t, wif,wif0,wif1
@@ -32,25 +33,46 @@ beta = 1.0d0/Kb/temperature
 !Eif = Eif * eV !in J
 !Eif = -0.4*eV
 bin = bin*meV
-ematrixif = ematrixif*Hartree**2 ! Joule^2
+ematrixif = ematrixif*HartreeToJ**2 ! Joule^2
 !write(*,*) "gamma0 = ", gamma0
 !transform ematrixif from Hartree unit to joule^2
 end subroutine
 
-subroutine readenergy()
-implicit none
-integer :: iE
-open(12,file=trim(Einput))
-read(12,*) nE
-allocate(E(1:nE))
-allocate(EeV(1:nE))
-read(12,*) EeV(:)
-E(:) = Eev(:)*eV
-!do iE=1, nE
-!   read(12,*) EeV(iE) !in eV
-!   E(iE) = EeV(iE)*eV !in J
-!end do
-end subroutine
+  subroutine readEnergy(E)
+  
+    implicit none
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: E(:)
+      !! Energy for delta function
+
+    ! Local variables:
+    integer :: iDum
+      !! Dummy integer
+    integer :: iE
+      !! Loop index
+
+
+    open(12,file=trim(Einput))
+
+    read(12,*)
+    read(12,*) nE
+
+    allocate(E(nE))
+
+    do iE = 1, nE
+
+      read(12,*) iDum, iDum, E(iE) ! in Hartree
+
+    end do
+
+    E(:) = E(:)*HartreeToJ
+
+    close(12)
+
+    return
+
+  end subroutine readEnergy
 
 subroutine readphonon()
 implicit none
@@ -82,7 +104,7 @@ allocate(Mj(1:nfreq))
 do ifreq=1,nfreq
    read(12,*) dummy,dummy,dummy,Mj(ifreq) !Mj is in Hartree^2
 end do
-Mj=Mj*Hartree**2*q_comvert!convert to Joule^2/(kg*m^2)
+Mj=Mj*HartreeToJ**2*q_comvert!convert to Joule^2/(kg*m^2)
 
 close(12)
 !write(*,*) "Frequency Read"
@@ -92,9 +114,9 @@ subroutine testelectron()
 implicit none
 integer :: ifreq
 open(12,file="electron_test.txt")
-write(12,*) ematrixif/Hartree**2
+write(12,*) ematrixif/HartreeToJ**2
 do ifreq=1,nfreq
-   write(12,*) ifreq," ",Mj(ifreq)/Hartree**2 !Mj is in Hartree^2
+   write(12,*) ifreq," ",Mj(ifreq)/HartreeToJ**2 !Mj is in Hartree^2
 end do
 close(12)
 !write(*,*) "Frequency Read"
@@ -186,7 +208,7 @@ real(kind=dp),allocatable :: S(:)
 call init()
 call readphonon()
 call readelectron()
-call readenergy()
+call readEnergy(E)
 
 allocate(S(1:nE))
 S = 0.0d0
@@ -268,6 +290,6 @@ DO i=1, nE
    S(i) = S(i) - Real(ematrixif*exp(G0_t(t2)+cmplx(0.0,t2*Eif/hbar,dp)-gamma0*t2)) ! Lorentz
    S(i) = S(i)*2.0d0/3.0d0*dstep
    S(i) = S(i)/hbar/hbar
-   write(*,'(f10.5,f7.1,i5,ES35.14E3)') EeV(i), temperature, nn, S(i)
+   write(*,'(f10.5,f7.1,i5,ES35.14E3)') E(i)/eV, temperature, nn, S(i)
 END DO
 end program
