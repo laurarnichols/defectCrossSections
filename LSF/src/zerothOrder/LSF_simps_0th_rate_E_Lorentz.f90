@@ -201,6 +201,11 @@ program captureCS
   use OMP_LIB
 
   implicit none
+
+  ! Local variables:
+  integer :: iTime
+    !! Loop index
+
   integer :: i,j,k,numofcores
   real(kind=dp) :: rangemax, dtime, dw, inputt, t1, t2, inta, intb, S1, S2, sinc
   complex(kind=dp) :: temp,tmpa1,tmpa2,G0_t,Aj,tmpb1,tmpb2, intg, fa, fb, fc, fd, tmpa3, tmpb3
@@ -215,77 +220,42 @@ program captureCS
 
   allocate(S(1:nE))
   S = 0.0d0
-  !do i=1, nE
-  !  S(i) = 0.0d0
-  !end do
-  !call testelectron()
-  !write(*,*) Aj(0.000001_dp)
 
   !!limit = 1e-4
   dtime = 1/Thz
   write(*,*)"simps"
   write(*,*)dstep
   dstep = dtime*dstep
-  !steplength for time zone integration
-  !!alpha = alpha*meV/hbar
+
   gamma0 = gamma0*meV/hbar
-  !gamma0 = gamma0*gamma0 ! Lorentz
-  !transform alpha to be in Hz
-  !!rangemax= -log(limit*1.0)/gamma0
   
   nstep=200000000!Ceiling(rangemax/dstep)
   write(*,*) nstep*dstep
-  !maximum time and steps
-  !!bin = bin*meV
-  !!Eif = Eif*eV
-  !energy in joule
-  !!dw=bin/hbar/float(nw)
-  !frequency step for energy zone integration
-  !!inta=(Eif-0.5*bin)/hbar
-  !!intb=(Eif+0.5*bin)/hbar
-  !two ends of  frequency interval
-  !!write(*,*)"hello",nstep/10000,"dstep",dstep
-  !!write(*,*)"inta",inta,"intb", intb, "dw",dw
-  !inputt=nstep*dstep*nn
+
   S1=0.0d0!+Real(ematrixif*exp(G0_t(inputt)+cmplx(0.0,inputt*EE/hbar,dp)-gamma0*inputt*inputt))*dstep
+
 !$OMP PARALLEL DO default(shared) private(inputt,t1,t2,S2,i,j,k,omega_tmp,tmpa1,tmpa2,tmpa3,tmpb1,tmpb2,tmpb3)&
 & firstprivate(Eif,inta,dstep,nw,dw,nstep) reduction(+:S1,S) 
-  DO i=1, nstep-1, 2!nstep-1, 0, -1
-    inputt=(float(i))*dstep
-    !write(*,*) inputt
+  do iTime = 1, nstep-1, 2!nstep-1, 0, -1
+    inputt=(float(iTime))*dstep
+
     t1=inputt + nstep*dstep*nn
-    !tmp1=(ematrixif+Aj(inputt))*G0_t(inputt)*exp(cmplx(0.0,inputt*EE/hbar,dp))*exp(-gamma0*inputt*inputt)*sinc(bin/hbar*inputt*0.5)
-    !tmp1 =
-    !Aj(inputt)*G0_t(inputt)*exp(cmplx(0.0,inputt*EE/hbar,dp))*exp(-gamma0*inputt*inputt)*sinc(bin/hbar*inputt*0.5)
-    tmpa1 = (ematrixif)!*sinc(bin/hbar*inputt*0.5)
-    !tmpa2 = G0_t(inputt)+cmplx(0.0,inputt*Eif/hbar,dp)-gamma0*inputt*inputt
+    tmpa1 = (ematrixif)
     tmpa2 = G0_t(t1)-gamma0*t1 ! Lorentz
-    !write(*,*) "tmpa1: ",tmpa1
-    !write(*,*) "tmpa2: ",tmpa2
+
     t2 = t1 + dstep
-    tmpb1 = (ematrixif)!*sinc(bin/hbar*inputt*0.5)
-    !tmpb2 = G0_t(inputt)+cmplx(0.0,inputt*Eif/hbar,dp)-gamma0*inputt*inputt
+    tmpb1 = (ematrixif)
     tmpb2 = G0_t(t2)-gamma0*t2 ! Lorentz
-    !write(*,*) i, " ", t1, " ", t2
-    DO j=1, nE
+
+    do j = 1, nE
       Eif = E(j)
       tmpa3 = tmpa2+cmplx(0.0,t1*Eif/hbar,dp)
       tmpb3 = tmpb2+cmplx(0.0,t2*Eif/hbar,dp)
       S(j) = S(j) + Real(4d0*tmpa1*exp(tmpa3)+2d0*tmpb1*exp(tmpb3))
-      !write(*,*) i, " ", j, " ", Real(4d0*tmpa1*exp(tmpa2+cmplx(0.0,t1*Eif/hbar,dp))+2d0*tmpb1*exp(tmpb2+cmplx(0.0,t2*Eif/hbar,dp)))*dstep 
-      !write(*,'(2i4,4ES25.14E2)') i, j, tmpa3, exp(tmpa3)
-      ! write(*,'(i4,8ES25.14E2)') i, tmpa1, tmpa2,tmpb1, tmpb2
-    END DO
-   !time zone integration
-  END DO
-  !write(*,*) "nw",nw,"dstep",dstep 
-  !write(*,*)"energy bin",bin/meV
-  !write(*,*)(S1*2.0d0/tpi/hbar)*tpi/hbar*ematrixif
-  !write(*,*) nE, " ", EE, "     ", S1 
-  !write(*,*) "ematrixif", ematrixif
-  !write(*,*) S1!*2.0d0/hbar/hbar*ematrixif
-  !wif0, final result we expect
-  DO i=1, nE
+    enddo
+  enddo
+
+  do i = 1, nE
      Eif = E(i)
      t1 = nstep*dstep*nn
      t2 = (float(nstep))*dstep+nstep*dstep*nn
