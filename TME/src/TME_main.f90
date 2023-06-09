@@ -81,8 +81,6 @@ program transitionMatrixElements
   call cpu_time(t1)
     
 
-  if(indexInPool == 0) allocate(eigvI(iBandIinit:iBandIfinal), eigvF(iBandFinit:iBandFfinal))
-  
   allocate(Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPerPool, nSpins))
   Ufi(:,:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
   
