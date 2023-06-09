@@ -1931,7 +1931,7 @@ contains
     
     do i = 1, totalNumberOfElements
       
-      read(17, 1001) ibf, ibi, rDum, cUfi, rDum
+      read(17, 1001) ibf, ibi, cUfi, rDum, rDum
       Ufi(ibf,ibi,ikLocal,isp) = cUfi
           
     enddo
