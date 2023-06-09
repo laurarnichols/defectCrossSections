@@ -5,27 +5,22 @@ The `TME` program outputs matrix elements for a range of initial and final band 
 The code also assumes that all atom types in the `PC` system are also in the `SD` system in the same order and that any atoms in the SD system not in the PC system are at the end.
 
 Output files are 
-* `allElecOverlap.isp.ik` -- for each band in range and a given spin and k-point: initial and final band, energy difference, all-electron overlaps, and matrix elements
+* `allElecOverlap.isp.ik` -- for each band in range and a given spin and k-point: initial and final band, all-electron overlaps, and matrix elements
 * `output` -- information about input variables
 * `VfisVsEofKpt`/`VfisVsE` -- optional k-binned matrix elements
 * stdout -- timing information and status updates
+
+The same TME code is used for both the zeroth-order and the first-order matrix elements. For both orders, the overlap part comes from from the TME code and the energy difference comes from the [`EnergyTabulator`](../EnergyTabulator) code.
 
 ## Zeroth-order
 
 The zeroth-order term has a single matrix element that is shown in the GaN paper to be $$M_{\text{e}}^{\text{BO}} = \langle \phi_f | \psi_i^0 \rangle (E_f - E_i),$$ where $E_f - E_i$ is the total electronic energy difference of the defect crystal before and after capture and $|\phi_f\rangle$ and $|\psi_i^0\rangle$ are the single-quasiparticle orbitals of the final defect state and the perfect-crystal initial state, respectively. 
 
-For capture, you must do two separate total-energy calculations for the different defect charge states because the system will relax. The position of the carrier to be captured in the excited-state total-energy calculation is the reference position. You must be clear on where your WZP reference carrier is for the energy difference to be correct. For example, if you consider the $0/-$ transition in $\text{Si}_{\text{V}}\text{H}_3$, your initial state should really have an electron in the conduction band and a hole in the valence band or a donor. However, when using a hole as the compensating charge rather than a donor, the wave functions will not be significantly changed by moving the delocalized electron from the conduction band to the valence band. However, the energy must be adjusted based on the different positions of your reference carrier. 
-
-The `TME` input file for the zeroth-order term should look like
+The `TME` input file for the zeroth-order should look like
 ```f90
 &TME_Input
   ! Which order of matrix element to calculate
   order = 0
-  
-  ! Parameters for change in energy
-  capturing = 'elec' or 'hole'					! what kind of carrier is being captured
-  eCorrect = real						! size of energy correction in eV; default 0.0
-  refBand = integer						! band location of reference carrier
   
   ! Systems used for overlaps
   exportDirSD = 'path-to-final-charge-state-initial-positions-export'
@@ -37,11 +32,6 @@ The `TME` input file for the zeroth-order term should look like
   iBandFinit = integer						! lowest final-state band
   iBandFfinal = integer						! highest final-state band
     ! Note: code logic only currently tested for single final band state (iBandFinit = iBandFfinal)
-  
-  
-  ! Systems used for total energy difference (only for order = 0)
-  exportDirInit = 'path-to-relaxed-initial-charge-state-export'
-  exportDirFinal = 'path-to-relaxed-final-charge-state-export'
   
   ! Output info
   elementsPath = 'path-to-store-overlap-files' 			! default './TMEs'
@@ -61,11 +51,6 @@ The `TME` input file for the first-order term should look like
 &TME_Input
   ! Which order of matrix element to calculate
   order = 1
-  
-  ! Parameters for change in energy
-  capturing = 'elec' or 'hole'		! what kind of carrier is being captured
-  eCorrect = real						      ! size of energy correction in eV; default 0.0
-  refBand = integer						    ! band location of reference carrier
   
   ! Systems used for overlaps
   exportDirSD = 'path-to-displaced-defect-export'
