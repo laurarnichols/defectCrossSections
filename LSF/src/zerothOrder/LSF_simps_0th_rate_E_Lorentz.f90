@@ -11,14 +11,14 @@ module capcs
   real(kind=dp),parameter :: eV = 1.6021766208d-19
   real(kind=dp),parameter :: meV =  1.6021766208d-22
   real(kind=dp),parameter :: q_comvert = 3.920205055d50
-  real(kind=dp),allocatable :: ipfreq(:),Sj(:),Mj(:),E(:)
+  real(kind=dp),allocatable :: ipfreq(:),Sj(:),E(:)
   real(kind=dp) :: temperature,beta,ematrixif
   real(kind=dp) :: limit,alpha,dstep,bin,gamma0, Eif, Ei, Ef, ematrix_real, ematrix_img, lambda
   complex(kind=dp) ::  G1t, wif,wif0,wif1
   character(len=256) :: dummy
-  character(len=256) :: Sjinput, Mjinput, Einput
+  character(len=256) :: Sjinput, Einput
   integer :: nstep, nw, nfreq, nn, nE
-   namelist /capcsconf/ ematrixif,temperature,Sjinput, Mjinput, nn,&
+   namelist /capcsconf/ ematrixif,temperature,Sjinput, nn,&
                        limit,gamma0,alpha, dstep,nw, bin, Einput, ematrix_real, ematrix_img
 
 contains
@@ -93,34 +93,6 @@ close(12)
 !write(*,*) "Frequency Read"
 end subroutine
 
-subroutine readelectron()
-implicit none
-integer :: ifreq
-open(12,file=trim(Mjinput))
-read(12,*)nfreq
-!read mode number
-allocate(Mj(1:nfreq))
-
-do ifreq=1,nfreq
-   read(12,*) dummy,dummy,dummy,Mj(ifreq) !Mj is in Hartree^2
-end do
-Mj=Mj*HartreeToJ**2*q_comvert!convert to Joule^2/(kg*m^2)
-
-close(12)
-!write(*,*) "Frequency Read"
-end subroutine
-
-subroutine testelectron()
-implicit none
-integer :: ifreq
-open(12,file="electron_test.txt")
-write(12,*) ematrixif/HartreeToJ**2
-do ifreq=1,nfreq
-   write(12,*) ifreq," ",Mj(ifreq)/HartreeToJ**2 !Mj is in Hartree^2
-end do
-close(12)
-!write(*,*) "Frequency Read"
-end subroutine
 end module capcs
 
 
@@ -154,33 +126,6 @@ use capcs
     end if
 end function
 
-function Aj(t1) result (A)
-use capcs
-    real(kind=dp) :: t1, wt1, omega
-    complex(kind=dp) :: t2, t3, wt2, wt3, A, A1, A2, tmp
-    integer :: ifreq
-    A = 0.0_dp
-    t2 = dcmplx(-t1, -hbar*beta)
-    t3 = dcmplx(0.0_dp, -hbar*beta)
-    do ifreq=1, nfreq
-        omega=ipfreq(ifreq)
-        wt1 = omega*t1*0.5_dp
-        wt2 = omega*t2*0.5_dp
-        wt3 = omega*t3*0.5_dp
-        A1 = 2.0_dp*hbar/omega*Sj(ifreq)
-        tmp = cos(wt1)*sin(wt2)/sin(wt3)
-        A1 = A1*4.0_dp*tmp*tmp
-        !(*,*) "A1 = ", A1
-        A2 = dcmplx(0.0_dp, -hbar/omega)*cos(wt1-wt2)/sin(wt3)
-        !write(*,*) "A2 = ", A2
-        A = A+Mj(ifreq)*(A1+A2)*0.25_dp
-        !write(*,*) "A2 = ", A2
-        !write(*,*) "t = ", t1
-        !write(*,*) "omega = ", omega
-        !write(*,*) "Sj = ", Sj(ifreq)
-    end do
-end function
-
 function intg(a, b, c, d, t, dt, tmpa2, tmpb2) result (res)
 use capcs
     real(kind=dp) :: t, dt!t1, wt1, omega
@@ -208,14 +153,13 @@ program captureCS
 
   integer :: i,j,k,numofcores
   real(kind=dp) :: rangemax, dtime, dw, inputt, t1, t2, inta, intb, S1, S2, sinc
-  complex(kind=dp) :: temp,tmpa1,tmpa2,G0_t,Aj,tmpb1,tmpb2, intg, fa, fb, fc, fd, tmpa3, tmpb3
+  complex(kind=dp) :: temp,tmpa1,tmpa2,G0_t,tmpb1,tmpb2, intg, fa, fb, fc, fd, tmpa3, tmpb3
   real(kind=dp)::omega_tmp
   real(kind=dp),allocatable :: S(:)
 
 
   call init()
   call readphonon()
-  call readelectron()
   call readEnergy(E)
 
   allocate(S(1:nE))
