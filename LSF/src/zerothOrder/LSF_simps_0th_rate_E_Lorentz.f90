@@ -1,6 +1,7 @@
 module capcs
   
   use constants, only: dp, HartreeToJ, HartreeToEv
+  use errorsAndMPI
 
   implicit none 
   real(kind=dp),parameter :: Kb =  1.38064852d-23
@@ -16,12 +17,17 @@ module capcs
   integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
     !! Energy band bounds for initial and final state
 
+  real(kind=dp) :: beta
+    !! 1/kb*T
   real(kind=dp), allocatable :: dEDelta(:,:)
     !! Energy for delta function
   real(kind=dp), allocatable :: dEPlot(:)
     !! Energy for plotting
   real(kind=dp), allocatable :: matrixElement(:,:)
     !! Electronic matrix element
+  real(kind=dp), allocatable :: Sj(:)
+    !! Huang-Rhys factor for each mode
+  real(kind=dp) :: temperature
 
   character(len=300) :: EInput
     !! Path to energy table to read
@@ -32,25 +38,20 @@ module capcs
     !! Path to Sj.out file
 
 
-  real(kind=dp),allocatable :: ipfreq(:),Sj(:)
-  real(kind=dp) :: temperature,beta
-  real(kind=dp) :: limit,alpha,dstep,bin,gamma0, ematrix_real, ematrix_img, lambda
-  complex(kind=dp) ::  G1t, wif,wif0,wif1
-  character(len=256) :: dummy
+  real(kind=dp),allocatable :: ipfreq(:)
+  real(kind=dp) :: dstep,gamma0
   integer :: nstep, nw, nfreq, nn, nE
 
   namelist /capcsconf/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, M0input, SjInput, &
-                        temperature, nn, limit, gamma0, alpha, dstep, nw, bin, ematrix_real, ematrix_img
+                        temperature, nn, gamma0, dstep
 
 contains
 subroutine init()
 implicit none
-character(len=256) :: dummy
 open(13,file='input.in')
 !read input
 read(13,capcsconf)
 beta = 1.0d0/Kb/temperature
-bin = bin*meV
 end subroutine
 
 !----------------------------------------------------------------------------
@@ -208,7 +209,7 @@ program captureCS
     !! Local storage of dEDelta(ibi,ibf)
   real(kind=dp) :: Mif
     !! Local storage of matrixElement(ibi,ibf)
-  real(kind=dp), allocatable :: transitionRate
+  real(kind=dp), allocatable :: transitionRate(:)
     !! \(Gamma_i\) transition rate
 
   real(kind=dp) :: dtime, inputt, t1, t2, inta, intb, transitionRateGlobal
