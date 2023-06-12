@@ -23,8 +23,16 @@ module capcs
     !! Energy for delta function
   real(kind=dp), allocatable :: dEPlot(:)
     !! Energy for plotting
+  real(kind=dp) :: gamma0
+    !! Gamma parameter to use for Lorentzian smearing
+    !! to guarantee convergence
+  real(kind=dp) :: gammaExpTolerance
+    !! Tolerance for the gamma exponential (Lorentzian
+    !! smearing) used to calculate max time
   real(kind=dp), allocatable :: matrixElement(:,:)
     !! Electronic matrix element
+  real(kind=dp) :: maxTime
+    !! Max time for integration
   real(kind=dp), allocatable :: Sj(:)
     !! Huang-Rhys factor for each mode
   real(kind=dp) :: temperature
@@ -39,20 +47,32 @@ module capcs
 
 
   real(kind=dp),allocatable :: ipfreq(:)
-  real(kind=dp) :: dstep,gamma0
-  integer :: nstep, nw, nfreq, nn, nE
+  real(kind=dp) :: dstep
+  integer :: nstep, nw, nfreq, nn
 
   namelist /capcsconf/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, M0input, SjInput, &
-                        temperature, nn, gamma0, dstep
+                        temperature, nn, gamma0, dstep, gammaExpTolerance
 
 contains
-subroutine init()
-implicit none
-open(13,file='input.in')
-!read input
-read(13,capcsconf)
-beta = 1.0d0/Kb/temperature
-end subroutine
+
+!----------------------------------------------------------------------------
+  subroutine init()
+
+    implicit none
+
+    open(13,file='input.in')
+
+    !read input
+    read(13,capcsconf)
+
+    beta = 1.0d0/Kb/temperature
+
+    maxTime = -log(gammaExpTolerance)/gamma0
+    write(*,*) maxTime
+
+    return 
+
+  end subroutine
 
 !----------------------------------------------------------------------------
   subroutine readEnergy(dEDelta, dEPlot)
