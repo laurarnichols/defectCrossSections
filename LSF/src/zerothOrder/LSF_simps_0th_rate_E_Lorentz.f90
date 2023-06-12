@@ -42,6 +42,8 @@ module capcs
   character(len=300) :: M0Input
     !! Path to zeroth-order matrix element file
     !! `allElecOverlap.isp.ik`
+  character(len=300) :: outputDir
+    !! Path to output transition rates
   character(len=300) :: SjInput
     !! Path to Sj.out file
 
@@ -50,25 +52,130 @@ module capcs
   real(kind=dp) :: dstep
   integer :: nstep, nw, nfreq, nn
 
-  namelist /capcsconf/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, M0input, SjInput, &
-                        temperature, nn, gamma0, dstep, gammaExpTolerance
+  namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, M0input, SjInput, &
+                        temperature, nn, gamma0, dstep, gammaExpTolerance, outputDir
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine init()
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
 
     implicit none
 
-    open(13,file='input.in')
+    ! Output variables
+    integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
 
-    !read input
-    read(13,capcsconf)
+    real(kind=dp), intent(out) :: gamma0
+      !! Gamma parameter to use for Lorentzian smearing
+      !! to guarantee convergence
+    real(kind=dp), intent(out) :: gammaExpTolerance
+      !! Tolerance for the gamma exponential (Lorentzian
+      !! smearing) used to calculate max time
+    real(kind=dp), intent(out) :: temperature
 
-    beta = 1.0d0/Kb/temperature
+    character(len=300), intent(out) :: EInput
+      !! Path to energy table to read
+    character(len=300), intent(out) :: M0Input
+      !! Path to zeroth-order matrix element file
+      !! `allElecOverlap.isp.ik`
+    character(len=300), intent(out) :: outputDir
+      !! Path to store transition rates
+    character(len=300), intent(out) :: SjInput
+      !! Path to Sj.out file
 
-    maxTime = -log(gammaExpTolerance)/gamma0
-    write(*,*) maxTime
+    ! Local variables:
+    character(len=8) :: cdate
+      !! String for date
+    character(len=10) :: ctime
+      !! String for time
+
+
+    iBandIinit  = -1
+    iBandIfinal = -1
+    iBandFinit  = -1
+    iBandFfinal = -1
+
+    gamma0 = 0.0_dp
+    gammaExpTolerance = 0.0_dp
+    temperature = 0.0_dp
+
+    EInput = ''
+    M0Input = ''
+    SjInput = ''
+    outputDir = './'
+
+    call date_and_time(cdate, ctime)
+
+    if(ionode) then
+
+      write(*, '(/5X,"LSF0 starts on ",A9," at ",A9)') &
+             cdate, ctime
+
+      write(*, '(/5X,"Parallel version (MPI), running on ",I5," processors")') nProcs
+
+
+    endif
+
+    return 
+
+  end subroutine
+
+!----------------------------------------------------------------------------
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+
+    implicit none
+
+    ! Output variables
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+
+    real(kind=dp), intent(in) :: gamma0
+      !! Gamma parameter to use for Lorentzian smearing
+      !! to guarantee convergence
+    real(kind=dp), intent(in) :: gammaExpTolerance
+      !! Tolerance for the gamma exponential (Lorentzian
+      !! smearing) used to calculate max time
+    real(kind=dp), intent(in) :: temperature
+
+    character(len=300), intent(in) :: EInput
+      !! Path to energy table to read
+    character(len=300), intent(in) :: M0Input
+      !! Path to zeroth-order matrix element file
+      !! `allElecOverlap.isp.ik`
+    character(len=300), intent(in) :: outputDir
+      !! Path to store transition rates
+    character(len=300), intent(in) :: SjInput
+      !! Path to Sj.out file
+
+    ! Local variables:
+    logical :: abortExecution
+      !! Whether or not to abort the execution
+
+
+    abortExecution = checkIntInitialization('iBandIinit', iBandIinit, 1, int(1e9))
+    abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
+    abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
+    abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
+
+    abortExecution = checkDoubleInitialization('gamma0', gamma0, 0.0_dp, 20.0_dp) .or. abortExecution
+    abortExecution = checkDoubleInitialization('gammaExpTolerance', gammaExpTolerance, 0.0_dp, 1.0_dp) .or. abortExecution
+    abortExecution = checkDoubleInitialization('temperature', temperature, 0.0_dp, 1500.0_dp) .or. abortExecution
+      ! These limits are my best guess as to what is reasonable; they are not
+      ! hard and fast, but you should think about the application of the theory
+      ! to numbers outside these ranges.
+
+    abortExecution = checkFileInitialization('EInput', Einput) .or. abortExecution
+    abortExecution = checkFileInitialization('M0Input', M0input) .or. abortExecution
+    abortExecution = checkFileInitialization('SjInput', Sjinput) .or. abortExecution
+
+    call system('mkdir -p '//trim(outputDir))
+
+
+    if(abortExecution) then
+      write(*, '(" Program stops!")')
+      stop
+    endif
 
     return 
 
@@ -231,14 +338,39 @@ program captureCS
     !! Local storage of matrixElement(ibi,ibf)
   real(kind=dp), allocatable :: transitionRate(:)
     !! \(Gamma_i\) transition rate
+  real(kind=dp) :: timerStart, timerEnd
+    !! Timers
 
   real(kind=dp) :: dtime, inputt, t1, t2, inta, intb, transitionRateGlobal
   complex(kind=dp) :: temp,tmpa1,tmpa2,G0_t,tmpb1,tmpb2, tmpa3, tmpb3
 
-  call init()
-  call readphonon()
-  call readEnergy(dEDelta, dEPlot)
-  call readMatrixElement(matrixElement)
+
+  call cpu_time(timerStart)
+
+  call mpiInitialization()
+
+  call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+
+  if(ionode) then
+
+    read(5, inputParams, iostat=ierr)
+      !! * Read input variables
+    
+    if(ierr /= 0) call exitError('LSF0 main', 'reading inputParams namelist', abs(ierr))
+      !! * Exit calculation if there's an error
+
+    call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+
+    beta = 1.0d0/Kb/temperature
+
+    maxTime = -log(gammaExpTolerance)/gamma0
+    write(*,'("Max time: ", ES24.15E3)') maxTime
+
+    call readphonon()
+    call readEnergy(dEDelta, dEPlot)
+    call readMatrixElement(matrixElement)
+
+  endif
 
   allocate(transitionRate(iBandIinit:iBandIfinal))
   transitionRate(:) = 0.0d0
