@@ -1,6 +1,6 @@
 module capcs
   
-  use constants, only: dp, HartreeToJ
+  use constants, only: dp, HartreeToJ, HartreeToEv
 
   implicit none 
   real(kind=dp),parameter :: Kb =  1.38064852d-23
@@ -16,8 +16,10 @@ module capcs
   integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
     !! Energy band bounds for initial and final state
 
-  real(kind=dp), allocatable :: EDelta(:,:)
+  real(kind=dp), allocatable :: dEDelta(:,:)
     !! Energy for delta function
+  real(kind=dp), allocatable :: dEPlot(:)
+    !! Energy for plotting
   real(kind=dp), allocatable :: matrixElement(:,:)
     !! Electronic matrix element
 
@@ -52,13 +54,15 @@ bin = bin*meV
 end subroutine
 
 !----------------------------------------------------------------------------
-  subroutine readEnergy(EDelta)
+  subroutine readEnergy(dEDelta, dEPlot)
   
     implicit none
 
     ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: EDelta(:,:)
+    real(kind=dp), allocatable, intent(out) :: dEDelta(:,:)
       !! Energy for delta function
+    real(kind=dp), allocatable, intent(out) :: dEPlot(:)
+      !! Energy for plotting
 
     ! Local variables:
     integer :: iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
@@ -67,6 +71,9 @@ end subroutine
       !! Dummy integer
     integer :: ibi, ibf
       !! Loop indices
+
+    real(kind=dp) :: rDum
+      !! Dummy real
 
     logical :: abortExecution
       !! If the program should end
@@ -79,17 +86,19 @@ end subroutine
       ! @todo Test these values against the input values
       
 
-    allocate(EDelta(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
+    allocate(dEDelta(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
+    allocate(dEPlot(iBandIinit:iBandIfinal))
 
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
 
-        read(12,*) iDum, iDum, EDelta(ibf,ibi) ! in Hartree
+        read(12,*) iDum, iDum, dEDelta(ibf,ibi), rDum, rDum, dEPlot(ibi) ! in Hartree
 
       enddo
     enddo
 
-    EDelta(:,:) = EDelta(:,:)*HartreeToJ
+    dEDelta(:,:) = dEDelta(:,:)*HartreeToJ
+    dePlot(:) = dEPlot(:)*HartreeToEv
 
     close(12)
 
@@ -185,31 +194,6 @@ use capcs
   !narrow Gaussian to simulate delta function, what we care about is the area, we make it narrow so neighboring LSF do not interfere
 end function
 
-function sinc(x) result (sincx)
-use capcs
-    real(kind=dp) :: x, sincx
-    if ( x < 1e-20 ) then 
-        sincx = 1.0_dp
-    else
-        sincx = sin(x)/x
-    end if
-end function
-
-function intg(a, b, c, d, t, dt, tmpa2, tmpb2) result (res)
-use capcs
-    real(kind=dp) :: t, dt!t1, wt1, omega
-    complex(kind=dp) :: res, a, b, c, d, tmpa2, tmpb2!,t2, t3, wt2, wt3, A, A1, A2, tmp
-    !res = c*exp(b*t)+d/b*(b*t-1)*exp(b*t)
-    res = (c+d/b*(b*t-1))*tmpb2
-    !write(*,*) c,b,t
-    t = t-dt
-    !res = res - (c*exp(b*t)+d/b*(b*t-1)*exp(b*t))
-    res = res - (c+d/b*(b*t-1))*tmpa2
-    res = res/b
-    !res = exp(a-zlog(b))
-    !res = res*exp(a)/b 
-end function
-
 program captureCS
   use capcs
   use OMP_LIB
@@ -221,23 +205,22 @@ program captureCS
     !! Loop indices
 
   real(kind=dp) :: Eif
-    !! Local storage of EDelta(ibi,ibf)
+    !! Local storage of dEDelta(ibi,ibf)
   real(kind=dp) :: Mif
     !! Local storage of matrixElement(ibi,ibf)
+  real(kind=dp), allocatable :: transitionRate
+    !! \(Gamma_i\) transition rate
 
-  integer :: j,k,numofcores
-  real(kind=dp) :: rangemax, dtime, dw, inputt, t1, t2, inta, intb, S1, S2, sinc
-  complex(kind=dp) :: temp,tmpa1,tmpa2,G0_t,tmpb1,tmpb2, intg, fa, fb, fc, fd, tmpa3, tmpb3
-  real(kind=dp)::omega_tmp
-  real(kind=dp),allocatable :: S(:)
+  real(kind=dp) :: dtime, inputt, t1, t2, inta, intb, transitionRateGlobal
+  complex(kind=dp) :: temp,tmpa1,tmpa2,G0_t,tmpb1,tmpb2, tmpa3, tmpb3
 
   call init()
   call readphonon()
-  call readEnergy(EDelta)
+  call readEnergy(dEDelta, dEPlot)
   call readMatrixElement(matrixElement)
 
-  allocate(S(1:nE))
-  S = 0.0d0
+  allocate(transitionRate(iBandIinit:iBandIfinal))
+  transitionRate(:) = 0.0d0
 
   !!limit = 1e-4
   dtime = 1/Thz
@@ -250,10 +233,10 @@ program captureCS
   nstep=200000000
   write(*,*) nstep*dstep
 
-  S1=0.0d0
+  transitionRateGlobal=0.0d0
 
-!$OMP PARALLEL DO default(shared) private(inputt,t1,t2,S2,iTime,j,k,omega_tmp,tmpa1,tmpa2,tmpa3,tmpb1,tmpb2,tmpb3)&
-& firstprivate(Eif,inta,dstep,nw,dw,nstep) reduction(+:S1,S) 
+!$OMP PARALLEL DO default(shared) private(inputt,t1,t2,iTime,ibi,ibf,tmpa1,tmpa2,tmpa3,tmpb1,tmpb2,tmpb3)&
+& firstprivate(Eif,dstep,nstep) reduction(+:transitionRateGlobal,transitionRate) 
   do iTime = 1, nstep-1, 2
     inputt=(float(iTime))*dstep
 
@@ -267,12 +250,16 @@ program captureCS
       do ibf = iBandFinit, iBandFfinal
 
         Mif = matrixElement(ibf,ibi)
-        Eif = EDelta(ibf,ibi)
+        Eif = dEDelta(ibf,ibi)
 
         tmpa3 = tmpa2+cmplx(0.0,t1*Eif/hbar,dp)
         tmpb3 = tmpb2+cmplx(0.0,t2*Eif/hbar,dp)
 
-        S(j) = S(j) + Real(4d0*Mif*exp(tmpa3) + 2d0*Mif*exp(tmpb3))
+        transitionRate(ibi) = transitionRate(ibi) + Real(4d0*Mif*exp(tmpa3) + 2d0*Mif*exp(tmpb3))
+          ! We are doing multiple sums, but they are all commutative.
+          ! Here we add in the contribution to the integral at this time
+          ! step from a given final state. The loop over final states 
+          ! adds in the contributions from all final states. 
       enddo
     enddo
   enddo
@@ -281,20 +268,21 @@ program captureCS
     do ibf = iBandFinit, iBandFfinal
 
       Mif = matrixElement(ibf,ibi)
-      Eif = EDelta(ibf,ibi)
+      Eif = dEDelta(ibf,ibi)
 
       t1 = nstep*dstep*nn
       t2 = (float(nstep))*dstep+nstep*dstep*nn
 
-      S(i) = S(i) + Real(Mif*exp(G0_t(t1)+cmplx(0.0,t1*Eif/hbar,dp)-gamma0*t1)) ! Lorentz
-      S(i) = S(i) - Real(Mif*exp(G0_t(t2)+cmplx(0.0,t2*Eif/hbar,dp)-gamma0*t2)) ! Lorentz
-
-      S(i) = S(i)*2.0d0/3.0d0*dstep
-      S(i) = S(i)/hbar/hbar
-
-      write(*,'(f10.5,f7.1,i5,ES35.14E3)') Eif/eV, temperature, nn, S(i)
+      transitionRate(ibi) = transitionRate(ibi) + Real(Mif*exp(G0_t(t1)+cmplx(0.0,t1*Eif/hbar,dp)-gamma0*t1)) ! Lorentz
+      transitionRate(ibi) = transitionRate(ibi) - Real(Mif*exp(G0_t(t2)+cmplx(0.0,t2*Eif/hbar,dp)-gamma0*t2)) ! Lorentz
 
     enddo
+
+    transitionRate(ibi) = transitionRate(ibi)*2.0d0/3.0d0*dstep
+    transitionRate(ibi) = transitionRate(ibi)/hbar/hbar
+
+    write(*,'(i10, f10.5,f7.1,i5,ES35.14E3)') ibi, dEPlot, temperature, nn, transitionRate(ibi)
+
   enddo
 
 end program
