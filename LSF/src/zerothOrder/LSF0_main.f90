@@ -16,7 +16,7 @@ program LSF0main
   real(kind=dp) :: timerStart, timerEnd
     !! Timers
 
-  real(kind=dp) :: dtime, inputt, t1, t2, inta, intb, transitionRateGlobal
+  real(kind=dp) :: inputt, t1, t2, inta, intb, transitionRateGlobal
   complex(kind=dp) :: temp,tmpa1,tmpa2,G0_t,tmpb1,tmpb2, tmpa3, tmpb3
 
 
@@ -24,7 +24,7 @@ program LSF0main
 
   call mpiInitialization()
 
-  call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, gamma0, gammaExpTolerance, maxTime, temperature, EInput, M0Input, &
+  call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, dt, gamma0, gammaExpTolerance, maxTime, temperature, EInput, M0Input, &
         outputDir, SjInput)
 
   call readSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, SjInput, nModes, modeFreq, Sj)
@@ -37,26 +37,21 @@ program LSF0main
   allocate(transitionRate(iBandIinit:iBandIfinal))
   transitionRate(:) = 0.0d0
 
-  !!limit = 1e-4
-  dtime = 1/Thz
-  write(*,*)"simps"
-  write(*,*)dstep
-  dstep = dtime*dstep
 
   gamma0 = gamma0*meV/hbar
   
   nstep=200000000
-  write(*,*) nstep*dstep
+  write(*,*) nstep*dt
 
   transitionRateGlobal=0.0d0
 
   do iTime = 1, nstep-1, 2
-    inputt=(float(iTime))*dstep
+    inputt=(float(iTime))*dt
 
-    t1=inputt + nstep*dstep*nn
+    t1=inputt + nstep*dt*nn
     tmpa2 = G0_t(t1)-gamma0*t1 ! Lorentz
 
-    t2 = t1 + dstep
+    t2 = t1 + dt
     tmpb2 = G0_t(t2)-gamma0*t2 ! Lorentz
 
     do ibi = iBandIinit, iBandIfinal
@@ -83,15 +78,15 @@ program LSF0main
       Mif = matrixElement(ibf,ibi)
       Eif = dEDelta(ibf,ibi)
 
-      t1 = nstep*dstep*nn
-      t2 = (float(nstep))*dstep+nstep*dstep*nn
+      t1 = nstep*dt*nn
+      t2 = (float(nstep))*dt+nstep*dt*nn
 
       transitionRate(ibi) = transitionRate(ibi) + Real(Mif*exp(G0_t(t1)+cmplx(0.0,t1*Eif/hbar,dp)-gamma0*t1)) ! Lorentz
       transitionRate(ibi) = transitionRate(ibi) - Real(Mif*exp(G0_t(t2)+cmplx(0.0,t2*Eif/hbar,dp)-gamma0*t2)) ! Lorentz
 
     enddo
 
-    transitionRate(ibi) = transitionRate(ibi)*2.0d0/3.0d0*dstep
+    transitionRate(ibi) = transitionRate(ibi)*2.0d0/3.0d0*dt
     transitionRate(ibi) = transitionRate(ibi)/hbar/hbar
 
     write(*,'(i10, f10.5,f7.1,i5,ES35.14E3)') ibi, dEPlot, temperature, nn, transitionRate(ibi)

@@ -25,6 +25,8 @@ module LSF0mod
     !! Energy for delta function
   real(kind=dp), allocatable :: dEPlot(:)
     !! Energy for plotting
+  real(kind=dp) :: dt
+    !! Time step size
   real(kind=dp) :: gamma0
     !! Gamma parameter to use for Lorentzian smearing
     !! to guarantee convergence
@@ -52,16 +54,15 @@ module LSF0mod
     !! Path to Sj.out file
 
 
-  real(kind=dp) :: dstep
   integer :: nstep, nw, nn
 
   namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, M0input, SjInput, &
-                        temperature, nn, gamma0, dstep, gammaExpTolerance, outputDir
+                        temperature, nn, gamma0, dt, gammaExpTolerance, outputDir
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, gamma0, gammaExpTolerance, maxTime, temperature, EInput, M0Input, &
+  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, dt, gamma0, gammaExpTolerance, maxTime, temperature, EInput, M0Input, &
         outputDir, SjInput)
 
     implicit none
@@ -72,6 +73,8 @@ contains
 
     real(kind=dp), intent(out) :: beta
       !! 1/kb*T
+    real(kind=dp), intent(out) :: dt
+      !! Time step size
     real(kind=dp), intent(out) :: gamma0
       !! Gamma parameter to use for Lorentzian smearing
       !! to guarantee convergence
@@ -105,6 +108,8 @@ contains
 
       call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
 
+      dt = dt/Thz
+
       beta = 1.0d0/Kb/temperature
 
       maxTime = -log(gammaExpTolerance)/gamma0
@@ -117,10 +122,11 @@ contains
     call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
   
+    call MPI_BCAST(beta, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(dt, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(gamma0, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(gammaExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(beta, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   
     call MPI_BCAST(EInput, len(EInput), MPI_CHARACTER, root, worldComm, ierr)
@@ -133,7 +139,7 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dt, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
 
     implicit none
 
@@ -141,6 +147,8 @@ contains
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
 
+    real(kind=dp), intent(out) :: dt
+      !! Time step size
     real(kind=dp), intent(out) :: gamma0
       !! Gamma parameter to use for Lorentzian smearing
       !! to guarantee convergence
@@ -171,6 +179,7 @@ contains
     iBandFinit  = -1
     iBandFfinal = -1
 
+    dt = 1d-6
     gamma0 = 0.0_dp
     gammaExpTolerance = 0.0_dp
     temperature = 0.0_dp
@@ -197,7 +206,7 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dt, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
 
     implicit none
 
@@ -205,6 +214,8 @@ contains
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
 
+    real(kind=dp), intent(in) :: dt
+      !! Time step size
     real(kind=dp), intent(in) :: gamma0
       !! Gamma parameter to use for Lorentzian smearing
       !! to guarantee convergence
@@ -233,6 +244,7 @@ contains
     abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
 
+    abortExecution = checkDoubleInitialization('dt', dt, 1e-10, 1e-4) .or. abortExecution
     abortExecution = checkDoubleInitialization('gamma0', gamma0, 0.0_dp, 20.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('gammaExpTolerance', gammaExpTolerance, 0.0_dp, 1.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('temperature', temperature, 0.0_dp, 1500.0_dp) .or. abortExecution
