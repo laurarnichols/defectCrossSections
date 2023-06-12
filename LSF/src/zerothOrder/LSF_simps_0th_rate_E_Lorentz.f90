@@ -58,6 +58,78 @@ module capcs
 contains
 
 !----------------------------------------------------------------------------
+  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, gamma0, gammaExpTolerance, maxTime, temperature, EInput, M0Input, &
+        outputDir, SjInput)
+
+    implicit none
+
+    ! Output variables
+    integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+
+    real(kind=dp), intent(out) :: beta
+      !! 1/kb*T
+    real(kind=dp), intent(out) :: gamma0
+      !! Gamma parameter to use for Lorentzian smearing
+      !! to guarantee convergence
+    real(kind=dp), intent(out) :: gammaExpTolerance
+      !! Tolerance for the gamma exponential (Lorentzian
+      !! smearing) used to calculate max time
+    real(kind=dp), intent(out) :: maxTime
+      !! Max time for integration
+    real(kind=dp), intent(out) :: temperature
+
+    character(len=300), intent(out) :: EInput
+      !! Path to energy table to read
+    character(len=300), intent(out) :: M0Input
+      !! Path to zeroth-order matrix element file
+      !! `allElecOverlap.isp.ik`
+    character(len=300), intent(out) :: outputDir
+      !! Path to store transition rates
+    character(len=300), intent(out) :: SjInput
+      !! Path to Sj.out file
+
+  
+    call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+
+    if(ionode) then
+
+      read(5, inputParams, iostat=ierr)
+        !! * Read input variables
+    
+      if(ierr /= 0) call exitError('LSF0 main', 'reading inputParams namelist', abs(ierr))
+        !! * Exit calculation if there's an error
+
+      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+
+      beta = 1.0d0/Kb/temperature
+
+      maxTime = -log(gammaExpTolerance)/gamma0
+      write(*,'("Max time: ", ES24.15E3)') maxTime
+
+    endif
+
+    call MPI_BCAST(iBandIinit, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+  
+    call MPI_BCAST(gamma0, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(gammaExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(beta, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+  
+    call MPI_BCAST(EInput, len(EInput), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(M0Input, len(M0Input), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(SjInput, len(SjInput), MPI_CHARACTER, root, worldComm, ierr)
+    
+    return
+
+  end subroutine readInputParams
+
+!----------------------------------------------------------------------------
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
 
     implicit none
@@ -119,7 +191,7 @@ contains
 
     return 
 
-  end subroutine
+  end subroutine initialize
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
@@ -179,7 +251,7 @@ contains
 
     return 
 
-  end subroutine
+  end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
   subroutine readEnergy(dEDelta, dEPlot)
@@ -349,28 +421,14 @@ program captureCS
 
   call mpiInitialization()
 
-  call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+  call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, gamma0, gammaExpTolerance, maxTime, temperature, EInput, M0Input, &
+        outputDir, SjInput)
 
-  if(ionode) then
+  call readphonon()
 
-    read(5, inputParams, iostat=ierr)
-      !! * Read input variables
-    
-    if(ierr /= 0) call exitError('LSF0 main', 'reading inputParams namelist', abs(ierr))
-      !! * Exit calculation if there's an error
+  call readEnergy(dEDelta, dEPlot)
+  call readMatrixElement(matrixElement)
 
-    call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
-
-    beta = 1.0d0/Kb/temperature
-
-    maxTime = -log(gammaExpTolerance)/gamma0
-    write(*,'("Max time: ", ES24.15E3)') maxTime
-
-    call readphonon()
-    call readEnergy(dEDelta, dEPlot)
-    call readMatrixElement(matrixElement)
-
-  endif
 
   allocate(transitionRate(iBandIinit:iBandIfinal))
   transitionRate(:) = 0.0d0
