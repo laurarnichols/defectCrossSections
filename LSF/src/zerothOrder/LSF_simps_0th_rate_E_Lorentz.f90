@@ -16,6 +16,8 @@ module capcs
 
   integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
     !! Energy band bounds for initial and final state
+  integer :: nModes
+    !! Number of phonon modes
 
   real(kind=dp) :: beta
     !! 1/kb*T
@@ -33,6 +35,8 @@ module capcs
     !! Electronic matrix element
   real(kind=dp) :: maxTime
     !! Max time for integration
+  real(kind=dp),allocatable :: modeFreq(:)
+    !! Frequency for each mode
   real(kind=dp), allocatable :: Sj(:)
     !! Huang-Rhys factor for each mode
   real(kind=dp) :: temperature
@@ -48,9 +52,8 @@ module capcs
     !! Path to Sj.out file
 
 
-  real(kind=dp),allocatable :: ipfreq(:)
   real(kind=dp) :: dstep
-  integer :: nstep, nw, nfreq, nn
+  integer :: nstep, nw, nn
 
   namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, M0input, SjInput, &
                         temperature, nn, gamma0, dstep, gammaExpTolerance, outputDir
@@ -198,7 +201,7 @@ contains
 
     implicit none
 
-    ! Output variables
+    ! Input variables
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
 
@@ -252,6 +255,66 @@ contains
     return 
 
   end subroutine checkInitialization
+
+!----------------------------------------------------------------------------
+  subroutine readSj(SjInput, nModes, modeFreq, Sj)
+
+    implicit none
+
+    ! Input variables:
+    character(len=300), intent(in) :: SjInput
+      !! Path to Sj.out file
+
+    ! Output variables:
+    integer, intent(out) :: nModes
+      !! Number of phonon modes
+
+    real(kind=dp),allocatable, intent(out) :: modeFreq(:)
+      !! Frequency for each mode
+    real(kind=dp), allocatable, intent(out) :: Sj(:)
+      !! Huang-Rhys factor for each mode
+
+    ! Local variables:
+    integer :: iDum
+      !! Dummy integer
+    integer :: j
+      !! Loop index
+  
+  
+    if(ionode) then
+
+      open(12,file=trim(SjInput))
+
+      read(12,*) nModes
+
+    endif
+
+    call MPI_BCAST(nModes, 1, MPI_INTEGER, root, worldComm, ierr)
+
+
+    allocate(Sj(1:nModes))
+    allocate(modeFreq(1:nModes))
+
+    
+    if(ionode) then
+
+      do j = 1, nModes
+        read(12,*) iDum, Sj(j), modeFreq(j) ! freq read from Sj.out is f(in Thz)*2pi
+      end do
+
+      modeFreq(:) = modeFreq(:)*Thz
+        ! Convert to Hz*2pi
+
+      close(12)
+
+    endif
+
+    call MPI_BCAST(modeFreq, size(modeFreq), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(Sj, size(Sj), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return 
+
+  end subroutine readSj
 
 !----------------------------------------------------------------------------
   subroutine readEnergy(dEDelta, dEPlot)
@@ -351,26 +414,6 @@ contains
 
   end subroutine readMatrixElement
 
-!----------------------------------------------------------------------------
-subroutine readphonon()
-implicit none
-integer :: ifreq, modeIndex
-open(12,file=trim(SjInput))
-read(12,*)nfreq
-!read mode number
-allocate(Sj(1:nfreq))
-allocate(ipfreq(1:nfreq))
-
-do ifreq=1,nfreq
-   read(12,*)modeIndex,Sj(ifreq),ipfreq(ifreq) !freq read from Sj.out is f(in Thz)*2pi
-end do
-!read frequency and Sj
-ipfreq=ipfreq*Thz!*tpi convert to Hz*2pi
-!transform frequency to Hz
-close(12)
-!write(*,*) "Frequency Read"
-end subroutine
-
 end module capcs
 
 
@@ -383,7 +426,7 @@ use capcs
   tmp1 = 0.0_dp
   tmp2 = 0.0_dp
   do ifreq=1, nfreq
-   omega=ipfreq(ifreq)
+   omega=modeFreq(ifreq)
    nj=1/(exp(hbar*omega*beta)-1)
    tmp1=tmp1+(nj+1)*Sj(ifreq)*exp(cmplx(0.0,omega*inputt,dp))+nj*Sj(ifreq)*exp(cmplx(0.0,-omega*inputt,dp))-(2*nj+1)*Sj(ifreq)
    !tmp2=tmp2+(nj+1)*Sj(ifreq)/e_factor*exp(cmplx(0.0,omega*inputt,dp))+nj*Sj(ifreq)*e_factor*exp(cmplx(0.0,-omega*inputt,dp))-(2*nj+1)*Sj(ifreq)
@@ -424,7 +467,7 @@ program captureCS
   call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, gamma0, gammaExpTolerance, maxTime, temperature, EInput, M0Input, &
         outputDir, SjInput)
 
-  call readphonon()
+  call readSj(SjInput, nModes, modeFreq, Sj)
 
   call readEnergy(dEDelta, dEPlot)
   call readMatrixElement(matrixElement)
