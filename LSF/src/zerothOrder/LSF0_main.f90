@@ -17,15 +17,15 @@ program LSF0main
     !! Timers
 
   real(kind=dp) :: inputt, t1, t2, inta, intb, transitionRateGlobal
-  complex(kind=dp) :: temp,tmpa1,tmpa2,G0_t,tmpb1,tmpb2, tmpa3, tmpb3
+  complex(kind=dp) :: temp,tmpa1,tmpa2,tmpb1,tmpb2, tmpa3, tmpb3
 
 
   call cpu_time(timerStart)
 
   call mpiInitialization()
 
-  call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, dt, gamma0, gammaExpTolerance, maxTime, temperature, EInput, M0Input, &
-        outputDir, SjInput)
+  call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, dt, gamma0, maxTime, smearingExpTolerance, temperature, &
+        EInput, M0Input, outputDir, SjInput)
 
   call readSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, SjInput, nModes, modeFreq, Sj)
 
@@ -38,8 +38,6 @@ program LSF0main
   transitionRate(:) = 0.0d0
 
 
-  gamma0 = gamma0*meV/hbar
-  
   nstep=200000000
   write(*,*) nstep*dt
 

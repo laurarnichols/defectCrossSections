@@ -1,6 +1,6 @@
 module LSF0mod
   
-  use constants, only: dp, HartreeToJ, HartreeToEv
+  use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ
   use errorsAndMPI
 
   implicit none 
@@ -9,8 +9,6 @@ module LSF0mod
   real(kind=dp),parameter :: tpi = 6.2831853071795864769 
   real(kind=dp),parameter :: Thz = 1.0d12
   real(kind=dp),parameter :: hbar = 1.0545718d-34
-  real(kind=dp),parameter :: eV = 1.6021766208d-19
-  real(kind=dp),parameter :: meV =  1.6021766208d-22
   real(kind=dp),parameter :: q_comvert = 3.920205055d50
 
 
@@ -28,11 +26,10 @@ module LSF0mod
   real(kind=dp) :: dt
     !! Time step size
   real(kind=dp) :: gamma0
-    !! Gamma parameter to use for Lorentzian smearing
+    !! \(\gamma\) for Lorentzian smearing
+  real(kind=dp) :: hbarGamma
+    !! \(\hbar\gamma\) for Lorentzian smearing
     !! to guarantee convergence
-  real(kind=dp) :: gammaExpTolerance
-    !! Tolerance for the gamma exponential (Lorentzian
-    !! smearing) used to calculate max time
   real(kind=dp), allocatable :: matrixElement(:,:)
     !! Electronic matrix element
   real(kind=dp) :: maxTime
@@ -41,6 +38,9 @@ module LSF0mod
     !! Frequency for each mode
   real(kind=dp), allocatable :: Sj(:)
     !! Huang-Rhys factor for each mode
+  real(kind=dp) :: smearingExpTolerance
+    !! Tolerance for the Lorentzian-smearing
+    !! exponential used to calculate max time
   real(kind=dp) :: temperature
 
   character(len=300) :: EInput
@@ -57,13 +57,13 @@ module LSF0mod
   integer :: nstep, nw, nn
 
   namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, M0input, SjInput, &
-                        temperature, nn, gamma0, dt, gammaExpTolerance, outputDir
+                        temperature, nn, hbarGamma, dt, smearingExpTolerance, outputDir
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, dt, gamma0, gammaExpTolerance, maxTime, temperature, EInput, M0Input, &
-        outputDir, SjInput)
+  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, dt, gamma0, maxTime, smearingExpTolerance, temperature, &
+        EInput, M0Input, outputDir, SjInput)
 
     implicit none
 
@@ -76,13 +76,12 @@ contains
     real(kind=dp), intent(out) :: dt
       !! Time step size
     real(kind=dp), intent(out) :: gamma0
-      !! Gamma parameter to use for Lorentzian smearing
-      !! to guarantee convergence
-    real(kind=dp), intent(out) :: gammaExpTolerance
-      !! Tolerance for the gamma exponential (Lorentzian
-      !! smearing) used to calculate max time
+      !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(out) :: maxTime
       !! Max time for integration
+    real(kind=dp), intent(out) :: smearingExpTolerance
+      !! Tolerance for the Lorentzian-smearing
+      !! exponential used to calculate max time
     real(kind=dp), intent(out) :: temperature
 
     character(len=300), intent(out) :: EInput
@@ -95,8 +94,13 @@ contains
     character(len=300), intent(out) :: SjInput
       !! Path to Sj.out file
 
+    ! Local variables:
+    real(kind=dp) :: hbarGamma
+      !! \(\hbar\gamma\) for Lorentzian smearing
+      !! to guarantee convergence
+
   
-    call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+    call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dt, hbarGamma, smearingExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
 
     if(ionode) then
 
@@ -106,13 +110,17 @@ contains
       if(ierr /= 0) call exitError('LSF0 main', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
+            M0Input, outputDir, SjInput)
 
       dt = dt/Thz
 
+      gamma0 = hbarGamma*1e-3*eVToJ/hbar
+        ! Input expected in meV
+
       beta = 1.0d0/Kb/temperature
 
-      maxTime = -log(gammaExpTolerance)/gamma0
+      maxTime = -log(smearingExpTolerance)/gamma0
       write(*,'("Max time: ", ES24.15E3)') maxTime
 
     endif
@@ -124,8 +132,8 @@ contains
   
     call MPI_BCAST(beta, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(dt, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(gamma0, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(gammaExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(hbarGamma, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(smearingExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   
@@ -139,7 +147,7 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dt, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dt, hbarGamma, smearingExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
 
     implicit none
 
@@ -149,12 +157,12 @@ contains
 
     real(kind=dp), intent(out) :: dt
       !! Time step size
-    real(kind=dp), intent(out) :: gamma0
-      !! Gamma parameter to use for Lorentzian smearing
+    real(kind=dp), intent(out) :: hbarGamma
+      !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
-    real(kind=dp), intent(out) :: gammaExpTolerance
-      !! Tolerance for the gamma exponential (Lorentzian
-      !! smearing) used to calculate max time
+    real(kind=dp), intent(out) :: smearingExpTolerance
+      !! Tolerance for the Lorentzian-smearing
+      !! exponential used to calculate max time
     real(kind=dp), intent(out) :: temperature
 
     character(len=300), intent(out) :: EInput
@@ -180,8 +188,8 @@ contains
     iBandFfinal = -1
 
     dt = 1d-6
-    gamma0 = 0.0_dp
-    gammaExpTolerance = 0.0_dp
+    hbarGamma = 0.0_dp
+    smearingExpTolerance = 0.0_dp
     temperature = 0.0_dp
 
     EInput = ''
@@ -206,7 +214,7 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dt, gamma0, gammaExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dt, hbarGamma, smearingExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
 
     implicit none
 
@@ -216,12 +224,12 @@ contains
 
     real(kind=dp), intent(in) :: dt
       !! Time step size
-    real(kind=dp), intent(in) :: gamma0
-      !! Gamma parameter to use for Lorentzian smearing
+    real(kind=dp), intent(in) :: hbarGamma
+      !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
-    real(kind=dp), intent(in) :: gammaExpTolerance
-      !! Tolerance for the gamma exponential (Lorentzian
-      !! smearing) used to calculate max time
+    real(kind=dp), intent(in) :: smearingExpTolerance
+      !! Tolerance for the Lorentzian-smearing
+      !! exponential used to calculate max time
     real(kind=dp), intent(in) :: temperature
 
     character(len=300), intent(in) :: EInput
@@ -244,9 +252,9 @@ contains
     abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
 
-    abortExecution = checkDoubleInitialization('dt', dt, 1e-10, 1e-4) .or. abortExecution
-    abortExecution = checkDoubleInitialization('gamma0', gamma0, 0.0_dp, 20.0_dp) .or. abortExecution
-    abortExecution = checkDoubleInitialization('gammaExpTolerance', gammaExpTolerance, 0.0_dp, 1.0_dp) .or. abortExecution
+    abortExecution = checkDoubleInitialization('dt', dt, 1.0d-10, 1.0d-4) .or. abortExecution
+    abortExecution = checkDoubleInitialization('hbarGamma', hbarGamma, 0.0_dp, 20.0_dp) .or. abortExecution
+    abortExecution = checkDoubleInitialization('smearingExpTolerance', smearingExpTolerance, 0.0_dp, 1.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('temperature', temperature, 0.0_dp, 1500.0_dp) .or. abortExecution
       ! These limits are my best guess as to what is reasonable; they are not
       ! hard and fast, but you should think about the application of the theory
@@ -464,13 +472,12 @@ contains
   end subroutine readMatrixElement
 
 function G0_t(inputt) result(G0t) 
-use capcs
   integer :: ifreq
   real(kind=dp) :: inputt, nj, omega, e_factor
   complex(kind=dp) G0t, tmp1, tmp2
   tmp1 = 0.0_dp
   tmp2 = 0.0_dp
-  do ifreq=1, nfreq
+  do ifreq=1, nModes
    omega=modeFreq(ifreq)
    nj=1/(exp(hbar*omega*beta)-1)
    tmp1=tmp1+(nj+1)*Sj(ifreq)*exp(cmplx(0.0,omega*inputt,dp))+nj*Sj(ifreq)*exp(cmplx(0.0,-omega*inputt,dp))-(2*nj+1)*Sj(ifreq)
