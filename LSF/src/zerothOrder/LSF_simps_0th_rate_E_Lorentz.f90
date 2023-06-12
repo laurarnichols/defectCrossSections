@@ -257,11 +257,14 @@ contains
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine readSj(SjInput, nModes, modeFreq, Sj)
+  subroutine readSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, SjInput, nModes, modeFreq, Sj)
 
     implicit none
 
-    ! Input variables:
+    ! Input variables
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+
     character(len=300), intent(in) :: SjInput
       !! Path to Sj.out file
 
@@ -317,9 +320,16 @@ contains
   end subroutine readSj
 
 !----------------------------------------------------------------------------
-  subroutine readEnergy(dEDelta, dEPlot)
+  subroutine readEnergy(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, dEDelta, dEPlot)
   
     implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+
+    character(len=300), intent(in) :: EInput
+      !! Path to energy table to read
 
     ! Output variables:
     real(kind=dp), allocatable, intent(out) :: dEDelta(:,:)
@@ -342,37 +352,54 @@ contains
       !! If the program should end
 
 
-    open(12,file=trim(EInput))
+    if(ionode) then
+      open(12,file=trim(EInput))
 
-    read(12,*)
-    read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
-      ! @todo Test these values against the input values
+      read(12,*)
+      read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
+        ! @todo Test these values against the input values
+
+    endif
       
-
     allocate(dEDelta(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
     allocate(dEPlot(iBandIinit:iBandIfinal))
 
-    do ibf = iBandFinit, iBandFfinal
-      do ibi = iBandIinit, iBandIfinal
+    if(ionode) then
 
-        read(12,*) iDum, iDum, dEDelta(ibf,ibi), rDum, rDum, dEPlot(ibi) ! in Hartree
+      do ibf = iBandFinit, iBandFfinal
+        do ibi = iBandIinit, iBandIfinal
 
+          read(12,*) iDum, iDum, dEDelta(ibf,ibi), rDum, rDum, dEPlot(ibi) ! in Hartree
+
+        enddo
       enddo
-    enddo
 
-    dEDelta(:,:) = dEDelta(:,:)*HartreeToJ
-    dePlot(:) = dEPlot(:)*HartreeToEv
+      dEDelta(:,:) = dEDelta(:,:)*HartreeToJ
+      dEPlot(:) = dEPlot(:)*HartreeToEv
 
-    close(12)
+      close(12)
+
+    endif
+
+    call MPI_BCAST(dEDelta, size(dEDelta), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(dEPlot, size(dEPlot), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
   end subroutine readEnergy
 
 !----------------------------------------------------------------------------
-  subroutine readMatrixElement(matrixElement)
+  subroutine readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, M0Input, matrixElement)
 
     implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+
+    character(len=300), intent(in) :: M0Input
+      !! Path to zeroth-order matrix element file
+      !! `allElecOverlap.isp.ik`
 
     ! Output variables:
     real(kind=dp), allocatable, intent(out) :: matrixElement(:,:)
@@ -389,26 +416,36 @@ contains
     real(kind=dp) :: rDum
       !! Dummy real
 
-    open(12,file=trim(M0Input))
 
-    read(12,*)
-    read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
-      ! @todo Test these values against the input values
+    if(ionode) then
+      open(12,file=trim(M0Input))
+
+      read(12,*)
+      read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
+        ! @todo Test these values against the input values
+
+    endif
       
 
     allocate(matrixElement(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
 
-    do ibf = iBandFinit, iBandFfinal
-      do ibi = iBandIinit, iBandIfinal
+    if(ionode) then
 
-        read(12,*) iDum, iDum, rDum, rDum, rDum, matrixElement(ibf,ibi) ! in Hartree^2
+      do ibf = iBandFinit, iBandFfinal
+        do ibi = iBandIinit, iBandIfinal
 
+          read(12,*) iDum, iDum, rDum, rDum, rDum, matrixElement(ibf,ibi) ! in Hartree^2
+
+        enddo
       enddo
-    enddo
 
-    matrixElement(:,:) = matrixElement(:,:)*HartreeToJ**2
+      matrixElement(:,:) = matrixElement(:,:)*HartreeToJ**2
 
-    close(12)
+      close(12)
+
+    endif
+
+    call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
@@ -467,10 +504,11 @@ program captureCS
   call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, gamma0, gammaExpTolerance, maxTime, temperature, EInput, M0Input, &
         outputDir, SjInput)
 
-  call readSj(SjInput, nModes, modeFreq, Sj)
+  call readSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, SjInput, nModes, modeFreq, Sj)
 
-  call readEnergy(dEDelta, dEPlot)
-  call readMatrixElement(matrixElement)
+  call readEnergy(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, dEDelta, dEPlot)
+
+  call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, M0Input, matrixElement)
 
 
   allocate(transitionRate(iBandIinit:iBandIfinal))
