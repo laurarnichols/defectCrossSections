@@ -358,6 +358,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine readEnergy(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, dEDelta, dEPlot)
+
+    use miscUtilities, only: ignoreNextNLinesFromFile
   
     implicit none
 
@@ -395,6 +397,8 @@ contains
       read(12,*)
       read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
         ! @todo Test these values against the input values
+
+      call ignoreNextNLinesFromFile(12,6)
 
     endif
       
@@ -458,8 +462,10 @@ contains
       open(12,file=trim(M0Input))
 
       read(12,*)
+      read(12,*)
       read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
         ! @todo Test these values against the input values
+      read(12,*)
 
     endif
       
