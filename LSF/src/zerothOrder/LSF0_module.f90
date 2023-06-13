@@ -1,6 +1,6 @@
 module LSF0mod
   
-  use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ
+  use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ, ii, hbar
   use errorsAndMPI
 
   implicit none 
@@ -8,8 +8,13 @@ module LSF0mod
   real(kind=dp),parameter :: pi= 3.14159265358979
   real(kind=dp),parameter :: tpi = 6.2831853071795864769 
   real(kind=dp),parameter :: Thz = 1.0d12
-  real(kind=dp),parameter :: hbar = 1.0545718d-34
-  real(kind=dp),parameter :: q_comvert = 3.920205055d50
+
+
+  integer :: iTime_start, iTime_end
+    !! Start and end time steps for this process
+  integer :: nStepsLocal
+    !! Number of time steps for each
+    !! process to complete
 
 
   integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
@@ -54,10 +59,8 @@ module LSF0mod
     !! Path to Sj.out file
 
 
-  integer :: nstep, nw, nn
-
   namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, M0input, SjInput, &
-                        temperature, nn, hbarGamma, dt, smearingExpTolerance, outputDir
+                        temperature, hbarGamma, dt, smearingExpTolerance, outputDir
 
 contains
 
@@ -471,6 +474,7 @@ contains
 
   end subroutine readMatrixElement
 
+!----------------------------------------------------------------------------
 function G0_t(inputt) result(G0t) 
   integer :: ifreq
   real(kind=dp) :: inputt, nj, omega, e_factor
@@ -488,5 +492,115 @@ function G0_t(inputt) result(G0t)
   !!G0t=G0t*exp(-0.25*(alpha*inputt)**2)
   !narrow Gaussian to simulate delta function, what we care about is the area, we make it narrow so neighboring LSF do not interfere
 end function
+
+!----------------------------------------------------------------------------
+  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dEDelta, dEPlot, gamma0, matrixElement, temperature)
+    
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+
+    real(kind=dp), intent(in) :: dEDelta(iBandIinit:iBandIfinal,iBandFinit:iBandFfinal)
+      !! Energy for delta function
+    real(kind=dp), intent(in) :: dEPlot(iBandIinit:iBandIfinal)
+      !! Energy for plotting
+    real(kind=dp), intent(in) :: gamma0
+      !! \(\gamma\) for Lorentzian smearing
+    real(kind=dp), intent(in) :: matrixElement(iBandIinit:iBandIfinal,iBandFinit:iBandFfinal)
+      !! Electronic matrix element
+    real(kind=dp), intent(in) :: temperature
+
+    ! Local variables:
+    integer :: iTime, ibi, ibf
+      !! Loop indices
+
+    real(kind=dp) :: Eif
+      !! Local storage of dEDelta(ibi,ibf)
+    real(kind=dp) :: Mif
+      !! Local storage of matrixElement(ibi,ibf)
+    real(kind=dp) :: t1, t2
+      !! Time for each time step
+    real(kind=dp) :: transitionRate(iBandIinit:iBandIfinal)
+      !! \(Gamma_i\) transition rate
+
+    complex(kind=dp) :: expArg_t1_base, expArg_t2_base
+      !! Base exponential argument for each time step
+    complex(kind=dp) :: expArg_t1, expArg_t2
+      !! Exponential argument for each time step
+
+
+    transitionRate(:) = 0.0_dp
+    do iTime = iTime_start, iTime_end-1, 2
+
+      t1 = float(iTime)*dt
+      expArg_t1_base = G0_t(t1) - gamma0*t1
+
+      t2 = t1 + dt
+      expArg_t2_base = G0_t(t2) - gamma0*t2
+
+      do ibi = iBandIinit, iBandIfinal
+        do ibf = iBandFinit, iBandFfinal
+
+          Mif = matrixElement(ibf,ibi)
+          Eif = dEDelta(ibf,ibi)
+
+          expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
+          expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
+
+          transitionRate(ibi) = transitionRate(ibi) + Real(4.0_dp*Mif*exp(expArg_t1) + 2.0_dp*Mif*exp(expArg_t2))
+            ! We are doing multiple sums, but they are all commutative.
+            ! Here we add in the contribution to the integral at this time
+            ! step from a given final state. The loop over final states 
+            ! adds in the contributions from all final states. 
+        enddo
+      enddo
+    enddo
+
+    do ibi = iBandIinit, iBandIfinal
+      do ibf = iBandFinit, iBandFfinal
+
+        Mif = matrixElement(ibf,ibi)
+        Eif = dEDelta(ibf,ibi)
+
+        t1 = float(iTime_start-1)*dt
+        transitionRate(ibi) = transitionRate(ibi) + Real(Mif*exp(G0_t(t1) + ii*Eif/hbar*t1 - gamma0*t1))
+          ! Add \(t_0\) that was skipped in the loop
+
+        t2 = float(iTime_end)*dt
+        transitionRate(ibi) = transitionRate(ibi) - Real(Mif*exp(G0_t(t2) + ii*Eif/hbar*t2 - gamma0*t2)) 
+          ! Subtract off last time that had a coefficient
+          ! of 2 in the loop but should really have a 
+          ! coefficient of 1
+
+      enddo
+    enddo
+
+    call mpiSumDoubleV(transitionRate, worldComm)
+      ! Combine results from all processes
+
+    if(ionode) then
+
+      open(unit=37, file=trim(outputDir)//'transitionRate.txt')
+
+      write(37,'("# Total number of initial states, Initial states (bandI, bandF) Format : ''(3i10)''")')
+      write(37,'(3i10)') iBandIfinal-iBandIinit+1, iBandIinit, iBandIfinal
+
+      write(37,'("# Temperature: ", f7.1)') temperature
+
+      transitionRate(:) = transitionRate(:)*(dt/3.0_dp)*(2.0_dp/hbar/hbar)
+        ! Multiply by prefactor for Simpson's integration method 
+        ! and prefactor for time-domain integral
+
+      do ibi = iBandIinit, iBandIfinal
+        write(*,'(i10, f10.5,ES35.14E3)') ibi, dEPlot, transitionRate(ibi)
+      enddo
+
+    endif
+
+    return
+
+  end subroutine getAndWriteTransitionRate
 
 end module LSF0mod

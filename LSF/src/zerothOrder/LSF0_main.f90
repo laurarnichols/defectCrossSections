@@ -4,20 +4,8 @@ program LSF0main
   implicit none
 
   ! Local variables:
-  integer :: iTime, ibi, ibf
-    !! Loop indices
-
-  real(kind=dp) :: Eif
-    !! Local storage of dEDelta(ibi,ibf)
-  real(kind=dp) :: Mif
-    !! Local storage of matrixElement(ibi,ibf)
-  real(kind=dp), allocatable :: transitionRate(:)
-    !! \(Gamma_i\) transition rate
   real(kind=dp) :: timerStart, timerEnd
     !! Timers
-
-  real(kind=dp) :: inputt, t1, t2, inta, intb, transitionRateGlobal
-  complex(kind=dp) :: temp,tmpa1,tmpa2,tmpb1,tmpb2, tmpa3, tmpb3
 
 
   call cpu_time(timerStart)
@@ -34,62 +22,38 @@ program LSF0main
   call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, M0Input, matrixElement)
 
 
-  allocate(transitionRate(iBandIinit:iBandIfinal))
-  transitionRate(:) = 0.0d0
+  nStepsLocal = ceiling((maxTime/dt)/nProcs)
+    ! Would normally calculate the total number of steps as
+    !         nSteps = ceiling(maxTime/dt)
+    ! then divide the steps across all of the processes. 
+    ! However, the number of steps could be a very large
+    ! integer that could cause overflow. Instead, directly
+    ! calculate the number of steps that each process should 
+    ! calculate. If you still get integer overflow, try 
+    ! increasing the number of processes. 
+    !
+    ! Calculating the number of steps for each process
+    ! this way will overestimate the number of steps
+    ! needed, but that is okay.
+
+  if(mod(nStepsLocal,2) /= 0) nStepsLocal = nStepsLocal + 1
+    ! Simpson's method requires the number of integration
+    ! steps to be even
+   
+  if(ionode) write(*,'("Each process is completing ", i15, " time steps.")') nStepsLocal
+
+  iTime_start = myid*nStepsLocal + 1
+  iTime_end = (myid + 1)*nStepsLocal
 
 
-  nstep=200000000
-  write(*,*) nstep*dt
+  call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dEDelta, dEPlot, gamma0, matrixElement, temperature)
 
-  transitionRateGlobal=0.0d0
-
-  do iTime = 1, nstep-1, 2
-    inputt=(float(iTime))*dt
-
-    t1=inputt + nstep*dt*nn
-    tmpa2 = G0_t(t1)-gamma0*t1 ! Lorentz
-
-    t2 = t1 + dt
-    tmpb2 = G0_t(t2)-gamma0*t2 ! Lorentz
-
-    do ibi = iBandIinit, iBandIfinal
-      do ibf = iBandFinit, iBandFfinal
-
-        Mif = matrixElement(ibf,ibi)
-        Eif = dEDelta(ibf,ibi)
-
-        tmpa3 = tmpa2+cmplx(0.0,t1*Eif/hbar,dp)
-        tmpb3 = tmpb2+cmplx(0.0,t2*Eif/hbar,dp)
-
-        transitionRate(ibi) = transitionRate(ibi) + Real(4d0*Mif*exp(tmpa3) + 2d0*Mif*exp(tmpb3))
-          ! We are doing multiple sums, but they are all commutative.
-          ! Here we add in the contribution to the integral at this time
-          ! step from a given final state. The loop over final states 
-          ! adds in the contributions from all final states. 
-      enddo
-    enddo
-  enddo
-
-  do ibi = iBandIinit, iBandIfinal
-    do ibf = iBandFinit, iBandFfinal
-
-      Mif = matrixElement(ibf,ibi)
-      Eif = dEDelta(ibf,ibi)
-
-      t1 = nstep*dt*nn
-      t2 = (float(nstep))*dt+nstep*dt*nn
-
-      transitionRate(ibi) = transitionRate(ibi) + Real(Mif*exp(G0_t(t1)+cmplx(0.0,t1*Eif/hbar,dp)-gamma0*t1)) ! Lorentz
-      transitionRate(ibi) = transitionRate(ibi) - Real(Mif*exp(G0_t(t2)+cmplx(0.0,t2*Eif/hbar,dp)-gamma0*t2)) ! Lorentz
-
-    enddo
-
-    transitionRate(ibi) = transitionRate(ibi)*2.0d0/3.0d0*dt
-    transitionRate(ibi) = transitionRate(ibi)/hbar/hbar
-
-    write(*,'(i10, f10.5,f7.1,i5,ES35.14E3)') ibi, dEPlot, temperature, nn, transitionRate(ibi)
-
-  enddo
+  
+  deallocate(dEDelta)
+  deallocate(dEPlot)
+  deallocate(matrixElement)
+  deallocate(modeFreq)
+  deallocate(Sj)
 
 end program LSF0main
 
