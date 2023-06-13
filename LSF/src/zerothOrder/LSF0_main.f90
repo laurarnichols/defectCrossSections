@@ -16,8 +16,8 @@ program LSF0main
   if(ionode) write(*, '("Reading inputs: [ ] Paramters  [ ] Sj  [ ] dE  [ ] Matrix elements")')
   call cpu_time(timer1)
 
-  call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, beta, dt, gamma0, maxTime, smearingExpTolerance, temperature, &
-        EInput, M0Input, outputDir, SjInput)
+  call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, beta, dt, gamma0, hbarGamma, maxTime, &
+        smearingExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
 
 
   call cpu_time(timer2)

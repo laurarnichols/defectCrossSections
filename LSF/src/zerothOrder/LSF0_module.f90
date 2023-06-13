@@ -67,8 +67,8 @@ module LSF0mod
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, beta, dt, gamma0, maxTime, smearingExpTolerance, temperature, &
-        EInput, M0Input, outputDir, SjInput)
+  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, beta, dt, gamma0, hbarGamma, maxTime, &
+        smearingExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
 
     implicit none
 
@@ -84,6 +84,9 @@ contains
       !! Time step size
     real(kind=dp), intent(out) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
+    real(kind=dp), intent(out) :: hbarGamma
+      !! \(\hbar\gamma\) for Lorentzian smearing
+      !! to guarantee convergence
     real(kind=dp), intent(out) :: maxTime
       !! Max time for integration
     real(kind=dp), intent(out) :: smearingExpTolerance
@@ -101,11 +104,6 @@ contains
     character(len=300), intent(out) :: SjInput
       !! Path to Sj.out file
 
-    ! Local variables:
-    real(kind=dp) :: hbarGamma
-      !! \(\hbar\gamma\) for Lorentzian smearing
-      !! to guarantee convergence
-
   
     call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
           M0Input, outputDir, SjInput)
@@ -114,6 +112,7 @@ contains
 
       read(5, inputParams, iostat=ierr)
         !! * Read input variables
+
     
       if(ierr /= 0) call exitError('LSF0 main', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
@@ -270,7 +269,7 @@ contains
     abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution 
 
     abortExecution = checkDoubleInitialization('dt', dt, 1.0d-10, 1.0d-4) .or. abortExecution
-    abortExecution = checkDoubleInitialization('hbarGamma', hbarGamma, 0.0_dp, 20.0_dp) .or. abortExecution
+    abortExecution = checkDoubleInitialization('hbarGamma', hbarGamma, 0.1_dp, 20.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('smearingExpTolerance', smearingExpTolerance, 0.0_dp, 1.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('temperature', temperature, 0.0_dp, 1500.0_dp) .or. abortExecution
       ! These limits are my best guess as to what is reasonable; they are not
