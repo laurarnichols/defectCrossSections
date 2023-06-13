@@ -4,7 +4,7 @@ program LSF0main
   implicit none
 
   ! Local variables:
-  real(kind=dp) :: timerStart, timerEnd
+  real(kind=dp) :: timerStart, timerEnd, timer1, timer2
     !! Timers
 
 
@@ -12,14 +12,37 @@ program LSF0main
 
   call mpiInitialization()
 
-  call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, dt, gamma0, maxTime, smearingExpTolerance, temperature, &
+
+  if(ionode) write(*, '("Reading inputs: [ ] Paramters  [ ] Sj  [ ] dE  [ ] Matrix elements")')
+  call cpu_time(timer1)
+
+  call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, beta, dt, gamma0, maxTime, smearingExpTolerance, temperature, &
         EInput, M0Input, outputDir, SjInput)
+
+
+  call cpu_time(timer2)
+  if(ionode) write(*, '("Reading inputs: [X] Paramters  [ ] Sj  [ ] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
+  call cpu_time(timer1)
 
   call readSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, SjInput, nModes, modeFreq, Sj)
 
+
+  call cpu_time(timer2)
+  if(ionode) write(*, '("Reading inputs: [X] Paramters  [X] Sj  [ ] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
+  call cpu_time(timer1)
+
   call readEnergy(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, dEDelta, dEPlot)
 
-  call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, M0Input, matrixElement)
+
+  call cpu_time(timer2)
+  if(ionode) write(*, '("Reading inputs: [X] Paramters  [X] Sj  [X] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
+  call cpu_time(timer1)
+
+  call readMatrixElements(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, M0Input, matrixElement)
+
+  call cpu_time(timer2)
+  if(ionode) write(*, '("Reading inputs: [X] Paramters  [X] Sj  [X] dE  [X] Matrix elements (",f10.2," secs)")') timer2-timer1
+  call cpu_time(timer1)
 
 
   nStepsLocal = ceiling((maxTime/dt)/nProcs)
@@ -54,6 +77,14 @@ program LSF0main
   deallocate(matrixElement)
   deallocate(modeFreq)
   deallocate(Sj)
+
+
+  call MPI_Barrier(worldComm, ierr)
+ 
+  call cpu_time(timerEnd)
+  if(ionode) write(*,'("************ LSF complete! (",f10.2," secs) ************")') timerEnd-timerStart
+
+  call MPI_FINALIZE(ierr)
 
 end program LSF0main
 

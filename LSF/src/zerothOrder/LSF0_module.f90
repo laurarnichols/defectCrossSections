@@ -21,6 +21,8 @@ module LSF0mod
     !! Energy band bounds for initial and final state
   integer :: nModes
     !! Number of phonon modes
+  integer :: order
+    !! Order to calculate (0 or 1)
 
   real(kind=dp) :: beta
     !! 1/kb*T
@@ -60,12 +62,12 @@ module LSF0mod
 
 
   namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, M0input, SjInput, &
-                        temperature, hbarGamma, dt, smearingExpTolerance, outputDir
+                        temperature, hbarGamma, dt, smearingExpTolerance, outputDir, order
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, beta, dt, gamma0, maxTime, smearingExpTolerance, temperature, &
+  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, beta, dt, gamma0, maxTime, smearingExpTolerance, temperature, &
         EInput, M0Input, outputDir, SjInput)
 
     implicit none
@@ -73,6 +75,8 @@ contains
     ! Output variables
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(out) :: order
+      !! Order to calculate (0 or 1)
 
     real(kind=dp), intent(out) :: beta
       !! 1/kb*T
@@ -103,7 +107,8 @@ contains
       !! to guarantee convergence
 
   
-    call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dt, hbarGamma, smearingExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+    call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
+          M0Input, outputDir, SjInput)
 
     if(ionode) then
 
@@ -113,7 +118,7 @@ contains
       if(ierr /= 0) call exitError('LSF0 main', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
+      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
             M0Input, outputDir, SjInput)
 
       dt = dt/Thz
@@ -132,6 +137,7 @@ contains
     call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
   
     call MPI_BCAST(beta, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(dt, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -150,13 +156,16 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dt, hbarGamma, smearingExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
+        M0Input, outputDir, SjInput)
 
     implicit none
 
     ! Output variables
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(out) :: order
+      !! Order to calculate (0 or 1)
 
     real(kind=dp), intent(out) :: dt
       !! Time step size
@@ -189,6 +198,7 @@ contains
     iBandIfinal = -1
     iBandFinit  = -1
     iBandFfinal = -1
+    order = -1
 
     dt = 1d-6
     hbarGamma = 0.0_dp
@@ -217,13 +227,16 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dt, hbarGamma, smearingExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, &
+        EInput, M0Input, outputDir, SjInput)
 
     implicit none
 
     ! Input variables
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(in) :: order
+      !! Order to calculate (0 or 1)
 
     real(kind=dp), intent(in) :: dt
       !! Time step size
@@ -254,6 +267,7 @@ contains
     abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
+    abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution 
 
     abortExecution = checkDoubleInitialization('dt', dt, 1.0d-10, 1.0d-4) .or. abortExecution
     abortExecution = checkDoubleInitialization('hbarGamma', hbarGamma, 0.0_dp, 20.0_dp) .or. abortExecution
@@ -412,7 +426,7 @@ contains
   end subroutine readEnergy
 
 !----------------------------------------------------------------------------
-  subroutine readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, M0Input, matrixElement)
+  subroutine readMatrixElements(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, M0Input, matrixElement)
 
     implicit none
 
@@ -472,7 +486,7 @@ contains
 
     return
 
-  end subroutine readMatrixElement
+  end subroutine readMatrixElements
 
 !----------------------------------------------------------------------------
   function G0ExpArg(time) 
