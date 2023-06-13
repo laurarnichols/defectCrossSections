@@ -475,23 +475,40 @@ contains
   end subroutine readMatrixElement
 
 !----------------------------------------------------------------------------
-function G0_t(inputt) result(G0t) 
-  integer :: ifreq
-  real(kind=dp) :: inputt, nj, omega, e_factor
-  complex(kind=dp) G0t, tmp1, tmp2
-  tmp1 = 0.0_dp
-  tmp2 = 0.0_dp
-  do ifreq=1, nModes
-   omega=modeFreq(ifreq)
-   nj=1/(exp(hbar*omega*beta)-1)
-   tmp1=tmp1+(nj+1)*Sj(ifreq)*exp(cmplx(0.0,omega*inputt,dp))+nj*Sj(ifreq)*exp(cmplx(0.0,-omega*inputt,dp))-(2*nj+1)*Sj(ifreq)
-   !tmp2=tmp2+(nj+1)*Sj(ifreq)/e_factor*exp(cmplx(0.0,omega*inputt,dp))+nj*Sj(ifreq)*e_factor*exp(cmplx(0.0,-omega*inputt,dp))-(2*nj+1)*Sj(ifreq)
-  end do
-  G0t= tmp1! - exp(tmp2)
-!time-dependent line-shape-function, expand it to the first order of Sj, you will get familiar form with Huang-Rhys factor
-  !!G0t=G0t*exp(-0.25*(alpha*inputt)**2)
-  !narrow Gaussian to simulate delta function, what we care about is the area, we make it narrow so neighboring LSF do not interfere
-end function
+  function G0ExpArg(time) 
+
+    ! Input variables:
+    !integer, intent(in) :: nModes
+      !! Number of phonon modes
+
+    real(kind=dp), intent(in) :: time
+      !! Time at which to calculate the \(G_0(t)\) argument
+
+    ! Output variables:
+    complex(kind=dp) :: G0ExpArg
+
+    ! Local variables
+    integer :: j
+      !! Loop index
+
+    real(kind=dp) :: nj
+      !! \(n_j\) occupation number
+    real(kind=dp) :: omega
+      !! Local storage of frequency for this mode
+
+
+    G0ExpArg = cmplx(0.0_dp, 0.0_dp, kind=dp)
+
+    do j = 1, nModes
+
+      omega = modeFreq(j)
+
+      nj = 1.0_dp/(exp(hbar*omega*beta) - 1.0_dp)
+
+      G0ExpArg = G0ExpArg + Sj(j)*((nj+1.0_dp)*exp(ii*omega*time) + nj*exp(-ii*omega*time) - (2.0_dp*nj + 1.0_dp))
+    enddo
+
+  end function
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dEDelta, dEPlot, gamma0, matrixElement, temperature)
@@ -535,10 +552,10 @@ end function
     do iTime = iTime_start, iTime_end-1, 2
 
       t1 = float(iTime)*dt
-      expArg_t1_base = G0_t(t1) - gamma0*t1
+      expArg_t1_base = G0ExpArg(t1) - gamma0*t1
 
       t2 = t1 + dt
-      expArg_t2_base = G0_t(t2) - gamma0*t2
+      expArg_t2_base = G0ExpArg(t2) - gamma0*t2
 
       do ibi = iBandIinit, iBandIfinal
         do ibf = iBandFinit, iBandFfinal
@@ -565,11 +582,11 @@ end function
         Eif = dEDelta(ibf,ibi)
 
         t1 = float(iTime_start-1)*dt
-        transitionRate(ibi) = transitionRate(ibi) + Real(Mif*exp(G0_t(t1) + ii*Eif/hbar*t1 - gamma0*t1))
+        transitionRate(ibi) = transitionRate(ibi) + Real(Mif*exp(G0ExpArg(t1) + ii*Eif/hbar*t1 - gamma0*t1))
           ! Add \(t_0\) that was skipped in the loop
 
         t2 = float(iTime_end)*dt
-        transitionRate(ibi) = transitionRate(ibi) - Real(Mif*exp(G0_t(t2) + ii*Eif/hbar*t2 - gamma0*t2)) 
+        transitionRate(ibi) = transitionRate(ibi) - Real(Mif*exp(G0ExpArg(t2) + ii*Eif/hbar*t2 - gamma0*t2)) 
           ! Subtract off last time that had a coefficient
           ! of 2 in the loop but should really have a 
           ! coefficient of 1
