@@ -59,6 +59,11 @@ program LSF0main
     ! this way will overestimate the number of steps
     ! needed, but that is okay.
 
+  if(nStepsLocal < 0) call exitError('LSF0 main', 'integer overflow', 1)
+    ! If there is integer overflow, the number will go to the
+    ! most negative integer value available
+
+
   if(mod(nStepsLocal,2) /= 0) nStepsLocal = nStepsLocal + 1
     ! Simpson's method requires the number of integration
     ! steps to be even
