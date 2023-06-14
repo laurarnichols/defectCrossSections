@@ -52,23 +52,26 @@ module LSF0mod
 
   character(len=300) :: EInput
     !! Path to energy table to read
-  character(len=300) :: M0Input
+  character(len=300) :: MifInput
     !! Path to zeroth-order matrix element file
     !! `allElecOverlap.isp.ik`
   character(len=300) :: outputDir
     !! Path to output transition rates
+  character(len=300) :: prefix
+    !! Prefix of directories for first-order matrix
+    !! elements
   character(len=300) :: SjInput
     !! Path to Sj.out file
 
 
-  namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, M0input, SjInput, &
-                        temperature, hbarGamma, dt, smearingExpTolerance, outputDir, order
+  namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, MifInput, SjInput, &
+                        temperature, hbarGamma, dt, smearingExpTolerance, outputDir, order, prefix
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, beta, dt, gamma0, hbarGamma, maxTime, &
-        smearingExpTolerance, temperature, EInput, M0Input, outputDir, SjInput)
+        smearingExpTolerance, temperature, EInput, MifInput, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -96,17 +99,20 @@ contains
 
     character(len=300), intent(out) :: EInput
       !! Path to energy table to read
-    character(len=300), intent(out) :: M0Input
+    character(len=300), intent(out) :: MifInput
       !! Path to zeroth-order matrix element file
       !! `allElecOverlap.isp.ik`
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
+    character(len=300), intent(out) :: prefix
+      !! Prefix of directories for first-order matrix
+      !! elements
     character(len=300), intent(out) :: SjInput
       !! Path to Sj.out file
 
   
     call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
-          M0Input, outputDir, SjInput)
+          MifInput, outputDir, prefix, SjInput)
 
     if(ionode) then
 
@@ -118,7 +124,7 @@ contains
         !! * Exit calculation if there's an error
 
       call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
-            M0Input, outputDir, SjInput)
+            MifInput, outputDir, prefix, SjInput)
 
       dt = dt/Thz
 
@@ -147,8 +153,9 @@ contains
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   
     call MPI_BCAST(EInput, len(EInput), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(M0Input, len(M0Input), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(MifInput, len(MifInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(SjInput, len(SjInput), MPI_CHARACTER, root, worldComm, ierr)
     
     return
@@ -157,7 +164,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
-        M0Input, outputDir, SjInput)
+        MifInput, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -179,11 +186,14 @@ contains
 
     character(len=300), intent(out) :: EInput
       !! Path to energy table to read
-    character(len=300), intent(out) :: M0Input
+    character(len=300), intent(out) :: MifInput
       !! Path to zeroth-order matrix element file
       !! `allElecOverlap.isp.ik`
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
+    character(len=300), intent(out) :: prefix
+      !! Prefix of directories for first-order matrix
+      !! elements
     character(len=300), intent(out) :: SjInput
       !! Path to Sj.out file
 
@@ -206,9 +216,10 @@ contains
     temperature = 0.0_dp
 
     EInput = ''
-    M0Input = ''
+    MifInput = ''
     SjInput = ''
     outputDir = './'
+    prefix = 'disp-'
 
     call date_and_time(cdate, ctime)
 
@@ -228,7 +239,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, &
-        EInput, M0Input, outputDir, SjInput)
+        EInput, MifInput, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -250,11 +261,14 @@ contains
 
     character(len=300), intent(in) :: EInput
       !! Path to energy table to read
-    character(len=300), intent(in) :: M0Input
+    character(len=300), intent(in) :: MifInput
       !! Path to zeroth-order matrix element file
       !! `allElecOverlap.isp.ik`
     character(len=300), intent(in) :: outputDir
       !! Path to store transition rates
+    character(len=300), intent(in) :: prefix
+      !! Prefix of directories for first-order matrix
+      !! elements
     character(len=300), intent(in) :: SjInput
       !! Path to Sj.out file
 
@@ -277,9 +291,16 @@ contains
       ! hard and fast, but you should think about the application of the theory
       ! to numbers outside these ranges.
 
-    abortExecution = checkFileInitialization('EInput', Einput) .or. abortExecution
-    abortExecution = checkFileInitialization('M0Input', M0input) .or. abortExecution
-    abortExecution = checkFileInitialization('SjInput', Sjinput) .or. abortExecution
+    abortExecution = checkFileInitialization('EInput', EInput) .or. abortExecution
+    abortExecution = checkFileInitialization('SjInput', SjInput) .or. abortExecution
+
+    if(order == 0) then 
+      abortExecution = checkFileInitialization('MifInput', MifInput) .or. abortExecution
+    else if(order == 1) then
+      abortExecution = checkDirInitialization('MifInput', MifInput, '/'//trim(prefix)//'0001/TME/allElecOverlap.1.1') .or. abortExecution
+      write(*,'("prefix = ''",a,"''")') trim(prefix)
+      stop
+    endif
 
     call system('mkdir -p '//trim(outputDir))
 
@@ -427,7 +448,7 @@ contains
   end subroutine readEnergy
 
 !----------------------------------------------------------------------------
-  subroutine readMatrixElements(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, M0Input, matrixElement)
+  subroutine readMatrixElements(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, MifInput, matrixElement)
 
     implicit none
 
@@ -435,7 +456,7 @@ contains
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
 
-    character(len=300), intent(in) :: M0Input
+    character(len=300), intent(in) :: MifInput
       !! Path to zeroth-order matrix element file
       !! `allElecOverlap.isp.ik`
 
@@ -456,7 +477,7 @@ contains
 
 
     if(ionode) then
-      open(12,file=trim(M0Input))
+      open(12,file=trim(MifInput))
 
       read(12,*)
       read(12,*)
