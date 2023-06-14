@@ -13,7 +13,7 @@ program LSF0main
   call mpiInitialization()
 
 
-  if(ionode) write(*, '("Reading inputs: [ ] Paramters  [ ] Sj  [ ] dE  [ ] Matrix elements")')
+  if(ionode) write(*, '("Reading inputs: [ ] Parameters  [ ] Sj  [ ] dE  [ ] Matrix elements")')
   call cpu_time(timer1)
 
   call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, beta, dt, gamma0, hbarGamma, maxTime, &
@@ -21,27 +21,27 @@ program LSF0main
 
 
   call cpu_time(timer2)
-  if(ionode) write(*, '("Reading inputs: [X] Paramters  [ ] Sj  [ ] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
+  if(ionode) write(*, '("Reading inputs: [X] Parameters  [ ] Sj  [ ] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
   call cpu_time(timer1)
 
   call readSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, SjInput, nModes, modeFreq, Sj)
 
 
   call cpu_time(timer2)
-  if(ionode) write(*, '("Reading inputs: [X] Paramters  [X] Sj  [ ] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
+  if(ionode) write(*, '("Reading inputs: [X] Parameters  [X] Sj  [ ] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
   call cpu_time(timer1)
 
   call readEnergy(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, dEDelta, dEPlot)
 
 
   call cpu_time(timer2)
-  if(ionode) write(*, '("Reading inputs: [X] Paramters  [X] Sj  [X] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
+  if(ionode) write(*, '("Reading inputs: [X] Parameters  [X] Sj  [X] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
   call cpu_time(timer1)
 
   call readMatrixElements(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, M0Input, matrixElement)
 
   call cpu_time(timer2)
-  if(ionode) write(*, '("Reading inputs: [X] Paramters  [X] Sj  [X] dE  [X] Matrix elements (",f10.2," secs)")') timer2-timer1
+  if(ionode) write(*, '("Reading inputs: [X] Parameters  [X] Sj  [X] dE  [X] Matrix elements (",f10.2," secs)")') timer2-timer1
   call cpu_time(timer1)
 
 
