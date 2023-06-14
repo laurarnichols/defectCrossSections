@@ -37,7 +37,7 @@ module LSF0mod
   real(kind=dp) :: hbarGamma
     !! \(\hbar\gamma\) for Lorentzian smearing
     !! to guarantee convergence
-  real(kind=dp), allocatable :: matrixElement(:,:)
+  real(kind=dp), allocatable :: matrixElement(:,:,:)
     !! Electronic matrix element
   real(kind=dp) :: maxTime
     !! Max time for integration
@@ -53,8 +53,12 @@ module LSF0mod
   character(len=300) :: EInput
     !! Path to energy table to read
   character(len=300) :: MifInput
-    !! Path to zeroth-order matrix element file
-    !! `allElecOverlap.isp.ik`
+    !! Path to matrix element file `allElecOverlap.isp.ik`. 
+    !! For first-order term, the path is just within each 
+    !! subdirectory.
+  character(len=300) :: MjDir
+    !! Path to the base directory for the first-order
+    !! matrix element calculations
   character(len=300) :: outputDir
     !! Path to output transition rates
   character(len=300) :: prefix
@@ -64,14 +68,14 @@ module LSF0mod
     !! Path to Sj.out file
 
 
-  namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, MifInput, SjInput, &
+  namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, MifInput, MjDir, SjInput, &
                         temperature, hbarGamma, dt, smearingExpTolerance, outputDir, order, prefix
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, beta, dt, gamma0, hbarGamma, maxTime, &
-        smearingExpTolerance, temperature, EInput, MifInput, outputDir, prefix, SjInput)
+        smearingExpTolerance, temperature, EInput, MifInput, MjDir, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -100,8 +104,12 @@ contains
     character(len=300), intent(out) :: EInput
       !! Path to energy table to read
     character(len=300), intent(out) :: MifInput
-      !! Path to zeroth-order matrix element file
-      !! `allElecOverlap.isp.ik`
+      !! Path to matrix element file `allElecOverlap.isp.ik`. 
+      !! For first-order term, the path is just within each 
+      !! subdirectory.
+    character(len=300), intent(out) :: MjDir
+      !! Path to the base directory for the first-order
+      !! matrix element calculations
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
     character(len=300), intent(out) :: prefix
@@ -112,7 +120,7 @@ contains
 
   
     call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
-          MifInput, outputDir, prefix, SjInput)
+          MifInput, MjDir, outputDir, prefix, SjInput)
 
     if(ionode) then
 
@@ -124,7 +132,7 @@ contains
         !! * Exit calculation if there's an error
 
       call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
-            MifInput, outputDir, prefix, SjInput)
+            MifInput, MjDir, outputDir, prefix, SjInput)
 
       dt = dt/Thz
 
@@ -154,6 +162,7 @@ contains
   
     call MPI_BCAST(EInput, len(EInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(MifInput, len(MifInput), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(MjDir, len(MjDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(SjInput, len(SjInput), MPI_CHARACTER, root, worldComm, ierr)
@@ -164,7 +173,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
-        MifInput, outputDir, prefix, SjInput)
+        MifInput, MjDir, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -187,8 +196,12 @@ contains
     character(len=300), intent(out) :: EInput
       !! Path to energy table to read
     character(len=300), intent(out) :: MifInput
-      !! Path to zeroth-order matrix element file
-      !! `allElecOverlap.isp.ik`
+      !! Path to matrix element file `allElecOverlap.isp.ik`. 
+      !! For first-order term, the path is just within each 
+      !! subdirectory.
+    character(len=300), intent(out) :: MjDir
+      !! Path to the base directory for the first-order
+      !! matrix element calculations
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
     character(len=300), intent(out) :: prefix
@@ -217,6 +230,7 @@ contains
 
     EInput = ''
     MifInput = ''
+    MjDir = ''
     SjInput = ''
     outputDir = './'
     prefix = 'disp-'
@@ -239,7 +253,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, &
-        EInput, MifInput, outputDir, prefix, SjInput)
+        EInput, MifInput, MjDir, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -262,8 +276,12 @@ contains
     character(len=300), intent(in) :: EInput
       !! Path to energy table to read
     character(len=300), intent(in) :: MifInput
-      !! Path to zeroth-order matrix element file
-      !! `allElecOverlap.isp.ik`
+      !! Path to matrix element file `allElecOverlap.isp.ik`. 
+      !! For first-order term, the path is just within each 
+      !! subdirectory.
+    character(len=300), intent(in) :: MjDir
+      !! Path to the base directory for the first-order
+      !! matrix element calculations
     character(len=300), intent(in) :: outputDir
       !! Path to store transition rates
     character(len=300), intent(in) :: prefix
@@ -297,8 +315,9 @@ contains
     if(order == 0) then 
       abortExecution = checkFileInitialization('MifInput', MifInput) .or. abortExecution
     else if(order == 1) then
-      abortExecution = checkDirInitialization('MifInput', MifInput, '/'//trim(prefix)//'0001/TME/allElecOverlap.1.1') .or. abortExecution
+      abortExecution = checkDirInitialization('MjDir', MjDir, '/'//trim(prefix)//'0001/'//trim(MifInput)) .or. abortExecution
       write(*,'("prefix = ''",a,"''")') trim(prefix)
+      write(*,'("MifInput = ''",a,"''")') trim(MifInput)
       stop
     endif
 
@@ -448,7 +467,7 @@ contains
   end subroutine readEnergy
 
 !----------------------------------------------------------------------------
-  subroutine readMatrixElements(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, MifInput, matrixElement)
+  subroutine readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, MifInput, matrixElement)
 
     implicit none
 
@@ -461,7 +480,7 @@ contains
       !! `allElecOverlap.isp.ik`
 
     ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: matrixElement(:,:)
+    real(kind=dp), intent(out) :: matrixElement(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
       !! Electronic matrix element
 
     ! Local variables:
@@ -488,8 +507,6 @@ contains
     endif
       
 
-    allocate(matrixElement(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
-
     if(ionode) then
 
       do ibf = iBandFinit, iBandFfinal
@@ -510,7 +527,7 @@ contains
 
     return
 
-  end subroutine readMatrixElements
+  end subroutine readMatrixElement
 
 !----------------------------------------------------------------------------
   function G0ExpArg(time) 
@@ -566,7 +583,7 @@ contains
       !! Energy for plotting
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
-    real(kind=dp), intent(in) :: matrixElement(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
+    real(kind=dp), intent(in) :: matrixElement(:,:,:)
       !! Electronic matrix element
     real(kind=dp), intent(in) :: temperature
 
@@ -578,8 +595,10 @@ contains
 
     real(kind=dp) :: Eif
       !! Local storage of dEDelta(ibi,ibf)
-    real(kind=dp) :: Mif
-      !! Local storage of matrixElement(ibi,ibf)
+    real(kind=dp) :: expPrefactor
+      !! Prefactor for the exponential inside the integral.
+      !! For zeroth-order, this is just the matrix element,
+      !! but for first-order this is \(\sum_j M_j A_j\).
     real(kind=dp) :: t1, t2
       !! Time for each time step
     real(kind=dp) :: timer1, timer2
@@ -621,13 +640,14 @@ contains
       do ibi = iBandIinit, iBandIfinal
         do ibf = iBandFinit, iBandFfinal
 
-          Mif = matrixElement(ibf,ibi)
+          expPrefactor = matrixElement(1,ibf,ibi)
           Eif = dEDelta(ibf,ibi)
 
           expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
           expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
 
-          transitionRate(ibi) = transitionRate(ibi) + Real(4.0_dp*Mif*exp(expArg_t1) + 2.0_dp*Mif*exp(expArg_t2))
+          transitionRate(ibi) = transitionRate(ibi) + &
+            Real(4.0_dp*expPrefactor*exp(expArg_t1) + 2.0_dp*expPrefactor*exp(expArg_t2))
             ! We are doing multiple sums, but they are all commutative.
             ! Here we add in the contribution to the integral at this time
             ! step from a given final state. The loop over final states 
@@ -640,17 +660,17 @@ contains
     do ibi = iBandIinit, iBandIfinal
       do ibf = iBandFinit, iBandFfinal
 
-        Mif = matrixElement(ibf,ibi)
+        expPrefactor = matrixElement(1,ibf,ibi)
         Eif = dEDelta(ibf,ibi)
 
         t1 = myid*float(nStepsLocal)*dt
           ! Must do this arithmetic with floats to avoid
           ! integer overflow
-        transitionRate(ibi) = transitionRate(ibi) + Real(Mif*exp(G0ExpArg(t1) + ii*Eif/hbar*t1 - gamma0*t1))
+        transitionRate(ibi) = transitionRate(ibi) + Real(expPrefactor*exp(G0ExpArg(t1) + ii*Eif/hbar*t1 - gamma0*t1))
           ! Add \(t_0\) that was skipped in the loop
 
         t2 = ((myid+1)*float(nStepsLocal) - 1.0_dp)*dt
-        transitionRate(ibi) = transitionRate(ibi) - Real(Mif*exp(G0ExpArg(t2) + ii*Eif/hbar*t2 - gamma0*t2)) 
+        transitionRate(ibi) = transitionRate(ibi) - Real(expPrefactor*exp(G0ExpArg(t2) + ii*Eif/hbar*t2 - gamma0*t2)) 
           ! Subtract off last time that had a coefficient
           ! of 2 in the loop but should really have a 
           ! coefficient of 1

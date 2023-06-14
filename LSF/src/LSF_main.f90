@@ -1,11 +1,19 @@
 program LSF0main
+
   use LSF0mod
+  use miscUtilities, only: int2strLeadZero
 
   implicit none
 
   ! Local variables:
+  integer :: j
+    !! Loop index
+
   real(kind=dp) :: timerStart, timerEnd, timer1, timer2
     !! Timers
+
+  character(len=300) :: fName
+    !! File name for first-order matrix elements
 
 
   call cpu_time(timerStart)
@@ -17,7 +25,7 @@ program LSF0main
   call cpu_time(timer1)
 
   call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, beta, dt, gamma0, hbarGamma, maxTime, &
-        smearingExpTolerance, temperature, EInput, MifInput, outputDir, prefix, SjInput)
+        smearingExpTolerance, temperature, EInput, MifInput, MjDir, outputDir, prefix, SjInput)
 
 
   call cpu_time(timer2)
@@ -38,7 +46,28 @@ program LSF0main
   if(ionode) write(*, '("Reading inputs: [X] Parameters  [X] Sj  [X] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
   call cpu_time(timer1)
 
-  call readMatrixElements(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, MifInput, matrixElement)
+  if(order == 0) then
+    ! Read single zeroth-order matrix element
+
+    allocate(matrixElement(1,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
+    
+    call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, MifInput, matrixElement(1,:,:))
+
+  else if(order == 1) then
+    ! Read matrix elements for all modes
+
+    allocate(matrixElement(nModes,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
+    
+    do j = 1, nModes
+
+      fName = trim(MjDir)//'/'//trim(prefix)//int2strLeadZero(j,4)//'/'//trim(MifInput)
+
+      call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, trim(fName), matrixElement(j,:,:))
+
+    enddo
+
+  endif
+   
 
   call cpu_time(timer2)
   if(ionode) write(*, '("Reading inputs: [X] Parameters  [X] Sj  [X] dE  [X] Matrix elements (",f10.2," secs)")') timer2-timer1
