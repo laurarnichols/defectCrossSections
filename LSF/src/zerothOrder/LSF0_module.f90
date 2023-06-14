@@ -530,13 +530,16 @@ contains
   end function
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dEDelta, dEPlot, gamma0, matrixElement, temperature)
+  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dEDelta, dEPlot, gamma0, &
+        matrixElement, temperature)
     
     implicit none
 
     ! Input variables:
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(in) :: order
+      !! Order to calculate (0 or 1)
 
     real(kind=dp), intent(in) :: dEDelta(iBandIinit:iBandIfinal,iBandFinit:iBandFfinal)
       !! Energy for delta function
@@ -645,11 +648,17 @@ contains
       write(37,'("# Total number of initial states, Initial states (bandI, bandF) Format : ''(3i10)''")')
       write(37,'(3i10)') iBandIfinal-iBandIinit+1, iBandIinit, iBandIfinal
 
-      write(37,'("# Temperature: ", f7.1)') temperature
+      write(37,'("# Temperature (K): ", f7.1)') temperature
 
-      transitionRate(:) = transitionRate(:)*(dt/3.0_dp)*(2.0_dp/hbar/hbar)
-        ! Multiply by prefactor for Simpson's integration method 
-        ! and prefactor for time-domain integral
+      write(37,'("# Initial state, dEPlot (eV), Transition rate Format : ''(i10, f10.5, ES35.14E3)''")')
+
+      ! Multiply by prefactor for Simpson's integration method 
+      ! and prefactor for time-domain integral
+      if(order == 0) then
+        transitionRate(:) = transitionRate(:)*(dt/3.0_dp)*(2.0_dp/(hbar*hbar))
+      else if(order == 1) then
+        transitionRate(:) = transitionRate(:)*(dt/3.0_dp)*(1.0_dp/(2.0_dp*hbar*hbar))
+      endif        
 
       do ibi = iBandIinit, iBandIfinal
         write(37,'(i10, f10.5,ES35.14E3)') ibi, dEPlot(ibi), transitionRate(ibi)
