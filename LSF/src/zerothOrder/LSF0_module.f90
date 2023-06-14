@@ -551,6 +551,8 @@ contains
     ! Local variables:
     integer :: iTime, ibi, ibf
       !! Loop indices
+    integer :: updateFrequency
+      !! Frequency of steps to write status update
 
     real(kind=dp) :: Eif
       !! Local storage of dEDelta(ibi,ibf)
@@ -558,6 +560,8 @@ contains
       !! Local storage of matrixElement(ibi,ibf)
     real(kind=dp) :: t1, t2
       !! Time for each time step
+    real(kind=dp) :: timer1, timer2
+      !! Timers
     real(kind=dp) :: transitionRate(iBandIinit:iBandIfinal)
       !! \(Gamma_i\) transition rate
 
@@ -567,10 +571,26 @@ contains
       !! Exponential argument for each time step
 
 
-    transitionRate(:) = 0.0_dp
-    do iTime = iTime_start, iTime_end-1, 2
+    updateFrequency = ceiling(nStepsLocal/10.0)
+    call cpu_time(timer1)
 
-      t1 = float(iTime)*dt
+    transitionRate(:) = 0.0_dp
+    do iTime = 1, nStepsLocal-2, 2
+      ! Loop should not include the first step (0), 
+      ! but it should include the last step (nStepsLocal-1).
+      ! iTime stops at nStepsLocal-2 because nStepsLocal-1
+      ! is calculated by t2 at the last step.
+
+      if(ionode .and. (mod(iTime,updateFrequency) == 0 .or. mod(iTime+1,updateFrequency) == 0)) then
+
+        call cpu_time(timer2)
+        write(*,'(i2,"% complete with transition-rate loop. Time in loop: ",f10.2," secs")') iTime*100/nStepsLocal, timer2-timer1
+
+      endif
+
+      t1 = (float(iTime) + myid*float(nStepsLocal))*dt
+        ! Must do this arithmetic with floats to avoid
+        ! integer overflow
       expArg_t1_base = G0ExpArg(t1) - gamma0*t1
 
       t2 = t1 + dt
@@ -600,11 +620,13 @@ contains
         Mif = matrixElement(ibf,ibi)
         Eif = dEDelta(ibf,ibi)
 
-        t1 = float(iTime_start-1)*dt
+        t1 = myid*float(nStepsLocal)*dt
+          ! Must do this arithmetic with floats to avoid
+          ! integer overflow
         transitionRate(ibi) = transitionRate(ibi) + Real(Mif*exp(G0ExpArg(t1) + ii*Eif/hbar*t1 - gamma0*t1))
           ! Add \(t_0\) that was skipped in the loop
 
-        t2 = float(iTime_end)*dt
+        t2 = ((myid+1)*float(nStepsLocal) - 1.0_dp)*dt
         transitionRate(ibi) = transitionRate(ibi) - Real(Mif*exp(G0ExpArg(t2) + ii*Eif/hbar*t2 - gamma0*t2)) 
           ! Subtract off last time that had a coefficient
           ! of 2 in the loop but should really have a 
@@ -630,7 +652,7 @@ contains
         ! and prefactor for time-domain integral
 
       do ibi = iBandIinit, iBandIfinal
-        write(*,'(i10, f10.5,ES35.14E3)') ibi, dEPlot, transitionRate(ibi)
+        write(37,'(i10, f10.5,ES35.14E3)') ibi, dEPlot(ibi), transitionRate(ibi)
       enddo
 
     endif

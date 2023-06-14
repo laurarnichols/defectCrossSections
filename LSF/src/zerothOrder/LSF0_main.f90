@@ -64,14 +64,12 @@ program LSF0main
     ! most negative integer value available
 
 
-  if(mod(nStepsLocal,2) /= 0) nStepsLocal = nStepsLocal + 1
+  if(mod(nStepsLocal,2) == 0) nStepsLocal = nStepsLocal + 1
     ! Simpson's method requires the number of integration
-    ! steps to be even
+    ! steps to be odd because a 3-point quadratic
+    ! interpolation is used
    
   if(ionode) write(*,'("Each process is completing ", i15, " time steps.")') nStepsLocal
-
-  iTime_start = myid*nStepsLocal + 1
-  iTime_end = (myid + 1)*nStepsLocal
 
 
   call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, dEDelta, dEPlot, gamma0, matrixElement, temperature)
