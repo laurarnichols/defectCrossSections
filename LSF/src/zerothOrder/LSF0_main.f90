@@ -24,7 +24,7 @@ program LSF0main
   if(ionode) write(*, '("Reading inputs: [X] Parameters  [ ] Sj  [ ] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
   call cpu_time(timer1)
 
-  call readSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, SjInput, nModes, modeFreq, Sj)
+  call readSj(SjInput, nModes, modeFreq, Sj)
 
 
   call cpu_time(timer2)

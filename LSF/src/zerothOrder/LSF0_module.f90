@@ -141,6 +141,7 @@ contains
     call MPI_BCAST(beta, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(dt, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(hbarGamma, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(gamma0, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(smearingExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -293,14 +294,11 @@ contains
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine readSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, SjInput, nModes, modeFreq, Sj)
+  subroutine readSj(SjInput, nModes, modeFreq, Sj)
 
     implicit none
 
     ! Input variables
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
-
     character(len=300), intent(in) :: SjInput
       !! Path to Sj.out file
 
@@ -541,13 +539,13 @@ contains
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
-    real(kind=dp), intent(in) :: dEDelta(iBandIinit:iBandIfinal,iBandFinit:iBandFfinal)
+    real(kind=dp), intent(in) :: dEDelta(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
       !! Energy for delta function
     real(kind=dp), intent(in) :: dEPlot(iBandIinit:iBandIfinal)
       !! Energy for plotting
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
-    real(kind=dp), intent(in) :: matrixElement(iBandIinit:iBandIfinal,iBandFinit:iBandFfinal)
+    real(kind=dp), intent(in) :: matrixElement(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
       !! Electronic matrix element
     real(kind=dp), intent(in) :: temperature
 
@@ -613,6 +611,7 @@ contains
             ! Here we add in the contribution to the integral at this time
             ! step from a given final state. The loop over final states 
             ! adds in the contributions from all final states. 
+
         enddo
       enddo
     enddo
@@ -650,7 +649,7 @@ contains
 
       write(37,'("# Temperature (K): ", f7.1)') temperature
 
-      write(37,'("# Initial state, dEPlot (eV), Transition rate Format : ''(i10, f10.5, ES35.14E3)''")')
+      write(37,'("# Initial state, dEPlot (eV), Transition rate Format : ''(i10, f10.5, ES24.15E3)''")')
 
       ! Multiply by prefactor for Simpson's integration method 
       ! and prefactor for time-domain integral
@@ -661,7 +660,7 @@ contains
       endif        
 
       do ibi = iBandIinit, iBandIfinal
-        write(37,'(i10, f10.5,ES35.14E3)') ibi, dEPlot(ibi), transitionRate(ibi)
+        write(37,'(i10, f10.5,ES24.14E3)') ibi, dEPlot(ibi), transitionRate(ibi)
       enddo
 
     endif
