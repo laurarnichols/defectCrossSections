@@ -536,8 +536,14 @@ contains
 
     ! Input variables:
     !integer, intent(in) :: nModes
-      !! Number of phonon modes
+      ! Number of phonon modes
 
+    !real(kind=dp), intent(in) :: beta
+      ! 1/kb*T
+    !real(kind=dp), intent(in) :: modeFreq(nModes)
+      ! Frequency for each mode
+    !real(kind=dp), intent(in) :: Sj(nModes)
+      ! Huang-Rhys factor for each mode
     real(kind=dp), intent(in) :: time
       !! Time at which to calculate the \(G_0(t)\) argument
 
@@ -565,7 +571,46 @@ contains
       G0ExpArg = G0ExpArg + Sj(j)*((nj+1.0_dp)*exp(ii*omega*time) + nj*exp(-ii*omega*time) - (2.0_dp*nj + 1.0_dp))
     enddo
 
-  end function
+  end function G0ExpArg
+
+!----------------------------------------------------------------------------
+  function Aj_t(j,time)
+    
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: j
+      !! Mode index
+    !integer, intent(in) :: nModes
+      ! Number of phonon modes
+
+    !real(kind=dp), intent(in) :: beta
+      ! 1/kb*T
+    !real(kind=dp), intent(in) :: modeFreq(nModes)
+      ! Frequency for each mode
+    !real(kind=dp), intent(in) :: Sj(nModes)
+      ! Huang-Rhys factor for each mode
+    real(kind=dp), intent(in) :: time
+      !! Time at which to calculate the \(G_0(t)\) argument
+
+    ! Output variables:
+    complex(kind=dp) :: Aj_t
+
+    ! Local variables
+    real(kind=dp) :: nj
+      !! \(n_j\) occupation number
+    real(kind=dp) :: omega
+      !! Local storage of frequency for this mode
+
+
+    omega = modeFreq(j)
+
+    nj = 1.0_dp/(exp(hbar*omega*beta) - 1.0_dp)
+
+    Aj_t = (2*hbar/omega)*(nj*exp(-ii*omega*time) + (nj+1)*exp(ii*omega*time) + &
+            Sj(j)*(1 + nj*exp(-ii*omega*time) - (nj+1)*exp(ii*omega*time))**2)
+
+  end function Aj_t
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, dEDelta, dEPlot, gamma0, &
@@ -615,15 +660,6 @@ contains
     complex(kind=dp) :: expArg_t1, expArg_t2
       !! Exponential argument for each time step
 
-
-    if(order == 1 .and. ionode) then
-      do ibi = iBandIinit, iBandIfinal
-        do ibf = iBandFinit, iBandFfinal
-          write(*,*) ibi, ibf, matrixElement(1,ibf,ibi), matrixElement(nModes,ibf,ibi)
-        enddo
-      enddo
-      stop
-    endif
 
     updateFrequency = ceiling(nStepsLocal/10.0)
     call cpu_time(timer1)
