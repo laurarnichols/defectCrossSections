@@ -8,6 +8,8 @@ program LSF0main
   ! Local variables:
   integer :: j
     !! Loop index
+  integer :: mDim
+    !! Size of first dimension for matrix element
 
   real(kind=dp) :: timerStart, timerEnd, timer1, timer2
     !! Timers
@@ -49,24 +51,28 @@ program LSF0main
   if(order == 0) then
     ! Read single zeroth-order matrix element
 
-    allocate(matrixElement(1,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
+    mDim = 1
+    allocate(matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
     
-    call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, MifInput, matrixElement(1,:,:))
+    call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, MifInput, matrixElement(1,:,:))
 
   else if(order == 1) then
     ! Read matrix elements for all modes
 
-    allocate(matrixElement(nModes,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
+    mDim = nModes
+    allocate(matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
     
     do j = 1, nModes
 
-      fName = trim(MjDir)//'/'//trim(prefix)//int2strLeadZero(j,4)//'/'//trim(MifInput)
+      fName = trim(MjDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(MifInput)
 
-      call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, trim(fName), matrixElement(j,:,:))
+      call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, trim(fName), matrixElement(j,:,:))
 
     enddo
 
   endif
+
+  call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
    
 
   call cpu_time(timer2)
@@ -101,7 +107,7 @@ program LSF0main
   if(ionode) write(*,'("Each process is completing ", i15, " time steps.")') nStepsLocal
 
 
-  call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dEDelta, dEPlot, gamma0, &
+  call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, dEDelta, dEPlot, gamma0, &
         matrixElement, temperature)
 
   

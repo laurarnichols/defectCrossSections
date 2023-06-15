@@ -318,7 +318,6 @@ contains
       abortExecution = checkDirInitialization('MjDir', MjDir, '/'//trim(prefix)//'0001/'//trim(MifInput)) .or. abortExecution
       write(*,'("prefix = ''",a,"''")') trim(prefix)
       write(*,'("MifInput = ''",a,"''")') trim(MifInput)
-      stop
     endif
 
     call system('mkdir -p '//trim(outputDir))
@@ -467,13 +466,15 @@ contains
   end subroutine readEnergy
 
 !----------------------------------------------------------------------------
-  subroutine readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, MifInput, matrixElement)
+  subroutine readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, MifInput, matrixElement)
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(in) :: order
+      !! Order to calculate (0 or 1)
 
     character(len=300), intent(in) :: MifInput
       !! Path to zeroth-order matrix element file
@@ -504,6 +505,9 @@ contains
         ! @todo Test these values against the input values
       read(12,*)
 
+      if(order == 1) read(12,*)
+        ! Ignore additional line for phonon mode 
+
     endif
       
 
@@ -522,8 +526,6 @@ contains
       close(12)
 
     endif
-
-    call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
@@ -566,7 +568,7 @@ contains
   end function
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dEDelta, dEPlot, gamma0, &
+  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, dEDelta, dEPlot, gamma0, &
         matrixElement, temperature)
     
     implicit none
@@ -574,6 +576,8 @@ contains
     ! Input variables:
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(in) :: mDim
+      !! Size of first dimension for matrix element
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
@@ -583,7 +587,7 @@ contains
       !! Energy for plotting
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
-    real(kind=dp), intent(in) :: matrixElement(:,:,:)
+    real(kind=dp), intent(in) :: matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
       !! Electronic matrix element
     real(kind=dp), intent(in) :: temperature
 
@@ -611,6 +615,15 @@ contains
     complex(kind=dp) :: expArg_t1, expArg_t2
       !! Exponential argument for each time step
 
+
+    if(order == 1 .and. ionode) then
+      do ibi = iBandIinit, iBandIfinal
+        do ibf = iBandFinit, iBandFfinal
+          write(*,*) ibi, ibf, matrixElement(1,ibf,ibi), matrixElement(nModes,ibf,ibi)
+        enddo
+      enddo
+      stop
+    endif
 
     updateFrequency = ceiling(nStepsLocal/10.0)
     call cpu_time(timer1)
