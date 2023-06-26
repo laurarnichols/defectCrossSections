@@ -41,7 +41,7 @@ module LSF0mod
     !! Electronic matrix element
   real(kind=dp) :: maxTime
     !! Max time for integration
-  real(kind=dp),allocatable :: modeFreq(:)
+  real(kind=dp),allocatable :: omega(:)
     !! Frequency for each mode
   real(kind=dp), allocatable :: Sj(:)
     !! Huang-Rhys factor for each mode
@@ -333,7 +333,7 @@ contains
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine readSj(SjInput, nModes, modeFreq, Sj)
+  subroutine readSj(SjInput, nModes, omega, Sj)
 
     implicit none
 
@@ -345,7 +345,7 @@ contains
     integer, intent(out) :: nModes
       !! Number of phonon modes
 
-    real(kind=dp),allocatable, intent(out) :: modeFreq(:)
+    real(kind=dp),allocatable, intent(out) :: omega(:)
       !! Frequency for each mode
     real(kind=dp), allocatable, intent(out) :: Sj(:)
       !! Huang-Rhys factor for each mode
@@ -369,23 +369,23 @@ contains
 
 
     allocate(Sj(1:nModes))
-    allocate(modeFreq(1:nModes))
+    allocate(omega(1:nModes))
 
     
     if(ionode) then
 
       do j = 1, nModes
-        read(12,*) iDum, Sj(j), modeFreq(j) ! freq read from Sj.out is f(in Thz)*2pi
+        read(12,*) iDum, Sj(j), omega(j) ! freq read from Sj.out is f(in Thz)*2pi
       end do
 
-      modeFreq(:) = modeFreq(:)*Thz
+      omega(:) = omega(:)*Thz
         ! Convert to Hz*2pi
 
       close(12)
 
     endif
 
-    call MPI_BCAST(modeFreq, size(modeFreq), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(omega, size(omega), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(Sj, size(Sj), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return 
@@ -540,7 +540,7 @@ contains
 
     !real(kind=dp), intent(in) :: beta
       ! 1/kb*T
-    !real(kind=dp), intent(in) :: modeFreq(nModes)
+    !real(kind=dp), intent(in) :: omega(nModes)
       ! Frequency for each mode
     !real(kind=dp), intent(in) :: Sj(nModes)
       ! Huang-Rhys factor for each mode
@@ -556,7 +556,7 @@ contains
 
     real(kind=dp) :: nj
       !! \(n_j\) occupation number
-    real(kind=dp) :: omega
+    real(kind=dp) :: omegaj
       !! Local storage of frequency for this mode
 
 
@@ -564,11 +564,11 @@ contains
 
     do j = 1, nModes
 
-      omega = modeFreq(j)
+      omegaj = omega(j)
 
-      nj = 1.0_dp/(exp(hbar*omega*beta) - 1.0_dp)
+      nj = 1.0_dp/(exp(hbar*omegaj*beta) - 1.0_dp)
 
-      G0ExpArg = G0ExpArg + Sj(j)*((nj+1.0_dp)*exp(ii*omega*time) + nj*exp(-ii*omega*time) - (2.0_dp*nj + 1.0_dp))
+      G0ExpArg = G0ExpArg + Sj(j)*((nj+1.0_dp)*exp(ii*omegaj*time) + nj*exp(-ii*omegaj*time) - (2.0_dp*nj + 1.0_dp))
     enddo
 
   end function G0ExpArg
@@ -586,7 +586,7 @@ contains
 
     !real(kind=dp), intent(in) :: beta
       ! 1/kb*T
-    !real(kind=dp), intent(in) :: modeFreq(nModes)
+    !real(kind=dp), intent(in) :: omega(nModes)
       ! Frequency for each mode
     !real(kind=dp), intent(in) :: Sj(nModes)
       ! Huang-Rhys factor for each mode
@@ -599,16 +599,16 @@ contains
     ! Local variables
     real(kind=dp) :: nj
       !! \(n_j\) occupation number
-    real(kind=dp) :: omega
+    real(kind=dp) :: omegaj
       !! Local storage of frequency for this mode
 
 
-    omega = modeFreq(j)
+    omegaj = omega(j)
 
-    nj = 1.0_dp/(exp(hbar*omega*beta) - 1.0_dp)
+    nj = 1.0_dp/(exp(hbar*omegaj*beta) - 1.0_dp)
 
-    Aj_t = (2*hbar/omega)*(nj*exp(-ii*omega*time) + (nj+1)*exp(ii*omega*time) + &
-            Sj(j)*(1 + nj*exp(-ii*omega*time) - (nj+1)*exp(ii*omega*time))**2)
+    Aj_t = (2*hbar/omegaj)*(nj*exp(-ii*omegaj*time) + (nj+1)*exp(ii*omegaj*time) + &
+            Sj(j)*(1 + nj*exp(-ii*omegaj*time) - (nj+1)*exp(ii*omegaj*time))**2)
 
   end function Aj_t
 

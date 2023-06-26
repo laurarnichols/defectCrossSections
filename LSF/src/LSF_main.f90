@@ -34,7 +34,7 @@ program LSF0main
   if(ionode) write(*, '("Reading inputs: [X] Parameters  [ ] Sj  [ ] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
   call cpu_time(timer1)
 
-  call readSj(SjInput, nModes, modeFreq, Sj)
+  call readSj(SjInput, nModes, omega, Sj)
 
 
   call cpu_time(timer2)
@@ -114,7 +114,7 @@ program LSF0main
   deallocate(dEDelta)
   deallocate(dEPlot)
   deallocate(matrixElement)
-  deallocate(modeFreq)
+  deallocate(omega)
   deallocate(Sj)
 
 
