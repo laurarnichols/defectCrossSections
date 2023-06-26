@@ -534,79 +534,6 @@ contains
   end subroutine readMatrixElement
 
 !----------------------------------------------------------------------------
-  function G0ExpArg(time) 
-
-    ! Input variables:
-    !integer, intent(in) :: nModes
-      ! Number of phonon modes
-
-    !real(kind=dp), intent(in) :: nj(nModes)
-      ! \(n_j\) occupation number
-    !real(kind=dp), intent(in) :: omega(nModes)
-      ! Frequency for each mode
-    !real(kind=dp), intent(in) :: Sj(nModes)
-      ! Huang-Rhys factor for each mode
-    real(kind=dp), intent(in) :: time
-      !! Time at which to calculate the \(G_0(t)\) argument
-
-    ! Output variables:
-    complex(kind=dp) :: G0ExpArg
-
-    ! Local variables
-    integer :: j
-      !! Loop index
-
-    real(kind=dp) :: omegaj
-      !! Local storage of frequency for this mode
-
-
-    G0ExpArg = cmplx(0.0_dp, 0.0_dp, kind=dp)
-
-    do j = 1, nModes
-
-      omegaj = omega(j)
-
-      G0ExpArg = G0ExpArg + Sj(j)*((nj(j)+1.0_dp)*exp(ii*omegaj*time) + nj(j)*exp(-ii*omegaj*time) - (2.0_dp*nj(j) + 1.0_dp))
-    enddo
-
-  end function G0ExpArg
-
-!----------------------------------------------------------------------------
-  function Aj_t(j,time)
-    
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: j
-      !! Mode index
-    !integer, intent(in) :: nModes
-      ! Number of phonon modes
-
-    !real(kind=dp), intent(in) :: nj(nModes)
-      ! \(n_j\) occupation number
-    !real(kind=dp), intent(in) :: omega(nModes)
-      ! Frequency for each mode
-    !real(kind=dp), intent(in) :: Sj(nModes)
-      ! Huang-Rhys factor for each mode
-    real(kind=dp), intent(in) :: time
-      !! Time at which to calculate the \(G_0(t)\) argument
-
-    ! Output variables:
-    complex(kind=dp) :: Aj_t
-
-    ! Local variables
-    real(kind=dp) :: omegaj
-      !! Local storage of frequency for this mode
-
-
-    omegaj = omega(j)
-
-    Aj_t = (2*hbar/omegaj)*(nj(j)*exp(-ii*omegaj*time) + (nj(j)+1)*exp(ii*omegaj*time) + &
-            Sj(j)*(1 + nj(j)*exp(-ii*omegaj*time) - (nj(j)+1)*exp(ii*omegaj*time))**2)
-
-  end function Aj_t
-
-!----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, dEDelta, dEPlot, gamma0, &
         matrixElement, temperature)
     
@@ -761,5 +688,78 @@ contains
     return
 
   end subroutine getAndWriteTransitionRate
+
+!----------------------------------------------------------------------------
+  function G0ExpArg(time) 
+
+    ! Input variables:
+    !integer, intent(in) :: nModes
+      ! Number of phonon modes
+
+    !real(kind=dp), intent(in) :: nj(nModes)
+      ! \(n_j\) occupation number
+    !real(kind=dp), intent(in) :: omega(nModes)
+      ! Frequency for each mode
+    !real(kind=dp), intent(in) :: Sj(nModes)
+      ! Huang-Rhys factor for each mode
+    real(kind=dp), intent(in) :: time
+      !! Time at which to calculate the \(G_0(t)\) argument
+
+    ! Output variables:
+    complex(kind=dp) :: G0ExpArg
+
+    ! Local variables
+    integer :: j
+      !! Loop index
+
+    real(kind=dp) :: omegaj
+      !! Local storage of frequency for this mode
+
+
+    G0ExpArg = cmplx(0.0_dp, 0.0_dp, kind=dp)
+
+    do j = 1, nModes
+
+      omegaj = omega(j)
+
+      G0ExpArg = G0ExpArg + Sj(j)*((nj(j)+1.0_dp)*exp(ii*omegaj*time) + nj(j)*exp(-ii*omegaj*time) - (2.0_dp*nj(j) + 1.0_dp))
+    enddo
+
+  end function G0ExpArg
+
+!----------------------------------------------------------------------------
+  function Aj_t(j,time)
+    
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: j
+      !! Mode index
+    !integer, intent(in) :: nModes
+      ! Number of phonon modes
+
+    !real(kind=dp), intent(in) :: nj(nModes)
+      ! \(n_j\) occupation number
+    !real(kind=dp), intent(in) :: omega(nModes)
+      ! Frequency for each mode
+    !real(kind=dp), intent(in) :: Sj(nModes)
+      ! Huang-Rhys factor for each mode
+    real(kind=dp), intent(in) :: time
+      !! Time at which to calculate the \(G_0(t)\) argument
+
+    ! Output variables:
+    complex(kind=dp) :: Aj_t
+
+    ! Local variables
+    real(kind=dp) :: omegaj
+      !! Local storage of frequency for this mode
+
+
+    omegaj = omega(j)
+
+    Aj_t = (2*hbar/omegaj)*(nj(j)*exp(-ii*omegaj*time) + (nj(j)+1)*exp(ii*omegaj*time) + &
+            Sj(j)*(1 + nj(j)*exp(-ii*omegaj*time) - (nj(j)+1)*exp(ii*omegaj*time))**2)
+
+  end function Aj_t
 
 end module LSF0mod
