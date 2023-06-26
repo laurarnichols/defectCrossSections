@@ -114,6 +114,7 @@ program LSF0main
   deallocate(dEDelta)
   deallocate(dEPlot)
   deallocate(matrixElement)
+  deallocate(nj)
   deallocate(omega)
   deallocate(Sj)
 

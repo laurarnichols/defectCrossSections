@@ -41,6 +41,8 @@ module LSF0mod
     !! Electronic matrix element
   real(kind=dp) :: maxTime
     !! Max time for integration
+  real(kind=dp), allocatable :: nj(:)
+    !! \(n_j\) occupation number
   real(kind=dp),allocatable :: omega(:)
     !! Frequency for each mode
   real(kind=dp), allocatable :: Sj(:)
@@ -538,8 +540,8 @@ contains
     !integer, intent(in) :: nModes
       ! Number of phonon modes
 
-    !real(kind=dp), intent(in) :: beta
-      ! 1/kb*T
+    !real(kind=dp), intent(in) :: nj(nModes)
+      ! \(n_j\) occupation number
     !real(kind=dp), intent(in) :: omega(nModes)
       ! Frequency for each mode
     !real(kind=dp), intent(in) :: Sj(nModes)
@@ -554,8 +556,6 @@ contains
     integer :: j
       !! Loop index
 
-    real(kind=dp) :: nj
-      !! \(n_j\) occupation number
     real(kind=dp) :: omegaj
       !! Local storage of frequency for this mode
 
@@ -566,9 +566,7 @@ contains
 
       omegaj = omega(j)
 
-      nj = 1.0_dp/(exp(hbar*omegaj*beta) - 1.0_dp)
-
-      G0ExpArg = G0ExpArg + Sj(j)*((nj+1.0_dp)*exp(ii*omegaj*time) + nj*exp(-ii*omegaj*time) - (2.0_dp*nj + 1.0_dp))
+      G0ExpArg = G0ExpArg + Sj(j)*((nj(j)+1.0_dp)*exp(ii*omegaj*time) + nj(j)*exp(-ii*omegaj*time) - (2.0_dp*nj(j) + 1.0_dp))
     enddo
 
   end function G0ExpArg
@@ -584,8 +582,8 @@ contains
     !integer, intent(in) :: nModes
       ! Number of phonon modes
 
-    !real(kind=dp), intent(in) :: beta
-      ! 1/kb*T
+    !real(kind=dp), intent(in) :: nj(nModes)
+      ! \(n_j\) occupation number
     !real(kind=dp), intent(in) :: omega(nModes)
       ! Frequency for each mode
     !real(kind=dp), intent(in) :: Sj(nModes)
@@ -597,18 +595,14 @@ contains
     complex(kind=dp) :: Aj_t
 
     ! Local variables
-    real(kind=dp) :: nj
-      !! \(n_j\) occupation number
     real(kind=dp) :: omegaj
       !! Local storage of frequency for this mode
 
 
     omegaj = omega(j)
 
-    nj = 1.0_dp/(exp(hbar*omegaj*beta) - 1.0_dp)
-
-    Aj_t = (2*hbar/omegaj)*(nj*exp(-ii*omegaj*time) + (nj+1)*exp(ii*omegaj*time) + &
-            Sj(j)*(1 + nj*exp(-ii*omegaj*time) - (nj+1)*exp(ii*omegaj*time))**2)
+    Aj_t = (2*hbar/omegaj)*(nj(j)*exp(-ii*omegaj*time) + (nj(j)+1)*exp(ii*omegaj*time) + &
+            Sj(j)*(1 + nj(j)*exp(-ii*omegaj*time) - (nj(j)+1)*exp(ii*omegaj*time))**2)
 
   end function Aj_t
 
@@ -626,6 +620,8 @@ contains
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
+    !real(kind=dp), intent(in) :: beta
+      ! 1/kb*T
     real(kind=dp), intent(in) :: dEDelta(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
       !! Energy for delta function
     real(kind=dp), intent(in) :: dEPlot(iBandIinit:iBandIfinal)
@@ -635,6 +631,10 @@ contains
     real(kind=dp), intent(in) :: matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
       !! Electronic matrix element
     real(kind=dp), intent(in) :: temperature
+
+    ! Output variables:
+    !real(kind=dp), allocatable, intent(out) :: nj(:)
+      ! \(n_j\) occupation number
 
     ! Local variables:
     integer :: iTime, ibi, ibf
@@ -661,6 +661,9 @@ contains
       !! Exponential argument for each time step
 
 
+    allocate(nj(nModes))
+    nj(:) = 1.0_dp/(exp(hbar*omega(:)*beta) - 1.0_dp)
+      
     updateFrequency = ceiling(nStepsLocal/10.0)
     call cpu_time(timer1)
 
