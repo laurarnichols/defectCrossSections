@@ -715,15 +715,13 @@ contains
     real(kind=dp) :: omegaj
       !! Local storage of frequency for this mode
 
+    complex(kind=dp) :: posExp_t(nModes)
+      !! Local storage of \(e^{i\omega_j t}\) for speed
 
-    G0ExpArg = cmplx(0.0_dp, 0.0_dp, kind=dp)
 
-    do j = 1, nModes
+    posExp_t(:) = exp(ii*omega(:)*time)
 
-      omegaj = omega(j)
-
-      G0ExpArg = G0ExpArg + Sj(j)*((nj(j)+1.0_dp)*exp(ii*omegaj*time) + nj(j)*exp(-ii*omegaj*time) - (2.0_dp*nj(j) + 1.0_dp))
-    enddo
+    G0ExpArg = sum(Sj(:)*((nj(:)+1.0_dp)*posExp_t(:) + nj(:)/posExp_t(:) - (2.0_dp*nj(:) + 1.0_dp)))
 
   end function G0ExpArg
 
