@@ -645,14 +645,30 @@ contains
 
           transitionRate(ibi) = transitionRate(ibi) + &
             Real(4.0_dp*expPrefactor_t1*exp(expArg_t1) + 2.0_dp*expPrefactor_t2*exp(expArg_t2))
-            ! We are doing multiple sums, but they are all commutative.
-            ! Here we add in the contribution to the integral at this time
-            ! step from a given final state. The loop over final states 
-            ! adds in the contributions from all final states. 
+            ! This is the Simpson's method integration. We skip step 0 and
+            ! add 2*the last point. The endpoints get adjusted below.
+            !
+            ! We are doing multiple sums (integral and sum over final states), 
+            ! but they are all commutative. Here we add in the contribution 
+            ! to the integral at this time step from a given final state. The 
+            ! loop over final states adds in the contributions from all final 
+            ! states. 
 
         enddo
       enddo
     enddo
+
+    
+
+    ! Need to adjust endpoints of the integration
+    t1 = t0
+    expArg_t1_base = G0ExpArg(t1) - gamma0*t1
+    if(order == 1) Aj_t1(:) = getAj_t(t1)
+
+    t2 = t0 + float(nStepsLocal-1)*dt
+    expArg_t2_base = G0ExpArg(t2) - gamma0*t2
+    if(order == 1) Aj_t2(:) = getAj_t(t2)
+
 
     do ibi = iBandIinit, iBandIfinal
       do ibf = iBandFinit, iBandFfinal
