@@ -571,7 +571,7 @@ contains
 
     real(kind=dp) :: Eif
       !! Local storage of dEDelta(ibi,ibf)
-    real(kind=dp) :: expPrefactor
+    real(kind=dp) :: expPrefactor_t1, expPrefactor_t2
       !! Prefactor for the exponential inside the integral.
       !! For zeroth-order, this is just the matrix element,
       !! but for first-order this is \(\sum_j M_j A_j\).
@@ -582,6 +582,8 @@ contains
     real(kind=dp) :: transitionRate(iBandIinit:iBandIfinal)
       !! \(Gamma_i\) transition rate
 
+    complex(kind=dp) :: Aj_t1(nModes), Aj_t2(nModes)
+      !! \(A_j(t)\) for all modes
     complex(kind=dp) :: expArg_t1_base, expArg_t2_base
       !! Base exponential argument for each time step
     complex(kind=dp) :: expArg_t1, expArg_t2
@@ -612,21 +614,30 @@ contains
         ! Must do this arithmetic with floats to avoid
         ! integer overflow
       expArg_t1_base = G0ExpArg(t1) - gamma0*t1
+      if(order == 1) Aj_t1(:) = getAj_t(t1)
 
       t2 = t1 + dt
       expArg_t2_base = G0ExpArg(t2) - gamma0*t2
+      if(order == 1) Aj_t2(:) = getAj_t(t2)
 
       do ibi = iBandIinit, iBandIfinal
         do ibf = iBandFinit, iBandFfinal
 
-          expPrefactor = matrixElement(1,ibf,ibi)
+          if(order == 0) then
+            expPrefactor_t1 = matrixElement(1,ibf,ibi)
+            expPrefactor_t2 = matrixElement(1,ibf,ibi)
+          else if(order == 1) then
+            expPrefactor_t1 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t1)
+            expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t2)
+          endif
+
           Eif = dEDelta(ibf,ibi)
 
           expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
           expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
 
           transitionRate(ibi) = transitionRate(ibi) + &
-            Real(4.0_dp*expPrefactor*exp(expArg_t1) + 2.0_dp*expPrefactor*exp(expArg_t2))
+            Real(4.0_dp*expPrefactor_t1*exp(expArg_t1) + 2.0_dp*expPrefactor_t2*exp(expArg_t2))
             ! We are doing multiple sums, but they are all commutative.
             ! Here we add in the contribution to the integral at this time
             ! step from a given final state. The loop over final states 
@@ -639,17 +650,23 @@ contains
     do ibi = iBandIinit, iBandIfinal
       do ibf = iBandFinit, iBandFfinal
 
-        expPrefactor = matrixElement(1,ibf,ibi)
+        if(order == 0) then
+          expPrefactor_t1 = matrixElement(1,ibf,ibi)
+          expPrefactor_t2 = matrixElement(1,ibf,ibi)
+        else if(order == 1) then
+          expPrefactor_t1 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t1)
+          expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t2)
+        endif
+
         Eif = dEDelta(ibf,ibi)
 
-        t1 = myid*float(nStepsLocal)*dt
-          ! Must do this arithmetic with floats to avoid
-          ! integer overflow
-        transitionRate(ibi) = transitionRate(ibi) + Real(expPrefactor*exp(G0ExpArg(t1) + ii*Eif/hbar*t1 - gamma0*t1))
+        expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
+        expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
+
+        transitionRate(ibi) = transitionRate(ibi) + Real(expPrefactor_t1*exp(expArg_t1))
           ! Add \(t_0\) that was skipped in the loop
 
-        t2 = ((myid+1)*float(nStepsLocal) - 1.0_dp)*dt
-        transitionRate(ibi) = transitionRate(ibi) - Real(expPrefactor*exp(G0ExpArg(t2) + ii*Eif/hbar*t2 - gamma0*t2)) 
+        transitionRate(ibi) = transitionRate(ibi) - Real(expPrefactor_t2*exp(expArg_t2)) 
           ! Subtract off last time that had a coefficient
           ! of 2 in the loop but should really have a 
           ! coefficient of 1
@@ -726,13 +743,11 @@ contains
   end function G0ExpArg
 
 !----------------------------------------------------------------------------
-  function Aj_t(j,time)
+  function getAj_t(time) result(Aj_t)
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: j
-      !! Mode index
     !integer, intent(in) :: nModes
       ! Number of phonon modes
 
@@ -746,18 +761,50 @@ contains
       !! Time at which to calculate the \(G_0(t)\) argument
 
     ! Output variables:
-    complex(kind=dp) :: Aj_t
+    complex(kind=dp) :: Aj_t(nModes)
 
     ! Local variables
     real(kind=dp) :: omegaj
       !! Local storage of frequency for this mode
 
+    complex(kind=dp) :: posExp_t(nModes)
+      !! Local storage of \(e^{i\omega_j t}\) for speed
 
-    omegaj = omega(j)
 
-    Aj_t = (2*hbar/omegaj)*(nj(j)*exp(-ii*omegaj*time) + (nj(j)+1)*exp(ii*omegaj*time) + &
-            Sj(j)*(1 + nj(j)*exp(-ii*omegaj*time) - (nj(j)+1)*exp(ii*omegaj*time))**2)
+    posExp_t(:) = exp(ii*omega(:)*time)
 
-  end function Aj_t
+    Aj_t(:) = (2*hbar/omega(:))*(nj(:)/posExp_t(:) + (nj(:)+1)*posExp_t(:) + &
+            Sj(:)*(1 + nj(:)/posExp_t(:) - (nj(:)+1)*posExp_t(:))**2)
+
+  end function getAj_t
+
+!----------------------------------------------------------------------------
+  function getFirstOrderPrefactor(nModes, matrixElement, Aj_t) result(prefactor)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+
+    real(kind=dp), intent(in) :: matrixElement(nModes)
+      !! Matrix elements for each mode, given a
+      !! choice of band combination
+
+    complex(kind=dp), intent(in) :: Aj_t(nModes)
+      !! \(A_j(t)\) for all modes
+
+    ! Output variables:
+    complex(kind=dp) :: prefactor
+      !! First-order exponential prefactor
+
+    ! Local variables:
+    integer :: j
+      !! Loop index
+
+
+    prefactor = sum(matrixElement(:)*Aj_t(:))
+
+  end function getFirstOrderPrefactor
 
 end module LSF0mod
