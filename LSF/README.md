@@ -10,7 +10,7 @@ The same code is used for both the zeroth-order and first-order transition rates
 
 ## Zeroth-order
 
-The zeroth-order transition rate is $$\Gamma\_i^{(0)} = \frac{2}{\hbar^2} \text{Re} \int\_0^{+\infty} |M_{\text{e}}^{\text{BO}}|^2 G^{(0)}(t) e^{iE_{if}^{\text{DFT},if}}t/\hbar - \gamma t \,dt$$, where $$G^{(0)}(t) = \exp \left\{ \sum\_j S\_j \left[ (\bar{n}\_j + 1)e^{i\omega\_j t} + \bar{n}\_j e^{-i\omeg\_j t} - (2\bar{n}\_j + 1)\right] \right\} $$ and $S\_j$ is the Huang-Rhys factor $$S\_j = \frac{\omega\_j}{2\hbar} (\Delta q\_j)^2.
+The zeroth-order transition rate is $$\Gamma\_i^{(0)} = \frac{2}{\hbar^2} \text{Re} \int\_0^{+\infty} |M_{\text{e}}^{\text{BO}}|^2 G^{(0)}(t) e^{iE_{if}^{\text{DFT},if}t/\hbar - \gamma t} dt,$$ where $$G^{(0)}(t) = \exp  \left\( \sum\_j S\_j  \left[ (\bar{n}\_j + 1)e^{i\omega\_j t} + \bar{n}\_j e^{-i\omega\_j t} - (2\bar{n}\_j + 1) \right] \right\) $$ and $S\_j$ is the Huang-Rhys factor $$S\_j = \frac{\omega\_j}{2\hbar} (\Delta q\_j)^2.$$
 
 The `LSF` input file for the zeroth-order should look like
 ```f90
@@ -42,7 +42,7 @@ _Note: Do not alter the `&inputParams` or `/` lines at the beginning and end of 
 
 ## First-order
 
-The first-order transition rate is $$\Gamma\_i^{(1)} = \frac{1}{2\hbar^2} \text{Re} \int\_0^{+\infty} \left[ \sum\_j |M\_j|^2 A\_j(t) \right] G^{(0)}(t) e^{iE_{if}^{\text{DFT},if}}t/\hbar - \gamma t \,dt$$.
+The first-order transition rate is $$\Gamma\_i^{(1)} = \frac{1}{2\hbar^2} \text{Re} \int\_0^{+\infty} \left[ \sum\_j |M\_j|^2 A\_j(t) \right] G^{(0)}(t) e^{iE_{if}^{\text{DFT},if}t/\hbar - \gamma t} dt.$$
 
 The `LSF` input file for the first-order should look like
 ```f90
