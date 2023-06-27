@@ -107,8 +107,8 @@ program LSF0main
   if(ionode) write(*,'("Each process is completing ", i15, " time steps.")') nStepsLocal
 
 
-  call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, dEDelta, dEPlot, gamma0, &
-        matrixElement, temperature)
+  call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, nModes, dEDelta, &
+        dEPlot, gamma0, matrixElement, temperature)
 
   
   deallocate(dEDelta)

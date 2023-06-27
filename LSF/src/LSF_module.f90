@@ -534,8 +534,8 @@ contains
   end subroutine readMatrixElement
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, dEDelta, dEPlot, gamma0, &
-        matrixElement, temperature)
+  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, nModes, dEDelta, &
+        dEPlot, gamma0, matrixElement, temperature)
     
     implicit none
 
@@ -544,6 +544,8 @@ contains
       !! Energy band bounds for initial and final state
     integer, intent(in) :: mDim
       !! Size of first dimension for matrix element
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
