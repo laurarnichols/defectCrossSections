@@ -577,6 +577,8 @@ contains
       !! Prefactor for the exponential inside the integral.
       !! For zeroth-order, this is just the matrix element,
       !! but for first-order this is \(\sum_j M_j A_j\).
+    real(kind=dp) :: t0
+      !! Initial time for this process
     real(kind=dp) :: t1, t2
       !! Time for each time step
     real(kind=dp) :: timer1, timer2
@@ -598,6 +600,9 @@ contains
     updateFrequency = ceiling(nStepsLocal/10.0)
     call cpu_time(timer1)
 
+
+    t0 = myid*float(nStepsLocal)*dt
+
     transitionRate(:) = 0.0_dp
     do iTime = 1, nStepsLocal-2, 2
       ! Loop should not include the first step (0), 
@@ -612,7 +617,7 @@ contains
 
       endif
 
-      t1 = (float(iTime) + myid*float(nStepsLocal))*dt
+      t1 = t0 + float(iTime)*dt
         ! Must do this arithmetic with floats to avoid
         ! integer overflow
       expArg_t1_base = G0ExpArg(t1) - gamma0*t1
