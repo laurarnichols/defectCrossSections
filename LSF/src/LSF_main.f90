@@ -70,6 +70,12 @@ program LSF0main
 
     enddo
 
+    matrixElement(:,:,:) = matrixElement(:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
+      ! Shifter program outputs dq in Bohr*sqrt(elecM), and that
+      ! dq is directly used by TME to get the matrix element, so
+      ! we need to convert to m*sqrt(kg). In the matrix element,
+      ! dq is in the denominator and squared.
+
   endif
 
   call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, worldComm, ierr)

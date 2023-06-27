@@ -1,14 +1,9 @@
 module LSF0mod
   
-  use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ, ii, hbar
+  use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ, ii, hbar, THzToHz, kB, BohrToMeter, elecMToKg
   use errorsAndMPI
 
   implicit none 
-  real(kind=dp),parameter :: Kb =  1.38064852d-23
-  real(kind=dp),parameter :: pi= 3.14159265358979
-  real(kind=dp),parameter :: tpi = 6.2831853071795864769 
-  real(kind=dp),parameter :: Thz = 1.0d12
-
 
   integer :: iTime_start, iTime_end
     !! Start and end time steps for this process
@@ -136,12 +131,12 @@ contains
       call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
             MifInput, MjDir, outputDir, prefix, SjInput)
 
-      dt = dt/Thz
+      dt = dt/THzToHz
 
       gamma0 = hbarGamma*1e-3*eVToJ/hbar
         ! Input expected in meV
 
-      beta = 1.0d0/Kb/temperature
+      beta = 1.0d0/(kB*temperature)
 
       maxTime = -log(smearingExpTolerance)/gamma0
       write(*,'("Max time: ", ES24.15E3)') maxTime
@@ -380,7 +375,7 @@ contains
         read(12,*) iDum, Sj(j), omega(j) ! freq read from Sj.out is f(in Thz)*2pi
       end do
 
-      omega(:) = omega(:)*Thz
+      omega(:) = omega(:)*THzToHz
         ! Convert to Hz*2pi
 
       close(12)
