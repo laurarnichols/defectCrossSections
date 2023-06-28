@@ -145,7 +145,10 @@ program wfcExportVASPMain
 
 
   deallocate(gIndexLocalToGlobal)
+  deallocate(gKIndexLocalToGlobal)
+  deallocate(gToGkIndexMap)
   deallocate(gVecInCart)
+  deallocate(nGkLessECutLocal)
 
 
   allocate(pot(nAtomTypes))
