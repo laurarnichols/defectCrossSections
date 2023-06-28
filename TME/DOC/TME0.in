@@ -1,0 +1,17 @@
+&TME_Input
+ 
+ exportDirSD    = '/p/work/lnichols/SiVH3/GaNPaper/finalChargeState/initialPositions/PBE/export'  ! path to the export dir
+ exportDirPC    = '/p/work/lnichols/SiVH3/GaNPaper/pristine/export'  ! path to the export dir
+ energyTableDir = '/p/work/lnichols/SiVH3/GaNPaper/EnergyTabulator/'
+
+ order          = 0         ! zeroth-order
+ 
+ elementsPath   = '.'       ! path to store outputs
+ 
+ iBandIinit  = 1025         ! initial state initial band
+ iBandIfinal = 1089         ! initial state final band
+ iBandFinit  = 1024         ! final state initial band
+ iBandFfinal = 1024         ! final state final band
+ 
+ calculateVfis = .false.    ! Set to .true. only if there is an incoming electron that will be captured in the system.
+/
