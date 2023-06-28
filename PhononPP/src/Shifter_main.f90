@@ -21,7 +21,7 @@ program shifterMain
     read(5, inputParams, iostat=ierr)
       !! * Read input variables
     
-    if(ierr /= 0) call exitError('export main', 'reading inputParams namelist', abs(ierr))
+    if(ierr /= 0) call exitError('Shifter main', 'reading inputParams namelist', abs(ierr))
       !! * Exit calculation if there's an error
 
     call checkInitialization(shift, dqFName, phononFName, poscarFName, prefix)
