@@ -27,8 +27,8 @@ program energyTabulatorMain
     if(ierr /= 0) call exitError('energy tabulator main', 'reading inputParams namelist', abs(ierr))
       !! * Exit calculation if there's an error
 
-  call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrect, exportDirInitInit, exportDirFinalInit, &
-        exportDirFinalFinal, outputDir)
+    call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrect, exportDirInitInit, exportDirFinalInit, &
+          exportDirFinalFinal, outputDir)
 
   endif
 

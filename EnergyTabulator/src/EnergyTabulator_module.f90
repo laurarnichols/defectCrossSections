@@ -94,12 +94,12 @@ module energyTabulatorMod
     character(len=300), intent(out) :: outputDir
       !! Path to store energy tables
 
-
     ! Local variables:
     character(len=8) :: cdate
       !! String for date
     character(len=10) :: ctime
       !! String for time
+
 
     iBandIinit  = -1
     iBandIfinal = -1

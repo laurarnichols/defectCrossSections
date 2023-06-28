@@ -24,7 +24,7 @@ mpif90 = ftn
 ########################################################################
 
 
-all : initialize QE-5.0.2_dependent QE-5.3.0_dependent QE-6.3_dependent Export_VASP EnergyTabulator TME LSF0 Mj LSF1 Sigma
+all : initialize QE-5.0.2_dependent QE-5.3.0_dependent QE-6.3_dependent Export_VASP EnergyTabulator TME LSF Mj Sigma
 
 help :
 
@@ -82,8 +82,6 @@ EnergyTabulator_srcPath = EnergyTabulator/src
 TME_srcPath             = TME/src
 Mj_srcPath              = Mj/src
 LSF_srcPath             = LSF/src
-LSF0_srcPath            = $(LSF_srcPath)/zerothOrder
-LSF1_srcPath            = $(LSF_srcPath)/linearTerms
 Sigma_srcPath           = Sigma/src
 CommonModules_srcPath   = CommonModules
 PhononPP_srcPath        = PhononPP/src
@@ -104,7 +102,7 @@ QE-5.3.0_dependent : initialize Export_QE-5.3.0
 
 QE-6.3_dependent : initialize Export_QE-6.3
 
-base : EnergyTabulator TME LSF0 LSF1 Mj PhononPP Sigma
+base : EnergyTabulator TME LSF Mj PhononPP Sigma
 
 initialize :
 
@@ -122,8 +120,6 @@ initialize :
 	echo "PhononPP_srcPath        = " $(PWD)/$(PhononPP_srcPath) >> make.sys ; \
 	echo "Mj_srcPath              = " $(PWD)/$(Mj_srcPath) >> make.sys ; \
 	echo "LSF_srcPath             = " $(PWD)/$(LSF_srcPath) >> make.sys ; \
-	echo "LSF0_srcPath            = " $(PWD)/$(LSF0_srcPath) >> make.sys ; \
-	echo "LSF1_srcPath            = " $(PWD)/$(LSF1_srcPath) >> make.sys ; \
 	echo "Sigma_srcPath           = " $(PWD)/$(Sigma_srcPath) >> make.sys ; \
 	echo "CommonModules_srcPath   = " $(PWD)/$(CommonModules_srcPath) >> make.sys ; \
 	echo "" >> make.sys ; \
@@ -184,17 +180,9 @@ Mj : initialize
 	@cd $(Mj_srcPath) ; \
         	make all
 
-LSF : LSF0 LSF1
+LSF : initialize
 
-
-LSF0 : initialize
-
-	@cd $(LSF0_srcPath) ; \
-        	make all
-
-LSF1 : initialize
-
-	@cd $(LSF1_srcPath) ; \
+	@cd $(LSF_srcPath) ; \
         	make all
 
 Sigma : initialize
@@ -210,7 +198,7 @@ clean_all_QE-5.3.0 : cleanExport_QE-5.3.0 cleanBase
 
 clean_all_QE-6.3 : cleanExport_QE-6.3 cleanBase
 
-cleanBase : cleanInitialization cleanEnergyTabulator cleanTME cleanPhononPP cleanMj cleanLSF0 cleanLSF1 cleanSigma
+cleanBase : cleanInitialization cleanEnergyTabulator cleanTME cleanPhononPP cleanMj cleanLSF cleanSigma
 
 cleanInitialization :
 
@@ -262,16 +250,9 @@ cleanMj :
 		make clean
 
 
-cleanLSF : cleanLSF0 cleanLSF1
+cleanLSF :
 
-cleanLSF0 :
-
-	@cd $(LSF0_srcPath) ; \
-		make clean
-
-cleanLSF1 :
-
-	@cd $(LSF1_srcPath) ; \
+	@cd $(LSF_srcPath) ; \
 		make clean
 
 cleanSigma :
