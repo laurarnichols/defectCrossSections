@@ -54,7 +54,7 @@ program LSF0main
     mDim = 1
     allocate(matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
     
-    call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, MifInput, matrixElement(1,:,:))
+    call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, MifInput, matrixElement(1,:,:), volumeLine)
 
   else if(order == 1) then
     ! Read matrix elements for all modes
@@ -66,7 +66,9 @@ program LSF0main
 
       fName = trim(MjDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(MifInput)
 
-      call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, trim(fName), matrixElement(j,:,:))
+      call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, trim(fName), matrixElement(j,:,:), volumeLine)
+        ! The volume line will get overwritten each time, but that's
+        ! okay because the volume doesn't change between the files. 
 
     enddo
 
@@ -114,7 +116,7 @@ program LSF0main
 
 
   call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, nModes, dEDelta, &
-        dEPlot, gamma0, matrixElement, temperature)
+        dEPlot, gamma0, matrixElement, temperature, volumeLine)
 
   
   deallocate(dEDelta)

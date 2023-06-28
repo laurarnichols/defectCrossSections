@@ -63,6 +63,9 @@ module LSF0mod
     !! elements
   character(len=300) :: SjInput
     !! Path to Sj.out file
+  character(len=300) :: volumeLine
+    !! Volume line from overlap file to be
+    !! output exactly in transition rate file
 
 
   namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, MifInput, MjDir, SjInput, &
@@ -463,7 +466,7 @@ contains
   end subroutine readEnergy
 
 !----------------------------------------------------------------------------
-  subroutine readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, MifInput, matrixElement)
+  subroutine readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, MifInput, matrixElement, volumeLine)
 
     implicit none
 
@@ -481,6 +484,10 @@ contains
     real(kind=dp), intent(out) :: matrixElement(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
       !! Electronic matrix element
 
+    character(len=300), intent(out) :: volumeLine
+      !! Volume line from overlap file to be
+      !! output exactly in transition rate file
+
     ! Local variables:
     integer :: iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
       !! Band bounds from energy table
@@ -496,7 +503,8 @@ contains
     if(ionode) then
       open(12,file=trim(MifInput))
 
-      read(12,*)
+      read(12,'(a)') volumeLine
+
       read(12,*)
       read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
         ! @todo Test these values against the input values
@@ -530,7 +538,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, nModes, dEDelta, &
-        dEPlot, gamma0, matrixElement, temperature)
+        dEPlot, gamma0, matrixElement, temperature, volumeLine)
     
     implicit none
 
@@ -555,6 +563,10 @@ contains
     real(kind=dp), intent(in) :: matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
       !! Electronic matrix element
     real(kind=dp), intent(in) :: temperature
+
+    character(len=300), intent(in) :: volumeLine
+      !! Volume line from overlap file to be
+      !! output exactly in transition rate file
 
     ! Output variables:
     !real(kind=dp), allocatable, intent(out) :: nj(:)
@@ -698,6 +710,8 @@ contains
     if(ionode) then
 
       open(unit=37, file=trim(outputDir)//'transitionRate.txt')
+
+      write(37,'(a)') trim(volumeLine)
 
       write(37,'("# Total number of initial states, Initial states (bandI, bandF) Format : ''(3i10)''")')
       write(37,'(3i10)') iBandIfinal-iBandIinit+1, iBandIinit, iBandIfinal
