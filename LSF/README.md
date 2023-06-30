@@ -26,7 +26,7 @@ The `LSF` input file for the zeroth-order should look like
  outputDir = 'path-to-store-transition-rates'
 
  temperature          = real    ! (K)
- dt                   = real    ! time step to use (s) 
+ dt                   = real    ! time step to use (ps) 
  hbarGamma            = real    ! (meV)
  smearingExpTolerance = real    ! tolerance for e^{\gamma t} to determine max time
 
@@ -60,7 +60,7 @@ The `LSF` input file for the first-order should look like
  outputDir = 'path-to-store-transition-rates'
 
  temperature          = real    ! (K)
- dt                   = real    ! time step to use (s) 
+ dt                   = real    ! time step to use (ps) 
  hbarGamma            = real    ! (meV)
  smearingExpTolerance = real    ! tolerance for e^{\gamma t} to determine max time
 
