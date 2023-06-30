@@ -50,7 +50,7 @@ program energyTabulatorMain
   call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
 
 
-  call getnSpinsAndnKPoints(exportDirInitInit, nKPoints, nSpins)
+  call getnSpinsAndnKPoints(exportDirEigs, nKPoints, nSpins)
     !! Assumes that all systems have the same number of spins and k-points
 
   call distributeItemsInSubgroups(myid, nKPoints, nProcs, nProcs, nProcs, ikStart, ikEnd, nkPerProc)
@@ -64,7 +64,7 @@ program energyTabulatorMain
   do isp = 1, nSpins
     do ikLocal = 1, nkPerProc
 
-      call writeEnergyTable(CBMorVBMBand, iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+      call writeEnergyTable(CBMorVBMBand, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
             eTotInitInit, eTotFinalInit, eTotFinalFinal, exportDirEigs, outputDir)
 
     enddo

@@ -218,16 +218,15 @@ module energyTabulatorMod
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine getnSpinsAndnKPoints(exportDirInitInit, nKPoints, nSpins)
+  subroutine getnSpinsAndnKPoints(exportDirEigs, nKPoints, nSpins)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
 
     ! Input variables:
-    character(len=300), intent(in) :: exportDirInitInit
-      !! Path to export for initial charge state
-      !! in the initial positions
+    character(len=300), intent(in) :: exportDirEigs
+      !! Path to export for system to get eigenvalues
      
     ! Output variables:
     integer, intent(out) :: nKPoints
@@ -238,7 +237,7 @@ module energyTabulatorMod
     
     if(ionode) then
     
-      open(50, file=trim(exportDirInitInit)//'/input', status = 'old')
+      open(50, file=trim(exportDirEigs)//'/input', status = 'old')
     
       read(50,*) 
       read(50,*) 
