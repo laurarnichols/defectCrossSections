@@ -42,6 +42,8 @@ module energyTabulatorMod
     !! Total energy of the relaxed final charge
     !! state (final positions)
 
+  character(len=300) :: exportDirEigs
+    !! Path to export for system to get eigenvalues
   character(len=300) :: exportDirInitInit
     !! Path to export for initial charge state
     !! in the initial positions
@@ -54,7 +56,7 @@ module energyTabulatorMod
   character(len=300) :: outputDir
     !! Path to store energy tables
 
-  namelist /inputParams/ exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, outputDir, &
+  namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, outputDir, &
                          eCorrectTot, eCorrectEigF, eCorrectEigRef, &
                          iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, CBMorVBMBand
 
@@ -63,7 +65,7 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-        exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, outputDir)
+        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, outputDir)
     !! Set the default values for input variables and start timer
     !!
     !! <h2>Walkthrough</h2>
@@ -91,6 +93,8 @@ module energyTabulatorMod
     real(kind=dp), intent(out) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
+    character(len=300), intent(out) :: exportDirEigs
+      !! Path to export for system to get eigenvalues
     character(len=300), intent(out) :: exportDirInitInit
       !! Path to export for initial charge state
       !! in the initial positions
@@ -121,6 +125,7 @@ module energyTabulatorMod
     eCorrectEigF = 0.0_dp
     eCorrectEigRef = 0.0_dp
 
+    exportDirEigs = ''
     exportDirInitInit = ''
     exportDirFinalInit = ''
     exportDirFinalFinal = ''
@@ -142,7 +147,7 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-        exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, outputDir)
+        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, outputDir)
 
     implicit none
 
@@ -161,6 +166,8 @@ module energyTabulatorMod
     real(kind=dp), intent(inout) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
+    character(len=300), intent(in) :: exportDirEigs
+      !! Path to export for system to get eigenvalues
     character(len=300), intent(in) :: exportDirInitInit
       !! Path to export for initial charge state
       !! in the initial positions
@@ -193,6 +200,7 @@ module energyTabulatorMod
     eCorrectEigF = eCorrectEigF*eVToHartree
     eCorrectEigRef = eCorrectEigRef*eVToHartree
 
+    abortExecution = checkDirInitialization('exportDirEigs', exportDirEigs, 'input') .or. abortExecution
     abortExecution = checkDirInitialization('exportDirInitInit', exportDirInitInit, 'input') .or. abortExecution
     abortExecution = checkDirInitialization('exportDirFinalInit', exportDirFinalInit, 'input') .or. abortExecution
     abortExecution = checkDirInitialization('exportDirFinalFinal', exportDirFinalFinal, 'input') .or. abortExecution
@@ -316,7 +324,7 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine writeEnergyTable(CBMorVBMBand, iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-        eTotInitInit, eTotFinalInit, eTotFinalFinal, outputDir)
+        eTotInitInit, eTotFinalInit, eTotFinalFinal, exportDirEigs, outputDir)
   
     implicit none
     
@@ -348,6 +356,8 @@ module energyTabulatorMod
       !! Total energy of the relaxed final charge
       !! state (final positions)
 
+    character(len=300), intent(in) :: exportDirEigs
+      !! Path to export for system to get eigenvalues
     character(len=300), intent(in) :: outputDir
       !! Path to store energy tables
 
@@ -433,7 +443,7 @@ module energyTabulatorMod
     write(17, '(a, " Format : ''(2i10,4ES24.15E3)''")') trim(text)
 
 
-    call readEigenvalues(CBMorVBMBand, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, refBand, exportDirInitInit, eigvF, eigvI, &
+    call readEigenvalues(CBMorVBMBand, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, refBand, exportDirEigs, eigvF, eigvI, &
           eigCBMorVBM, refEig)
 
     do ibf = iBandFinit, iBandFfinal
@@ -496,7 +506,7 @@ module energyTabulatorMod
   end subroutine writeEnergyTable
   
 !----------------------------------------------------------------------------
-  subroutine readEigenvalues(CBMorVBMBand, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, refBand, exportDirInitInit, eigvF, eigvI, &
+  subroutine readEigenvalues(CBMorVBMBand, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, refBand, exportDirEigs, eigvF, eigvI, &
         eigCBMorVBM, refEig)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
@@ -515,9 +525,8 @@ module energyTabulatorMod
     integer, intent(in) :: refBand
       !! Band of WZP reference carrier
 
-    character(len=300), intent(in) :: exportDirInitInit
-      !! Path to export for initial charge state
-      !! in the initial positions
+    character(len=300), intent(in) :: exportDirEigs
+      !! Path to export for system to get eigenvalues
 
     ! Output variables:
     real(kind=dp), intent(out) :: eigCBMorVBM
@@ -537,7 +546,7 @@ module energyTabulatorMod
       !! File name
 
     
-    fName = trim(exportDirInitInit)//"/eigenvalues."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
+    fName = trim(exportDirEigs)//"/eigenvalues."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
 
     open(72, file=fName)
 
