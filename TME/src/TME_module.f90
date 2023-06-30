@@ -437,8 +437,12 @@ contains
     abortExecution = checkDirInitialization('exportDirPC', exportDirPC, 'input') .or. abortExecution
     abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.1.1') .or. abortExecution
     abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution
-    abortExecution = (order == 1 .and. checkFileInitialization('dqFName', dqFName)) .or. abortExecution
-    abortExecution = (order == 1 .and. checkIntInitialization('phononModeJ', phononModeJ, 1, int(1e9))) .or. abortExecution
+
+    if(order == 1) then
+      abortExecution = checkFileInitialization('dqFName', dqFName) .or. abortExecution
+      abortExecution = checkIntInitialization('phononModeJ', phononModeJ, 1, int(1e9)) .or. abortExecution
+    endif
+
     abortExecution = checkStringInitialization('elementsPath', elementsPath) .or. abortExecution
     abortExecution = checkIntInitialization('iBandIinit', iBandIinit, 1, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
