@@ -17,7 +17,9 @@ The inputs should look like
   exportDirFinalFinal = 'path-to-relaxed-final-charge-state-export'
   
   ! Parameters for change in energy
-  eCorrect = real						  ! size of energy correction in eV; default 0.0
+  eCorrectTot = real				  ! size of total-energy correction in eV; default 0.0
+  eCorrectEigF = real				  ! size of correction to eig diff to final state in eV; default 0.0
+  eCorrectEigRef = real			  ! size of correction to eig diff to ref carrier in eV; default 0.0
   refBand = integer						! band location of WZP reference carrier
   CBMorVBMBand = integer      ! band for CBM (for electrons) or VBM (for holes)
   
@@ -34,3 +36,19 @@ The inputs should look like
 _Note: Do not alter the `&inputParams` or `/` lines at the beginning and end of the file. They represent a namelist and fortran will not recognize the group of variables without this specific format_
 
 The code extracts the total energies from the three different systems and the eigenvalues from the initial relaxed system. It is best to use HSE calclations to get the energies, even if you can't do HSE for all of the matrix elements. If you can't use HSE for the energy differeences and/or need to include some additional energy correction in the total energy differences, that can be done through `eCorrect`.
+
+The energies are calculated including potential energy corrections as
+```f90
+dETotWRelax = eTotFinalFinal - eTotInitInit + eCorrectTot
+dETotElecOnly = eTotFinalInit - eTotInitInit + eCorrectTot
+
+do ibf = iBandFinit, iBandFfinal
+  do ibi = iBandIinit, iBandIfinal
+    dEDelta = dETotWRelax - abs(eigvI(ibi) - refEig + eCorrectEigRef)
+    dEZeroth = dETotElecOnly - abs(eigvI(ibi) - refEig + eCorrectEigRef)
+    dEFirst = abs(eigvI(ibi) - eigvF(ibf) + eCorrectEigF)
+    dEPlot = abs(eigvI(ibi) - eigCBMorVBM)
+  enddo
+enddo
+```
+where `eigvI` are initial-state eigenvalues indexed by `ibi` and `eigvF` are final-state eigenvalues indexed by `ibf`.

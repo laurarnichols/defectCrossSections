@@ -26,8 +26,12 @@ module energyTabulatorMod
   integer :: refBand
     !! Band of WZP reference carrier
 
-  real(kind=dp) :: eCorrect
+  real(kind=dp) :: eCorrectTot
     !! Total-energy correction, if any
+  real(kind=dp) :: eCorrectEigF
+    !! Correction to eigenvalue difference with final state, if any
+  real(kind=dp) :: eCorrectEigRef
+    !! Correction to eigenvalue difference with reference carrier, if any
   real(kind=dp) :: eTotInitInit
     !! Total energy of the relaxed initial charge
     !! state (initial positions)
@@ -51,14 +55,15 @@ module energyTabulatorMod
     !! Path to store energy tables
 
   namelist /inputParams/ exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, outputDir, &
-                         eCorrect, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, CBMorVBMBand
+                         eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, CBMorVBMBand
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrect, exportDirInitInit, exportDirFinalInit, &
-        exportDirFinalFinal, outputDir)
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+        exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, outputDir)
     !! Set the default values for input variables and start timer
     !!
     !! <h2>Walkthrough</h2>
@@ -79,8 +84,12 @@ module energyTabulatorMod
     integer, intent(out) :: refBand
       !! Band of WZP reference carrier
 
-    real(kind=dp), intent(out) :: eCorrect
+    real(kind=dp), intent(out) :: eCorrectTot
       !! Total-energy correction, if any
+    real(kind=dp), intent(out) :: eCorrectEigF
+      !! Correction to eigenvalue difference with final state, if any
+    real(kind=dp), intent(out) :: eCorrectEigRef
+      !! Correction to eigenvalue difference with reference carrier, if any
 
     character(len=300), intent(out) :: exportDirInitInit
       !! Path to export for initial charge state
@@ -108,7 +117,9 @@ module energyTabulatorMod
     refBand = -1
     CBMorVBMBand = -1
 
-    eCorrect = 0.0_dp
+    eCorrectTot = 0.0_dp
+    eCorrectEigF = 0.0_dp
+    eCorrectEigRef = 0.0_dp
 
     exportDirInitInit = ''
     exportDirFinalInit = ''
@@ -130,8 +141,8 @@ module energyTabulatorMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrect, exportDirInitInit, exportDirFinalInit, &
-        exportDirFinalFinal, outputDir)
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+        exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, outputDir)
 
     implicit none
 
@@ -143,8 +154,12 @@ module energyTabulatorMod
     integer, intent(in) :: refBand
       !! Band of WZP reference carrier
 
-    real(kind=dp), intent(inout) :: eCorrect
+    real(kind=dp), intent(inout) :: eCorrectTot
       !! Total-energy correction, if any
+    real(kind=dp), intent(inout) :: eCorrectEigF
+      !! Correction to eigenvalue difference with final state, if any
+    real(kind=dp), intent(inout) :: eCorrectEigRef
+      !! Correction to eigenvalue difference with reference carrier, if any
 
     character(len=300), intent(in) :: exportDirInitInit
       !! Path to export for initial charge state
@@ -170,9 +185,13 @@ module energyTabulatorMod
     abortExecution = checkIntInitialization('refBand', refBand, 1, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('CBMorVBMBand', CBMorVBMBand, 1, int(1e9)) .or. abortExecution
 
-    write(*,'("eCorrect = ", f8.4, " (eV)")') eCorrect
+    write(*,'("eCorrectTot = ", f8.4, " (eV)")') eCorrectTot
+    write(*,'("eCorrectEigF = ", f8.4, " (eV)")') eCorrectEigF
+    write(*,'("eCorrectEigRef = ", f8.4, " (eV)")') eCorrectEigRef
 
-    eCorrect = eCorrect*eVToHartree
+    eCorrectTot = eCorrectTot*eVToHartree
+    eCorrectEigF = eCorrectEigF*eVToHartree
+    eCorrectEigRef = eCorrectEigRef*eVToHartree
 
     abortExecution = checkDirInitialization('exportDirInitInit', exportDirInitInit, 'input') .or. abortExecution
     abortExecution = checkDirInitialization('exportDirFinalInit', exportDirFinalInit, 'input') .or. abortExecution
@@ -296,8 +315,8 @@ module energyTabulatorMod
   end subroutine getTotalEnergies
 
 !----------------------------------------------------------------------------
-  subroutine writeEnergyTable(CBMorVBMBand, iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, refBand, eCorrect, eTotInitInit, &
-        eTotFinalInit, eTotFinalFinal, outputDir)
+  subroutine writeEnergyTable(CBMorVBMBand, iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+        eTotInitInit, eTotFinalInit, eTotFinalFinal, outputDir)
   
     implicit none
     
@@ -313,8 +332,12 @@ module energyTabulatorMod
     integer, intent(in) :: refBand
       !! Band of WZP reference carrier
 
-    real(kind=dp), intent(in) :: eCorrect
+    real(kind=dp), intent(in) :: eCorrectTot
       !! Total-energy correction, if any
+    real(kind=dp), intent(in) :: eCorrectEigF
+      !! Correction to eigenvalue difference with final state, if any
+    real(kind=dp), intent(in) :: eCorrectEigRef
+      !! Correction to eigenvalue difference with reference carrier, if any
     real(kind=dp), intent(in) :: eTotInitInit
       !! Total energy of the relaxed initial charge
       !! state (initial positions)
@@ -384,7 +407,7 @@ module energyTabulatorMod
     write(17,'(5i10)') totalNumberOfElements, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
     
 
-    dETotWRelax = eTotFinalFinal - eTotInitInit + eCorrect 
+    dETotWRelax = eTotFinalFinal - eTotInitInit + eCorrectTot
       !! Get the total energy difference between the two charge states, 
       !! including the atomic relaxation energy (with a potential energy
       !! correction defined by the user). This dE is used in the delta 
@@ -395,7 +418,7 @@ module energyTabulatorMod
     write(17,'(ES24.15E3)') dETotWRelax
 
 
-    dETotElecOnly = eTotFinalInit - eTotInitInit + eCorrect
+    dETotElecOnly = eTotFinalInit - eTotInitInit + eCorrectTot
       !! Get the total energy difference between the two charge states, 
       !! not including atomic relaxation (with a potential energy correction
       !! defined by the user). This dE represents the total electronic-only
@@ -416,7 +439,7 @@ module energyTabulatorMod
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
 
-        dEDelta = dETotWRelax - abs(refEig - eigvI(ibi))
+        dEDelta = dETotWRelax - abs(eigvI(ibi) - refEig + eCorrectEigRef)
           !! To get the total energy that needs to be conserved (what
           !! goes into the delta function), add the total energy 
           !! difference between the two relaxed charge states and the
@@ -426,19 +449,29 @@ module energyTabulatorMod
           !! In both hole and electron capture, the actual electron
           !! energy decreases, so the negative absolute value of the
           !! eigenvalue difference is used.
+          !!
+          !! The energy correction `eCorrectEigRef` is only applied to
+          !! the eigenvalue energy difference between the initial state
+          !! and the reference state. This correction should be zero if
+          !! the reference state and initial state are both in the conduction
+          !! band or both in the valence band, since eigenvalue differences
+          !! within the bands are okay at the PBE level and do not need
+          !! to be corrected.
 
-        dEZeroth = dETotElecOnly - abs(refEig - eigvI(ibi))
+        dEZeroth = dETotElecOnly - abs(eigvI(ibi) - refEig + eCorrectEigRef)
           !! The zeroth-order matrix element contains the electronic-only
           !! energy difference. We get that from a total energy difference
           !! between the two charge states in the initial positions. Like
           !! in the energy for the delta function, the additional carrier
-          !! energy must also be included.
+          !! energy must also be included with a potential correction.
 
-        dEFirst = abs(eigvI(ibi) - eigvF(ibf))
+        dEFirst = abs(eigvI(ibi) - eigvF(ibf) + eCorrectEigF)
           !! First-order term contains only the unperturbed eigenvalue
           !! difference. The perturbative expansion has 
           !! \(\varepsilon_i - \varepsilon_f\), in terms of the actual 
           !! electron. The absolute value is needed for the hole case.
+          !! A potential correction term is included in case the PBE
+          !! energy levels must be used.
 
         dEPlot = abs(eigvI(ibi) - eigCBMorVBM)
           !! Energy plotted should be positive carrier energy in reference
