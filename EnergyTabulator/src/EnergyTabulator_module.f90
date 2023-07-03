@@ -2,6 +2,7 @@ module energyTabulatorMod
   
   use constants, only: dp, eVToHartree
   use miscUtilities, only: int2str
+  use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, nSpins
   use errorsAndMPI
   use mpi
 
@@ -15,14 +16,8 @@ module energyTabulatorMod
 
 
   ! Variables that should be passed as arguments
-  integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-    !! Energy band bounds for initial and final state
   integer :: CBMorVBMBand
     !! Band of CBM (electron capture) or VBM (hole capture)
-  integer :: nKPoints
-    !! Number of k-points
-  integer :: nSpins
-    !! Number of spin channels
   integer :: refBand
     !! Band of WZP reference carrier
 

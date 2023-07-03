@@ -1,6 +1,7 @@
 module wfcExportVASPMod
   
   use constants, only: dp, iostd, angToBohr, eVToRy, ryToHartree, pi, twopi
+  use base, only: nKPoints, nSpins
   use errorsAndMPI
   use cell
   use mpi
@@ -96,8 +97,6 @@ module wfcExportVASPMod
     !! Global number of G-vectors
   integer :: nGVecsLocal
     !! Local number of G-vectors on this processor
-  integer :: nKPoints
-    !! Total number of k-points
   integer, allocatable :: nPWs1kGlobal(:)
     !! Input number of plane waves for a single k-point for all processors
   integer :: maxGIndexGlobal
@@ -115,8 +114,6 @@ module wfcExportVASPMod
     !! ppool
   integer :: nRecords
     !! Number of records in WAVECAR file
-  integer :: nSpins
-    !! Number of spins
 
   logical :: gammaOnly
     !! If the gamma only VASP code is used

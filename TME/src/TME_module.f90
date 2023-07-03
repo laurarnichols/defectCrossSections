@@ -2,6 +2,8 @@ module declarations
   use constants, only: dp, pi, sq4pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
   use energyTabulatorMod, only: energyTableDir, readEnergyTable
+  use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, nSpins, order
+
   use errorsAndMPI
   use mpi
   
@@ -32,14 +34,8 @@ module declarations
     !! Local number of G-vectors
   integer :: nGkVecsLocalPC, nGkVecsLocalSD
     !! Local number of G+k vectors on this processor
-  integer :: nKPoints
-    !! Total number of k-points
-  integer :: nSpins
-    !! Max number of spins for both systems
   integer :: nSpinsPC, nSpinsSD
     !! Number of spins for PC/SD system
-  integer :: order
-    !! Order of matrix element (0 or 1)
   integer :: phononModeJ
     !! Index of phonon mode for the calculation
     !! of \(M_j\) (only for order=1)
@@ -64,7 +60,7 @@ module declarations
   character(len = 300) :: input, inputPC, textDum, elementsPath
   character(len = 320) :: mkdir
   
-  integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ik, ki, kf, ig, ibi, ibf
+  integer :: ik, ki, kf, ig, ibi, ibf
   integer :: JMAX, iTypes, iPn
   integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
   integer :: numOfTypes, nBands, nProjsSD
