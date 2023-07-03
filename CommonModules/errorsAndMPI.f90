@@ -10,10 +10,34 @@ module errorsAndMPI
 
   integer :: ierr
     !! Error handler
+  integer :: interBgrpComm = 0
+    !! Inter-band-group communicator
+  integer :: intraBgrpComm = 0
+    !! Intra-band-group communicator
+  integer :: interPoolComm = 0
+    !! Inter-pool communicator
+  integer :: intraPoolComm = 0
+    !! Intra-pool communicator
+  integer :: indexInBgrp
+    !! Process index within band group
+  integer :: indexInPool
+    !! Process index within pool
   integer :: myid
     !! ID of this process
+  integer :: myBgrpId
+    !! Band-group index for this process
+  integer :: myPoolId
+    !! Pool index for this process
+  integer :: nBandGroups = 1
+    !! Number of band groups for parallelization
+  integer :: nPools = 1
+    !! Number of pools for k-point parallelization
   integer :: nProcs
     !! Number of processes
+  integer :: nProcPerBgrp
+    !! Number of processes per band group
+  integer :: nProcPerPool
+    !! Number of processes per pool
   integer :: worldComm
     !! World communicator
 
@@ -61,6 +85,200 @@ module errorsAndMPI
 
     return
   end subroutine mpiInitialization
+
+!----------------------------------------------------------------------------
+  subroutine getCommandLineArguments()
+    !! Get the command line arguments. This currently
+    !! only processes the number of pools
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Output variables:
+    !integer, intent(out) :: nBandGroups
+      ! Number of band groups for parallelization
+    !integer, intent(out) :: nPools
+      ! Number of pools for k-point parallelization
+
+
+    ! Local variables:
+    integer :: narg = 0
+      !! Arguments processed
+    integer :: nargs
+      !! Total number of command line arguments
+    integer :: nBandGroups_ = 1
+      !! Number of band groups for parallelization
+    integer :: nPools_ = 1
+      !! Number of k point pools for parallelization
+
+    character(len=256) :: arg = ' '
+      !! Command line argument
+    character(len=256) :: command_line = ' '
+      !! Command line arguments that were not processed
+
+
+    nargs = command_argument_count()
+      !! * Get the number of arguments input at command line
+
+    call MPI_BCAST(nargs, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    if(ionode) then
+
+      call get_command_argument(narg, arg)
+        !! Ignore executable
+      narg = narg + 1
+
+      do while (narg <= nargs)
+        call get_command_argument(narg, arg)
+          !! * Get the flag
+          !! @note
+          !!  This program only currently processes the number of pools,
+          !!  represented by `-nk`/`-nPools`/`-nPoolss`. All other flags 
+          !!  will be ignored.
+          !! @endnote
+
+        narg = narg + 1
+
+        !> * Process the flag and store the following value
+        select case (trim(arg))
+          case('-nk', '-nPools', '-nPoolss') 
+            call get_command_argument(narg, arg)
+            read(arg, *) nPools_
+            narg = narg + 1
+          case('-nb', '-nband', '-nbgrp', '-nband_group') 
+            call get_command_argument(narg, arg)
+            read(arg, *) nBandGroups_
+            narg = narg + 1
+          case default
+            command_line = trim(command_line) // ' ' // trim(arg)
+        end select
+      enddo
+
+      !> Write out unprocessed command line arguments, if there are any
+      if(len_trim(command_line) /= 0) then
+        write(*,*) 'Unprocessed command line arguments: ' // trim(command_line)
+      endif
+
+    endif
+
+    call MPI_BCAST(nPools_, 1, MPI_INTEGER, root, worldComm, ierr)
+    if(ierr /= 0) call mpiExitError(8005)
+
+    call MPI_BCAST(nBandGroups_, 1, MPI_INTEGER, root, worldComm, ierr)
+    if(ierr /= 0) call mpiExitError(8006)
+
+    nPools = nPools_
+    nBandGroups = nBandGroups_
+
+    return
+  end subroutine getCommandLineArguments
+
+!----------------------------------------------------------------------------
+  subroutine setUpPools()
+    !! Split up processors between pools and generate MPI
+    !! communicators for pools
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    implicit none
+
+    ! Input variables:
+    !integer, intent(in) :: myid
+      ! ID of this process
+    !integer, intent(in) :: nBandGroups
+      ! Number of band groups for parallelization
+    !integer, intent(in) :: nPools
+      ! Number of pools for k-point parallelization
+    !integer, intent(in) :: nProcs
+      ! Number of processes
+
+
+    ! Output variables:
+    !integer, intent(out) :: intraBgrpComm = 0
+      ! Intra-band-group communicator
+    !integer, intent(out) :: intraPoolComm = 0
+      ! Intra-pool communicator
+    !integer, intent(out) :: indexInBgrp
+      ! Process index within band group
+    !integer, intent(out) :: indexInPool
+      ! Process index within pool
+    !integer, intent(out) :: myBgrpId
+      ! Band-group index for this process
+    !integer, intent(out) :: myPoolId
+      ! Pool index for this process
+    !integer, intent(out) :: nProcPerBgrp
+      ! Number of processes per band group
+    !integer, intent(out) :: nProcPerPool
+      ! Number of processes per pool
+
+
+    if(nPools < 1 .or. nPools > nProcs) call exitError('mpiInitialization', &
+      'invalid number of pools, out of range', 1)
+      !! * Verify that the number of pools is between 1 and the number of processes
+
+    if(mod(nProcs, nPools) /= 0) call exitError('mpiInitialization', &
+      'invalid number of pools, mod(nProcs,nPools) /=0 ', 1)
+      !! * Verify that the number of processes is evenly divisible by the number of pools
+
+    nProcPerPool = nProcs / nPools
+      !! * Calculate how many processes there are per pool
+
+    myPoolId = myid / nProcPerPool
+      !! * Get the pool index for this process
+
+    indexInPool = mod(myid, nProcPerPool)
+      !! * Get the index of the process within the pool
+
+    call MPI_BARRIER(worldComm, ierr)
+    if(ierr /= 0) call mpiExitError(8007)
+
+    call MPI_COMM_SPLIT(worldComm, myPoolId, myid, intraPoolComm, ierr)
+    if(ierr /= 0) call mpiExitError(8008)
+      !! * Create intra-pool communicator
+
+    call MPI_COMM_SPLIT(worldComm, indexInPool, myid, interPoolComm, ierr)
+    if(ierr /= 0) call mpiExitError(8010)
+      !! * Create inter-pool communicator
+
+
+
+
+    if(nBandGroups < 1 .or. nBandGroups > nProcPerPool) call exitError('mpiInitialization', &
+      'invalid number of band groups, out of range', 1)
+      !! * Verify that the number of band groups is between 1 and the number of processes per pool
+
+    if(mod(nProcPerPool, nBandGroups) /= 0) call exitError('mpiInitialization', &
+      'invalid number of band groups, mod(nProcPerPool,nBandGroups) /=0 ', 1)
+      !! * Verify that the number of processes per pool is evenly divisible by the number of band groups
+
+    nProcPerBgrp = nProcPerPool / nBandGroups
+      !! * Calculate how many processes there are per band group
+
+    myBgrpId = indexInPool / nProcPerBgrp
+      !! * Get the band-group index for this process
+
+    indexInBgrp = mod(indexInPool, nProcPerBgrp)
+      !! * Get the index of the process within the band group
+
+    call MPI_BARRIER(worldComm, ierr)
+    if(ierr /= 0) call mpiExitError(8009)
+
+    call MPI_COMM_SPLIT(intraPoolComm, myBgrpId, indexInPool, intraBgrpComm, ierr)
+    if(ierr /= 0) call mpiExitError(8010)
+      !! * Create intra-band group communicator
+
+    call MPI_BARRIER(worldComm, ierr)
+    if(ierr /= 0) call mpiExitError(8011)
+
+    call MPI_COMM_SPLIT(intraPoolComm, indexInBgrp, indexInPool, interBgrpComm, ierr)
+    if(ierr /= 0) call mpiExitError(8012)
+      !! * Create inter-band-group communicator
+
+    return
+  end subroutine setUpPools
 
 !----------------------------------------------------------------------------
   function checkDirInitialization(variableName, variableValue, fileInDir) result(abortExecution)
