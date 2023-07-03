@@ -1,6 +1,7 @@
 module declarations
   use constants, only: dp, pi, sq4pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
+  use energyTabulatorMod, only: energyTableDir, readEnergyTable
   use errorsAndMPI
   use mpi
   
@@ -65,8 +66,6 @@ module declarations
   
   character(len=300) :: dqFName
     !! File name for generalized-coordinate norms
-  character(len=300) :: energyTableDir
-    !! Path to energy table
   character(len=300) :: exportDirSD, exportDirPC
     !! Paths to exports for SD (left) and PC (right) 
     !! systems to use for wave function overlaps <SD|PC>
@@ -1600,8 +1599,6 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine writeResults(ikLocal, isp)
-
-    use energyTabulatorMod, only: readEnergyTable
     
     implicit none
     
