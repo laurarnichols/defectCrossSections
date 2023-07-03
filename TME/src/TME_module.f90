@@ -1600,6 +1600,8 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine writeResults(ikLocal, isp)
+
+    use energyTabulatorMod, only: readEnergyTable
     
     implicit none
     
@@ -1653,7 +1655,7 @@ contains
     endif
 
 
-    call readEnergyTable(ikGlobal, isp, order, dE)
+    call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, order, energyTableDir, dE)
 
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
@@ -1677,58 +1679,6 @@ contains
     return
     
   end subroutine writeResults
-  
-!----------------------------------------------------------------------------
-  subroutine readEnergyTable(ikGlobal, isp, order, dE)
-    
-    use miscUtilities, only: ignoreNextNLinesFromFile
-    
-    implicit none
-    
-    ! Input variables:
-    integer, intent(in) :: ikGlobal
-      !! Current global k-point
-    integer, intent(in) :: isp
-      !! Current spin channel
-    integer, intent(in) :: order
-      !! Order of matrix element (0 or 1)
-
-    ! Output variables:
-    real(kind=dp) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal)
-      !! Energy difference to be combined with
-      !! overlap for matrix element
-
-    ! Local variables:
-    
-    integer :: ibi, ibf, totalNumberOfElements, iDum, i
-    real(kind = dp) :: rDum, dEIn
-    complex(kind = dp):: cUfi
-    character(len=300) :: line
-
-    
-    open(27, file=trim(energyTableDir)//"/energyTable."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
-    
-    read(27, *) 
-    read(27,'(5i10)') totalNumberOfElements, iDum, iDum, iDum, iDum
-    call ignoreNextNLinesFromFile(27,6)
-    
-    do i = 1, totalNumberOfElements
-      
-      if(order == 0) then
-        read(27,*) ibf, ibi, rDum, dEIn, rDum, rDum
-      else if(order == 1) then
-        read(27,*) ibf, ibi, rDum, rDum, dEIn, rDum
-      endif
-
-      dE(ibf,ibi) = dEIn
-          
-    enddo
-    
-    close(27)
-    
-    return
-    
-  end subroutine readEnergyTable
   
 !----------------------------------------------------------------------------
   subroutine readUfis(ikLocal,isp)

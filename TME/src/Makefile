@@ -2,10 +2,10 @@
 -include ../../make.sys
 
 # location of needed modules
-MODFLAGS= -I$(CommonModules_srcPath) -I.
+MODFLAGS= -I$(CommonModules_srcPath) -I$(EnergyTabulator_srcPath) -I.
 
 TME_OBJS = TME_module.o TME_main.o
-COMMONMODS = $(CommonModules_srcPath)/commonmodules.a
+COMMONMODS = $(CommonModules_srcPath)/commonmodules.a $(EnergyTabulator_srcPath)/EnergyTabulator_module.o
 
 all : TME.x 
 
@@ -23,7 +23,9 @@ test : TME_test.x
 
 mods :
 	cd $(CommonModules_srcPath) ; \
-	make
+	make ; \
+  cd $(EnergyTabulator_srcPath) ; \
+  make
 
 %.o : %.f90
 	$(mpif90) $(MODFLAGS) -O3 -c -assume byterecl -fpp $<

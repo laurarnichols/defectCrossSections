@@ -594,5 +594,55 @@ module energyTabulatorMod
     return
     
   end subroutine readEigenvalues
+  
+!----------------------------------------------------------------------------
+  subroutine readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, order, energyTableDir, dE)
+    !! Read all energies from energy table and store in dE
+    
+    use miscUtilities, only: ignoreNextNLinesFromFile, int2str
+    
+    implicit none
+    
+    ! Input variables:
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+    integer, intent(in) :: ikGlobal
+      !! Current global k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+    integer, intent(in) :: order
+      !! Order of matrix element (0 or 1)
+
+    character(len=300) :: energyTableDir
+      !! Path to energy table
+
+    ! Output variables:
+    real(kind=dp) :: dE(4,iBandFinit:iBandFfinal,iBandIinit:iBandIFinal)
+      !! All energy differences from energy table
+
+    ! Local variables:
+    integer :: ibi, ibf
+      !! Loop indices
+    integer :: iDum
+      !! Dummy integer to ignore input
+    
+    
+    open(27, file=trim(energyTableDir)//"/energyTable."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
+    
+    call ignoreNextNLinesFromFile(27,8)
+    
+    do ibf = iBandFinit, iBandFfinal
+      do ibi = iBandIinit, iBandIfinal
+      
+        read(27,*) iDum, iDum, dE(:,ibf,ibi)
+          
+      enddo
+    enddo
+    
+    close(27)
+    
+    return
+    
+  end subroutine readEnergyTable
 
 end module energyTabulatorMod
