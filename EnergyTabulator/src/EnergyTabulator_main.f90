@@ -15,8 +15,8 @@ program energyTabulatorMain
 
   call mpiInitialization()
 
-  call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrect, exportDirInitInit, exportDirFinalInit, &
-        exportDirFinalFinal, outputDir)
+  call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, outputDir)
     !! * Set default values for input variables and start timers
 
   if(ionode) then
@@ -27,8 +27,8 @@ program energyTabulatorMain
     if(ierr /= 0) call exitError('energy tabulator main', 'reading inputParams namelist', abs(ierr))
       !! * Exit calculation if there's an error
 
-    call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrect, exportDirInitInit, exportDirFinalInit, &
-          exportDirFinalFinal, outputDir)
+    call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+          exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, outputDir)
 
   endif
 
@@ -39,15 +39,18 @@ program energyTabulatorMain
   call MPI_BCAST(CBMorVBMBand, 1, MPI_INTEGER, root, worldComm, ierr)
   call MPI_BCAST(refBand, 1, MPI_INTEGER, root, worldComm, ierr)
 
-  call MPI_BCAST(eCorrect, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+  call MPI_BCAST(eCorrectTot, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+  call MPI_BCAST(eCorrectEigF, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+  call MPI_BCAST(eCorrectEigRef, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
+  call MPI_BCAST(exportDirEigs, len(exportDirEigs), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(exportDirInitInit, len(exportDirInitInit), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(exportDirFinalInit, len(exportDirFinalInit), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(exportDirFinalFinal, len(exportDirFinalFinal), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
 
 
-  call getnSpinsAndnKPoints(exportDirInitInit, nKPoints, nSpins)
+  call getnSpinsAndnKPoints(exportDirEigs, nKPoints, nSpins)
     !! Assumes that all systems have the same number of spins and k-points
 
   call distributeItemsInSubgroups(myid, nKPoints, nProcs, nProcs, nProcs, ikStart, ikEnd, nkPerProc)
@@ -61,8 +64,8 @@ program energyTabulatorMain
   do isp = 1, nSpins
     do ikLocal = 1, nkPerProc
 
-      call writeEnergyTable(CBMorVBMBand, iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, refBand, eCorrect, &
-          eTotInitInit, eTotFinalInit, eTotFinalFinal, outputDir)
+      call writeEnergyTable(CBMorVBMBand, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+            eTotInitInit, eTotFinalInit, eTotFinalFinal, exportDirEigs, outputDir)
 
     enddo
   enddo
