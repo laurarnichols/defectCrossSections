@@ -1,4 +1,4 @@
-module LSF0mod
+module LSFmod
   
   use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ, ii, hbar, THzToHz, kB, BohrToMeter, elecMToKg
   use errorsAndMPI
@@ -132,7 +132,7 @@ contains
         !! * Read input variables
 
     
-      if(ierr /= 0) call exitError('LSF0 main', 'reading inputParams namelist', abs(ierr))
+      if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
       call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
@@ -247,7 +247,7 @@ contains
 
     if(ionode) then
 
-      write(*, '(/5X,"LSF0 starts on ",A9," at ",A9)') &
+      write(*, '(/5X,"LSF starts on ",A9," at ",A9)') &
              cdate, ctime
 
       write(*, '(/5X,"Parallel version (MPI), running on ",I5," processors")') nProcs
@@ -850,4 +850,4 @@ contains
 
   end function getFirstOrderPrefactor
 
-end module LSF0mod
+end module LSFmod

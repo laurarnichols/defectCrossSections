@@ -1,6 +1,6 @@
-program LSF0main
+program LSFmain
 
-  use LSF0mod
+  use LSFmod
   use miscUtilities, only: int2strLeadZero
 
   implicit none
@@ -102,7 +102,7 @@ program LSF0main
     ! this way will overestimate the number of steps
     ! needed, but that is okay.
 
-  if(nStepsLocal < 0) call exitError('LSF0 main', 'integer overflow', 1)
+  if(nStepsLocal < 0) call exitError('LSF main', 'integer overflow', 1)
     ! If there is integer overflow, the number will go to the
     ! most negative integer value available
 
@@ -134,5 +134,5 @@ program LSF0main
 
   call MPI_FINALIZE(ierr)
 
-end program LSF0main
+end program LSFmain
 
