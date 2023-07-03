@@ -438,7 +438,7 @@ module energyTabulatorMod
     write(17,'(ES24.15E3)') dETotElecOnly
     
 
-    text = "# Final Band, Initial Band, Delta Function, Zeroth-order, First-order, Plotting" 
+    text = "# Final Band, Initial Band, Delta Function (Hartree), Zeroth-order (Hartree), First-order (Hartree), Plotting (eV)" 
     write(17, '(a, " Format : ''(2i10,4ES24.15E3)''")') trim(text)
 
 
