@@ -1839,15 +1839,15 @@ contains
   end subroutine writeResults
   
 !----------------------------------------------------------------------------
-  subroutine readEnergyTable(ikLocal, isp, order, dE)
+  subroutine readEnergyTable(ikGlobal, isp, order, dE)
     
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
     
     ! Input variables:
-    integer, intent(in) :: ikLocal
-      !! Current local k-point
+    integer, intent(in) :: ikGlobal
+      !! Current global k-point
     integer, intent(in) :: isp
       !! Current spin channel
     integer, intent(in) :: order
@@ -1859,16 +1859,12 @@ contains
       !! overlap for matrix element
 
     ! Local variables:
-    integer :: ikGlobal
-      !! Current global k-point
     
     integer :: ibi, ibf, totalNumberOfElements, iDum, i
     real(kind = dp) :: rDum, t1, t2, dEIn
     complex(kind = dp):: cUfi
     character(len=300) :: line
 
-
-    ikGlobal = ikLocal+ikStart_pool-1
     
     call cpu_time(t1)
     write(*, '(" Reading dE(:,:) of k-point ", i4, " and spin ", i1)') ikGlobal, isp
