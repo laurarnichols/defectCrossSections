@@ -1619,7 +1619,7 @@ contains
     integer :: totalNumberOfElements
       !! Total number of overlaps to output
 
-    real(kind=dp) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal)
+    real(kind=dp) :: dE(4,iBandFinit:iBandFfinal,iBandIinit:iBandIFinal)
       !! Energy difference to be combined with
       !! overlap for matrix element
     
@@ -1661,9 +1661,9 @@ contains
       do ibi = iBandIinit, iBandIfinal
         
         if(order == 0) then
-          write(17, 1001) ibf, ibi, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE(ibf,ibi)*Ufi(ibf,ibi,ikLocal,isp))**2
+          write(17, 1001) ibf, ibi, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE(2,ibf,ibi)*Ufi(ibf,ibi,ikLocal,isp))**2
         else if(order == 1) then
-          write(17, 1001) ibf, ibi, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE(ibf,ibi)*Ufi(ibf,ibi,ikLocal,isp)/dq_j)**2
+          write(17, 1001) ibf, ibi, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE(3,ibf,ibi)*Ufi(ibf,ibi,ikLocal,isp)/dq_j)**2
         endif
             
       enddo
