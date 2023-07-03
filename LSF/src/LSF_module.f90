@@ -1,7 +1,10 @@
 module LSFmod
   
   use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ, ii, hbar, THzToHz, kB, BohrToMeter, elecMToKg
+  use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, order
   use errorsAndMPI
+
+  use energyTabulatorMod, only: energyTableDir, readEnergyTable
 
   implicit none 
 
@@ -12,21 +15,15 @@ module LSFmod
     !! process to complete
 
 
-  integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-    !! Energy band bounds for initial and final state
   integer :: iSpin
     !! Spin channel to use
   integer :: nModes
     !! Number of phonon modes
-  integer :: order
-    !! Order to calculate (0 or 1)
 
   real(kind=dp) :: beta
     !! 1/kb*T
-  real(kind=dp), allocatable :: dEDelta(:,:)
-    !! Energy for delta function
-  real(kind=dp), allocatable :: dEPlot(:)
-    !! Energy for plotting
+  real(kind=dp), allocatable :: dE(:,:,:)
+    !! All energy differences from energy table
   real(kind=dp) :: dt
     !! Time step size
   real(kind=dp) :: gamma0
@@ -49,8 +46,6 @@ module LSFmod
     !! exponential used to calculate max time
   real(kind=dp) :: temperature
 
-  character(len=300) :: EInput
-    !! Path to energy table to read
   character(len=300) :: MifInput
     !! Path to matrix element file `allElecOverlap.isp.ik`. 
     !! For first-order term, the path is just within each 
@@ -70,14 +65,14 @@ module LSFmod
     !! output exactly in transition rate file
 
 
-  namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, MifInput, MjDir, SjInput, &
+  namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, energyTableDir, MifInput, MjDir, SjInput, &
                         temperature, hbarGamma, dt, smearingExpTolerance, outputDir, order, prefix, iSpin
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, &
-        smearingExpTolerance, temperature, EInput, MifInput, MjDir, outputDir, prefix, SjInput)
+        smearingExpTolerance, temperature, energyTableDir, MifInput, MjDir, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -105,7 +100,7 @@ contains
       !! exponential used to calculate max time
     real(kind=dp), intent(out) :: temperature
 
-    character(len=300), intent(out) :: EInput
+    character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
     character(len=300), intent(out) :: MifInput
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
@@ -123,7 +118,7 @@ contains
       !! Path to Sj.out file
 
   
-    call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
+    call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
           MifInput, MjDir, outputDir, prefix, SjInput)
 
     if(ionode) then
@@ -135,7 +130,7 @@ contains
       if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
+      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
             MifInput, MjDir, outputDir, prefix, SjInput)
 
       dt = dt/THzToHz
@@ -165,7 +160,7 @@ contains
     call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   
-    call MPI_BCAST(EInput, len(EInput), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(MifInput, len(MifInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(MjDir, len(MjDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -177,7 +172,7 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
         MifInput, MjDir, outputDir, prefix, SjInput)
 
     implicit none
@@ -200,7 +195,7 @@ contains
       !! exponential used to calculate max time
     real(kind=dp), intent(out) :: temperature
 
-    character(len=300), intent(out) :: EInput
+    character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
     character(len=300), intent(out) :: MifInput
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
@@ -236,7 +231,7 @@ contains
     smearingExpTolerance = 0.0_dp
     temperature = 0.0_dp
 
-    EInput = ''
+    energyTableDir = ''
     MifInput = ''
     MjDir = ''
     SjInput = ''
@@ -261,7 +256,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, &
-        EInput, MifInput, MjDir, outputDir, prefix, SjInput)
+        energyTableDir, MifInput, MjDir, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -283,7 +278,7 @@ contains
       !! exponential used to calculate max time
     real(kind=dp), intent(in) :: temperature
 
-    character(len=300), intent(in) :: EInput
+    character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
     character(len=300), intent(in) :: MifInput
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
@@ -320,7 +315,7 @@ contains
       ! hard and fast, but you should think about the application of the theory
       ! to numbers outside these ranges.
 
-    abortExecution = checkFileInitialization('EInput', EInput) .or. abortExecution
+    abortExecution = checkFileInitialization('energyTableDir', energyTableDir) .or. abortExecution
     abortExecution = checkFileInitialization('SjInput', SjInput) .or. abortExecution
 
     if(order == 0) then 
@@ -404,79 +399,6 @@ contains
   end subroutine readSj
 
 !----------------------------------------------------------------------------
-  subroutine readEnergy(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, dEDelta, dEPlot)
-
-    use miscUtilities, only: ignoreNextNLinesFromFile
-  
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
-
-    character(len=300), intent(in) :: EInput
-      !! Path to energy table to read
-
-    ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: dEDelta(:,:)
-      !! Energy for delta function
-    real(kind=dp), allocatable, intent(out) :: dEPlot(:)
-      !! Energy for plotting
-
-    ! Local variables:
-    integer :: iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
-      !! Band bounds from energy table
-    integer :: iDum
-      !! Dummy integer
-    integer :: ibi, ibf
-      !! Loop indices
-
-    real(kind=dp) :: rDum
-      !! Dummy real
-
-    logical :: abortExecution
-      !! If the program should end
-
-
-    if(ionode) then
-      open(12,file=trim(EInput))
-
-      read(12,*)
-      read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
-        ! @todo Test these values against the input values
-
-      call ignoreNextNLinesFromFile(12,6)
-
-    endif
-      
-    allocate(dEDelta(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
-    allocate(dEPlot(iBandIinit:iBandIfinal))
-
-    if(ionode) then
-
-      do ibf = iBandFinit, iBandFfinal
-        do ibi = iBandIinit, iBandIfinal
-
-          read(12,*) iDum, iDum, dEDelta(ibf,ibi), rDum, rDum, dEPlot(ibi) ! in Hartree
-
-        enddo
-      enddo
-
-      dEDelta(:,:) = dEDelta(:,:)*HartreeToJ
-      dEPlot(:) = dEPlot(:)*HartreeToEv
-
-      close(12)
-
-    endif
-
-    call MPI_BCAST(dEDelta, size(dEDelta), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(dEPlot, size(dEPlot), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-
-    return
-
-  end subroutine readEnergy
-
-!----------------------------------------------------------------------------
   subroutine readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, MifInput, matrixElement, volumeLine)
 
     implicit none
@@ -548,8 +470,8 @@ contains
   end subroutine readMatrixElement
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, nModes, dEDelta, &
-        dEPlot, gamma0, matrixElement, temperature, volumeLine)
+  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, nModes, dE, &
+        gamma0, matrixElement, temperature, volumeLine)
     
     implicit none
 
@@ -565,10 +487,8 @@ contains
 
     !real(kind=dp), intent(in) :: beta
       ! 1/kb*T
-    real(kind=dp), intent(in) :: dEDelta(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
-      !! Energy for delta function
-    real(kind=dp), intent(in) :: dEPlot(iBandIinit:iBandIfinal)
-      !! Energy for plotting
+    real(kind=dp), intent(in) :: dE(4,iBandFinit:iBandFfinal,iBandIinit:iBandIFinal)
+      !! All energy differences from energy table
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(in) :: matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
@@ -590,7 +510,7 @@ contains
       !! Frequency of steps to write status update
 
     real(kind=dp) :: Eif
-      !! Local storage of dEDelta(ibi,ibf)
+      !! Local storage of energy for delta function
     real(kind=dp) :: expPrefactor_t1, expPrefactor_t2
       !! Prefactor for the exponential inside the integral.
       !! For zeroth-order, this is just the matrix element,
@@ -656,7 +576,7 @@ contains
             expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t2)
           endif
 
-          Eif = dEDelta(ibf,ibi)
+          Eif = dE(1,ibf,ibi)
 
           expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
           expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
@@ -699,7 +619,7 @@ contains
           expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t2)
         endif
 
-        Eif = dEDelta(ibf,ibi)
+        Eif = dE(1,ibf,ibi)
 
         expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
         expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
@@ -740,7 +660,9 @@ contains
       endif        
 
       do ibi = iBandIinit, iBandIfinal
-        write(37,'(i10, f10.5,ES24.14E3)') ibi, dEPlot(ibi), transitionRate(ibi)
+        write(37,'(i10, f10.5,ES24.14E3)') ibi, dE(4,iBandFinit,ibi), transitionRate(ibi)
+          ! Plotting energy doesn't depend on final band, so
+          ! just pick one
       enddo
 
     endif

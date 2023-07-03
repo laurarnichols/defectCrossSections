@@ -6,7 +6,7 @@ program LSFmain
   implicit none
 
   ! Local variables:
-  integer :: j
+  integer :: j, ikLocal, ikGlobal
     !! Loop index
   integer :: mDim
     !! Size of first dimension for matrix element
@@ -22,26 +22,49 @@ program LSFmain
 
   call mpiInitialization()
 
+  call getCommandLineArguments()
+    !! * Get the number of pools from the command line
 
-  if(ionode) write(*, '("Reading inputs: [ ] Parameters  [ ] Sj  [ ] dE  [ ] Matrix elements")')
+  call setUpPools()
+    !! * Split up processors between pools and generate MPI
+    !!   communicators for pools
+
+
+  if(ionode) write(*, '("Pre-k-loop: [ ] Get parameters  [ ] Read Sj")')
   call cpu_time(timer1)
 
   call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, &
-        smearingExpTolerance, temperature, EInput, MifInput, MjDir, outputDir, prefix, SjInput)
+        smearingExpTolerance, temperature, energyTableDir, MifInput, MjDir, outputDir, prefix, SjInput)
 
 
   call cpu_time(timer2)
-  if(ionode) write(*, '("Reading inputs: [X] Parameters  [ ] Sj  [ ] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
+  if(ionode) write(*, '("Pre-k-loop: [X] Get parameters  [ ] Read Sj (",f10.2," secs)")') timer2-timer1
   call cpu_time(timer1)
 
   call readSj(SjInput, nModes, omega, Sj)
 
 
   call cpu_time(timer2)
-  if(ionode) write(*, '("Reading inputs: [X] Parameters  [X] Sj  [ ] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
+  if(ionode) write(*, '("Pre-k-loop: [X] Get parameters  [X] Read Sj (",f10.2," secs)")') timer2-timer1
   call cpu_time(timer1)
 
-  call readEnergy(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, dEDelta, dEPlot)
+
+  call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
+    !! * Distribute k-points in pools
+
+
+  allocate(dE(4,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
+
+  do ikLocal = 1, nkPerPool
+    
+    if(ionode) write(*,'("Beginning k-point loop ", i4, " of ", i4)') ikLocal, nkPerPool
+    
+    ikGlobal = ikLocal+ikStart_pool-1
+      !! Get the global `ik` index from the local one
+
+    call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, order, energyTableDir, dE)
+
+  enddo
 
 
   call cpu_time(timer2)
@@ -115,12 +138,11 @@ program LSFmain
   if(ionode) write(*,'("Each process is completing ", i15, " time steps.")') nStepsLocal
 
 
-  call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, nModes, dEDelta, &
-        dEPlot, gamma0, matrixElement, temperature, volumeLine)
+  call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, nModes, dE, &
+        gamma0, matrixElement, temperature, volumeLine)
 
   
-  deallocate(dEDelta)
-  deallocate(dEPlot)
+  deallocate(dE)
   deallocate(matrixElement)
   deallocate(nj)
   deallocate(omega)
