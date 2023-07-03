@@ -14,6 +14,8 @@ module LSF0mod
 
   integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
     !! Energy band bounds for initial and final state
+  integer :: iSpin
+    !! Spin channel to use
   integer :: nModes
     !! Number of phonon modes
   integer :: order
@@ -69,12 +71,12 @@ module LSF0mod
 
 
   namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, MifInput, MjDir, SjInput, &
-                        temperature, hbarGamma, dt, smearingExpTolerance, outputDir, order, prefix
+                        temperature, hbarGamma, dt, smearingExpTolerance, outputDir, order, prefix, iSpin
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, beta, dt, gamma0, hbarGamma, maxTime, &
+  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, &
         smearingExpTolerance, temperature, EInput, MifInput, MjDir, outputDir, prefix, SjInput)
 
     implicit none
@@ -82,6 +84,8 @@ contains
     ! Output variables
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(out) :: iSpin
+      !! Spin channel to use
     integer, intent(out) :: order
       !! Order to calculate (0 or 1)
 
@@ -119,7 +123,7 @@ contains
       !! Path to Sj.out file
 
   
-    call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
+    call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
           MifInput, MjDir, outputDir, prefix, SjInput)
 
     if(ionode) then
@@ -131,7 +135,7 @@ contains
       if(ierr /= 0) call exitError('LSF0 main', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
+      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
             MifInput, MjDir, outputDir, prefix, SjInput)
 
       dt = dt/THzToHz
@@ -150,6 +154,7 @@ contains
     call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(iSpin, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
   
     call MPI_BCAST(beta, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -172,7 +177,7 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
         MifInput, MjDir, outputDir, prefix, SjInput)
 
     implicit none
@@ -180,6 +185,8 @@ contains
     ! Output variables
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(out) :: iSpin
+      !! Spin channel to use
     integer, intent(out) :: order
       !! Order to calculate (0 or 1)
 
@@ -221,6 +228,7 @@ contains
     iBandIfinal = -1
     iBandFinit  = -1
     iBandFfinal = -1
+    iSpin = 1
     order = -1
 
     dt = 1d-6
@@ -252,7 +260,7 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, &
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, &
         EInput, MifInput, MjDir, outputDir, prefix, SjInput)
 
     implicit none
@@ -260,6 +268,8 @@ contains
     ! Input variables
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(in) :: iSpin
+      !! Spin channel to use
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
@@ -299,6 +309,7 @@ contains
     abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
+    abortExecution = checkIntInitialization('iSpin', iSpin, 1, 2) .or. abortExecution 
     abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution 
 
     abortExecution = checkDoubleInitialization('dt', dt, 1.0d-10, 1.0d-4) .or. abortExecution
