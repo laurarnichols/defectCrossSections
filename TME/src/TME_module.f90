@@ -7,18 +7,7 @@ module declarations
   
   implicit none
 
-  ! Global variables not passed as arguments:
-  integer :: iGkStart_poolPC, iGkEnd_poolPC, iGkStart_poolSD, iGkEnd_poolSD
-    !! Start and end G+k vector for process in pool
-  integer :: iGStart_pool, iGEnd_pool
-    !! Start and end G-vector for process in pool
-  integer :: ikStart_pool, ikEnd_pool
-    !! Start and end k-points in pool
-  integer :: nkPerPool
-    !! Number of k-points in each pool
 
-
-  ! Variables that should be passed as arguments:
   real(kind=dp) :: dq_j
     !! \(\delta q_j) for displaced wave functions
     !! (only order = 1)

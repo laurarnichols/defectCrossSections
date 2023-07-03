@@ -28,18 +28,6 @@ module wfcExportVASPMod
   integer, allocatable :: iGkStart_pool(:)
     ! Starting index for G+k vectors on
     ! single process in a given pool
-  integer :: iaStart_bgrp, iaEnd_bgrp
-    !! Start and end atoms for processes in band group
-  integer :: ibStart_bgrp, ibEnd_bgrp
-    !! Start and end bands for band group
-  integer :: ikStart_pool, ikEnd_pool
-    !! Start and end k-points for pool
-  integer :: naPerProcInBgrp
-    !! Number of atoms per process in band group
-  integer :: nbPerBgrp
-    !! Number of bands in each band group
-  integer :: nkPerPool
-    !! Number of k-points in each pool
 
   real(kind=dp) :: t1, t2, t0
     !! Timers

@@ -10,6 +10,16 @@ module errorsAndMPI
 
   integer :: ierr
     !! Error handler
+  integer :: iaStart_bgrp, iaEnd_bgrp
+    !! Start and end atoms for processes in band group
+  integer :: ibStart_bgrp, ibEnd_bgrp
+    !! Start and end bands for band group
+  integer :: iGkStart_poolPC, iGkEnd_poolPC, iGkStart_poolSD, iGkEnd_poolSD
+    !! Start and end G+k vector for process in pool
+  integer :: iGStart_pool, iGEnd_pool
+    !! Start and end G-vector for process in pool
+  integer :: ikStart_pool, ikEnd_pool
+    !! Start and end k-points in pool
   integer :: interBgrpComm = 0
     !! Inter-band-group communicator
   integer :: intraBgrpComm = 0
@@ -28,8 +38,14 @@ module errorsAndMPI
     !! Band-group index for this process
   integer :: myPoolId
     !! Pool index for this process
+  integer :: naPerProcInBgrp
+    !! Number of atoms per process in band group
   integer :: nBandGroups = 1
     !! Number of band groups for parallelization
+  integer :: nbPerBgrp
+    !! Number of bands in each band group
+  integer :: nkPerPool
+    !! Number of k-points in each pool
   integer :: nPools = 1
     !! Number of pools for k-point parallelization
   integer :: nProcs
