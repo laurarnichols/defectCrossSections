@@ -87,6 +87,8 @@ program transitionMatrixElements
 
   do ikLocal = 1, nkPerPool
     
+    if(ionode) write(*,'("Beginning k-point loop ", i4, " of ", i4)') ikLocal, nkPerPool
+    
     ikGlobal = ikLocal+ikStart_pool-1
       !! Get the global `ik` index from the local one
     
@@ -117,9 +119,7 @@ program transitionMatrixElements
       !-----------------------------------------------------------------------------------------------
       !> Read projectors
 
-      if(indexInPool == 0) &
-        write(*, '("Pre-spin-loop for k-point",i4,": [ ] Read projectors ")') &
-              ikGlobal
+      if(ionode) write(*, '("  Pre-spin-loop: [ ] Read projectors ")') 
       call cpu_time(t1)
 
 
@@ -139,9 +139,7 @@ program transitionMatrixElements
       call readProjectors('SD', iGkStart_poolSD, ikGlobal, nGkVecsLocalSD, nProjsSD, npwsSD(ikGlobal), betaSD)
 
       call cpu_time(t2)
-      if(indexInPool == 0) &
-        write(*, '("Pre-spin-loop for k-point",i4,": [X] Read projectors (",f10.2," secs)")') &
-              ikGlobal, t2-t1
+      if(ionode) write(*, '("  Pre-spin-loop: [X] Read projectors (",f10.2," secs)")') t2-t1
 
       
       !-----------------------------------------------------------------------------------------------
@@ -166,6 +164,8 @@ program transitionMatrixElements
 
       
       do isp = 1, nSpins
+
+        if(ionode) write(*,'("  Beginning spin loop ", i2, " of ", i2)') isp, nSpins
 
         !-----------------------------------------------------------------------------------------------
         !> Check if the `allElecOverlap.isp.ik` file exists
@@ -193,9 +193,7 @@ program transitionMatrixElements
           !-----------------------------------------------------------------------------------------------
           !> Read wave functions and calculate overlap
       
-          if(indexInPool == 0) &
-            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [ ] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k")') &
-              ikGlobal, isp
+          if(ionode) write(*, '("    Ufi calculation: [ ] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k")') 
           call cpu_time(t1)
 
 
@@ -209,9 +207,7 @@ program transitionMatrixElements
         
 
           call cpu_time(t2)
-          if(indexInPool == 0) &
-            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [X] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') &
-              ikGlobal, isp, t2-t1
+          if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
           call cpu_time(t1)
 
 
@@ -237,9 +233,7 @@ program transitionMatrixElements
 
 
           call cpu_time(t2)
-          if(indexInPool == 0) &
-            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [X] Overlap  [X] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') &
-              ikGlobal, isp, t2-t1
+          if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
           call cpu_time(t1)
 
 
@@ -273,9 +267,7 @@ program transitionMatrixElements
           if(isp == nSpins) deallocate(cProjBetaSDPhiPC)
 
           call cpu_time(t2)
-          if(indexInPool == 0) &
-            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [X] Overlap  [X] Cross projections  [X] PAW wfc  [ ] PAW k (",f6.2," secs)")') &
-              ikGlobal, isp, t2-t1
+          if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
           call cpu_time(t1)
       
       
@@ -306,9 +298,7 @@ program transitionMatrixElements
 
         
           call cpu_time(t2)
-          if(indexInPool == 0) &
-            write(*, '("Ufi calculation for k-point",i4," and spin ",i1,": [X] Overlap  [X] Cross projections  [X] PAW wfc  [X] PAW k (",f6.2," secs)")') &
-              ikGlobal, isp, t2-t1
+          if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [X] PAW k (",f6.2," secs)")') t2-t1
           call cpu_time(t1)
       
 

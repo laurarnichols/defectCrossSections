@@ -1773,18 +1773,12 @@ contains
     real(kind=dp) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal)
       !! Energy difference to be combined with
       !! overlap for matrix element
-    real(kind=dp) :: t1, t2
-      !! Timers
     
     character(len = 300) :: text
       !! Text for header
 
 
     ikGlobal = ikLocal+ikStart_pool-1
-    
-    call cpu_time(t1)
-    
-    write(*, '(" Writing Ufi(:,:) of k-point ", i2, " and spin ", i1, ".")') ikGlobal, isp
     
     open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
     
@@ -1829,8 +1823,7 @@ contains
     close(17)
     
     call cpu_time(t2)
-    write(*, '(" Writing Ufi(:,:) of k-point ", i4, "and spin ", i1, " done in:                   ", f10.2, " secs.")') &
-      ikGlobal, isp, t2-t1
+    write(*, '("    Ufi(:,:) of k-point ", i4, " and spin ", i1, " written.")') ikGlobal, isp
     
  1001 format(2i7,4ES24.15E3)
     
@@ -1861,13 +1854,10 @@ contains
     ! Local variables:
     
     integer :: ibi, ibf, totalNumberOfElements, iDum, i
-    real(kind = dp) :: rDum, t1, t2, dEIn
+    real(kind = dp) :: rDum, dEIn
     complex(kind = dp):: cUfi
     character(len=300) :: line
 
-    
-    call cpu_time(t1)
-    write(*, '(" Reading dE(:,:) of k-point ", i4, " and spin ", i1)') ikGlobal, isp
     
     open(27, file=trim(energyTableDir)//"/energyTable."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
     
@@ -1889,10 +1879,6 @@ contains
     
     close(27)
     
-    call cpu_time(t2)
-    write(*, '(" Reading dE(:,:) of k-point ", i4, " and spin ", i1, " done in:                   ", f10.2, " secs.")') &
-      ikGlobal, isp, t2-t1
-    
     return
     
   end subroutine readEnergyTable
@@ -1913,14 +1899,11 @@ contains
       !! Current global k-point
     
     integer :: ibi, ibf, totalNumberOfElements, iDum, i
-    real(kind = dp) :: rDum, t1, t2
+    real(kind = dp) :: rDum
     complex(kind = dp):: cUfi
 
 
     ikGlobal = ikLocal+ikStart_pool-1
-    
-    call cpu_time(t1)
-    write(*, '(" Reading Ufi(:,:) of k-point ", i4, " and spin ", i1)') ikGlobal, isp
     
     open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
     
@@ -1938,9 +1921,7 @@ contains
     
     close(17)
     
-    call cpu_time(t2)
-    write(*, '(" Reading Ufi(:,:) of k-point ", i4, " and spin ", i1, " done in:                   ", f10.2, " secs.")') &
-      ikGlobal, isp, t2-t1
+    write(*, '("    Ufi(:,:) of k-point ", i4, " and spin ", i1, " read from file.")') ikGlobal, isp
     
  1001 format(2i10,4ES24.15E3)
     
