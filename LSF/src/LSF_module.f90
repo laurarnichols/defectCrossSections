@@ -321,7 +321,7 @@ contains
       ! hard and fast, but you should think about the application of the theory
       ! to numbers outside these ranges.
 
-    abortExecution = checkFileInitialization('energyTableDir', energyTableDir) .or. abortExecution
+    abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(iSpin))//'.1') .or. abortExecution
     abortExecution = checkFileInitialization('SjInput', SjInput) .or. abortExecution
 
     if(order == 0) then 
