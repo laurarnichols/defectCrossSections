@@ -494,7 +494,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, mDim, order, nModes, dE, &
-        gamma0, matrixElement, temperature, volumeLine)
+        gamma0, matrixElement, nj, temperature, volumeLine)
     
     implicit none
 
@@ -512,23 +512,19 @@ contains
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
-    !real(kind=dp), intent(in) :: beta
-      ! 1/kb*T
     real(kind=dp), intent(in) :: dE(4,iBandFinit:iBandFfinal,iBandIinit:iBandIFinal)
       !! All energy differences from energy table
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(in) :: matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
       !! Electronic matrix element
+    real(kind=dp), intent(out) :: nj(nModes)
+      !! \(n_j\) occupation number
     real(kind=dp), intent(in) :: temperature
 
     character(len=300), intent(in) :: volumeLine
       !! Volume line from overlap file to be
       !! output exactly in transition rate file
-
-    ! Output variables:
-    !real(kind=dp), allocatable, intent(out) :: nj(:)
-      ! \(n_j\) occupation number
 
     ! Local variables:
     integer :: iTime, ibi, ibf
@@ -558,9 +554,6 @@ contains
     complex(kind=dp) :: expArg_t1, expArg_t2
       !! Exponential argument for each time step
 
-
-    allocate(nj(nModes))
-    nj(:) = 1.0_dp/(exp(hbar*omega(:)*beta) - 1.0_dp)
       
     updateFrequency = ceiling(nStepsLocal/10.0)
     call cpu_time(timer1)

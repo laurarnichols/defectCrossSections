@@ -69,6 +69,9 @@ program LSFmain
 
   call readSj(SjInput, nModes, omega, Sj)
 
+  allocate(nj(nModes))
+  nj(:) = 1.0_dp/(exp(hbar*omega(:)*beta) - 1.0_dp)
+
 
   call cpu_time(timer2)
   if(ionode) write(*, '("Pre-k-loop: [X] Get parameters  [X] Read Sj (",f10.2," secs)")') timer2-timer1
@@ -145,7 +148,7 @@ program LSFmain
    
 
     call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, mDim, order, nModes, dE, &
-          gamma0, matrixElement, temperature, volumeLine)
+          gamma0, matrixElement, nj, temperature, volumeLine)
 
   enddo
 
