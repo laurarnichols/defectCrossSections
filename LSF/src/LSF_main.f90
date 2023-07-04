@@ -97,7 +97,12 @@ program LSFmain
     ikGlobal = ikLocal+ikStart_pool-1
       !! Get the global `ik` index from the local one
 
-    call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, order, energyTableDir, dE)
+
+    if(ionode) write(*, '("  Reading energy tables")')
+
+    if(indexInPool == 0) call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, order, energyTableDir, dE)
+
+    call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
 
 
     if(ionode) write(*, '("  Reading matrix elements")')
@@ -132,7 +137,7 @@ program LSFmain
 
     endif
 
-    call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
 
     call cpu_time(timer2)
     if(ionode) write(*, '("  Matrix elements read (",f10.2," secs)")') timer2-timer1

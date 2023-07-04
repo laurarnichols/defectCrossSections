@@ -453,7 +453,7 @@ contains
       !! Dummy real
 
 
-    if(ionode) then
+    if(indexInPool == 0) then
       open(12,file=trim(fName))
 
       read(12,*)
@@ -472,7 +472,7 @@ contains
     endif
       
 
-    if(ionode) then
+    if(indexInPool == 0) then
 
       do ibf = iBandFinit, iBandFfinal
         do ibi = iBandIinit, iBandIfinal
