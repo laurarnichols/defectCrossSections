@@ -842,7 +842,7 @@ contains
   end subroutine readInputSD
   
 !----------------------------------------------------------------------------
-  subroutine checkIfCalculated(ikGlobal, isp, tmes_file_exists)
+  function overlapFileExists(ikGlobal, isp) result(fileExists)
     
     implicit none
     
@@ -853,15 +853,14 @@ contains
       !! Current spin channel
 
     ! Output variables:
-    logical, intent(out) :: tmes_file_exists
-      !! If the current overlap file exists
+    logical :: fileExists
+      !! If the overlap file exists for the given 
+      !! k-point and spin channel
 
 
-    inquire(file=trim(getMatrixElementFName(ikGlobal, isp, elementsPath)), exist = tmes_file_exists)
+    inquire(file=trim(getMatrixElementFName(ikGlobal, isp, elementsPath)), exist=fileExists)
     
-    return
-    
-  end subroutine checkIfCalculated
+  end function overlapFileExists
 
 !----------------------------------------------------------------------------
   subroutine getFullPWGrid(iGStart_pool, iGEnd_pool, nGVecsLocal, nGVecsGlobal, mill_local)
