@@ -8,10 +8,8 @@ TME_OBJS = TME_module.o TME_main.o
 COMMONMODS = $(CommonModules_srcPath)/commonmodules.a $(EnergyTabulator_srcPath)/EnergyTabulator_module.o
 
 all : TME.x 
-
-test : TME_test.x 
 	
-%.x : mods $(COMMONMODS) $(TME_OBJS)
+TME.x : mods $(COMMONMODS) $(TME_OBJS)
 	$(mpif90) $(MODFLAGS) -o $@ $(TME_OBJS) $(COMMONMODS)
 	- ( cd $(Home_Path)/bin ; ln -fs $(TME_srcPath)/$@ . )
 
