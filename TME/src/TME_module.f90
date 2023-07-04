@@ -1613,6 +1613,9 @@ contains
     
     open(17, file=trim(getMatrixElementFName(ikGlobal, isp, elementsPath)), status='unknown')
     
+    write(17, '("# Total number of k-points, k-point index, spin index Format : ''(3i10)''")')
+    write(17,'(3i10)') nKPoints, ikGlobal, isp
+
     write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
     
     text = "# Total number of <f|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
