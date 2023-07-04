@@ -1,4 +1,4 @@
-module declarations
+module TMEmod
   use constants, only: dp, pi, sq4pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
   use energyTabulatorMod, only: energyTableDir, readEnergyTable
@@ -2287,4 +2287,4 @@ contains
 
   end function getMatrixElementFName
   
-end module declarations
+end module TMEmod

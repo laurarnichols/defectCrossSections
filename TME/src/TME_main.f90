@@ -1,4 +1,4 @@
-program transitionMatrixElements
+program TMEmain
   use declarations
   
   implicit none
@@ -357,4 +357,4 @@ program transitionMatrixElements
   
   call MPI_FINALIZE(ierr)
   
-end program transitionMatrixElements
+end program TMEmain
