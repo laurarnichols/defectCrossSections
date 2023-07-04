@@ -858,7 +858,7 @@ contains
       !! k-point and spin channel
 
 
-    inquire(file=trim(getMatrixElementFName(ikGlobal, isp, elementsPath)), exist=fileExists)
+    inquire(file=trim(getMatrixElementFNameWPath(ikGlobal, isp, elementsPath)), exist=fileExists)
     
   end function overlapFileExists
 
@@ -1610,7 +1610,7 @@ contains
 
     ikGlobal = ikLocal+ikStart_pool-1
     
-    open(17, file=trim(getMatrixElementFName(ikGlobal, isp, elementsPath)), status='unknown')
+    open(17, file=trim(getMatrixElementFNameWPath(ikGlobal, isp, elementsPath)), status='unknown')
     
     write(17, '("# Total number of k-points, k-point index, spin index Format : ''(3i10)''")')
     write(17,'(3i10)') nKPoints, ikGlobal, isp
@@ -1686,7 +1686,7 @@ contains
 
     ikGlobal = ikLocal+ikStart_pool-1
 
-    open(17, file=trim(getMatrixElementFName(ikGlobal, isp, elementsPath)), status='unknown')
+    open(17, file=trim(getMatrixElementFNameWPath(ikGlobal, isp, elementsPath)), status='unknown')
 
     read(17,*) 
     read(17,*) 
@@ -2270,7 +2270,7 @@ contains
   end subroutine finalizeCalculation
   
 !----------------------------------------------------------------------------
-  function getMatrixElementFName(ikGlobal, isp, path) result(fName)
+  function getMatrixElementFNameWPath(ikGlobal, isp, path) result(fName)
 
     use miscUtilities, only: int2str, int2strLeadZero
 
@@ -2291,6 +2291,28 @@ contains
 
 
     fName = trim(path)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
+
+  end function getMatrixElementFNameWPath
+  
+!----------------------------------------------------------------------------
+  function getMatrixElementFName(ikGlobal, isp) result(fName)
+
+    use miscUtilities, only: int2str, int2strLeadZero
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Current global k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Output variables:
+    character(len=300) :: fName
+      !! Matrix element file name
+
+
+    fName = "allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
 
   end function getMatrixElementFName
   
