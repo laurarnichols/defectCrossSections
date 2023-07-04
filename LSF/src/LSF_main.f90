@@ -109,7 +109,6 @@ program LSFmain
 
 
     if(ionode) write(*, '("  Reading matrix elements")')
-    call cpu_time(timer1)
 
     
     if(order == 0) then
@@ -142,8 +141,6 @@ program LSFmain
 
     call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
 
-    call cpu_time(timer2)
-    if(ionode) write(*, '("  Matrix elements read (",f10.2," secs)")') timer2-timer1
     if(ionode) write(*, '("  Beginning transition-rate calculation")')
    
 
