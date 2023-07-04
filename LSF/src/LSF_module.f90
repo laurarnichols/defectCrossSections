@@ -2,6 +2,7 @@ module LSFmod
   
   use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ, ii, hbar, THzToHz, kB, BohrToMeter, elecMToKg
   use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, order
+  use TMEmod, only: getMatrixElementFName
   use errorsAndMPI
 
   use energyTabulatorMod, only: energyTableDir, readEnergyTable
@@ -46,11 +47,11 @@ module LSFmod
     !! exponential used to calculate max time
   real(kind=dp) :: temperature
 
-  character(len=300) :: MifInput
+  character(len=300) :: matrixElementDir
     !! Path to matrix element file `allElecOverlap.isp.ik`. 
     !! For first-order term, the path is just within each 
     !! subdirectory.
-  character(len=300) :: MjDir
+  character(len=300) :: MjBaseDir
     !! Path to the base directory for the first-order
     !! matrix element calculations
   character(len=300) :: outputDir
@@ -65,14 +66,14 @@ module LSFmod
     !! output exactly in transition rate file
 
 
-  namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, energyTableDir, MifInput, MjDir, SjInput, &
+  namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, energyTableDir, matrixElementDir, MjBaseDir, SjInput, &
                         temperature, hbarGamma, dt, smearingExpTolerance, outputDir, order, prefix, iSpin
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, &
-        smearingExpTolerance, temperature, energyTableDir, MifInput, MjDir, outputDir, prefix, SjInput)
+        smearingExpTolerance, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -102,11 +103,11 @@ contains
 
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
-    character(len=300), intent(out) :: MifInput
+    character(len=300), intent(out) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
       !! subdirectory.
-    character(len=300), intent(out) :: MjDir
+    character(len=300), intent(out) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
     character(len=300), intent(out) :: outputDir
@@ -119,7 +120,7 @@ contains
 
   
     call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
-          MifInput, MjDir, outputDir, prefix, SjInput)
+          matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     if(ionode) then
 
@@ -131,7 +132,7 @@ contains
         !! * Exit calculation if there's an error
 
       call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
-            MifInput, MjDir, outputDir, prefix, SjInput)
+            matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
       dt = dt/THzToHz
 
@@ -161,8 +162,8 @@ contains
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(MifInput, len(MifInput), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(MjDir, len(MjDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(MjBaseDir, len(MjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(SjInput, len(SjInput), MPI_CHARACTER, root, worldComm, ierr)
@@ -173,7 +174,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
-        MifInput, MjDir, outputDir, prefix, SjInput)
+        matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -197,11 +198,11 @@ contains
 
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
-    character(len=300), intent(out) :: MifInput
+    character(len=300), intent(out) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
       !! subdirectory.
-    character(len=300), intent(out) :: MjDir
+    character(len=300), intent(out) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
     character(len=300), intent(out) :: outputDir
@@ -232,8 +233,8 @@ contains
     temperature = 0.0_dp
 
     energyTableDir = ''
-    MifInput = ''
-    MjDir = ''
+    matrixElementDir = ''
+    MjBaseDir = ''
     SjInput = ''
     outputDir = './'
     prefix = 'disp-'
@@ -256,7 +257,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, &
-        energyTableDir, MifInput, MjDir, outputDir, prefix, SjInput)
+        energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -280,11 +281,11 @@ contains
 
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
-    character(len=300), intent(in) :: MifInput
+    character(len=300), intent(in) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
       !! subdirectory.
-    character(len=300), intent(in) :: MjDir
+    character(len=300), intent(in) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
     character(len=300), intent(in) :: outputDir
@@ -319,11 +320,12 @@ contains
     abortExecution = checkFileInitialization('SjInput', SjInput) .or. abortExecution
 
     if(order == 0) then 
-      abortExecution = checkFileInitialization('MifInput', MifInput) .or. abortExecution
+      abortExecution = checkFileInitialization('matrixElementDir', matrixElementDir) .or. abortExecution
     else if(order == 1) then
-      abortExecution = checkDirInitialization('MjDir', MjDir, '/'//trim(prefix)//'0001/'//trim(MifInput)) .or. abortExecution
+      abortExecution = checkDirInitialization('MjBaseDir', MjBaseDir, &
+            '/'//trim(prefix)//'0001/'//trim(getMatrixElementFName(1,iSpin,matrixElementDir))) .or. abortExecution
       write(*,'("prefix = ''",a,"''")') trim(prefix)
-      write(*,'("MifInput = ''",a,"''")') trim(MifInput)
+      write(*,'("matrixElementDir = ''",a,"''")') trim(matrixElementDir)
     endif
 
     call system('mkdir -p '//trim(outputDir))
@@ -399,7 +401,7 @@ contains
   end subroutine readSj
 
 !----------------------------------------------------------------------------
-  subroutine readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, MifInput, matrixElement, volumeLine)
+  subroutine readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement, volumeLine)
 
     implicit none
 
@@ -409,9 +411,8 @@ contains
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
-    character(len=300), intent(in) :: MifInput
-      !! Path to zeroth-order matrix element file
-      !! `allElecOverlap.isp.ik`
+    character(len=300), intent(in) :: fName
+      !! Path to matrix element file `allElecOverlap.isp.ik`
 
     ! Output variables:
     real(kind=dp), intent(out) :: matrixElement(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
@@ -434,7 +435,7 @@ contains
 
 
     if(ionode) then
-      open(12,file=trim(MifInput))
+      open(12,file=trim(fName))
 
       read(12,'(a)') volumeLine
 

@@ -2,10 +2,10 @@
 -include ../../make.sys
 
 # location of needed modules
-MODFLAGS= -I$(CommonModules_srcPath) -I$(EnergyTabulator_srcPath) -I.
+MODFLAGS= -I$(CommonModules_srcPath) -I$(EnergyTabulator_srcPath) -I$(TME_srcPath) -I.
 
 LSF_OBJS = LSF_module.o LSF_main.o
-COMMONMODS = $(CommonModules_srcPath)/commonmodules.a $(EnergyTabulator_srcPath)/EnergyTabulator_module.o
+COMMONMODS = $(CommonModules_srcPath)/commonmodules.a $(EnergyTabulator_srcPath)/EnergyTabulator_module.o $(TME_srcPath)/TME_module.o
 
 all : LSF.x 
 	
@@ -21,6 +21,8 @@ LSF.x : mods $(COMMONMODS) $(LSF_OBJS)
 
 mods :
 	cd $(CommonModules_srcPath) ; \
+	make ; \
+  cd $(TME_srcPath) ; \
 	make ; \
   cd $(EnergyTabulator_srcPath) ; \
   make

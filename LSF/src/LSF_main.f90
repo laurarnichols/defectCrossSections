@@ -34,7 +34,7 @@ program LSFmain
   call cpu_time(timer1)
 
   call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, &
-        smearingExpTolerance, temperature, energyTableDir, MifInput, MjDir, outputDir, prefix, SjInput)
+        smearingExpTolerance, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
 
   call cpu_time(timer2)
@@ -55,6 +55,15 @@ program LSFmain
 
   allocate(dE(4,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
 
+  if(order == 0) then
+    mDim = 1
+  else if(order == 1) then
+    mDim = nModes
+  endif
+
+  allocate(matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
+
+
   do ikLocal = 1, nkPerPool
     
     if(ionode) write(*,'("Beginning k-point loop ", i4, " of ", i4)') ikLocal, nkPerPool
@@ -64,46 +73,46 @@ program LSFmain
 
     call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, order, energyTableDir, dE)
 
+
+    if(ionode) write(*, '("  Reading matrix elements")')
+    call cpu_time(timer1)
+
+    
+    if(order == 0) then
+      ! Read zeroth-order matrix element
+
+      fName = getMatrixElementFName(ikGlobal, iSpin, matrixElementDir)
+
+      call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(1,:,:), volumeLine)
+
+    else if(order == 1) then
+      ! Read matrix elements for all modes
+    
+      do j = 1, nModes
+
+        fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(getMatrixElementFName(ikGlobal,iSpin,matrixElementDir))
+
+        call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(j,:,:), volumeLine)
+          ! The volume line will get overwritten each time, but that's
+          ! okay because the volume doesn't change between the files. 
+
+      enddo
+
+      matrixElement(:,:,:) = matrixElement(:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
+        ! Shifter program outputs dq in Bohr*sqrt(elecM), and that
+        ! dq is directly used by TME to get the matrix element, so
+        ! we need to convert to m*sqrt(kg). In the matrix element,
+        ! dq is in the denominator and squared.
+
+    endif
+
+    call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    call cpu_time(timer2)
+    if(ionode) write(*, '("  Matrix elements read (",f10.2," secs)")') timer2-timer1
+    call cpu_time(timer1)
+
   enddo
-
-
-  call cpu_time(timer2)
-  if(ionode) write(*, '("Reading inputs: [X] Parameters  [X] Sj  [X] dE  [ ] Matrix elements (",f10.2," secs)")') timer2-timer1
-  call cpu_time(timer1)
-
-  if(order == 0) then
-    ! Read single zeroth-order matrix element
-
-    mDim = 1
-    allocate(matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
-    
-    call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, MifInput, matrixElement(1,:,:), volumeLine)
-
-  else if(order == 1) then
-    ! Read matrix elements for all modes
-
-    mDim = nModes
-    allocate(matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
-    
-    do j = 1, nModes
-
-      fName = trim(MjDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(MifInput)
-
-      call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, trim(fName), matrixElement(j,:,:), volumeLine)
-        ! The volume line will get overwritten each time, but that's
-        ! okay because the volume doesn't change between the files. 
-
-    enddo
-
-    matrixElement(:,:,:) = matrixElement(:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
-      ! Shifter program outputs dq in Bohr*sqrt(elecM), and that
-      ! dq is directly used by TME to get the matrix element, so
-      ! we need to convert to m*sqrt(kg). In the matrix element,
-      ! dq is in the denominator and squared.
-
-  endif
-
-  call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
    
 
   call cpu_time(timer2)
