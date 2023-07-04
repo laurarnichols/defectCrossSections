@@ -1,5 +1,5 @@
 program TMEmain
-  use declarations
+  use TMEmod
   
   implicit none
   
