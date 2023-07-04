@@ -152,6 +152,7 @@ contains
     call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iSpin, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
   
     call MPI_BCAST(beta, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -518,7 +519,7 @@ contains
       !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(in) :: matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
       !! Electronic matrix element
-    real(kind=dp), intent(out) :: nj(nModes)
+    real(kind=dp), intent(in) :: nj(nModes)
       !! \(n_j\) occupation number
     real(kind=dp), intent(in) :: temperature
 
