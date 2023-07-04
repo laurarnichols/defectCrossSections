@@ -2,7 +2,7 @@ module LSFmod
   
   use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ, ii, hbar, THzToHz, kB, BohrToMeter, elecMToKg
   use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, order
-  use TMEmod, only: getMatrixElementFName
+  use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName
   use miscUtilities, only: int2strLeadZero, int2str
   use errorsAndMPI
 
@@ -298,6 +298,10 @@ contains
       !! Path to Sj.out file
 
     ! Local variables:
+    character(len=300) :: fName
+      !! File name for matrix element file to get
+      !! nKPoints from 
+
     logical :: abortExecution
       !! Whether or not to abort the execution
 
@@ -321,13 +325,27 @@ contains
     abortExecution = checkFileInitialization('SjInput', SjInput) .or. abortExecution
 
     if(order == 0) then 
-      abortExecution = checkFileInitialization('matrixElementDir', matrixElementDir) .or. abortExecution
+      abortExecution = checkDirInitialization('matrixElementDir', matrixElementDir, getMatrixElementFName(1,iSpin)) .or. abortExecution
+
+      fName = getMatrixElementFNameWPath(1,iSpin,matrixElementDir)
+
     else if(order == 1) then
+
       abortExecution = checkDirInitialization('MjBaseDir', MjBaseDir, &
-            '/'//trim(prefix)//'0001/'//trim(getMatrixElementFName(1,iSpin,matrixElementDir))) .or. abortExecution
+            '/'//trim(prefix)//'0001/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))) .or. abortExecution
       write(*,'("prefix = ''",a,"''")') trim(prefix)
       write(*,'("matrixElementDir = ''",a,"''")') trim(matrixElementDir)
+
+      fName = trim(MjBaseDir)//'/'//trim(prefix)//'0001/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))
+
     endif
+
+    open(unit=12,file=trim(fName))
+    read(12,*)
+    read(12,*) nKPoints
+    close(12)
+
+    write(*,'("nKPoints = ", i10)') nKPoints
 
     call system('mkdir -p '//trim(outputDir))
 
@@ -437,6 +455,9 @@ contains
 
     if(ionode) then
       open(12,file=trim(fName))
+
+      read(12,*)
+      read(12,*)
 
       read(12,'(a)') volumeLine
 

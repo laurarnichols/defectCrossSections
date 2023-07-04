@@ -107,7 +107,7 @@ program LSFmain
     if(order == 0) then
       ! Read zeroth-order matrix element
 
-      fName = getMatrixElementFName(ikGlobal, iSpin, matrixElementDir)
+      fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
 
       call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(1,:,:), volumeLine)
 
@@ -116,7 +116,7 @@ program LSFmain
     
       do j = 1, nModes
 
-        fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(getMatrixElementFName(ikGlobal,iSpin,matrixElementDir))
+        fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
 
         call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(j,:,:), volumeLine)
           ! The volume line will get overwritten each time, but that's
