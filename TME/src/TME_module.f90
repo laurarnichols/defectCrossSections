@@ -1634,7 +1634,7 @@ contains
       write(17,'("# Phonon mode j, dq_j (Bohr*sqrt(elec. mass)). Format: ''(a78, i7, ES24.15E3)'' ", i7, ES24.15E3)') phononModeJ, dq_j
     
       text = "# Final Band, Initial Band, Complex <f|i>, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2/(Bohr*sqrt(elec. mass))^2)" 
-      write(17, '(a, " Format : ''(2i10,3ES24.15E3)''")') trim(text)
+      write(17, '(a, " Format : ''(2i7,4ES24.15E3)''")') trim(text)
 
     endif
 
@@ -1679,19 +1679,24 @@ contains
     integer :: ikGlobal
       !! Current global k-point
     
-    integer :: ibi, ibf, totalNumberOfElements, iDum, i
+    integer :: ibi, ibf, totalNumberOfElements, i
     real(kind = dp) :: rDum
     complex(kind = dp):: cUfi
 
 
     ikGlobal = ikLocal+ikStart_pool-1
-    
+
     open(17, file=trim(getMatrixElementFName(ikGlobal, isp, elementsPath)), status='unknown')
-    
-    read(17, *) 
-    read(17, *) 
-    read(17,'(5i10)') totalNumberOfElements, iDum, iDum, iDum, iDum
-    read(17, *) 
+
+    read(17,*) 
+    read(17,*) 
+    read(17,*) 
+    read(17,*) 
+    read(17,*) totalNumberOfElements
+    read(17,*) 
+
+    if(order == 1) read(17,*)
+      ! Ignore additional line for phonon mode 
     
     do i = 1, totalNumberOfElements
       
@@ -1702,9 +1707,9 @@ contains
     
     close(17)
     
-    write(*, '("    Ufi(:,:) of k-point ", i4, " and spin ", i1, " read from file.")') ikGlobal, isp
+    write(*,'("    Ufi(:,:) of k-point ", i4, " and spin ", i1, " read from file.")') ikGlobal, isp
     
- 1001 format(2i10,4ES24.15E3)
+ 1001 format(2i7,4ES24.15E3)
     
     return
     
