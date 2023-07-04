@@ -29,6 +29,13 @@ program LSFmain
     !!   communicators for pools
 
 
+  if(ionode) write(*, '("Pre-k-loop: [ ] Get parameters  [ ] Read Sj")')
+  call cpu_time(timer1)
+
+  call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, &
+        smearingExpTolerance, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+
+
   nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
     ! Would normally calculate the total number of steps as
     !         nSteps = ceiling(maxTime/dt)
@@ -53,14 +60,7 @@ program LSFmain
     ! steps to be odd because a 3-point quadratic
     ! interpolation is used
    
-  if(ionode) write(*,'("Each process is completing ", i15, " time steps.")') nStepsLocal
-
-
-  if(ionode) write(*, '("Pre-k-loop: [ ] Get parameters  [ ] Read Sj")')
-  call cpu_time(timer1)
-
-  call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, &
-        smearingExpTolerance, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+  if(ionode) write(*,'("  Each process is completing ", i15, " time steps.")') nStepsLocal
 
 
   call cpu_time(timer2)
