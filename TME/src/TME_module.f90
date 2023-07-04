@@ -857,7 +857,7 @@ contains
       !! If the current overlap file exists
 
 
-    inquire(file=getMatrixElementFName(ikGlobal, isp, elementsPath), exist = tmes_file_exists)
+    inquire(file=trim(getMatrixElementFName(ikGlobal, isp, elementsPath)), exist = tmes_file_exists)
     
     return
     
@@ -1611,7 +1611,7 @@ contains
 
     ikGlobal = ikLocal+ikStart_pool-1
     
-    open(17, file=getMatrixElementFName(ikGlobal, isp, elementsPath), status='unknown')
+    open(17, file=trim(getMatrixElementFName(ikGlobal, isp, elementsPath)), status='unknown')
     
     write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
     
@@ -1684,7 +1684,7 @@ contains
 
     ikGlobal = ikLocal+ikStart_pool-1
     
-    open(17, file=getMatrixElementFName(ikGlobal, isp, elementsPath), status='unknown')
+    open(17, file=trim(getMatrixElementFName(ikGlobal, isp, elementsPath)), status='unknown')
     
     read(17, *) 
     read(17, *) 
