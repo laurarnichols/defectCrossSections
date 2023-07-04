@@ -612,7 +612,7 @@ module energyTabulatorMod
       !! Path to energy table
 
     ! Output variables:
-    real(kind=dp) :: dE(4,iBandFinit:iBandFfinal,iBandIinit:iBandIFinal)
+    real(kind=dp), intent(out) :: dE(4,iBandFinit:iBandFfinal,iBandIinit:iBandIFinal)
       !! All energy differences from energy table
 
     ! Local variables:
