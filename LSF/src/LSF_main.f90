@@ -1,7 +1,6 @@
 program LSFmain
 
   use LSFmod
-  use miscUtilities, only: int2strLeadZero
 
   implicit none
 
@@ -28,6 +27,33 @@ program LSFmain
   call setUpPools()
     !! * Split up processors between pools and generate MPI
     !!   communicators for pools
+
+
+  nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
+    ! Would normally calculate the total number of steps as
+    !         nSteps = ceiling(maxTime/dt)
+    ! then divide the steps across all of the processes in 
+    ! the pool. However, the number of steps could be a very 
+    ! large integer that could cause overflow. Instead, directly
+    ! calculate the number of steps that each process should 
+    ! calculate. If you still get integer overflow, try 
+    ! increasing the number of processes. 
+    !
+    ! Calculating the number of steps for each process
+    ! this way will overestimate the number of steps
+    ! needed, but that is okay.
+
+  if(nStepsLocal < 0) call exitError('LSF main', 'integer overflow', 1)
+    ! If there is integer overflow, the number will go to the
+    ! most negative integer value available
+
+
+  if(mod(nStepsLocal,2) == 0) nStepsLocal = nStepsLocal + 1
+    ! Simpson's method requires the number of integration
+    ! steps to be odd because a 3-point quadratic
+    ! interpolation is used
+   
+  if(ionode) write(*,'("Each process is completing ", i15, " time steps.")') nStepsLocal
 
 
   if(ionode) write(*, '("Pre-k-loop: [ ] Get parameters  [ ] Read Sj")')
@@ -110,45 +136,13 @@ program LSFmain
 
     call cpu_time(timer2)
     if(ionode) write(*, '("  Matrix elements read (",f10.2," secs)")') timer2-timer1
-    call cpu_time(timer1)
+    if(ionode) write(*, '("  Beginning transition-rate calculation")')
+   
+
+    call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, mDim, order, nModes, dE, &
+          gamma0, matrixElement, temperature, volumeLine)
 
   enddo
-   
-
-  call cpu_time(timer2)
-  if(ionode) write(*, '("Reading inputs: [X] Parameters  [X] Sj  [X] dE  [X] Matrix elements (",f10.2," secs)")') timer2-timer1
-  call cpu_time(timer1)
-
-
-  nStepsLocal = ceiling((maxTime/dt)/nProcs)
-    ! Would normally calculate the total number of steps as
-    !         nSteps = ceiling(maxTime/dt)
-    ! then divide the steps across all of the processes. 
-    ! However, the number of steps could be a very large
-    ! integer that could cause overflow. Instead, directly
-    ! calculate the number of steps that each process should 
-    ! calculate. If you still get integer overflow, try 
-    ! increasing the number of processes. 
-    !
-    ! Calculating the number of steps for each process
-    ! this way will overestimate the number of steps
-    ! needed, but that is okay.
-
-  if(nStepsLocal < 0) call exitError('LSF main', 'integer overflow', 1)
-    ! If there is integer overflow, the number will go to the
-    ! most negative integer value available
-
-
-  if(mod(nStepsLocal,2) == 0) nStepsLocal = nStepsLocal + 1
-    ! Simpson's method requires the number of integration
-    ! steps to be odd because a 3-point quadratic
-    ! interpolation is used
-   
-  if(ionode) write(*,'("Each process is completing ", i15, " time steps.")') nStepsLocal
-
-
-  call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, nModes, dE, &
-        gamma0, matrixElement, temperature, volumeLine)
 
   
   deallocate(dE)

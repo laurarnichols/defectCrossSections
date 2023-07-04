@@ -3,6 +3,7 @@ module LSFmod
   use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ, ii, hbar, THzToHz, kB, BohrToMeter, elecMToKg
   use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, order
   use TMEmod, only: getMatrixElementFName
+  use miscUtilities, only: int2strLeadZero, int2str
   use errorsAndMPI
 
   use energyTabulatorMod, only: energyTableDir, readEnergyTable
@@ -471,7 +472,7 @@ contains
   end subroutine readMatrixElement
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, nModes, dE, &
+  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, mDim, order, nModes, dE, &
         gamma0, matrixElement, temperature, volumeLine)
     
     implicit none
@@ -479,6 +480,10 @@ contains
     ! Input variables:
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(in) :: ikGlobal
+      !! K-point index
+    integer, intent(in) :: iSpin
+      !! Spin index
     integer, intent(in) :: mDim
       !! Size of first dimension for matrix element
     integer, intent(in) :: nModes
@@ -552,7 +557,7 @@ contains
       if(ionode .and. (mod(iTime,updateFrequency) == 0 .or. mod(iTime+1,updateFrequency) == 0)) then
 
         call cpu_time(timer2)
-        write(*,'(i2,"% complete with transition-rate loop. Time in loop: ",f10.2," secs")') iTime*100/nStepsLocal, timer2-timer1
+        write(*,'("    ", i2,"% complete with transition-rate loop. Time in loop: ",f10.2," secs")') iTime*100/nStepsLocal, timer2-timer1
 
       endif
 
@@ -636,12 +641,12 @@ contains
       enddo
     enddo
 
-    call mpiSumDoubleV(transitionRate, worldComm)
-      ! Combine results from all processes
+    call mpiSumDoubleV(transitionRate, intraPoolComm)
+      ! Combine results from all processes in pool
 
-    if(ionode) then
+    if(indexInPool == 0) then
 
-      open(unit=37, file=trim(outputDir)//'transitionRate.txt')
+      open(unit=37, file=trim(outputDir)//'transitionRate.'//trim(int2str(ikGlobal)//"."//trim(int2str(iSpin))))
 
       write(37,'(a)') trim(volumeLine)
 
@@ -665,6 +670,8 @@ contains
           ! Plotting energy doesn't depend on final band, so
           ! just pick one
       enddo
+
+      write(*, '("  Transition rate of k-point ", i4, " and spin ", i1, " written.")') ikGlobal, iSpin
 
     endif
 
