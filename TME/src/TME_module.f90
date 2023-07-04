@@ -857,7 +857,7 @@ contains
       !! If the current overlap file exists
 
 
-    inquire(file=trim(elementsPath)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), exist = tmes_file_exists)
+    inquire(file=getMatrixElementFName(ikGlobal, isp, elementsPath), exist = tmes_file_exists)
     
     return
     
@@ -1611,7 +1611,7 @@ contains
 
     ikGlobal = ikLocal+ikStart_pool-1
     
-    open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
+    open(17, file=getMatrixElementFName(ikGlobal, isp, elementsPath), status='unknown')
     
     write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
     
@@ -1684,7 +1684,7 @@ contains
 
     ikGlobal = ikLocal+ikStart_pool-1
     
-    open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
+    open(17, file=getMatrixElementFName(ikGlobal, isp, elementsPath), status='unknown')
     
     read(17, *) 
     read(17, *) 
@@ -2262,5 +2262,29 @@ contains
     
   end subroutine finalizeCalculation
   
+!----------------------------------------------------------------------------
+  function getMatrixElementFName(ikGlobal, isp, path) result(fName)
+
+    use miscUtilities, only: int2str, int2strLeadZero
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Current global k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    character(*), intent(in) :: path
+      !! Path to matrix element file
+
+    ! Output variables:
+    character(len=300) :: fName
+      !! Matrix element file name
+
+
+    fName = trim(path)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
+
+  end function getMatrixElementFName
   
 end module declarations
