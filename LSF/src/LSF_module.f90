@@ -661,7 +661,7 @@ contains
 
     if(indexInPool == 0) then
 
-      open(unit=37, file=trim(outputDir)//'transitionRate.'//trim(int2str(ikGlobal)//"."//trim(int2str(iSpin))))
+      open(unit=37, file=trim(outputDir)//'transitionRate.'//trim(int2str(ikGlobal))//"."//trim(int2str(iSpin)))
 
       write(37,'(a)') trim(volumeLine)
 
