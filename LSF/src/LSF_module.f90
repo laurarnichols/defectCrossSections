@@ -794,5 +794,26 @@ contains
     prefactor = sum(matrixElement(:)*Aj_t(:))
 
   end function getFirstOrderPrefactor
+  
+!----------------------------------------------------------------------------
+  function transitionRateFileExists(ikGlobal, isp) result(fileExists)
+    
+    implicit none
+    
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Current global k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Output variables:
+    logical :: fileExists
+      !! If the overlap file exists for the given 
+      !! k-point and spin channel
+
+
+    inquire(file=trim(outputDir)//'transitionRate.'//trim(int2str(ikGlobal))//"."//trim(int2str(iSpin)), exist=fileExists)
+    
+  end function transitionRateFileExists
 
 end module LSFmod

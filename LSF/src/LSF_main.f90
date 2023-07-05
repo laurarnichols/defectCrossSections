@@ -100,53 +100,57 @@ program LSFmain
     ikGlobal = ikLocal+ikStart_pool-1
       !! Get the global `ik` index from the local one
 
+    if(transitionRateFileExists(ikGlobal, iSpin)) then
+      write(*, '("  Transition rate of k-point ", i4, " and spin ", i1, " already exists.")') ikGlobal, iSpin
+    else
 
-    if(ionode) write(*, '("  Reading energy tables")')
+      if(ionode) write(*, '("  Reading energy tables")')
 
-    if(indexInPool == 0) call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, order, energyTableDir, dE)
+      if(indexInPool == 0) call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, order, energyTableDir, dE)
 
-    call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
+      call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
 
 
-    if(ionode) write(*, '("  Reading matrix elements")')
+      if(ionode) write(*, '("  Reading matrix elements")')
 
     
-    if(order == 0) then
-      ! Read zeroth-order matrix element
+      if(order == 0) then
+        ! Read zeroth-order matrix element
 
-      fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
+        fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
 
-      call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(1,:,:), volumeLine)
+        call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(1,:,:), volumeLine)
 
-    else if(order == 1) then
-      ! Read matrix elements for all modes
+      else if(order == 1) then
+        ! Read matrix elements for all modes
     
-      do j = 1, nModes
+        do j = 1, nModes
 
-        fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
+          fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
 
-        call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(j,:,:), volumeLine)
-          ! The volume line will get overwritten each time, but that's
-          ! okay because the volume doesn't change between the files. 
+          call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(j,:,:), volumeLine)
+            ! The volume line will get overwritten each time, but that's
+            ! okay because the volume doesn't change between the files. 
 
-      enddo
+        enddo
 
-      matrixElement(:,:,:) = matrixElement(:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
-        ! Shifter program outputs dq in Bohr*sqrt(elecM), and that
-        ! dq is directly used by TME to get the matrix element, so
-        ! we need to convert to m*sqrt(kg). In the matrix element,
-        ! dq is in the denominator and squared.
+        matrixElement(:,:,:) = matrixElement(:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
+          ! Shifter program outputs dq in Bohr*sqrt(elecM), and that
+          ! dq is directly used by TME to get the matrix element, so
+          ! we need to convert to m*sqrt(kg). In the matrix element,
+          ! dq is in the denominator and squared.
+  
+      endif
 
-    endif
+      call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
 
-    call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
-
-    if(ionode) write(*, '("  Beginning transition-rate calculation")')
+      if(ionode) write(*, '("  Beginning transition-rate calculation")')
    
 
-    call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, mDim, order, nModes, dE, &
-          gamma0, matrixElement, nj, temperature, volumeLine)
+      call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, mDim, order, nModes, dE, &
+            gamma0, matrixElement, nj, temperature, volumeLine)
 
+    endif
   enddo
 
   
