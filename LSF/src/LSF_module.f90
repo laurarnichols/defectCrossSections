@@ -661,7 +661,7 @@ contains
 
     if(indexInPool == 0) then
 
-      open(unit=37, file=trim(outputDir)//'transitionRate.'//trim(int2str(ikGlobal))//"."//trim(int2str(iSpin)))
+      open(unit=37, file=trim(outputDir)//'transitionRate.'//trim(int2str(iSpin))//"."//trim(int2str(ikGlobal)))
 
       write(37,'(a)') trim(volumeLine)
 
@@ -812,7 +812,7 @@ contains
       !! k-point and spin channel
 
 
-    inquire(file=trim(outputDir)//'transitionRate.'//trim(int2str(ikGlobal))//"."//trim(int2str(iSpin)), exist=fileExists)
+    inquire(file=trim(outputDir)//'transitionRate.'//trim(int2str(iSpin))//"."//trim(int2str(ikGlobal)), exist=fileExists)
     
   end function transitionRateFileExists
 
