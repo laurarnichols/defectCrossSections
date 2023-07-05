@@ -2,6 +2,7 @@ module energyTabulatorMod
   
   use constants, only: dp, eVToHartree
   use miscUtilities, only: int2str
+  use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, nSpins
   use errorsAndMPI
   use mpi
 
@@ -15,14 +16,8 @@ module energyTabulatorMod
 
 
   ! Variables that should be passed as arguments
-  integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-    !! Energy band bounds for initial and final state
   integer :: CBMorVBMBand
     !! Band of CBM (electron capture) or VBM (hole capture)
-  integer :: nKPoints
-    !! Number of k-points
-  integer :: nSpins
-    !! Number of spin channels
   integer :: refBand
     !! Band of WZP reference carrier
 
@@ -42,6 +37,8 @@ module energyTabulatorMod
     !! Total energy of the relaxed final charge
     !! state (final positions)
 
+  character(len=300) :: energyTableDir
+    !! Path to energy tables
   character(len=300) :: exportDirEigs
     !! Path to export for system to get eigenvalues
   character(len=300) :: exportDirInitInit
@@ -53,10 +50,8 @@ module energyTabulatorMod
   character(len=300) :: exportDirFinalFinal
     !! Path to export for final charge state
     !! in the final positions
-  character(len=300) :: outputDir
-    !! Path to store energy tables
 
-  namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, outputDir, &
+  namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, energyTableDir, &
                          eCorrectTot, eCorrectEigF, eCorrectEigRef, &
                          iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, CBMorVBMBand
 
@@ -65,7 +60,7 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, outputDir)
+        energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
     !! Set the default values for input variables and start timer
     !!
     !! <h2>Walkthrough</h2>
@@ -93,6 +88,8 @@ module energyTabulatorMod
     real(kind=dp), intent(out) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
+    character(len=300), intent(out) :: energyTableDir
+      !! Path to energy tables
     character(len=300), intent(out) :: exportDirEigs
       !! Path to export for system to get eigenvalues
     character(len=300), intent(out) :: exportDirInitInit
@@ -104,8 +101,6 @@ module energyTabulatorMod
     character(len=300), intent(out) :: exportDirFinalFinal
       !! Path to export for final charge state
       !! in the final positions
-    character(len=300), intent(out) :: outputDir
-      !! Path to store energy tables
 
     ! Local variables:
     character(len=8) :: cdate
@@ -125,11 +120,11 @@ module energyTabulatorMod
     eCorrectEigF = 0.0_dp
     eCorrectEigRef = 0.0_dp
 
+    energyTableDir = './'
     exportDirEigs = ''
     exportDirInitInit = ''
     exportDirFinalInit = ''
     exportDirFinalFinal = ''
-    outputDir = './'
 
     call date_and_time(cdate, ctime)
 
@@ -147,7 +142,7 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, outputDir)
+        energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
 
     implicit none
 
@@ -166,6 +161,8 @@ module energyTabulatorMod
     real(kind=dp), intent(inout) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy tables
     character(len=300), intent(in) :: exportDirEigs
       !! Path to export for system to get eigenvalues
     character(len=300), intent(in) :: exportDirInitInit
@@ -177,8 +174,6 @@ module energyTabulatorMod
     character(len=300), intent(in) :: exportDirFinalFinal
       !! Path to export for final charge state
       !! in the final positions
-    character(len=300), intent(in) :: outputDir
-      !! Path to store energy tables
 
     ! Local variables:
     logical :: abortExecution
@@ -205,7 +200,7 @@ module energyTabulatorMod
     abortExecution = checkDirInitialization('exportDirFinalInit', exportDirFinalInit, 'input') .or. abortExecution
     abortExecution = checkDirInitialization('exportDirFinalFinal', exportDirFinalFinal, 'input') .or. abortExecution
 
-    call system('mkdir -p '//trim(outputDir))
+    call system('mkdir -p '//trim(energyTableDir))
 
 
     if(abortExecution) then
@@ -323,7 +318,7 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine writeEnergyTable(CBMorVBMBand, iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-        eTotInitInit, eTotFinalInit, eTotFinalFinal, exportDirEigs, outputDir)
+        eTotInitInit, eTotFinalInit, eTotFinalFinal, energyTableDir, exportDirEigs)
   
     implicit none
     
@@ -355,10 +350,10 @@ module energyTabulatorMod
       !! Total energy of the relaxed final charge
       !! state (final positions)
 
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy tables
     character(len=300), intent(in) :: exportDirEigs
       !! Path to export for system to get eigenvalues
-    character(len=300), intent(in) :: outputDir
-      !! Path to store energy tables
 
     ! Local variables:
     integer :: ibi, ibf
@@ -407,7 +402,7 @@ module energyTabulatorMod
     
     write(*, '(" Writing energy table of k-point ", i2, " and spin ", i1, ".")') ikGlobal, isp
     
-    open(17, file=trim(outputDir)//"/energyTable."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
+    open(17, file=trim(energyTableDir)//"/energyTable."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
     
     text = "# Total number of <f|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
     write(17,'(a, " Format : ''(5i10)''")') trim(text)
@@ -594,5 +589,55 @@ module energyTabulatorMod
     return
     
   end subroutine readEigenvalues
+  
+!----------------------------------------------------------------------------
+  subroutine readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, order, energyTableDir, dE)
+    !! Read all energies from energy table and store in dE
+    
+    use miscUtilities, only: ignoreNextNLinesFromFile, int2str
+    
+    implicit none
+    
+    ! Input variables:
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+    integer, intent(in) :: ikGlobal
+      !! Current global k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+    integer, intent(in) :: order
+      !! Order of matrix element (0 or 1)
+
+    character(len=300) :: energyTableDir
+      !! Path to energy table
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal,4)
+      !! All energy differences from energy table
+
+    ! Local variables:
+    integer :: ibi, ibf
+      !! Loop indices
+    integer :: iDum
+      !! Dummy integer to ignore input
+    
+    
+    open(27, file=trim(energyTableDir)//"/energyTable."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
+    
+    call ignoreNextNLinesFromFile(27,8)
+    
+    do ibf = iBandFinit, iBandFfinal
+      do ibi = iBandIinit, iBandIfinal
+      
+        read(27,*) iDum, iDum, dE(ibf,ibi,:)
+          
+      enddo
+    enddo
+    
+    close(27)
+    
+    return
+    
+  end subroutine readEnergyTable
 
 end module energyTabulatorMod

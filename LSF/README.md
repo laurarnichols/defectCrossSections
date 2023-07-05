@@ -17,11 +17,12 @@ The `LSF` input file for the zeroth-order should look like
 &inputParams
 
  order = 0
+
+ iSpin = integer ! Spin channel of interest
  
- ! Use the spin channel that the carrier of interest is in
- EInput   = 'path-to-energy-table-for-spin-and-k-of-interest-including-file-name' 
- MifInput = 'path-to-matrix-element-for-spin-and-k-of-interest-including-file-name' 
- SjInput  = 'path-to-Sj-output/Sj.out' 
+ energyTableDir   = 'path-to-energy-tables' 
+ matrixElementDir = 'path-to-matrix-element-files' 
+ SjInput          = 'path-to-Sj-output/Sj.out' 
 
  outputDir = 'path-to-store-transition-rates'
 
@@ -49,13 +50,14 @@ The `LSF` input file for the first-order should look like
 &inputParams
 
  order = 1
+
+ iSpin = integer ! Spin channel of interest
  
- ! Use the spin channel that the carrier of interest is in
- EInput   = 'path-to-energy-table-for-spin-and-k-of-interest-including-file-name' 
- MifInput = 'path-to-matrix-element-for-spin-and-k-of-interest-within-subdir-including-file-name' 
- MjDir    = 'path-to-main-dir-for-first-order-matrix-elements'
- prefix   = 'prefix-on-each-subdir-for-matrix-element-calculation'
- SjInput  = 'path-to-Sj-output/Sj.out' 
+ energyTableDir   = 'path-to-energy-tables' 
+ matrixElementDir = 'path-to-matrix-element-files' 
+ MjBaseDir        = 'path-to-main-dir-for-first-order-matrix-elements'
+ prefix           = 'prefix-on-each-subdir-for-matrix-element-calculation'
+ SjInput          = 'path-to-Sj-output/Sj.out' 
 
  outputDir = 'path-to-store-transition-rates'
 
@@ -74,8 +76,3 @@ The `LSF` input file for the first-order should look like
 
 _Note: Do not alter the `&inputParams` or `/` lines at the beginning and end of the file. They represent a namelist and fortran will not recognize the group of variables without this specific format_
 
-The file name for each matrix element is calculated as 
-```f90
-fName = trim(MjDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(MifInput)
-```
-where `j` is the index for the phonon mode.

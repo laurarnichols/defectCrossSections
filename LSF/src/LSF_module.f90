@@ -1,7 +1,12 @@
-module LSF0mod
+module LSFmod
   
   use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ, ii, hbar, THzToHz, kB, BohrToMeter, elecMToKg
+  use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, order
+  use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName
+  use miscUtilities, only: int2strLeadZero, int2str
   use errorsAndMPI
+
+  use energyTabulatorMod, only: energyTableDir, readEnergyTable
 
   implicit none 
 
@@ -12,19 +17,15 @@ module LSF0mod
     !! process to complete
 
 
-  integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-    !! Energy band bounds for initial and final state
+  integer :: iSpin
+    !! Spin channel to use
   integer :: nModes
     !! Number of phonon modes
-  integer :: order
-    !! Order to calculate (0 or 1)
 
   real(kind=dp) :: beta
     !! 1/kb*T
-  real(kind=dp), allocatable :: dEDelta(:,:)
-    !! Energy for delta function
-  real(kind=dp), allocatable :: dEPlot(:)
-    !! Energy for plotting
+  real(kind=dp), allocatable :: dE(:,:,:)
+    !! All energy differences from energy table
   real(kind=dp) :: dt
     !! Time step size
   real(kind=dp) :: gamma0
@@ -47,13 +48,11 @@ module LSF0mod
     !! exponential used to calculate max time
   real(kind=dp) :: temperature
 
-  character(len=300) :: EInput
-    !! Path to energy table to read
-  character(len=300) :: MifInput
+  character(len=300) :: matrixElementDir
     !! Path to matrix element file `allElecOverlap.isp.ik`. 
     !! For first-order term, the path is just within each 
     !! subdirectory.
-  character(len=300) :: MjDir
+  character(len=300) :: MjBaseDir
     !! Path to the base directory for the first-order
     !! matrix element calculations
   character(len=300) :: outputDir
@@ -68,20 +67,22 @@ module LSF0mod
     !! output exactly in transition rate file
 
 
-  namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, MifInput, MjDir, SjInput, &
-                        temperature, hbarGamma, dt, smearingExpTolerance, outputDir, order, prefix
+  namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, energyTableDir, matrixElementDir, MjBaseDir, SjInput, &
+                        temperature, hbarGamma, dt, smearingExpTolerance, outputDir, order, prefix, iSpin
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, beta, dt, gamma0, hbarGamma, maxTime, &
-        smearingExpTolerance, temperature, EInput, MifInput, MjDir, outputDir, prefix, SjInput)
+  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, &
+        smearingExpTolerance, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
     ! Output variables
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(out) :: iSpin
+      !! Spin channel to use
     integer, intent(out) :: order
       !! Order to calculate (0 or 1)
 
@@ -101,13 +102,13 @@ contains
       !! exponential used to calculate max time
     real(kind=dp), intent(out) :: temperature
 
-    character(len=300), intent(out) :: EInput
+    character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
-    character(len=300), intent(out) :: MifInput
+    character(len=300), intent(out) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
       !! subdirectory.
-    character(len=300), intent(out) :: MjDir
+    character(len=300), intent(out) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
     character(len=300), intent(out) :: outputDir
@@ -119,8 +120,8 @@ contains
       !! Path to Sj.out file
 
   
-    call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
-          MifInput, MjDir, outputDir, prefix, SjInput)
+    call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
+          matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     if(ionode) then
 
@@ -128,11 +129,11 @@ contains
         !! * Read input variables
 
     
-      if(ierr /= 0) call exitError('LSF0 main', 'reading inputParams namelist', abs(ierr))
+      if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
-            MifInput, MjDir, outputDir, prefix, SjInput)
+      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
+            matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
       dt = dt/THzToHz
 
@@ -150,6 +151,8 @@ contains
     call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(iSpin, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
   
     call MPI_BCAST(beta, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -160,9 +163,9 @@ contains
     call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   
-    call MPI_BCAST(EInput, len(EInput), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(MifInput, len(MifInput), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(MjDir, len(MjDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(MjBaseDir, len(MjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(SjInput, len(SjInput), MPI_CHARACTER, root, worldComm, ierr)
@@ -172,14 +175,16 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, EInput, &
-        MifInput, MjDir, outputDir, prefix, SjInput)
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
+        matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
     ! Output variables
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(out) :: iSpin
+      !! Spin channel to use
     integer, intent(out) :: order
       !! Order to calculate (0 or 1)
 
@@ -193,13 +198,13 @@ contains
       !! exponential used to calculate max time
     real(kind=dp), intent(out) :: temperature
 
-    character(len=300), intent(out) :: EInput
+    character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
-    character(len=300), intent(out) :: MifInput
+    character(len=300), intent(out) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
       !! subdirectory.
-    character(len=300), intent(out) :: MjDir
+    character(len=300), intent(out) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
     character(len=300), intent(out) :: outputDir
@@ -221,6 +226,7 @@ contains
     iBandIfinal = -1
     iBandFinit  = -1
     iBandFfinal = -1
+    iSpin = 1
     order = -1
 
     dt = 1d-6
@@ -228,9 +234,9 @@ contains
     smearingExpTolerance = 0.0_dp
     temperature = 0.0_dp
 
-    EInput = ''
-    MifInput = ''
-    MjDir = ''
+    energyTableDir = ''
+    matrixElementDir = ''
+    MjBaseDir = ''
     SjInput = ''
     outputDir = './'
     prefix = 'disp-'
@@ -239,7 +245,7 @@ contains
 
     if(ionode) then
 
-      write(*, '(/5X,"LSF0 starts on ",A9," at ",A9)') &
+      write(*, '(/5X,"LSF starts on ",A9," at ",A9)') &
              cdate, ctime
 
       write(*, '(/5X,"Parallel version (MPI), running on ",I5," processors")') nProcs
@@ -252,14 +258,16 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, dt, hbarGamma, smearingExpTolerance, temperature, &
-        EInput, MifInput, MjDir, outputDir, prefix, SjInput)
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, &
+        energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
     ! Input variables
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(in) :: iSpin
+      !! Spin channel to use
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
@@ -273,13 +281,13 @@ contains
       !! exponential used to calculate max time
     real(kind=dp), intent(in) :: temperature
 
-    character(len=300), intent(in) :: EInput
+    character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
-    character(len=300), intent(in) :: MifInput
+    character(len=300), intent(in) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
       !! subdirectory.
-    character(len=300), intent(in) :: MjDir
+    character(len=300), intent(in) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
     character(len=300), intent(in) :: outputDir
@@ -291,6 +299,10 @@ contains
       !! Path to Sj.out file
 
     ! Local variables:
+    character(len=300) :: fName
+      !! File name for matrix element file to get
+      !! nKPoints from 
+
     logical :: abortExecution
       !! Whether or not to abort the execution
 
@@ -299,6 +311,7 @@ contains
     abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
+    abortExecution = checkIntInitialization('iSpin', iSpin, 1, 2) .or. abortExecution 
     abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution 
 
     abortExecution = checkDoubleInitialization('dt', dt, 1.0d-10, 1.0d-4) .or. abortExecution
@@ -309,16 +322,31 @@ contains
       ! hard and fast, but you should think about the application of the theory
       ! to numbers outside these ranges.
 
-    abortExecution = checkFileInitialization('EInput', EInput) .or. abortExecution
+    abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(iSpin))//'.1') .or. abortExecution
     abortExecution = checkFileInitialization('SjInput', SjInput) .or. abortExecution
 
     if(order == 0) then 
-      abortExecution = checkFileInitialization('MifInput', MifInput) .or. abortExecution
+      abortExecution = checkDirInitialization('matrixElementDir', matrixElementDir, getMatrixElementFName(1,iSpin)) .or. abortExecution
+
+      fName = getMatrixElementFNameWPath(1,iSpin,matrixElementDir)
+
     else if(order == 1) then
-      abortExecution = checkDirInitialization('MjDir', MjDir, '/'//trim(prefix)//'0001/'//trim(MifInput)) .or. abortExecution
+
+      abortExecution = checkDirInitialization('MjBaseDir', MjBaseDir, &
+            '/'//trim(prefix)//'0001/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))) .or. abortExecution
       write(*,'("prefix = ''",a,"''")') trim(prefix)
-      write(*,'("MifInput = ''",a,"''")') trim(MifInput)
+      write(*,'("matrixElementDir = ''",a,"''")') trim(matrixElementDir)
+
+      fName = trim(MjBaseDir)//'/'//trim(prefix)//'0001/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))
+
     endif
+
+    open(unit=12,file=trim(fName))
+    read(12,*)
+    read(12,*) nKPoints
+    close(12)
+
+    write(*,'("nKPoints = ", i10)') nKPoints
 
     call system('mkdir -p '//trim(outputDir))
 
@@ -393,80 +421,7 @@ contains
   end subroutine readSj
 
 !----------------------------------------------------------------------------
-  subroutine readEnergy(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, EInput, dEDelta, dEPlot)
-
-    use miscUtilities, only: ignoreNextNLinesFromFile
-  
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
-
-    character(len=300), intent(in) :: EInput
-      !! Path to energy table to read
-
-    ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: dEDelta(:,:)
-      !! Energy for delta function
-    real(kind=dp), allocatable, intent(out) :: dEPlot(:)
-      !! Energy for plotting
-
-    ! Local variables:
-    integer :: iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
-      !! Band bounds from energy table
-    integer :: iDum
-      !! Dummy integer
-    integer :: ibi, ibf
-      !! Loop indices
-
-    real(kind=dp) :: rDum
-      !! Dummy real
-
-    logical :: abortExecution
-      !! If the program should end
-
-
-    if(ionode) then
-      open(12,file=trim(EInput))
-
-      read(12,*)
-      read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
-        ! @todo Test these values against the input values
-
-      call ignoreNextNLinesFromFile(12,6)
-
-    endif
-      
-    allocate(dEDelta(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
-    allocate(dEPlot(iBandIinit:iBandIfinal))
-
-    if(ionode) then
-
-      do ibf = iBandFinit, iBandFfinal
-        do ibi = iBandIinit, iBandIfinal
-
-          read(12,*) iDum, iDum, dEDelta(ibf,ibi), rDum, rDum, dEPlot(ibi) ! in Hartree
-
-        enddo
-      enddo
-
-      dEDelta(:,:) = dEDelta(:,:)*HartreeToJ
-      dEPlot(:) = dEPlot(:)*HartreeToEv
-
-      close(12)
-
-    endif
-
-    call MPI_BCAST(dEDelta, size(dEDelta), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(dEPlot, size(dEPlot), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-
-    return
-
-  end subroutine readEnergy
-
-!----------------------------------------------------------------------------
-  subroutine readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, MifInput, matrixElement, volumeLine)
+  subroutine readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement, volumeLine)
 
     implicit none
 
@@ -476,9 +431,8 @@ contains
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
-    character(len=300), intent(in) :: MifInput
-      !! Path to zeroth-order matrix element file
-      !! `allElecOverlap.isp.ik`
+    character(len=300), intent(in) :: fName
+      !! Path to matrix element file `allElecOverlap.isp.ik`
 
     ! Output variables:
     real(kind=dp), intent(out) :: matrixElement(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
@@ -500,51 +454,51 @@ contains
       !! Dummy real
 
 
-    if(ionode) then
-      open(12,file=trim(MifInput))
+    open(12,file=trim(fName))
 
-      read(12,'(a)') volumeLine
+    read(12,*)
+    read(12,*)
 
-      read(12,*)
-      read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
-        ! @todo Test these values against the input values
-      read(12,*)
+    read(12,'(a)') volumeLine
 
-      if(order == 1) read(12,*)
-        ! Ignore additional line for phonon mode 
+    read(12,*)
+    read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
+      ! @todo Test these values against the input values
+    read(12,*)
 
-    endif
+    if(order == 1) read(12,*)
+      ! Ignore additional line for phonon mode 
       
 
-    if(ionode) then
+    do ibf = iBandFinit, iBandFfinal
+      do ibi = iBandIinit, iBandIfinal
 
-      do ibf = iBandFinit, iBandFfinal
-        do ibi = iBandIinit, iBandIfinal
+        read(12,*) iDum, iDum, rDum, rDum, rDum, matrixElement(ibf,ibi) ! in Hartree^2
 
-          read(12,*) iDum, iDum, rDum, rDum, rDum, matrixElement(ibf,ibi) ! in Hartree^2
-
-        enddo
       enddo
+    enddo
 
-      matrixElement(:,:) = matrixElement(:,:)*HartreeToJ**2
+    matrixElement(:,:) = matrixElement(:,:)*HartreeToJ**2
 
-      close(12)
-
-    endif
+    close(12)
 
     return
 
   end subroutine readMatrixElement
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, mDim, order, nModes, dEDelta, &
-        dEPlot, gamma0, matrixElement, temperature, volumeLine)
+  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, mDim, order, nModes, dE, &
+        gamma0, matrixElement, nj, temperature, volumeLine)
     
     implicit none
 
     ! Input variables:
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(in) :: ikGlobal
+      !! K-point index
+    integer, intent(in) :: iSpin
+      !! Spin index
     integer, intent(in) :: mDim
       !! Size of first dimension for matrix element
     integer, intent(in) :: nModes
@@ -552,25 +506,19 @@ contains
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
-    !real(kind=dp), intent(in) :: beta
-      ! 1/kb*T
-    real(kind=dp), intent(in) :: dEDelta(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
-      !! Energy for delta function
-    real(kind=dp), intent(in) :: dEPlot(iBandIinit:iBandIfinal)
-      !! Energy for plotting
+    real(kind=dp), intent(in) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal,4)
+      !! All energy differences from energy table
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(in) :: matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
       !! Electronic matrix element
+    real(kind=dp), intent(in) :: nj(nModes)
+      !! \(n_j\) occupation number
     real(kind=dp), intent(in) :: temperature
 
     character(len=300), intent(in) :: volumeLine
       !! Volume line from overlap file to be
       !! output exactly in transition rate file
-
-    ! Output variables:
-    !real(kind=dp), allocatable, intent(out) :: nj(:)
-      ! \(n_j\) occupation number
 
     ! Local variables:
     integer :: iTime, ibi, ibf
@@ -579,7 +527,7 @@ contains
       !! Frequency of steps to write status update
 
     real(kind=dp) :: Eif
-      !! Local storage of dEDelta(ibi,ibf)
+      !! Local storage of energy for delta function
     real(kind=dp) :: expPrefactor_t1, expPrefactor_t2
       !! Prefactor for the exponential inside the integral.
       !! For zeroth-order, this is just the matrix element,
@@ -600,9 +548,6 @@ contains
     complex(kind=dp) :: expArg_t1, expArg_t2
       !! Exponential argument for each time step
 
-
-    allocate(nj(nModes))
-    nj(:) = 1.0_dp/(exp(hbar*omega(:)*beta) - 1.0_dp)
       
     updateFrequency = ceiling(nStepsLocal/10.0)
     call cpu_time(timer1)
@@ -620,7 +565,7 @@ contains
       if(ionode .and. (mod(iTime,updateFrequency) == 0 .or. mod(iTime+1,updateFrequency) == 0)) then
 
         call cpu_time(timer2)
-        write(*,'(i2,"% complete with transition-rate loop. Time in loop: ",f10.2," secs")') iTime*100/nStepsLocal, timer2-timer1
+        write(*,'("    ", i2,"% complete with transition-rate loop. Time in loop: ",f10.2," secs")') iTime*100/nStepsLocal, timer2-timer1
 
       endif
 
@@ -645,7 +590,7 @@ contains
             expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t2)
           endif
 
-          Eif = dEDelta(ibf,ibi)
+          Eif = dE(ibf,ibi,1)
 
           expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
           expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
@@ -688,7 +633,7 @@ contains
           expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t2)
         endif
 
-        Eif = dEDelta(ibf,ibi)
+        Eif = dE(ibf,ibi,1)
 
         expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
         expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
@@ -704,12 +649,12 @@ contains
       enddo
     enddo
 
-    call mpiSumDoubleV(transitionRate, worldComm)
-      ! Combine results from all processes
+    call mpiSumDoubleV(transitionRate, intraPoolComm)
+      ! Combine results from all processes in pool
 
-    if(ionode) then
+    if(indexInPool == 0) then
 
-      open(unit=37, file=trim(outputDir)//'transitionRate.txt')
+      open(unit=37, file=trim(outputDir)//'transitionRate.'//trim(int2str(iSpin))//"."//trim(int2str(ikGlobal)))
 
       write(37,'(a)') trim(volumeLine)
 
@@ -729,8 +674,12 @@ contains
       endif        
 
       do ibi = iBandIinit, iBandIfinal
-        write(37,'(i10, f10.5,ES24.14E3)') ibi, dEPlot(ibi), transitionRate(ibi)
+        write(37,'(i10, f10.5,ES24.14E3)') ibi, dE(iBandFinit,ibi,4), transitionRate(ibi)
+          ! Plotting energy doesn't depend on final band, so
+          ! just pick one
       enddo
+
+      write(*, '("  Transition rate of k-point ", i4, " and spin ", i1, " written.")') ikGlobal, iSpin
 
     endif
 
@@ -838,5 +787,26 @@ contains
     prefactor = sum(matrixElement(:)*Aj_t(:))
 
   end function getFirstOrderPrefactor
+  
+!----------------------------------------------------------------------------
+  function transitionRateFileExists(ikGlobal, isp) result(fileExists)
+    
+    implicit none
+    
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Current global k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
 
-end module LSF0mod
+    ! Output variables:
+    logical :: fileExists
+      !! If the overlap file exists for the given 
+      !! k-point and spin channel
+
+
+    inquire(file=trim(outputDir)//'transitionRate.'//trim(int2str(iSpin))//"."//trim(int2str(ikGlobal)), exist=fileExists)
+    
+  end function transitionRateFileExists
+
+end module LSFmod

@@ -1,5 +1,5 @@
-program transitionMatrixElements
-  use declarations
+program TMEmain
+  use TMEmod
   
   implicit none
   
@@ -10,14 +10,12 @@ program transitionMatrixElements
     !! If `allElecOverlap.isp.ik` files exist
     !! for both spin channels at the current 
     !! k-point
-  logical :: spin1Exists = .false.
-    !! If `allElecOverlap.1.ik` file exists
-    !! for spin channel 1 at the current 
-    !! k-point
-  logical :: thisSpinChannelExists = .false.
-    !! If `allElecOverlap.isp.ik` file exists
-    !! for single spin channel at the current 
-    !! k-point
+  logical :: spin1Read = .false.
+    !! If spin channel 1 at the current k-point
+    !! was read from a file. Tells us if we need
+    !! to read/calculate some things  for the second
+    !! that are normally done for the first channel
+    !! only
 
   character(len=300) :: ikC
     !! Character index
@@ -94,9 +92,11 @@ program transitionMatrixElements
     
     if(indexInPool == 0) then
 
-      do isp = 1, nSpins
-        call checkIfCalculated(ikGlobal, isp, bothSpinChannelsExist)
-      enddo
+      if(nSpins == 1) then
+        bothSpinChannelsExist = overlapFileExists(ikGlobal, 1)
+      else if(nSpins == 2) then
+        bothSpinChannelsExist = overlapFileExists(ikGlobal, 1) .and. overlapFileExists(ikGlobal, 2)
+      endif
       
     endif
     
@@ -170,15 +170,7 @@ program transitionMatrixElements
         !-----------------------------------------------------------------------------------------------
         !> Check if the `allElecOverlap.isp.ik` file exists
 
-        if(indexInPool == 0) then
-
-          call checkIfCalculated(ikGlobal, isp, thisSpinChannelExists)
-      
-        endif
-    
-        call MPI_BCAST(thisSpinChannelExists, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
-
-        if(thisSpinChannelExists) then
+        if(overlapFileExists(ikGlobal, isp)) then
 
           if(indexInPool == 0) then
 
@@ -186,7 +178,7 @@ program transitionMatrixElements
 
           endif
 
-          spin1Exists = .true.
+          spin1Read = .true.
     
         else
 
@@ -197,10 +189,10 @@ program transitionMatrixElements
           call cpu_time(t1)
 
 
-          if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
+          if(isp == 1 .or. nSpinsPC == 2 .or. spin1Read) &
             call readWfc('PC', iBandIinit, iBandIfinal, iGkStart_poolPC, ikGlobal, min(isp,nSpinsPC), nGkVecsLocalPC, npwsPC(ikGlobal), wfcPC)
         
-          if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
+          if(isp == 1 .or. nSpinsSD == 2 .or. spin1Read) &
             call readWfc('SD', iBandFinit, iBandFfinal, iGkStart_poolSD, ikGlobal, min(isp,nSpinsSD), nGkVecsLocalSD, npwsSD(ikGlobal), wfcSD)
         
           call calculatePWsOverlap(ikLocal, isp)
@@ -214,7 +206,7 @@ program transitionMatrixElements
           !-----------------------------------------------------------------------------------------------
           !> Calculate cross projections
 
-          if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
+          if(isp == 1 .or. nSpinsSD == 2 .or. spin1Read) &
             call calculateCrossProjection(iBandFinit, iBandFfinal, ikGlobal, nGkVecsLocalPC, nGkVecsLocalSD, nProjsPC, betaPC, wfcSD, cProjBetaPCPsiSD)
 
           if(isp == nSpins) then
@@ -223,7 +215,7 @@ program transitionMatrixElements
           endif
 
 
-          if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
+          if(isp == 1 .or. nSpinsPC == 2 .or. spin1Read) &
             call calculateCrossProjection(iBandIinit, iBandIfinal, ikGlobal, nGkVecsLocalSD, nGkVecsLocalPC, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
         
           if(isp == nSpins) then
@@ -240,7 +232,7 @@ program transitionMatrixElements
           !-----------------------------------------------------------------------------------------------
           !> Have process 0 in each pool calculate the PAW wave function correction for PC
 
-          if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
+          if(isp == 1 .or. nSpinsPC == 2 .or. spin1Read) &
             call readProjections('PC', iBandIinit, iBandIfinal, ikGlobal, min(isp,nSpinsPC), nProjsPC, cProjPC)
 
           if(indexInPool == 0) then
@@ -255,7 +247,7 @@ program transitionMatrixElements
           !-----------------------------------------------------------------------------------------------
           !> Have process 1 in each pool calculate the PAW wave function correction for PC
 
-          if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
+          if(isp == 1 .or. nSpinsSD == 2 .or. spin1Read) &
             call readProjections('SD', iBandFinit, iBandFfinal, ikGlobal, min(isp,nSpinsSD), nProjsSD, cProjSD)
 
           if(indexInPool == 1) then
@@ -281,7 +273,7 @@ program transitionMatrixElements
           !-----------------------------------------------------------------------------------------------
           !> Have all processes calculate the PAW k correction
       
-          if(isp == 1 .or. nSpinsPC == 2 .or. spin1Exists) &
+          if(isp == 1 .or. nSpinsPC == 2 .or. spin1Read) &
             call pawCorrectionK('PC', nIonsPC, TYPNIPC, JMAX, nGVecsLocal, numOfTypesPC, numOfTypes, posIonPC, gCart, Ylm, atomsPC, atoms, pawKPC)
 
           if(isp == nSpins) then
@@ -289,7 +281,7 @@ program transitionMatrixElements
           endif
       
 
-          if(isp == 1 .or. nSpinsSD == 2 .or. spin1Exists) &
+          if(isp == 1 .or. nSpinsSD == 2 .or. spin1Read) &
             call pawCorrectionK('SD', nIonsSD, TYPNISD, JMAX, nGVecsLocal, numOfTypes, numOfTypes, posIonSD, gCart, Ylm, atoms, atoms, pawSDK)
 
           if(isp == nSpins) then
@@ -357,4 +349,4 @@ program transitionMatrixElements
   
   call MPI_FINALIZE(ierr)
   
-end program transitionMatrixElements
+end program TMEmain

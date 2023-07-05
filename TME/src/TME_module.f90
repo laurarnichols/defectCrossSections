@@ -1,35 +1,15 @@
-module declarations
+module TMEmod
   use constants, only: dp, pi, sq4pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
+  use energyTabulatorMod, only: energyTableDir, readEnergyTable
+  use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, nSpins, order
+
   use errorsAndMPI
   use mpi
   
   implicit none
 
-  ! Global variables not passed as arguments:
-  integer :: iGkStart_poolPC, iGkEnd_poolPC, iGkStart_poolSD, iGkEnd_poolSD
-    !! Start and end G+k vector for process in pool
-  integer :: iGStart_pool, iGEnd_pool
-    !! Start and end G-vector for process in pool
-  integer :: ikStart_pool, ikEnd_pool
-    !! Start and end k-points in pool
-  integer :: indexInPool
-    !! Process index within pool
-  integer :: intraPoolComm = 0
-    !! Intra-pool communicator
-  integer :: interPoolComm = 0
-    !! Intra-pool communicator
-  integer :: myPoolId
-    !! Pool index for this process
-  integer :: nkPerPool
-    !! Number of k-points in each pool
-  integer :: nPools = 1
-    !! Number of pools for k-point parallelization
-  integer :: nProcPerPool
-    !! Number of processes per pool
 
-
-  ! Variables that should be passed as arguments:
   real(kind=dp) :: dq_j
     !! \(\delta q_j) for displaced wave functions
     !! (only order = 1)
@@ -54,14 +34,8 @@ module declarations
     !! Local number of G-vectors
   integer :: nGkVecsLocalPC, nGkVecsLocalSD
     !! Local number of G+k vectors on this processor
-  integer :: nKPoints
-    !! Total number of k-points
-  integer :: nSpins
-    !! Max number of spins for both systems
   integer :: nSpinsPC, nSpinsSD
     !! Number of spins for PC/SD system
-  integer :: order
-    !! Order of matrix element (0 or 1)
   integer :: phononModeJ
     !! Index of phonon mode for the calculation
     !! of \(M_j\) (only for order=1)
@@ -77,8 +51,6 @@ module declarations
   
   character(len=300) :: dqFName
     !! File name for generalized-coordinate norms
-  character(len=300) :: energyTableDir
-    !! Path to energy table
   character(len=300) :: exportDirSD, exportDirPC
     !! Paths to exports for SD (left) and PC (right) 
     !! systems to use for wave function overlaps <SD|PC>
@@ -88,7 +60,7 @@ module declarations
   character(len = 300) :: input, inputPC, textDum, elementsPath
   character(len = 320) :: mkdir
   
-  integer :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ik, ki, kf, ig, ibi, ibf
+  integer :: ik, ki, kf, ig, ibi, ibf
   integer :: JMAX, iTypes, iPn
   integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
   integer :: numOfTypes, nBands, nProjsSD
@@ -146,147 +118,6 @@ module declarations
   
 contains
 
-!----------------------------------------------------------------------------
-  subroutine getCommandLineArguments()
-    !! Get the command line arguments. This currently
-    !! only processes the number of pools
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Output variables:
-    !integer, intent(out) :: nPools
-      ! Number of pools for k-point parallelization
-
-
-    ! Local variables:
-    integer :: narg = 0
-      !! Arguments processed
-    integer :: nargs
-      !! Total number of command line arguments
-    integer :: nPools_ = 1
-      !! Number of k point pools for parallelization
-
-    character(len=256) :: arg = ' '
-      !! Command line argument
-    character(len=256) :: command_line = ' '
-      !! Command line arguments that were not processed
-
-
-    nargs = command_argument_count()
-      !! * Get the number of arguments input at command line
-
-    call MPI_BCAST(nargs, 1, MPI_INTEGER, root, worldComm, ierr)
-
-    if(ionode) then
-
-      call get_command_argument(narg, arg)
-        !! Ignore executable
-      narg = narg + 1
-
-      do while (narg <= nargs)
-        call get_command_argument(narg, arg)
-          !! * Get the flag
-          !! @note
-          !!  This program only currently processes the number of pools,
-          !!  represented by `-nk`/`-nPools`/`-nPoolss`. All other flags 
-          !!  will be ignored.
-          !! @endnote
-
-        narg = narg + 1
-
-        !> * Process the flag and store the following value
-        select case (trim(arg))
-          case('-nk', '-nPools', '-nPoolss') 
-            call get_command_argument(narg, arg)
-            read(arg, *) nPools_
-            narg = narg + 1
-          case default
-            command_line = trim(command_line) // ' ' // trim(arg)
-        end select
-      enddo
-
-      !> Write out unprocessed command line arguments, if there are any
-      if(len_trim(command_line) /= 0) then
-        write(*,*) 'Unprocessed command line arguments: ' // trim(command_line)
-      endif
-
-    endif
-
-    call MPI_BCAST(nPools_, 1, MPI_INTEGER, root, worldComm, ierr)
-    if(ierr /= 0) call mpiExitError(8005)
-
-    nPools = nPools_
-
-    return
-  end subroutine getCommandLineArguments
-
-!----------------------------------------------------------------------------
-  subroutine setUpPools()
-    !! Split up processors between pools and generate MPI
-    !! communicators for pools
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    implicit none
-
-    ! Input variables:
-    !integer, intent(in) :: myid
-      ! ID of this process
-    !integer, intent(in) :: nPools
-      ! Number of pools for k-point parallelization
-    !integer, intent(in) :: nProcs
-      ! Number of processes
-
-
-    ! Output variables:
-    !integer, intent(out) :: intraPoolComm = 0
-      ! Intra-pool communicator
-    !integer, intent(out) :: indexInPool
-      ! Process index within pool
-    !integer, intent(out) :: myPoolId
-      ! Pool index for this process
-    !integer, intent(out) :: nProcPerPool
-      ! Number of processes per pool
-
-
-    if(nPools < 1 .or. nPools > nProcs) call exitError('mpiInitialization', &
-      'invalid number of pools, out of range', 1)
-      !! * Verify that the number of pools is between 1 and the number of processes
-
-    if(mod(nProcs, nPools) /= 0) call exitError('mpiInitialization', &
-      'invalid number of pools, mod(nProcs,nPools) /=0 ', 1)
-      !! * Verify that the number of processes is evenly divisible by the number of pools
-
-    nProcPerPool = nProcs / nPools
-      !! * Calculate how many processes there are per pool
-
-    myPoolId = myid / nProcPerPool
-      !! * Get the pool index for this process
-
-    indexInPool = mod(myid, nProcPerPool)
-      !! * Get the index of the process within the pool
-
-    call MPI_BARRIER(worldComm, ierr)
-    if(ierr /= 0) call mpiExitError(8007)
-
-    call MPI_COMM_SPLIT(worldComm, myPoolId, myid, intraPoolComm, ierr)
-    if(ierr /= 0) call mpiExitError(8008)
-      !! * Create intra-pool communicator
-
-    call MPI_BARRIER(worldComm, ierr)
-    if(ierr /= 0) call mpiExitError(8009)
-
-    call MPI_COMM_SPLIT(worldComm, indexInPool, myid, interPoolComm, ierr)
-    if(ierr /= 0) call mpiExitError(8010)
-      !! * Create inter-pool communicator
-
-    return
-  end subroutine setUpPools
-  
 !----------------------------------------------------------------------------
   subroutine readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
 
@@ -1011,7 +842,7 @@ contains
   end subroutine readInputSD
   
 !----------------------------------------------------------------------------
-  subroutine checkIfCalculated(ikGlobal, isp, tmes_file_exists)
+  function overlapFileExists(ikGlobal, isp) result(fileExists)
     
     implicit none
     
@@ -1022,15 +853,14 @@ contains
       !! Current spin channel
 
     ! Output variables:
-    logical, intent(out) :: tmes_file_exists
-      !! If the current overlap file exists
+    logical :: fileExists
+      !! If the overlap file exists for the given 
+      !! k-point and spin channel
 
 
-    inquire(file=trim(elementsPath)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), exist = tmes_file_exists)
+    inquire(file=trim(getMatrixElementFNameWPath(ikGlobal, isp, elementsPath)), exist=fileExists)
     
-    return
-    
-  end subroutine checkIfCalculated
+  end function overlapFileExists
 
 !----------------------------------------------------------------------------
   subroutine getFullPWGrid(iGStart_pool, iGEnd_pool, nGVecsLocal, nGVecsGlobal, mill_local)
@@ -1770,7 +1600,7 @@ contains
     integer :: totalNumberOfElements
       !! Total number of overlaps to output
 
-    real(kind=dp) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal)
+    real(kind=dp) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal,4)
       !! Energy difference to be combined with
       !! overlap for matrix element
     
@@ -1780,8 +1610,11 @@ contains
 
     ikGlobal = ikLocal+ikStart_pool-1
     
-    open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
+    open(17, file=trim(getMatrixElementFNameWPath(ikGlobal, isp, elementsPath)), status='unknown')
     
+    write(17, '("# Total number of k-points, k-point index, spin index Format : ''(3i10)''")')
+    write(17,'(3i10)') nKPoints, ikGlobal, isp
+
     write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
     
     text = "# Total number of <f|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
@@ -1801,20 +1634,20 @@ contains
       write(17,'("# Phonon mode j, dq_j (Bohr*sqrt(elec. mass)). Format: ''(a78, i7, ES24.15E3)'' ", i7, ES24.15E3)') phononModeJ, dq_j
     
       text = "# Final Band, Initial Band, Complex <f|i>, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2/(Bohr*sqrt(elec. mass))^2)" 
-      write(17, '(a, " Format : ''(2i10,3ES24.15E3)''")') trim(text)
+      write(17, '(a, " Format : ''(2i7,4ES24.15E3)''")') trim(text)
 
     endif
 
 
-    call readEnergyTable(ikGlobal, isp, order, dE)
+    call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, order, energyTableDir, dE)
 
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
         
         if(order == 0) then
-          write(17, 1001) ibf, ibi, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE(ibf,ibi)*Ufi(ibf,ibi,ikLocal,isp))**2
+          write(17, 1001) ibf, ibi, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE(ibf,ibi,2)*Ufi(ibf,ibi,ikLocal,isp))**2
         else if(order == 1) then
-          write(17, 1001) ibf, ibi, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE(ibf,ibi)*Ufi(ibf,ibi,ikLocal,isp)/dq_j)**2
+          write(17, 1001) ibf, ibi, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE(ibf,ibi,3)*Ufi(ibf,ibi,ikLocal,isp)/dq_j)**2
         endif
             
       enddo
@@ -1832,58 +1665,6 @@ contains
   end subroutine writeResults
   
 !----------------------------------------------------------------------------
-  subroutine readEnergyTable(ikGlobal, isp, order, dE)
-    
-    use miscUtilities, only: ignoreNextNLinesFromFile
-    
-    implicit none
-    
-    ! Input variables:
-    integer, intent(in) :: ikGlobal
-      !! Current global k-point
-    integer, intent(in) :: isp
-      !! Current spin channel
-    integer, intent(in) :: order
-      !! Order of matrix element (0 or 1)
-
-    ! Output variables:
-    real(kind=dp) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal)
-      !! Energy difference to be combined with
-      !! overlap for matrix element
-
-    ! Local variables:
-    
-    integer :: ibi, ibf, totalNumberOfElements, iDum, i
-    real(kind = dp) :: rDum, dEIn
-    complex(kind = dp):: cUfi
-    character(len=300) :: line
-
-    
-    open(27, file=trim(energyTableDir)//"/energyTable."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
-    
-    read(27, *) 
-    read(27,'(5i10)') totalNumberOfElements, iDum, iDum, iDum, iDum
-    call ignoreNextNLinesFromFile(27,6)
-    
-    do i = 1, totalNumberOfElements
-      
-      if(order == 0) then
-        read(27,*) ibf, ibi, rDum, dEIn, rDum, rDum
-      else if(order == 1) then
-        read(27,*) ibf, ibi, rDum, rDum, dEIn, rDum
-      endif
-
-      dE(ibf,ibi) = dEIn
-          
-    enddo
-    
-    close(27)
-    
-    return
-    
-  end subroutine readEnergyTable
-  
-!----------------------------------------------------------------------------
   subroutine readUfis(ikLocal,isp)
     
     implicit none
@@ -1898,19 +1679,24 @@ contains
     integer :: ikGlobal
       !! Current global k-point
     
-    integer :: ibi, ibf, totalNumberOfElements, iDum, i
+    integer :: ibi, ibf, totalNumberOfElements, i
     real(kind = dp) :: rDum
     complex(kind = dp):: cUfi
 
 
     ikGlobal = ikLocal+ikStart_pool-1
-    
-    open(17, file=trim(elementsPath)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
-    
-    read(17, *) 
-    read(17, *) 
-    read(17,'(5i10)') totalNumberOfElements, iDum, iDum, iDum, iDum
-    read(17, *) 
+
+    open(17, file=trim(getMatrixElementFNameWPath(ikGlobal, isp, elementsPath)), status='unknown')
+
+    read(17,*) 
+    read(17,*) 
+    read(17,*) 
+    read(17,*) 
+    read(17,*) totalNumberOfElements
+    read(17,*) 
+
+    if(order == 1) read(17,*)
+      ! Ignore additional line for phonon mode 
     
     do i = 1, totalNumberOfElements
       
@@ -1921,9 +1707,9 @@ contains
     
     close(17)
     
-    write(*, '("    Ufi(:,:) of k-point ", i4, " and spin ", i1, " read from file.")') ikGlobal, isp
+    write(*,'("    Ufi(:,:) of k-point ", i4, " and spin ", i1, " read from file.")') ikGlobal, isp
     
- 1001 format(2i10,4ES24.15E3)
+ 1001 format(2i7,4ES24.15E3)
     
     return
     
@@ -2483,5 +2269,51 @@ contains
     
   end subroutine finalizeCalculation
   
+!----------------------------------------------------------------------------
+  function getMatrixElementFNameWPath(ikGlobal, isp, path) result(fName)
+
+    use miscUtilities, only: int2str, int2strLeadZero
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Current global k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    character(*), intent(in) :: path
+      !! Path to matrix element file
+
+    ! Output variables:
+    character(len=300) :: fName
+      !! Matrix element file name
+
+
+    fName = trim(path)//"/allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
+
+  end function getMatrixElementFNameWPath
   
-end module declarations
+!----------------------------------------------------------------------------
+  function getMatrixElementFName(ikGlobal, isp) result(fName)
+
+    use miscUtilities, only: int2str, int2strLeadZero
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Current global k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Output variables:
+    character(len=300) :: fName
+      !! Matrix element file name
+
+
+    fName = "allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
+
+  end function getMatrixElementFName
+  
+end module TMEmod
