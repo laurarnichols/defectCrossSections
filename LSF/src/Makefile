@@ -3,6 +3,7 @@
 
 # location of needed modules
 MODFLAGS= -I$(CommonModules_srcPath) -I$(EnergyTabulator_srcPath) -I$(TME_srcPath) -I.
+DEBUGFLAGS= -check -traceback
 
 LSF_OBJS = LSF_module.o LSF_main.o
 COMMONMODS = $(CommonModules_srcPath)/commonmodules.a $(EnergyTabulator_srcPath)/EnergyTabulator_module.o $(TME_srcPath)/TME_module.o
