@@ -95,15 +95,15 @@ program LSFmain
 
   do ikLocal = 1, nkPerPool
     
-    if(ionode) write(*,'("Beginning k-point loop ", i4, " of ", i4)') ikLocal, nkPerPool
-    
     ikGlobal = ikLocal+ikStart_pool-1
       !! Get the global `ik` index from the local one
 
     if(transitionRateFileExists(ikGlobal, iSpin)) then
       if(indexInPool == 0 ) &
-        write(*, '("  Transition rate of k-point ", i4, " and spin ", i1, " already exists.")') ikGlobal, iSpin
+        write(*, '("Transition rate of k-point ", i4, " and spin ", i1, " already exists.")') ikGlobal, iSpin
     else
+    
+      if(ionode) write(*,'("Beginning k-point loop ", i4, " of ", i4)') ikLocal, nkPerPool
 
       if(ionode) write(*, '("  Reading energy tables")')
 
