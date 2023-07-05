@@ -101,7 +101,8 @@ program LSFmain
       !! Get the global `ik` index from the local one
 
     if(transitionRateFileExists(ikGlobal, iSpin)) then
-      write(*, '("  Transition rate of k-point ", i4, " and spin ", i1, " already exists.")') ikGlobal, iSpin
+      if(indexInPool == 0 ) &
+        write(*, '("  Transition rate of k-point ", i4, " and spin ", i1, " already exists.")') ikGlobal, iSpin
     else
 
       if(ionode) write(*, '("  Reading energy tables")')
