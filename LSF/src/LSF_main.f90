@@ -82,7 +82,7 @@ program LSFmain
     !! * Distribute k-points in pools
 
 
-  allocate(dE(4,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
+  allocate(dE(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,4))
 
   if(order == 0) then
     mDim = 1
@@ -111,7 +111,7 @@ program LSFmain
 
         call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, order, energyTableDir, dE)
 
-        dE(1:3,:,:) = dE(1:3,:,:)*HartreeToJ
+        dE(:,:,1:3) = dE(:,:,1:3)*HartreeToJ
           ! First 3 columns are in Hartree. Last is in eV,
           ! but we want to leave it that way just for output.
 

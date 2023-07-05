@@ -506,7 +506,7 @@ contains
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
-    real(kind=dp), intent(in) :: dE(4,iBandFinit:iBandFfinal,iBandIinit:iBandIFinal)
+    real(kind=dp), intent(in) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal,4)
       !! All energy differences from energy table
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
@@ -590,7 +590,7 @@ contains
             expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t2)
           endif
 
-          Eif = dE(1,ibf,ibi)
+          Eif = dE(ibf,ibi,1)
 
           expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
           expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
@@ -633,7 +633,7 @@ contains
           expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t2)
         endif
 
-        Eif = dE(1,ibf,ibi)
+        Eif = dE(ibf,ibi,1)
 
         expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
         expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
@@ -674,7 +674,7 @@ contains
       endif        
 
       do ibi = iBandIinit, iBandIfinal
-        write(37,'(i10, f10.5,ES24.14E3)') ibi, dE(4,iBandFinit,ibi), transitionRate(ibi)
+        write(37,'(i10, f10.5,ES24.14E3)') ibi, dE(iBandFinit,ibi,4), transitionRate(ibi)
           ! Plotting energy doesn't depend on final band, so
           ! just pick one
       enddo
