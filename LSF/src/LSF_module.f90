@@ -454,40 +454,33 @@ contains
       !! Dummy real
 
 
-    if(indexInPool == 0) then
-      open(12,file=trim(fName))
+    open(12,file=trim(fName))
 
-      read(12,*)
-      read(12,*)
+    read(12,*)
+    read(12,*)
 
-      read(12,'(a)') volumeLine
+    read(12,'(a)') volumeLine
 
-      read(12,*)
-      read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
-        ! @todo Test these values against the input values
-      read(12,*)
+    read(12,*)
+    read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
+      ! @todo Test these values against the input values
+    read(12,*)
 
-      if(order == 1) read(12,*)
-        ! Ignore additional line for phonon mode 
-
-    endif
+    if(order == 1) read(12,*)
+      ! Ignore additional line for phonon mode 
       
 
-    if(indexInPool == 0) then
+    do ibf = iBandFinit, iBandFfinal
+      do ibi = iBandIinit, iBandIfinal
 
-      do ibf = iBandFinit, iBandFfinal
-        do ibi = iBandIinit, iBandIfinal
+        read(12,*) iDum, iDum, rDum, rDum, rDum, matrixElement(ibf,ibi) ! in Hartree^2
 
-          read(12,*) iDum, iDum, rDum, rDum, rDum, matrixElement(ibf,ibi) ! in Hartree^2
-
-        enddo
       enddo
+    enddo
 
-      matrixElement(:,:) = matrixElement(:,:)*HartreeToJ**2
+    matrixElement(:,:) = matrixElement(:,:)*HartreeToJ**2
 
-      close(12)
-
-    endif
+    close(12)
 
     return
 

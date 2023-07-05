@@ -107,7 +107,15 @@ program LSFmain
 
       if(ionode) write(*, '("  Reading energy tables")')
 
-      if(indexInPool == 0) call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, order, energyTableDir, dE)
+      if(indexInPool == 0) then
+
+        call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, order, energyTableDir, dE)
+
+        dE(1:3,:,:) = dE(1:3,:,:)*HartreeToJ
+          ! First 3 columns are in Hartree. Last is in eV,
+          ! but we want to leave it that way just for output.
+
+      endif
 
       call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
 
@@ -115,32 +123,34 @@ program LSFmain
       if(ionode) write(*, '("  Reading matrix elements")')
 
     
-      if(order == 0) then
-        ! Read zeroth-order matrix element
+      if(indexInPool == 0) then
+        if(order == 0) then
+          ! Read zeroth-order matrix element
 
-        fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
+          fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
 
-        call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(1,:,:), volumeLine)
+          call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(1,:,:), volumeLine)
 
-      else if(order == 1) then
-        ! Read matrix elements for all modes
+        else if(order == 1) then
+          ! Read matrix elements for all modes
     
-        do j = 1, nModes
+          do j = 1, nModes
 
-          fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
+            fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
 
-          call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(j,:,:), volumeLine)
-            ! The volume line will get overwritten each time, but that's
-            ! okay because the volume doesn't change between the files. 
+            call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(j,:,:), volumeLine)
+              ! The volume line will get overwritten each time, but that's
+              ! okay because the volume doesn't change between the files. 
 
-        enddo
+          enddo
 
-        matrixElement(:,:,:) = matrixElement(:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
-          ! Shifter program outputs dq in Bohr*sqrt(elecM), and that
-          ! dq is directly used by TME to get the matrix element, so
-          ! we need to convert to m*sqrt(kg). In the matrix element,
-          ! dq is in the denominator and squared.
+          matrixElement(:,:,:) = matrixElement(:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
+            ! Shifter program outputs dq in Bohr*sqrt(elecM), and that
+            ! dq is directly used by TME to get the matrix element, so
+            ! we need to convert to m*sqrt(kg). In the matrix element,
+            ! dq is in the denominator and squared.
   
+        endif
       endif
 
       call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
