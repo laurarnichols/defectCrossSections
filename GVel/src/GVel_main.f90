@@ -25,6 +25,7 @@ program GVel
 
   ! Get inputs:
   !  * nKPoints
+  !  * iBandInit, iBandFinal
 
   call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
     !! * Distribute k-points in pools
@@ -32,7 +33,7 @@ program GVel
 
   do ikLocal = 1, nkPerPool
   !   For each component:
-  !     For each band:
+      do ib = iBandInit, iBandFinal
   !       * Check for degeneracies until none found
   !         For each degeneracy:
   !           * Pick out the same number of bands on left and right as are degenerate
@@ -49,6 +50,7 @@ program GVel
   !         * If not locked in, check the fit of this point and the point above (not locked in) with the left or right points swapped 
   !         * Choose the one that makes both fits better
   !         * If the fits now meet the tolerance, lock them in
+      enddo
   enddo
 
 end program GVel

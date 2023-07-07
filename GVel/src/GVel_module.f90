@@ -6,4 +6,7 @@ module GVelMod
 
   implicit none
 
+  integer :: iBandInit, iBandFinal
+    !! Initial and final bands
+
 end module GVelMod
