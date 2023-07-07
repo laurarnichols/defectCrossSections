@@ -23,7 +23,12 @@ program GVel
     !!   communicators for pools
 
 
-  ! Get input parameters
+  ! Get inputs:
+  !  * nKPoints
+
+  call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
+    !! * Distribute k-points in pools
+
 
   do ikLocal = 1, nkPerPool
   !   For each component:
