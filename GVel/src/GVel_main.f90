@@ -4,9 +4,28 @@ program GVel
 
   implicit none
 
-  ! Set up parallelization and get input parameters
+  integer :: ikLocal, ikGlobal
+    !! Local and global k-point indices
 
-  ! For each k-point:
+  real(kind=dp) :: t0, t1, t2
+    !! Timers
+
+
+  call cpu_time(t0)
+
+  call mpiInitialization()
+
+  call getCommandLineArguments()
+    !! * Get the number of pools from the command line
+
+  call setUpPools()
+    !! * Split up processors between pools and generate MPI
+    !!   communicators for pools
+
+
+  ! Get input parameters
+
+  do ikLocal = 1, nkPerPool
   !   For each component:
   !     For each band:
   !       * Check for degeneracies until none found
@@ -25,5 +44,6 @@ program GVel
   !         * If not locked in, check the fit of this point and the point above (not locked in) with the left or right points swapped 
   !         * Choose the one that makes both fits better
   !         * If the fits now meet the tolerance, lock them in
+  enddo
 
 end program GVel
