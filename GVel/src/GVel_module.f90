@@ -9,4 +9,9 @@ module GVelMod
   integer :: iBandInit, iBandFinal
     !! Initial and final bands
 
+  real(kind=dp), allocatable :: eigv(:,:,:)
+    !! Eigenvalue for each band, position 
+    !! (left/middle/right), and direction 
+    !! (x/y/z)
+
 end module GVelMod

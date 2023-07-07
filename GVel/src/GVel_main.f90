@@ -4,8 +4,8 @@ program GVel
 
   implicit none
 
-  integer :: ikLocal, ikGlobal
-    !! Local and global k-point indices
+  integer :: ib, ikLocal, ikGlobal
+    !! Loop indices
 
   real(kind=dp) :: t0, t1, t2
     !! Timers
@@ -24,14 +24,24 @@ program GVel
 
 
   ! Get inputs:
-  !  * nKPoints
+  !  * nKPoints (get only number of middle k-points)
   !  * iBandInit, iBandFinal
 
   call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
     !! * Distribute k-points in pools
 
 
+  allocate(eigv(iBandInit:iBandFinal,3,3))
+
   do ikLocal = 1, nkPerPool
+    ! Iterate through middle k-points
+
+    ! call readEigenvalues(eigv)
+      ! Read eigenvalues for this k-point for all positions and directions
+      !
+      ! Assume that only one spin channel because group 
+      ! velocities come from perfect crystal.
+
   !   For each component:
       do ib = iBandInit, iBandFinal
   !       * Check for degeneracies until none found
@@ -52,5 +62,7 @@ program GVel
   !         * If the fits now meet the tolerance, lock them in
       enddo
   enddo
+
+  deallocate(eigv)
 
 end program GVel
