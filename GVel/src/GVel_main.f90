@@ -26,6 +26,7 @@ program GVel
   ! Get inputs:
   !  * nKPoints (get only number of middle k-points)
   !  * iBandInit, iBandFinal
+  !  * degenTol
 
   call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
     !! * Distribute k-points in pools
@@ -47,7 +48,7 @@ program GVel
       nDegen = 1
       do ib = iBandInit, iBandFinal
         
-        if(ib < iBandFinal .and. abs(eigv(ib+1,ix,2) - eigv(ib,ix,2)) < 1e-8) then
+        if(ib < iBandFinal .and. abs(eigv(ib+1,ix,2) - eigv(ib,ix,2)) < degenTol) then
           nDegen = nDegen + 1
         else
 
