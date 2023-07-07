@@ -51,6 +51,7 @@ help :
 	@echo "    make Export_QE-6.3            to built the Quantum Espresso 6.3 dependent Export module."
 	@echo "    make Export_VASP              to built the VASP Export code"
 	@echo "    make EnergyTabulator          to built the energy tabulation code."
+	@echo "    make GVel                     to built the group velocity code."
 	@echo "    make TME                      to built the Transition Matrix Elements (TME) module."
 	@echo "    make PhononPP                 to built the phonon post-processing module."
 	@echo "    make Mj                       to built the Mj module."
@@ -67,6 +68,7 @@ help :
 	@echo "    make cleanPhononPP                 to clean the phonon post-processing module."
 	@echo "    make cleanMj                       to clean the Mj module."
 	@echo "    make cleanEnergyTabulator          to clean the energy tabulation code."
+	@echo "    make cleanGVel                     to clean the group velocity code."
 	@echo "    make cleanTME                      to clean the Transition Matrix Elements (TME) module."
 	@echo "    make cleanLSF                      to clean the Line Shape Function (LSF) module."
 	@echo "    make cleanSigma                    to clean the Cross Section (Sigma) module."
@@ -79,6 +81,7 @@ Export_QE-5.3.0_srcPath = Export/QE/5.3/src
 Export_QE-6.3_srcPath   = Export/QE/6.3/src
 Export_VASP_srcPath     = Export/VASP/src
 EnergyTabulator_srcPath = EnergyTabulator/src
+GVel_srcPath            = GVel/src
 TME_srcPath             = TME/src
 Mj_srcPath              = Mj/src
 LSF_srcPath             = LSF/src
@@ -102,7 +105,7 @@ QE-5.3.0_dependent : initialize Export_QE-5.3.0
 
 QE-6.3_dependent : initialize Export_QE-6.3
 
-base : EnergyTabulator TME LSF Mj PhononPP Sigma
+base : EnergyTabulator GVel TME LSF Mj PhononPP Sigma
 
 initialize :
 
@@ -116,6 +119,7 @@ initialize :
 	echo "Export_QE-6.3_srcPath   = " $(PWD)/$(Export_QE-6.3_srcPath) >> make.sys ; \
 	echo "Export_VASP_srcPath     = " $(PWD)/$(Export_VASP_srcPath) >> make.sys ; \
 	echo "EnergyTabulator_srcPath = " $(PWD)/$(EnergyTabulator_srcPath) >> make.sys ; \
+	echo "GVel_srcPath            = " $(PWD)/$(GVel_srcPath) >> make.sys ; \
 	echo "TME_srcPath             = " $(PWD)/$(TME_srcPath) >> make.sys ; \
 	echo "PhononPP_srcPath        = " $(PWD)/$(PhononPP_srcPath) >> make.sys ; \
 	echo "Mj_srcPath              = " $(PWD)/$(Mj_srcPath) >> make.sys ; \
@@ -165,6 +169,11 @@ EnergyTabulator : initialize
 	@cd $(EnergyTabulator_srcPath) ; \
         	make all
 
+GVel : initialize
+
+	@cd $(GVel_srcPath) ; \
+        	make all
+
 TME : initialize
 
 	@cd $(TME_srcPath) ; \
@@ -198,7 +207,7 @@ clean_all_QE-5.3.0 : cleanExport_QE-5.3.0 cleanBase
 
 clean_all_QE-6.3 : cleanExport_QE-6.3 cleanBase
 
-cleanBase : cleanInitialization cleanEnergyTabulator cleanTME cleanPhononPP cleanMj cleanLSF cleanSigma
+cleanBase : cleanInitialization cleanEnergyTabulator cleanGVel cleanTME cleanPhononPP cleanMj cleanLSF cleanSigma
 
 cleanInitialization :
 
@@ -232,6 +241,11 @@ cleanExport_VASP :
 cleanEnergyTabulator :
 
 	@cd $(EnergyTabulator_srcPath) ; \
+		make clean
+
+cleanGVel :
+
+	@cd $(GVel_srcPath) ; \
 		make clean
 
 cleanTME :
