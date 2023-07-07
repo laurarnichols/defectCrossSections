@@ -4,7 +4,7 @@ program GVel
 
   implicit none
 
-  integer :: ib, ikLocal, ikGlobal
+  integer :: ikLocal, ikGlobal, ib, ix
     !! Loop indices
 
   real(kind=dp) :: t0, t1, t2
@@ -42,16 +42,36 @@ program GVel
       ! Assume that only one spin channel because group 
       ! velocities come from perfect crystal.
 
-  !   For each component:
+    do ix = 1, 3
+
+      nDegen = 1
       do ib = iBandInit, iBandFinal
-  !       * Check for degeneracies until none found
+        
+        if(ib < iBandFinal .and. abs(eigv(ib+1,ix,2) - eigv(ib,ix,2)) < 1e-8) then
+          nDegen = nDegen + 1
+        else
+
+          if(nDegen > 1) then
+            ! If this band is degenerate with others
+
   !         For each degeneracy:
   !           * Pick out the same number of bands on left and right as are degenerate
   !           * Start with assumption that lowest on left goes with highest on right, etc.
   !           * Do linear regression on points 
   !           * Lock in those with good enough fits
+
+          else
+
   !       * For bands not in a degeneracy, start with assumption that bands go straight across
   !       * Lock in those with good enough fits
+
+          endif
+
+          nDegen = 1
+
+        endif
+      enddo
+
   !     * Output degenerate bands info
   !     * Output bands not locked in after first round as potential crossings
   !     While there are bands not locked in or we've done < 5 loops
@@ -60,7 +80,7 @@ program GVel
   !         * If not locked in, check the fit of this point and the point above (not locked in) with the left or right points swapped 
   !         * Choose the one that makes both fits better
   !         * If the fits now meet the tolerance, lock them in
-      enddo
+    enddo
   enddo
 
   deallocate(eigv)
