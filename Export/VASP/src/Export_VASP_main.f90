@@ -92,24 +92,33 @@ program wfcExportVASPMain
     !! * Distribute atoms across processes in band group
 
 
-  call cpu_time(t2)
-  if(ionode) &
-    write(*, '("[X] WAVECAR  [X] vasprun.xml  [ ] Set up grid  [ ] POTCAR (",f7.2," secs)")') &
-          t2-t1
-  call cpu_time(t1)
+  if(.not. energiesOnly) then
+
+    call cpu_time(t2)
+    if(ionode) &
+      write(*, '("[X] WAVECAR  [X] vasprun.xml  [ ] Set up grid  [ ] POTCAR (",f7.2," secs)")') &
+            t2-t1
+    call cpu_time(t1)
+
+    call calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, iMill, nGVecsGlobal, nGVecsLocal)
+      !! * Calculate Miller indices and G-vectors and split
+      !!   over processors
 
 
-  call calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, iMill, nGVecsGlobal, nGVecsLocal)
-    !! * Calculate Miller indices and G-vectors and split
-    !!   over processors
+    call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, wfcVecCut, gKIndexGlobal, &
+        gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, gToGkIndexMap, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
+        nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
+      !! * Determine which G-vectors result in \(G+k\)
+      !!   below the energy cutoff for each k-point and
+      !!   sort the indices based on \(|G+k|^2\)
 
 
-  call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, wfcVecCut, gKIndexGlobal, &
-      gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, gToGkIndexMap, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
-      nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
-    !! * Determine which G-vectors result in \(G+k\)
-    !!   below the energy cutoff for each k-point and
-    !!   sort the indices based on \(|G+k|^2\)
+    deallocate(gIndexLocalToGlobal)
+    deallocate(gKIndexLocalToGlobal)
+    deallocate(gToGkIndexMap)
+    deallocate(gVecInCart)
+    deallocate(nGkLessECutLocal)
+  endif
 
 
   call cpu_time(t2)
@@ -117,13 +126,6 @@ program wfcExportVASPMain
     write(*, '("[X] WAVECAR  [X] vasprun.xml  [X] Set up grid  [ ] POTCAR (",f7.2," secs)")') &
           t2-t1
   call cpu_time(t1)
-
-
-  deallocate(gIndexLocalToGlobal)
-  deallocate(gKIndexLocalToGlobal)
-  deallocate(gToGkIndexMap)
-  deallocate(gVecInCart)
-  deallocate(nGkLessECutLocal)
 
 
   allocate(pot(nAtomTypes))
@@ -139,12 +141,15 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call projAndWav(maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
-      nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
-      recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+  if(.not. energiesOnly) then
+
+    call projAndWav(maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
+        nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
+        recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
 
-  deallocate(nPWs1kGlobal, gKIndexOrigOrderLocal, gKSort, nGkVecsLocal, iGkStart_pool, iGkEnd_pool)
+    deallocate(nPWs1kGlobal, gKIndexOrigOrderLocal, gKSort, nGkVecsLocal, iGkStart_pool, iGkEnd_pool)
+  endif
 
 
   if(ionode) &
@@ -168,6 +173,7 @@ program wfcExportVASPMain
   deallocate(kWeight)
 
 
+
   call writeGridInfo(nGVecsGlobal, nKPoints, nSpins, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
     !! * Write out grid boundaries and miller indices
     !!   for just \(G+k\) combinations below cutoff energy
@@ -182,7 +188,7 @@ program wfcExportVASPMain
   call cpu_time(t1)
       
 
-  deallocate(gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal)
+  if(.not. energiesOnly) deallocate(gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal)
 
 
   call writeCellInfo(iType, nAtoms, nBands, nAtomTypes, realLattVec, recipLattVec, atomPositionsDir)

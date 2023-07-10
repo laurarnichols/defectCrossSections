@@ -3535,14 +3535,20 @@ module wfcExportVASPMod
       write(mainOutFileUnit, '("# ik, nGkLessECutGlobal(ik), wk(ik), xk(1:3,ik). Format: ''(2i10,4ES24.15E3)''")')
       flush(mainOutFileUnit)
 
-      do ik = 1, nKPoints
+      if(energiesOnly) then
+        do ik = 1, nKPoints
     
-        write(mainOutFileUnit, '(2i10,4ES24.15E3)') ik, nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
-        flush(mainOutFileUnit)
-          !! * Write the k-point index, the number of G-vectors, 
-          !!   weight, and position for this k-point
+          write(mainOutFileUnit, '(2i10,4ES24.15E3)') ik, -1, kWeight(ik), kPosition(1:3,ik)
+            ! Skip writing out grid info
 
-      enddo
+        enddo
+      else
+        do ik = 1, nKPoints
+    
+          write(mainOutFileUnit, '(2i10,4ES24.15E3)') ik, nGkLessECutGlobal(ik), kWeight(ik), kPosition(1:3,ik)
+
+        enddo
+      endif
 
     endif
 
@@ -3643,10 +3649,6 @@ module wfcExportVASPMod
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
 
-
-    ! Output variables:
-
-
     ! Local variables:
     integer :: ikLocal, ikGlobal, ig, igk, isp
       !! Loop indices
@@ -3657,56 +3659,69 @@ module wfcExportVASPMod
       !> * Write the global number of G-vectors, the maximum
       !>   G-vector index, and the max/min miller indices
       write(mainOutFileUnit, '("# Number of G-vectors. Format: ''(i10)''")')
-      write(mainOutFileUnit, '(i10)') nGVecsGlobal
+      if(energiesOnly) then
+        write(mainOutFileUnit,'(i10)') -1
+      else
+        write(mainOutFileUnit, '(i10)') nGVecsGlobal
+      endif
     
       write(mainOutFileUnit, '("# Number of PW-vectors. Format: ''(i10)''")')
-      write(mainOutFileUnit, '(i10)') maxGIndexGlobal
+      if(energiesOnly) then
+        write(mainOutFileUnit,'(i10)') -1
+      else
+        write(mainOutFileUnit, '(i10)') maxGIndexGlobal
+      endif
     
       write(mainOutFileUnit, '("# Number of min - max values of fft grid in x, y and z axis. Format: ''(6i10)''")')
-      write(mainOutFileUnit, '(6i10)') minval(gVecMillerIndicesGlobal(1,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobal(1,1:nGVecsGlobal)), &
+      if(energiesOnly) then
+        write(mainOutFileUnit,'(6i10)') -1, -1, -1, -1, -1, -1
+      else
+        write(mainOutFileUnit, '(6i10)') minval(gVecMillerIndicesGlobal(1,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobal(1,1:nGVecsGlobal)), &
                           minval(gVecMillerIndicesGlobal(2,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobal(2,1:nGVecsGlobal)), &
                           minval(gVecMillerIndicesGlobal(3,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobal(3,1:nGVecsGlobal))
-      flush(mainOutFileUnit)
+      endif
 
     endif
     
-    if(indexInPool == 0) then
-      do ikLocal = 1, nKPerPool
-        !! * For each k-point, write out the miller indices
-        !!   resulting in \(G+k\) vectors less than the energy
-        !!   cutoff in a `grid.ik` file
+    if(.not. energiesOnly) then
+      if(indexInPool == 0) then
+        do ikLocal = 1, nKPerPool
+          !! * For each k-point, write out the miller indices
+          !!   resulting in \(G+k\) vectors less than the energy
+          !!   cutoff in a `grid.ik` file
 
-        ikGlobal = ikLocal+ikStart_pool-1
+          ikGlobal = ikLocal+ikStart_pool-1
       
-        open(72, file=trim(exportDir)//"/grid."//trim(int2str(ikGlobal)))
-        write(72, '("# Wave function G-vectors grid")')
+          open(72, file=trim(exportDir)//"/grid."//trim(int2str(ikGlobal)))
+          write(72, '("# Wave function G-vectors grid")')
+          write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
+      
+          do igk = 1, nGkLessECutGlobal(ikGlobal)
+            write(72, '(4i10)') gKIndexGlobal(igk,ikGlobal), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ikGlobal))
+            flush(72)
+          enddo
+      
+          close(72)
+
+        enddo
+
+      endif
+
+      if(ionode) then
+
+        !> * Output all miller indices in `mgrid` file
+        open(72, file=trim(exportDir)//"/mgrid")
+        write(72, '("# Full G-vectors grid")')
         write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
-      
-        do igk = 1, nGkLessECutGlobal(ikGlobal)
-          write(72, '(4i10)') gKIndexGlobal(igk,ikGlobal), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ikGlobal))
+    
+        do ig = 1, nGVecsGlobal
+          write(72, '(4i10)') ig, gVecMillerIndicesGlobal(1:3,ig)
           flush(72)
         enddo
-      
+    
         close(72)
 
-      enddo
-
-    endif
-
-    if(ionode) then
-
-      !> * Output all miller indices in `mgrid` file
-      open(72, file=trim(exportDir)//"/mgrid")
-      write(72, '("# Full G-vectors grid")')
-      write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
-    
-      do ig = 1, nGVecsGlobal
-        write(72, '(4i10)') ig, gVecMillerIndicesGlobal(1:3,ig)
-        flush(72)
-      enddo
-    
-      close(72)
-
+      endif
     endif
 
     return
