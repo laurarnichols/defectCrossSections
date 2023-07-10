@@ -63,13 +63,17 @@ module errorsAndMPI
   contains
 
 !----------------------------------------------------------------------------
-  subroutine mpiInitialization()
+  subroutine mpiInitialization(programName)
     !! Generate MPI processes and communicators 
     !!
     !! <h2>Walkthrough</h2>
     !!
 
     implicit none
+
+    ! Input variables ::
+    character(*) :: programName
+      !! Program name to output with starting message
 
     ! Output variables:
     !integer, intent(out) :: myid
@@ -81,6 +85,12 @@ module errorsAndMPI
 
     !logical, intent(out) :: ionode
       ! If this node is the root node
+
+    ! Local variables:
+    character(len=8) :: cdate
+      !! String for date
+    character(len=10) :: ctime
+      !! String for time
 
 
     call MPI_Init(ierr)
@@ -98,6 +108,17 @@ module errorsAndMPI
 
     ionode = (myid == root)
       ! Set a boolean for if this is the root process
+
+
+    call date_and_time(cdate, ctime)
+
+    if(ionode) then
+
+      write(*, '(/5X,a, " starts on ",A9," at ",A9)') trim(programName), cdate, ctime
+
+      write(*, '(/5X,"Parallel version (MPI), running on ",I5," processors")') nProcs
+
+    endif
 
     return
   end subroutine mpiInitialization

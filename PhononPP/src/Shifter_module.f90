@@ -62,11 +62,6 @@ module shifterMod
     
     implicit none
 
-    ! Input variables:
-    !integer, intent(in) :: nProcs
-      ! Number of processes
-
-
     ! Output variables:
     real(kind=dp), intent(out) :: shift
       !! Magnitude of shift along phonon eigenvectors
@@ -81,29 +76,13 @@ module shifterMod
       !! Prefix for shifted POSCARs
 
 
-    ! Local variables:
-    character(len=8) :: cdate
-      !! String for date
-    character(len=10) :: ctime
-      !! String for time
-
     dqFName = 'dq.txt'
     poscarFName = 'POSCAR'
     phononFName = 'mesh.yaml'
     prefix = 'ph_POSCAR'
     shift = 0.01_dp
 
-    call date_and_time(cdate, ctime)
-
-    if(ionode) then
-
-      write(*, '(/5X,"Phonon post-processing: POSCAR shifter starts on ",A9," at ",A9)') &
-             cdate, ctime
-
-      write(*, '(/5X,"Parallel version (MPI), running on ",I5," processors")') nProcs
-
-
-    endif
+    return
 
   end subroutine initialize
 
