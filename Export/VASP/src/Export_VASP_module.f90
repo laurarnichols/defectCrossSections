@@ -1,6 +1,6 @@
 module wfcExportVASPMod
   
-  use constants, only: dp, iostd, angToBohr, eVToRy, ryToHartree, pi, twopi
+  use constants, only: dp, angToBohr, eVToRy, ryToHartree, pi, twopi
   use base, only: nKPoints, nSpins
   use errorsAndMPI
   use cell
@@ -43,8 +43,6 @@ module wfcExportVASPMod
     !! G-vectors in Cartesian coordinates
   real(kind=dp), allocatable :: bandOccupation(:,:,:)
     !! Occupation of band
-  real(kind=dp) :: tStart
-    !! Start time
   real(kind=dp) :: wfcVecCut
     !! Energy cutoff converted to vector cutoff
   real(kind=dp), allocatable :: kPosition(:,:)
@@ -168,21 +166,9 @@ module wfcExportVASPMod
   contains
 
 !----------------------------------------------------------------------------
-  subroutine initialize(energiesOnly, gammaOnly, exportDir, VASPDir)
-    !! Set the default values for input variables, open output files,
-    !! and start timer
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-    
+  subroutine readInputParams(energiesOnly, gammaOnly, exportDir, VASPDir)
+
     implicit none
-
-    ! Input variables:
-    !integer, intent(in) :: nPools
-      ! Number of pools for k-point parallelization
-    !integer, intent(in) :: nProcs
-      ! Number of processes
-
 
     ! Output variables:
     logical, intent(out) :: energiesOnly
@@ -196,39 +182,101 @@ module wfcExportVASPMod
       !! Directory with VASP files
 
 
-    ! Local variables:
-    character(len=8) :: cdate
-      !! String for date
-    character(len=10) :: ctime
-      !! String for time
-
-    VASPDir = './'
-    exportDir = './Export'
-    energiesOnly = .false.
-    gammaOnly = .false.
-
-    call cpu_time(tStart)
-
-    call date_and_time(cdate, ctime)
-
     if(ionode) then
+    
+      call initialize(energiesOnly, gammaOnly, exportDir, VASPDir)
 
-      write(iostd, '(/5X,"VASP wavefunction export program starts on ",A9," at ",A9)') &
-             cdate, ctime
+      read(5, inputParams, iostat=ierr)
+    
+      if(ierr /= 0) call exitError('readInputParams', 'reading inputParams namelist', abs(ierr))
 
-      write(iostd, '(/5X,"Parallel version (MPI), running on ",I5," processors")') nProcs
-
-      if(nPools > 1) write(iostd, '(5X,"K-points division:     nPools     = ",I7)') nPools
-
-    else
-
-      open(unit = iostd, file='/dev/null', status='unknown')
-        ! Make the iostd unit point to null for non-root processors
-        ! to avoid tons of duplicate output
+      call checkInitialization(energiesOnly, gammaOnly, exportDir, VASPDir)
 
     endif
 
+    call MPI_BCAST(exportDir, len(exportDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(VASPDir, len(VASPDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(energiesOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(gammaOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
+
+    return
+
+  end subroutine readInputParams
+
+!----------------------------------------------------------------------------
+  subroutine initialize(energiesOnly, gammaOnly, exportDir, VASPDir)
+    !! Set the default values for input variables, open output files,
+    !! and start timer
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+    
+    implicit none
+
+    ! Output variables:
+    logical, intent(out) :: energiesOnly
+      !! If only energy-related files should be exported
+    logical, intent(out) :: gammaOnly
+      !! If the gamma only VASP code is used
+
+    character(len=256), intent(out) :: exportDir
+      !! Directory to be used for export
+    character(len=256), intent(out) :: VASPDir
+      !! Directory with VASP files
+
+
+    VASPDir = './'
+    exportDir = './export'
+    energiesOnly = .false.
+    gammaOnly = .false.
+
+    return 
+
   end subroutine initialize
+
+!----------------------------------------------------------------------------
+  subroutine checkInitialization(energiesOnly, gammaOnly, exportDir, VASPDir)
+    
+    implicit none
+
+    ! Output variables:
+    logical, intent(in) :: energiesOnly
+      !! If only energy-related files should be exported
+    logical, intent(in) :: gammaOnly
+      !! If the gamma only VASP code is used
+
+    character(len=256), intent(in) :: exportDir
+      !! Directory to be used for export
+    character(len=256), intent(in) :: VASPDir
+      !! Directory with VASP files
+
+    ! Local variables:
+    logical :: abortExecution
+      !! Whether or not to abort the execution
+
+
+    if(gammaOnly .and. .not. energiesOnly) then
+      write(*,'("ERROR: gamma-only version only currently implemented for exporting energies only")')
+      abortExecution = .true.
+    endif
+
+    abortExecution = checkDirInitialization('VASPDir', VASPDir, 'OUTCAR') .or. abortExecution
+  
+    call execute_command_line('mkdir -p '//trim(exportDir))
+    
+    mainOutputFile = trim(exportDir)//"/input"
+    
+    write(*,*) "Opening file "//trim(mainOutputFile)
+    open(mainOutFileUnit, file=trim(mainOutputFile))
+
+    if(abortExecution) then
+      write(*, '(" Program stops!")')
+      stop
+    endif
+
+    return 
+
+  end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
@@ -305,7 +353,7 @@ module wfcExportVASPMod
         ! Set a starting value for the number of records
 
       open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
-      if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
+      if (ierr .ne. 0) write(*,*) 'open error - iostat =', ierr
         !! * If root node, open the `WAVECAR` file
 
       read(unit=wavecarUnit,rec=1) nRecords_real, nspin_real, prec_real
@@ -321,7 +369,7 @@ module wfcExportVASPMod
       if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
       open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
-      if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
+      if (ierr .ne. 0) write(*,*) 'open error - iostat =', ierr
         !! * Reopen WAVECAR with correct number of records
 
       read(unit=wavecarUnit,rec=2) nkstot_real, nbnd_real, wfcECut,(realLattVec(j,1),j=1,3),&
@@ -355,25 +403,25 @@ module wfcExportVASPMod
       !> * Write out total number of k-points, number of bands, 
       !>   the energy cutoff, the real-space-lattice vectors,
       !>   the cell volume, and the reciprocal lattice vectors
-      write(iostd,*) 'no. k points =', nKPoints
-      write(iostd,*) 'no. bands =', nBands
-      write(iostd,*) 'max. energy (eV) =', sngl(wfcECut)
+      write(*,*) 'no. k points =', nKPoints
+      write(*,*) 'no. bands =', nBands
+      write(*,*) 'max. energy (eV) =', sngl(wfcECut)
         !! @note 
-        !!  The energy cutoff is currently output to the `iostd` file
+        !!  The energy cutoff is currently output to stdout
         !!  in eV to compare with output from WaveTrans.
         !! @endnote
-      write(iostd,*) 'real space lattice vectors:'
-      write(iostd,*) 'a1 =', (sngl(realLattVec(j,1)),j=1,3)
-      write(iostd,*) 'a2 =', (sngl(realLattVec(j,2)),j=1,3)
-      write(iostd,*) 'a3 =', (sngl(realLattVec(j,3)),j=1,3)
-      write(iostd,*) 
-      write(iostd,*) 'volume unit cell =', sngl(omega)
-      write(iostd,*) 
-      write(iostd,*) 'reciprocal lattice vectors:'
-      write(iostd,*) 'b1 =', (sngl(recipLattVec(j,1)),j=1,3)
-      write(iostd,*) 'b2 =', (sngl(recipLattVec(j,2)),j=1,3)
-      write(iostd,*) 'b3 =', (sngl(recipLattVec(j,3)),j=1,3)
-      write(iostd,*) 
+      write(*,*) 'real space lattice vectors:'
+      write(*,*) 'a1 =', (sngl(realLattVec(j,1)),j=1,3)
+      write(*,*) 'a2 =', (sngl(realLattVec(j,2)),j=1,3)
+      write(*,*) 'a3 =', (sngl(realLattVec(j,3)),j=1,3)
+      write(*,*) 
+      write(*,*) 'volume unit cell =', sngl(omega)
+      write(*,*) 
+      write(*,*) 'reciprocal lattice vectors:'
+      write(*,*) 'b1 =', (sngl(recipLattVec(j,1)),j=1,3)
+      write(*,*) 'b2 =', (sngl(recipLattVec(j,2)),j=1,3)
+      write(*,*) 'b3 =', (sngl(recipLattVec(j,3)),j=1,3)
+      write(*,*) 
         !! @note
         !!  I made an intentional choice to stick with the unscaled lattice
         !!  vectors until I see if it will be convenient to scale them down.
@@ -460,8 +508,8 @@ module wfcExportVASPMod
     b2mag = sqrt(sum(recipLattVec(:,2)**2))
     b3mag = sqrt(sum(recipLattVec(:,3)**2))
 
-    write(iostd,*) 'reciprocal lattice vector magnitudes:'
-    write(iostd,*) sngl(b1mag),sngl(b2mag),sngl(b3mag)
+    write(*,*) 'reciprocal lattice vector magnitudes:'
+    write(*,*) sngl(b1mag),sngl(b2mag),sngl(b3mag)
       !! * Calculate and output reciprocal vector magnitudes
 
 
@@ -515,8 +563,8 @@ module wfcExportVASPMod
     fftGridSize(2) = 2*nb2max + 1
     fftGridSize(3) = 2*nb3max + 1
 
-    write(iostd,*) 'max. no. G values; 1,2,3 =', nb1max, nb2max, nb3max
-    write(iostd,*) ' '
+    write(*,*) 'max. no. G values; 1,2,3 =', nb1max, nb2max, nb3max
+    write(*,*) ' '
 
     return
   end subroutine estimateMaxNumPlanewaves
@@ -578,7 +626,7 @@ module wfcExportVASPMod
 
     if(ionode) then
       open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
-      if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
+      if (ierr .ne. 0) write(*,*) 'open error - iostat =', ierr
 
       irec=2
 
@@ -1784,7 +1832,7 @@ module wfcExportVASPMod
       fileName = trim(VASPDir)//'/POTCAR'
 
       open(unit=potcarUnit, file=fileName, iostat=ierr, status='old')
-      if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
+      if (ierr .ne. 0) write(*,*) 'open error - iostat =', ierr
         !! * If root node, open the `POTCAR` file
 
       do iT = 1, nAtomTypes
@@ -2208,7 +2256,7 @@ module wfcExportVASPMod
       fileName = trim(VASPDir)//'/WAVECAR'
 
       open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old', SHARED)
-      if (ierr .ne. 0) write(iostd,*) 'open error - iostat =', ierr
+      if (ierr .ne. 0) write(*,*) 'open error - iostat =', ierr
 
     endif
 

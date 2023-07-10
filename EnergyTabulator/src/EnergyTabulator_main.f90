@@ -13,7 +13,7 @@ program energyTabulatorMain
 
   call cpu_time(t0)
 
-  call mpiInitialization()
+  call mpiInitialization('EnergyTabulator')
 
   call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
         energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)

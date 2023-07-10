@@ -11,7 +11,7 @@ program shifterMain
 
   call cpu_time(t0)
 
-  call mpiInitialization()
+  call mpiInitialization('Shifter')
 
   call initialize(shift, dqFName, phononFName, poscarFName, prefix)
     !! * Set default values for input variables and start timers

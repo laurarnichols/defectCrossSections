@@ -102,12 +102,6 @@ module energyTabulatorMod
       !! Path to export for final charge state
       !! in the final positions
 
-    ! Local variables:
-    character(len=8) :: cdate
-      !! String for date
-    character(len=10) :: ctime
-      !! String for time
-
 
     iBandIinit  = -1
     iBandIfinal = -1
@@ -125,18 +119,6 @@ module energyTabulatorMod
     exportDirInitInit = ''
     exportDirFinalInit = ''
     exportDirFinalFinal = ''
-
-    call date_and_time(cdate, ctime)
-
-    if(ionode) then
-
-      write(*, '(/5X,"Energy tabulator starts on ",A9," at ",A9)') &
-             cdate, ctime
-
-      write(*, '(/5X,"Parallel version (MPI), running on ",I5," processors")') nProcs
-
-
-    endif
 
   end subroutine initialize
 
