@@ -38,7 +38,7 @@ program wfcExportVASPMain
     !! * Split up processors between pools and generate MPI
     !!   communicators for pools
 
-  call initialize(gammaOnly, exportDir, VASPDir)
+  call initialize(energiesOnly, gammaOnly, exportDir, VASPDir)
     !! * Set default values for input variables, open output file,
     !!   and start timers
 
@@ -64,6 +64,7 @@ program wfcExportVASPMain
 
   call MPI_BCAST(exportDir, len(exportDir), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(VASPDir, len(VASPDir), MPI_CHARACTER, root, worldComm, ierr)
+  call MPI_BCAST(energiesOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
   call MPI_BCAST(gammaOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
 
   if(ionode) &

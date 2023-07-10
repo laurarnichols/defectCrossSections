@@ -115,6 +115,8 @@ module wfcExportVASPMod
   integer :: nRecords
     !! Number of records in WAVECAR file
 
+  logical :: energiesOnly
+    !! If only energy-related files should be exported
   logical :: gammaOnly
     !! If the gamma only VASP code is used
   
@@ -160,13 +162,13 @@ module wfcExportVASPMod
 
   type (potcar), allocatable :: pot(:)
 
-  namelist /inputParams/ VASPDir, exportDir, gammaOnly
+  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine initialize(gammaOnly, exportDir, VASPDir)
+  subroutine initialize(energiesOnly, gammaOnly, exportDir, VASPDir)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -183,6 +185,8 @@ module wfcExportVASPMod
 
 
     ! Output variables:
+    logical, intent(out) :: energiesOnly
+      !! If only energy-related files should be exported
     logical, intent(out) :: gammaOnly
       !! If the gamma only VASP code is used
 
@@ -200,6 +204,7 @@ module wfcExportVASPMod
 
     VASPDir = './'
     exportDir = './Export'
+    energiesOnly = .false.
     gammaOnly = .false.
 
     call cpu_time(tStart)
