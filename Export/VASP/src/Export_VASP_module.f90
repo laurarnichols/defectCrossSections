@@ -117,6 +117,9 @@ module wfcExportVASPMod
     !! If only energy-related files should be exported
   logical :: gammaOnly
     !! If the gamma only VASP code is used
+  logical :: groupForGroupVelocity
+    !! If there are groups of k-points for group
+    !! velocity calculation
   
   character(len=256) :: exportDir
     !! Directory to be used for export
@@ -160,13 +163,13 @@ module wfcExportVASPMod
 
   type (potcar), allocatable :: pot(:)
 
-  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly
+  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(energiesOnly, gammaOnly, exportDir, VASPDir)
+  subroutine readInputParams(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
 
     implicit none
 
@@ -175,6 +178,9 @@ module wfcExportVASPMod
       !! If only energy-related files should be exported
     logical, intent(out) :: gammaOnly
       !! If the gamma only VASP code is used
+    logical, intent(out) :: groupForGroupVelocity
+      !! If there are groups of k-points for group
+      !! velocity calculation
 
     character(len=256), intent(out) :: exportDir
       !! Directory to be used for export
@@ -184,13 +190,13 @@ module wfcExportVASPMod
 
     if(ionode) then
     
-      call initialize(energiesOnly, gammaOnly, exportDir, VASPDir)
+      call initialize(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
 
       read(5, inputParams, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading inputParams namelist', abs(ierr))
 
-      call checkInitialization(energiesOnly, gammaOnly, exportDir, VASPDir)
+      call checkInitialization(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
 
     endif
 
@@ -198,18 +204,14 @@ module wfcExportVASPMod
     call MPI_BCAST(VASPDir, len(VASPDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energiesOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(gammaOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(groupForGroupVelocity, 1, MPI_LOGICAL, root, worldComm, ierr)
 
     return
 
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(energiesOnly, gammaOnly, exportDir, VASPDir)
-    !! Set the default values for input variables, open output files,
-    !! and start timer
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
+  subroutine initialize(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
     
     implicit none
 
@@ -218,6 +220,9 @@ module wfcExportVASPMod
       !! If only energy-related files should be exported
     logical, intent(out) :: gammaOnly
       !! If the gamma only VASP code is used
+    logical, intent(out) :: groupForGroupVelocity
+      !! If there are groups of k-points for group
+      !! velocity calculation
 
     character(len=256), intent(out) :: exportDir
       !! Directory to be used for export
@@ -229,13 +234,14 @@ module wfcExportVASPMod
     exportDir = './export'
     energiesOnly = .false.
     gammaOnly = .false.
+    groupForGroupVelocity = .false.
 
     return 
 
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(energiesOnly, gammaOnly, exportDir, VASPDir)
+  subroutine checkInitialization(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
     
     implicit none
 
@@ -244,6 +250,9 @@ module wfcExportVASPMod
       !! If only energy-related files should be exported
     logical, intent(in) :: gammaOnly
       !! If the gamma only VASP code is used
+    logical, intent(in) :: groupForGroupVelocity
+      !! If there are groups of k-points for group
+      !! velocity calculation
 
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
@@ -3872,7 +3881,7 @@ module wfcExportVASPMod
   end subroutine writePseudoInfo
 
 !----------------------------------------------------------------------------
-  subroutine writeEigenvalues(nBands, nKPoints, nSpins, eFermi, eTot, bandOccupation, eigenE)
+  subroutine writeEigenvalues(nBands, nKPoints, nSpins, eFermi, eTot, bandOccupation, eigenE, groupForGroupVelocity)
     !! Write Fermi energy and eigenvalues and occupations for each band
 
     use miscUtilities
@@ -3897,13 +3906,16 @@ module wfcExportVASPMod
     complex*16, intent(in) :: eigenE(nSpins,nKPoints,nBands)
       !! Band eigenvalues
 
-
-    ! Output variables:
-
+    logical, intent(in) :: groupForGroupVelocity
+      !! If there are groups of k-points for group
+      !! velocity calculation
 
     ! Local variables:
     integer :: ik, ib, isp
       !! Loop indices
+    integer :: nKGroups
+      !! Number of k-point groups if grouping for
+      !! group velocity calculation
 
 
     if(ionode) then
@@ -3925,15 +3937,46 @@ module wfcExportVASPMod
           do ib = 1, nBands
 
             write(72, '(2ES24.15E3)') real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(isp,ib,ik)
-            flush(72)
 
           enddo
       
           close(72)
-      
         enddo
-
       enddo
+
+      if(groupForGroupVelocity) then
+
+        if(mod(nKPoints,7) /= 0) call exitError('writeEigenvalues', 'groups of 7 k-points expected (base, +/-x, +/- y, +/-z)', 1)
+
+        nKGroups = nKPoints/7
+    
+        do isp = 1, nSpins
+          do ik = 1, nKGroups
+
+            open(72, file=trim(exportDir)//"/groupedEigenvalues."//trim(int2str(isp))//"."//trim(int2str(ik)))
+      
+            write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
+            write(72, '("# Eigenvalues (Hartree) for base, +/-x, +/-y, and +/-z; band occupation number. Format: ''(8ES19.10E3)''")')
+      
+            do ib = 1, nBands
+
+              write(72, '(8ES19.10E3)') &
+                real(eigenE(isp,(ik-1)*7+1,ib))*ryToHartree, & ! base
+                real(eigenE(isp,(ik-1)*7+2,ib))*ryToHartree, & ! +x
+                real(eigenE(isp,(ik-1)*7+3,ib))*ryToHartree, & ! -x
+                real(eigenE(isp,(ik-1)*7+4,ib))*ryToHartree, & ! +y
+                real(eigenE(isp,(ik-1)*7+5,ib))*ryToHartree, & ! -y
+                real(eigenE(isp,(ik-1)*7+6,ib))*ryToHartree, & ! +z
+                real(eigenE(isp,(ik-1)*7+7,ib))*ryToHartree, & ! -z
+                bandOccupation(isp,ib,ik)
+
+            enddo
+      
+            close(72)
+          enddo
+       enddo
+
+      endif
     
     endif
 
