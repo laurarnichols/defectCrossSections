@@ -12,9 +12,12 @@ The input file should look like
 &inputParams
   VASPDir = 'path-to-VASP-output'               ! default './'
   exportDir = 'path-to-put-exported-files'      ! default './Export'
-  gammaOnly = .false.                 ! if gamma-only version of VASP used (not yet fully implemented); default .false.
+  gammaOnly = logical                 ! default .false.
+  energiesOnly = logical              ! default .false.
+  groupForGroupVelocity = logical     ! default .false.
 /
 ```
+VASP has a gamma-only version that makes simplifications on the PW grid. The Export code is not fully integrated with those assumptions, but it can still be used to export the energy-related values (`energiesOnly`). The `energiesOnly` option is helpful if getting accurate energies from HSE calculations so that the gamma-only version can be used. It is also helpful for group-velocity calculations where multiple k-points are needed for each original k-point to get the derivative of the energy bands with respect to k in each direction. Both positive and negative displacements are needed in each direction to determine if/where band crossings occur. The `groupForGroupVelocity` option assumes that the input k-points are in the order base, +/-x, +/-y, and +/-z. The `Export` code will output a `groupedEigenvalues.isp.ik` where `ik` is the index of the base k-point. The eigenvalues are output for each band in the same order as the k-points. It is assumed that there are 7 k-points per group.
 
 The output files are
 * `eigenvalues.isp.ik` -- eigenvalues for each band for given spin channel and k-point
