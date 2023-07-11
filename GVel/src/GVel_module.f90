@@ -6,6 +6,8 @@ module GVelMod
 
   implicit none
 
+  integer, allocatable :: bandL(:), bandR(:)
+    !! Indices of left and right bands
   integer :: iBandInit, iBandFinal
     !! Initial and final bands
   integer :: nDegen

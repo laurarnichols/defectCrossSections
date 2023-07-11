@@ -4,7 +4,7 @@ program GVel
 
   implicit none
 
-  integer :: ikLocal, ikGlobal, ib, ix
+  integer :: ikLocal, ikGlobal, ib, ix, ibd, iDegen
     !! Loop indices
 
   real(kind=dp) :: t0, t1, t2
@@ -13,7 +13,7 @@ program GVel
 
   call cpu_time(t0)
 
-  call mpiInitialization()
+  call mpiInitialization('GVel')
 
   call getCommandLineArguments()
     !! * Get the number of pools from the command line
@@ -33,6 +33,8 @@ program GVel
 
 
   allocate(eigv(iBandInit:iBandFinal,3,3))
+  allocate(bandL(iBandInit:iBandFinal))
+  allocate(bandR(iBandInit:iBandFinal))
 
   do ikLocal = 1, nkPerPool
     ! Iterate through middle k-points
@@ -45,30 +47,61 @@ program GVel
 
     do ix = 1, 3
 
-      nDegen = 1
-      do ib = iBandInit, iBandFinal
-        
-        if(ib < iBandFinal .and. abs(eigv(ib+1,ix,2) - eigv(ib,ix,2)) < degenTol) then
-          nDegen = nDegen + 1
-        else
+      ib = iBandInit
+      do while(ib <= iBandFinal)
 
-          if(nDegen > 1) then
-            ! If this band is degenerate with others
+        ibd = ib + 1
+
+        ! Find any degenerate bands in this group
+        do while(ibd <= iBandFinal .and. abs(eigv(ibd,ix,2) - eigv(ib,ix,2) < degenTol))
+          ibd = ibd + 1
+        enddo
+
+        nDegen = ibd - ib
+
+        if(nDegen == 1) then
+          ! If there are no degeneracies for this band,
+          ! assume that the band goes straight across
+
+          bandL(ib) = ib
+          bandR(ib) = ib
+
+  !       * Lock in those with good enough fits
+          
+        else
+          ! If there are degeneracies, assume that bands
+          ! form a fan, where lowest bands on one side
+          ! correspond to highest bands on the other side
+          !
+          ! NOTE: I am not sure how bands should be assigned
+          ! here so that they properly line up with bands in
+          ! other directions. Still waiting on guidance from
+          ! Sok and Xiaoguang on how that should work.
+
+          ! Need to handle the case where last band is in 
+          ! degeneracy group
+
+        
+          do iDegen = 1, nDegen
+            bandL(ib+iDegen-1) = ib+iDegen-1
+              ! Left band goes lowest to highest
+            bandR(ib+iDegen-1) = ib+(nDegen-1)-(iDegen-1)
+              ! Right band goes highest to lowest
+          enddo
+
+          ! NOTE: As far as I understand, the degeneracy groups
+          ! will be symmetric, and we don't care about the sign
+          ! of the slope, so the higher side is arbitrary.
+            
 
   !         For each degeneracy:
-  !           * Pick out the same number of bands on left and right as are degenerate
-  !           * Start with assumption that lowest on left goes with highest on right, etc.
   !           * Do linear regression on points 
   !           * Lock in those with good enough fits
 
-          else
 
-  !       * For bands not in a degeneracy, start with assumption that bands go straight across
-  !       * Lock in those with good enough fits
-
-          endif
-
-          nDegen = 1
+          ib = ibd - 1
+            ! Make the outer band loop skip the degenerate bands 
+            ! that have already been handled
 
         endif
       enddo
@@ -85,5 +118,7 @@ program GVel
   enddo
 
   deallocate(eigv)
+  deallocate(bandL)
+  deallocate(bandR)
 
 end program GVel
