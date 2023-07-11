@@ -215,12 +215,6 @@ contains
     character(len=300), intent(out) :: SjInput
       !! Path to Sj.out file
 
-    ! Local variables:
-    character(len=8) :: cdate
-      !! String for date
-    character(len=10) :: ctime
-      !! String for time
-
 
     iBandIinit  = -1
     iBandIfinal = -1
@@ -240,18 +234,6 @@ contains
     SjInput = ''
     outputDir = './'
     prefix = 'disp-'
-
-    call date_and_time(cdate, ctime)
-
-    if(ionode) then
-
-      write(*, '(/5X,"LSF starts on ",A9," at ",A9)') &
-             cdate, ctime
-
-      write(*, '(/5X,"Parallel version (MPI), running on ",I5," processors")') nProcs
-
-
-    endif
 
     return 
 

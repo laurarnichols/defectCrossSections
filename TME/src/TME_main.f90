@@ -21,7 +21,7 @@ program TMEmain
     !! Character index
 
   
-  call mpiInitialization()
+  call mpiInitialization('TME')
     !! Initialize MPI
 
   call getCommandLineArguments()

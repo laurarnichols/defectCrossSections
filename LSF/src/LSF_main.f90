@@ -19,7 +19,7 @@ program LSFmain
 
   call cpu_time(timerStart)
 
-  call mpiInitialization()
+  call mpiInitialization('LSF')
 
   call getCommandLineArguments()
     !! * Get the number of pools from the command line
