@@ -208,8 +208,13 @@ module wfcExportVASPMod
     integer :: ik_g
       !! Loop index
 
-    character(len=300) :: pattern
-      !! Character input for displacement pattern
+    !character(len=300), intent(out) :: pattern
+      ! Character input for displacement pattern
+      ! We only need this to get patternArr, so we 
+      ! don't need to pass it out, but this subroutine
+      ! must have access to the global `pattern` 
+      ! variable because that is what is used in the
+      ! namelist.
 
 
     if(ionode) then
