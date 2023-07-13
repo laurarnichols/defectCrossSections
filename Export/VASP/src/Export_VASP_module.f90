@@ -227,14 +227,6 @@ module wfcExportVASPMod
 
       call checkInitialization(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
-      if(groupForGroupVelocity) then
-        allocate(patternArr(nkPerGroup))
-
-        do ik_g = 1, nkPerGroup
-          read(pattern,*) patternArr(ik_g)
-        enddo
-      endif
-
     endif
 
     call MPI_BCAST(exportDir, len(exportDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -242,8 +234,23 @@ module wfcExportVASPMod
     call MPI_BCAST(energiesOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(gammaOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(groupForGroupVelocity, 1, MPI_LOGICAL, root, worldComm, ierr)
-    call MPI_BCAST(nkPerGroup, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(patternArr, size(patternArr), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+
+    if(groupForGroupVelocity) then
+
+      call MPI_BCAST(nkPerGroup, 1, MPI_INTEGER, root, worldComm, ierr)
+
+      allocate(patternArr(nkPerGroup))
+
+      if(ionode) then
+        do ik_g = 1, nkPerGroup
+          read(pattern,*) patternArr(ik_g)
+        enddo
+      endif
+
+      call MPI_BCAST(patternArr, size(patternArr), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    endif
 
     return
 
