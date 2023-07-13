@@ -38,7 +38,7 @@ program wfcExportVASPMain
     !! * Split up processors between pools and generate MPI
     !!   communicators for pools
 
-  call readInputParams(nkPerGroup, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+  call readInputParams(nkPerGroup, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
     !! * Initialize, read, check, and broadcast input parameters
 
   if(ionode) &
@@ -235,7 +235,7 @@ program wfcExportVASPMain
     !! * Write Fermi energy and eigenvalues and occupations for each band
 
   if(groupForGroupVelocity) then
-    call writeGroupedEigenvalues(nBands, nkPerGroup, nKPoints, nSpins, bandOccupation, patternArr, eigenE)
+    call writeGroupedEigenvalues(nBands, nkPerGroup, nKPoints, nSpins, bandOccupation, patternArr, eigenE, pattern)
     deallocate(patternArr)
   endif
 

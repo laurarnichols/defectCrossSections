@@ -179,7 +179,7 @@ module wfcExportVASPMod
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(nkPerGroup, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+  subroutine readInputParams(nkPerGroup, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
     implicit none
 
@@ -201,20 +201,14 @@ module wfcExportVASPMod
 
     character(len=256), intent(out) :: exportDir
       !! Directory to be used for export
+    character(len=300), intent(out) :: pattern
+      ! Character input for displacement pattern
     character(len=256), intent(out) :: VASPDir
       !! Directory with VASP files
 
     ! Local variables:
     integer :: ik_g
       !! Loop index
-
-    !character(len=300), intent(out) :: pattern
-      ! Character input for displacement pattern
-      ! We only need this to get patternArr, so we 
-      ! don't need to pass it out, but this subroutine
-      ! must have access to the global `pattern` 
-      ! variable because that is what is used in the
-      ! namelist.
 
 
     if(ionode) then
@@ -4010,7 +4004,7 @@ module wfcExportVASPMod
   end subroutine writeEigenvalues
 
 !----------------------------------------------------------------------------
-  subroutine writeGroupedEigenvalues(nBands, nkPerGroup, nKPoints, nSpins, bandOccupation, patternArr, eigenE)
+  subroutine writeGroupedEigenvalues(nBands, nkPerGroup, nKPoints, nSpins, bandOccupation, patternArr, eigenE, pattern)
 
     use miscUtilities, only: int2str
 
@@ -4034,6 +4028,9 @@ module wfcExportVASPMod
 
     complex*16, intent(in) :: eigenE(nSpins,nKPoints,nBands)
       !! Band eigenvalues
+
+    character(len=300), intent(in) :: pattern
+      ! Character input for displacement pattern
 
     ! Local variables
     integer :: ikGroup, ib, isp, ik_g
@@ -4065,18 +4062,13 @@ module wfcExportVASPMod
       
           write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
           write(72,'("# Displacement pattern:")')
-          write(72,*) patternArr
+          write(72,'(a)') trim(pattern)
           write(72, '("# Eigenvalues (Hartree), band occupation number Format: ",a)') trim(formatString)
       
           do ib = 1, nBands
 
-            do ik_g = 1, nkPerGroup
-              write(line,'(ES19.10E3)') real(eigenE(isp,(ikGroup-1)*nkPerGroup+ik_g,ib))*ryToHartree
-            enddo
-
-            write(line,'(ES19.10E3)') bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup)
-
-            write(72,*) trim(line)
+            write(72,formatString) &
+              (real(eigenE(isp,(ikGroup-1)*nkPerGroup+ik_g,ib))*ryToHartree, ik_g=1,nkPerGroup), bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup) 
 
           enddo
       
