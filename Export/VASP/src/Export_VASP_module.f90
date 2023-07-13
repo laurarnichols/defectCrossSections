@@ -17,6 +17,9 @@ module wfcExportVASPMod
     !! Size of non-local pseudopotential grid
   integer, parameter :: wavecarUnit = 72
     !! WAVECAR unit for I/O
+  integer, parameter :: maxNumKPerGroup = 19
+    !! Max number of k-points per group for
+    !! group velocity calculations
 
   real(kind = dp), parameter :: twoPiSquared = (2.0_dp*pi)**2
     !! This is used in place of \(2\pi/a\) which assumes that \(a=1\)
@@ -49,6 +52,9 @@ module wfcExportVASPMod
     !! Position of k-points in reciprocal space
   real(kind=dp), allocatable :: kWeight(:)
     !! Weight of k-points
+  real(kind=dp) :: pattern(maxNumKPerGroup)
+    !! Displacement pattern for groups of
+    !! k-points for group velocity calculations
 
   complex*16, allocatable :: eigenE(:,:,:)
     !! Band eigenvalues
@@ -165,19 +171,23 @@ module wfcExportVASPMod
 
   type (potcar), allocatable :: pot(:)
 
-  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity, nkPerGroup
+  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity, nkPerGroup, pattern
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+  subroutine readInputParams(nkPerGroup, pattern, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
 
     implicit none
 
     ! Output variables:
     integer, intent(out) :: nkPerGroup
       !! Number of k-points per group for group velocity calculations
+      
+    real(kind=dp), intent(out) :: pattern(maxNumKPerGroup)
+      !! Displacement pattern for groups of
+      !! k-points for group velocity calculations
 
     logical, intent(out) :: energiesOnly
       !! If only energy-related files should be exported
@@ -195,13 +205,13 @@ module wfcExportVASPMod
 
     if(ionode) then
     
-      call initialize(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+      call initialize(nkPerGroup, pattern, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
 
       read(5, inputParams, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading inputParams namelist', abs(ierr))
 
-      call checkInitialization(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+      call checkInitialization(nkPerGroup, pattern, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
 
     endif
 
@@ -211,19 +221,24 @@ module wfcExportVASPMod
     call MPI_BCAST(gammaOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(groupForGroupVelocity, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(nkPerGroup, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(pattern, size(pattern), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+  subroutine initialize(nkPerGroup, pattern, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
     
     implicit none
 
     ! Output variables:
     integer, intent(out) :: nkPerGroup
       !! Number of k-points per group for group velocity calculations
+
+    real(kind=dp), intent(out) :: pattern(maxNumKPerGroup)
+      !! Displacement pattern for groups of
+      !! k-points for group velocity calculations
 
     logical, intent(out) :: energiesOnly
       !! If only energy-related files should be exported
@@ -245,19 +260,24 @@ module wfcExportVASPMod
     gammaOnly = .false.
     groupForGroupVelocity = .false.
     nkPerGroup = -1
+    pattern(:) = 0.0_dp 
 
     return 
 
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+  subroutine checkInitialization(nkPerGroup, pattern, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
     
     implicit none
 
     ! Input variables:
     integer, intent(in) :: nkPerGroup
       !! Number of k-points per group for group velocity calculations
+      
+    real(kind=dp), intent(in) :: pattern(maxNumKPerGroup)
+      !! Displacement pattern for groups of
+      !! k-points for group velocity calculations
 
     logical, intent(in) :: energiesOnly
       !! If only energy-related files should be exported
@@ -284,7 +304,10 @@ module wfcExportVASPMod
       abortExecution = .true.
     endif
 
-    if(groupForGroupVelocity) abortExecution = checkIntInitialization('nkPerGroup', nkPerGroup, 1, 19) .or. abortExecution
+    if(groupForGroupVelocity) then
+      abortExecution = checkIntInitialization('nkPerGroup', nkPerGroup, 1, 19) .or. abortExecution
+      write(*,*) pattern(1:nkPerGroup)
+    endif
 
     abortExecution = checkDirInitialization('VASPDir', VASPDir, 'OUTCAR') .or. abortExecution
   
@@ -3898,7 +3921,7 @@ module wfcExportVASPMod
   end subroutine writePseudoInfo
 
 !----------------------------------------------------------------------------
-  subroutine writeEigenvalues(nBands, nkPerGroup, nKPoints, nSpins, eFermi, eTot, bandOccupation, eigenE, groupForGroupVelocity)
+  subroutine writeEigenvalues(nBands, nKPoints, nSpins, bandOccupation, eFermi, eTot, eigenE)
     !! Write Fermi energy and eigenvalues and occupations for each band
 
     use miscUtilities, only: int2str
@@ -3908,33 +3931,24 @@ module wfcExportVASPMod
     ! Input variables:
     integer, intent(in) :: nBands
       !! Total number of bands
-    integer, intent(in) :: nkPerGroup
-      !! Number of k-points per group for group velocity calculations
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     integer, intent(in) :: nSpins
       !! Number of spins
       
+    real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands,nKPoints)
+      !! Occupation of band
     real(kind=dp), intent(in) :: eFermi
       !! Fermi energy
     real(kind=dp), intent(in) :: eTot
       !! Total energy
-    real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands,nKPoints)
-      !! Occupation of band
 
     complex*16, intent(in) :: eigenE(nSpins,nKPoints,nBands)
       !! Band eigenvalues
 
-    logical, intent(in) :: groupForGroupVelocity
-      !! If there are groups of k-points for group
-      !! velocity calculation
-
     ! Local variables:
     integer :: ik, ib, isp
       !! Loop indices
-    integer :: nKGroups
-      !! Number of k-point groups if grouping for
-      !! group velocity calculation
 
 
     if(ionode) then
@@ -3963,45 +3977,89 @@ module wfcExportVASPMod
         enddo
       enddo
 
-      if(groupForGroupVelocity) then
-
-        if(mod(nKPoints,nkPerGroup) /= 0) &
-          call exitError('writeEigenvalues', 'groups of '//trim(int2str(nkPerGroup))//' k-points expected', 1)
-
-        nKGroups = nKPoints/nkPerGroup
-    
-        do isp = 1, nSpins
-          do ik = 1, nKGroups
-
-            open(72, file=trim(exportDir)//"/groupedEigenvalues."//trim(int2str(isp))//"."//trim(int2str(ik)))
-      
-            write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
-            write(72, '("# Eigenvalues (Hartree) for base, +/-x, +/-y, and +/-z; band occupation number. Format: ''(8ES19.10E3)''")')
-      
-            do ib = 1, nBands
-
-              write(72, '(8ES19.10E3)') &
-                real(eigenE(isp,(ik-1)*7+1,ib))*ryToHartree, & ! base
-                real(eigenE(isp,(ik-1)*7+2,ib))*ryToHartree, & ! +x
-                real(eigenE(isp,(ik-1)*7+3,ib))*ryToHartree, & ! -x
-                real(eigenE(isp,(ik-1)*7+4,ib))*ryToHartree, & ! +y
-                real(eigenE(isp,(ik-1)*7+5,ib))*ryToHartree, & ! -y
-                real(eigenE(isp,(ik-1)*7+6,ib))*ryToHartree, & ! +z
-                real(eigenE(isp,(ik-1)*7+7,ib))*ryToHartree, & ! -z
-                bandOccupation(isp,ib,ik)
-
-            enddo
-      
-            close(72)
-          enddo
-       enddo
-
-      endif
-    
     endif
 
     return
   end subroutine writeEigenvalues
+
+!----------------------------------------------------------------------------
+  subroutine writeGroupedEigenvalues(nBands, nkPerGroup, nKPoints, nSpins, bandOccupation, pattern, eigenE)
+
+    use miscUtilities, only: int2str
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nBands
+      !! Total number of bands
+    integer, intent(in) :: nkPerGroup
+      !! Number of k-points per group for group velocity calculations
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+    integer, intent(in) :: nSpins
+      !! Number of spins
+      
+    real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands,nKPoints)
+      !! Occupation of band
+    real(kind=dp), intent(in) :: pattern(maxNumKPerGroup)
+      !! Displacement pattern for groups of
+      !! k-points for group velocity calculations
+
+    complex*16, intent(in) :: eigenE(nSpins,nKPoints,nBands)
+      !! Band eigenvalues
+
+    ! Local variables
+    integer :: ikGroup, ib, isp, ik_g
+      !! Loop indices
+    integer :: nKGroups
+      !! Number of k-point groups if grouping for
+      !! group velocity calculation
+
+    character(len=300) :: formatString
+      !! String to dynamically determine the output
+      !! format based on `nkPerGroup`
+    character(len=500) :: line
+      !! Output line
+
+
+    if(ionode) then
+
+      if(mod(nKPoints,nkPerGroup) /= 0) &
+        call exitError('writeEigenvalues', 'groups of '//trim(int2str(nkPerGroup))//' k-points expected', 1)
+
+      nKGroups = nKPoints/nkPerGroup
+
+      formatString = "''("//trim(int2str(nkPerGroup+1))//"ES19.10E3)''"
+    
+      do isp = 1, nSpins
+        do ikGroup = 1, nKGroups
+
+          open(72, file=trim(exportDir)//"/groupedEigenvalues."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
+      
+          write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
+          write(72,'("# Displacement pattern:")')
+          write(72,*) pattern(1:nkPerGroup)
+          write(72, '("# Eigenvalues (Hartree), band occupation number Format: ",a)') trim(formatString)
+      
+          do ib = 1, nBands
+
+            do ik_g = 1, nkPerGroup
+              write(line,'(ES19.10E3)') real(eigenE(isp,(ikGroup-1)*nkPerGroup+ik_g,ib))*ryToHartree
+            enddo
+
+            write(line,'(ES19.10E3)') bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup)
+
+            write(72,*) trim(line)
+
+          enddo
+      
+          close(72)
+        enddo
+     enddo
+    endif
+    
+    return
+  end subroutine writeGroupedEigenvalues
 
 !----------------------------------------------------------------------------
   subroutine subroutineTemplate()
