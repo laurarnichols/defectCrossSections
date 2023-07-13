@@ -52,7 +52,7 @@ module wfcExportVASPMod
     !! Position of k-points in reciprocal space
   real(kind=dp), allocatable :: kWeight(:)
     !! Weight of k-points
-  real(kind=dp), allocatable :: pattern(:)
+  real(kind=dp), allocatable :: patternArr(:)
     !! Displacement pattern for groups of
     !! k-points for group velocity calculations
 
@@ -133,7 +133,7 @@ module wfcExportVASPMod
     !! Directory to be used for export
   character(len=256) :: mainOutputFile
     !! Main output file
-  character(len=300) :: patternLine
+  character(len=300) :: pattern
     !! Character input for displacement pattern
   character(len=256) :: VASPDir
     !! Directory with VASP files
@@ -173,13 +173,13 @@ module wfcExportVASPMod
 
   type (potcar), allocatable :: pot(:)
 
-  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity, nkPerGroup, patternLine
+  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity, nkPerGroup, pattern
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(nkPerGroup, pattern, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+  subroutine readInputParams(nkPerGroup, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
 
     implicit none
 
@@ -187,7 +187,7 @@ module wfcExportVASPMod
     integer, intent(out) :: nkPerGroup
       !! Number of k-points per group for group velocity calculations
       
-    real(kind=dp), allocatable, intent(out) :: pattern(:)
+    real(kind=dp), allocatable, intent(out) :: patternArr(:)
       !! Displacement pattern for groups of
       !! k-points for group velocity calculations
 
@@ -208,25 +208,25 @@ module wfcExportVASPMod
     integer :: ik_g
       !! Loop index
 
-    character(len=300) :: patternLine
+    character(len=300) :: pattern
       !! Character input for displacement pattern
 
 
     if(ionode) then
     
-      call initialize(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, patternLine, VASPDir)
+      call initialize(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
       read(5, inputParams, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading inputParams namelist', abs(ierr))
 
-      call checkInitialization(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, patternLine, VASPDir)
+      call checkInitialization(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
       if(groupForGroupVelocity) then
-        allocate(pattern(nkPerGroup))
+        allocate(patternArr(nkPerGroup))
 
         do ik_g = 1, nkPerGroup
-          read(patternLine,*) pattern(ik_g)
+          read(pattern,*) patternArr(ik_g)
         enddo
       endif
 
@@ -238,14 +238,14 @@ module wfcExportVASPMod
     call MPI_BCAST(gammaOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(groupForGroupVelocity, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(nkPerGroup, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(pattern, size(pattern), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(patternArr, size(patternArr), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, patternLine, VASPDir)
+  subroutine initialize(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
     
     implicit none
 
@@ -263,7 +263,7 @@ module wfcExportVASPMod
 
     character(len=256), intent(out) :: exportDir
       !! Directory to be used for export
-    character(len=300), intent(out) :: patternLine
+    character(len=300), intent(out) :: pattern
       !! Character input for displacement pattern
     character(len=256), intent(out) :: VASPDir
       !! Directory with VASP files
@@ -276,7 +276,7 @@ module wfcExportVASPMod
     groupForGroupVelocity = .false.
 
     exportDir = './export'
-    patternLine = ''
+    pattern = ''
     VASPDir = './'
 
     return 
@@ -284,7 +284,7 @@ module wfcExportVASPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, patternLine, VASPDir)
+  subroutine checkInitialization(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
     
     implicit none
 
@@ -302,7 +302,7 @@ module wfcExportVASPMod
 
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
-    character(len=300), intent(in) :: patternLine
+    character(len=300), intent(in) :: pattern
       !! Character input for displacement pattern
     character(len=256), intent(in) :: VASPDir
       !! Directory with VASP files
@@ -321,7 +321,7 @@ module wfcExportVASPMod
 
     if(groupForGroupVelocity) then
       abortExecution = checkIntInitialization('nkPerGroup', nkPerGroup, 1, 19) .or. abortExecution
-      abortExecution = checkStringInitialization('patternLine', patternLine) .or. abortExecution
+      abortExecution = checkStringInitialization('pattern', pattern) .or. abortExecution
     endif
 
     abortExecution = checkDirInitialization('VASPDir', VASPDir, 'OUTCAR') .or. abortExecution
@@ -3998,7 +3998,7 @@ module wfcExportVASPMod
   end subroutine writeEigenvalues
 
 !----------------------------------------------------------------------------
-  subroutine writeGroupedEigenvalues(nBands, nkPerGroup, nKPoints, nSpins, bandOccupation, pattern, eigenE)
+  subroutine writeGroupedEigenvalues(nBands, nkPerGroup, nKPoints, nSpins, bandOccupation, patternArr, eigenE)
 
     use miscUtilities, only: int2str
 
@@ -4016,7 +4016,7 @@ module wfcExportVASPMod
       
     real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands,nKPoints)
       !! Occupation of band
-    real(kind=dp), intent(in) :: pattern(nkPerGroup)
+    real(kind=dp), intent(in) :: patternArr(nkPerGroup)
       !! Displacement pattern for groups of
       !! k-points for group velocity calculations
 
@@ -4053,7 +4053,7 @@ module wfcExportVASPMod
       
           write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
           write(72,'("# Displacement pattern:")')
-          write(72,*) pattern
+          write(72,*) patternArr
           write(72, '("# Eigenvalues (Hartree), band occupation number Format: ",a)') trim(formatString)
       
           do ib = 1, nBands
