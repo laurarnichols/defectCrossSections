@@ -95,6 +95,8 @@ module wfcExportVASPMod
     !! Global number of G-vectors
   integer :: nGVecsLocal
     !! Local number of G-vectors on this processor
+  integer :: nkPerGroup
+    !! Number of k-points per group for group velocity calculations
   integer, allocatable :: nPWs1kGlobal(:)
     !! Input number of plane waves for a single k-point for all processors
   integer :: maxGIndexGlobal
@@ -163,17 +165,20 @@ module wfcExportVASPMod
 
   type (potcar), allocatable :: pot(:)
 
-  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity
+  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity, nkPerGroup
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+  subroutine readInputParams(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
 
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: nkPerGroup
+      !! Number of k-points per group for group velocity calculations
+
     logical, intent(out) :: energiesOnly
       !! If only energy-related files should be exported
     logical, intent(out) :: gammaOnly
@@ -190,13 +195,13 @@ module wfcExportVASPMod
 
     if(ionode) then
     
-      call initialize(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+      call initialize(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
 
       read(5, inputParams, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading inputParams namelist', abs(ierr))
 
-      call checkInitialization(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+      call checkInitialization(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
 
     endif
 
@@ -205,17 +210,21 @@ module wfcExportVASPMod
     call MPI_BCAST(energiesOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(gammaOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(groupForGroupVelocity, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(nkPerGroup, 1, MPI_INTEGER, root, worldComm, ierr)
 
     return
 
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+  subroutine initialize(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
     
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: nkPerGroup
+      !! Number of k-points per group for group velocity calculations
+
     logical, intent(out) :: energiesOnly
       !! If only energy-related files should be exported
     logical, intent(out) :: gammaOnly
@@ -235,17 +244,21 @@ module wfcExportVASPMod
     energiesOnly = .false.
     gammaOnly = .false.
     groupForGroupVelocity = .false.
+    nkPerGroup = -1
 
     return 
 
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+  subroutine checkInitialization(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
     
     implicit none
 
-    ! Output variables:
+    ! Input variables:
+    integer, intent(in) :: nkPerGroup
+      !! Number of k-points per group for group velocity calculations
+
     logical, intent(in) :: energiesOnly
       !! If only energy-related files should be exported
     logical, intent(in) :: gammaOnly
@@ -264,10 +277,14 @@ module wfcExportVASPMod
       !! Whether or not to abort the execution
 
 
+    abortExecution = .false.
+
     if(gammaOnly .and. .not. energiesOnly) then
       write(*,'("ERROR: gamma-only version only currently implemented for exporting energies only")')
       abortExecution = .true.
     endif
+
+    if(groupForGroupVelocity) abortExecution = checkIntInitialization('nkPerGroup', nkPerGroup, 1, 19) .or. abortExecution
 
     abortExecution = checkDirInitialization('VASPDir', VASPDir, 'OUTCAR') .or. abortExecution
   
@@ -3881,16 +3898,18 @@ module wfcExportVASPMod
   end subroutine writePseudoInfo
 
 !----------------------------------------------------------------------------
-  subroutine writeEigenvalues(nBands, nKPoints, nSpins, eFermi, eTot, bandOccupation, eigenE, groupForGroupVelocity)
+  subroutine writeEigenvalues(nBands, nkPerGroup, nKPoints, nSpins, eFermi, eTot, bandOccupation, eigenE, groupForGroupVelocity)
     !! Write Fermi energy and eigenvalues and occupations for each band
 
-    use miscUtilities
+    use miscUtilities, only: int2str
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: nBands
       !! Total number of bands
+    integer, intent(in) :: nkPerGroup
+      !! Number of k-points per group for group velocity calculations
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     integer, intent(in) :: nSpins
@@ -3946,9 +3965,10 @@ module wfcExportVASPMod
 
       if(groupForGroupVelocity) then
 
-        if(mod(nKPoints,7) /= 0) call exitError('writeEigenvalues', 'groups of 7 k-points expected (base, +/-x, +/- y, +/-z)', 1)
+        if(mod(nKPoints,nkPerGroup) /= 0) &
+          call exitError('writeEigenvalues', 'groups of '//trim(int2str(nkPerGroup))//' k-points expected', 1)
 
-        nKGroups = nKPoints/7
+        nKGroups = nKPoints/nkPerGroup
     
         do isp = 1, nSpins
           do ik = 1, nKGroups

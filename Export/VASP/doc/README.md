@@ -12,16 +12,18 @@ The input file should look like
 &inputParams
   VASPDir = 'path-to-VASP-output'               ! default './'
   exportDir = 'path-to-put-exported-files'      ! default './Export'
-  gammaOnly = logical                 ! default .false.
-  energiesOnly = logical              ! default .false.
-  groupForGroupVelocity = logical     ! default .false.
+  gammaOnly = logical                           ! default .false.
+  energiesOnly = logical                        ! default .false.
+  groupForGroupVelocity = logical               ! default .false.
+  nkPerGroup = integer                          ! how many k-points per group if groupForGroupVelocity = .true.
 /
 ```
-VASP has a gamma-only version that makes simplifications on the PW grid. The Export code is not fully integrated with those assumptions, but it can still be used to export the energy-related values (`energiesOnly`). The `energiesOnly` option is helpful if getting accurate energies from HSE calculations so that the gamma-only version can be used. It is also helpful for group-velocity calculations where multiple k-points are needed for each original k-point to get the derivative of the energy bands with respect to k in each direction. Both positive and negative displacements are needed in each direction to determine if/where band crossings occur. The `groupForGroupVelocity` option assumes that the input k-points are in the order base, +/-x, +/-y, and +/-z. The `Export` code will output a `groupedEigenvalues.isp.ik` where `ik` is the index of the base k-point. The eigenvalues are output for each band in the same order as the k-points. It is assumed that there are 7 k-points per group.
+VASP has a gamma-only version that makes simplifications on the PW grid. The Export code is not fully integrated with those assumptions, but it can still be used to export the energy-related values (`energiesOnly`). The `energiesOnly` option is helpful if getting accurate energies from HSE calculations so that the gamma-only version can be used. It is also helpful for group-velocity calculations where multiple k-points are needed for each original k-point to get the derivative of the energy bands with respect to k in each direction. Typically, 5 k-points are used for each k-point and direction (base and two positive and negative) so that you can determine if/where crossings occur and if bands should be fit to lines or parabolas. The `groupForGroupVelocity` option assumes that the input k-points are in the order base, +/-x, +/-y, and +/-z. The `Export` code will output a `groupedEigenvalues.isp.ik` where `ik` is the index of the base k-point. The eigenvalues are output for each band in the same order as the k-points. It is assumed that there are 7 k-points per group.
 
 The output files are
 * `eigenvalues.isp.ik` -- eigenvalues for each band for given spin channel and k-point
-* `grid.ik` -- Miller indices for G-vectors such that $G+k <$ cutoff
+* `groupedEigenvalues.isp.ik` -- grouped eigenvalues for each base k-point and spin channel if `groupForGroupVelocity = .true.`
+* `grid.ik` -- Miller indices for G-vectors such that $G+k < $ cutoff
 * `groundState` -- highest occupied band for each spin channel and k-point
 * `input` -- main output file with cell, k-point, pseudopotential information, and total energy
 * `mgrid` -- full G-vector grid in Miller indices
