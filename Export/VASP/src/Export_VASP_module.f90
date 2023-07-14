@@ -4052,8 +4052,6 @@ module wfcExportVASPMod
     character(len=300) :: formatString
       !! String to dynamically determine the output
       !! format based on `nkPerGroup`
-    character(len=500) :: line
-      !! Output line
 
 
     if(ionode) then
