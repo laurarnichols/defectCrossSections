@@ -4122,8 +4122,8 @@ module wfcExportVASPMod
             do ib = 1, nBands
 
               write(72,formatString) &
-                (eigsForOutput(ib,idk,ix), idk=1,nDispkPerCoord+1), & ! displaced k-points from - to +, x to z
-                bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup+1)               ! band occupation from base k-point           
+                (eigsForOutput(ib,idk,ix), idk=1,nDispkPerCoord+1), & ! displaced k-points from - to + for this coordinate
+                bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup+1)       ! band occupation from base k-point           
 
             enddo
       
