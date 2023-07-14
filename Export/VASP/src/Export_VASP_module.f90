@@ -4040,12 +4040,12 @@ module wfcExportVASPMod
     integer :: nkPerGroup
       !! Number of k-points per group
 
-    real(kind=dp) :: eigsForOutput(nBands,nDispkPerCoord,3)
+    real(kind=dp) :: eigsForOutput(nBands,nDispkPerCoord+1,3)
       !! Sorted real eigenvalues in correct units
       !! to be output
     real(kind=dp) :: eps8 = 1.0E-8_dp
       !! Double precision zero
-    real(kind=dp) :: patternArrSort(nDispkPerCoord)
+    real(kind=dp) :: patternArrSort(nDispkPerCoord+1)
       !! Sorted displacement pattern for groups of
       !! k-points for group velocity calculations
 
@@ -4071,41 +4071,67 @@ module wfcExportVASPMod
       do idk = 1, nDispkPerCoord
         iPattSort(idk) = idk
       enddo
-      patternArrSort(:) = patternArr(:)
-      call hpsort_eps(nDispkPerCoord, patternArrSort, iPattSort, eps8)
+      patternArrSort(1) = 0.0_dp
+      patternArrSort(2:nDispkPerCoord+1) = patternArr(:)
+      call hpsort_eps(nDispkPerCoord+1, patternArrSort, iPattSort, eps8)
         ! Get sorted index order for patternArr from negative to positive
     
       do isp = 1, nSpins
         do ikGroup = 1, nKGroups
           do ix = 1, 3
-            do idk = 1, nDispkPerCoord
+            do idk = 1, nDispkPerCoord+1
 
-              ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
-                   1 + &                      ! Skip base k-point
-                   (ix-1)*nDispkPerCoord + &  ! Skip previous displaced coordinates
-                   iPattSort(idk)             ! Skip to sorted value from displacement pattern
+              if(iPattSort(idk) == 1) then
+                ! This is the zero point. We add it to the
+                ! sorting array in case the points aren't 
+                ! symmetric about zero displacement.
+
+                ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
+                     1                          ! Skip to base k-point
+
+              else
+
+                ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
+                     1 + &                      ! Skip base k-point
+                     (ix-1)*nDispkPerCoord + &  ! Skip previous displaced coordinates
+                     iPattSort(idk)-1           ! Skip to sorted value from displacement pattern minus zero-displacement point
+              endif
+
               eigsForOutput(:,idk,ix) = real(eigenE(isp,ik,:))*ryToHartree
 
             enddo
+
+            if(ix == 1) then
+              open(72, file=trim(exportDir)//"/groupedEigenvaluesX."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
+            else if(ix == 2) then
+              open(72, file=trim(exportDir)//"/groupedEigenvaluesY."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
+            else if(ix == 3) then
+              open(72, file=trim(exportDir)//"/groupedEigenvaluesZ."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
+            endif
+        
+            write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
+            write(72,'("# Input displacement pattern:")')
+            write(72,'(a)') trim(pattern)
+
+            if(ix == 1) then
+              write(72, '("# Eigenvalues (Hartree) - to + for x, band occupation number Format: ''",a"''")') trim(formatString)
+            else if(ix == 2) then
+              write(72, '("# Eigenvalues (Hartree) - to + for y, band occupation number Format: ''",a"''")') trim(formatString)
+            else if(ix == 3) then
+              write(72, '("# Eigenvalues (Hartree) - to + for z, band occupation number Format: ''",a"''")') trim(formatString)
+            endif
+      
+            do ib = 1, nBands
+
+              write(72,formatString) &
+                (eigsForOutput(ib,idk,ix), idk=1,nDispkPerCoord+1), & ! displaced k-points from - to +, x to z
+                bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup+1)               ! band occupation from base k-point           
+
+            enddo
+      
+            close(72)
+
           enddo
-
-          open(72, file=trim(exportDir)//"/groupedEigenvalues."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
-      
-          write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
-          write(72,'("# Input displacement pattern:")')
-          write(72,'(a)') trim(pattern)
-          write(72, '("# Eigenvalues (Hartree) - to + and x to z, band occupation number Format: ''",a"''")') trim(formatString)
-      
-          do ib = 1, nBands
-
-            write(72,formatString) &
-              real(eigenE(isp,(ikGroup-1)*nkPerGroup+1,ib))*ryToHartree, &  ! base k-point
-              ((eigsForOutput(ib,idk,ix), idk=1,nDispkPerCoord), ix=1,3), & ! displaced k-points from - to +, x to z
-              bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup+1)               ! band occupation from base k-point           
-
-          enddo
-      
-          close(72)
         enddo
      enddo
     endif
