@@ -17,9 +17,9 @@ module wfcExportVASPMod
     !! Size of non-local pseudopotential grid
   integer, parameter :: wavecarUnit = 72
     !! WAVECAR unit for I/O
-  integer, parameter :: maxNumKPerGroup = 19
-    !! Max number of k-points per group for
-    !! group velocity calculations
+  integer, parameter :: maxNumDispKPerCoord = 6
+    !! Max number of displaced k-points per coordinate
+    !! for group velocity calculations
 
   real(kind = dp), parameter :: twoPiSquared = (2.0_dp*pi)**2
     !! This is used in place of \(2\pi/a\) which assumes that \(a=1\)
@@ -88,6 +88,8 @@ module wfcExportVASPMod
     !! Max number of points on the FFT grid in each direction
   integer :: nBands
     !! Total number of bands
+  integer :: nDispkPerCoord
+    !! Number of displaced k-points per coordinate
   integer, allocatable :: nGkLessECutGlobal(:)
     !! Global number of \(G+k\) vectors with magnitude
     !! less than `wfcVecCut` for each k-point
@@ -101,8 +103,6 @@ module wfcExportVASPMod
     !! Global number of G-vectors
   integer :: nGVecsLocal
     !! Local number of G-vectors on this processor
-  integer :: nkPerGroup
-    !! Number of k-points per group for group velocity calculations
   integer, allocatable :: nPWs1kGlobal(:)
     !! Input number of plane waves for a single k-point for all processors
   integer :: maxGIndexGlobal
@@ -173,19 +173,19 @@ module wfcExportVASPMod
 
   type (potcar), allocatable :: pot(:)
 
-  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity, nkPerGroup, pattern
+  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity, nDispkPerCoord, pattern
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(nkPerGroup, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+  subroutine readInputParams(nDispkPerCoord, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
     implicit none
 
     ! Output variables:
-    integer, intent(out) :: nkPerGroup
-      !! Number of k-points per group for group velocity calculations
+    integer, intent(out) :: nDispkPerCoord
+      !! Number of displaced k-points per coordinate
       
     real(kind=dp), allocatable, intent(out) :: patternArr(:)
       !! Displacement pattern for groups of
@@ -207,19 +207,19 @@ module wfcExportVASPMod
       !! Directory with VASP files
 
     ! Local variables:
-    integer :: ik_g
+    integer :: idk
       !! Loop index
 
 
     if(ionode) then
     
-      call initialize(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+      call initialize(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
       read(5, inputParams, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading inputParams namelist', abs(ierr))
 
-      call checkInitialization(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+      call checkInitialization(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
     endif
 
@@ -232,13 +232,13 @@ module wfcExportVASPMod
 
     if(groupForGroupVelocity) then
 
-      call MPI_BCAST(nkPerGroup, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(nDispkPerCoord, 1, MPI_INTEGER, root, worldComm, ierr)
 
-      allocate(patternArr(nkPerGroup))
+      allocate(patternArr(nDispkPerCoord))
 
       if(ionode) then
-        do ik_g = 1, nkPerGroup
-          read(pattern,*) patternArr(ik_g)
+        do idk = 1, nDispkPerCoord
+          read(pattern,*) patternArr(idk)
         enddo
       endif
 
@@ -251,13 +251,13 @@ module wfcExportVASPMod
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+  subroutine initialize(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
     
     implicit none
 
     ! Output variables:
-    integer, intent(out) :: nkPerGroup
-      !! Number of k-points per group for group velocity calculations
+    integer, intent(out) :: nDispkPerCoord
+      !! Number of displaced k-points per coordinate
 
     logical, intent(out) :: energiesOnly
       !! If only energy-related files should be exported
@@ -275,7 +275,7 @@ module wfcExportVASPMod
       !! Directory with VASP files
 
 
-    nkPerGroup = -1
+    nDispkPerCoord = -1
 
     energiesOnly = .false.
     gammaOnly = .false.
@@ -290,13 +290,13 @@ module wfcExportVASPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(nkPerGroup, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+  subroutine checkInitialization(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: nkPerGroup
-      !! Number of k-points per group for group velocity calculations
+    integer, intent(in) :: nDispkPerCoord
+      !! Number of displaced k-points per coordinate
       
     logical, intent(in) :: energiesOnly
       !! If only energy-related files should be exported
@@ -326,7 +326,7 @@ module wfcExportVASPMod
     endif
 
     if(groupForGroupVelocity) then
-      abortExecution = checkIntInitialization('nkPerGroup', nkPerGroup, 1, 19) .or. abortExecution
+      abortExecution = checkIntInitialization('nDispkPerCoord', nDispkPerCoord, 1, maxNumDispkPerCoord) .or. abortExecution
       abortExecution = checkStringInitialization('pattern', pattern) .or. abortExecution
     endif
 
@@ -4004,7 +4004,7 @@ module wfcExportVASPMod
   end subroutine writeEigenvalues
 
 !----------------------------------------------------------------------------
-  subroutine writeGroupedEigenvalues(nBands, nkPerGroup, nKPoints, nSpins, bandOccupation, patternArr, eigenE, pattern)
+  subroutine writeGroupedEigenvalues(nBands, nDispkPerCoord, nKPoints, nSpins, bandOccupation, patternArr, eigenE, pattern)
 
     use miscUtilities, only: int2str
 
@@ -4013,8 +4013,8 @@ module wfcExportVASPMod
     ! Input variables:
     integer, intent(in) :: nBands
       !! Total number of bands
-    integer, intent(in) :: nkPerGroup
-      !! Number of k-points per group for group velocity calculations
+    integer, intent(in) :: nDispkPerCoord
+      !! Number of displaced k-points per coordinate
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     integer, intent(in) :: nSpins
@@ -4022,7 +4022,7 @@ module wfcExportVASPMod
       
     real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands,nKPoints)
       !! Occupation of band
-    real(kind=dp), intent(in) :: patternArr(nkPerGroup)
+    real(kind=dp), intent(in) :: patternArr(nDispkPerCoord)
       !! Displacement pattern for groups of
       !! k-points for group velocity calculations
 
@@ -4038,6 +4038,8 @@ module wfcExportVASPMod
     integer :: nKGroups
       !! Number of k-point groups if grouping for
       !! group velocity calculation
+    integer :: nkPerGroup
+      !! Number of k-points per group
 
     character(len=300) :: formatString
       !! String to dynamically determine the output
@@ -4048,12 +4050,15 @@ module wfcExportVASPMod
 
     if(ionode) then
 
+      nkPerGroup = nDispkPerCoord*3 + 1
+
       if(mod(nKPoints,nkPerGroup) /= 0) &
         call exitError('writeEigenvalues', 'groups of '//trim(int2str(nkPerGroup))//' k-points expected', 1)
 
       nKGroups = nKPoints/nkPerGroup
 
       formatString = "("//trim(int2str(nkPerGroup+1))//"ES19.10E3)"
+        ! Eigenvalues for all k-points in group plus the occupation
     
       do isp = 1, nSpins
         do ikGroup = 1, nKGroups
