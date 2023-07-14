@@ -10,18 +10,21 @@ The results must then be post-processed to be used as input to the other program
 The input file should look like
 ```f90
 &inputParams
-  VASPDir = 'path-to-VASP-output'               ! default './'
-  exportDir = 'path-to-put-exported-files'      ! default './Export'
-  gammaOnly = logical                 ! default .false.
-  energiesOnly = logical              ! default .false.
-  groupForGroupVelocity = logical     ! default .false.
+  VASPDir = 'path-to-VASP-output'                       ! default './'
+  exportDir = 'path-to-put-exported-files'              ! default './Export'
+  gammaOnly = logical                                   ! default .false.
+  energiesOnly = logical                                ! default .false.
+  groupForGroupVelocity = logical                       ! default .false.
+  nDispkPerCoord = integer                              ! how many displaced k-points per coordinate if groupForGroupVelocity = .true.
+  pattern = 'displacement-pattern-for-group-velocity'   ! e.g., '-0.02 -0.01 0.01 0.02'
 /
 ```
-VASP has a gamma-only version that makes simplifications on the PW grid. The Export code is not fully integrated with those assumptions, but it can still be used to export the energy-related values (`energiesOnly`). The `energiesOnly` option is helpful if getting accurate energies from HSE calculations so that the gamma-only version can be used. It is also helpful for group-velocity calculations where multiple k-points are needed for each original k-point to get the derivative of the energy bands with respect to k in each direction. Both positive and negative displacements are needed in each direction to determine if/where band crossings occur. The `groupForGroupVelocity` option assumes that the input k-points are in the order base, +/-x, +/-y, and +/-z. The `Export` code will output a `groupedEigenvalues.isp.ik` where `ik` is the index of the base k-point. The eigenvalues are output for each band in the same order as the k-points. It is assumed that there are 7 k-points per group.
+VASP has a gamma-only version that makes simplifications on the PW grid. The Export code is not fully integrated with those assumptions, but it can still be used to export the energy-related values (`energiesOnly`). The `energiesOnly` option is helpful if getting accurate energies from HSE calculations so that the gamma-only version can be used. It is also helpful for group-velocity calculations where multiple k-points are needed for each original k-point to get the derivative of the energy bands with respect to k in each direction. Typically, 5 k-points are used for each k-point and direction (base and two positive and negative) so that you can determine if/where crossings occur and if bands should be fit to lines or parabolas. However, this program allows you to select up to 6 displaced k-points per coordinate (`nDispkPerCoord`). You should also set the displacement pattern used for the k-points. The displacement pattern only applies to the displaced k-points. It is assumed that the base k-point is the first k-point in each group and that the displacement pattern is the same for all coordinate directions. The pattern should line up with the k-point list used in the VASP calculation. The `Export` code will output a `groupedEigenvalues.isp.ikGroup` where `ikGroup` is the index of the k-point group or base k-point. The eigenvalues are output for each band from negative to positive and in x, y, z order.
 
 The output files are
 * `eigenvalues.isp.ik` -- eigenvalues for each band for given spin channel and k-point
-* `grid.ik` -- Miller indices for G-vectors such that $G+k <$ cutoff
+* `groupedEigenvalues.isp.ik` -- grouped eigenvalues for each base k-point and spin channel if `groupForGroupVelocity = .true.`
+* `grid.ik` -- Miller indices for G-vectors such that $G+k < $ cutoff
 * `groundState` -- highest occupied band for each spin channel and k-point
 * `input` -- main output file with cell, k-point, pseudopotential information, and total energy
 * `mgrid` -- full G-vector grid in Miller indices

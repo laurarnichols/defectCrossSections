@@ -17,6 +17,9 @@ module wfcExportVASPMod
     !! Size of non-local pseudopotential grid
   integer, parameter :: wavecarUnit = 72
     !! WAVECAR unit for I/O
+  integer, parameter :: maxNumDispKPerCoord = 6
+    !! Max number of displaced k-points per coordinate
+    !! for group velocity calculations
 
   real(kind = dp), parameter :: twoPiSquared = (2.0_dp*pi)**2
     !! This is used in place of \(2\pi/a\) which assumes that \(a=1\)
@@ -49,6 +52,9 @@ module wfcExportVASPMod
     !! Position of k-points in reciprocal space
   real(kind=dp), allocatable :: kWeight(:)
     !! Weight of k-points
+  real(kind=dp), allocatable :: patternArr(:)
+    !! Displacement pattern for groups of
+    !! k-points for group velocity calculations
 
   complex*16, allocatable :: eigenE(:,:,:)
     !! Band eigenvalues
@@ -82,6 +88,8 @@ module wfcExportVASPMod
     !! Max number of points on the FFT grid in each direction
   integer :: nBands
     !! Total number of bands
+  integer :: nDispkPerCoord
+    !! Number of displaced k-points per coordinate
   integer, allocatable :: nGkLessECutGlobal(:)
     !! Global number of \(G+k\) vectors with magnitude
     !! less than `wfcVecCut` for each k-point
@@ -125,6 +133,8 @@ module wfcExportVASPMod
     !! Directory to be used for export
   character(len=256) :: mainOutputFile
     !! Main output file
+  character(len=300) :: pattern
+    !! Character input for displacement pattern
   character(len=256) :: VASPDir
     !! Directory with VASP files
 
@@ -163,17 +173,24 @@ module wfcExportVASPMod
 
   type (potcar), allocatable :: pot(:)
 
-  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity
+  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity, nDispkPerCoord, pattern
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+  subroutine readInputParams(nDispkPerCoord, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: nDispkPerCoord
+      !! Number of displaced k-points per coordinate
+      
+    real(kind=dp), allocatable, intent(out) :: patternArr(:)
+      !! Displacement pattern for groups of
+      !! k-points for group velocity calculations
+
     logical, intent(out) :: energiesOnly
       !! If only energy-related files should be exported
     logical, intent(out) :: gammaOnly
@@ -184,19 +201,25 @@ module wfcExportVASPMod
 
     character(len=256), intent(out) :: exportDir
       !! Directory to be used for export
+    character(len=300), intent(out) :: pattern
+      ! Character input for displacement pattern
     character(len=256), intent(out) :: VASPDir
       !! Directory with VASP files
+
+    ! Local variables:
+    integer :: idk
+      !! Loop index
 
 
     if(ionode) then
     
-      call initialize(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+      call initialize(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
       read(5, inputParams, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading inputParams namelist', abs(ierr))
 
-      call checkInitialization(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+      call checkInitialization(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
     endif
 
@@ -206,16 +229,32 @@ module wfcExportVASPMod
     call MPI_BCAST(gammaOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(groupForGroupVelocity, 1, MPI_LOGICAL, root, worldComm, ierr)
 
+
+    if(groupForGroupVelocity) then
+
+      call MPI_BCAST(nDispkPerCoord, 1, MPI_INTEGER, root, worldComm, ierr)
+
+      allocate(patternArr(nDispkPerCoord))
+
+      if(ionode) read(pattern,*) (patternArr(idk), idk=1,nDispkPerCoord)
+
+      call MPI_BCAST(patternArr, size(patternArr), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    endif
+
     return
 
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+  subroutine initialize(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
     
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: nDispkPerCoord
+      !! Number of displaced k-points per coordinate
+
     logical, intent(out) :: energiesOnly
       !! If only energy-related files should be exported
     logical, intent(out) :: gammaOnly
@@ -226,26 +265,35 @@ module wfcExportVASPMod
 
     character(len=256), intent(out) :: exportDir
       !! Directory to be used for export
+    character(len=300), intent(out) :: pattern
+      !! Character input for displacement pattern
     character(len=256), intent(out) :: VASPDir
       !! Directory with VASP files
 
 
-    VASPDir = './'
-    exportDir = './export'
+    nDispkPerCoord = -1
+
     energiesOnly = .false.
     gammaOnly = .false.
     groupForGroupVelocity = .false.
+
+    exportDir = './export'
+    pattern = ''
+    VASPDir = './'
 
     return 
 
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, VASPDir)
+  subroutine checkInitialization(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
     
     implicit none
 
-    ! Output variables:
+    ! Input variables:
+    integer, intent(in) :: nDispkPerCoord
+      !! Number of displaced k-points per coordinate
+      
     logical, intent(in) :: energiesOnly
       !! If only energy-related files should be exported
     logical, intent(in) :: gammaOnly
@@ -256,6 +304,8 @@ module wfcExportVASPMod
 
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
+    character(len=300), intent(in) :: pattern
+      !! Character input for displacement pattern
     character(len=256), intent(in) :: VASPDir
       !! Directory with VASP files
 
@@ -264,9 +314,16 @@ module wfcExportVASPMod
       !! Whether or not to abort the execution
 
 
+    abortExecution = .false.
+
     if(gammaOnly .and. .not. energiesOnly) then
       write(*,'("ERROR: gamma-only version only currently implemented for exporting energies only")')
       abortExecution = .true.
+    endif
+
+    if(groupForGroupVelocity) then
+      abortExecution = checkIntInitialization('nDispkPerCoord', nDispkPerCoord, 1, maxNumDispkPerCoord) .or. abortExecution
+      abortExecution = checkStringInitialization('pattern', pattern) .or. abortExecution
     endif
 
     abortExecution = checkDirInitialization('VASPDir', VASPDir, 'OUTCAR') .or. abortExecution
@@ -3881,10 +3938,10 @@ module wfcExportVASPMod
   end subroutine writePseudoInfo
 
 !----------------------------------------------------------------------------
-  subroutine writeEigenvalues(nBands, nKPoints, nSpins, eFermi, eTot, bandOccupation, eigenE, groupForGroupVelocity)
+  subroutine writeEigenvalues(nBands, nKPoints, nSpins, bandOccupation, eFermi, eTot, eigenE)
     !! Write Fermi energy and eigenvalues and occupations for each band
 
-    use miscUtilities
+    use miscUtilities, only: int2str
 
     implicit none
 
@@ -3896,26 +3953,19 @@ module wfcExportVASPMod
     integer, intent(in) :: nSpins
       !! Number of spins
       
+    real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands,nKPoints)
+      !! Occupation of band
     real(kind=dp), intent(in) :: eFermi
       !! Fermi energy
     real(kind=dp), intent(in) :: eTot
       !! Total energy
-    real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands,nKPoints)
-      !! Occupation of band
 
     complex*16, intent(in) :: eigenE(nSpins,nKPoints,nBands)
       !! Band eigenvalues
 
-    logical, intent(in) :: groupForGroupVelocity
-      !! If there are groups of k-points for group
-      !! velocity calculation
-
     ! Local variables:
     integer :: ik, ib, isp
       !! Loop indices
-    integer :: nKGroups
-      !! Number of k-point groups if grouping for
-      !! group velocity calculation
 
 
     if(ionode) then
@@ -3944,44 +3994,150 @@ module wfcExportVASPMod
         enddo
       enddo
 
-      if(groupForGroupVelocity) then
-
-        if(mod(nKPoints,7) /= 0) call exitError('writeEigenvalues', 'groups of 7 k-points expected (base, +/-x, +/- y, +/-z)', 1)
-
-        nKGroups = nKPoints/7
-    
-        do isp = 1, nSpins
-          do ik = 1, nKGroups
-
-            open(72, file=trim(exportDir)//"/groupedEigenvalues."//trim(int2str(isp))//"."//trim(int2str(ik)))
-      
-            write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
-            write(72, '("# Eigenvalues (Hartree) for base, +/-x, +/-y, and +/-z; band occupation number. Format: ''(8ES19.10E3)''")')
-      
-            do ib = 1, nBands
-
-              write(72, '(8ES19.10E3)') &
-                real(eigenE(isp,(ik-1)*7+1,ib))*ryToHartree, & ! base
-                real(eigenE(isp,(ik-1)*7+2,ib))*ryToHartree, & ! +x
-                real(eigenE(isp,(ik-1)*7+3,ib))*ryToHartree, & ! -x
-                real(eigenE(isp,(ik-1)*7+4,ib))*ryToHartree, & ! +y
-                real(eigenE(isp,(ik-1)*7+5,ib))*ryToHartree, & ! -y
-                real(eigenE(isp,(ik-1)*7+6,ib))*ryToHartree, & ! +z
-                real(eigenE(isp,(ik-1)*7+7,ib))*ryToHartree, & ! -z
-                bandOccupation(isp,ib,ik)
-
-            enddo
-      
-            close(72)
-          enddo
-       enddo
-
-      endif
-    
     endif
 
     return
   end subroutine writeEigenvalues
+
+!----------------------------------------------------------------------------
+  subroutine writeGroupedEigenvalues(nBands, nDispkPerCoord, nKPoints, nSpins, bandOccupation, patternArr, eigenE, pattern)
+
+    use miscUtilities, only: int2str
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nBands
+      !! Total number of bands
+    integer, intent(in) :: nDispkPerCoord
+      !! Number of displaced k-points per coordinate
+    integer, intent(in) :: nKPoints
+      !! Total number of k-points
+    integer, intent(in) :: nSpins
+      !! Number of spins
+      
+    real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands,nKPoints)
+      !! Occupation of band
+    real(kind=dp), intent(in) :: patternArr(nDispkPerCoord)
+      !! Displacement pattern for groups of
+      !! k-points for group velocity calculations
+
+    complex*16, intent(in) :: eigenE(nSpins,nKPoints,nBands)
+      !! Band eigenvalues
+
+    character(len=300), intent(in) :: pattern
+      ! Character input for displacement pattern
+
+    ! Local variables
+    integer :: ikGroup, ib, isp, ik_g, idk, ix, ik
+      !! Loop indices
+    integer :: iPattSort(nDispkPerCoord)
+      !! Sorted index order for patternArr from 
+      !! negative to positive
+    integer :: nKGroups
+      !! Number of k-point groups if grouping for
+      !! group velocity calculation
+    integer :: nkPerGroup
+      !! Number of k-points per group
+
+    real(kind=dp) :: eigsForOutput(nBands,nDispkPerCoord+1,3)
+      !! Sorted real eigenvalues in correct units
+      !! to be output
+    real(kind=dp) :: eps8 = 1.0E-8_dp
+      !! Double precision zero
+    real(kind=dp) :: patternArrSort(nDispkPerCoord+1)
+      !! Sorted displacement pattern for groups of
+      !! k-points for group velocity calculations
+
+    character(len=300) :: formatString
+      !! String to dynamically determine the output
+      !! format based on `nkPerGroup`
+    character(len=500) :: line
+      !! Output line
+
+
+    if(ionode) then
+
+      nkPerGroup = nDispkPerCoord*3 + 1
+
+      if(mod(nKPoints,nkPerGroup) /= 0) &
+        call exitError('writeEigenvalues', 'groups of '//trim(int2str(nkPerGroup))//' k-points expected', 1)
+
+      nKGroups = nKPoints/nkPerGroup
+
+      formatString = "("//trim(int2str(nkPerGroup+1))//"ES19.10E3)"
+        ! Eigenvalues for all k-points in group plus the occupation
+
+      do idk = 1, nDispkPerCoord
+        iPattSort(idk) = idk
+      enddo
+      patternArrSort(1) = 0.0_dp
+      patternArrSort(2:nDispkPerCoord+1) = patternArr(:)
+      call hpsort_eps(nDispkPerCoord+1, patternArrSort, iPattSort, eps8)
+        ! Get sorted index order for patternArr from negative to positive
+    
+      do isp = 1, nSpins
+        do ikGroup = 1, nKGroups
+          do ix = 1, 3
+            do idk = 1, nDispkPerCoord+1
+
+              if(iPattSort(idk) == 1) then
+                ! This is the zero point. We add it to the
+                ! sorting array in case the points aren't 
+                ! symmetric about zero displacement.
+
+                ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
+                     1                          ! Skip to base k-point
+
+              else
+
+                ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
+                     1 + &                      ! Skip base k-point
+                     (ix-1)*nDispkPerCoord + &  ! Skip previous displaced coordinates
+                     iPattSort(idk)-1           ! Skip to sorted value from displacement pattern minus zero-displacement point
+              endif
+
+              eigsForOutput(:,idk,ix) = real(eigenE(isp,ik,:))*ryToHartree
+
+            enddo
+
+            if(ix == 1) then
+              open(72, file=trim(exportDir)//"/groupedEigenvaluesX."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
+            else if(ix == 2) then
+              open(72, file=trim(exportDir)//"/groupedEigenvaluesY."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
+            else if(ix == 3) then
+              open(72, file=trim(exportDir)//"/groupedEigenvaluesZ."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
+            endif
+        
+            write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
+            write(72,'("# Input displacement pattern:")')
+            write(72,'(a)') trim(pattern)
+
+            if(ix == 1) then
+              write(72, '("# Eigenvalues (Hartree) - to + for x, band occupation number Format: ''",a"''")') trim(formatString)
+            else if(ix == 2) then
+              write(72, '("# Eigenvalues (Hartree) - to + for y, band occupation number Format: ''",a"''")') trim(formatString)
+            else if(ix == 3) then
+              write(72, '("# Eigenvalues (Hartree) - to + for z, band occupation number Format: ''",a"''")') trim(formatString)
+            endif
+      
+            do ib = 1, nBands
+
+              write(72,formatString) &
+                (eigsForOutput(ib,idk,ix), idk=1,nDispkPerCoord+1), & ! displaced k-points from - to +, x to z
+                bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup+1)               ! band occupation from base k-point           
+
+            enddo
+      
+            close(72)
+
+          enddo
+        enddo
+     enddo
+    endif
+    
+    return
+  end subroutine writeGroupedEigenvalues
 
 !----------------------------------------------------------------------------
   subroutine subroutineTemplate()
