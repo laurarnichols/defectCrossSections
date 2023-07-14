@@ -4053,7 +4053,7 @@ module wfcExportVASPMod
 
       nKGroups = nKPoints/nkPerGroup
 
-      formatString = "''("//trim(int2str(nkPerGroup+1))//"ES19.10E3)''"
+      formatString = "("//trim(int2str(nkPerGroup+1))//"ES19.10E3)"
     
       do isp = 1, nSpins
         do ikGroup = 1, nKGroups
@@ -4063,7 +4063,7 @@ module wfcExportVASPMod
           write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
           write(72,'("# Displacement pattern:")')
           write(72,'(a)') trim(pattern)
-          write(72, '("# Eigenvalues (Hartree), band occupation number Format: ",a)') trim(formatString)
+          write(72, '("# Eigenvalues (Hartree), band occupation number Format: ''",a"''")') trim(formatString)
       
           do ib = 1, nBands
 
