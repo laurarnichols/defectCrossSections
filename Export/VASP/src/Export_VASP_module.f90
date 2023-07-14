@@ -236,11 +236,7 @@ module wfcExportVASPMod
 
       allocate(patternArr(nDispkPerCoord))
 
-      if(ionode) then
-        do idk = 1, nDispkPerCoord
-          read(pattern,*) patternArr(idk)
-        enddo
-      endif
+      if(ionode) read(pattern,*) (patternArr(idk), idk=1,nDispkPerCoord)
 
       call MPI_BCAST(patternArr, size(patternArr), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
@@ -4033,13 +4029,25 @@ module wfcExportVASPMod
       ! Character input for displacement pattern
 
     ! Local variables
-    integer :: ikGroup, ib, isp, ik_g
+    integer :: ikGroup, ib, isp, ik_g, idk, ix, ik
       !! Loop indices
+    integer :: iPattSort(nDispkPerCoord)
+      !! Sorted index order for patternArr from 
+      !! negative to positive
     integer :: nKGroups
       !! Number of k-point groups if grouping for
       !! group velocity calculation
     integer :: nkPerGroup
       !! Number of k-points per group
+
+    real(kind=dp) :: eigsForOutput(nBands,nDispkPerCoord,3)
+      !! Sorted real eigenvalues in correct units
+      !! to be output
+    real(kind=dp) :: eps8 = 1.0E-8_dp
+      !! Double precision zero
+    real(kind=dp) :: patternArrSort(nDispkPerCoord)
+      !! Sorted displacement pattern for groups of
+      !! k-points for group velocity calculations
 
     character(len=300) :: formatString
       !! String to dynamically determine the output
@@ -4059,21 +4067,41 @@ module wfcExportVASPMod
 
       formatString = "("//trim(int2str(nkPerGroup+1))//"ES19.10E3)"
         ! Eigenvalues for all k-points in group plus the occupation
+
+      do idk = 1, nDispkPerCoord
+        iPattSort(idk) = idk
+      enddo
+      patternArrSort(:) = patternArr(:)
+      call hpsort_eps(nDispkPerCoord, patternArrSort, iPattSort, eps8)
+        ! Get sorted index order for patternArr from negative to positive
     
       do isp = 1, nSpins
         do ikGroup = 1, nKGroups
+          do ix = 1, 3
+            do idk = 1, nDispkPerCoord
+
+              ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
+                   1 + &                      ! Skip base k-point
+                   (ix-1)*nDispkPerCoord + &  ! Skip previous displaced coordinates
+                   iPattSort(idk)             ! Skip to sorted value from displacement pattern
+              eigsForOutput(:,idk,ix) = real(eigenE(isp,ik,:))*ryToHartree
+
+            enddo
+          enddo
 
           open(72, file=trim(exportDir)//"/groupedEigenvalues."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
       
           write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
-          write(72,'("# Displacement pattern:")')
+          write(72,'("# Input displacement pattern:")')
           write(72,'(a)') trim(pattern)
-          write(72, '("# Eigenvalues (Hartree), band occupation number Format: ''",a"''")') trim(formatString)
+          write(72, '("# Eigenvalues (Hartree) - to + and x to z, band occupation number Format: ''",a"''")') trim(formatString)
       
           do ib = 1, nBands
 
             write(72,formatString) &
-              (real(eigenE(isp,(ikGroup-1)*nkPerGroup+ik_g,ib))*ryToHartree, ik_g=1,nkPerGroup), bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup) 
+              real(eigenE(isp,(ikGroup-1)*nkPerGroup+1,ib))*ryToHartree, &  ! base k-point
+              ((eigsForOutput(ib,idk,ix), idk=1,nDispkPerCoord), ix=1,3), & ! displaced k-points from - to +, x to z
+              bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup+1)               ! band occupation from base k-point           
 
           enddo
       
