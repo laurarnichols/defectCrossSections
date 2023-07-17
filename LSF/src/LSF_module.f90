@@ -533,7 +533,7 @@ contains
     call cpu_time(timer1)
 
 
-    t0 = myid*float(nStepsLocal)*dt
+    t0 = indexInPool*float(nStepsLocal)*dt
 
     transitionRate(:,:) = 0.0_dp
     do iTime = 1, nStepsLocal-2, 2
