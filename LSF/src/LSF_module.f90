@@ -24,7 +24,7 @@ module LSFmod
 
   real(kind=dp) :: beta
     !! 1/kb*T
-  real(kind=dp), allocatable :: dE(:,:,:)
+  real(kind=dp), allocatable :: dE(:,:,:,:)
     !! All energy differences from energy table
   real(kind=dp) :: dt
     !! Time step size
@@ -33,7 +33,7 @@ module LSFmod
   real(kind=dp) :: hbarGamma
     !! \(\hbar\gamma\) for Lorentzian smearing
     !! to guarantee convergence
-  real(kind=dp), allocatable :: matrixElement(:,:,:)
+  real(kind=dp), allocatable :: matrixElement(:,:,:,:)
     !! Electronic matrix element
   real(kind=dp) :: maxTime
     !! Max time for integration
@@ -469,7 +469,7 @@ contains
   end subroutine readMatrixElement
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, mDim, order, nModes, dE, &
+  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, mDim, order, nModes, dE, &
         gamma0, matrixElement, nj, temperature, volumeLine)
     
     implicit none
@@ -477,8 +477,6 @@ contains
     ! Input variables:
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
-    integer, intent(in) :: ikGlobal
-      !! K-point index
     integer, intent(in) :: iSpin
       !! Spin index
     integer, intent(in) :: mDim
@@ -488,11 +486,11 @@ contains
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
-    real(kind=dp), intent(in) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal,4)
+    real(kind=dp), intent(in) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal,4,nkPerPool)
       !! All energy differences from energy table
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
-    real(kind=dp), intent(in) :: matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
+    real(kind=dp), intent(in) :: matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,nkPerPool)
       !! Electronic matrix element
     real(kind=dp), intent(in) :: nj(nModes)
       !! \(n_j\) occupation number
@@ -503,7 +501,7 @@ contains
       !! output exactly in transition rate file
 
     ! Local variables:
-    integer :: iTime, ibi, ibf
+    integer :: iTime, ibi, ibf, ikLocal, ikGlobal
       !! Loop indices
     integer :: updateFrequency
       !! Frequency of steps to write status update
@@ -520,7 +518,7 @@ contains
       !! Time for each time step
     real(kind=dp) :: timer1, timer2
       !! Timers
-    real(kind=dp) :: transitionRate(iBandIinit:iBandIfinal)
+    real(kind=dp) :: transitionRate(iBandIinit:iBandIfinal,nkPerPool)
       !! \(Gamma_i\) transition rate
 
     complex(kind=dp) :: Aj_t1(nModes), Aj_t2(nModes)
@@ -537,7 +535,7 @@ contains
 
     t0 = myid*float(nStepsLocal)*dt
 
-    transitionRate(:) = 0.0_dp
+    transitionRate(:,:) = 0.0_dp
     do iTime = 1, nStepsLocal-2, 2
       ! Loop should not include the first step (0), 
       ! but it should include the last step (nStepsLocal-1).
@@ -561,33 +559,35 @@ contains
       expArg_t2_base = G0ExpArg(t2) - gamma0*t2
       if(order == 1) Aj_t2(:) = getAj_t(t2)
 
-      do ibi = iBandIinit, iBandIfinal
-        do ibf = iBandFinit, iBandFfinal
+      do ikLocal = 1, nkPerPool
+        do ibi = iBandIinit, iBandIfinal
+          do ibf = iBandFinit, iBandFfinal
 
-          if(order == 0) then
-            expPrefactor_t1 = matrixElement(1,ibf,ibi)
-            expPrefactor_t2 = matrixElement(1,ibf,ibi)
-          else if(order == 1) then
-            expPrefactor_t1 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t1)
-            expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t2)
-          endif
+            if(order == 0) then
+              expPrefactor_t1 = matrixElement(1,ibf,ibi,ikLocal)
+              expPrefactor_t2 = matrixElement(1,ibf,ibi,ikLocal)
+            else if(order == 1) then
+              expPrefactor_t1 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi,ikLocal), Aj_t1)
+              expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi,ikLocal), Aj_t2)
+            endif
 
-          Eif = dE(ibf,ibi,1)
+            Eif = dE(ibf,ibi,1,ikLocal)
 
-          expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
-          expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
+            expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
+            expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
 
-          transitionRate(ibi) = transitionRate(ibi) + &
-            Real(4.0_dp*expPrefactor_t1*exp(expArg_t1) + 2.0_dp*expPrefactor_t2*exp(expArg_t2))
-            ! This is the Simpson's method integration. We skip step 0 and
-            ! add 2*the last point. The endpoints get adjusted below.
-            !
-            ! We are doing multiple sums (integral and sum over final states), 
-            ! but they are all commutative. Here we add in the contribution 
-            ! to the integral at this time step from a given final state. The 
-            ! loop over final states adds in the contributions from all final 
-            ! states. 
+            transitionRate(ibi,ikLocal) = transitionRate(ibi,ikLocal) + &
+              Real(4.0_dp*expPrefactor_t1*exp(expArg_t1) + 2.0_dp*expPrefactor_t2*exp(expArg_t2))
+              ! This is the Simpson's method integration. We skip step 0 and
+              ! add 2*the last point. The endpoints get adjusted below.
+              !
+              ! We are doing multiple sums (integral and sum over final states), 
+              ! but they are all commutative. Here we add in the contribution 
+              ! to the integral at this time step from a given final state. The 
+              ! loop over final states adds in the contributions from all final 
+              ! states. 
 
+          enddo
         enddo
       enddo
     enddo
@@ -604,65 +604,74 @@ contains
     if(order == 1) Aj_t2(:) = getAj_t(t2)
 
 
-    do ibi = iBandIinit, iBandIfinal
-      do ibf = iBandFinit, iBandFfinal
+    do ikLocal = 1, nkPerPool
+      do ibi = iBandIinit, iBandIfinal
+        do ibf = iBandFinit, iBandFfinal
 
         if(order == 0) then
-          expPrefactor_t1 = matrixElement(1,ibf,ibi)
-          expPrefactor_t2 = matrixElement(1,ibf,ibi)
+          expPrefactor_t1 = matrixElement(1,ibf,ibi,ikLocal)
+          expPrefactor_t2 = matrixElement(1,ibf,ibi,ikLocal)
         else if(order == 1) then
-          expPrefactor_t1 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t1)
-          expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi), Aj_t2)
+          expPrefactor_t1 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi,ikLocal), Aj_t1)
+          expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi,ikLocal), Aj_t2)
         endif
 
-        Eif = dE(ibf,ibi,1)
+        Eif = dE(ibf,ibi,1,ikLocal)
 
         expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
         expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
 
-        transitionRate(ibi) = transitionRate(ibi) + Real(expPrefactor_t1*exp(expArg_t1))
+        transitionRate(ibi,ikLocal) = transitionRate(ibi,ikLocal) + Real(expPrefactor_t1*exp(expArg_t1))
           ! Add \(t_0\) that was skipped in the loop
 
-        transitionRate(ibi) = transitionRate(ibi) - Real(expPrefactor_t2*exp(expArg_t2)) 
+        transitionRate(ibi,ikLocal) = transitionRate(ibi,ikLocal) - Real(expPrefactor_t2*exp(expArg_t2)) 
           ! Subtract off last time that had a coefficient
           ! of 2 in the loop but should really have a 
           ! coefficient of 1
-
+        
+        enddo
       enddo
-    enddo
 
-    call mpiSumDoubleV(transitionRate, intraPoolComm)
-      ! Combine results from all processes in pool
+      call mpiSumDoubleV(transitionRate(:,ikLocal), intraPoolComm)
+        ! Combine results from all processes in pool
+
+    enddo
+    
 
     if(indexInPool == 0) then
-
-      open(unit=37, file=trim(outputDir)//'transitionRate.'//trim(int2str(iSpin))//"."//trim(int2str(ikGlobal)))
-
-      write(37,'(a)') trim(volumeLine)
-
-      write(37,'("# Total number of initial states, Initial states (bandI, bandF) Format : ''(3i10)''")')
-      write(37,'(3i10)') iBandIfinal-iBandIinit+1, iBandIinit, iBandIfinal
-
-      write(37,'("# Temperature (K): ", f7.1)') temperature
-
-      write(37,'("# Initial state, dEPlot (eV), Transition rate Format : ''(i10, f10.5, ES24.15E3)''")')
 
       ! Multiply by prefactor for Simpson's integration method 
       ! and prefactor for time-domain integral
       if(order == 0) then
-        transitionRate(:) = transitionRate(:)*(dt/3.0_dp)*(2.0_dp/(hbar*hbar))
+        transitionRate(:,:) = transitionRate(:,:)*(dt/3.0_dp)*(2.0_dp/(hbar*hbar))
       else if(order == 1) then
-        transitionRate(:) = transitionRate(:)*(dt/3.0_dp)*(1.0_dp/(2.0_dp*hbar*hbar))
+        transitionRate(:,:) = transitionRate(:,:)*(dt/3.0_dp)*(1.0_dp/(2.0_dp*hbar*hbar))
       endif        
 
-      do ibi = iBandIinit, iBandIfinal
-        write(37,'(i10, f10.5,ES24.14E3)') ibi, dE(iBandFinit,ibi,4), transitionRate(ibi)
-          ! Plotting energy doesn't depend on final band, so
-          ! just pick one
+      do ikLocal = 1, nkPerPool
+
+        ikGlobal = ikLocal+ikStart_pool-1
+
+        open(unit=37, file=trim(outputDir)//'transitionRate.'//trim(int2str(iSpin))//"."//trim(int2str(ikGlobal)))
+
+        write(37,'(a)') trim(volumeLine)
+
+        write(37,'("# Total number of initial states, Initial states (bandI, bandF) Format : ''(3i10)''")')
+        write(37,'(3i10)') iBandIfinal-iBandIinit+1, iBandIinit, iBandIfinal
+
+        write(37,'("# Temperature (K): ", f7.1)') temperature
+
+        write(37,'("# Initial state, dEPlot (eV), Transition rate Format : ''(i10, f10.5, ES24.15E3)''")')
+
+        do ibi = iBandIinit, iBandIfinal
+          write(37,'(i10, f10.5,ES24.14E3)') ibi, dE(iBandFinit,ibi,4,ikLocal), transitionRate(ibi,ikLocal)
+            ! Plotting energy doesn't depend on final band, so
+            ! just pick one
+        enddo
+
+        write(*, '("  Transition rate of k-point ", i4, " and spin ", i1, " written.")') ikGlobal, iSpin
+
       enddo
-
-      write(*, '("  Transition rate of k-point ", i4, " and spin ", i1, " written.")') ikGlobal, iSpin
-
     endif
 
     return

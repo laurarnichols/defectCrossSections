@@ -82,7 +82,7 @@ program LSFmain
     !! * Distribute k-points in pools
 
 
-  allocate(dE(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,4))
+  allocate(dE(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,4,nkPerPool))
 
   if(order == 0) then
     mDim = 1
@@ -90,46 +90,36 @@ program LSFmain
     mDim = nModes
   endif
 
-  allocate(matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal))
+  allocate(matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,nkPerPool))
 
+  if(indexInPool == 0) then
 
-  do ikLocal = 1, nkPerPool
+    dE = 0.0_dp
+    matrixElement = 0.0_dp
+
+    do ikLocal = 1, nkPerPool
     
-    ikGlobal = ikLocal+ikStart_pool-1
-      !! Get the global `ik` index from the local one
+      ikGlobal = ikLocal+ikStart_pool-1
+        !! Get the global `ik` index from the local one
 
-    if(transitionRateFileExists(ikGlobal, iSpin)) then
-      if(indexInPool == 0 ) &
+      if(transitionRateFileExists(ikGlobal, iSpin)) then
         write(*, '("Transition rate of k-point ", i4, " and spin ", i1, " already exists.")') ikGlobal, iSpin
-    else
-    
-      if(ionode) write(*,'("Beginning k-point loop ", i4, " of ", i4)') ikLocal, nkPerPool
-
-      if(ionode) write(*, '("  Reading energy tables")')
-
-      if(indexInPool == 0) then
-
-        call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, order, energyTableDir, dE)
-
-        dE(:,:,1:3) = dE(:,:,1:3)*HartreeToJ
-          ! First 3 columns are in Hartree. Last is in eV,
-          ! but we want to leave it that way just for output.
-
       endif
+      !else
+        ! Skipping files that exist isn't implemented in the transition
+        ! rate calculation yet, so we need to read all of the files.
+        ! In the future, can just skip the ones that have already been 
+        ! calculated.
 
-      call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
+        call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, order, energyTableDir, dE(:,:,:,ikLocal))
 
-
-      if(ionode) write(*, '("  Reading matrix elements")')
-
-    
-      if(indexInPool == 0) then
         if(order == 0) then
           ! Read zeroth-order matrix element
 
           fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
 
-          call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(1,:,:), volumeLine)
+          call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(1,:,:,ikLocal), volumeLine)
+            ! Includes conversion from Hartree to J
 
         else if(order == 1) then
           ! Read matrix elements for all modes
@@ -138,31 +128,42 @@ program LSFmain
 
             fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
 
-            call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(j,:,:), volumeLine)
+            call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(j,:,:,ikLocal), volumeLine)
+              ! Includes conversion from Hartree to J
+              !
               ! The volume line will get overwritten each time, but that's
               ! okay because the volume doesn't change between the files. 
 
           enddo
-
-          matrixElement(:,:,:) = matrixElement(:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
-            ! Shifter program outputs dq in Bohr*sqrt(elecM), and that
-            ! dq is directly used by TME to get the matrix element, so
-            ! we need to convert to m*sqrt(kg). In the matrix element,
-            ! dq is in the denominator and squared.
   
-        endif
+        !endif
       endif
+    enddo
 
-      call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
+    dE(:,:,1:3,:) = dE(:,:,1:3,:)*HartreeToJ
+      ! First 3 columns are in Hartree. Last is in eV,
+      ! but we want to leave it that way just for output.
 
-      if(ionode) write(*, '("  Beginning transition-rate calculation")')
+    if(order == 1) then
+      matrixElement(:,:,:,:) = matrixElement(:,:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
+        ! Shifter program outputs dq in Bohr*sqrt(elecM), and that
+        ! dq is directly used by TME to get the matrix element, so
+        ! we need to convert to m*sqrt(kg). In the matrix element,
+        ! dq is in the denominator and squared.
+    endif
+
+  endif
+
+
+  call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
+  call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
+
+
+  if(ionode) write(*, '("  Beginning transition-rate calculation")')
    
 
-      call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, mDim, order, nModes, dE, &
-            gamma0, matrixElement, nj, temperature, volumeLine)
-
-    endif
-  enddo
+  call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, mDim, order, nModes, dE, &
+        gamma0, matrixElement, nj, temperature, volumeLine)
 
   
   deallocate(dE)
