@@ -459,7 +459,7 @@ module energyTabulatorMod
           !! A potential correction term is included in case the PBE
           !! energy levels must be used.
 
-        dEPlot = abs(eigvI(ibi) - eigCBMorVBM)
+        dEPlot = abs(eigvI(ibi) - eigCBMorVBM)*HartreeToeV
           !! Energy plotted should be positive carrier energy in reference
           !! to the CBM (electrons) or VBM (holes)
         
