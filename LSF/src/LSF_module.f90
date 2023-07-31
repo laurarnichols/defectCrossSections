@@ -508,24 +508,27 @@ contains
 
     real(kind=dp) :: Eif
       !! Local storage of energy for delta function
-    real(kind=dp) :: expPrefactor_t1, expPrefactor_t2
+    real(kind=dp) :: expPrefactor
       !! Prefactor for the exponential inside the integral.
       !! For zeroth-order, this is just the matrix element,
       !! but for first-order this is \(\sum_j M_j A_j\).
+    real(kind=dp) :: multFact
+      !! Multiplication factor for each term per
+      !! Simpson's integration method
     real(kind=dp) :: t0
       !! Initial time for this process
-    real(kind=dp) :: t1, t2
+    real(kind=dp) :: time
       !! Time for each time step
     real(kind=dp) :: timer1, timer2
       !! Timers
     real(kind=dp) :: transitionRate(iBandIinit:iBandIfinal,nkPerPool)
       !! \(Gamma_i\) transition rate
 
-    complex(kind=dp) :: Aj_t1(nModes), Aj_t2(nModes)
+    complex(kind=dp) :: Aj(nModes)
       !! \(A_j(t)\) for all modes
-    complex(kind=dp) :: expArg_t1_base, expArg_t2_base
+    complex(kind=dp) :: expArg_base
       !! Base exponential argument for each time step
-    complex(kind=dp) :: expArg_t1, expArg_t2
+    complex(kind=dp) :: expArg
       !! Exponential argument for each time step
 
       
@@ -536,51 +539,45 @@ contains
     t0 = indexInPool*float(nStepsLocal-1)*dt
 
     transitionRate(:,:) = 0.0_dp
-    do iTime = 1, nStepsLocal-2, 2
-      ! Loop should not include the first step (0), 
-      ! but it should include the last step (nStepsLocal-1).
-      ! iTime stops at nStepsLocal-2 because nStepsLocal-1
-      ! is calculated by t2 at the last step.
+    do iTime = 0, nStepsLocal-1
 
-      if(ionode .and. (mod(iTime,updateFrequency) == 0 .or. mod(iTime+1,updateFrequency) == 0)) then
+      if(ionode .and. mod(iTime,updateFrequency) == 0) then
 
         call cpu_time(timer2)
         write(*,'("    ", i2,"% complete with transition-rate loop. Time in loop: ",f10.2," secs")') iTime*100/nStepsLocal, timer2-timer1
 
       endif
 
-      t1 = t0 + float(iTime)*dt
+      time = t0 + float(iTime)*dt
         ! Must do this arithmetic with floats to avoid
         ! integer overflow
-      expArg_t1_base = G0ExpArg(t1) - gamma0*t1
-      if(order == 1) Aj_t1(:) = getAj_t(t1)
+      expArg_base = G0ExpArg(time) - gamma0*time
+      if(order == 1) Aj(:) = getAj_t(time)
 
-      t2 = t1 + dt
-      expArg_t2_base = G0ExpArg(t2) - gamma0*t2
-      if(order == 1) Aj_t2(:) = getAj_t(t2)
+      if(iTime == 0 .or. iTime == nStepsLocal-1) then
+        multFact = 1.0_dp
+      else if(mod(iTime,2) == 0) then
+        multFact = 2.0_dp
+      else 
+        multFact = 4.0_dp
+      endif
+
 
       do ikLocal = 1, nkPerPool
         do ibi = iBandIinit, iBandIfinal
           do ibf = iBandFinit, iBandFfinal
 
             if(order == 0) then
-              expPrefactor_t1 = matrixElement(1,ibf,ibi,ikLocal)
-              expPrefactor_t2 = matrixElement(1,ibf,ibi,ikLocal)
+              expPrefactor = matrixElement(1,ibf,ibi,ikLocal)
             else if(order == 1) then
-              expPrefactor_t1 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi,ikLocal), Aj_t1)
-              expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi,ikLocal), Aj_t2)
+              expPrefactor = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi,ikLocal), Aj)
             endif
 
             Eif = dE(ibf,ibi,1,ikLocal)
 
-            expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
-            expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
+            expArg = expArg_base + ii*Eif/hbar*time
 
-            transitionRate(ibi,ikLocal) = transitionRate(ibi,ikLocal) + &
-              Real(4.0_dp*expPrefactor_t1*exp(expArg_t1) + 2.0_dp*expPrefactor_t2*exp(expArg_t2))
-              ! This is the Simpson's method integration. We skip step 0 and
-              ! add 2*the last point. The endpoints get adjusted below.
-              !
+            transitionRate(ibi,ikLocal) = transitionRate(ibi,ikLocal) + Real(multFact*expPrefactor*exp(expArg))
               ! We are doing multiple sums (integral and sum over final states), 
               ! but they are all commutative. Here we add in the contribution 
               ! to the integral at this time step from a given final state. The 
@@ -593,47 +590,10 @@ contains
     enddo
 
     
-
-    ! Need to adjust endpoints of the integration
-    t1 = t0
-    expArg_t1_base = G0ExpArg(t1) - gamma0*t1
-    if(order == 1) Aj_t1(:) = getAj_t(t1)
-
-    t2 = t0 + float(nStepsLocal-1)*dt
-    expArg_t2_base = G0ExpArg(t2) - gamma0*t2
-    if(order == 1) Aj_t2(:) = getAj_t(t2)
-
-
+    ! Combine results from all processes in pool
     do ikLocal = 1, nkPerPool
-      do ibi = iBandIinit, iBandIfinal
-        do ibf = iBandFinit, iBandFfinal
-
-        if(order == 0) then
-          expPrefactor_t1 = matrixElement(1,ibf,ibi,ikLocal)
-          expPrefactor_t2 = matrixElement(1,ibf,ibi,ikLocal)
-        else if(order == 1) then
-          expPrefactor_t1 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi,ikLocal), Aj_t1)
-          expPrefactor_t2 = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi,ikLocal), Aj_t2)
-        endif
-
-        Eif = dE(ibf,ibi,1,ikLocal)
-
-        expArg_t1 = expArg_t1_base + ii*Eif/hbar*t1
-        expArg_t2 = expArg_t2_base + ii*Eif/hbar*t2
-
-        transitionRate(ibi,ikLocal) = transitionRate(ibi,ikLocal) + Real(expPrefactor_t1*exp(expArg_t1))
-          ! Add \(t_0\) that was skipped in the loop
-
-        transitionRate(ibi,ikLocal) = transitionRate(ibi,ikLocal) - Real(expPrefactor_t2*exp(expArg_t2)) 
-          ! Subtract off last time that had a coefficient
-          ! of 2 in the loop but should really have a 
-          ! coefficient of 1
-        
-        enddo
-      enddo
 
       call mpiSumDoubleV(transitionRate(:,ikLocal), intraPoolComm)
-        ! Combine results from all processes in pool
 
     enddo
     
