@@ -119,6 +119,38 @@ module generalComputations
     return
   end subroutine vcross
 
+!----------------------------------------------------------------------------
+  subroutine geometricDotProduct(vector1, vector2, dotProduct)
+
+    implicit none
+
+    ! Input variables:
+    real(kind=dp), intent(in) :: vector1(3), vector2(3)
+      !! Vectors to get dot product of
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: dotProduct
+      !! Dot product
+
+    ! Local variables:
+    real(kind=dp) :: magnitude1, magnitude2
+      !! Magnitude of vectors
+    real(kind=dp) :: cosTheta
+      !! Cosine between vectors
+
+    ! Calculate the magnitudes of the vectors
+    magnitude1 = sqrt(vector1(1)**2 + vector1(2)**2 + vector1(3)**2)
+    magnitude2 = sqrt(vector2(1)**2 + vector2(2)**2 + vector2(3)**2)
+
+    ! Calculate the cosine of the angle between the vectors
+    cosTheta = dot_product(vector1, vector2) / (magnitude1 * magnitude2)
+
+    ! Calculate the dot product
+    dotProduct = magnitude1 * magnitude2 * cosTheta
+
+    return
+
+  end subroutine geometricDotProduct
   
 !----------------------------------------------------------------------------
   subroutine computeGeneralizedDisplacements(nOfqPoints, nModes, genCoord, nAtoms, atomM, phonD, atomD)
