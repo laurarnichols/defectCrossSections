@@ -1,6 +1,6 @@
-program shifterMain
+program PhononPPMain
 
-  use shifterMod
+  use PhononPPMod
   use generalComputations, only: direct2cart
   use miscUtilities, only: int2strLeadZero
   
@@ -11,7 +11,7 @@ program shifterMain
 
   call cpu_time(t0)
 
-  call mpiInitialization('Shifter')
+  call mpiInitialization('PhononPP')
 
   call initialize(shift, dqFName, phononFName, poscarFName, prefix)
     !! * Set default values for input variables and start timers
@@ -21,7 +21,7 @@ program shifterMain
     read(5, inputParams, iostat=ierr)
       !! * Read input variables
     
-    if(ierr /= 0) call exitError('Shifter main', 'reading inputParams namelist', abs(ierr))
+    if(ierr /= 0) call exitError('PhononPP main', 'reading inputParams namelist', abs(ierr))
       !! * Exit calculation if there's an error
 
     call checkInitialization(shift, dqFName, phononFName, poscarFName, prefix)
@@ -89,9 +89,9 @@ program shifterMain
   call MPI_Barrier(worldComm, ierr)
  
   call cpu_time(t2)
-  if(ionode) write(*,'("************ Shifter complete! (",f10.2," secs) ************")') t2-t0
+  if(ionode) write(*,'("************ PhononPP complete! (",f10.2," secs) ************")') t2-t0
 
   call MPI_FINALIZE(ierr)
 
-end program shifterMain
+end program PhononPPMain
 

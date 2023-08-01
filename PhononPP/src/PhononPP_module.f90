@@ -1,4 +1,4 @@
-module shifterMod
+module PhononPPMod
   
   use constants, only: dp, angToBohr, daltonToElecM
   use cell
@@ -344,4 +344,4 @@ module shifterMod
 
   end subroutine writeDqs
 
-end module shifterMod
+end module PhononPPMod
