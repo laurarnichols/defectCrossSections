@@ -2,6 +2,7 @@ program PhononPPMain
 
   use PhononPPMod
   use generalComputations, only: direct2cart
+  use cell, only: readPOSCAR, cartDisplacementToGeneralizedNorm, writePOSCARNewPos
   use miscUtilities, only: int2strLeadZero
   
   implicit none
@@ -13,7 +14,7 @@ program PhononPPMain
 
   call mpiInitialization('PhononPP')
 
-  call initialize(shift, dqFName, phononFName, poscarFName, prefix, generateShiftedPOSCARs)
+  call initialize(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
     !! * Set default values for input variables and start timers
 
   if(ionode) then
@@ -24,18 +25,30 @@ program PhononPPMain
     if(ierr /= 0) call exitError('PhononPP main', 'reading inputParams namelist', abs(ierr))
       !! * Exit calculation if there's an error
 
-    call checkInitialization(shift, dqFName, phononFName, poscarFName, prefix, generateShiftedPOSCARs)
+    call checkInitialization(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
+
+    call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
+    call readPOSCAR(finalPOSCARFName, nAtomsFinal, atomPositionsDirFinal, omegaFinal, realLattVec)
+
+    call standardizeCoordinates(nAtoms, atomPositionsDirInit)
+    call standardizeCoordinates(nAtomsFinal, atomPositionsDirFinal)
+  
+    call checkCompatibility(nAtoms, nAtomsFinal, omega, omegaFinal, atomPositionsDirFinal, atomPositionsDirInit)
 
   endif
 
   call MPI_BCAST(shift, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   call MPI_BCAST(dqFName, len(dqFName), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(phononFName, len(phononFName), MPI_CHARACTER, root, worldComm, ierr)
-  call MPI_BCAST(poscarFName, len(poscarFName), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(generateShiftedPOSCARs, 1, MPI_LOGICAL, root, worldComm, ierr)
 
-  call readPOSCAR(poscarFName, nAtoms, atomPositionsDir, omega, realLattVec)
+  call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+  call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+  call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+  call MPI_BCAST(atomPositionsDirFinal, size(atomPositionsDirFinal), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
 
   nModes = 3*nAtoms - 3
     !! * Calculate the total number of modes
@@ -85,17 +98,18 @@ program PhononPPMain
 
     if(generateShiftedPOSCARs) then
 
-      shiftedPositions = direct2cart(nAtoms, atomPositionsDir, realLattVec) + displacement
+      shiftedPositions = direct2cart(nAtoms, atomPositionsDirInit, realLattVec) + displacement
 
       shiftedPOSCARFName = trim(prefix)//"_"//trim(int2strLeadZero(j,suffixLength))
 
-      call writePOSCARNewPos(nAtoms, shiftedPositions, poscarFName, shiftedPOSCARFName, .true.)
+      call writePOSCARNewPos(nAtoms, shiftedPositions, initPOSCARFName, shiftedPOSCARFName, .true.)
 
     endif
 
   enddo
 
-  deallocate(atomPositionsDir)
+  deallocate(atomPositionsDirInit)
+  deallocate(atomPositionsDirFinal)
   deallocate(eigenvector)
   deallocate(shiftedPositions)
   deallocate(displacement)
