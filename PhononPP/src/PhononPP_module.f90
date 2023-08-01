@@ -30,6 +30,8 @@ module PhononPPMod
     !! Generalized norms after displacement
   real(kind=dp), allocatable :: mass(:)
     !! Masses of atoms
+  real(kind=dp),allocatable :: omegaFreq(:)
+    !! Frequency for each mode
   real(kind=dp) :: shift
     !! Magnitude of shift along phonon eigenvectors
   real(kind=dp), allocatable :: shiftedPositions(:,:)
@@ -46,14 +48,17 @@ module PhononPPMod
   character(len=300) :: shiftedPOSCARFName
     !! File name for shifted POSCAR
 
+  logical :: generateShiftedPOSCARs
+    !! If shifted POSCARs should be generated
 
-  namelist /inputParams/ poscarFName, phononFName, prefix, nAtoms, shift, dqFName
+
+  namelist /inputParams/ poscarFName, phononFName, prefix, nAtoms, shift, dqFName, generateShiftedPOSCARs
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine initialize(shift, dqFName, phononFName, poscarFName, prefix)
+  subroutine initialize(shift, dqFName, phononFName, poscarFName, prefix, generateShiftedPOSCARs)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -75,19 +80,25 @@ module PhononPPMod
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(out) :: generateShiftedPOSCARs
+      !! If shifted POSCARs should be generated
+
 
     dqFName = 'dq.txt'
     poscarFName = 'POSCAR'
     phononFName = 'mesh.yaml'
     prefix = 'ph_POSCAR'
+
     shift = 0.01_dp
+
+    generateShiftedPOSCARs = .true.
 
     return
 
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(shift, dqFName, phononFName, poscarFName, prefix)
+  subroutine checkInitialization(shift, dqFName, phononFName, poscarFName, prefix, generateShiftedPOSCARs)
 
     implicit none
 
@@ -104,6 +115,9 @@ module PhononPPMod
     character(len=300), intent(in) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(in) :: generateShiftedPOSCARs
+      !! If shifted POSCARs should be generated
+
     ! Local variables:
     logical :: abortExecution
       !! Whether or not to abort the execution
@@ -116,6 +130,9 @@ module PhononPPMod
     abortExecution = checkStringInitialization('dqFName', dqFName) .or. abortExecution
 
 
+    write(*,'("generateShiftedPOSCARs = ''",L1,"''")') generateShiftedPOSCARs
+
+
     if(abortExecution) then
       write(*, '(" Program stops!")')
       stop
@@ -126,7 +143,7 @@ module PhononPPMod
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine readPhonons(nAtoms, nModes, phononFName, eigenvector, mass)
+  subroutine readPhonons(nAtoms, nModes, phononFName, eigenvector, mass, omegaFreq)
 
     use miscUtilities, only: getFirstLineWithKeyword
 
@@ -146,6 +163,8 @@ module PhononPPMod
       !! Eigenvectors for each atom for each mode
     real(kind=dp), intent(out) :: mass(nAtoms)
       !! Masses of atoms
+    real(kind=dp), intent(out) :: omegaFreq(nModes)
+      !! Frequency for each mode
 
     ! Local variables:
     integer :: j, ia, ix
@@ -195,7 +214,10 @@ module PhononPPMod
     do j = 1, nModes+3
 
       read(57,'(A)') ! Ignore mode number
-      read(57,'(A)') ! Ignore frequency
+
+      read(57,'(A)') line
+      if(j > 3) read(line(15:len(trim(line))-1),*) omegaFreq(j-3)
+
       read(57,'(A)') ! Ignore eigenvector section header
 
       do ia = 1, nAtoms

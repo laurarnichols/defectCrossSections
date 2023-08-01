@@ -13,7 +13,7 @@ program PhononPPMain
 
   call mpiInitialization('PhononPP')
 
-  call initialize(shift, dqFName, phononFName, poscarFName, prefix)
+  call initialize(shift, dqFName, phononFName, poscarFName, prefix, generateShiftedPOSCARs)
     !! * Set default values for input variables and start timers
 
   if(ionode) then
@@ -24,7 +24,7 @@ program PhononPPMain
     if(ierr /= 0) call exitError('PhononPP main', 'reading inputParams namelist', abs(ierr))
       !! * Exit calculation if there's an error
 
-    call checkInitialization(shift, dqFName, phononFName, poscarFName, prefix)
+    call checkInitialization(shift, dqFName, phononFName, poscarFName, prefix, generateShiftedPOSCARs)
 
   endif
 
@@ -33,6 +33,7 @@ program PhononPPMain
   call MPI_BCAST(phononFName, len(phononFName), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(poscarFName, len(poscarFName), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
+  call MPI_BCAST(generateShiftedPOSCARs, 1, MPI_LOGICAL, root, worldComm, ierr)
 
   call readPOSCAR(poscarFName, nAtoms, atomPositionsDir, omega, realLattVec)
 
@@ -41,8 +42,11 @@ program PhononPPMain
 
   allocate(eigenvector(3,nAtoms,nModes))
   allocate(mass(nAtoms))
+  allocate(omegaFreq(nModes))
 
-  call readPhonons(nAtoms, nModes, phononFName, eigenvector, mass)
+  call readPhonons(nAtoms, nModes, phononFName, eigenvector, mass, omegaFreq)
+
+  deallocate(omegaFreq)
 
   call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
 
@@ -68,12 +72,15 @@ program PhononPPMain
 
     call getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift, displacement, generalizedNorm(j))
 
-    shiftedPositions = direct2cart(nAtoms, atomPositionsDir, realLattVec) + displacement
-    !shiftedPositions = getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift)
+    if(generateShiftedPOSCARs) then
 
-    shiftedPOSCARFName = trim(prefix)//"_"//trim(int2strLeadZero(j,suffixLength))
+      shiftedPositions = direct2cart(nAtoms, atomPositionsDir, realLattVec) + displacement
 
-    call writePOSCARNewPos(nAtoms, shiftedPositions, poscarFName, shiftedPOSCARFName, .true.)
+      shiftedPOSCARFName = trim(prefix)//"_"//trim(int2strLeadZero(j,suffixLength))
+
+      call writePOSCARNewPos(nAtoms, shiftedPositions, poscarFName, shiftedPOSCARFName, .true.)
+
+    endif
 
   enddo
 
