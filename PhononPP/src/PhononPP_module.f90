@@ -245,7 +245,7 @@ module PhononPPMod
   end subroutine readPhonons
 
 !----------------------------------------------------------------------------
-  subroutine getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift, displacement, generalizedNorm_j)
+  function getShiftDisplacement(j, nAtoms, nModes, eigenvector, mass, shift) result(displacement)
 
     implicit none
 
@@ -265,12 +265,8 @@ module PhononPPMod
       !! Magnitude of shift along phonon eigenvectors
 
     ! Output variables:
-    real(kind=dp), intent(out) :: displacement(3,nAtoms)
+    real(kind=dp) :: displacement(3,nAtoms)
       !! Displacements for each atom for this mode
-    real(kind=dp), intent(out) :: generalizedNorm_j
-      !! Norm of eigenvectors in generalized coordinates
-      !! after being scaled by `shift` in Cartesian space
-      !! for a given mode j
 
     ! Local variables:
     integer :: ia
@@ -306,20 +302,9 @@ module PhononPPMod
       !!  should still be angstrom.
       !! @endnote
 
-    generalizedNorm_j = cartDisplacementToGeneralizedNorm(nAtoms, displacement, mass)*angToBohr*sqrt(daltonToElecM)
-      !! Convert scaled displacement back to generalized
-      !! coordinates and get norm
-      !! @note
-      !!   Input positions are in angstrom and input
-      !!   masses are in amu, but the dq output is going
-      !!   to our code, which uses Hartree atomic units
-      !!   (Bohr and electron masses), so this value
-      !!   must have a unit conversion.
-      !! @endnote
-
     return
 
-  end subroutine getDisplacement
+  end function getShiftDisplacement
 
 !----------------------------------------------------------------------------
   subroutine writeDqs(nModes, generalizedNorm, dqFName)

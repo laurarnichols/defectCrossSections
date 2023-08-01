@@ -70,7 +70,18 @@ program PhononPPMain
 
   do j = iModeStart, iModeEnd
 
-    call getDisplacement(j, nAtoms, nModes, eigenvector, mass, shift, displacement, generalizedNorm(j))
+    displacement = getShiftDisplacement(j, nAtoms, nModes, eigenvector, mass, shift)
+
+    generalizedNorm(j) = cartDisplacementToGeneralizedNorm(nAtoms, displacement, mass)*angToBohr*sqrt(daltonToElecM)
+      !! Convert scaled displacement back to generalized
+      !! coordinates and get norm
+      !! @note
+      !!   Input positions are in angstrom and input
+      !!   masses are in amu, but the dq output is going
+      !!   to our code, which uses Hartree atomic units
+      !!   (Bohr and electron masses), so this value
+      !!   must have a unit conversion.
+      !! @endnote
 
     if(generateShiftedPOSCARs) then
 
