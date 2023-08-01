@@ -139,8 +139,8 @@ module generalComputations
       !! Cosine between vectors
 
     ! Calculate the magnitudes of the vectors
-    magnitude1 = sqrt(vector1(1)**2 + vector1(2)**2 + vector1(3)**2)
-    magnitude2 = sqrt(vector2(1)**2 + vector2(2)**2 + vector2(3)**2)
+    magnitude1 = sqrt(dot_product(vector1, vector1))
+    magnitude2 = sqrt(dot_product(vector2, vector2))
 
     ! Calculate the cosine of the angle between the vectors
     cosTheta = dot_product(vector1, vector2) / (magnitude1 * magnitude2)
