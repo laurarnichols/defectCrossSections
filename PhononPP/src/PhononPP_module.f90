@@ -382,7 +382,7 @@ module PhononPPMod
 
       eig = eigenvector(:,ia,j)/sqrt(mass(ia))
 
-      displacement(:,ia) = eig*shift
+      displacement(:,ia) = eig
 
       cartNorm = cartNorm + dot_product(eig,eig)
 
@@ -390,13 +390,9 @@ module PhononPPMod
 
     cartNorm = sqrt(cartNorm)
 
-    displacement = displacement/cartNorm
-      !! @note
-      !!  Input positions and shift magnitude are in
-      !!  angstrom, and the output positions are to
-      !!  POSCARs for VASP calculations, so the units
-      !!  should still be angstrom.
-      !! @endnote
+    displacement = displacement*shift/cartNorm
+      !! Scale the displacement so that the 
+      !! norm of the entire vector is `shift`
 
     return
 
