@@ -2,12 +2,12 @@ program PhononPPMain
 
   use PhononPPMod
   use generalComputations, only: direct2cart
-  use cell, only: readPOSCAR, cartDisplacementToGeneralizedNorm, writePOSCARNewPos
+  use cell, only: readPOSCAR, cartDispProjOnPhononEigsNorm, writePOSCARNewPos
   use miscUtilities, only: int2strLeadZero
   
   implicit none
 
-  integer :: j 
+  integer :: j
     !! Mode index
 
   call cpu_time(t0)
@@ -46,6 +46,8 @@ program PhononPPMain
   call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
   call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+  if(.not. ionode) allocate(atomPositionsDirInit(3,nAtoms), atomPositionsDirFinal(3,nAtoms))
   call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   call MPI_BCAST(atomPositionsDirFinal, size(atomPositionsDirFinal), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
@@ -57,7 +59,11 @@ program PhononPPMain
   allocate(mass(nAtoms))
   allocate(omegaFreq(nModes))
 
-  call readPhonons(nAtoms, nModes, phononFName, eigenvector, mass, omegaFreq)
+  if(ionode) call readPhonons(nAtoms, nModes, phononFName, eigenvector, mass, omegaFreq)
+
+  call MPI_BCAST(eigenvector, size(eigenvector), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+  call MPI_BCAST(mass, size(mass), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+  call MPI_BCAST(omegaFreq, size(omegaFreq), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
   deallocate(omegaFreq)
 
@@ -77,15 +83,15 @@ program PhononPPMain
 
   allocate(shiftedPositions(3,nAtoms))
   allocate(displacement(3,nAtoms))
-  allocate(generalizedNorm(nModes))
+  allocate(projNorm(nModes))
 
-  generalizedNorm = 0.0_dp
+  projNorm = 0.0_dp
 
   do j = iModeStart, iModeEnd
 
-    displacement = getShiftDisplacement(j, nAtoms, nModes, eigenvector, mass, shift)
+    displacement = getShiftDisplacement(nAtoms, eigenvector(:,:,j), mass, shift)
 
-    generalizedNorm(j) = cartDisplacementToGeneralizedNorm(nAtoms, displacement, mass)*angToBohr*sqrt(daltonToElecM)
+    projNorm(j) = cartDispProjOnPhononEigsNorm(j, nAtoms, displacement, eigenvector(:,:,j), mass)*angToBohr*sqrt(daltonToElecM)
       !! Convert scaled displacement back to generalized
       !! coordinates and get norm
       !! @note
@@ -114,9 +120,9 @@ program PhononPPMain
   deallocate(shiftedPositions)
   deallocate(displacement)
 
-  call writeDqs(nModes, generalizedNorm, dqFName)
+  call writeDqs(nModes, projNorm, dqFName)
 
-  deallocate(generalizedNorm)
+  deallocate(projNorm)
 
   call MPI_Barrier(worldComm, ierr)
  

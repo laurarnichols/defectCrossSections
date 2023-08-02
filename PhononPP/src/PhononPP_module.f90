@@ -30,7 +30,7 @@ module PhononPPMod
     !! Atom displacements in angstrom
   real(kind=dp), allocatable :: eigenvector(:,:,:)
     !! Eigenvectors for each atom for each mode
-  real(kind=dp), allocatable :: generalizedNorm(:)
+  real(kind=dp), allocatable :: projNorm(:)
     !! Generalized norms after displacement
   real(kind=dp), allocatable :: mass(:)
     !! Masses of atoms
@@ -341,20 +341,16 @@ module PhononPPMod
   end subroutine readPhonons
 
 !----------------------------------------------------------------------------
-  function getShiftDisplacement(j, nAtoms, nModes, eigenvector, mass, shift) result(displacement)
+  function getShiftDisplacement(nAtoms, eigenvector, mass, shift) result(displacement)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: j
-      !! Phonon mode index
     integer, intent(in) :: nAtoms
       !! Number of atoms
-    integer, intent(in) :: nModes
-      !! Number of modes
 
-    real(kind=dp), intent(in) :: eigenvector(3,nAtoms,nModes)
-      !! Eigenvectors for each atom for each mode
+    real(kind=dp), intent(in) :: eigenvector(3,nAtoms)
+      !! Eigenvectors for each atom for this mode
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Masses of atoms
     real(kind=dp), intent(in) :: shift
@@ -380,7 +376,7 @@ module PhononPPMod
     cartNorm = 0.0_dp
     do ia = 1, nAtoms
 
-      eig = eigenvector(:,ia,j)/sqrt(mass(ia))
+      eig = eigenvector(:,ia)/sqrt(mass(ia))
 
       displacement(:,ia) = eig
 
@@ -399,7 +395,7 @@ module PhononPPMod
   end function getShiftDisplacement
 
 !----------------------------------------------------------------------------
-  subroutine writeDqs(nModes, generalizedNorm, dqFName)
+  subroutine writeDqs(nModes, projNorm, dqFName)
 
     implicit none
 
@@ -407,7 +403,7 @@ module PhononPPMod
     integer, intent(in) :: nModes
       !! Number of modes
 
-    real(kind=dp), intent(inout) :: generalizedNorm(nModes)
+    real(kind=dp), intent(inout) :: projNorm(nModes)
       !! Generalized norms after displacement
 
     character(len=300), intent(in) :: dqFName
@@ -418,7 +414,7 @@ module PhononPPMod
       !! Loop index
 
 
-    call mpiSumDoubleV(generalizedNorm, worldComm)
+    call mpiSumDoubleV(projNorm, worldComm)
       !! * Get the generalized-displacement norms
       !!   from all processes
 
@@ -430,7 +426,7 @@ module PhononPPMod
 
       do j = 1, nModes
 
-        write(60,'(1i7, 1ES24.15E3)') j, generalizedNorm(j)
+        write(60,'(1i7, 1ES24.15E3)') j, projNorm(j)
           !! Output norm to file
 
       enddo
