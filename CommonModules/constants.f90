@@ -8,6 +8,7 @@ module constants
   
   real(kind=dp), parameter ::          abCM = 0.529177219217e-8_dp
   real(kind=dp), parameter ::     angToBohr = 1.889725989_dp
+  real(kind=dp), parameter ::        angToM = 1e-10_dp
   real(kind=dp), parameter ::   BohrToMeter = 5.29177e-11_dp
   real(kind=dp), parameter ::     elecMToKg = 9.10938e-31_dp
   real(kind=dp), parameter ::   eVToHartree = 1.0_dp/27.21138386_dp

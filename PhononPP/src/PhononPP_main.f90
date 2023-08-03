@@ -65,9 +65,30 @@ program PhononPPMain
   call MPI_BCAST(mass, size(mass), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   call MPI_BCAST(omegaFreq, size(omegaFreq), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
+  call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
+
+
+  allocate(displacement(3,nAtoms))
+  allocate(projNorm(nModes))
+  
+
+  !> Define the displacement for the relaxation, 
+  !> project onto the phonon eigenvectors, and
+  !> get Sj
+  displacement = atomPositionsDirFinal - atomPositionsDirInit
+  
+  projNorm = 0.0_dp
+  do j = iModeStart, iModeEnd
+
+    projNorm(j) = cartDispProjOnPhononEigsNorm(j, nAtoms, displacement, eigenvector(:,:,j), mass)
+
+  enddo
+
+  projNorm = projNorm*angToM*sqrt(daltonToElecM*elecMToKg)
+  call calcAndWriteSj(nModes, omegaFreq, projNorm)
+
   deallocate(omegaFreq)
 
-  call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
 
   if(nModes < 10) then
     suffixLength = 1
@@ -82,25 +103,22 @@ program PhononPPMain
   endif
 
   allocate(shiftedPositions(3,nAtoms))
-  allocate(displacement(3,nAtoms))
-  allocate(projNorm(nModes))
 
+  !> Get the displacement for each mode to 
+  !> calculate the derivative of the wave function.
+  !> Project onto the phonon eigenvectors (here,
+  !> the effect is just to convert back to generalized
+  !> coordinates because the displacement is already
+  !> a scaled form of the eigenvectors), then (if needed)
+  !> write the shifted positions and generalized displacement
+  !> norms.
   projNorm = 0.0_dp
 
   do j = iModeStart, iModeEnd
 
     displacement = getShiftDisplacement(nAtoms, eigenvector(:,:,j), mass, shift)
 
-    projNorm(j) = cartDispProjOnPhononEigsNorm(j, nAtoms, displacement, eigenvector(:,:,j), mass)*angToBohr*sqrt(daltonToElecM)
-      !! Convert scaled displacement back to generalized
-      !! coordinates and get norm
-      !! @note
-      !!   Input positions are in angstrom and input
-      !!   masses are in amu, but the dq output is going
-      !!   to our code, which uses Hartree atomic units
-      !!   (Bohr and electron masses), so this value
-      !!   must have a unit conversion.
-      !! @endnote
+    projNorm(j) = cartDispProjOnPhononEigsNorm(j, nAtoms, displacement, eigenvector(:,:,j), mass)
 
     if(generateShiftedPOSCARs) then
 
@@ -120,6 +138,7 @@ program PhononPPMain
   deallocate(shiftedPositions)
   deallocate(displacement)
 
+  projNorm = projNorm*angToBohr*sqrt(daltonToElecM)
   call writeDqs(nModes, projNorm, dqFName)
 
   deallocate(projNorm)

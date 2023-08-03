@@ -1,6 +1,6 @@
 module PhononPPMod
   
-  use constants, only: dp, angToBohr, daltonToElecM
+  use constants, only: dp, angToBohr, angToM, daltonToElecM, elecMToKg, THzToHz, pi, hbar
   use cell, only: nAtoms, omega, realLattVec
   use errorsAndMPI
   use mpi
@@ -36,7 +36,7 @@ module PhononPPMod
     !! Masses of atoms
   real(kind=dp) :: omegaFinal
     !! Volume of final-state supercell
-  real(kind=dp),allocatable :: omegaFreq(:)
+  real(kind=dp), allocatable :: omegaFreq(:)
     !! Frequency for each mode
   real(kind=dp) :: shift
     !! Magnitude of shift along phonon eigenvectors
@@ -334,11 +334,57 @@ module PhononPPMod
       
     enddo
 
+    omegaFreq(:) = omegaFreq(:)*2*pi
+
     close(57)
 
     return
 
   end subroutine readPhonons
+  
+!----------------------------------------------------------------------------
+  subroutine calcAndWriteSj(nModes, omegaFreq, projNorm)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: omegaFreq(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(inout) :: projNorm(nModes)
+      !! Generalized norms after displacement
+
+    ! Local variables:
+    integer :: j
+      !! Loop index
+
+
+    call mpiSumDoubleV(projNorm, worldComm)
+      !! * Get the generalized-displacement norms
+      !!   from all processes
+
+    if(ionode) then
+
+      open(60, file="./Sj.out")
+
+      write(60,'(1i7)') nModes
+
+      do j = 1, nModes
+
+        write(60,'(1i7, 2ES24.15E3)') j, projNorm(j)**2*omegaFreq(j)*THzToHz/(2*hbar), omegaFreq(j)
+
+      enddo
+
+      close(60)
+
+    endif
+
+
+    return
+
+  end subroutine calcAndWriteSj
 
 !----------------------------------------------------------------------------
   function getShiftDisplacement(nAtoms, eigenvector, mass, shift) result(displacement)
