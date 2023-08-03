@@ -177,20 +177,22 @@ module PhononPPMod
   end subroutine standardizeCoordinates
 
 !----------------------------------------------------------------------------
-  subroutine checkCompatibility(nAtoms, nAtomsFinal, omega, omegaFinal, atomPositionsDirFinal, atomPositionsDirInit)
+  subroutine checkCompatibility(nAtoms1, nAtoms2, omega1, omega2, atomPositionsDir1, atomPositionsDir2)
+
+    use miscUtilities, only: int2str
 
     implicit none
 
     ! Input variables
-    integer, intent(in) :: nAtoms, nAtomsFinal
-      !! Number of atoms from initial and final POSCARs
+    integer, intent(in) :: nAtoms1, nAtoms2
+      !! Number of atoms
 
-    real(kind=dp), intent(in) :: omega, omegaFinal
-      !! Cell volume from initial and final POSCARs
+    real(kind=dp), intent(in) :: omega1, omega2
+      !! Cell volume
 
     ! Output variables:
-    real(kind=dp), intent(inout) :: atomPositionsDirInit(3,nAtoms), atomPositionsDirFinal(3,nAtomsFinal)
-      !! Atom positions in initial and final relaxed positions
+    real(kind=dp), intent(inout) :: atomPositionsDir1(3,nAtoms1), atomPositionsDir2(3,nAtoms2)
+      !! Atom positions
 
     ! Local variables:
     integer :: ia, ix
@@ -203,9 +205,10 @@ module PhononPPMod
       !! Whether or not to abort the execution
 
 
-    if(nAtoms /= nAtomsFinal) call exitError('checkCompatibility', 'initial and final states should have same nAtoms', 1)
+    if(nAtoms1 /= nAtoms2) &
+      call exitError('checkCompatibility', 'number of atoms does not match: '//trim(int2str(nAtoms1))//' '//trim(int2str(nAtoms2)), 1)
 
-    if(abs(omega - omegaFinal) > 1e-8) call exitError('checkCompatibility', 'initial and final volumes don''t match', 1)
+    if(abs(omega1 - omega2) > 1e-8) call exitError('checkCompatibility', 'volumes don''t match', 1)
 
 
     abortExecution = .false.
@@ -265,7 +268,11 @@ module PhononPPMod
     ! Local variables:
     integer :: j, ia, ix
       !! Loop index
+    integer :: nAtomsFromPhon
+      !! Number of atoms from phonon file
 
+    real(kind=dp), allocatable :: coordFromPhon(:,:)
+      !! Corodinates from phonon file
     real(kind=dp) :: qPos(3)
       !! Phonon q position
 
@@ -282,21 +289,32 @@ module PhononPPMod
 
     open(57, file=phononFName)
 
+    line = getFirstLineWithKeyword(57,'natom')
+    read(line(7:len(trim(line))),*) nAtomsFromPhon
+
     line = getFirstLineWithKeyword(57,'points')
       !! Ignore everything next until you get to points line
 
-    do ia = 1, nAtoms
+    allocate(coordFromPhon(3,nAtomsFromPhon))
+
+    do ia = 1, nAtomsFromPhon
 
       read(57,'(A)') ! Ignore symbol 
-      read(57,'(A)') ! Ignore coordinates
+      read(57,'(A)') line
+      read(line(17:len(trim(line))),*) coordFromPhon(:,ia)
       read(57,'(a7,f)') line, mass(ia)
         !! Read mass
 
     enddo
+
+    call checkCompatibility(nAtoms, nAtomsFromPhon, omega, omega, atomPositionsDirInit, coordFromPhon)
+
+    deallocate(coordFromPhon)
+
     line = getFirstLineWithKeyword(57,'q-position')
       !! Ignore everything next until you get to q-position line
 
-    read(line(16:len(trim(line))-1),*) qPos
+    read(line(16:len(trim(line))),*) qPos
       !! Read in the q position
 
     if(qPos(1) > 1e-8 .or. qPos(2) > 1e-8 .or. qPos(3) > 1e-8) &
@@ -312,7 +330,7 @@ module PhononPPMod
       read(57,'(A)') ! Ignore mode number
 
       read(57,'(A)') line
-      if(j > 3) read(line(15:len(trim(line))-1),*) omegaFreq(j-3)
+      if(j > 3) read(line(15:len(trim(line))),*) omegaFreq(j-3)
 
       read(57,'(A)') ! Ignore eigenvector section header
 
@@ -323,7 +341,7 @@ module PhononPPMod
         do ix = 1, 3
 
           read(57,'(A)') line
-          if(j > 3) read(line(10:len(trim(line))-1),*) eigenvector(ix,ia,j-3)
+          if(j > 3) read(line(10:len(trim(line))),*) eigenvector(ix,ia,j-3)
             !! Only store the eigenvectors after the first 3 modes 
             !! because those are the acoustic modes and we only want
             !! the optical modes.
