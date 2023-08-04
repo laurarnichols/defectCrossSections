@@ -4,18 +4,18 @@
 # location of needed modules
 MODFLAGS= -I$(CommonModules_srcPath) -I.
 
-SHIFTER_OBJS = Shifter_module.o Shifter_main.o
+PHONONPP_OBJS = PhononPP_module.o PhononPP_main.o
 COMMONMODS = $(CommonModules_srcPath)/commonmodules.a
 
-all : Shifter.x 
+all : PhononPP.x 
 	
-Shifter.x : mods $(COMMONMODS) $(SHIFTER_OBJS)
-	$(mpif90) $(MODFLAGS) -o Shifter.x $(SHIFTER_OBJS) $(COMMONMODS)
+PhononPP.x : mods $(COMMONMODS) $(PHONONPP_OBJS)
+	$(mpif90) $(MODFLAGS) -o PhononPP.x $(PHONONPP_OBJS) $(COMMONMODS)
 	- ( cd $(Home_Path)/bin ; ln -fs $(PhononPP_srcPath)/$@ . )
 
 	@echo "" ; \
 	echo "" ; \
-	echo "Program 'Shifter' compiled successfully !" ; \
+	echo "Program 'PhononPP' compiled successfully !" ; \
 	echo "" ; \
 	echo "" ; 
 
