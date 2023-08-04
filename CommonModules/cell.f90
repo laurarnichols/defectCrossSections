@@ -53,28 +53,39 @@ module cell
 
     real(kind=dp) :: eig(3)
       !! Displacement vector for single atom
+    real(kind=dp) :: eigDotEig
+      !! Dot product across all atoms for calculating
+      !! projection
     real(kind=dp) :: genDisp(3)
       !! Displacement in generalized coordinates
-    real(kind=dp) :: proj(3)
+    real(kind=dp) :: genDispDotEig
+      !! Dot product across all atoms for calculating
+      !! projection
+    real(kind=dp) :: proj(3,nAtoms)
       !! Projection of generalized displacement 
       !! onto phonon eigenvector
 
 
-    projNorm = 0.0_dp
+    genDispDotEig = 0.0_dp
+    eigDotEig = 0.0_dp
     do ia = 1, nAtoms
 
-      genDisp = displacement(:,ia)*sqrt(mass(ia))
+      genDisp = matmul(realLattVec,displacement(:,ia)*sqrt(mass(ia)))
 
       eig = eigenvector(:,ia)
 
-      if(dot_product(eig,eig) > 1e-8) then
+      genDispDotEig = genDispDotEig + dot_product(genDisp, eig)
 
-        proj = (dot_product(genDisp,eig)/dot_product(eig,eig))*eig
+      eigDotEig = eigDotEig + dot_product(eig,eig)
 
-        projNorm = projNorm + dot_product(proj,proj)
+    enddo
 
-      endif
+    proj(:,:) = genDispDotEig/eigDotEig*eigenvector(:,:)
 
+    projNorm = 0.0_dp
+    do ia = 1, nAtoms
+
+      projNorm = projNorm + dot_product(proj(:,ia), proj(:,ia))
 
     enddo
 
