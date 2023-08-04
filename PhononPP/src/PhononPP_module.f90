@@ -2,6 +2,7 @@ module PhononPPMod
   
   use constants, only: dp, angToBohr, angToM, daltonToElecM, elecMToKg, THzToHz, pi, hbar
   use cell, only: nAtoms, omega, realLattVec
+  use miscUtilities, only: int2str
   use errorsAndMPI
   use mpi
 
@@ -62,6 +63,52 @@ module PhononPPMod
 
 
   contains
+
+!----------------------------------------------------------------------------
+  subroutine readInputs(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
+
+    implicit none
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: shift
+      !! Magnitude of shift along phonon eigenvectors
+
+    character(len=300), intent(out) :: dqFName
+      !! File name for generalized-coordinate norms
+    character(len=300), intent(out) :: phononFName
+      !! File name for mesh.yaml phonon file
+    character(len=300), intent(out) :: initPOSCARFName, finalPOSCARFName
+      !! File name for POSCAR for relaxed initial and final charge states
+    character(len=300), intent(out) :: prefix
+      !! Prefix for shifted POSCARs
+
+    logical, intent(out) :: generateShiftedPOSCARs
+      !! If shifted POSCARs should be generated
+
+
+    if(ionode) then
+
+      call initialize(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
+        !! * Set default values for input variables and start timers
+    
+      read(5, inputParams, iostat=ierr)
+        !! * Read input variables
+    
+      if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
+        !! * Exit calculation if there's an error
+
+      call checkInitialization(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
+
+    endif
+
+    ! Send to other processes only what they need to know
+    call MPI_BCAST(shift, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(generateShiftedPOSCARs, 1, MPI_LOGICAL, root, worldComm, ierr)
+
+    return
+
+  end subroutine readInputs
 
 !----------------------------------------------------------------------------
   subroutine initialize(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
@@ -177,71 +224,6 @@ module PhononPPMod
   end subroutine standardizeCoordinates
 
 !----------------------------------------------------------------------------
-  subroutine checkCompatibility(nAtoms1, nAtoms2, omega1, omega2, atomPositionsDir1, atomPositionsDir2)
-
-    use miscUtilities, only: int2str
-
-    implicit none
-
-    ! Input variables
-    integer, intent(in) :: nAtoms1, nAtoms2
-      !! Number of atoms
-
-    real(kind=dp), intent(in) :: omega1, omega2
-      !! Cell volume
-
-    ! Output variables:
-    real(kind=dp), intent(inout) :: atomPositionsDir1(3,nAtoms1), atomPositionsDir2(3,nAtoms2)
-      !! Atom positions
-
-    ! Local variables:
-    integer :: ia, ix
-      !! Loop indices
-
-    real(kind=dp) :: dispDir, dispDir1, dispDir2
-      !! Displacement in direct coordinates
-
-    logical :: abortExecution
-      !! Whether or not to abort the execution
-
-
-    if(nAtoms1 /= nAtoms2) &
-      call exitError('checkCompatibility', 'number of atoms does not match: '//trim(int2str(nAtoms1))//' '//trim(int2str(nAtoms2)), 1)
-
-    if(abs(omega1 - omega2) > 1e-8) call exitError('checkCompatibility', 'volumes don''t match', 1)
-
-
-    abortExecution = .false.
-    
-    do ia = 1, nAtoms
-      do ix = 1, 3
-
-        dispDir1 = atomPositionsDirFinal(ix,ia) - atomPositionsDirInit(ix,ia)
-        dispDir2 = 1.0_dp - atomPositionsDirFinal(ix,ia) - atomPositionsDirInit(ix,ia)
-
-        if(abs(dispDir1) <= abs(dispDir2)) then
-          dispDir = dispDir1
-        else
-          dispDir = dispDir2
-          atomPositionsDirFinal(ix,ia) = 1.0_dp - atomPositionsDirFinal(ix,ia)
-        endif
-
-        if(abs(dispDir) > 0.2) then
-          abortExecution = .true.
-
-          write(*,'("Possible atoms out of order: ", i4, 3f10.5)') ia, dispDir
-        endif
-
-      enddo
-    enddo
-
-    if(abortExecution) call exitError('checkCompatibility', 'atoms don''t seem to be in the same order', 1)
-
-    return
-
-  end subroutine checkCompatibility
-
-!----------------------------------------------------------------------------
   subroutine readPhonons(nAtoms, nModes, phononFName, eigenvector, mass, omegaFreq)
 
     use miscUtilities, only: getFirstLineWithKeyword
@@ -271,8 +253,11 @@ module PhononPPMod
     integer :: nAtomsFromPhon
       !! Number of atoms from phonon file
 
-    real(kind=dp), allocatable :: coordFromPhon(:,:)
+    real(kind=dp) :: coordFromPhon(3,nAtoms)
       !! Corodinates from phonon file
+    real(kind=dp) :: displacement(3,nAtoms)
+      !! Displacement (needed as argument to check 
+      !! compatibility
     real(kind=dp) :: qPos(3)
       !! Phonon q position
 
@@ -283,82 +268,210 @@ module PhononPPMod
       !! If phonon file exists
 
 
-    inquire(file=phononFName, exist=fileExists)
+    if(ionode) then
 
-    if(.not. fileExists) call exitError('readPhonons', 'Phonon file '//trim(phononFName)//' does not exist', 1)
+      inquire(file=phononFName, exist=fileExists)
 
-    open(57, file=phononFName)
+      if(.not. fileExists) call exitError('readPhonons', 'Phonon file '//trim(phononFName)//' does not exist', 1)
 
-    line = getFirstLineWithKeyword(57,'natom')
-    read(line(7:len(trim(line))),*) nAtomsFromPhon
+      open(57, file=phononFName)
 
-    line = getFirstLineWithKeyword(57,'points')
-      !! Ignore everything next until you get to points line
 
-    allocate(coordFromPhon(3,nAtomsFromPhon))
+      line = getFirstLineWithKeyword(57,'natom')
+      read(line(7:len(trim(line))),*) nAtomsFromPhon
 
-    do ia = 1, nAtomsFromPhon
+      if(nAtoms /= nAtomsFromPhon) &
+        call exitError('readPhonon', 'number of atoms does not match: '//trim(int2str(nAtoms))//' '//trim(int2str(nAtomsFromPhon)), 1)
 
-      read(57,'(A)') ! Ignore symbol 
-      read(57,'(A)') line
-      read(line(17:len(trim(line))),*) coordFromPhon(:,ia)
-      read(57,'(a7,f)') line, mass(ia)
-        !! Read mass
 
-    enddo
-
-    call checkCompatibility(nAtoms, nAtomsFromPhon, omega, omega, atomPositionsDirInit, coordFromPhon)
-
-    deallocate(coordFromPhon)
-
-    line = getFirstLineWithKeyword(57,'q-position')
-      !! Ignore everything next until you get to q-position line
-
-    read(line(16:len(trim(line))),*) qPos
-      !! Read in the q position
-
-    if(qPos(1) > 1e-8 .or. qPos(2) > 1e-8 .or. qPos(3) > 1e-8) &
-      call exitError('readPhonons', 'Code assumes phonons have no momentum (at q=0)!',1)
-
-    read(57,'(A)') line
-    read(57,'(A)') line
-    read(57,'(A)') line
-      !! Ignore next 3 lines
-
-    do j = 1, nModes+3
-
-      read(57,'(A)') ! Ignore mode number
-
-      read(57,'(A)') line
-      if(j > 3) read(line(15:len(trim(line))),*) omegaFreq(j-3)
-
-      read(57,'(A)') ! Ignore eigenvector section header
+      line = getFirstLineWithKeyword(57,'points')
+        !! Ignore everything next until you get to points line
 
       do ia = 1, nAtoms
 
-        read(57,'(A)') line ! Ignore atom number
-
-        do ix = 1, 3
-
-          read(57,'(A)') line
-          if(j > 3) read(line(10:len(trim(line))),*) eigenvector(ix,ia,j-3)
-            !! Only store the eigenvectors after the first 3 modes 
-            !! because those are the acoustic modes and we only want
-            !! the optical modes.
-
-        enddo
+        read(57,'(A)') ! Ignore symbol 
+        read(57,'(A)') line
+        read(line(17:len(trim(line))),*) coordFromPhon(:,ia)
+        read(57,'(a7,f)') line, mass(ia)
+          !! Read mass
 
       enddo
-      
-    enddo
 
-    omegaFreq(:) = omegaFreq(:)*2*pi
+    endif
 
-    close(57)
+    call getRelaxDispAndCheckCompatibility(nAtoms, atomPositionsDirInit, coordFromPhon, displacement)
+
+    if(ionode) then
+
+      line = getFirstLineWithKeyword(57,'q-position')
+        !! Ignore everything next until you get to q-position line
+
+      read(line(16:len(trim(line))),*) qPos
+        !! Read in the q position
+
+      if(qPos(1) > 1e-8 .or. qPos(2) > 1e-8 .or. qPos(3) > 1e-8) &
+        call exitError('readPhonons', 'Code assumes phonons have no momentum (at q=0)!',1)
+
+      read(57,'(A)') line
+      read(57,'(A)') line
+      read(57,'(A)') line
+        !! Ignore next 3 lines
+
+      do j = 1, nModes+3
+
+        read(57,'(A)') ! Ignore mode number
+
+        read(57,'(A)') line
+        if(j > 3) read(line(15:len(trim(line))),*) omegaFreq(j-3)
+
+        read(57,'(A)') ! Ignore eigenvector section header
+
+        do ia = 1, nAtoms
+
+          read(57,'(A)') line ! Ignore atom number
+  
+          do ix = 1, 3
+
+            read(57,'(A)') line
+            if(j > 3) read(line(10:len(trim(line))),*) eigenvector(ix,ia,j-3)
+              !! Only store the eigenvectors after the first 3 modes 
+              !! because those are the acoustic modes and we only want
+              !! the optical modes.
+
+          enddo
+        enddo
+      enddo
+
+      omegaFreq(:) = omegaFreq(:)*2*pi
+
+      close(57)
+
+    endif
+
+    call MPI_BCAST(eigenvector, size(eigenvector), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(mass, size(mass), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(omegaFreq, size(omegaFreq), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
   end subroutine readPhonons
+
+!----------------------------------------------------------------------------
+  subroutine getRelaxDispAndCheckCompatibility(nAtoms, atomPositionsDirFinal, atomPositionsDirInit, displacement)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+
+    real(kind=dp), intent(in) :: atomPositionsDirInit(3,nAtoms), atomPositionsDirFinal(3,nAtoms)
+      !! Atom positions in initial and final relaxed positions
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: displacement(3,nAtoms)
+      !! Displacement vector
+
+    ! Local variables:
+    integer :: ia, ix
+
+    real(kind=dp) :: dispInner, dispOuter
+      !! Inner (not crossing boundary) and outer
+      !! (crossing boundary) distance between two 
+      !! points
+    real(kind=dp) :: posInit, posFinal
+      !! Local storage of single coordinate
+
+    logical :: abortExecution
+      !! Whether or not to abort execution
+
+
+    if(ionode) then
+
+      do ia= 1, nAtoms
+
+        do ix = 1, 3
+
+          posInit = atomPositionsDirInit(ix,ia)
+          posFinal = atomPositionsDirFinal(ix,ia)
+
+          dispInner = posFinal - posInit
+
+          if(posFinal > posInit) then
+            dispOuter = -posInit + posFinal - 1
+          else
+            dispOuter = 1 - posInit + posFinal
+          endif
+
+          if(abs(dispInner) < abs(dispOuter)) then
+            displacement(ix,ia) = dispInner
+          else
+            displacement(ix,ia) = dispOuter
+          endif
+
+        enddo
+
+        if(maxval(abs(displacement(:,ia))) > 0.2) then
+          abortExecution = .true.
+          write(*,'("Large displacement detected. Atom possibly out of order: ", i5, 3f10.7)') ia, displacement(:,ia)
+        endif
+
+      enddo
+
+      if(abortExecution) then
+        write(*, '(" Program stops!")')
+        stop
+      endif
+
+    endif
+
+    call MPI_BCAST(displacement, size(displacement), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return 
+
+  end subroutine getRelaxDispAndCheckCompatibility
+
+!----------------------------------------------------------------------------
+  function centerOfMass(nAtoms, coords, mass) result(centerOfMassCoords)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+
+    real(kind=dp), intent(in) :: coords(3,nAtoms)
+      !! Coordinates of atoms
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Mass of atoms
+
+    ! Output variables:
+    real(kind=dp) :: centerOfMassCoords(3,nAtoms)
+      !! Coordinates of the center of mass
+
+    ! Local variables:
+    integer :: ia
+      !! Loop index
+
+    real(kind=dp) :: totalMass
+      !! Total mass of atoms
+    real(kind=dp) :: totalMassTimesPos(3)
+      !! Total of mass times positions
+
+
+    totalMass = sum(mass(:))
+
+    totalMassTimesPos = 0.0_dp
+
+    do ia = 1, nAtoms
+      totalMassTimesPos = totalMassTimesPos + mass(ia) * coords(:, ia)
+    end do
+
+    centerOfMassCoords(1,:) = totalMassTimesPos(1)/totalMass
+    centerOfMassCoords(2,:) = totalMassTimesPos(2)/totalMass
+    centerOfMassCoords(3,:) = totalMassTimesPos(3)/totalMass
+
+  end function centerOfMass
   
 !----------------------------------------------------------------------------
   subroutine calcAndWriteSj(nModes, omegaFreq, projNorm)
@@ -443,6 +556,10 @@ module PhononPPMod
       eig = eigenvector(:,ia)/sqrt(mass(ia))
 
       displacement(:,ia) = eig
+
+      eig = matmul(realLattVec, eig)
+        ! Convert to Cartesian coordinates before 
+        ! getting norm
 
       cartNorm = cartNorm + dot_product(eig,eig)
 

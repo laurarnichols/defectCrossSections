@@ -14,34 +14,22 @@ program PhononPPMain
 
   call mpiInitialization('PhononPP')
 
-  call initialize(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
-    !! * Set default values for input variables and start timers
+  call readInputs(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
 
   if(ionode) then
-    
-    read(5, inputParams, iostat=ierr)
-      !! * Read input variables
-    
-    if(ierr /= 0) call exitError('PhononPP main', 'reading inputParams namelist', abs(ierr))
-      !! * Exit calculation if there's an error
-
-    call checkInitialization(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
-
     call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
     call readPOSCAR(finalPOSCARFName, nAtomsFinal, atomPositionsDirFinal, omegaFinal, realLattVec)
 
     call standardizeCoordinates(nAtoms, atomPositionsDirInit)
     call standardizeCoordinates(nAtomsFinal, atomPositionsDirFinal)
-  
-    call checkCompatibility(nAtoms, nAtomsFinal, omega, omegaFinal, atomPositionsDirFinal, atomPositionsDirInit)
+
+    if(nAtoms /= nAtomsFinal) &
+      call exitError('PhononPP main', 'number of atoms does not match: '//trim(int2str(nAtoms))//' '//trim(int2str(nAtomsFinal)), 1)
+
+    if(abs(omega - omegaFinal) > 1e-8) call exitError('PhononPP main', 'volumes don''t match', 1)
 
   endif
 
-  call MPI_BCAST(shift, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-  call MPI_BCAST(dqFName, len(dqFName), MPI_CHARACTER, root, worldComm, ierr)
-  call MPI_BCAST(phononFName, len(phononFName), MPI_CHARACTER, root, worldComm, ierr)
-  call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
-  call MPI_BCAST(generateShiftedPOSCARs, 1, MPI_LOGICAL, root, worldComm, ierr)
 
   call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
   call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -59,23 +47,19 @@ program PhononPPMain
   allocate(mass(nAtoms))
   allocate(omegaFreq(nModes))
 
-  if(ionode) call readPhonons(nAtoms, nModes, phononFName, eigenvector, mass, omegaFreq)
-
-  call MPI_BCAST(eigenvector, size(eigenvector), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-  call MPI_BCAST(mass, size(mass), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-  call MPI_BCAST(omegaFreq, size(omegaFreq), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+  call readPhonons(nAtoms, nModes, phononFName, eigenvector, mass, omegaFreq)
 
   call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
 
 
-  allocate(displacement(3,nAtoms))
   allocate(projNorm(nModes))
+  allocate(displacement(3,nAtoms))
   
 
   !> Define the displacement for the relaxation, 
   !> project onto the phonon eigenvectors, and
   !> get Sj
-  displacement = atomPositionsDirFinal - atomPositionsDirInit
+  call getRelaxDispAndCheckCompatibility(nAtoms, atomPositionsDirFinal, atomPositionsDirInit, displacement)
   
   projNorm = 0.0_dp
   do j = iModeStart, iModeEnd
