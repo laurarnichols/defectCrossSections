@@ -105,19 +105,16 @@ program wfcExportVASPMain
       !!   over processors
 
 
-    call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, wfcVecCut, gKIndexGlobal, &
-        gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, gToGkIndexMap, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
-        nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
+    call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, &
+        wfcVecCut, gKIndexGlobal, gKIndexOrigOrderLocal, gKSort, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
+        nGkLessECutGlobal, nGkVecsLocal)
       !! * Determine which G-vectors result in \(G+k\)
       !!   below the energy cutoff for each k-point and
       !!   sort the indices based on \(|G+k|^2\)
 
 
     deallocate(gIndexLocalToGlobal)
-    deallocate(gKIndexLocalToGlobal)
-    deallocate(gToGkIndexMap)
     deallocate(gVecInCart)
-    deallocate(nGkLessECutLocal)
   endif
 
 
@@ -148,8 +145,10 @@ program wfcExportVASPMain
         recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
 
-    deallocate(nPWs1kGlobal, gKIndexOrigOrderLocal, gKSort, nGkVecsLocal, iGkStart_pool, iGkEnd_pool)
+    deallocate(gKIndexOrigOrderLocal, gKSort, nGkVecsLocal, iGkStart_pool, iGkEnd_pool)
   endif
+
+  deallocate(nPWs1kGlobal)
 
 
   if(ionode) &
@@ -161,6 +160,9 @@ program wfcExportVASPMain
     !! * Calculate ground state and write out k-point 
     !!   information to `input` file
 
+  deallocate(kPosition)
+  deallocate(kWeight)
+
 
   call cpu_time(t2)
   if(ionode) &
@@ -169,16 +171,13 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  deallocate(kPosition)
-  deallocate(kWeight)
-
-
-
-  call writeGridInfo(nGVecsGlobal, nKPoints, nSpins, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
+  call writeGridInfo(nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
     !! * Write out grid boundaries and miller indices
     !!   for just \(G+k\) combinations below cutoff energy
     !!   in one file and all miller indices in another 
     !!   file
+
+  if(.not. energiesOnly) deallocate(gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal)
 
 
   call cpu_time(t2)
@@ -188,14 +187,14 @@ program wfcExportVASPMain
   call cpu_time(t1)
       
 
-  if(.not. energiesOnly) deallocate(gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal)
-
-
   call writeCellInfo(iType, nAtoms, nBands, nAtomTypes, realLattVec, recipLattVec, atomPositionsDir)
     !! * Write out the real- and reciprocal-space lattice vectors, 
     !!   the number of atoms, the number of types of atoms, the
     !!   final atom positions, number of bands, and number of spins,
     !!   then calculate the number of atoms of each type
+  
+  deallocate(iType)
+  deallocate(atomPositionsDir)
 
 
   call cpu_time(t2)
@@ -204,23 +203,11 @@ program wfcExportVASPMain
           t2-t1
   call cpu_time(t1)
 
-  
-  deallocate(iType)
-  deallocate(atomPositionsDir)
-
 
   call writePseudoInfo(nAtomTypes, nAtomsEachType, pot)
     !! * For each atom type, write out the element name,
     !!   number of atoms of this type, projector info,
     !!   radial grid info, and partial waves
-
-
-  call cpu_time(t2)
-  if(ionode) &
-    write(*, '("[X] K-points  [X] Grid  [X] Cell  [X] Pseudo  [ ] Eigenvalues (",f7.2," secs)")') &
-          t2-t1
-  call cpu_time(t1)
-
 
   deallocate(nAtomsEachType)
 
@@ -229,6 +216,15 @@ program wfcExportVASPMain
       deallocate(pot(iT)%radGrid, pot(iT)%dRadGrid, pot(iT)%wae, pot(iT)%wps)
     enddo
   endif
+
+  deallocate(pot)
+
+
+  call cpu_time(t2)
+  if(ionode) &
+    write(*, '("[X] K-points  [X] Grid  [X] Cell  [X] Pseudo  [ ] Eigenvalues (",f7.2," secs)")') &
+          t2-t1
+  call cpu_time(t1)
 
 
   call writeEigenvalues(nBands, nKPoints, nSpins, bandOccupation, eFermi, eTot, eigenE)
@@ -239,6 +235,9 @@ program wfcExportVASPMain
     deallocate(patternArr)
   endif
 
+  deallocate(eigenE)
+  deallocate(bandOccupation)
+
 
   call cpu_time(t2)
   if(ionode) &
@@ -246,9 +245,6 @@ program wfcExportVASPMain
           t2-t1
   call cpu_time(t1)
 
-
-  deallocate(eigenE)
-  deallocate(bandOccupation)
 
   if(ionode) then
    close(mainOutFileUnit)
