@@ -3309,7 +3309,11 @@ module wfcExportVASPMod
       !! Output file name
 
 
-    if(indexInBgrp == 0) allocate(coeff(maxNumPWsGlobal, ibStart_bgrp:ibEnd_bgrp))
+    if(indexInBgrp == 0) then
+      allocate(coeff(maxNumPWsGlobal, ibStart_bgrp:ibEnd_bgrp))
+    else
+      allocate(coeff(1,ibStart_bgrp:ibEnd_bgrp))
+    endif
 
     ikGlobal = ik+ikStart_pool-1
       
@@ -3392,7 +3396,7 @@ module wfcExportVASPMod
             ikGlobal, isp, t2-t1
 
 
-    if(indexInBgrp == 0) deallocate(coeff)
+    deallocate(coeff)
 
     return
   end subroutine readAndWriteWavefunction
