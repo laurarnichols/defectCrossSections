@@ -59,7 +59,7 @@ module PhononPPMod
     !! If shifted POSCARs should be generated
 
 
-  namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, nAtoms, shift, dqFName, generateShiftedPOSCARs
+  namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs
 
 
   contains
