@@ -1,6 +1,7 @@
 # Export From VASP
 
 The following VASP calculations are needed for a capture calculation:
+* relaxed perfect crystal (plus SCF after)
 * relaxed final charge state (plus SCF after)
 * relaxed initial charge state (plus SCF after)
 * final charge state in initial positions
