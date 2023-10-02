@@ -33,7 +33,7 @@ The inputs should look like
   iBandFfinal = integer						! highest final-state band
   
   ! Output info
-  outputDir = 'path-to-store-energy-tables' 			! default './'
+  energyTableDir = 'path-to-store-energy-tables' 			! default './'
 /
 ```
 _Note: Do not alter the `&inputParams` or `/` lines at the beginning and end of the file. They represent a namelist and fortran will not recognize the group of variables without this specific format_
