@@ -1042,6 +1042,10 @@ contains
     complex(kind=dp), allocatable :: betaLocalProjs(:,:)
       !! Projector of `projCrystalType` with all PWs/G+k 
       !! vectors and only local projectors
+    complex(kind=dp) :: betaScatter(npws)
+      !! Array for scattering so that the processes that
+      !! don't hold the local projectors don't access
+      !! the array out of bounds
     
     character(len=300) :: fNameExport
       !! File names
@@ -1104,11 +1108,14 @@ contains
     !> Distribute projectors across processors so that PWs are local
     !> instead of projectors
     iproc = 0
+    betaScatter(:) = cmplx(0.0,0.0,kind=dp)
     do ipr = 1, nProjs
 
       if(ipr == endingProj(iproc+1)+1) iproc = iproc + 1
 
-      call MPI_SCATTERV(betaLocalProjs(:,ipr), sendCount, displacement, MPI_DOUBLE_COMPLEX, betaLocalPWs(1:nGkVecsLocal,ipr), nGkVecsLocal, &
+      if(ipr >= iprStart_pool .and. ipr <= iprEnd_pool) betaScatter(:) = betaLocalProjs(:,ipr)
+
+      call MPI_SCATTERV(betaScatter(:), sendCount, displacement, MPI_DOUBLE_COMPLEX, betaLocalPWs(1:nGkVecsLocal,ipr), nGkVecsLocal, &
           MPI_DOUBLE_COMPLEX, iproc, intraPoolComm, ierr)
 
     enddo
@@ -1302,7 +1309,7 @@ contains
 
           irec = irec + 1
 
-          read(72,'(2ES24.15E3)') cProj(ipr,ib)
+          read(72,rec=irec) cProj(ipr,ib)
 
         enddo
       enddo
@@ -1921,7 +1928,6 @@ contains
       return
     end if
     
-    write(*,*) myid, x
     jl(0) = sin(x)/x
     if (lmax <= 0) return
     jl(1) = (jl(0)-cos(x))/x
