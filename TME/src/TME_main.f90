@@ -287,7 +287,7 @@ program TMEmain
 
         
           call cpu_time(t2)
-          if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [X] PAW k (",f6.2," secs)")') t2-t1
+          if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [X] PAW k (",f8.2," secs)")') t2-t1
           call cpu_time(t1)
       
 
