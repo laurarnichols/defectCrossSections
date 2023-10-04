@@ -17,9 +17,6 @@ program TMEmain
     !! that are normally done for the first channel
     !! only
 
-  character(len=300) :: ikC
-    !! Character index
-
   
   call mpiInitialization('TME')
     !! Initialize MPI
@@ -207,7 +204,7 @@ program TMEmain
           !> Calculate cross projections
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Read) &
-            call calculateCrossProjection(iBandFinit, iBandFfinal, ikGlobal, nGkVecsLocalPC, nGkVecsLocalSD, nProjsPC, betaPC, wfcSD, cProjBetaPCPsiSD)
+            call calculateCrossProjection(iBandFinit, iBandFfinal, nGkVecsLocalPC, nGkVecsLocalSD, nProjsPC, betaPC, wfcSD, cProjBetaPCPsiSD)
 
           if(isp == nSpins) then
             deallocate(wfcSD)
@@ -216,7 +213,7 @@ program TMEmain
 
 
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Read) &
-            call calculateCrossProjection(iBandIinit, iBandIfinal, ikGlobal, nGkVecsLocalSD, nGkVecsLocalPC, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
+            call calculateCrossProjection(iBandIinit, iBandIfinal, nGkVecsLocalSD, nGkVecsLocalPC, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
         
           if(isp == nSpins) then
             deallocate(wfcPC)
