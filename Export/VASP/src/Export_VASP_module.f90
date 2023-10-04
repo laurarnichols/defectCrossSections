@@ -2325,6 +2325,10 @@ module wfcExportVASPMod
 
     endif
 
+
+    if(ionode) write(*,'("Max number of k-points in pools = ", i4)') nkPerPool
+
+
     do ikLocal = 1, nkPerPool
       nGkVecsLocal_ik = nGkVecsLocal(ikLocal)
 
@@ -2340,8 +2344,8 @@ module wfcExportVASPMod
 
       nPWs1k = nPWs1kGlobal(ikGlobal)
 
-      if(indexInPool == 0) &
-        write(*, '("   k-point ",i4,": [ ] Phase  [ ] Real(projector)  [ ] Write projectors")') ikGlobal
+      if(ionode) &
+        write(*, '("   k-point ",i4," in pool: [ ] Phase  [ ] Real(projector)  [ ] Write projectors")') ikLocal
       call cpu_time(t1)
 
       !> Calculate the projectors and phase only once for each k-point
@@ -2356,9 +2360,9 @@ module wfcExportVASPMod
 
 
       call cpu_time(t2)
-      if(indexInPool == 0) &
-        write(*, '("   k-point ",i4,": [X] Phase  [ ] Real(projector)  [ ] Write projectors (",f7.2," secs)")') &
-              ikGlobal, t2-t1
+      if(ionode) &
+        write(*, '("   k-point ",i4," in pool: [X] Phase  [ ] Real(projector)  [ ] Write projectors (",f7.2," secs)")') &
+              ikLocal, t2-t1
       call cpu_time(t1)
 
 
@@ -2370,9 +2374,9 @@ module wfcExportVASPMod
 
 
       call cpu_time(t2)
-      if(indexInPool == 0) &
-        write(*, '("   k-point ",i4,": [X] Phase  [X] Real(projector)  [ ] Write projectors (",f7.2," secs)")') &
-              ikGlobal, t2-t1
+      if(ionode) &
+        write(*, '("   k-point ",i4," in pool: [X] Phase  [X] Real(projector)  [ ] Write projectors (",f7.2," secs)")') &
+              ikLocal, t2-t1
       call cpu_time(t1)
 
 
@@ -2381,9 +2385,9 @@ module wfcExportVASPMod
 
 
       call cpu_time(t2)
-      if(indexInPool == 0) &
-        write(*, '("   k-point ",i4,": [X] Phase  [X] Real(projector)  [X] Write projectors (",f7.2," secs)")') &
-              ikGlobal, t2-t1
+      if(ionode) &
+        write(*, '("   k-point ",i4," in pool: [X] Phase  [X] Real(projector)  [X] Write projectors (",f7.2," secs)")') &
+              ikLocal, t2-t1
       call cpu_time(t1)
 
 
@@ -2397,17 +2401,17 @@ module wfcExportVASPMod
           ! they know where they are supposed to access the WAVECAR
           ! once/if they are the I/O node
 
-        if(indexInPool == 0) &
-          write(*, '("      k-point ",i4,", spin ",i1,": [ ] Wavefunctions  [ ] Projections")') ikGlobal, isp
+        if(ionode) &
+          write(*, '("      k-point ",i4," in pool, spin ",i1,": [ ] Wavefunctions  [ ] Projections")') ikLocal, isp
         call cpu_time(t1)
 
         call readAndWriteWavefunction(ikLocal, isp, maxNumPWsGlobal, nBands, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
 
 
         call cpu_time(t2)
-        if(indexInPool == 0) &
-          write(*, '("      k-point ",i4,", spin ",i1,": [X] Wavefunctions  [ ] Projections (",f7.2," secs)")') &
-                ikGlobal, isp, t2-t1
+        if(ionode) &
+          write(*, '("      k-point ",i4," in pool, spin ",i1,": [X] Wavefunctions  [ ] Projections (",f7.2," secs)")') &
+                ikLocal, isp, t2-t1
         call cpu_time(t1)
 
 
@@ -2416,15 +2420,17 @@ module wfcExportVASPMod
 
 
         call cpu_time(t2)
-        if(indexInPool == 0) &
-          write(*, '("      k-point ",i4,", spin ",i1,": [X] Wavefunctions  [X] Projections (",f7.2," secs)")') &
-                ikGlobal, isp, t2-t1
+        if(ionode) &
+          write(*, '("      k-point ",i4," in pool, spin ",i1,": [X] Wavefunctions  [X] Projections (",f7.2," secs)")') &
+                ikLocal, isp, t2-t1
         call cpu_time(t1)
 
 
       enddo
 
       deallocate(phaseExp, realProjWoPhase, coeffLocal, gKIndexOrigOrderLocal_ik)
+
+      if(indexInPool == 0) write(*,'("k-point ", i4," complete!!")') ikGlobal
     enddo
 
     if(indexInBgrp == 0) close(wavecarUnit)
@@ -3118,8 +3124,8 @@ module wfcExportVASPMod
     ikGlobal = ik+ikStart_pool-1
 
 
-    if(indexInBgrp == 0) &
-      write(*, '("         k-point ",i4,": [ ] Gather  [ ] Write")') ikGlobal
+    if(ionode) &
+      write(*, '("         k-point ",i4," in pool: [ ] Gather  [ ] Write")') ik
     call cpu_time(t1)
 
 
@@ -3163,9 +3169,9 @@ module wfcExportVASPMod
 
 
     call cpu_time(t2)
-    if(indexInBgrp == 0) &
-      write(*, '("         k-point ",i4,": [X] Gather  [ ] Write (",f7.2," secs)")') &
-            ikGlobal, t2-t1
+    if(ionode) &
+      write(*, '("         k-point ",i4," in pool: [X] Gather  [ ] Write (",f7.2," secs)")') &
+            ik, t2-t1
     call cpu_time(t1)
 
 
@@ -3233,9 +3239,9 @@ module wfcExportVASPMod
 
 
     call cpu_time(t2)
-    if(indexInBgrp == 0) &
-      write(*, '("         k-point ",i4,": [X] Gather  [X] Write (",f7.2," secs)")') &
-            ikGlobal, t2-t1
+    if(ionode) &
+      write(*, '("         k-point ",i4," in pool: [X] Gather  [X] Write (",f7.2," secs)")') &
+            ik, t2-t1
     call cpu_time(t1)
 
 
@@ -3314,8 +3320,8 @@ module wfcExportVASPMod
 
     ikGlobal = ik+ikStart_pool-1
       
-    if(indexInPool == 0) &
-      write(*, '("         k-point ",i4,", spin ",i1,": [ ] Read and scatter  [ ] Write")') ikGlobal, isp
+    if(ionode) &
+      write(*, '("         k-point ",i4," in pool, spin ",i1,": [ ] Read and scatter  [ ] Write")') ik, isp
     call cpu_time(t1)
 
 
@@ -3349,9 +3355,9 @@ module wfcExportVASPMod
 
 
     call cpu_time(t2)
-    if(indexInPool == 0) &
-      write(*, '("         k-point ",i4,", spin ",i1,": [X] Read and scatter  [ ] Write (",f7.2," secs)")') &
-            ikGlobal, isp, t2-t1
+    if(ionode) &
+      write(*, '("         k-point ",i4," in pool, spin ",i1,": [X] Read and scatter  [ ] Write (",f7.2," secs)")') &
+            ik, isp, t2-t1
     call cpu_time(t1)
 
 
@@ -3388,9 +3394,9 @@ module wfcExportVASPMod
 
 
     call cpu_time(t2)
-    if(indexInPool == 0) &
-      write(*, '("         k-point ",i4,", spin ",i1,": [X] Read and scatter  [X] Write (",f7.2," secs)")') &
-            ikGlobal, isp, t2-t1
+    if(ionode) &
+      write(*, '("         k-point ",i4," in pool, spin ",i1,": [X] Read and scatter  [X] Write (",f7.2," secs)")') &
+            ik, isp, t2-t1
 
 
     deallocate(coeff)
