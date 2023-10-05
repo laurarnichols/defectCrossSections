@@ -206,20 +206,10 @@ program TMEmain
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Read) &
             call calculateCrossProjection(iBandFinit, iBandFfinal, nGkVecsLocalPC, nGkVecsLocalSD, nProjsPC, betaPC, wfcSD, cProjBetaPCPsiSD)
 
-          if(isp == nSpins) then
-            deallocate(wfcSD)
-            deallocate(betaPC)
-          endif
-
 
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Read) &
             call calculateCrossProjection(iBandIinit, iBandIfinal, nGkVecsLocalSD, nGkVecsLocalPC, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
         
-          if(isp == nSpins) then
-            deallocate(wfcPC)
-            deallocate(betaSD)
-          endif
-
 
           call cpu_time(t2)
           if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
@@ -237,8 +227,6 @@ program TMEmain
             call pawCorrectionWfc(nIonsPC, TYPNIPC, nProjsPC, numOfTypesPC, cProjPC, cProjBetaPCPsiSD, atomsPC, paw_PsiPC)
 
           endif
-          
-          if(isp == nSpins) deallocate(cProjBetaPCPsiSD)
 
 
           !-----------------------------------------------------------------------------------------------
@@ -252,8 +240,6 @@ program TMEmain
             call pawCorrectionWfc(nIonsSD, TYPNISD, nProjsSD, numOfTypes, cProjBetaSDPhiPC, cProjSD, atoms, paw_SDPhi)
 
           endif
-
-          if(isp == nSpins) deallocate(cProjBetaSDPhiPC)
 
           call cpu_time(t2)
           if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
@@ -272,18 +258,10 @@ program TMEmain
       
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Read) &
             call pawCorrectionK('PC', nIonsPC, TYPNIPC, JMAX, nGVecsLocal, numOfTypesPC, numOfTypes, posIonPC, gCart, Ylm, atomsPC, atoms, pawKPC)
-
-          if(isp == nSpins) then
-            deallocate(cProjPC)
-          endif
       
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Read) &
             call pawCorrectionK('SD', nIonsSD, TYPNISD, JMAX, nGVecsLocal, numOfTypes, numOfTypes, posIonSD, gCart, Ylm, atoms, atoms, pawSDK)
-
-          if(isp == nSpins) then
-            deallocate(cProjSD)
-          endif
 
         
           call cpu_time(t2)
@@ -304,14 +282,8 @@ program TMEmain
         
           enddo
 
-          if(isp == nSpins) then
-            deallocate(pawKPC)
-            deallocate(pawSDK)
-          endif
-
           Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_id(:,:)*16.0_dp*pi*pi/omega
 
-          if(isp == nSpins) deallocate(paw_id)
 
           call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(:,:,ikLocal,isp), size(Ufi(:,:,ikLocal,isp)), MPI_DOUBLE_COMPLEX, &
                   MPI_SUM, intraPoolComm, ierr)
@@ -325,12 +297,20 @@ program TMEmain
         
           endif
   
-          if(isp == nSpins) then
-            deallocate(paw_PsiPC)
-            deallocate(paw_SDPhi)
-          endif
       
         endif ! If this spin channel exists
+
+
+        if(isp == nSpins) then
+          deallocate(wfcSD, wfcPC)
+          deallocate(betaPC, betaSD)
+          deallocate(cProjBetaPCPsiSD, cProjBetaSDPhiPC)
+          deallocate(cProjPC, cProjSD)
+          deallocate(pawKPC, pawSDK)
+          deallocate(paw_id)
+          deallocate(paw_PsiPC, paw_SDPhi)
+        endif
+
       enddo ! Spin loop
     endif ! If both spin channels exist
   enddo ! k-point loop
