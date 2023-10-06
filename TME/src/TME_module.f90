@@ -149,6 +149,9 @@ contains
       !! Maximum G-vector index among all \(G+k\)
       !! and processors for SD
 
+    character(len=300) :: line
+      !! Line from file
+    
 
     if(ionode) then
     
@@ -1042,10 +1045,6 @@ contains
     complex(kind=dp), allocatable :: betaLocalProjs(:,:)
       !! Projector of `projCrystalType` with all PWs/G+k 
       !! vectors and only local projectors
-    complex(kind=dp) :: betaScatter(npws)
-      !! Array for scattering so that the processes that
-      !! don't hold the local projectors don't access
-      !! the array out of bounds
     
     character(len=300) :: fNameExport
       !! File names
@@ -1108,14 +1107,11 @@ contains
     !> Distribute projectors across processors so that PWs are local
     !> instead of projectors
     iproc = 0
-    betaScatter(:) = cmplx(0.0,0.0,kind=dp)
     do ipr = 1, nProjs
 
       if(ipr == endingProj(iproc+1)+1) iproc = iproc + 1
 
-      if(ipr >= iprStart_pool .and. ipr <= iprEnd_pool) betaScatter(:) = betaLocalProjs(:,ipr)
-
-      call MPI_SCATTERV(betaScatter(:), sendCount, displacement, MPI_DOUBLE_COMPLEX, betaLocalPWs(1:nGkVecsLocal,ipr), nGkVecsLocal, &
+      call MPI_SCATTERV(betaLocalProjs(:,ipr), sendCount, displacement, MPI_DOUBLE_COMPLEX, betaLocalPWs(1:nGkVecsLocal,ipr), nGkVecsLocal, &
           MPI_DOUBLE_COMPLEX, iproc, intraPoolComm, ierr)
 
     enddo
@@ -1165,7 +1161,7 @@ contains
     integer :: sendCount(nProcPerPool)
       !! Number of items to send to each process
       !! in the pool
-    integer :: ib, igk
+    integer :: ib, igk, iproc
       !! Loop indices
 
     complex*8 :: wfcAllPWs(npws)
@@ -1278,38 +1274,30 @@ contains
       !! Projections <beta|wfc>
 
     ! Local variables:
-    integer :: ipr, ib, irec
+    integer :: ipr, ib
       !! Loop indices
-    integer :: reclen
-      !! Record length of projections files
     
     
     cProj(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
-    inquire(iolength=reclen) cProj(1,iBandinit)
-      !! Get the record length needed to write a complex
     
     if(indexInPool == 0) then
 
       ! Open the projections file for the given crystal type
       if(crystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), access='direct', &
-                recl=reclen, iostat=ierr, status='old', SHARED)
+        open(72, file=trim(exportDirPC)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)))
       else
-        open(72, file=trim(exportDirSD)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), access='direct', &
-                recl=reclen, iostat=ierr, status='old', SHARED)
+        open(72, file=trim(exportDirSD)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)))
       endif
     
 
-      irec = (iBandinit-1)*nProjs
+      call ignoreNextNLinesFromFile(72, 1 + (iBandinit-1)*nProjs)
         ! Ignore header and all bands before initial band
     
       ! Read the projections
       do ib = iBandinit, iBandfinal
         do ipr = 1, nProjs 
 
-          irec = irec + 1
-
-          read(72,rec=irec) cProj(ipr,ib)
+          read(72,'(2ES24.15E3)') cProj(ipr,ib)
 
         enddo
       enddo
@@ -1326,7 +1314,7 @@ contains
   end subroutine readProjections
   
 !----------------------------------------------------------------------------
-  subroutine calculateCrossProjection(iBandinit, iBandfinal, nGkVecsLocal1, nGkVecsLocal2, nProjs, beta, wfc, crossProjection)
+  subroutine calculateCrossProjection(iBandinit, iBandfinal, ikGlobal, nGkVecsLocal1, nGkVecsLocal2, nProjs, beta, wfc, crossProjection)
     !! Calculate the cross projection of one crystal's projectors
     !! on the other crystal's wave function coefficients, distributing
     !! the result to all processors
@@ -1340,6 +1328,8 @@ contains
     integer, intent(in) :: iBandfinal
       !! Ending band for crystal wfc comes from
       !! (not `projCrystalType`)
+    integer, intent(in) :: ikGlobal
+      !! Current k point
     integer, intent(in) :: nGkVecsLocal1
       !! Local number of G+k vectors on this processor
       !! for projectors
@@ -1521,7 +1511,7 @@ contains
     complex(kind=dp), intent(out) :: pawK(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,nGVecsLocal)
 
     ! Local variables:
-    integer :: ig, iT, ni, ibi, ibf, ind
+    integer :: ig, iT, iR, ni, ibi, ibf, ind
       !! Loop indices
     integer :: LL, LMBASE, LM, L, M
       !! L and M quantum number trackers
@@ -1733,7 +1723,7 @@ contains
     
     integer :: ikLocal, ikGlobal, ib, nOfEnergies, iE, isp
     
-    real(kind = dp) :: eMin, eMax, E, av, sd, x, EiMinusEf, DHifMin
+    real(kind = dp) :: eMin, eMax, E, av, sd, x, EiMinusEf, A, DHifMin
     real(kind=dp) :: eigvI(iBandIinit:iBandIfinal), eigvF(iBandFinit:iBandFfinal)
     
     real(kind = dp), allocatable :: sumWk(:), sAbsVfiOfE2(:), absVfiOfE2(:)
