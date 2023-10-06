@@ -4,6 +4,8 @@
 # location of needed modules
 MODFLAGS= -I$(CommonModules_srcPath) -I$(EnergyTabulator_srcPath) -I.
 
+DEBUGFLAGS = -check all -g -warn all -traceback -gen-interfaces 
+
 TME_OBJS = TME_module.o TME_main.o
 COMMONMODS = $(CommonModules_srcPath)/commonmodules.a $(EnergyTabulator_srcPath)/EnergyTabulator_module.o
 
@@ -27,6 +29,7 @@ mods :
 
 %.o : %.f90
 	$(mpif90) $(MODFLAGS) -O3 -c -assume byterecl -fpp $<
+	#$(mpif90) $(MODFLAGS) $(DEBUGFLAGS) -O0 -c -assume byterecl -fpp $<
 
 clean :
 
