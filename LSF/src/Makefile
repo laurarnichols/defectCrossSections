@@ -29,7 +29,7 @@ mods :
   make
 
 %.o : %.f90
-	$(mpif90) $(MODFLAGS) -c -g $<
+	$(mpif90) $(MODFLAGS) -O3 -c -assume byterecl -fpp $<
 
 clean :
 

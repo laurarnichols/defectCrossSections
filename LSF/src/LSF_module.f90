@@ -544,7 +544,7 @@ contains
       if(ionode .and. mod(iTime,updateFrequency) == 0) then
 
         call cpu_time(timer2)
-        write(*,'("    ", i2,"% complete with transition-rate loop. Time in loop: ",f10.2," secs")') iTime*100/nStepsLocal, timer2-timer1
+        write(*,'("    ", i2,"% complete with transition-rate loop. Time in loop: ",f10.2," secs")') int((iTime*100.0)/nStepsLocal), timer2-timer1
 
       endif
 
