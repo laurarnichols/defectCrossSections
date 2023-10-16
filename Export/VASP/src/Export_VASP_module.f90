@@ -64,9 +64,6 @@ module wfcExportVASPMod
   integer, allocatable :: gKIndexLocalToGlobal(:,:)
     !! Local to global indices for \(G+k\) vectors 
     !! ordered by magnitude at a given k-point
-  integer, allocatable :: gKIndexGlobal(:,:)
-    !! Indices of \(G+k\) vectors for each k-point
-    !! and all processors
   integer, allocatable :: gKIndexOrigOrderLocal(:,:)
     !! Indices of \(G+k\) vectors in just this pool
     !! and for local PWs in the original order
@@ -1174,7 +1171,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, &
-      wfcVecCut, gKIndexGlobal, gKIndexOrigOrderLocal, gKSort, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
+      wfcVecCut, gKIndexOrigOrderLocal, gKSort, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
       nGkLessECutGlobal, nGkVecsLocal)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
@@ -1212,9 +1209,6 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    integer, allocatable, intent(out) :: gKIndexGlobal(:,:)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors
     integer, allocatable, intent(out) :: gKIndexOrigOrderLocal(:,:)
       !! Indices of \(G+k\) vectors in just this pool
       !! and for local PWs in the original order
@@ -1258,6 +1252,9 @@ module wfcExportVASPMod
 
     integer :: ik, ig
       !! Loop indices
+    integer, allocatable :: gKIndexGlobal(:,:)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
     integer, allocatable :: gKIndexLocalToGlobal(:,:)
       !! Local to global indices for \(G+k\) vectors 
       !! ordered by magnitude at a given k-point
@@ -1494,6 +1491,8 @@ module wfcExportVASPMod
       deallocate(realGKOrigOrder)
 
     endif
+
+    deallocate(gKIndexGlobal)
 
     call MPI_BCAST(gKIndexOrigOrderGlobal, size(gKIndexOrigOrderGlobal), MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(gKSort, size(gKSort), MPI_INTEGER, root, worldComm, ierr)
@@ -3674,7 +3673,7 @@ module wfcExportVASPMod
   end subroutine getGroundState
 
 !----------------------------------------------------------------------------
-  subroutine writeGridInfo(nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
+  subroutine writeGridInfo(nGVecsGlobal, gVecMillerIndicesGlobal, maxGIndexGlobal, exportDir)
     !! Write out grid boundaries and miller indices
     !! for just \(G+k\) combinations below cutoff energy
     !! in one file and all miller indices in another 
@@ -3690,20 +3689,9 @@ module wfcExportVASPMod
     ! Input variables:
     integer, intent(in) :: nGVecsGlobal
       !! Global number of G-vectors
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-    integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with magnitude
-      !! less than `wfcVecCut` among all k-points
 
-    integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
-    integer, intent(in) :: nGkLessECutGlobal(nKPoints)
-      !! Global number of \(G+k\) vectors with magnitude
-      !! less than `wfcVecCut` for each k-point
     integer, intent(in) :: maxGIndexGlobal
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
@@ -3712,8 +3700,8 @@ module wfcExportVASPMod
       !! Directory to be used for export
 
     ! Local variables:
-    integer :: ikLocal, ikGlobal, ig, igk
-      !! Loop indices
+    integer :: ig
+      !! Loop index
 
 
     if (ionode) then
@@ -3745,45 +3733,19 @@ module wfcExportVASPMod
 
     endif
     
-    if(.not. energiesOnly) then
-      if(indexInPool == 0) then
-        do ikLocal = 1, nKPerPool
-          !! * For each k-point, write out the miller indices
-          !!   resulting in \(G+k\) vectors less than the energy
-          !!   cutoff in a `grid.ik` file
+    if(.not. energiesOnly .and. ionode) then
 
-          ikGlobal = ikLocal+ikStart_pool-1
-      
-          open(72, file=trim(exportDir)//"/grid."//trim(int2str(ikGlobal)))
-          write(72, '("# Wave function G-vectors grid")')
-          write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
-      
-          do igk = 1, nGkLessECutGlobal(ikGlobal)
-            write(72, '(4i10)') gKIndexGlobal(igk,ikGlobal), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ikGlobal))
-            flush(72)
-          enddo
-      
-          close(72)
-
-        enddo
-
-      endif
-
-      if(ionode) then
-
-        !> * Output all miller indices in `mgrid` file
-        open(72, file=trim(exportDir)//"/mgrid")
-        write(72, '("# Full G-vectors grid")')
-        write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
+      !> * Output all miller indices in `mgrid` file
+      open(72, file=trim(exportDir)//"/mgrid")
+      write(72, '("# Full G-vectors grid")')
+      write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
     
-        do ig = 1, nGVecsGlobal
-          write(72, '(4i10)') ig, gVecMillerIndicesGlobal(1:3,ig)
-          flush(72)
-        enddo
+      do ig = 1, nGVecsGlobal
+        write(72, '(4i10)') ig, gVecMillerIndicesGlobal(1:3,ig)
+      enddo
     
-        close(72)
+      close(72)
 
-      endif
     endif
 
     return
