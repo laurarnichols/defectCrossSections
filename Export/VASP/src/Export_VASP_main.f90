@@ -92,6 +92,13 @@ program wfcExportVASPMain
     !! * Distribute atoms across processes in band group
 
 
+  allocate(nGkLessECutGlobal(nKPoints))
+  nGkLessECutGlobal(:) = 0
+    ! This is needed because this array is passed to 
+    ! `writeKInfo` even though it isn't used in the
+    ! energies-only version. Setting this here is just
+    ! for safety.
+
   if(.not. energiesOnly) then
 
     call cpu_time(t2)
@@ -177,7 +184,8 @@ program wfcExportVASPMain
     !!   in one file and all miller indices in another 
     !!   file
 
-  if(.not. energiesOnly) deallocate(gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal)
+  deallocate(nGkLessECutGlobal)
+  if(.not. energiesOnly) deallocate(gKIndexGlobal, gVecMillerIndicesGlobal)
 
 
   call cpu_time(t2)

@@ -1234,7 +1234,7 @@ module wfcExportVASPMod
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this 
       !! pool
-    integer, allocatable, intent(out) :: nGkLessECutGlobal(:)
+    integer, intent(out) :: nGkLessECutGlobal(nKPoints)
       !! Global number of \(G+k\) vectors with magnitude
       !! less than `wfcVecCut` for each k-point
     integer, allocatable, intent(out) :: nGkVecsLocal(:)
@@ -1351,8 +1351,10 @@ module wfcExportVASPMod
 
     enddo
 
-    allocate(nGkLessECutGlobal(nKPoints))
-    nGkLessECutGlobal = 0
+    !nGkLessECutGlobal = 0
+      ! This is initialized in the main program, but I wanted
+      ! to include this here for clarity on how the sum across
+      ! processes works. 
     nGkLessECutGlobal(ikStart_pool:ikEnd_pool) = nGkLessECutLocal(1:nkPerPool)
     CALL mpiSumIntV(nGkLessECutGlobal, worldComm)
       !! * Calculate the global number of \(G+k\) 
