@@ -109,7 +109,7 @@ module wfcExportVASPMod
     !! Maximum number of \(G+k\) vectors
     !! across all k-points for just this
     !! ppool
-  integer :: nRecords
+  integer :: reclenWav
     !! Number of records in WAVECAR file
 
   logical :: energiesOnly
@@ -337,7 +337,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
-        kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
+        kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, reclenWav, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -373,10 +373,10 @@ module wfcExportVASPMod
     integer, allocatable, intent(out) :: nPWs1kGlobal(:)
       !! Input number of plane waves for a single k-point 
       !! for all processors
-    integer, intent(out) :: nRecords
-      !! Number of records in WAVECAR file
     integer, intent(out) :: nSpins
       !! Number of spins
+    integer, intent(out) :: reclenWav
+      !! Number of records in WAVECAR file
 
     complex*16, allocatable, intent(out) :: eigenE(:,:,:)
       !! Band eigenvalues
@@ -386,7 +386,7 @@ module wfcExportVASPMod
     real(kind=dp) :: c = 0.26246582250210965422
       !! \(2m/\hbar^2\) converted from J\(^{-1}\)m\(^{-2}\)
       !! to eV\(^{-1}\)A\(^{-2}\)
-    real(kind=dp) :: nRecords_real, nspin_real, prec_real, nkstot_real 
+    real(kind=dp) :: reclenWav_real, nspin_real, prec_real, nkstot_real 
       !! Real version of integers for reading from file
     real(kind=dp) :: nbnd_real
       !! Real version of integers for reading from file
@@ -406,26 +406,26 @@ module wfcExportVASPMod
 
       fileName = trim(VASPDir)//'/WAVECAR'
 
-      nRecords = 24
+      reclenWav = 24
         ! Set a starting value for the number of records
 
-      open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
+      open(unit=wavecarUnit, file=fileName, access='direct', recl=reclenWav, iostat=ierr, status='old')
       if (ierr .ne. 0) write(*,*) 'open error - iostat =', ierr
         !! * If root node, open the `WAVECAR` file
 
-      read(unit=wavecarUnit,rec=1) nRecords_real, nspin_real, prec_real
+      read(unit=wavecarUnit,rec=1) reclenWav_real, nspin_real, prec_real
         !! @note Must read in as real first then convert to integer @endnote
 
       close(unit=wavecarUnit)
 
-      nRecords = nint(nRecords_real)
+      reclenWav = nint(reclenWav_real)
       nSpins = nint(nspin_real)
       prec = nint(prec_real)
         ! Convert input variables to integers
 
       if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
-      open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
+      open(unit=wavecarUnit, file=fileName, access='direct', recl=reclenWav, iostat=ierr, status='old')
       if (ierr .ne. 0) write(*,*) 'open error - iostat =', ierr
         !! * Reopen WAVECAR with correct number of records
 
@@ -492,7 +492,7 @@ module wfcExportVASPMod
 
     endif
 
-    call MPI_BCAST(nRecords, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(reclenWav, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nBands, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -502,7 +502,7 @@ module wfcExportVASPMod
     call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(recipLattVec, size(recipLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
-    call preliminaryWAVECARScan(nBands, nKPoints, nRecords, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
+    call preliminaryWAVECARScan(nBands, nKPoints, nSpins, reclenWav, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
       !! * For each spin and k-point, read the number of
       !!   \(G+k\) vectors below the energy cutoff, the
       !!   position of the k-point in reciprocal space, 
@@ -627,7 +627,7 @@ module wfcExportVASPMod
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine preliminaryWAVECARScan(nBands, nKPoints, nRecords, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
+  subroutine preliminaryWAVECARScan(nBands, nKPoints, nSpins, reclenWav, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
     !! For each spin and k-point, read the number of
     !! \(G+k\) vectors below the energy cutoff, the
     !! position of the k-point in reciprocal space, 
@@ -643,10 +643,10 @@ module wfcExportVASPMod
       !! Total number of bands
     integer, intent(in) :: nKPoints
       !! Total number of k-points
-    integer, intent(in) :: nRecords
-      !! Number of records in the WAVECAR file
     integer, intent(in) :: nSpins
       !! Number of spins
+    integer, intent(in) :: reclenWav
+      !! Number of records in the WAVECAR file
 
 
     ! Output variables:
@@ -682,7 +682,7 @@ module wfcExportVASPMod
     fileName = trim(VASPDir)//'/WAVECAR'
 
     if(ionode) then
-      open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
+      open(unit=wavecarUnit, file=fileName, access='direct', recl=reclenWav, iostat=ierr, status='old')
       if (ierr .ne. 0) write(*,*) 'open error - iostat =', ierr
 
       irec=2
@@ -2224,7 +2224,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine projAndWav(maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
-      nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
+      nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, &
       recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
     implicit none
@@ -2250,8 +2250,6 @@ module wfcExportVASPMod
       ! Number of k-points in each pool
     integer, intent(in) :: nKPoints
       !! Total number of k-points
-    integer, intent(in) :: nRecords
-      !! Number of records in the WAVECAR file
     integer, intent(in) :: nSpins
       !! Number of spins
     integer, intent(in) :: gKIndexOrigOrderLocal(maxGkVecsLocal,nkPerPool)
@@ -2264,6 +2262,8 @@ module wfcExportVASPMod
       !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: nPWs1kGlobal(nKPoints)
       !! Input number of plane waves for a single k-point
+    integer, intent(in) :: reclenWav
+      !! Number of records in the WAVECAR file
 
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
@@ -2322,7 +2322,7 @@ module wfcExportVASPMod
 
       fileName = trim(VASPDir)//'/WAVECAR'
 
-      open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old', SHARED)
+      open(unit=wavecarUnit, file=fileName, access='direct', recl=reclenWav, iostat=ierr, status='old', SHARED)
       if (ierr .ne. 0) write(*,*) 'open error - iostat =', ierr
 
     endif

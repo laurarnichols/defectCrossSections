@@ -47,7 +47,7 @@ program wfcExportVASPMain
 
 
   call readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
-      kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
+      kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, reclenWav, eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 
 
@@ -148,7 +148,7 @@ program wfcExportVASPMain
   if(.not. energiesOnly) then
 
     call projAndWav(maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
-        nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
+        nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, &
         recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
 
