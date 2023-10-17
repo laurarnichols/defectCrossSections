@@ -86,7 +86,7 @@ module wfcExportVASPMod
     !! Global number of \(G+k\) vectors with magnitude
     !! less than `wfcVecCut` for each k-point
   integer, allocatable :: nGkVecsLocal(:)
-    !! Local number of G-vectors on this processor
+    !! Local number of G+k-vectors on this processor
   integer :: nGVecsGlobal
     !! Global number of G-vectors
   integer :: nGVecsLocal
@@ -1232,7 +1232,7 @@ module wfcExportVASPMod
       !! Global number of \(G+k\) vectors with magnitude
       !! less than `wfcVecCut` for each k-point
     integer, allocatable, intent(out) :: nGkVecsLocal(:)
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
 
 
     ! Local variables:
@@ -1771,7 +1771,7 @@ module wfcExportVASPMod
     !integer, intent(in) :: nkPerPool
       ! Number of k-points in each pool
     integer, intent(in) :: nGkLessECutGlobal(nKPoints)
-      !! Global number of G-vectors
+      !! Global number of G+k-vectors
     !integer, intent(in) :: nProcPerPool
       ! Number of processes per pool
 
@@ -1790,7 +1790,7 @@ module wfcExportVASPMod
       !! Max number of G+k vectors across all k-points
       !! in this pool
     integer, allocatable, intent(out) :: nGkVecsLocal(:)
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
 
 
     ! Local variables:
@@ -2242,7 +2242,7 @@ module wfcExportVASPMod
     integer, intent(in) :: nBands
       !! Total number of bands
     integer, intent(in) :: nGkVecsLocal(nkPerPool)
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
     integer, intent(in) :: nGVecsGlobal
       !! Global number of G-vectors
     !integer, intent(in) :: nkPerPool
@@ -2352,10 +2352,9 @@ module wfcExportVASPMod
       call cpu_time(t1)
 
       !> Calculate the projectors and phase only once for each k-point
-      !> because they are not dependent on spin. Write them out as if 
-      !> they were dependent on spin because that is how TME currently
-      !> expects it. Calculate in one band group and broadcast to the 
-      !> others because doesn't depend on band index.
+      !> because they are not dependent on spin. Calculate in one band 
+      !> group and broadcast to the others because doesn't depend on 
+      !> band index.
       if(myBgrpId == 0) call calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gVecMillerIndicesGlobal, &
             igkSort2OrigLocal_ik, atomPositionsDir, phaseExp)
 
@@ -2453,7 +2452,7 @@ module wfcExportVASPMod
     integer, intent(in) :: nAtoms
       !! Number of atoms
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
     integer, intent(in) :: nGVecsGlobal
       !! Global number of G-vectors
@@ -2516,7 +2515,7 @@ module wfcExportVASPMod
     integer, intent(in) :: nAtomTypes
       !! Number of types of atoms
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
     !integer, intent(in) :: nkPerPool
       ! Number of k-points in each pool
@@ -2681,7 +2680,7 @@ module wfcExportVASPMod
 
     ! Input variables:
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
     !integer, intent(in) :: nkPerPool
       ! Number of k-points in each pool
@@ -2853,7 +2852,7 @@ module wfcExportVASPMod
 
     ! Input variables:
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
     integer, intent(in) :: YDimL
       !! L dimension of spherical harmonics;
@@ -2941,7 +2940,7 @@ module wfcExportVASPMod
     integer, intent(in) :: ip
       !! Channel index
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
 
     real(kind=dp), intent(in) :: gkMod(nGkVecsLocal_ik)
@@ -3075,7 +3074,7 @@ module wfcExportVASPMod
     integer, intent(in) :: nAtomsEachType(nAtomTypes)
       !! Number of atoms of each type
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
     integer, intent(in) :: nKPoints
       !! Total number of k-points
@@ -3281,7 +3280,7 @@ module wfcExportVASPMod
     integer, intent(in) :: nBands
       !! Total number of bands
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
     integer, intent(in) :: nKPoints
       !! Total number of k-points
@@ -3434,7 +3433,7 @@ module wfcExportVASPMod
     integer, intent(in) :: nAtomsEachType(nAtomTypes)
       !! Number of atoms of each type
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
     integer, intent(in) :: nProj
       !! Number of projectors across all atom types
