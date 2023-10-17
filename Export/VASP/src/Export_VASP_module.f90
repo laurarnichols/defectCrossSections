@@ -1252,15 +1252,15 @@ module wfcExportVASPMod
 
     integer :: ik, ig
       !! Loop indices
+    integer, allocatable :: igkSort2OrigGlobal(:,:)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors in the original order
     integer, allocatable :: gKIndexGlobal(:,:)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors
     integer, allocatable :: gKIndexLocalToGlobal(:,:)
       !! Local to global indices for \(G+k\) vectors 
       !! ordered by magnitude at a given k-point
-    integer, allocatable :: gKIndexOrigOrderGlobal(:,:)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors in the original order
     integer :: gToGkIndexMap(nkPerPool,nGVecsLocal)
       !! Index map from \(G\) to \(G+k\);
       !! indexed up to `nGVecsLocal` which
@@ -1436,10 +1436,10 @@ module wfcExportVASPMod
 
     deallocate(gKIndexLocalToGlobal)
 
-    allocate(gKIndexOrigOrderGlobal(maxNumPWsGlobal, nKPoints))
+    allocate(igkSort2OrigGlobal(maxNumPWsGlobal, nKPoints))
     allocate(gKSort(maxNumPWsGlobal, nKPoints))
 
-    gKIndexOrigOrderGlobal = gKIndexGlobal
+    igkSort2OrigGlobal = gKIndexGlobal
     gKSort = 0._dp
 
     if(ionode) then
@@ -1467,7 +1467,7 @@ module wfcExportVASPMod
 
         enddo
 
-        call hpsort_eps(ngk_tmp, realiMillGk(1:ngk_tmp), gKIndexOrigOrderGlobal(1:ngk_tmp,ik), eps8)
+        call hpsort_eps(ngk_tmp, realiMillGk(1:ngk_tmp), igkSort2OrigGlobal(1:ngk_tmp,ik), eps8)
           !! * Order the \(G+k\) indices by the original indices `realiMillGk`. 
           !!   This will allow us to recover only specific G-vectors in the 
           !!   original ordering. Have to cast to `real` because that is what the 
@@ -1476,7 +1476,7 @@ module wfcExportVASPMod
           !!   and it shouldn't affect the results. 
 
 
-        realGKOrigOrder(1:ngk_tmp) = real(gKIndexOrigOrderGlobal(1:ngk_tmp,ik))
+        realGKOrigOrder(1:ngk_tmp) = real(igkSort2OrigGlobal(1:ngk_tmp,ik))
 
         call hpsort_eps(ngk_tmp, realGKOrigOrder(1:ngk_tmp), gKSort(1:ngk_tmp,ik), eps8)
           !! * Sort another index by `gKIndexOrigOrder`. This index will allow
@@ -1494,13 +1494,13 @@ module wfcExportVASPMod
 
     deallocate(gKIndexGlobal)
 
-    call MPI_BCAST(gKIndexOrigOrderGlobal, size(gKIndexOrigOrderGlobal), MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(igkSort2OrigGlobal, size(igkSort2OrigGlobal), MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(gKSort, size(gKSort), MPI_INTEGER, root, worldComm, ierr)
 
-    call distributeGkVecsInPool(nKPoints, nGkLessECutGlobal, gKIndexOrigOrderGlobal, gKIndexOrigOrderLocal, maxGkVecsLocal, nGkVecsLocal)
+    call distributeGkVecsInPool(igkSort2OrigGlobal, nKPoints, nGkLessECutGlobal, gKIndexOrigOrderLocal, maxGkVecsLocal, nGkVecsLocal)
       !! * Distribute the G+k vectors evenly across the processes in a band group within each pool
 
-    deallocate(gKIndexOrigOrderGlobal)
+    deallocate(igkSort2OrigGlobal)
 
     return
   end subroutine reconstructFFTGrid
@@ -1748,9 +1748,9 @@ module wfcExportVASPMod
   end subroutine hpsort_eps
 
 !----------------------------------------------------------------------------
-  subroutine distributeGkVecsInPool(nKPoints, nGkLessECutGlobal, gKIndexOrigOrderGlobal, gKIndexOrigOrderLocal, maxGkVecsLocal, nGkVecsLocal)
+  subroutine distributeGkVecsInPool(igkSort2OrigGlobal, nKPoints, nGkLessECutGlobal, gKIndexOrigOrderLocal, maxGkVecsLocal, nGkVecsLocal)
     !! Distribute the G+k vectors across band groups in each pool by 
-    !! splitting up the `gKIndexOrigOrderGlobal` array
+    !! splitting up the `igkSort2OrigGlobal` array
     !! into local arrays
     !!
     !! <h2>Walkthrough</h2>
@@ -1759,6 +1759,9 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: igkSort2OrigGlobal(maxNumPWsGlobal, nKPoints)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors in the original order
     !integer, intent(in) :: ikEnd_pool
       ! Ending index for k-points in single pool 
     !integer, intent(in) :: ikStart_pool
@@ -1771,9 +1774,6 @@ module wfcExportVASPMod
       !! Global number of G-vectors
     !integer, intent(in) :: nProcPerPool
       ! Number of processes per pool
-    integer, intent(in) :: gKIndexOrigOrderGlobal(maxNumPWsGlobal, nKPoints)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors in the original order
 
     
     ! Output variables:
@@ -1831,8 +1831,8 @@ module wfcExportVASPMod
 
     do ik = 1, nkPerPool
 
-      gKIndexOrigOrderLocal(1:nGkVecsLocal(ik),ik) = gKIndexOrigOrderGlobal(iGkStart_pool(ik):iGkEnd_pool(ik),ik+ikStart_pool-1)
-        !! * Split up the PWs `gKIndexOrigOrderGlobal` across processors and 
+      gKIndexOrigOrderLocal(1:nGkVecsLocal(ik),ik) = igkSort2OrigGlobal(iGkStart_pool(ik):iGkEnd_pool(ik),ik+ikStart_pool-1)
+        !! * Split up the PWs `igkSort2OrigGlobal` across processors and 
         !!   store the G-vector indices locally
 
     enddo
@@ -2386,6 +2386,8 @@ module wfcExportVASPMod
       if(myBgrpId == 0) call writeProjectors(ikLocal, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, &
                 nPWs1k, gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot, nProj)
 
+      call MPI_BCAST(nProj, 1, MPI_INTEGER, root, intraPoolComm, ierr)
+
 
       call cpu_time(t2)
       if(ionode) &
@@ -2743,7 +2745,7 @@ module wfcExportVASPMod
         !  variable that holds the unsorted G-vectors in Miller indices. 
         !  `WDES%IGX/IGY/IGZ` holds only the G-vectors s.t. \(|G+k| <\)
         !  cutoff. Their values do not seem to be sorted, so I use 
-        !  `gKIndexOrigOrderGlobal` to recreate the unsorted order from
+        !  `igkSort2OrigGlobal` to recreate the unsorted order from
         !  the sorted array.
         ! @endnote
 
@@ -3210,8 +3212,6 @@ module wfcExportVASPMod
         !! cutoff
 
     endif
-
-    call MPI_BCAST(nProj, 1, MPI_INTEGER, root, intraBgrpComm, ierr)
     
 
     irec = 1
