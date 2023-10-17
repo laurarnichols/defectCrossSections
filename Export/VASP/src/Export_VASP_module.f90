@@ -2355,8 +2355,8 @@ module wfcExportVASPMod
       !> because they are not dependent on spin. Calculate in one band 
       !> group and broadcast to the others because doesn't depend on 
       !> band index.
-      if(myBgrpId == 0) call calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gVecMillerIndicesGlobal, &
-            igkSort2OrigLocal_ik, atomPositionsDir, phaseExp)
+      if(myBgrpId == 0) call calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, &
+            atomPositionsDir, phaseExp)
 
       call MPI_BCAST(phaseExp, size(phaseExp), MPI_DOUBLE_COMPLEX, 0, interBgrpComm, ierr)
 
@@ -2443,7 +2443,7 @@ module wfcExportVASPMod
   end subroutine projAndWav
 
 !----------------------------------------------------------------------------
-  subroutine calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, &
+  subroutine calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, &
                 atomPositionsDir, phaseExp)
 
     implicit none
@@ -2458,8 +2458,6 @@ module wfcExportVASPMod
       !! Global number of G-vectors
     !integer, intent(in) :: nkPerPool
       ! Number of k-points in each pool
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: igkSort2OrigLocal_ik(nGkVecsLocal_ik)
