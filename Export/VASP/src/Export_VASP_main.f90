@@ -63,7 +63,6 @@ program wfcExportVASPMain
 
   if(ionode) then
     fName = trim(VASPDir)//'/CONTCAR'
-    write(*,*) trim(fName)
 
     call readPOSCAR(fName, nAtoms_, atomPositionsDir, omegaPOS, realLattVecPOS)
       !! * Get coordinates from CONTCAR
