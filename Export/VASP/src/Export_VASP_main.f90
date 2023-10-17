@@ -62,7 +62,8 @@ program wfcExportVASPMain
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
   if(ionode) then
-    fName = trim(VASPDir)//'CONTCAR'
+    fName = trim(VASPDir)//'/CONTCAR'
+    write(*,*) trim(fName)
 
     call readPOSCAR(fName, nAtoms_, atomPositionsDir, omegaPOS, realLattVecPOS)
       !! * Get coordinates from CONTCAR
