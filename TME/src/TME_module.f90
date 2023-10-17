@@ -1276,30 +1276,37 @@ contains
     ! Local variables:
     integer :: ipr, ib
       !! Loop indices
+    integer :: reclen
+      !! Record length for projections files
+
+    character(len=300) :: fNameExport
+      !! Export file name
     
     
     cProj(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
     
     if(indexInPool == 0) then
 
+      inquire(iolength=reclen) cProj(:,iBandinit)
+        !! Get the record length needed to write a complex
+        !! array of length nProjs
+
       ! Open the projections file for the given crystal type
       if(crystalType == 'PC') then
-        open(72, file=trim(exportDirPC)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)))
+        fNameExport = trim(exportDirPC)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
       else
-        open(72, file=trim(exportDirSD)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)))
+        fNameExport = trim(exportDirSD)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
       endif
-    
 
-      call ignoreNextNLinesFromFile(72, 1 + (iBandinit-1)*nProjs)
-        ! Ignore header and all bands before initial band
+
+      open(72, file=trim(fNameExport), access='direct', form='unformatted', recl=reclen)
+    
     
       ! Read the projections
       do ib = iBandinit, iBandfinal
-        do ipr = 1, nProjs 
 
-          read(72,'(2ES24.15E3)') cProj(ipr,ib)
+        read(72,rec=ib) cProj(:,ib)
 
-        enddo
       enddo
     
       close(72)

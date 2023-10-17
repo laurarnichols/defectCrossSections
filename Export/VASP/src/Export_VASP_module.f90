@@ -2292,6 +2292,8 @@ module wfcExportVASPMod
     integer :: nGkVecsLocal_ik
       !! Number of G+k vectors locally for 
       !! a given k-point
+    integer :: nProj
+      !! Number of projectors across all atom types
     integer :: nPWs1k
       !! Input number of plane waves for the given k-point
     integer :: irec
@@ -2382,7 +2384,7 @@ module wfcExportVASPMod
 
 
       if(myBgrpId == 0) call writeProjectors(ikLocal, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, &
-                nPWs1k, gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot)
+                nPWs1k, gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot, nProj)
 
 
       call cpu_time(t2)
@@ -2416,7 +2418,7 @@ module wfcExportVASPMod
         call cpu_time(t1)
 
 
-        call getAndWriteProjections(ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, realProjWoPhase, compFact, & 
+        call getAndWriteProjections(ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, compFact, & 
                   phaseExp, coeffLocal, exportDir, pot)
 
 
@@ -3050,7 +3052,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine writeProjectors(ik, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, nPWs1k, &
-        gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot)
+        gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot, nProj)
 
     use miscUtilities, only: int2str
 
@@ -3095,12 +3097,14 @@ module wfcExportVASPMod
     type (potcar) :: pot(nAtomTypes)
       !! Holds all information needed from POTCAR
 
+    ! Output variables:
+    integer, intent(out) :: nProj
+      !! Number of projectors across all atom types
+
     ! Local variables:
     integer :: displacement(nProcPerBgrp)
       !! Offset from beginning of array for
       !! scattering coefficients to each process
-    integer :: nProj
-      !! Number of projectors across all atom types
     integer :: reclen
       !! Record length for projectors file
     integer :: sendCount(nProcPerBgrp)
@@ -3206,6 +3210,8 @@ module wfcExportVASPMod
         !! cutoff
 
     endif
+
+    call MPI_BCAST(nProj, 1, MPI_INTEGER, root, intraBgrpComm, ierr)
     
 
     irec = 1
@@ -3409,7 +3415,7 @@ module wfcExportVASPMod
   end subroutine readAndWriteWavefunction
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteProjections(ik, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, realProjWoPhase, compFact, &
+  subroutine getAndWriteProjections(ik, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, compFact, &
           phaseExp, coeffLocal, exportDir, pot)
 
     use miscUtilities, only: int2str
@@ -3430,6 +3436,8 @@ module wfcExportVASPMod
     integer, intent(in) :: nGkVecsLocal_ik
       !! Local number of G-vectors on this processor
       !! for a given k-point
+    integer, intent(in) :: nProj
+      !! Number of projectors across all atom types
 
     real(kind=dp), intent(in) :: realProjWoPhase(nGkVecsLocal_ik,64,nAtomTypes)
       !! Real projectors without phase
@@ -3448,46 +3456,44 @@ module wfcExportVASPMod
       !! Holds all information needed from POTCAR
 
     ! Local variables:
-    integer :: projOutUnit
-      !! Process-dependent file unit for `projections.ik`
-    integer :: ib, iT, ia, iaBase, ilm
+    integer :: ib, iT, ia, iaBase, ilm, ipr
       !! Loop indices
+    integer :: reclen
+      !! Record length for projectors file
 
-    character(len=300) :: fNameBase, fNameBgrp
-      !! Character index
+    character(len=300) :: fNameExport
+      !! Output file name
 
-    complex(kind=dp) :: projection, projectionLocal
+    complex(kind=dp) :: projection(nProj)
       !! Projection for current atom/band/lm channel
 
 
     if(indexInBgrp == 0) then
       !! Have the root node within the band group handle I/O
 
-      projOutUnit = 83 + myid
+      fNameExport = trim(exportDir)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ik)) 
 
-      fNameBase = trim(exportDir)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ik)) 
-      fNameBgrp = trim(fNameBase)//"."//trim(int2str(myBgrpId))
+      inquire(iolength=reclen) projection(:)
 
-      open(projOutUnit, file=trim(fNameBgrp))
-        !! Open `projections.ik`
+      open(83, file=trim(fNameExport), access='direct', form='unformatted', recl=reclen)
+        !! Open output file with direct access
 
     endif
 
     do ib = ibStart_bgrp, ibEnd_bgrp
       iaBase = 1
+      ipr = 0
       
       do iT = 1, nAtomTypes
         do ia = iaBase, nAtomsEachType(iT)+iaBase-1
           do ilm = 1, pot(iT)%lmmax
 
-            projectionLocal = compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*phaseExp(:,ia)*coeffLocal(:,ib))
+            ipr = ipr + 1
+
+            projection(ipr) = compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*phaseExp(:,ia)*coeffLocal(:,ib))
               ! Calculate projection (sum over plane waves)
               ! Don't need to worry about sorting because projection
               ! has sum over plane waves.
-
-            call MPI_ALLREDUCE(projectionLocal, projection, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraBgrpComm, ierr)
-
-            if(indexInBgrp == 0) write(projOutUnit,'(2ES24.15E3)') projection
 
           enddo
         enddo
@@ -3495,30 +3501,13 @@ module wfcExportVASPMod
         iaBase = iaBase + nAtomsEachType(iT)
 
       enddo
+
+      call mpiSumComplexV(projection, intraBgrpComm)
+
+      if(indexInBgrp == 0) write(83,rec=ib) projection(:)
     enddo
 
-    if(indexInBgrp == 0) close(projOutUnit)
-
-
-    if(indexInPool == 0) then
-      !! Have the root node within the pool merge the `wfc` files
-
-      projOutUnit = 83 + myid
-
-      fNameBase = trim(exportDir)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ik)) 
-
-      open(projOutUnit, file=trim(fNameBase))
-        !! Open `projections.ik`
-
-      write(projOutUnit, '("# Complex projections <beta|psi>. Format: ''(2ES24.15E3)''")')
-
-      close(projOutUnit)
-
-      !> Merge all of the individual-processor files and delete
-      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'} >> '//trim(fNameBase)//&
-                                ' && rm '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'}')
-
-    endif
+    if(indexInBgrp == 0) close(83)
 
     return
   end subroutine getAndWriteProjections
