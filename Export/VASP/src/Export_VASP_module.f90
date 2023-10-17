@@ -64,14 +64,14 @@ module wfcExportVASPMod
   integer, allocatable :: gKIndexLocalToGlobal(:,:)
     !! Local to global indices for \(G+k\) vectors 
     !! ordered by magnitude at a given k-point
-  integer, allocatable :: gKIndexOrigOrderLocal(:,:)
-    !! Indices of \(G+k\) vectors in just this pool
-    !! and for local PWs in the original order
   integer, allocatable :: gKSort(:,:)
     !! Indices to recover sorted order on reduced
     !! \(G+k\) grid
   integer, allocatable :: gVecMillerIndicesGlobal(:,:)
     !! Integer coefficients for G-vectors on all processors
+  integer, allocatable :: igkSort2OrigLocal(:,:)
+    !! Indices of \(G+k\) vectors in just this pool
+    !! and for local PWs in the original order
   integer, allocatable :: iMill(:)
     !! Indices of miller indices after sorting
   integer, allocatable :: iType(:)
@@ -1171,7 +1171,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, &
-      wfcVecCut, gKIndexOrigOrderLocal, gKSort, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
+      wfcVecCut, gKSort, igkSort2OrigLocal, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
       nGkLessECutGlobal, nGkVecsLocal)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
@@ -1209,12 +1209,12 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    integer, allocatable, intent(out) :: gKIndexOrigOrderLocal(:,:)
-      !! Indices of \(G+k\) vectors in just this pool
-      !! and for local PWs in the original order
     integer, allocatable, intent(out) :: gKSort(:,:)
       !! Indices to recover sorted order on reduced
       !! \(G+k\) grid
+    integer, allocatable, intent(out) :: igkSort2OrigLocal(:,:)
+      !! Indices of \(G+k\) vectors in just this pool
+      !! and for local PWs in the original order
     integer, intent(out) :: maxGIndexGlobal
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
@@ -1497,7 +1497,7 @@ module wfcExportVASPMod
     call MPI_BCAST(igkSort2OrigGlobal, size(igkSort2OrigGlobal), MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(gKSort, size(gKSort), MPI_INTEGER, root, worldComm, ierr)
 
-    call distributeGkVecsInPool(igkSort2OrigGlobal, nKPoints, nGkLessECutGlobal, gKIndexOrigOrderLocal, maxGkVecsLocal, nGkVecsLocal)
+    call distributeGkVecsInPool(igkSort2OrigGlobal, nKPoints, nGkLessECutGlobal, igkSort2OrigLocal, maxGkVecsLocal, nGkVecsLocal)
       !! * Distribute the G+k vectors evenly across the processes in a band group within each pool
 
     deallocate(igkSort2OrigGlobal)
@@ -1748,7 +1748,7 @@ module wfcExportVASPMod
   end subroutine hpsort_eps
 
 !----------------------------------------------------------------------------
-  subroutine distributeGkVecsInPool(igkSort2OrigGlobal, nKPoints, nGkLessECutGlobal, gKIndexOrigOrderLocal, maxGkVecsLocal, nGkVecsLocal)
+  subroutine distributeGkVecsInPool(igkSort2OrigGlobal, nKPoints, nGkLessECutGlobal, igkSort2OrigLocal, maxGkVecsLocal, nGkVecsLocal)
     !! Distribute the G+k vectors across band groups in each pool by 
     !! splitting up the `igkSort2OrigGlobal` array
     !! into local arrays
@@ -1783,7 +1783,7 @@ module wfcExportVASPMod
     !integer, allocatable, intent(out) :: iGkStart_pool(:)
       ! Starting index for G+k vectors on
       ! single process in a given pool
-    integer, allocatable, intent(out) :: gKIndexOrigOrderLocal(:,:)
+    integer, allocatable, intent(out) :: igkSort2OrigLocal(:,:)
       !! Indices of \(G+k\) vectors in just this pool
       !! and for local PWs in the original order
     integer, intent(out) :: maxGkVecsLocal
@@ -1827,11 +1827,11 @@ module wfcExportVASPMod
       !! * Get the max number of G+k vectors across
       !!   all k-points in this pool
 
-    allocate(gKIndexOrigOrderLocal(maxGkVecsLocal, nkPerPool))
+    allocate(igkSort2OrigLocal(maxGkVecsLocal, nkPerPool))
 
     do ik = 1, nkPerPool
 
-      gKIndexOrigOrderLocal(1:nGkVecsLocal(ik),ik) = igkSort2OrigGlobal(iGkStart_pool(ik):iGkEnd_pool(ik),ik+ikStart_pool-1)
+      igkSort2OrigLocal(1:nGkVecsLocal(ik),ik) = igkSort2OrigGlobal(iGkStart_pool(ik):iGkEnd_pool(ik),ik+ikStart_pool-1)
         !! * Split up the PWs `igkSort2OrigGlobal` across processors and 
         !!   store the G-vector indices locally
 
@@ -2223,7 +2223,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine projAndWav(maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
-      nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, &
+      nSpins, gKSort, gVecMillerIndicesGlobal, igkSort2OrigLocal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, &
       recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
     implicit none
@@ -2251,14 +2251,14 @@ module wfcExportVASPMod
       !! Total number of k-points
     integer, intent(in) :: nSpins
       !! Number of spins
-    integer, intent(in) :: gKIndexOrigOrderLocal(maxGkVecsLocal,nkPerPool)
-      !! Indices of \(G+k\) vectors in just this pool
-      !! and for local PWs in the original order
     integer, intent(in) :: gKSort(maxNumPWsGlobal, nKPoints)
       !! Indices to recover sorted order on reduced
       !! \(G+k\) grid
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: igkSort2OrigLocal(maxGkVecsLocal,nkPerPool)
+      !! Indices of \(G+k\) vectors in just this pool
+      !! and for local PWs in the original order
     integer, intent(in) :: nPWs1kGlobal(nKPoints)
       !! Input number of plane waves for a single k-point
     integer, intent(in) :: reclenWav
@@ -2285,7 +2285,7 @@ module wfcExportVASPMod
       !! Holds all information needed from POTCAR
 
     ! Local variables:
-    integer, allocatable :: gKIndexOrigOrderLocal_ik(:)
+    integer, allocatable :: igkSort2OrigLocal_ik(:)
       !! Indices of \(G+k\) vectors in just this pool
       !! and for local PWs in the original order for a
       !! given k-point
@@ -2338,9 +2338,9 @@ module wfcExportVASPMod
       allocate(phaseExp(nGkVecsLocal_ik, nAtoms))
       allocate(realProjWoPhase(nGkVecsLocal_ik, 64, nAtomTypes))
       allocate(coeffLocal(nGkVecsLocal_ik, ibStart_bgrp:ibEnd_bgrp))
-      allocate(gKIndexOrigOrderLocal_ik(nGkVecsLocal_ik))
+      allocate(igkSort2OrigLocal_ik(nGkVecsLocal_ik))
 
-      gKIndexOrigOrderLocal_ik = gKIndexOrigOrderLocal(1:nGkVecsLocal_ik,ikLocal)
+      igkSort2OrigLocal_ik = igkSort2OrigLocal(1:nGkVecsLocal_ik,ikLocal)
 
       ikGlobal = ikLocal+ikStart_pool-1
         !! Get the global `ik` index from the local one
@@ -2356,8 +2356,8 @@ module wfcExportVASPMod
       !> they were dependent on spin because that is how TME currently
       !> expects it. Calculate in one band group and broadcast to the 
       !> others because doesn't depend on band index.
-      if(myBgrpId == 0) call calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gKIndexOrigOrderLocal_ik, &
-                gVecMillerIndicesGlobal, atomPositionsDir, phaseExp)
+      if(myBgrpId == 0) call calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gVecMillerIndicesGlobal, &
+            igkSort2OrigLocal_ik, atomPositionsDir, phaseExp)
 
       call MPI_BCAST(phaseExp, size(phaseExp), MPI_DOUBLE_COMPLEX, 0, interBgrpComm, ierr)
 
@@ -2369,8 +2369,8 @@ module wfcExportVASPMod
       call cpu_time(t1)
 
 
-      if(myBgrpId == 0) call calculateRealProjWoPhase(ikLocal, nAtomTypes, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, &
-                gVecMillerIndicesGlobal, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
+      if(myBgrpId == 0) call calculateRealProjWoPhase(ikLocal, nAtomTypes, nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobal, &
+            igkSort2OrigLocal_ik, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
       call MPI_BCAST(realProjWoPhase, size(realProjWoPhase), MPI_DOUBLE_PRECISION, 0, interBgrpComm, ierr)
       call MPI_BCAST(compFact, size(compFact), MPI_DOUBLE_COMPLEX, 0, interBgrpComm, ierr)
@@ -2433,7 +2433,7 @@ module wfcExportVASPMod
 
       enddo
 
-      deallocate(phaseExp, realProjWoPhase, coeffLocal, gKIndexOrigOrderLocal_ik)
+      deallocate(phaseExp, realProjWoPhase, coeffLocal, igkSort2OrigLocal_ik)
 
       if(indexInPool == 0) write(*,'("k-point ", i4," complete!!")') ikGlobal
     enddo
@@ -2444,7 +2444,7 @@ module wfcExportVASPMod
   end subroutine projAndWav
 
 !----------------------------------------------------------------------------
-  subroutine calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
+  subroutine calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, &
                 atomPositionsDir, phaseExp)
 
     implicit none
@@ -2461,12 +2461,12 @@ module wfcExportVASPMod
       ! Number of k-points in each pool
     integer, intent(in) :: nKPoints
       !! Total number of k-points
-    integer, intent(in) :: gKIndexOrigOrderLocal_ik(nGkVecsLocal_ik)
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: igkSort2OrigLocal_ik(nGkVecsLocal_ik)
       !! Indices of \(G+k\) vectors in just this pool
       !! and for local PWs in the original order for a 
       !! given k-point
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors
 
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
@@ -2494,7 +2494,7 @@ module wfcExportVASPMod
 
       do ipw = 1, nGkVecsLocal_ik
 
-        expArg = itwopi*dot_product(atomPosDir, gVecMillerIndicesGlobal(:,gKIndexOrigOrderLocal_ik(ipw)))
+        expArg = itwopi*dot_product(atomPosDir, gVecMillerIndicesGlobal(:,igkSort2OrigLocal_ik(ipw)))
           !! \(2\pi i (\mathbf{G} \cdot \mathbf{r})\)
 
         phaseExp(ipw, ia) = exp(expArg)
@@ -2506,7 +2506,7 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
+  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, &
       kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
     implicit none
 
@@ -2522,12 +2522,12 @@ module wfcExportVASPMod
       ! Number of k-points in each pool
     integer, intent(in) :: nKPoints
       !! Total number of k-points
-    integer, intent(in) :: gKIndexOrigOrderLocal_ik(nGkVecsLocal_ik)
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: igkSort2OrigLocal_ik(nGkVecsLocal_ik)
       !! Indices of \(G+k\) vectors in just this pool
       !! and for local PWs in the original order for a
       !! given k-point
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors
 
     real(kind=dp), intent(in) :: kPosition(3,nKPoints)
       !! Position of k-points in reciprocal space
@@ -2586,7 +2586,7 @@ module wfcExportVASPMod
       !! Spherical harmonics
 
 
-    call generateGridTable(nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, ik, kPosition, &
+    call generateGridTable(nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, ik, kPosition, &
           recipLattVec, gammaOnly, gkMod, gkUnit, multFact)
 
     YDimL = maxL(nAtomTypes, pot)
@@ -2675,7 +2675,7 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine generateGridTable(nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, ik, kPosition, &
+  subroutine generateGridTable(nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, ik, kPosition, &
         recipLattVec, gammaOnly, gkMod, gkUnit, multFact)
     implicit none
 
@@ -2687,12 +2687,12 @@ module wfcExportVASPMod
       ! Number of k-points in each pool
     integer, intent(in) :: nKPoints
       !! Total number of k-points
-    integer, intent(in) :: gKIndexOrigOrderLocal_ik(nGkVecsLocal_ik)
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: igkSort2OrigLocal_ik(nGkVecsLocal_ik)
       !! Indices of \(G+k\) vectors in just this pool
       !! and for local PWs in the original order for a
       !! given k-point
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: ik
       !! Current k-point 
 
@@ -2750,7 +2750,7 @@ module wfcExportVASPMod
         ! @endnote
 
 
-      gVec(:) = gVecMillerIndicesGlobal(:,gKIndexOrigOrderLocal_ik(ipw))
+      gVec(:) = gVecMillerIndicesGlobal(:,igkSort2OrigLocal_ik(ipw))
       gkDir(:) = gVec(:) + kPosition(:,ik+ikStart_pool-1)
         ! I belive this recreates the purpose of the original lines 
         ! above by getting \(G+k\) in direct coordinates for only
