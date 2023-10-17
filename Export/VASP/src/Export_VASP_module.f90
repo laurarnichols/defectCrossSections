@@ -64,9 +64,6 @@ module wfcExportVASPMod
   integer, allocatable :: gKIndexLocalToGlobal(:,:)
     !! Local to global indices for \(G+k\) vectors 
     !! ordered by magnitude at a given k-point
-  integer, allocatable :: gKIndexGlobal(:,:)
-    !! Indices of \(G+k\) vectors for each k-point
-    !! and all processors
   integer, allocatable :: gKIndexOrigOrderLocal(:,:)
     !! Indices of \(G+k\) vectors in just this pool
     !! and for local PWs in the original order
@@ -109,7 +106,7 @@ module wfcExportVASPMod
     !! Maximum number of \(G+k\) vectors
     !! across all k-points for just this
     !! ppool
-  integer :: nRecords
+  integer :: reclenWav
     !! Number of records in WAVECAR file
 
   logical :: energiesOnly
@@ -337,7 +334,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
-        kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
+        kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, reclenWav, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -373,10 +370,10 @@ module wfcExportVASPMod
     integer, allocatable, intent(out) :: nPWs1kGlobal(:)
       !! Input number of plane waves for a single k-point 
       !! for all processors
-    integer, intent(out) :: nRecords
-      !! Number of records in WAVECAR file
     integer, intent(out) :: nSpins
       !! Number of spins
+    integer, intent(out) :: reclenWav
+      !! Number of records in WAVECAR file
 
     complex*16, allocatable, intent(out) :: eigenE(:,:,:)
       !! Band eigenvalues
@@ -386,7 +383,7 @@ module wfcExportVASPMod
     real(kind=dp) :: c = 0.26246582250210965422
       !! \(2m/\hbar^2\) converted from J\(^{-1}\)m\(^{-2}\)
       !! to eV\(^{-1}\)A\(^{-2}\)
-    real(kind=dp) :: nRecords_real, nspin_real, prec_real, nkstot_real 
+    real(kind=dp) :: reclenWav_real, nspin_real, prec_real, nkstot_real 
       !! Real version of integers for reading from file
     real(kind=dp) :: nbnd_real
       !! Real version of integers for reading from file
@@ -406,26 +403,26 @@ module wfcExportVASPMod
 
       fileName = trim(VASPDir)//'/WAVECAR'
 
-      nRecords = 24
+      reclenWav = 24
         ! Set a starting value for the number of records
 
-      open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
+      open(unit=wavecarUnit, file=fileName, access='direct', recl=reclenWav, iostat=ierr, status='old')
       if (ierr .ne. 0) write(*,*) 'open error - iostat =', ierr
         !! * If root node, open the `WAVECAR` file
 
-      read(unit=wavecarUnit,rec=1) nRecords_real, nspin_real, prec_real
+      read(unit=wavecarUnit,rec=1) reclenWav_real, nspin_real, prec_real
         !! @note Must read in as real first then convert to integer @endnote
 
       close(unit=wavecarUnit)
 
-      nRecords = nint(nRecords_real)
+      reclenWav = nint(reclenWav_real)
       nSpins = nint(nspin_real)
       prec = nint(prec_real)
         ! Convert input variables to integers
 
       if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
-      open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
+      open(unit=wavecarUnit, file=fileName, access='direct', recl=reclenWav, iostat=ierr, status='old')
       if (ierr .ne. 0) write(*,*) 'open error - iostat =', ierr
         !! * Reopen WAVECAR with correct number of records
 
@@ -492,7 +489,7 @@ module wfcExportVASPMod
 
     endif
 
-    call MPI_BCAST(nRecords, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(reclenWav, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nBands, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -502,7 +499,7 @@ module wfcExportVASPMod
     call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(recipLattVec, size(recipLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
-    call preliminaryWAVECARScan(nBands, nKPoints, nRecords, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
+    call preliminaryWAVECARScan(nBands, nKPoints, nSpins, reclenWav, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
       !! * For each spin and k-point, read the number of
       !!   \(G+k\) vectors below the energy cutoff, the
       !!   position of the k-point in reciprocal space, 
@@ -627,7 +624,7 @@ module wfcExportVASPMod
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine preliminaryWAVECARScan(nBands, nKPoints, nRecords, nSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
+  subroutine preliminaryWAVECARScan(nBands, nKPoints, nSpins, reclenWav, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
     !! For each spin and k-point, read the number of
     !! \(G+k\) vectors below the energy cutoff, the
     !! position of the k-point in reciprocal space, 
@@ -643,10 +640,10 @@ module wfcExportVASPMod
       !! Total number of bands
     integer, intent(in) :: nKPoints
       !! Total number of k-points
-    integer, intent(in) :: nRecords
-      !! Number of records in the WAVECAR file
     integer, intent(in) :: nSpins
       !! Number of spins
+    integer, intent(in) :: reclenWav
+      !! Number of records in the WAVECAR file
 
 
     ! Output variables:
@@ -682,7 +679,7 @@ module wfcExportVASPMod
     fileName = trim(VASPDir)//'/WAVECAR'
 
     if(ionode) then
-      open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old')
+      open(unit=wavecarUnit, file=fileName, access='direct', recl=reclenWav, iostat=ierr, status='old')
       if (ierr .ne. 0) write(*,*) 'open error - iostat =', ierr
 
       irec=2
@@ -1174,7 +1171,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, &
-      wfcVecCut, gKIndexGlobal, gKIndexOrigOrderLocal, gKSort, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
+      wfcVecCut, gKIndexOrigOrderLocal, gKSort, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
       nGkLessECutGlobal, nGkVecsLocal)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
@@ -1212,9 +1209,6 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    integer, allocatable, intent(out) :: gKIndexGlobal(:,:)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors
     integer, allocatable, intent(out) :: gKIndexOrigOrderLocal(:,:)
       !! Indices of \(G+k\) vectors in just this pool
       !! and for local PWs in the original order
@@ -1234,7 +1228,7 @@ module wfcExportVASPMod
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this 
       !! pool
-    integer, allocatable, intent(out) :: nGkLessECutGlobal(:)
+    integer, intent(out) :: nGkLessECutGlobal(nKPoints)
       !! Global number of \(G+k\) vectors with magnitude
       !! less than `wfcVecCut` for each k-point
     integer, allocatable, intent(out) :: nGkVecsLocal(:)
@@ -1258,6 +1252,9 @@ module wfcExportVASPMod
 
     integer :: ik, ig
       !! Loop indices
+    integer, allocatable :: gKIndexGlobal(:,:)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors
     integer, allocatable :: gKIndexLocalToGlobal(:,:)
       !! Local to global indices for \(G+k\) vectors 
       !! ordered by magnitude at a given k-point
@@ -1351,8 +1348,10 @@ module wfcExportVASPMod
 
     enddo
 
-    allocate(nGkLessECutGlobal(nKPoints))
-    nGkLessECutGlobal = 0
+    !nGkLessECutGlobal = 0
+      ! This is initialized in the main program, but I wanted
+      ! to include this here for clarity on how the sum across
+      ! processes works. 
     nGkLessECutGlobal(ikStart_pool:ikEnd_pool) = nGkLessECutLocal(1:nkPerPool)
     CALL mpiSumIntV(nGkLessECutGlobal, worldComm)
       !! * Calculate the global number of \(G+k\) 
@@ -1492,6 +1491,8 @@ module wfcExportVASPMod
       deallocate(realGKOrigOrder)
 
     endif
+
+    deallocate(gKIndexGlobal)
 
     call MPI_BCAST(gKIndexOrigOrderGlobal, size(gKIndexOrigOrderGlobal), MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(gKSort, size(gKSort), MPI_INTEGER, root, worldComm, ierr)
@@ -2222,7 +2223,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine projAndWav(maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
-      nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
+      nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, &
       recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
     implicit none
@@ -2248,8 +2249,6 @@ module wfcExportVASPMod
       ! Number of k-points in each pool
     integer, intent(in) :: nKPoints
       !! Total number of k-points
-    integer, intent(in) :: nRecords
-      !! Number of records in the WAVECAR file
     integer, intent(in) :: nSpins
       !! Number of spins
     integer, intent(in) :: gKIndexOrigOrderLocal(maxGkVecsLocal,nkPerPool)
@@ -2262,6 +2261,8 @@ module wfcExportVASPMod
       !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: nPWs1kGlobal(nKPoints)
       !! Input number of plane waves for a single k-point
+    integer, intent(in) :: reclenWav
+      !! Number of records in the WAVECAR file
 
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
@@ -2291,6 +2292,8 @@ module wfcExportVASPMod
     integer :: nGkVecsLocal_ik
       !! Number of G+k vectors locally for 
       !! a given k-point
+    integer :: nProj
+      !! Number of projectors across all atom types
     integer :: nPWs1k
       !! Input number of plane waves for the given k-point
     integer :: irec
@@ -2320,7 +2323,7 @@ module wfcExportVASPMod
 
       fileName = trim(VASPDir)//'/WAVECAR'
 
-      open(unit=wavecarUnit, file=fileName, access='direct', recl=nRecords, iostat=ierr, status='old', SHARED)
+      open(unit=wavecarUnit, file=fileName, access='direct', recl=reclenWav, iostat=ierr, status='old', SHARED)
       if (ierr .ne. 0) write(*,*) 'open error - iostat =', ierr
 
     endif
@@ -2381,7 +2384,7 @@ module wfcExportVASPMod
 
 
       if(myBgrpId == 0) call writeProjectors(ikLocal, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, &
-                nPWs1k, gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot)
+                nPWs1k, gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot, nProj)
 
 
       call cpu_time(t2)
@@ -2415,7 +2418,7 @@ module wfcExportVASPMod
         call cpu_time(t1)
 
 
-        call getAndWriteProjections(ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, realProjWoPhase, compFact, & 
+        call getAndWriteProjections(ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, compFact, & 
                   phaseExp, coeffLocal, exportDir, pot)
 
 
@@ -3049,7 +3052,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine writeProjectors(ik, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, nPWs1k, &
-        gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot)
+        gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot, nProj)
 
     use miscUtilities, only: int2str
 
@@ -3094,12 +3097,14 @@ module wfcExportVASPMod
     type (potcar) :: pot(nAtomTypes)
       !! Holds all information needed from POTCAR
 
+    ! Output variables:
+    integer, intent(out) :: nProj
+      !! Number of projectors across all atom types
+
     ! Local variables:
     integer :: displacement(nProcPerBgrp)
       !! Offset from beginning of array for
       !! scattering coefficients to each process
-    integer :: nProj
-      !! Number of projectors across all atom types
     integer :: reclen
       !! Record length for projectors file
     integer :: sendCount(nProcPerBgrp)
@@ -3205,6 +3210,8 @@ module wfcExportVASPMod
         !! cutoff
 
     endif
+
+    call MPI_BCAST(nProj, 1, MPI_INTEGER, root, intraBgrpComm, ierr)
     
 
     irec = 1
@@ -3408,7 +3415,7 @@ module wfcExportVASPMod
   end subroutine readAndWriteWavefunction
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteProjections(ik, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, realProjWoPhase, compFact, &
+  subroutine getAndWriteProjections(ik, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, compFact, &
           phaseExp, coeffLocal, exportDir, pot)
 
     use miscUtilities, only: int2str
@@ -3429,6 +3436,8 @@ module wfcExportVASPMod
     integer, intent(in) :: nGkVecsLocal_ik
       !! Local number of G-vectors on this processor
       !! for a given k-point
+    integer, intent(in) :: nProj
+      !! Number of projectors across all atom types
 
     real(kind=dp), intent(in) :: realProjWoPhase(nGkVecsLocal_ik,64,nAtomTypes)
       !! Real projectors without phase
@@ -3447,46 +3456,44 @@ module wfcExportVASPMod
       !! Holds all information needed from POTCAR
 
     ! Local variables:
-    integer :: projOutUnit
-      !! Process-dependent file unit for `projections.ik`
-    integer :: ib, iT, ia, iaBase, ilm
+    integer :: ib, iT, ia, iaBase, ilm, ipr
       !! Loop indices
+    integer :: reclen
+      !! Record length for projectors file
 
-    character(len=300) :: fNameBase, fNameBgrp
-      !! Character index
+    character(len=300) :: fNameExport
+      !! Output file name
 
-    complex(kind=dp) :: projection, projectionLocal
+    complex(kind=dp) :: projection(nProj)
       !! Projection for current atom/band/lm channel
 
 
     if(indexInBgrp == 0) then
       !! Have the root node within the band group handle I/O
 
-      projOutUnit = 83 + myid
+      fNameExport = trim(exportDir)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ik)) 
 
-      fNameBase = trim(exportDir)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ik)) 
-      fNameBgrp = trim(fNameBase)//"."//trim(int2str(myBgrpId))
+      inquire(iolength=reclen) projection(:)
 
-      open(projOutUnit, file=trim(fNameBgrp))
-        !! Open `projections.ik`
+      open(83, file=trim(fNameExport), access='direct', form='unformatted', recl=reclen)
+        !! Open output file with direct access
 
     endif
 
     do ib = ibStart_bgrp, ibEnd_bgrp
       iaBase = 1
+      ipr = 0
       
       do iT = 1, nAtomTypes
         do ia = iaBase, nAtomsEachType(iT)+iaBase-1
           do ilm = 1, pot(iT)%lmmax
 
-            projectionLocal = compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*phaseExp(:,ia)*coeffLocal(:,ib))
+            ipr = ipr + 1
+
+            projection(ipr) = compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*phaseExp(:,ia)*coeffLocal(:,ib))
               ! Calculate projection (sum over plane waves)
               ! Don't need to worry about sorting because projection
               ! has sum over plane waves.
-
-            call MPI_ALLREDUCE(projectionLocal, projection, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraBgrpComm, ierr)
-
-            if(indexInBgrp == 0) write(projOutUnit,'(2ES24.15E3)') projection
 
           enddo
         enddo
@@ -3494,30 +3501,13 @@ module wfcExportVASPMod
         iaBase = iaBase + nAtomsEachType(iT)
 
       enddo
+
+      call mpiSumComplexV(projection, intraBgrpComm)
+
+      if(indexInBgrp == 0) write(83,rec=ib) projection(:)
     enddo
 
-    if(indexInBgrp == 0) close(projOutUnit)
-
-
-    if(indexInPool == 0) then
-      !! Have the root node within the pool merge the `wfc` files
-
-      projOutUnit = 83 + myid
-
-      fNameBase = trim(exportDir)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ik)) 
-
-      open(projOutUnit, file=trim(fNameBase))
-        !! Open `projections.ik`
-
-      write(projOutUnit, '("# Complex projections <beta|psi>. Format: ''(2ES24.15E3)''")')
-
-      close(projOutUnit)
-
-      !> Merge all of the individual-processor files and delete
-      call execute_command_line('cat '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'} >> '//trim(fNameBase)//&
-                                ' && rm '//trim(fNameBase)//'.{0..'//trim(int2str(nBandGroups-1))//'}')
-
-    endif
+    if(indexInBgrp == 0) close(83)
 
     return
   end subroutine getAndWriteProjections
@@ -3672,7 +3662,7 @@ module wfcExportVASPMod
   end subroutine getGroundState
 
 !----------------------------------------------------------------------------
-  subroutine writeGridInfo(nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
+  subroutine writeGridInfo(nGVecsGlobal, gVecMillerIndicesGlobal, maxGIndexGlobal, exportDir)
     !! Write out grid boundaries and miller indices
     !! for just \(G+k\) combinations below cutoff energy
     !! in one file and all miller indices in another 
@@ -3688,20 +3678,9 @@ module wfcExportVASPMod
     ! Input variables:
     integer, intent(in) :: nGVecsGlobal
       !! Global number of G-vectors
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-    integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with magnitude
-      !! less than `wfcVecCut` among all k-points
 
-    integer, intent(in) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
-    integer, intent(in) :: nGkLessECutGlobal(nKPoints)
-      !! Global number of \(G+k\) vectors with magnitude
-      !! less than `wfcVecCut` for each k-point
     integer, intent(in) :: maxGIndexGlobal
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
@@ -3710,8 +3689,8 @@ module wfcExportVASPMod
       !! Directory to be used for export
 
     ! Local variables:
-    integer :: ikLocal, ikGlobal, ig, igk
-      !! Loop indices
+    integer :: ig
+      !! Loop index
 
 
     if (ionode) then
@@ -3743,45 +3722,19 @@ module wfcExportVASPMod
 
     endif
     
-    if(.not. energiesOnly) then
-      if(indexInPool == 0) then
-        do ikLocal = 1, nKPerPool
-          !! * For each k-point, write out the miller indices
-          !!   resulting in \(G+k\) vectors less than the energy
-          !!   cutoff in a `grid.ik` file
+    if(.not. energiesOnly .and. ionode) then
 
-          ikGlobal = ikLocal+ikStart_pool-1
-      
-          open(72, file=trim(exportDir)//"/grid."//trim(int2str(ikGlobal)))
-          write(72, '("# Wave function G-vectors grid")')
-          write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
-      
-          do igk = 1, nGkLessECutGlobal(ikGlobal)
-            write(72, '(4i10)') gKIndexGlobal(igk,ikGlobal), gVecMillerIndicesGlobal(1:3,gKIndexGlobal(igk,ikGlobal))
-            flush(72)
-          enddo
-      
-          close(72)
-
-        enddo
-
-      endif
-
-      if(ionode) then
-
-        !> * Output all miller indices in `mgrid` file
-        open(72, file=trim(exportDir)//"/mgrid")
-        write(72, '("# Full G-vectors grid")')
-        write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
+      !> * Output all miller indices in `mgrid` file
+      open(72, file=trim(exportDir)//"/mgrid")
+      write(72, '("# Full G-vectors grid")')
+      write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
     
-        do ig = 1, nGVecsGlobal
-          write(72, '(4i10)') ig, gVecMillerIndicesGlobal(1:3,ig)
-          flush(72)
-        enddo
+      do ig = 1, nGVecsGlobal
+        write(72, '(4i10)') ig, gVecMillerIndicesGlobal(1:3,ig)
+      enddo
     
-        close(72)
+      close(72)
 
-      endif
     endif
 
     return

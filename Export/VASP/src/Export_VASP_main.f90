@@ -47,7 +47,7 @@ program wfcExportVASPMain
 
 
   call readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
-      kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nRecords, nSpins, eigenE)
+      kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, reclenWav, eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 
 
@@ -62,7 +62,7 @@ program wfcExportVASPMain
     !! * Read the k-point weights and cell info from the `vasprun.xml` file
 
   if(ionode) then
-    fName = trim(VASPDir)//'CONTCAR'
+    fName = trim(VASPDir)//'/CONTCAR'
 
     call readPOSCAR(fName, nAtoms_, atomPositionsDir, omegaPOS, realLattVecPOS)
       !! * Get coordinates from CONTCAR
@@ -92,6 +92,13 @@ program wfcExportVASPMain
     !! * Distribute atoms across processes in band group
 
 
+  allocate(nGkLessECutGlobal(nKPoints))
+  nGkLessECutGlobal(:) = 0
+    ! This is needed because this array is passed to 
+    ! `writeKInfo` even though it isn't used in the
+    ! energies-only version. Setting this here is just
+    ! for safety.
+
   if(.not. energiesOnly) then
 
     call cpu_time(t2)
@@ -106,7 +113,7 @@ program wfcExportVASPMain
 
 
     call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, &
-        wfcVecCut, gKIndexGlobal, gKIndexOrigOrderLocal, gKSort, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
+        wfcVecCut, gKIndexOrigOrderLocal, gKSort, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
         nGkLessECutGlobal, nGkVecsLocal)
       !! * Determine which G-vectors result in \(G+k\)
       !!   below the energy cutoff for each k-point and
@@ -141,7 +148,7 @@ program wfcExportVASPMain
   if(.not. energiesOnly) then
 
     call projAndWav(maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
-        nRecords, nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, atomPositionsDir, kPosition, omega, &
+        nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, &
         recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
 
@@ -162,6 +169,7 @@ program wfcExportVASPMain
 
   deallocate(kPosition)
   deallocate(kWeight)
+  deallocate(nGkLessECutGlobal)
 
 
   call cpu_time(t2)
@@ -171,13 +179,13 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call writeGridInfo(nGVecsGlobal, nKPoints, maxNumPWsGlobal, gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal, maxGIndexGlobal, exportDir)
+  call writeGridInfo(nGVecsGlobal, gVecMillerIndicesGlobal, maxGIndexGlobal, exportDir)
     !! * Write out grid boundaries and miller indices
     !!   for just \(G+k\) combinations below cutoff energy
     !!   in one file and all miller indices in another 
     !!   file
 
-  if(.not. energiesOnly) deallocate(gKIndexGlobal, gVecMillerIndicesGlobal, nGkLessECutGlobal)
+  if(.not. energiesOnly) deallocate(gVecMillerIndicesGlobal)
 
 
   call cpu_time(t2)
