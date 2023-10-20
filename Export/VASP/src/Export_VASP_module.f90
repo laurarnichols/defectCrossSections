@@ -64,14 +64,14 @@ module wfcExportVASPMod
   integer, allocatable :: gKIndexLocalToGlobal(:,:)
     !! Local to global indices for \(G+k\) vectors 
     !! ordered by magnitude at a given k-point
-  integer, allocatable :: gKIndexOrigOrderLocal(:,:)
-    !! Indices of \(G+k\) vectors in just this pool
-    !! and for local PWs in the original order
   integer, allocatable :: gKSort(:,:)
     !! Indices to recover sorted order on reduced
     !! \(G+k\) grid
   integer, allocatable :: gVecMillerIndicesGlobal(:,:)
     !! Integer coefficients for G-vectors on all processors
+  integer, allocatable :: igkSort2OrigLocal(:,:)
+    !! Indices of \(G+k\) vectors in just this pool
+    !! and for local PWs in the original order
   integer, allocatable :: iMill(:)
     !! Indices of miller indices after sorting
   integer, allocatable :: iType(:)
@@ -86,7 +86,7 @@ module wfcExportVASPMod
     !! Global number of \(G+k\) vectors with magnitude
     !! less than `wfcVecCut` for each k-point
   integer, allocatable :: nGkVecsLocal(:)
-    !! Local number of G-vectors on this processor
+    !! Local number of G+k-vectors on this processor
   integer :: nGVecsGlobal
     !! Global number of G-vectors
   integer :: nGVecsLocal
@@ -99,13 +99,6 @@ module wfcExportVASPMod
   integer :: maxGkVecsLocal
     !! Max number of G+k vectors across all k-points
     !! in this pool
-  integer :: maxNumPWsGlobal
-    !! Max number of \(G+k\) vectors with magnitude
-    !! less than `wfcVecCut` among all k-points
-  integer :: maxNumPWsPool
-    !! Maximum number of \(G+k\) vectors
-    !! across all k-points for just this
-    !! ppool
   integer :: reclenWav
     !! Number of records in WAVECAR file
 
@@ -1171,8 +1164,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, &
-      wfcVecCut, gKIndexOrigOrderLocal, gKSort, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
-      nGkLessECutGlobal, nGkVecsLocal)
+      wfcVecCut, igkSort2OrigLocal, maxGIndexGlobal, maxGkVecsLocal, nGkLessECutGlobal, nGkVecsLocal)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
     !! sort the indices based on \(|G+k|^2\)
@@ -1209,30 +1201,20 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    integer, allocatable, intent(out) :: gKIndexOrigOrderLocal(:,:)
+    integer, allocatable, intent(out) :: igkSort2OrigLocal(:,:)
       !! Indices of \(G+k\) vectors in just this pool
       !! and for local PWs in the original order
-    integer, allocatable, intent(out) :: gKSort(:,:)
-      !! Indices to recover sorted order on reduced
-      !! \(G+k\) grid
     integer, intent(out) :: maxGIndexGlobal
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
     integer, intent(out) :: maxGkVecsLocal
       !! Max number of G+k vectors across all k-points
       !! in this pool
-    integer, intent(out) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with magnitude
-      !! less than `wfcVecCut` among all k-points
-    integer, intent(out) :: maxNumPWsPool
-      !! Maximum number of \(G+k\) vectors
-      !! across all k-points for just this 
-      !! pool
     integer, intent(out) :: nGkLessECutGlobal(nKPoints)
       !! Global number of \(G+k\) vectors with magnitude
       !! less than `wfcVecCut` for each k-point
     integer, allocatable, intent(out) :: nGkVecsLocal(:)
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
 
 
     ! Local variables:
@@ -1243,8 +1225,6 @@ module wfcExportVASPMod
       !! only stored if less than `wfcVecCut`
     real(kind=dp) :: q
       !! \(|q|^2\) where \(q = G+k\)
-    real(kind=dp), allocatable :: realGKOrigOrder(:)
-      !! Indices of \(G+k\) in original order
     real(kind=dp), allocatable :: realiMillGk(:)
       !! Indices of miller indices after sorting
     real(kind=dp) :: xkCart(3)
@@ -1252,15 +1232,15 @@ module wfcExportVASPMod
 
     integer :: ik, ig
       !! Loop indices
+    integer, allocatable :: igkSort2OrigGlobal(:,:)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors in the original order
     integer, allocatable :: gKIndexGlobal(:,:)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors
     integer, allocatable :: gKIndexLocalToGlobal(:,:)
       !! Local to global indices for \(G+k\) vectors 
       !! ordered by magnitude at a given k-point
-    integer, allocatable :: gKIndexOrigOrderGlobal(:,:)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors in the original order
     integer :: gToGkIndexMap(nkPerPool,nGVecsLocal)
       !! Index map from \(G\) to \(G+k\);
       !! indexed up to `nGVecsLocal` which
@@ -1269,6 +1249,13 @@ module wfcExportVASPMod
     integer, allocatable :: igk(:)
       !! Index map from \(G\) to \(G+k\)
       !! indexed up to `maxNumPWsPool`
+    integer :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` among all k-points
+    integer :: maxNumPWsPool
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points for just this 
+      !! pool
     integer :: ngk_tmp
       !! Temporary variable to hold `nGkLessECutLocal`
       !! value so that don't have to keep accessing
@@ -1427,8 +1414,8 @@ module wfcExportVASPMod
     gKIndexGlobal(:,:) = 0
     do ik = 1, nKPoints
 
-      call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
-          maxNumPWsGlobal, gKIndexGlobal)
+      call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, maxGIndexGlobal, maxNumPWsGlobal, nGkLessECutGlobal, &
+          nGkLessECutLocal, gKIndexGlobal)
         !! * For each k-point, gather all of the \(G+k\) indices
         !!   among all processors in a single global array
     
@@ -1436,21 +1423,17 @@ module wfcExportVASPMod
 
     deallocate(gKIndexLocalToGlobal)
 
-    allocate(gKIndexOrigOrderGlobal(maxNumPWsGlobal, nKPoints))
-    allocate(gKSort(maxNumPWsGlobal, nKPoints))
+    allocate(igkSort2OrigGlobal(maxNumPWsGlobal, nKPoints))
 
-    gKIndexOrigOrderGlobal = gKIndexGlobal
-    gKSort = 0._dp
+    igkSort2OrigGlobal = gKIndexGlobal
 
     if(ionode) then
 
       allocate(realiMillGk(maxNumPWsGlobal))
-      allocate(realGKOrigOrder(maxNumPWsGlobal))
 
       do ik = 1, nKPoints
 
         realiMillGk = 0._dp
-        realGKOrigOrder = 0._dp
         ngk_tmp = nGkLessECutGlobal(ik)
 
         do ig = 1, ngk_tmp
@@ -1460,14 +1443,9 @@ module wfcExportVASPMod
             !!   to G vectors s.t. \(|G+k|\) is less than the
             !!   cutoff
 
-          gKSort(ig,ik) = ig
-            !! * Initialize an array that will recover the sorted
-            !!   order of the G-vectors from only the \(G+k\) sub-grid
-            !!   rather than the full G-vector grid like `gKIndexGlobal`
-
         enddo
 
-        call hpsort_eps(ngk_tmp, realiMillGk(1:ngk_tmp), gKIndexOrigOrderGlobal(1:ngk_tmp,ik), eps8)
+        call hpsort_eps(ngk_tmp, realiMillGk(1:ngk_tmp), igkSort2OrigGlobal(1:ngk_tmp,ik), eps8)
           !! * Order the \(G+k\) indices by the original indices `realiMillGk`. 
           !!   This will allow us to recover only specific G-vectors in the 
           !!   original ordering. Have to cast to `real` because that is what the 
@@ -1475,39 +1453,28 @@ module wfcExportVASPMod
           !!   interface for different types, but we don't really need that here
           !!   and it shouldn't affect the results. 
 
-
-        realGKOrigOrder(1:ngk_tmp) = real(gKIndexOrigOrderGlobal(1:ngk_tmp,ik))
-
-        call hpsort_eps(ngk_tmp, realGKOrigOrder(1:ngk_tmp), gKSort(1:ngk_tmp,ik), eps8)
-          !! * Sort another index by `gKIndexOrigOrder`. This index will allow
-          !!   us to recreate the sorted order on the reduced \(G+k\) grid. We
-          !!   need this for outputting the wave functions, projectors, and
-          !!   projections in the order that `TME` expects them.
-
       enddo
 
       deallocate(iMill)
       deallocate(realiMillGk)
-      deallocate(realGKOrigOrder)
 
     endif
 
     deallocate(gKIndexGlobal)
 
-    call MPI_BCAST(gKIndexOrigOrderGlobal, size(gKIndexOrigOrderGlobal), MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(gKSort, size(gKSort), MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(igkSort2OrigGlobal, size(igkSort2OrigGlobal), MPI_INTEGER, root, worldComm, ierr)
 
-    call distributeGkVecsInPool(nKPoints, nGkLessECutGlobal, gKIndexOrigOrderGlobal, gKIndexOrigOrderLocal, maxGkVecsLocal, nGkVecsLocal)
+    call distributeGkVecsInPool(maxNumPWsGlobal, igkSort2OrigGlobal, nKPoints, nGkLessECutGlobal, igkSort2OrigLocal, maxGkVecsLocal, nGkVecsLocal)
       !! * Distribute the G+k vectors evenly across the processes in a band group within each pool
 
-    deallocate(gKIndexOrigOrderGlobal)
+    deallocate(igkSort2OrigGlobal)
 
     return
   end subroutine reconstructFFTGrid
 
 !----------------------------------------------------------------------------
-  subroutine getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
-      maxNumPWsGlobal, gKIndexGlobal)
+  subroutine getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, maxGIndexGlobal, maxNumPWsGlobal, nGkLessECutGlobal, &
+      nGkLessECutLocal, gKIndexGlobal)
     !! Gather the \(G+k\) vector indices in single, global 
     !! array
     !!
@@ -1533,6 +1500,12 @@ module wfcExportVASPMod
       !! but only valid values are up to `nGkLessECutLocal`
     integer, intent(in) :: ik
       !! Index of current k-point
+    integer, intent(in) :: maxGIndexGlobal
+      !! Maximum G-vector index among all \(G+k\)
+      !! and processors
+    integer, intent(in) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` among all k-points
     integer, intent(in) :: nGkLessECutGlobal(nKPoints)
       !! Global number of \(G+k\) vectors with magnitude
       !! less than `wfcVecCut` for each k-point
@@ -1540,12 +1513,6 @@ module wfcExportVASPMod
       !! Number of \(G+k\) vectors with magnitude
       !! less than `wfcVecCut` for each
       !! k-point, on this processor
-    integer, intent(in) :: maxGIndexGlobal
-      !! Maximum G-vector index among all \(G+k\)
-      !! and processors
-    integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with magnitude
-      !! less than `wfcVecCut` among all k-points
 
 
     ! Output variables:
@@ -1748,9 +1715,9 @@ module wfcExportVASPMod
   end subroutine hpsort_eps
 
 !----------------------------------------------------------------------------
-  subroutine distributeGkVecsInPool(nKPoints, nGkLessECutGlobal, gKIndexOrigOrderGlobal, gKIndexOrigOrderLocal, maxGkVecsLocal, nGkVecsLocal)
+  subroutine distributeGkVecsInPool(maxNumPWsGlobal, igkSort2OrigGlobal, nKPoints, nGkLessECutGlobal, igkSort2OrigLocal, maxGkVecsLocal, nGkVecsLocal)
     !! Distribute the G+k vectors across band groups in each pool by 
-    !! splitting up the `gKIndexOrigOrderGlobal` array
+    !! splitting up the `igkSort2OrigGlobal` array
     !! into local arrays
     !!
     !! <h2>Walkthrough</h2>
@@ -1759,6 +1726,12 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: maxNumPWsGlobal
+      !! Max number of \(G+k\) vectors with magnitude
+      !! less than `wfcVecCut` among all k-points
+    integer, intent(in) :: igkSort2OrigGlobal(maxNumPWsGlobal, nKPoints)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors in the original order
     !integer, intent(in) :: ikEnd_pool
       ! Ending index for k-points in single pool 
     !integer, intent(in) :: ikStart_pool
@@ -1768,12 +1741,9 @@ module wfcExportVASPMod
     !integer, intent(in) :: nkPerPool
       ! Number of k-points in each pool
     integer, intent(in) :: nGkLessECutGlobal(nKPoints)
-      !! Global number of G-vectors
+      !! Global number of G+k-vectors
     !integer, intent(in) :: nProcPerPool
       ! Number of processes per pool
-    integer, intent(in) :: gKIndexOrigOrderGlobal(maxNumPWsGlobal, nKPoints)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors in the original order
 
     
     ! Output variables:
@@ -1783,14 +1753,14 @@ module wfcExportVASPMod
     !integer, allocatable, intent(out) :: iGkStart_pool(:)
       ! Starting index for G+k vectors on
       ! single process in a given pool
-    integer, allocatable, intent(out) :: gKIndexOrigOrderLocal(:,:)
+    integer, allocatable, intent(out) :: igkSort2OrigLocal(:,:)
       !! Indices of \(G+k\) vectors in just this pool
       !! and for local PWs in the original order
     integer, intent(out) :: maxGkVecsLocal
       !! Max number of G+k vectors across all k-points
       !! in this pool
     integer, allocatable, intent(out) :: nGkVecsLocal(:)
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
 
 
     ! Local variables:
@@ -1827,12 +1797,12 @@ module wfcExportVASPMod
       !! * Get the max number of G+k vectors across
       !!   all k-points in this pool
 
-    allocate(gKIndexOrigOrderLocal(maxGkVecsLocal, nkPerPool))
+    allocate(igkSort2OrigLocal(maxGkVecsLocal, nkPerPool))
 
     do ik = 1, nkPerPool
 
-      gKIndexOrigOrderLocal(1:nGkVecsLocal(ik),ik) = gKIndexOrigOrderGlobal(iGkStart_pool(ik):iGkEnd_pool(ik),ik+ikStart_pool-1)
-        !! * Split up the PWs `gKIndexOrigOrderGlobal` across processors and 
+      igkSort2OrigLocal(1:nGkVecsLocal(ik),ik) = igkSort2OrigGlobal(iGkStart_pool(ik):iGkEnd_pool(ik),ik+ikStart_pool-1)
+        !! * Split up the PWs `igkSort2OrigGlobal` across processors and 
         !!   store the G-vector indices locally
 
     enddo
@@ -2222,9 +2192,8 @@ module wfcExportVASPMod
   end subroutine readPOTCAR
 
 !----------------------------------------------------------------------------
-  subroutine projAndWav(maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
-      nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, &
-      recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+  subroutine projAndWav(maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, gVecMillerIndicesGlobal, &
+      igkSort2OrigLocal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
     implicit none
 
@@ -2232,9 +2201,6 @@ module wfcExportVASPMod
     integer, intent(in) :: maxGkVecsLocal
       !! Max number of G+k vectors across all k-points
       !! in this pool
-    integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with magnitude
-      !! less than `wfcVecCut` among all k-points
     integer, intent(in) :: nAtoms
       !! Number of atoms
     integer, intent(in) :: nAtomTypes
@@ -2242,7 +2208,7 @@ module wfcExportVASPMod
     integer, intent(in) :: nBands
       !! Total number of bands
     integer, intent(in) :: nGkVecsLocal(nkPerPool)
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
     integer, intent(in) :: nGVecsGlobal
       !! Global number of G-vectors
     !integer, intent(in) :: nkPerPool
@@ -2251,14 +2217,11 @@ module wfcExportVASPMod
       !! Total number of k-points
     integer, intent(in) :: nSpins
       !! Number of spins
-    integer, intent(in) :: gKIndexOrigOrderLocal(maxGkVecsLocal,nkPerPool)
-      !! Indices of \(G+k\) vectors in just this pool
-      !! and for local PWs in the original order
-    integer, intent(in) :: gKSort(maxNumPWsGlobal, nKPoints)
-      !! Indices to recover sorted order on reduced
-      !! \(G+k\) grid
     integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: igkSort2OrigLocal(maxGkVecsLocal,nkPerPool)
+      !! Indices of \(G+k\) vectors in just this pool
+      !! and for local PWs in the original order
     integer, intent(in) :: nPWs1kGlobal(nKPoints)
       !! Input number of plane waves for a single k-point
     integer, intent(in) :: reclenWav
@@ -2285,7 +2248,7 @@ module wfcExportVASPMod
       !! Holds all information needed from POTCAR
 
     ! Local variables:
-    integer, allocatable :: gKIndexOrigOrderLocal_ik(:)
+    integer, allocatable :: igkSort2OrigLocal_ik(:)
       !! Indices of \(G+k\) vectors in just this pool
       !! and for local PWs in the original order for a
       !! given k-point
@@ -2338,9 +2301,9 @@ module wfcExportVASPMod
       allocate(phaseExp(nGkVecsLocal_ik, nAtoms))
       allocate(realProjWoPhase(nGkVecsLocal_ik, 64, nAtomTypes))
       allocate(coeffLocal(nGkVecsLocal_ik, ibStart_bgrp:ibEnd_bgrp))
-      allocate(gKIndexOrigOrderLocal_ik(nGkVecsLocal_ik))
+      allocate(igkSort2OrigLocal_ik(nGkVecsLocal_ik))
 
-      gKIndexOrigOrderLocal_ik = gKIndexOrigOrderLocal(1:nGkVecsLocal_ik,ikLocal)
+      igkSort2OrigLocal_ik = igkSort2OrigLocal(1:nGkVecsLocal_ik,ikLocal)
 
       ikGlobal = ikLocal+ikStart_pool-1
         !! Get the global `ik` index from the local one
@@ -2352,12 +2315,11 @@ module wfcExportVASPMod
       call cpu_time(t1)
 
       !> Calculate the projectors and phase only once for each k-point
-      !> because they are not dependent on spin. Write them out as if 
-      !> they were dependent on spin because that is how TME currently
-      !> expects it. Calculate in one band group and broadcast to the 
-      !> others because doesn't depend on band index.
-      if(myBgrpId == 0) call calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gKIndexOrigOrderLocal_ik, &
-                gVecMillerIndicesGlobal, atomPositionsDir, phaseExp)
+      !> because they are not dependent on spin. Calculate in one band 
+      !> group and broadcast to the others because doesn't depend on 
+      !> band index.
+      if(myBgrpId == 0) call calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, &
+            atomPositionsDir, phaseExp)
 
       call MPI_BCAST(phaseExp, size(phaseExp), MPI_DOUBLE_COMPLEX, 0, interBgrpComm, ierr)
 
@@ -2369,8 +2331,8 @@ module wfcExportVASPMod
       call cpu_time(t1)
 
 
-      if(myBgrpId == 0) call calculateRealProjWoPhase(ikLocal, nAtomTypes, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, &
-                gVecMillerIndicesGlobal, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
+      if(myBgrpId == 0) call calculateRealProjWoPhase(ikLocal, nAtomTypes, nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobal, &
+            igkSort2OrigLocal_ik, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
       call MPI_BCAST(realProjWoPhase, size(realProjWoPhase), MPI_DOUBLE_PRECISION, 0, interBgrpComm, ierr)
       call MPI_BCAST(compFact, size(compFact), MPI_DOUBLE_COMPLEX, 0, interBgrpComm, ierr)
@@ -2383,8 +2345,10 @@ module wfcExportVASPMod
       call cpu_time(t1)
 
 
-      if(myBgrpId == 0) call writeProjectors(ikLocal, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, &
-                nPWs1k, gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot, nProj)
+      if(myBgrpId == 0) call writeProjectors(ikLocal, nAtoms, iType, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nPWs1k, realProjWoPhase, &
+                compFact, phaseExp, exportDir, pot, nProj)
+
+      call MPI_BCAST(nProj, 1, MPI_INTEGER, root, intraPoolComm, ierr)
 
 
       call cpu_time(t2)
@@ -2408,7 +2372,7 @@ module wfcExportVASPMod
           write(*, '("      k-point ",i4," in pool, spin ",i1,": [ ] Wavefunctions  [ ] Projections")') ikLocal, isp
         call cpu_time(t1)
 
-        call readAndWriteWavefunction(ikLocal, isp, maxNumPWsGlobal, nBands, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
+        call readAndWriteWavefunction(ikLocal, isp, nGkVecsLocal_ik, nPWs1k, exportDir, irec, coeffLocal)
 
 
         call cpu_time(t2)
@@ -2431,7 +2395,7 @@ module wfcExportVASPMod
 
       enddo
 
-      deallocate(phaseExp, realProjWoPhase, coeffLocal, gKIndexOrigOrderLocal_ik)
+      deallocate(phaseExp, realProjWoPhase, coeffLocal, igkSort2OrigLocal_ik)
 
       if(indexInPool == 0) write(*,'("k-point ", i4," complete!!")') ikGlobal
     enddo
@@ -2442,7 +2406,7 @@ module wfcExportVASPMod
   end subroutine projAndWav
 
 !----------------------------------------------------------------------------
-  subroutine calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
+  subroutine calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, &
                 atomPositionsDir, phaseExp)
 
     implicit none
@@ -2451,20 +2415,18 @@ module wfcExportVASPMod
     integer, intent(in) :: nAtoms
       !! Number of atoms
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
     integer, intent(in) :: nGVecsGlobal
       !! Global number of G-vectors
     !integer, intent(in) :: nkPerPool
       ! Number of k-points in each pool
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-    integer, intent(in) :: gKIndexOrigOrderLocal_ik(nGkVecsLocal_ik)
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: igkSort2OrigLocal_ik(nGkVecsLocal_ik)
       !! Indices of \(G+k\) vectors in just this pool
       !! and for local PWs in the original order for a 
       !! given k-point
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors
 
     real(kind=dp), intent(in) :: atomPositionsDir(3,nAtoms)
       !! Atom positions
@@ -2492,7 +2454,7 @@ module wfcExportVASPMod
 
       do ipw = 1, nGkVecsLocal_ik
 
-        expArg = itwopi*dot_product(atomPosDir, gVecMillerIndicesGlobal(:,gKIndexOrigOrderLocal_ik(ipw)))
+        expArg = itwopi*dot_product(atomPosDir, gVecMillerIndicesGlobal(:,igkSort2OrigLocal_ik(ipw)))
           !! \(2\pi i (\mathbf{G} \cdot \mathbf{r})\)
 
         phaseExp(ipw, ia) = exp(expArg)
@@ -2504,7 +2466,7 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, &
+  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, &
       kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
     implicit none
 
@@ -2514,18 +2476,18 @@ module wfcExportVASPMod
     integer, intent(in) :: nAtomTypes
       !! Number of types of atoms
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
     !integer, intent(in) :: nkPerPool
       ! Number of k-points in each pool
     integer, intent(in) :: nKPoints
       !! Total number of k-points
-    integer, intent(in) :: gKIndexOrigOrderLocal_ik(nGkVecsLocal_ik)
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: igkSort2OrigLocal_ik(nGkVecsLocal_ik)
       !! Indices of \(G+k\) vectors in just this pool
       !! and for local PWs in the original order for a
       !! given k-point
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors
 
     real(kind=dp), intent(in) :: kPosition(3,nKPoints)
       !! Position of k-points in reciprocal space
@@ -2584,7 +2546,7 @@ module wfcExportVASPMod
       !! Spherical harmonics
 
 
-    call generateGridTable(nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, ik, kPosition, &
+    call generateGridTable(nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, ik, kPosition, &
           recipLattVec, gammaOnly, gkMod, gkUnit, multFact)
 
     YDimL = maxL(nAtomTypes, pot)
@@ -2673,24 +2635,24 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine generateGridTable(nGkVecsLocal_ik, nKPoints, gKIndexOrigOrderLocal_ik, gVecMillerIndicesGlobal, ik, kPosition, &
+  subroutine generateGridTable(nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, ik, kPosition, &
         recipLattVec, gammaOnly, gkMod, gkUnit, multFact)
     implicit none
 
     ! Input variables:
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
     !integer, intent(in) :: nkPerPool
       ! Number of k-points in each pool
     integer, intent(in) :: nKPoints
       !! Total number of k-points
-    integer, intent(in) :: gKIndexOrigOrderLocal_ik(nGkVecsLocal_ik)
+    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: igkSort2OrigLocal_ik(nGkVecsLocal_ik)
       !! Indices of \(G+k\) vectors in just this pool
       !! and for local PWs in the original order for a
       !! given k-point
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: ik
       !! Current k-point 
 
@@ -2743,12 +2705,12 @@ module wfcExportVASPMod
         !  variable that holds the unsorted G-vectors in Miller indices. 
         !  `WDES%IGX/IGY/IGZ` holds only the G-vectors s.t. \(|G+k| <\)
         !  cutoff. Their values do not seem to be sorted, so I use 
-        !  `gKIndexOrigOrderGlobal` to recreate the unsorted order from
+        !  `igkSort2OrigGlobal` to recreate the unsorted order from
         !  the sorted array.
         ! @endnote
 
 
-      gVec(:) = gVecMillerIndicesGlobal(:,gKIndexOrigOrderLocal_ik(ipw))
+      gVec(:) = gVecMillerIndicesGlobal(:,igkSort2OrigLocal_ik(ipw))
       gkDir(:) = gVec(:) + kPosition(:,ik+ikStart_pool-1)
         ! I belive this recreates the purpose of the original lines 
         ! above by getting \(G+k\) in direct coordinates for only
@@ -2851,7 +2813,7 @@ module wfcExportVASPMod
 
     ! Input variables:
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
     integer, intent(in) :: YDimL
       !! L dimension of spherical harmonics;
@@ -2939,7 +2901,7 @@ module wfcExportVASPMod
     integer, intent(in) :: ip
       !! Channel index
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
 
     real(kind=dp), intent(in) :: gkMod(nGkVecsLocal_ik)
@@ -3051,8 +3013,8 @@ module wfcExportVASPMod
   end subroutine getPseudoV
 
 !----------------------------------------------------------------------------
-  subroutine writeProjectors(ik, nAtoms, iType, maxNumPWsGlobal, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nKPoints, nPWs1k, &
-        gKSort, realProjWoPhase, compFact, phaseExp, exportDir, pot, nProj)
+  subroutine writeProjectors(ik, nAtoms, iType, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nPWs1k, realProjWoPhase, compFact, &
+      phaseExp, exportDir, pot, nProj)
 
     use miscUtilities, only: int2str
 
@@ -3065,23 +3027,15 @@ module wfcExportVASPMod
       !! Number of atoms
     integer, intent(in) :: iType(nAtoms)
       !! Atom type index
-    integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with magnitude
-      !! less than `wfcVecCut` among all k-points
     integer, intent(in) :: nAtomTypes
       !! Number of types of atoms
     integer, intent(in) :: nAtomsEachType(nAtomTypes)
       !! Number of atoms of each type
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
-    integer, intent(in) :: gKSort(maxNumPWsGlobal, nKPoints)
-      !! Indices to recover sorted order on reduced
-      !! \(G+k\) grid
 
     real(kind=dp), intent(in) :: realProjWoPhase(nGkVecsLocal_ik,64,nAtomTypes)
       !! Real projectors without phase
@@ -3102,105 +3056,46 @@ module wfcExportVASPMod
       !! Number of projectors across all atom types
 
     ! Local variables:
-    integer :: displacement(nProcPerBgrp)
-      !! Offset from beginning of array for
-      !! scattering coefficients to each process
     integer :: reclen
       !! Record length for projectors file
-    integer :: sendCount(nProcPerBgrp)
-      !! Number of items to send to each process
-      !! in the pool
-    integer :: endingAtom(nProcPerBgrp)
-      !! Ending atom for each proc in band group
-    integer :: iT, ia, ilm, ipw, ikGlobal, iproc, irec
+    integer :: iT, ia, ilm, igkLocal, igkGlobal, ikGlobal, ipr
       !! Loop indices
 
-    real(kind=dp) :: realProjWoPhaseGlobal(nPWs1k,64,nAtomTypes)
-      !! Real projectors without phase
     real(kind=dp) :: nProj_real, nPWs1k_real
       !! Real versions of output variables for better 
       !! compatibility of binary file
-    real(kind=dp) :: t1, t2
-      !! Timers
 
-    complex(kind=dp) :: phaseExpGlobal(nPWs1k, nAtoms)
-      !! Exponential phase factor
+    complex(kind=dp), allocatable :: beta(:)
+      !! Projectors for single plane wave
 
 
     !> Set up base file name
     ikGlobal = ik+ikStart_pool-1
 
 
-    if(ionode) &
-      write(*, '("         k-point ",i4," in pool: [ ] Gather  [ ] Write")') ik
-    call cpu_time(t1)
+    nProj = 0
+    do iT = 1, nAtomTypes
+      !! Calculate the total number of projectors across all
+      !! atom types
 
-
-    sendCount = 0
-    sendCount(indexInBgrp+1) = nGkVecsLocal_ik
-    call mpiSumIntV(sendCount, intraBgrpComm)
-      !! * Put the number of G+k vectors on each process
-      !!   in a single array per pool
-
-    displacement = 0
-    displacement(indexInBgrp+1) = iGkStart_pool(ik)-1
-    call mpiSumIntV(displacement, intraBgrpComm)
-      !! * Put the displacement from the beginning of the array
-      !!   for each process in a single array per pool
-
-    endingAtom = 0
-    endingAtom(indexInBgrp+1) = iaEnd_bgrp
-    call mpiSumIntV(endingAtom, intraBgrpComm)
-
-
-    iproc = 0
-
-    do ia = 1, nAtoms
-
-      if(ia == endingAtom(iproc+1)+1) iproc = iproc + 1
-
-      iT = iType(ia)
-        !! Store the index of the type for this atom
-
-      call MPI_GATHERV(phaseExp(1:nGkVecsLocal_ik,ia), nGkVecsLocal_ik, MPI_DOUBLE_COMPLEX, phaseExpGlobal(:,ia), sendCount, &
-          displacement, MPI_DOUBLE_COMPLEX, iproc, intraBgrpComm, ierr)
-
-      do ilm = 1, pot(iT)%lmmax
-
-        call MPI_GATHERV(realProjWoPhase(1:nGkVecsLocal_ik,ilm,iT), nGkVecsLocal_ik, MPI_DOUBLE_PRECISION, realProjWoPhaseGlobal(:,ilm,iT), &
-            sendCount, displacement, MPI_DOUBLE_PRECISION, iproc, intraBgrpComm, ierr)
-
-      enddo
+      nProj = nProj + pot(iT)%lmmax*nAtomsEachType(iT)
 
     enddo
 
 
-    call cpu_time(t2)
-    if(ionode) &
-      write(*, '("         k-point ",i4," in pool: [X] Gather  [ ] Write (",f7.2," secs)")') &
-            ik, t2-t1
-    call cpu_time(t1)
+    allocate(beta(nProj))
 
-
-    inquire(iolength=reclen) phaseExpGlobal(:,1)
+    inquire(iolength=reclen) beta(:)
       !! Get the record length needed to write a double complex
-      !! array of length nPWs1k
+      !! array of size `nProj`
+
 
     open(63, file=trim(exportDir)//'/projectors.'//trim(int2str(ikGlobal)), access='direct', form='unformatted', recl=reclen)
       !! Open output file with direct access
 
 
     if(indexInBgrp == 0) then
-      !! Have root process merge output files
-
-      nProj = 0
-      do iT = 1, nAtomTypes
-        !! Calculate the total number of projectors across all
-        !! atom types
-
-        nProj = nProj + pot(iT)%lmmax*nAtomsEachType(iT)
-
-      enddo
+      !! Have root process write header values
 
       nProj_real = nProj
       nPWs1k_real = nPWs1k
@@ -3211,22 +3106,17 @@ module wfcExportVASPMod
 
     endif
 
-    call MPI_BCAST(nProj, 1, MPI_INTEGER, root, intraBgrpComm, ierr)
-    
 
-    irec = 1
+    do igkLocal = 1, nGkVecsLocal_ik
 
-    do ia = 1, nAtoms
-    
-      iT = iType(ia)
-        !! Store the index of the type for this atom
+      ipr = 0
+      do ia = 1, nAtoms
 
-      do ilm = 1, pot(iT)%lmmax
+        iT = iType(ia)
+        do ilm = 1, pot(iT)%lmmax
 
-        irec = irec + 1
-
-        if(ia >= iaStart_bgrp .and. ia <= iaEnd_bgrp) write(63,rec=irec) &
-            (conjg(realProjWoPhaseGlobal(gKSort(ipw,ikGlobal),ilm,iT)*phaseExpGlobal(gKSort(ipw,ikGlobal),ia)*compFact(ilm,iT)), ipw=1,nPWs1k)
+          ipr = ipr + 1
+          beta(ipr) = conjg(realProjWoPhase(igkLocal,ilm,iT)*phaseExp(igkLocal,ia)*compFact(ilm,iT))
             !! @note
             !!    The projectors are stored as \(\langle\beta|\), so need to take the complex conjugate
             !!    to output \(|\beta\rangle.
@@ -3241,25 +3131,23 @@ module wfcExportVASPMod
             !!    `NONL_S%LSPIRAL = .FALSE.`, so spin spirals are not calculated, which makes
             !!    `NONL_S%QPROJ` spin-independent. This is why there is no spin index on `realProjWoPhase`.
             !! @endnote
-
+        enddo
       enddo
+
+
+      igkGlobal = igkLocal+iGkStart_pool(ik)-1
+
+      write(63,rec=igkGlobal+1) (beta(ipr), ipr=1,nProj)
+
     enddo
 
     close(63)
-
-
-    call cpu_time(t2)
-    if(ionode) &
-      write(*, '("         k-point ",i4," in pool: [X] Gather  [X] Write (",f7.2," secs)")') &
-            ik, t2-t1
-    call cpu_time(t1)
-
 
     return
   end subroutine writeProjectors
 
 !----------------------------------------------------------------------------
-  subroutine readAndWriteWavefunction(ik, isp, maxNumPWsGlobal, nBands, nGkVecsLocal_ik, nKPoints, nPWs1k, gKSort, exportDir, irec, coeffLocal)
+  subroutine readAndWriteWavefunction(ik, isp, nGkVecsLocal_ik, nPWs1k, exportDir, irec, coeffLocal)
     !! For each spin and k-point, read and write the plane
     !! wave coefficients for each band
     !!
@@ -3275,21 +3163,11 @@ module wfcExportVASPMod
       !! Current k-point
     integer, intent(in) :: isp
       !! Current spin channel
-    integer, intent(in) :: maxNumPWsGlobal
-      !! Max number of \(G+k\) vectors with magnitude
-      !! less than `wfcVecCut` among all k-points
-    integer, intent(in) :: nBands
-      !! Total number of bands
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
     integer, intent(in) :: nPWs1k
       !! Input number of plane waves for the given k-point
-    integer, intent(in) :: gKSort(maxNumPWsGlobal, nKPoints)
-      !! Indices to recover sorted order on reduced
-      !! \(G+k\) grid
       
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
@@ -3303,49 +3181,58 @@ module wfcExportVASPMod
     ! Local variables:
     integer :: reclen
       !! Record length for projectors file
-    integer :: sendCount(nProcPerBgrp)
-      !! Number of items to send to each process
-      !! in the band group
-    integer :: displacement(nProcPerBgrp)
+    integer, allocatable :: sendCount(:)
+      !! Number of items to send/recieve to/from each process
+    integer, allocatable :: displacement(:)
       !! Offset from beginning of array for
-      !! scattering coefficients to each process
+      !! scattering/gathering coefficients 
     integer :: ib, ipw, ikGlobal
       !! Loop indices
 
-    real(kind=dp) :: t1, t2
-      !! Timers
-
-    complex*8, allocatable :: coeff(:,:)
+    complex*8, allocatable :: coeff(:)
       !! Plane wave coefficients
 
     character(len=300) :: fNameExport
       !! Output file name
 
 
+    ikGlobal = ik+ikStart_pool-1
+
+
     if(indexInBgrp == 0) then
-      allocate(coeff(maxNumPWsGlobal, ibStart_bgrp:ibEnd_bgrp))
+
+      allocate(coeff(nPWs1k))
+
+      fNameExport = trim(exportDir)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)) 
+
+      inquire(iolength=reclen) coeff(:)
+        !! Get the record length needed to write a double complex
+        !! array of length nPWs1k
+
+      open(63, file=trim(fNameExport), access='direct', form='unformatted', recl=reclen)
+        !! Open output file with direct access
+
     else
-      allocate(coeff(1,ibStart_bgrp:ibEnd_bgrp))
+
+      allocate(coeff(1))
+
     endif
 
-    ikGlobal = ik+ikStart_pool-1
-      
-    if(ionode) &
-      write(*, '("         k-point ",i4," in pool, spin ",i1,": [ ] Read and scatter  [ ] Write")') ik, isp
-    call cpu_time(t1)
 
-
+    allocate(sendCount(nProcPerBgrp))
     sendCount = 0
     sendCount(indexInBgrp+1) = nGkVecsLocal_ik
     call mpiSumIntV(sendCount, intraBgrpComm)
       !! * Put the number of G+k vectors on each process
       !!   in a single array per band group
 
+    allocate(displacement(nProcPerBgrp))
     displacement = 0
     displacement(indexInBgrp+1) = iGkStart_pool(ik)-1
     call mpiSumIntV(displacement, intraBgrpComm)
       !! * Put the displacement from the beginning of the array
       !!   for each process in a single array per band group
+
 
     irec = irec + ibStart_bgrp - 1
 
@@ -3353,39 +3240,12 @@ module wfcExportVASPMod
 
       irec = irec + 1
 
-      if(indexInBgrp == 0) read(unit=wavecarUnit,rec=irec) (coeff(ipw,ib), ipw=1,nPWs1k)
-        ! Read in the plane wave coefficients for each band
+      if(indexInBgrp == 0) then
 
-      call MPI_SCATTERV(coeff(:,ib), sendCount, displacement, MPI_COMPLEX, coeffLocal(1:nGkVecsLocal_ik,ib), nGkVecsLocal_ik, &
-          MPI_COMPLEX, 0, intraBgrpComm, ierr)
-      !! * For each band, scatter the coefficients across all 
-      !!   of the processes in the pool
+        read(unit=wavecarUnit,rec=irec) (coeff(ipw), ipw=1,nPWs1k)
+          ! Read in the plane wave coefficients for each band
 
-    enddo
-
-
-    call cpu_time(t2)
-    if(ionode) &
-      write(*, '("         k-point ",i4," in pool, spin ",i1,": [X] Read and scatter  [ ] Write (",f7.2," secs)")') &
-            ik, isp, t2-t1
-    call cpu_time(t1)
-
-
-    if(indexInBgrp == 0) then
-
-      fNameExport = trim(exportDir)//"/wfc."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)) 
-
-      inquire(iolength=reclen) coeff(1:nPWs1k,ibStart_bgrp)
-        !! Get the record length needed to write a double complex
-        !! array of length nPWs1k
-
-      open(63, file=trim(fNameExport), access='direct', form='unformatted', recl=reclen)
-        !! Open output file with direct access
-
-      do ib = 1, nBands
-
-        if(ib >= ibStart_bgrp .and. ib <= ibEnd_bgrp) write(63,rec=ib) (coeff(gKSort(ipw,ikGlobal),ib), ipw=1,nPWs1k)
-          ! Write out in sorted order
+        write(63,rec=ib) (coeff(ipw), ipw=1,nPWs1k)
           !! @note
           !!  I was trying to convert these coefficients based
           !!  on the units previously listed in the `wfc.ik` file, 
@@ -3395,21 +3255,19 @@ module wfcExportVASPMod
           !!  unit conversion here.
           !! @endnote
 
+      endif
 
-      enddo
+      call MPI_SCATTERV(coeff(:), sendCount, displacement, MPI_COMPLEX, coeffLocal(1:nGkVecsLocal_ik,ib), nGkVecsLocal_ik, &
+          MPI_COMPLEX, 0, intraBgrpComm, ierr)
+      !! * For each band, scatter the coefficients across all 
+      !!   of the processes in the pool
 
-      close(63)
-
-    endif
-
-
-    call cpu_time(t2)
-    if(ionode) &
-      write(*, '("         k-point ",i4," in pool, spin ",i1,": [X] Read and scatter  [X] Write (",f7.2," secs)")') &
-            ik, isp, t2-t1
+    enddo
 
 
     deallocate(coeff)
+    deallocate(sendCount)
+    deallocate(displacement)
 
     return
   end subroutine readAndWriteWavefunction
@@ -3434,7 +3292,7 @@ module wfcExportVASPMod
     integer, intent(in) :: nAtomsEachType(nAtomTypes)
       !! Number of atoms of each type
     integer, intent(in) :: nGkVecsLocal_ik
-      !! Local number of G-vectors on this processor
+      !! Local number of G+k-vectors on this processor
       !! for a given k-point
     integer, intent(in) :: nProj
       !! Number of projectors across all atom types

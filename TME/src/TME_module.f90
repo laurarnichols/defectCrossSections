@@ -148,9 +148,6 @@ contains
     integer :: maxGIndexGlobalSD
       !! Maximum G-vector index among all \(G+k\)
       !! and processors for SD
-
-    character(len=300) :: line
-      !! Line from file
     
 
     if(ionode) then
@@ -999,7 +996,7 @@ contains
   end subroutine setUpTables
 
 !----------------------------------------------------------------------------
-  subroutine readProjectors(crystalType, iGkStart_pool, ikGlobal, nGkVecsLocal, nProjs, npws, betaLocalPWs)
+  subroutine readProjectors(crystalType, iGkStart_pool, ikGlobal, nGkVecsLocal, nProjs, beta)
     
     implicit none
 
@@ -1012,39 +1009,20 @@ contains
       !! Local number of G+k vectors on this processor
     integer, intent(in) :: nProjs
       !! Number of projectors
-    integer, intent(in) :: npws
-      !! Number of G+k vectors less than
-      !! the cutoff at each k-point
 
     character(len=2), intent(in) :: crystalType
       !! Crystal type (PC or SD) for projectors
 
     ! Output variables:
-    complex(kind=dp), intent(out) :: betaLocalPWs(nGkVecsLocal,nProjs)
+    complex(kind=dp), intent(out) :: beta(nGkVecsLocal,nProjs)
       !! Projector of `projCrystalType` with all projectors
       !! and only local PWs/G+k vectors
     
     ! Local variables:
-    integer :: displacement(nProcPerPool)
-      !! Offset from beginning of array for
-      !! scattering coefficients to each process
-    integer :: endingProj(nProcPerPool)
-      !! End projector for each process in pool
-    integer :: iprStart_pool, iprEnd_pool
-      !! Start and end projector for process in pool
-    integer :: nProjsLocal
-      !! Number of projectors read by this process
     integer :: reclen
       !! Record length for projectors file
-    integer :: sendCount(nProcPerPool)
-      !! Number of items to send to each process
-      !! in the pool
-    integer :: ipr, igk, iproc, irec
+    integer :: igkLocal, igkGlobal, ipr
       !! Loop indices
-
-    complex(kind=dp), allocatable :: betaLocalProjs(:,:)
-      !! Projector of `projCrystalType` with all PWs/G+k 
-      !! vectors and only local projectors
     
     character(len=300) :: fNameExport
       !! File names
@@ -1057,67 +1035,25 @@ contains
     endif
 
 
-    call distributeItemsInSubgroups(indexInPool, nProjs, nProcPerPool, nProcPerPool, nProcPerPool, iprStart_pool, iprEnd_pool, nProjsLocal)
-
-    allocate(betaLocalProjs(npws,iprStart_pool:iprEnd_pool))
-
-    betaLocalProjs(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-    betaLocalPWs(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp)
-
-    call MPI_Barrier(intraPoolComm, ierr)
-
-
-    inquire(iolength=reclen) betaLocalProjs(:,iprStart_pool)
+    inquire(iolength=reclen) beta(1,:)
       !! Get the record length needed to write a double complex
-      !! array of length nPWs1k
+      !! array of length `nProjs`
 
     open(unit=72, file=trim(fNameExport), access='direct', recl=reclen, iostat=ierr, status='old', SHARED)
 
-    irec = 1
 
-    do ipr = 1, nProjs
-      
-      irec = irec + 1
+    do igkLocal = 1, nGkVecsLocal
 
-      if(ipr >= iprStart_pool .and. ipr <= iprEnd_pool) read(72,rec=irec) (betaLocalProjs(igk,ipr), igk=1,npws)
+      igkGlobal = igkLocal+iGkStart_pool-1
+
+      read(72,rec=igkGlobal+1) (beta(igkLocal,ipr), ipr=1,nProjs)
 
     enddo
 
     close(72)
     
-    call MPI_Barrier(intraPoolComm, ierr)
+    return 
 
-    sendCount = 0
-    sendCount(indexInPool+1) = nGkVecsLocal
-    call mpiSumIntV(sendCount, intraPoolComm)
-      !! * Put the number of G+k vectors on each process
-      !!   in a single array per pool
-
-    displacement = 0
-    displacement(indexInPool+1) = iGkStart_pool-1
-    call mpiSumIntV(displacement, intraPoolComm)
-      !! * Put the displacement from the beginning of the array
-      !!   for each process in a single array per pool
-
-    endingProj = 0
-    endingProj(indexInPool+1) = iprEnd_pool
-    call mpiSumIntV(endingProj, intraPoolComm)
-
-
-    !> Distribute projectors across processors so that PWs are local
-    !> instead of projectors
-    iproc = 0
-    do ipr = 1, nProjs
-
-      if(ipr == endingProj(iproc+1)+1) iproc = iproc + 1
-
-      call MPI_SCATTERV(betaLocalProjs(:,ipr), sendCount, displacement, MPI_DOUBLE_COMPLEX, betaLocalPWs(1:nGkVecsLocal,ipr), nGkVecsLocal, &
-          MPI_DOUBLE_COMPLEX, iproc, intraPoolComm, ierr)
-
-    enddo
-
-    deallocate(betaLocalProjs)
-    
   end subroutine readProjectors
 
 !----------------------------------------------------------------------------
@@ -1161,7 +1097,7 @@ contains
     integer :: sendCount(nProcPerPool)
       !! Number of items to send to each process
       !! in the pool
-    integer :: ib, igk, iproc
+    integer :: ib, igk
       !! Loop indices
 
     complex*8 :: wfcAllPWs(npws)
@@ -1274,7 +1210,7 @@ contains
       !! Projections <beta|wfc>
 
     ! Local variables:
-    integer :: ipr, ib
+    integer :: ib
       !! Loop indices
     integer :: reclen
       !! Record length for projections files
@@ -1321,7 +1257,7 @@ contains
   end subroutine readProjections
   
 !----------------------------------------------------------------------------
-  subroutine calculateCrossProjection(iBandinit, iBandfinal, ikGlobal, nGkVecsLocal1, nGkVecsLocal2, nProjs, beta, wfc, crossProjection)
+  subroutine calculateCrossProjection(iBandinit, iBandfinal, nGkVecsLocal1, nGkVecsLocal2, nProjs, beta, wfc, crossProjection)
     !! Calculate the cross projection of one crystal's projectors
     !! on the other crystal's wave function coefficients, distributing
     !! the result to all processors
@@ -1335,8 +1271,6 @@ contains
     integer, intent(in) :: iBandfinal
       !! Ending band for crystal wfc comes from
       !! (not `projCrystalType`)
-    integer, intent(in) :: ikGlobal
-      !! Current k point
     integer, intent(in) :: nGkVecsLocal1
       !! Local number of G+k vectors on this processor
       !! for projectors
@@ -1518,7 +1452,7 @@ contains
     complex(kind=dp), intent(out) :: pawK(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,nGVecsLocal)
 
     ! Local variables:
-    integer :: ig, iT, iR, ni, ibi, ibf, ind
+    integer :: ig, iT, ni, ibi, ibf, ind
       !! Loop indices
     integer :: LL, LMBASE, LM, L, M
       !! L and M quantum number trackers
@@ -1730,7 +1664,7 @@ contains
     
     integer :: ikLocal, ikGlobal, ib, nOfEnergies, iE, isp
     
-    real(kind = dp) :: eMin, eMax, E, av, sd, x, EiMinusEf, A, DHifMin
+    real(kind = dp) :: eMin, eMax, E, av, sd, x, EiMinusEf, DHifMin
     real(kind=dp) :: eigvI(iBandIinit:iBandIfinal), eigvF(iBandFinit:iBandFfinal)
     
     real(kind = dp), allocatable :: sumWk(:), sAbsVfiOfE2(:), absVfiOfE2(:)
