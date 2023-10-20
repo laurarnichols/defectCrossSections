@@ -105,7 +105,7 @@ QE-5.3.0_dependent : initialize Export_QE-5.3.0
 
 QE-6.3_dependent : initialize Export_QE-6.3
 
-base : EnergyTabulator GVel TME LSF Mj PhononPP Sigma
+base : EnergyTabulator TME LSF PhononPP Sigma
 
 initialize :
 
