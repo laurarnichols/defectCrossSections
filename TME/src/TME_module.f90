@@ -860,14 +860,14 @@ contains
   end function overlapFileExists
 
 !----------------------------------------------------------------------------
-  subroutine getFullPWGrid(iGStart_pool, iGEnd_pool, nGVecsLocal, nGVecsGlobal, mill_local)
+  subroutine getFullPWGrid(iGStart_pool, nGVecsLocal, nGVecsGlobal, mill_local)
     !! Read full PW grid from mgrid file
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: iGStart_pool, iGEnd_pool
-      !! Start and end G-vectors for each process in pool
+    integer, intent(in) :: iGStart_pool
+      !! Start G-vector for each process in pool
     integer, intent(in) :: nGVecsLocal
       !! Local number of G-vectors
     integer, intent(in) :: nGVecsGlobal
@@ -878,15 +878,25 @@ contains
       !! Integer coefficients for G-vectors
     
     ! Local variables:
-    integer :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+    integer :: displacement(nProcPerPool)
+      !! Offset from beginning of array for
+      !! scattering/gathering G-vectors 
+    integer, allocatable :: gVecMillerIndicesGlobal(:,:)
       !! Integer coefficients for G-vectors on all processors
+    integer :: gVecsLocalX(nGVecsLocal), gVecsLocalY(nGVecsLocal), gVecsLocalZ(nGVecsLocal)
+      !! Arrays to hold x, y, and z components of local
+      !! G-vectors to make scattering simpler
     integer :: iDum
       !! Ignore dummy integer
-    integer :: ig
+    integer :: sendCount(nProcPerPool)
+      !! Number of items to send/recieve to/from each process
+    integer :: ig, ix
       !! Loop index
     
 
     if(ionode) then
+      
+      allocate(gVecMillerIndicesGlobal(nGVecsGlobal,3))
 
       open(72, file=trim(exportDirSD)//"/mgrid")
         !! Read full G-vector grid from defect folder.
@@ -897,17 +907,51 @@ contains
     
       do ig = 1, nGVecsGlobal
 
-        read(72, '(4i10)') iDum, gVecMillerIndicesGlobal(1:3,ig)
+        read(72, '(4i10)') iDum, (gVecMillerIndicesGlobal(ig,ix),ix=1,3)
 
       enddo
     
       close(72)
 
+    else
+      allocate(gVecMillerIndicesGlobal(1,3))
+        ! Must include 3 for first dimension so that scatter
+        ! statement is not out of bounds
     endif
 
-    call MPI_BCAST(gVecMillerIndicesGlobal, size(gVecMillerIndicesGlobal), MPI_INTEGER, root, worldComm, ierr)
 
-    mill_local(:,:) = gVecMillerIndicesGlobal(:,iGStart_pool:iGEnd_pool)
+    if(myPoolId == 0) then
+
+      sendCount = 0
+      sendCount(indexInPool+1) = nGVecsLocal
+      call mpiSumIntV(sendCount, intraPoolComm)
+        !! * Put the number of G+k vectors on each process
+        !!   in a single array per band group
+
+      displacement = 0
+      displacement(indexInPool+1) = iGStart_pool-1
+      call mpiSumIntV(displacement, intraPoolComm)
+        !! * Put the displacement from the beginning of the array
+        !!   for each process in a single array per band group
+
+      call MPI_SCATTERV(gVecMillerIndicesGlobal(:,1), sendCount, displacement, MPI_INTEGER, gVecsLocalX(1:nGVecsLocal), nGVecsLocal, &
+          MPI_INTEGER, 0, intraPoolComm, ierr)
+      call MPI_SCATTERV(gVecMillerIndicesGlobal(:,2), sendCount, displacement, MPI_INTEGER, gVecsLocalY(1:nGVecsLocal), nGVecsLocal, &
+          MPI_INTEGER, 0, intraPoolComm, ierr)
+      call MPI_SCATTERV(gVecMillerIndicesGlobal(:,3), sendCount, displacement, MPI_INTEGER, gVecsLocalZ(1:nGVecsLocal), nGVecsLocal, &
+          MPI_INTEGER, 0, intraPoolComm, ierr)
+
+
+      mill_local(1,:) = gVecsLocalX(:)
+      mill_local(2,:) = gVecsLocalY(:)
+      mill_local(3,:) = gVecsLocalZ(:)
+
+    endif
+
+    deallocate(gVecMillerIndicesGlobal)
+
+
+    call MPI_BCAST(mill_local, size(mill_local), MPI_INTEGER, root, interPoolComm, ierr)
     
     return
     

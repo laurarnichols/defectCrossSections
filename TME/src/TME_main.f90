@@ -55,7 +55,7 @@ program TMEmain
 
   allocate(mill_local(3,nGVecsLocal))
 
-  call getFullPWGrid(iGStart_pool, iGEnd_pool, nGVecsLocal, nGVecsGlobal, mill_local)
+  call getFullPWGrid(iGStart_pool, nGVecsLocal, nGVecsGlobal, mill_local)
 
   
   call cpu_time(t2)
