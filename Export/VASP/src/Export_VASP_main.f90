@@ -113,8 +113,7 @@ program wfcExportVASPMain
 
 
     call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, &
-        wfcVecCut, gKIndexOrigOrderLocal, gKSort, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, &
-        nGkLessECutGlobal, nGkVecsLocal)
+        wfcVecCut, igkSort2OrigLocal, maxGIndexGlobal, maxGkVecsLocal, nGkLessECutGlobal, nGkVecsLocal)
       !! * Determine which G-vectors result in \(G+k\)
       !!   below the energy cutoff for each k-point and
       !!   sort the indices based on \(|G+k|^2\)
@@ -147,12 +146,11 @@ program wfcExportVASPMain
 
   if(.not. energiesOnly) then
 
-    call projAndWav(maxGkVecsLocal, maxNumPWsGlobal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, &
-        nSpins, gKIndexOrigOrderLocal, gKSort, gVecMillerIndicesGlobal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, &
-        recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+    call projAndWav(maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, gVecMillerIndicesGlobal, &
+        igkSort2OrigLocal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
 
-    deallocate(gKIndexOrigOrderLocal, gKSort, nGkVecsLocal, iGkStart_pool, iGkEnd_pool)
+    deallocate(igkSort2OrigLocal, nGkVecsLocal, iGkStart_pool, iGkEnd_pool)
   endif
 
   deallocate(nPWs1kGlobal)

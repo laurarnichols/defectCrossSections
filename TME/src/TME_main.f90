@@ -17,9 +17,6 @@ program TMEmain
     !! that are normally done for the first channel
     !! only
 
-  character(len=300) :: ikC
-    !! Character index
-
   
   call mpiInitialization('TME')
     !! Initialize MPI
@@ -58,7 +55,7 @@ program TMEmain
 
   allocate(mill_local(3,nGVecsLocal))
 
-  call getFullPWGrid(iGStart_pool, iGEnd_pool, nGVecsLocal, nGVecsGlobal, mill_local)
+  call getFullPWGrid(iGStart_pool, nGVecsLocal, nGVecsGlobal, mill_local)
 
   
   call cpu_time(t2)
@@ -128,7 +125,7 @@ program TMEmain
 
       allocate(betaPC(nGkVecsLocalPC,nProjsPC))
 
-      call readProjectors('PC', iGkStart_poolPC, ikGlobal, nGkVecsLocalPC, nProjsPC, npwsPC(ikGlobal), betaPC)
+      call readProjectors('PC', iGkStart_poolPC, ikGlobal, nGkVecsLocalPC, nProjsPC, betaPC)
 
 
       call distributeItemsInSubgroups(indexInPool, npwsSD(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolSD, &
@@ -136,7 +133,7 @@ program TMEmain
 
       allocate(betaSD(nGkVecsLocalSD,nProjsSD))
 
-      call readProjectors('SD', iGkStart_poolSD, ikGlobal, nGkVecsLocalSD, nProjsSD, npwsSD(ikGlobal), betaSD)
+      call readProjectors('SD', iGkStart_poolSD, ikGlobal, nGkVecsLocalSD, nProjsSD, betaSD)
 
       call cpu_time(t2)
       if(ionode) write(*, '("  Pre-spin-loop: [X] Read projectors (",f10.2," secs)")') t2-t1
@@ -207,11 +204,11 @@ program TMEmain
           !> Calculate cross projections
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Read) &
-            call calculateCrossProjection(iBandFinit, iBandFfinal, ikGlobal, nGkVecsLocalPC, nGkVecsLocalSD, nProjsPC, betaPC, wfcSD, cProjBetaPCPsiSD)
+            call calculateCrossProjection(iBandFinit, iBandFfinal, nGkVecsLocalPC, nGkVecsLocalSD, nProjsPC, betaPC, wfcSD, cProjBetaPCPsiSD)
 
 
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Read) &
-            call calculateCrossProjection(iBandIinit, iBandIfinal, ikGlobal, nGkVecsLocalSD, nGkVecsLocalPC, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
+            call calculateCrossProjection(iBandIinit, iBandIfinal, nGkVecsLocalSD, nGkVecsLocalPC, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
         
 
           call cpu_time(t2)
