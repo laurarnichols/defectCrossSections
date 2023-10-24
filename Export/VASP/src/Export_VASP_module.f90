@@ -1238,12 +1238,12 @@ module wfcExportVASPMod
     integer, allocatable :: gKIndexLocalToGlobal(:,:)
       !! Local to global indices for \(G+k\) vectors 
       !! ordered by magnitude at a given k-point
-    integer :: igkLocal2igGlobal(nkPerPool,nGVecsLocal)
+    integer :: igk2igLocal(nkPerPool,nGVecsLocal)
       !! Map from local \(G+k\) index to global
       !! \(G\); indexed up to `nGVecsLocal` which
       !! is greater than `maxNumPWsPool` and
       !! stored for each k-point
-    integer, allocatable :: igkLocal2igGlobal_ik(:)
+    integer, allocatable :: igk2igLocal_ik(:)
       !! Map from local \(G+k\) index to global
       !! \(G\) index for single k-point
     integer, allocatable :: igkSort2OrigGlobal(:,:)
@@ -1275,7 +1275,7 @@ module wfcExportVASPMod
     
     maxNumPWsLocal = 0
     nGkLessECutLocal(:) = 0
-    igkLocal2igGlobal(:,:) = 0
+    igk2igLocal(:,:) = 0
 
     do ik = 1, nkPerPool
       !! * For each \(G+k\) combination, calculate the 
@@ -1310,7 +1310,7 @@ module wfcExportVASPMod
           gkMod(ik,ngk_tmp) = q
             ! Store the modulus for sorting
 
-          igkLocal2igGlobal(ik,ngk_tmp) = ig
+          igk2igLocal(ik,ngk_tmp) = ig
             ! Store the index for this G-vector
 
         !else
@@ -1367,10 +1367,10 @@ module wfcExportVASPMod
 
 
     allocate(gKIndexLocalToGlobal(maxNumPWsPool,nkPerPool))
-    allocate(igkLocal2igGlobal_ik(maxNumPWsPool))
+    allocate(igk2igLocal_ik(maxNumPWsPool))
 
     gKIndexLocalToGlobal = 0
-    igkLocal2igGlobal_ik = 0
+    igk2igLocal_ik = 0
 
 
     do ik = 1, nkPerPool
@@ -1379,14 +1379,14 @@ module wfcExportVASPMod
 
       ngk_tmp = nGkLessECutLocal(ik)
 
-      igkLocal2igGlobal_ik(1:ngk_tmp) = igkLocal2igGlobal(ik,1:ngk_tmp)
+      igk2igLocal_ik(1:ngk_tmp) = igk2igLocal(ik,1:ngk_tmp)
 
-      call hpsort_eps(ngk_tmp, gkMod(ik,:), igkLocal2igGlobal_ik, eps8)
+      call hpsort_eps(ngk_tmp, gkMod(ik,:), igk2igLocal_ik, eps8)
         ! Order vector `igk` by \(|G+k|\) (`gkMod`)
 
       do igk = 1, ngk_tmp
         
-        gKIndexLocalToGlobal(igk,ik) = gIndexLocalToGlobal(igkLocal2igGlobal_ik(igk))
+        gKIndexLocalToGlobal(igk,ik) = gIndexLocalToGlobal(igk2igLocal_ik(igk))
         
       enddo
      
@@ -1395,7 +1395,7 @@ module wfcExportVASPMod
     enddo
 
 
-    deallocate(igkLocal2igGlobal_ik)
+    deallocate(igk2igLocal_ik)
 
 
     maxGIndexLocal = maxval(gKIndexLocalToGlobal(:,:))
