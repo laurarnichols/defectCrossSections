@@ -1232,23 +1232,23 @@ module wfcExportVASPMod
 
     integer :: ik, ig
       !! Loop indices
-    integer, allocatable :: igkSort2OrigGlobal(:,:)
-      !! Indices of \(G+k\) vectors for each k-point
-      !! and all processors in the original order
     integer, allocatable :: gKIndexGlobal(:,:)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors
     integer, allocatable :: gKIndexLocalToGlobal(:,:)
       !! Local to global indices for \(G+k\) vectors 
       !! ordered by magnitude at a given k-point
-    integer :: gToGkIndexMap(nkPerPool,nGVecsLocal)
+    integer, allocatable :: igk(:)
+      !! Index map from \(G\) to \(G+k\)
+      !! indexed up to `maxNumPWsPool`
+    integer :: igk2igLocal(nkPerPool,nGVecsLocal)
       !! Index map from \(G\) to \(G+k\);
       !! indexed up to `nGVecsLocal` which
       !! is greater than `maxNumPWsPool` and
       !! stored for each k-point
-    integer, allocatable :: igk(:)
-      !! Index map from \(G\) to \(G+k\)
-      !! indexed up to `maxNumPWsPool`
+    integer, allocatable :: igkSort2OrigGlobal(:,:)
+      !! Indices of \(G+k\) vectors for each k-point
+      !! and all processors in the original order
     integer :: maxNumPWsGlobal
       !! Max number of \(G+k\) vectors with magnitude
       !! less than `wfcVecCut` among all k-points
@@ -1275,7 +1275,7 @@ module wfcExportVASPMod
     
     maxNumPWsLocal = 0
     nGkLessECutLocal(:) = 0
-    gToGkIndexMap(:,:) = 0
+    igk2igLocal(:,:) = 0
 
     do ik = 1, nkPerPool
       !! * For each \(G+k\) combination, calculate the 
@@ -1310,7 +1310,7 @@ module wfcExportVASPMod
           gkMod(ik,ngk_tmp) = q
             ! Store the modulus for sorting
 
-          gToGkIndexMap(ik,ngk_tmp) = ig
+          igk2igLocal(ik,ngk_tmp) = ig
             ! Store the index for this G-vector
 
         !else
@@ -1379,7 +1379,7 @@ module wfcExportVASPMod
 
       ngk_tmp = nGkLessECutLocal(ik)
 
-      igk(1:ngk_tmp) = gToGkIndexMap(ik,1:ngk_tmp)
+      igk(1:ngk_tmp) = igk2igLocal(ik,1:ngk_tmp)
 
       call hpsort_eps(ngk_tmp, gkMod(ik,:), igk, eps8)
         ! Order vector `igk` by \(|G+k|\) (`gkMod`)
