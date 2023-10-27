@@ -3834,9 +3834,9 @@ module wfcExportVASPMod
       ! Character input for displacement pattern
 
     ! Local variables
-    integer :: ikGroup, ib, isp, idk, ix, ik
+    integer :: ikGroup, ib, isp, ikx, ix, ik
       !! Loop indices
-    integer :: iPattSort(nDispkPerCoord)
+    integer :: iPattSort(nDispkPerCoord+1)
       !! Sorted index order for patternArr from 
       !! negative to positive
     integer :: nKGroups
@@ -3871,8 +3871,8 @@ module wfcExportVASPMod
       formatString = "("//trim(int2str(nkPerGroup+1))//"ES19.10E3)"
         ! Eigenvalues for all k-points in group plus the occupation
 
-      do idk = 1, nDispkPerCoord
-        iPattSort(idk) = idk
+      do ikx = 1, nDispkPerCoord+1
+        iPattSort(ikx) = ikx
       enddo
       patternArrSort(1) = 0.0_dp
       patternArrSort(2:nDispkPerCoord+1) = patternArr(:)
@@ -3882,9 +3882,9 @@ module wfcExportVASPMod
       do isp = 1, nSpins
         do ikGroup = 1, nKGroups
           do ix = 1, 3
-            do idk = 1, nDispkPerCoord+1
+            do ikx = 1, nDispkPerCoord+1
 
-              if(iPattSort(idk) == 1) then
+              if(iPattSort(ikx) == 1) then
                 ! This is the zero point. We add it to the
                 ! sorting array in case the points aren't 
                 ! symmetric about zero displacement.
@@ -3897,10 +3897,10 @@ module wfcExportVASPMod
                 ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
                      1 + &                      ! Skip base k-point
                      (ix-1)*nDispkPerCoord + &  ! Skip previous displaced coordinates
-                     iPattSort(idk)-1           ! Skip to sorted value from displacement pattern minus zero-displacement point
+                     iPattSort(ikx)-1           ! Skip to sorted value from displacement pattern minus zero-displacement point
               endif
 
-              eigsForOutput(:,idk,ix) = real(eigenE(isp,ik,:))*ryToHartree
+              eigsForOutput(:,ikx,ix) = real(eigenE(isp,ik,:))*ryToHartree
 
             enddo
 
@@ -3927,8 +3927,8 @@ module wfcExportVASPMod
             do ib = 1, nBands
 
               write(72,formatString) &
-                (eigsForOutput(ib,idk,ix), idk=1,nDispkPerCoord+1), & ! displaced k-points from - to +, x to z
-                bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup+1)               ! band occupation from base k-point           
+                (eigsForOutput(ib,ikx,ix), ikx=1,nDispkPerCoord+1), & ! k-points for this coordinate from - to +
+                bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup+1)       ! band occupation from base k-point           
 
             enddo
       
