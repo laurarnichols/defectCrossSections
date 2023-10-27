@@ -107,7 +107,8 @@ program wfcExportVASPMain
             t2-t1
     call cpu_time(t1)
 
-    call calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, iMill, nGVecsGlobal, nGVecsLocal)
+    call calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobalOrig, gVecMillerIndicesGlobalSort, &
+        iMill, nGVecsGlobal, nGVecsLocal)
       !! * Calculate Miller indices and G-vectors and split
       !!   over processors
 
@@ -146,11 +147,11 @@ program wfcExportVASPMain
 
   if(.not. energiesOnly) then
 
-    call projAndWav(maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, gVecMillerIndicesGlobal, &
+    call projAndWav(maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, gVecMillerIndicesGlobalSort, &
         igkSort2OrigLocal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
 
-    deallocate(igkSort2OrigLocal, nGkVecsLocal, iGkStart_pool, iGkEnd_pool)
+    deallocate(igkSort2OrigLocal, nGkVecsLocal, iGkStart_pool, iGkEnd_pool, gVecMillerIndicesGlobalSort)
   endif
 
   deallocate(nPWs1kGlobal)
@@ -177,13 +178,13 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call writeGridInfo(nGVecsGlobal, gVecMillerIndicesGlobal, maxGIndexGlobal, exportDir)
+  call writeGridInfo(nGVecsGlobal, gVecMillerIndicesGlobalOrig, maxGIndexGlobal, exportDir)
     !! * Write out grid boundaries and miller indices
     !!   for just \(G+k\) combinations below cutoff energy
     !!   in one file and all miller indices in another 
     !!   file
 
-  if(.not. energiesOnly) deallocate(gVecMillerIndicesGlobal)
+  if(.not. energiesOnly .and. ionode) deallocate(gVecMillerIndicesGlobalOrig)
 
 
   call cpu_time(t2)

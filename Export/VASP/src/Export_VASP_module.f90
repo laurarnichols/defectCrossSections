@@ -67,8 +67,10 @@ module wfcExportVASPMod
   integer, allocatable :: gKSort(:,:)
     !! Indices to recover sorted order on reduced
     !! \(G+k\) grid
-  integer, allocatable :: gVecMillerIndicesGlobal(:,:)
-    !! Integer coefficients for G-vectors on all processors
+  integer, allocatable :: gVecMillerIndicesGlobalOrig(:,:)
+    !! Integer coefficients for G-vectors on all processors (original order)
+  integer, allocatable :: gVecMillerIndicesGlobalSort(:,:)
+    !! Integer coefficients for G-vectors on all processors (sorted)
   integer, allocatable :: igkSort2OrigLocal(:,:)
     !! Indices of \(G+k\) vectors in just this pool
     !! and for local PWs in the original order
@@ -932,7 +934,7 @@ module wfcExportVASPMod
   end subroutine read_vasprun_xml
 
 !----------------------------------------------------------------------------
-  subroutine calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobal, &
+  subroutine calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobalOrig, gVecMillerIndicesGlobalSort, &
       iMill, nGVecsGlobal, nGVecsLocal)
     !! Calculate Miller indices and G-vectors and split
     !! over processors
@@ -958,8 +960,10 @@ module wfcExportVASPMod
 
     integer, allocatable, intent(out) :: gIndexLocalToGlobal(:)
       !! Converts local index `ig` to global index
-    integer, allocatable, intent(out) :: gVecMillerIndicesGlobal(:,:)
-      !! Integer coefficients for G-vectors on all processors
+    integer, allocatable :: gVecMillerIndicesGlobalOrig(:,:)
+      !! Integer coefficients for G-vectors on all processors (original order)
+    integer, allocatable, intent(out) :: gVecMillerIndicesGlobalSort(:,:)
+      !! Integer coefficients for G-vectors on all processors (sorted)
     integer, allocatable, intent(out) :: iMill(:)
       !! Indices of miller indices after sorting
     integer, intent(out) :: nGVecsGlobal
@@ -978,8 +982,6 @@ module wfcExportVASPMod
 
     integer :: igx, igy, igz, ig
       !! Loop indices
-    integer, allocatable :: gVecMillerIndicesGlobal_tmp(:,:)
-      !! Integer coefficients for G-vectors on all processors
     integer, allocatable :: mill_local(:,:)
       !! Integer coefficients for G-vectors
     integer :: millX, millY, millZ
@@ -990,15 +992,15 @@ module wfcExportVASPMod
 
 
     npmax = fftGridSize(1)*fftGridSize(2)*fftGridSize(3) 
-    allocate(gVecMillerIndicesGlobal(3,npmax))
+    allocate(gVecMillerIndicesGlobalSort(3,npmax))
     allocate(millSum(npmax))
 
     if(ionode) then
 
-      allocate(gVecMillerIndicesGlobal_tmp(3,npmax))
+      allocate(gVecMillerIndicesGlobalOrig(3,npmax))
 
       nGVecsGlobal = 0
-      gVecMillerIndicesGlobal_tmp = 0
+      gVecMillerIndicesGlobalOrig = 0
 
       !> * Generate Miller indices for every possible G-vector
       !>   regardless of the \(|G+k|\) cutoff
@@ -1022,9 +1024,9 @@ module wfcExportVASPMod
 
             nGVecsGlobal = nGVecsGlobal + 1
 
-            gVecMillerIndicesGlobal_tmp(1,nGVecsGlobal) = millX
-            gVecMillerIndicesGlobal_tmp(2,nGVecsGlobal) = millY
-            gVecMillerIndicesGlobal_tmp(3,nGVecsGlobal) = millZ
+            gVecMillerIndicesGlobalOrig(1,nGVecsGlobal) = millX
+            gVecMillerIndicesGlobalOrig(2,nGVecsGlobal) = millY
+            gVecMillerIndicesGlobalOrig(3,nGVecsGlobal) = millZ
               !! * Calculate Miller indices
 
             millSum(nGVecsGlobal) = sqrt(real(millX**2 + millY**2 + millZ**2))
@@ -1061,19 +1063,17 @@ module wfcExportVASPMod
       do ig = 1, nGVecsGlobal
         !! * Rearrange the miller indices to match order of `millSum`
 
-        gVecMillerIndicesGlobal(:,ig) = gVecMillerIndicesGlobal_tmp(:,iMill(ig))
+        gVecMillerIndicesGlobalSort(:,ig) = gVecMillerIndicesGlobalOrig(:,iMill(ig))
 
       enddo
-
-      deallocate(gVecMillerIndicesGlobal_tmp)
 
     endif
 
     call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(gVecMillerIndicesGlobal, size(gVecMillerIndicesGlobal), MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(gVecMillerIndicesGlobalSort, size(gVecMillerIndicesGlobalSort), MPI_INTEGER, root, worldComm, ierr)
 
 
-    call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexLocalToGlobal, mill_local, nGVecsLocal)
+    call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobalSort, gIndexLocalToGlobal, mill_local, nGVecsLocal)
       !! * Split up the G-vectors and Miller indices over processors 
 
     allocate(gVecInCart(3,nGVecsLocal))
@@ -1090,7 +1090,7 @@ module wfcExportVASPMod
   end subroutine calculateGvecs
 
 !----------------------------------------------------------------------------
-  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobal, gIndexLocalToGlobal, mill_local, nGVecsLocal)
+  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobalSort, gIndexLocalToGlobal, mill_local, nGVecsLocal)
     !! Figure out how many G-vectors there should be per processor.
     !! G-vectors are split up in a round robin fashion over processors
     !! in a single k-point pool.
@@ -1105,7 +1105,7 @@ module wfcExportVASPMod
       !! Global number of G-vectors
     !integer, intent(in) :: nProcPerPool
       ! Number of processes per pool
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+    integer, intent(in) :: gVecMillerIndicesGlobalSort(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
 
     
@@ -1149,7 +1149,7 @@ module wfcExportVASPMod
         
           ig_l = ig_l + 1
           gIndexLocalToGlobal(ig_l) = ig_g
-          mill_local(:,ig_l) = gVecMillerIndicesGlobal(:,ig_g)
+          mill_local(:,ig_l) = gVecMillerIndicesGlobalSort(:,ig_g)
 
         endif
 
@@ -2192,7 +2192,7 @@ module wfcExportVASPMod
   end subroutine readPOTCAR
 
 !----------------------------------------------------------------------------
-  subroutine projAndWav(maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, gVecMillerIndicesGlobal, &
+  subroutine projAndWav(maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, gVecMillerIndicesGlobalSort, &
       igkSort2OrigLocal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
 
     implicit none
@@ -2217,7 +2217,7 @@ module wfcExportVASPMod
       !! Total number of k-points
     integer, intent(in) :: nSpins
       !! Number of spins
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+    integer, intent(in) :: gVecMillerIndicesGlobalSort(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: igkSort2OrigLocal(maxGkVecsLocal,nkPerPool)
       !! Indices of \(G+k\) vectors in just this pool
@@ -2318,7 +2318,7 @@ module wfcExportVASPMod
       !> because they are not dependent on spin. Calculate in one band 
       !> group and broadcast to the others because doesn't depend on 
       !> band index.
-      if(myBgrpId == 0) call calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, &
+      if(myBgrpId == 0) call calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, gVecMillerIndicesGlobalSort, igkSort2OrigLocal_ik, &
             atomPositionsDir, phaseExp)
 
       call MPI_BCAST(phaseExp, size(phaseExp), MPI_DOUBLE_COMPLEX, 0, interBgrpComm, ierr)
@@ -2331,7 +2331,7 @@ module wfcExportVASPMod
       call cpu_time(t1)
 
 
-      if(myBgrpId == 0) call calculateRealProjWoPhase(ikLocal, nAtomTypes, nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobal, &
+      if(myBgrpId == 0) call calculateRealProjWoPhase(ikLocal, nAtomTypes, nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobalSort, &
             igkSort2OrigLocal_ik, kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
 
       call MPI_BCAST(realProjWoPhase, size(realProjWoPhase), MPI_DOUBLE_PRECISION, 0, interBgrpComm, ierr)
@@ -2406,7 +2406,7 @@ module wfcExportVASPMod
   end subroutine projAndWav
 
 !----------------------------------------------------------------------------
-  subroutine calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, &
+  subroutine calculatePhase(nAtoms, nGkVecsLocal_ik, nGVecsGlobal, gVecMillerIndicesGlobalSort, igkSort2OrigLocal_ik, &
                 atomPositionsDir, phaseExp)
 
     implicit none
@@ -2421,7 +2421,7 @@ module wfcExportVASPMod
       !! Global number of G-vectors
     !integer, intent(in) :: nkPerPool
       ! Number of k-points in each pool
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+    integer, intent(in) :: gVecMillerIndicesGlobalSort(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: igkSort2OrigLocal_ik(nGkVecsLocal_ik)
       !! Indices of \(G+k\) vectors in just this pool
@@ -2454,7 +2454,7 @@ module wfcExportVASPMod
 
       do ipw = 1, nGkVecsLocal_ik
 
-        expArg = itwopi*dot_product(atomPosDir, gVecMillerIndicesGlobal(:,igkSort2OrigLocal_ik(ipw)))
+        expArg = itwopi*dot_product(atomPosDir, gVecMillerIndicesGlobalSort(:,igkSort2OrigLocal_ik(ipw)))
           !! \(2\pi i (\mathbf{G} \cdot \mathbf{r})\)
 
         phaseExp(ipw, ia) = exp(expArg)
@@ -2466,7 +2466,7 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, &
+  subroutine calculateRealProjWoPhase(ik, nAtomTypes, nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobalSort, igkSort2OrigLocal_ik, &
       kPosition, omega, recipLattVec, gammaOnly, pot, realProjWoPhase, compFact)
     implicit none
 
@@ -2482,7 +2482,7 @@ module wfcExportVASPMod
       ! Number of k-points in each pool
     integer, intent(in) :: nKPoints
       !! Total number of k-points
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+    integer, intent(in) :: gVecMillerIndicesGlobalSort(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: igkSort2OrigLocal_ik(nGkVecsLocal_ik)
       !! Indices of \(G+k\) vectors in just this pool
@@ -2546,7 +2546,7 @@ module wfcExportVASPMod
       !! Spherical harmonics
 
 
-    call generateGridTable(nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, ik, kPosition, &
+    call generateGridTable(nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobalSort, igkSort2OrigLocal_ik, ik, kPosition, &
           recipLattVec, gammaOnly, gkMod, gkUnit, multFact)
 
     YDimL = maxL(nAtomTypes, pot)
@@ -2635,7 +2635,7 @@ module wfcExportVASPMod
   end subroutine calculateRealProjWoPhase
 
 !----------------------------------------------------------------------------
-  subroutine generateGridTable(nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobal, igkSort2OrigLocal_ik, ik, kPosition, &
+  subroutine generateGridTable(nGkVecsLocal_ik, nKPoints, gVecMillerIndicesGlobalSort, igkSort2OrigLocal_ik, ik, kPosition, &
         recipLattVec, gammaOnly, gkMod, gkUnit, multFact)
     implicit none
 
@@ -2647,7 +2647,7 @@ module wfcExportVASPMod
       ! Number of k-points in each pool
     integer, intent(in) :: nKPoints
       !! Total number of k-points
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
+    integer, intent(in) :: gVecMillerIndicesGlobalSort(3,nGVecsGlobal)
       !! Integer coefficients for G-vectors on all processors
     integer, intent(in) :: igkSort2OrigLocal_ik(nGkVecsLocal_ik)
       !! Indices of \(G+k\) vectors in just this pool
@@ -2701,7 +2701,7 @@ module wfcExportVASPMod
       !G3 = (GRID%LPCTZ(N3) + kPosition(3,ik))
         ! @note
         !  The original code from VASP is left commented out above. 
-        !  `GRID%LPCT*` corresponds to our `gVecMillerIndicesGlobal_tmp`
+        !  `GRID%LPCT*` corresponds to our `gVecMillerIndicesGlobalOrig`
         !  variable that holds the unsorted G-vectors in Miller indices. 
         !  `WDES%IGX/IGY/IGZ` holds only the G-vectors s.t. \(|G+k| <\)
         !  cutoff. Their values do not seem to be sorted, so I use 
@@ -2710,7 +2710,7 @@ module wfcExportVASPMod
         ! @endnote
 
 
-      gVec(:) = gVecMillerIndicesGlobal(:,igkSort2OrigLocal_ik(ipw))
+      gVec(:) = gVecMillerIndicesGlobalSort(:,igkSort2OrigLocal_ik(ipw))
       gkDir(:) = gVec(:) + kPosition(:,ik+ikStart_pool-1)
         ! I belive this recreates the purpose of the original lines 
         ! above by getting \(G+k\) in direct coordinates for only
@@ -3520,7 +3520,7 @@ module wfcExportVASPMod
   end subroutine getGroundState
 
 !----------------------------------------------------------------------------
-  subroutine writeGridInfo(nGVecsGlobal, gVecMillerIndicesGlobal, maxGIndexGlobal, exportDir)
+  subroutine writeGridInfo(nGVecsGlobal, gVecMillerIndicesGlobalOrig, maxGIndexGlobal, exportDir)
     !! Write out grid boundaries and miller indices
     !! for just \(G+k\) combinations below cutoff energy
     !! in one file and all miller indices in another 
@@ -3537,8 +3537,8 @@ module wfcExportVASPMod
     integer, intent(in) :: nGVecsGlobal
       !! Global number of G-vectors
 
-    integer, intent(in) :: gVecMillerIndicesGlobal(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors
+    integer, intent(in) :: gVecMillerIndicesGlobalOrig(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors (original order)
     integer, intent(in) :: maxGIndexGlobal
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
@@ -3573,9 +3573,9 @@ module wfcExportVASPMod
       if(energiesOnly) then
         write(mainOutFileUnit,'(6i10)') -1, -1, -1, -1, -1, -1
       else
-        write(mainOutFileUnit, '(6i10)') minval(gVecMillerIndicesGlobal(1,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobal(1,1:nGVecsGlobal)), &
-                          minval(gVecMillerIndicesGlobal(2,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobal(2,1:nGVecsGlobal)), &
-                          minval(gVecMillerIndicesGlobal(3,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobal(3,1:nGVecsGlobal))
+        write(mainOutFileUnit, '(6i10)') minval(gVecMillerIndicesGlobalOrig(1,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobalOrig(1,1:nGVecsGlobal)), &
+                          minval(gVecMillerIndicesGlobalOrig(2,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobalOrig(2,1:nGVecsGlobal)), &
+                          minval(gVecMillerIndicesGlobalOrig(3,1:nGVecsGlobal)), maxval(gVecMillerIndicesGlobalOrig(3,1:nGVecsGlobal))
       endif
 
     endif
@@ -3588,7 +3588,7 @@ module wfcExportVASPMod
       write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
     
       do ig = 1, nGVecsGlobal
-        write(72, '(4i10)') ig, gVecMillerIndicesGlobal(1:3,ig)
+        write(72, '(4i10)') ig, gVecMillerIndicesGlobalOrig(1:3,ig)
       enddo
     
       close(72)
