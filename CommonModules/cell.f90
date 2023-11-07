@@ -164,9 +164,9 @@ module cell
 
     
     if(cart) then
-      write(20,*) "Cartesian"
+      write(20,'("Cartesian")')
     else
-      write(20,*) "Direct"
+      write(20,'("Direct")')
     endif
 
     do ia = 1, nAtoms
