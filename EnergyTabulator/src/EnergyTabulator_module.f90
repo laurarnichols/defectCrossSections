@@ -21,8 +21,6 @@ module energyTabulatorMod
 
   real(kind=dp) :: eCorrectTot
     !! Total-energy correction, if any
-  real(kind=dp) :: eCorrectEigF
-    !! Correction to eigenvalue difference with final state, if any
   real(kind=dp) :: eCorrectEigRef
     !! Correction to eigenvalue difference with reference carrier, if any
   real(kind=dp) :: eTotInitInit
@@ -55,14 +53,14 @@ module energyTabulatorMod
     !! If carrier is captured as opposed to scattered
 
   namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, energyTableDir, &
-                         eCorrectTot, eCorrectEigF, eCorrectEigRef, captured,  &
+                         eCorrectTot, eCorrectEigRef, captured,  &
                          iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, energyTableDir, &
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigRef, energyTableDir, &
         exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured)
     !! Set the default values for input variables and start timer
     !!
@@ -84,8 +82,6 @@ module energyTabulatorMod
 
     real(kind=dp), intent(out) :: eCorrectTot
       !! Total-energy correction, if any
-    real(kind=dp), intent(out) :: eCorrectEigF
-      !! Correction to eigenvalue difference with final state, if any
     real(kind=dp), intent(out) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
@@ -114,7 +110,6 @@ module energyTabulatorMod
     refBand = -1
 
     eCorrectTot = 0.0_dp
-    eCorrectEigF = 0.0_dp
     eCorrectEigRef = 0.0_dp
 
     energyTableDir = './'
@@ -128,7 +123,7 @@ module energyTabulatorMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, energyTableDir, &
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigRef, energyTableDir, &
       exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured)
 
     implicit none
@@ -141,8 +136,6 @@ module energyTabulatorMod
 
     real(kind=dp), intent(inout) :: eCorrectTot
       !! Total-energy correction, if any
-    real(kind=dp), intent(inout) :: eCorrectEigF
-      !! Correction to eigenvalue difference with final state, if any
     real(kind=dp), intent(inout) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
@@ -175,13 +168,11 @@ module energyTabulatorMod
     abortExecution = checkIntInitialization('refBand', refBand, 1, int(1e9)) .or. abortExecution
 
     write(*,'("eCorrectTot = ", f8.4, " (eV)")') eCorrectTot
-    write(*,'("eCorrectEigF = ", f8.4, " (eV)")') eCorrectEigF
     write(*,'("eCorrectEigRef = ", f8.4, " (eV)")') eCorrectEigRef
 
     write(*,'("captured = ",L)') captured
 
     eCorrectTot = eCorrectTot*eVToHartree
-    eCorrectEigF = eCorrectEigF*eVToHartree
     eCorrectEigRef = eCorrectEigRef*eVToHartree
 
     abortExecution = checkDirInitialization('exportDirEigs', exportDirEigs, 'input') .or. abortExecution
@@ -349,7 +340,7 @@ module energyTabulatorMod
   end subroutine getRefEig
 
 !----------------------------------------------------------------------------
-  subroutine writeEnergyTable(iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+  subroutine writeEnergyTable(iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, eCorrectTot, eCorrectEigRef, &
       eTotInitInit, eTotFinalInit, eTotFinalFinal, refEig, energyTableDir, exportDirEigs)
   
     implicit none
@@ -364,8 +355,6 @@ module energyTabulatorMod
 
     real(kind=dp), intent(in) :: eCorrectTot
       !! Total-energy correction, if any
-    real(kind=dp), intent(in) :: eCorrectEigF
-      !! Correction to eigenvalue difference with final state, if any
     real(kind=dp), intent(in) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
     real(kind=dp), intent(in) :: eTotInitInit
@@ -504,7 +493,7 @@ module energyTabulatorMod
           !! in the energy for the delta function, the additional carrier
           !! energy must also be included with a potential correction.
 
-        dEFirst = abs(eigvI(ibi) - eigvF(ibf) + eCorrectEigF)
+        dEFirst = abs(eigvI(ibi) - eigvF(ibf))
           !! The first-order term contains only the unperturbed eigenvalue
           !! difference. The perturbative expansion has 
           !! \(\varepsilon_i - \varepsilon_f\), in terms of the actual 

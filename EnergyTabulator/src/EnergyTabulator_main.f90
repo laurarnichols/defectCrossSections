@@ -15,7 +15,7 @@ program energyTabulatorMain
 
   call mpiInitialization('EnergyTabulator')
 
-  call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, energyTableDir, &
+  call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigRef, energyTableDir, &
         exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured)
     !! * Set default values for input variables and start timers
 
@@ -27,7 +27,7 @@ program energyTabulatorMain
     if(ierr /= 0) call exitError('energy tabulator main', 'reading inputParams namelist', abs(ierr))
       !! * Exit calculation if there's an error
 
-    call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef,energyTableDir, &
+    call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigRef,energyTableDir, &
           exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured)
 
   endif
@@ -39,7 +39,6 @@ program energyTabulatorMain
   call MPI_BCAST(refBand, 1, MPI_INTEGER, root, worldComm, ierr)
 
   call MPI_BCAST(eCorrectTot, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-  call MPI_BCAST(eCorrectEigF, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   call MPI_BCAST(eCorrectEigRef, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
   call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -68,7 +67,7 @@ program energyTabulatorMain
   do isp = 1, nSpins
     do ikLocal = 1, nkPerProc
 
-      call writeEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+      call writeEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, eCorrectTot, eCorrectEigRef, &
             eTotInitInit, eTotFinalInit, eTotFinalFinal, refEig, energyTableDir, exportDirEigs)
 
     enddo
