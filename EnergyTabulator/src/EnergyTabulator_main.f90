@@ -15,8 +15,8 @@ program energyTabulatorMain
 
   call mpiInitialization('EnergyTabulator')
 
-  call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-        energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
+  call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, energyTableDir, &
+        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
     !! * Set default values for input variables and start timers
 
   if(ionode) then
@@ -27,8 +27,8 @@ program energyTabulatorMain
     if(ierr /= 0) call exitError('energy tabulator main', 'reading inputParams namelist', abs(ierr))
       !! * Exit calculation if there's an error
 
-    call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-          energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
+    call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef,energyTableDir, &
+          exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
 
   endif
 
@@ -36,7 +36,6 @@ program energyTabulatorMain
   call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
   call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
   call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
-  call MPI_BCAST(CBMorVBMBand, 1, MPI_INTEGER, root, worldComm, ierr)
   call MPI_BCAST(refBand, 1, MPI_INTEGER, root, worldComm, ierr)
 
   call MPI_BCAST(eCorrectTot, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -64,7 +63,7 @@ program energyTabulatorMain
   do isp = 1, nSpins
     do ikLocal = 1, nkPerProc
 
-      call writeEnergyTable(CBMorVBMBand, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+      call writeEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
             eTotInitInit, eTotFinalInit, eTotFinalFinal, energyTableDir, exportDirEigs)
 
     enddo

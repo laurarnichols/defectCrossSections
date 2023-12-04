@@ -16,8 +16,6 @@ module energyTabulatorMod
 
 
   ! Variables that should be passed as arguments
-  integer :: CBMorVBMBand
-    !! Band of CBM (electron capture) or VBM (hole capture)
   integer :: refBand
     !! Band of WZP reference carrier
 
@@ -53,14 +51,14 @@ module energyTabulatorMod
 
   namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, energyTableDir, &
                          eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, CBMorVBMBand
+                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-        energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, energyTableDir, &
+        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
     !! Set the default values for input variables and start timer
     !!
     !! <h2>Walkthrough</h2>
@@ -76,8 +74,6 @@ module energyTabulatorMod
     ! Output variables:
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
-    integer, intent(out) :: CBMorVBMBand
-      !! Band of CBM (electron capture) or VBM (hole capture)
     integer, intent(out) :: refBand
       !! Band of WZP reference carrier
 
@@ -108,7 +104,6 @@ module energyTabulatorMod
     iBandFinit  = -1
     iBandFfinal = -1
     refBand = -1
-    CBMorVBMBand = -1
 
     eCorrectTot = 0.0_dp
     eCorrectEigF = 0.0_dp
@@ -123,16 +118,14 @@ module energyTabulatorMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-        energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, energyTableDir, &
+      exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
-    integer, intent(in) :: CBMorVBMBand
-      !! Band of CBM (electron capture) or VBM (hole capture)
     integer, intent(in) :: refBand
       !! Band of WZP reference carrier
 
@@ -167,7 +160,6 @@ module energyTabulatorMod
     abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
     abortExecution = checkIntInitialization('refBand', refBand, 1, int(1e9)) .or. abortExecution
-    abortExecution = checkIntInitialization('CBMorVBMBand', CBMorVBMBand, 1, int(1e9)) .or. abortExecution
 
     write(*,'("eCorrectTot = ", f8.4, " (eV)")') eCorrectTot
     write(*,'("eCorrectEigF = ", f8.4, " (eV)")') eCorrectEigF
@@ -299,14 +291,12 @@ module energyTabulatorMod
   end subroutine getTotalEnergies
 
 !----------------------------------------------------------------------------
-  subroutine writeEnergyTable(CBMorVBMBand, iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+  subroutine writeEnergyTable(iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
         eTotInitInit, eTotFinalInit, eTotFinalFinal, energyTableDir, exportDirEigs)
   
     implicit none
     
     ! Input variables:
-    integer, intent(in) :: CBMorVBMBand
-      !! Band of CBM (electron capture) or VBM (hole capture)
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
     integer, intent(in) :: ikLocal
@@ -363,8 +353,6 @@ module energyTabulatorMod
       !! charge states to be used in delta function
     real(kind=dp) :: dEZeroth
       !! Energy to be used in zeroth-order matrix element
-    real(kind=dp) :: eigCBMorVBM
-      !! Eigenvalue of either the CBM or VBM
     real(kind=dp) :: eigvF(iBandFinit:iBandFfinal)
       !! Final-state eigenvalues
     real(kind=dp) :: eigvI(iBandIinit:iBandIfinal)
@@ -419,8 +407,7 @@ module energyTabulatorMod
     write(17, '(a, " Format : ''(2i10,4ES24.15E3)''")') trim(text)
 
 
-    call readEigenvalues(CBMorVBMBand, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, refBand, exportDirEigs, eigvF, eigvI, &
-          eigCBMorVBM, refEig)
+    call readEigenvalues(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, refBand, exportDirEigs, eigvF, eigvI, refEig)
 
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
@@ -459,7 +446,7 @@ module energyTabulatorMod
           !! A potential correction term is included in case the PBE
           !! energy levels must be used.
 
-        dEPlot = abs(eigvI(ibi) - eigCBMorVBM)/eVToHartree
+        dEPlot = abs(eigvI(ibi) - refEig)/eVToHartree
           !! Energy plotted should be positive carrier energy in reference
           !! to the CBM (electrons) or VBM (holes)
         
@@ -482,16 +469,13 @@ module energyTabulatorMod
   end subroutine writeEnergyTable
   
 !----------------------------------------------------------------------------
-  subroutine readEigenvalues(CBMorVBMBand, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, refBand, exportDirEigs, eigvF, eigvI, &
-        eigCBMorVBM, refEig)
+  subroutine readEigenvalues(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, refBand, exportDirEigs, eigvF, eigvI, refEig)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
     
     ! Input variables
-    integer, intent(in) :: CBMorVBMBand
-      !! Band of CBM (electron capture) or VBM (hole capture)
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
     integer, intent(in) :: ikGlobal
@@ -505,8 +489,6 @@ module energyTabulatorMod
       !! Path to export for system to get eigenvalues
 
     ! Output variables:
-    real(kind=dp), intent(out) :: eigCBMorVBM
-      !! Eigenvalue of either the CBM or VBM
     real(kind=dp), intent(out) :: eigvF(iBandFinit:iBandFfinal)
       !! Final-state eigenvalues
     real(kind=dp), intent(out) :: eigvI(iBandIinit:iBandIfinal)
@@ -558,16 +540,6 @@ module energyTabulatorMod
     close(72)
 
 
-    open(72, file=fName)
-
-    call ignoreNextNLinesFromFile(72, 2 + (CBMorVBMBand-1))
-      ! Ignore header and all bands before either CBM or VBM
-    
-    read(72, '(ES24.15E3)') eigCBMorVBM
-    
-    close(72)
-
-    
     return
     
   end subroutine readEigenvalues
