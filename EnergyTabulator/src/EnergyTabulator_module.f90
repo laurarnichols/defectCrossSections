@@ -339,6 +339,8 @@ module energyTabulatorMod
       !! Energy difference to be output
     real(kind=dp) :: dEDelta
       !! Energy to be used in delta function
+    real(kind=dp) :: dEEigRef
+      !! Eigenvalue difference from initial to reference
     real(kind=dp) :: dEFirst
       !! Energy to be used in first-order matrix element
     real(kind=dp) :: dEPlot
@@ -412,26 +414,34 @@ module energyTabulatorMod
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
 
-        dEDelta = dETotWRelax - abs(eigvI(ibi) - refEig + eCorrectEigRef)
-          !! To get the total energy that needs to be conserved (what
-          !! goes into the delta function), add the total energy 
-          !! difference between the two relaxed charge states and the
-          !! additional eigenvalue energy difference between the initial
-          !! state and the WZP reference-carrier state. 
+        dEEigRef = abs(eigvI(ibi) - refEig + eCorrectEigRef)
+          !! All of the energies require an eigenvalue difference 
+          !! from a reference band. Calculate this once to be used
+          !! for all of the energies.
           !!
           !! In both hole and electron capture, the actual electron
           !! energy decreases, so the negative absolute value of the
           !! eigenvalue difference is used.
           !!
-          !! The energy correction `eCorrectEigRef` is only applied to
-          !! the eigenvalue energy difference between the initial state
-          !! and the reference state. This correction should be zero if
+          !! The energy correction `eCorrectEigRef` should be zero if
           !! the reference state and initial state are both in the conduction
           !! band or both in the valence band, since eigenvalue differences
           !! within the bands are okay at the PBE level and do not need
-          !! to be corrected.
+          !! to be corrected. One example where this correction would 
+          !! be needed is setting up the negative charge state of the
+          !! triply-hydrogenated Si defect. The simplest treatment of that
+          !! charge state has the reference carrier in the valence band top,
+          !! so the distance between the valence band and the conduction band
+          !! would need to be corrected from PBE to HSE.
 
-        dEZeroth = dETotElecOnly - abs(eigvI(ibi) - refEig + eCorrectEigRef)
+        dEDelta = dETotWRelax - dEEigRef
+          !! To get the total energy that needs to be conserved (what
+          !! goes into the delta function), add the total energy 
+          !! difference between the two relaxed charge states and the
+          !! additional eigenvalue energy difference between the initial
+          !! state and the WZP reference-carrier state. 
+
+        dEZeroth = dETotElecOnly - dEEigRef
           !! The zeroth-order matrix element contains the electronic-only
           !! energy difference. We get that from a total energy difference
           !! between the two charge states in the initial positions. Like
@@ -439,16 +449,16 @@ module energyTabulatorMod
           !! energy must also be included with a potential correction.
 
         dEFirst = abs(eigvI(ibi) - eigvF(ibf) + eCorrectEigF)
-          !! First-order term contains only the unperturbed eigenvalue
+          !! The first-order term contains only the unperturbed eigenvalue
           !! difference. The perturbative expansion has 
           !! \(\varepsilon_i - \varepsilon_f\), in terms of the actual 
           !! electron. The absolute value is needed for the hole case.
           !! A potential correction term is included in case the PBE
           !! energy levels must be used.
 
-        dEPlot = abs(eigvI(ibi) - refEig)/eVToHartree
-          !! Energy plotted should be positive carrier energy in reference
-          !! to the CBM (electrons) or VBM (holes)
+        dEPlot = abs(dEZeroth)/eVToHartree
+          !! Energy plotted should be the positive, electronic-only energy 
+          !! difference (same as in zeroth-order) in eV
         
         write(17, 1001) ibf, ibi, dEDelta, dEZeroth, dEFirst, dEPlot
             
