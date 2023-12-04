@@ -34,6 +34,8 @@ module energyTabulatorMod
   real(kind=dp) :: eTotFinalFinal
     !! Total energy of the relaxed final charge
     !! state (final positions)
+  real(kind=dp) :: refEig
+    !! Eigenvalue of WZP reference carrier
 
   character(len=300) :: energyTableDir
     !! Path to energy tables
@@ -291,8 +293,51 @@ module energyTabulatorMod
   end subroutine getTotalEnergies
 
 !----------------------------------------------------------------------------
-  subroutine writeEnergyTable(iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-        eTotInitInit, eTotFinalInit, eTotFinalFinal, energyTableDir, exportDirEigs)
+  subroutine getRefEig(exportDirEigs, refEig)
+
+    use miscUtilities, only: ignoreNextNLinesFromFile
+
+    implicit none
+
+    ! Input variables:
+    character(len=300), intent(in) :: exportDirEigs
+      !! Path to export for system to get eigenvalues
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: refEig
+      !! Eigenvalue of WZP reference carrier
+
+    ! Local variables:
+    character(len=300) :: fName
+      !! File name
+
+
+    if(ionode) then
+
+      fName = trim(exportDirEigs)//"/eigenvalues.1.1"
+        !! Use first k-point as reference and assume that initial
+        !! state is not spin polarized
+
+      open(72, file=fName)
+
+      call ignoreNextNLinesFromFile(72, 2 + (refBand-1))
+        ! Ignore header and all bands before reference band
+    
+      read(72, '(ES24.15E3)') refEig
+    
+      close(72)
+
+    endif
+
+    call MPI_BCAST(refEig, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return
+
+  end subroutine getRefEig
+
+!----------------------------------------------------------------------------
+  subroutine writeEnergyTable(iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+      eTotInitInit, eTotFinalInit, eTotFinalFinal, refEig, energyTableDir, exportDirEigs)
   
     implicit none
     
@@ -303,8 +348,6 @@ module energyTabulatorMod
       !! Current local k-point
     integer, intent(in) :: isp
       !! Current spin channel
-    integer, intent(in) :: refBand
-      !! Band of WZP reference carrier
 
     real(kind=dp), intent(in) :: eCorrectTot
       !! Total-energy correction, if any
@@ -321,6 +364,8 @@ module energyTabulatorMod
     real(kind=dp), intent(in) :: eTotFinalFinal
       !! Total energy of the relaxed final charge
       !! state (final positions)
+    real(kind=dp), intent(in) :: refEig
+      !! Eigenvalue of WZP reference carrier
 
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy tables
@@ -359,8 +404,6 @@ module energyTabulatorMod
       !! Final-state eigenvalues
     real(kind=dp) :: eigvI(iBandIinit:iBandIfinal)
       !! Initial-state eigenvalues
-    real(kind=dp) :: refEig
-      !! Eigenvalue of WZP reference carrier
     real(kind=dp) :: t1, t2
       !! Timers
     
@@ -409,7 +452,7 @@ module energyTabulatorMod
     write(17, '(a, " Format : ''(2i10,4ES24.15E3)''")') trim(text)
 
 
-    call readEigenvalues(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, refBand, exportDirEigs, eigvF, eigvI, refEig)
+    call readEigenvalues(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, exportDirEigs, eigvF, eigvI)
 
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
@@ -479,7 +522,7 @@ module energyTabulatorMod
   end subroutine writeEnergyTable
   
 !----------------------------------------------------------------------------
-  subroutine readEigenvalues(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, refBand, exportDirEigs, eigvF, eigvI, refEig)
+  subroutine readEigenvalues(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, exportDirEigs, eigvF, eigvI)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
@@ -492,8 +535,6 @@ module energyTabulatorMod
       !! Current global k-point
     integer, intent(in) :: isp
       !! Current spin channel
-    integer, intent(in) :: refBand
-      !! Band of WZP reference carrier
 
     character(len=300), intent(in) :: exportDirEigs
       !! Path to export for system to get eigenvalues
@@ -503,8 +544,6 @@ module energyTabulatorMod
       !! Final-state eigenvalues
     real(kind=dp), intent(out) :: eigvI(iBandIinit:iBandIfinal)
       !! Initial-state eigenvalues
-    real(kind=dp), intent(out) :: refEig
-      !! Eigenvalue of WZP reference carrier
 
     ! Local variables:
     integer :: ib
@@ -536,16 +575,6 @@ module energyTabulatorMod
     do ib = iBandFinit, iBandFfinal
       read(72, '(ES24.15E3)') eigvF(ib)
     enddo
-    
-    close(72)
-
-
-    open(72, file=fName)
-
-    call ignoreNextNLinesFromFile(72, 2 + (refBand-1))
-      ! Ignore header and all bands before reference band
-    
-    read(72, '(ES24.15E3)') refEig
     
     close(72)
 
