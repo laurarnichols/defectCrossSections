@@ -51,8 +51,11 @@ module energyTabulatorMod
     !! Path to export for final charge state
     !! in the final positions
 
+  logical :: captured
+    !! If carrier is captured as opposed to scattered
+
   namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, energyTableDir, &
-                         eCorrectTot, eCorrectEigF, eCorrectEigRef, &
+                         eCorrectTot, eCorrectEigF, eCorrectEigRef, captured,  &
                          iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand
 
 
@@ -60,7 +63,7 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, energyTableDir, &
-        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
+        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured)
     !! Set the default values for input variables and start timer
     !!
     !! <h2>Walkthrough</h2>
@@ -100,6 +103,9 @@ module energyTabulatorMod
       !! Path to export for final charge state
       !! in the final positions
 
+    logical, intent(out) :: captured
+      !! If carrier is captured as opposed to scattered
+
 
     iBandIinit  = -1
     iBandIfinal = -1
@@ -117,11 +123,13 @@ module energyTabulatorMod
     exportDirFinalInit = ''
     exportDirFinalFinal = ''
 
+    captured = .false.
+
   end subroutine initialize
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, energyTableDir, &
-      exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
+      exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured)
 
     implicit none
 
@@ -152,6 +160,9 @@ module energyTabulatorMod
       !! Path to export for final charge state
       !! in the final positions
 
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
+
     ! Local variables:
     logical :: abortExecution
       !! Whether or not to abort the execution
@@ -166,6 +177,8 @@ module energyTabulatorMod
     write(*,'("eCorrectTot = ", f8.4, " (eV)")') eCorrectTot
     write(*,'("eCorrectEigF = ", f8.4, " (eV)")') eCorrectEigF
     write(*,'("eCorrectEigRef = ", f8.4, " (eV)")') eCorrectEigRef
+
+    write(*,'("captured = ",L)') captured
 
     eCorrectTot = eCorrectTot*eVToHartree
     eCorrectEigF = eCorrectEigF*eVToHartree

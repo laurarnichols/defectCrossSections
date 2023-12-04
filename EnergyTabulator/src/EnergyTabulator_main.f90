@@ -16,7 +16,7 @@ program energyTabulatorMain
   call mpiInitialization('EnergyTabulator')
 
   call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, energyTableDir, &
-        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
+        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured)
     !! * Set default values for input variables and start timers
 
   if(ionode) then
@@ -28,7 +28,7 @@ program energyTabulatorMain
       !! * Exit calculation if there's an error
 
     call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef,energyTableDir, &
-          exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
+          exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured)
 
   endif
 
@@ -47,6 +47,8 @@ program energyTabulatorMain
   call MPI_BCAST(exportDirInitInit, len(exportDirInitInit), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(exportDirFinalInit, len(exportDirFinalInit), MPI_CHARACTER, root, worldComm, ierr)
   call MPI_BCAST(exportDirFinalFinal, len(exportDirFinalFinal), MPI_CHARACTER, root, worldComm, ierr)
+
+  call MPI_BCAST(captured, 1, MPI_LOGICAL, root, worldComm, ierr)
 
 
   call getnSpinsAndnKPoints(exportDirEigs, nKPoints, nSpins)
