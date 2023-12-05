@@ -347,7 +347,7 @@ module energyTabulatorMod
   end subroutine getRefEig
 
 !----------------------------------------------------------------------------
-  subroutine getRefToDefectEigDiff(iBandFinit, refEig, exportDirInitInit, dEEigRefDefect)
+  subroutine getRefToDefectEigDiff(iBandFinit, isp, refEig, exportDirInitInit, dEEigRefDefect)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
 
@@ -356,6 +356,8 @@ module energyTabulatorMod
     ! Input variables:
     integer, intent(in) :: iBandFinit
       !! Energy band for final state
+    integer, intent(in) :: isp
+      !! Current spin channel
 
     real(kind=dp), intent(in) :: refEig
       !! Eigenvalue of WZP reference carrier
