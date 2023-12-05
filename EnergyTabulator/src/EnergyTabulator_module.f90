@@ -19,6 +19,9 @@ module energyTabulatorMod
   integer :: refBand
     !! Band of WZP reference carrier
 
+  real(kind=dp) :: dEEigRefDefect
+    !! Eigenvalue difference between the reference
+    !! eigenvalue and the defect level
   real(kind=dp) :: eCorrectTot
     !! Total-energy correction, if any
   real(kind=dp) :: eCorrectEigRef
@@ -170,6 +173,10 @@ module energyTabulatorMod
     write(*,'("eCorrectTot = ", f8.4, " (eV)")') eCorrectTot
     write(*,'("eCorrectEigRef = ", f8.4, " (eV)")') eCorrectEigRef
 
+    if(captured .and. iBandFinit /= iBandFfinal) then
+      write(*,'("Capture only expected for a single final-state band.")')
+      abortExecution = .true.
+    endif
     write(*,'("captured = ",L)') captured
 
     eCorrectTot = eCorrectTot*eVToHartree
@@ -340,8 +347,64 @@ module energyTabulatorMod
   end subroutine getRefEig
 
 !----------------------------------------------------------------------------
-  subroutine writeEnergyTable(iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, eCorrectTot, eCorrectEigRef, &
-      eTotInitInit, eTotFinalInit, eTotFinalFinal, refEig, energyTableDir, exportDirEigs)
+  subroutine getRefToDefectEigDiff(iBandFinit, refEig, exportDirInitInit, dEEigRefDefect)
+
+    use miscUtilities, only: ignoreNextNLinesFromFile
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iBandFinit
+      !! Energy band for final state
+
+    real(kind=dp), intent(in) :: refEig
+      !! Eigenvalue of WZP reference carrier
+
+    character(len=300), intent(in) :: exportDirInitInit
+      !! Path to export for initial charge state
+      !! in the initial positions
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: dEEigRefDefect
+      !! Eigenvalue difference between the reference
+      !! eigenvalue and the defect level
+
+    ! Local variables:
+    real(kind=dp) :: defectEig
+      !! Eigenvalue of the defect for capture
+
+    character(len=300) :: fName
+      !! File name
+
+
+    if(ionode) then
+
+      fName = trim(exportDirInitInit)//"/eigenvalues.1.1"
+        !! Use first k-point as reference and assume that initial
+        !! state is not spin polarized
+
+      open(72, file=fName)
+
+      call ignoreNextNLinesFromFile(72, 2 + (iBandFinit-1))
+        ! Ignore header and all bands before reference band
+    
+      read(72, '(ES24.15E3)') defectEig
+    
+      close(72)
+
+      dEEigRefDefect = abs(refEig - defectEig)
+
+    endif
+
+    call MPI_BCAST(dEEigRefDefect, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return
+
+  end subroutine getRefToDefectEigDiff
+
+!----------------------------------------------------------------------------
+  subroutine writeEnergyTable(iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, dEEigRefDefect, eCorrectTot, eCorrectEigRef, &
+      eTotInitInit, eTotFinalInit, eTotFinalFinal, refEig, energyTableDir, exportDirEigs, captured)
   
     implicit none
     
@@ -353,6 +416,9 @@ module energyTabulatorMod
     integer, intent(in) :: isp
       !! Current spin channel
 
+    real(kind=dp), intent(in) :: dEEigRefDefect
+      !! Eigenvalue difference between the reference
+      !! eigenvalue and the defect level
     real(kind=dp), intent(in) :: eCorrectTot
       !! Total-energy correction, if any
     real(kind=dp), intent(in) :: eCorrectEigRef
@@ -373,6 +439,9 @@ module energyTabulatorMod
       !! Path to energy tables
     character(len=300), intent(in) :: exportDirEigs
       !! Path to export for system to get eigenvalues
+
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
 
     ! Local variables:
     integer :: ibi, ibf
@@ -493,13 +562,22 @@ module energyTabulatorMod
           !! in the energy for the delta function, the additional carrier
           !! energy must also be included with a potential correction.
 
-        dEFirst = abs(eigvI(ibi) - eigvF(ibf))
+        if(captured) then
+          dEFirst = dEEigRef + dEEigRefDefect
+        else
+          dEFirst = abs(eigvI(ibi) - eigvF(ibf))
+        endif
           !! The first-order term contains only the unperturbed eigenvalue
           !! difference. The perturbative expansion has 
           !! \(\varepsilon_i - \varepsilon_f\), in terms of the actual 
           !! electron. The absolute value is needed for the hole case.
-          !! A potential correction term is included in case the PBE
-          !! energy levels must be used.
+          !! 
+          !! For capture, the defect level should not have dispersion, and
+          !! the level of the defect changes between charge states, so we
+          !! use a single reference energy and distance to the defect, taken
+          !! from the initial-charge-state HSE calculation. For the scattering
+          !! case, the bands do not have those issues, so we can directly 
+          !! use the final-state eigenvalue.
 
         dEPlot = abs(dEZeroth)/eVToHartree
           !! Energy plotted should be the positive, electronic-only energy 

@@ -63,12 +63,14 @@ program energyTabulatorMain
   call getRefEig(exportDirEigs, refEig)
     !! Get reference eigenvalue
 
+  if(captured) call getRefToDefectEigDiff(iBandFinit, refEig, exportDirInitInit, dEEigRefDefect)
+
 
   do isp = 1, nSpins
     do ikLocal = 1, nkPerProc
 
-      call writeEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, eCorrectTot, eCorrectEigRef, &
-            eTotInitInit, eTotFinalInit, eTotFinalFinal, refEig, energyTableDir, exportDirEigs)
+      call writeEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, dEEigRefDefect, eCorrectTot, eCorrectEigRef, &
+            eTotInitInit, eTotFinalInit, eTotFinalFinal, refEig, energyTableDir, exportDirEigs, captured)
 
     enddo
   enddo
