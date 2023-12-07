@@ -304,13 +304,18 @@ module energyTabulatorMod
   end subroutine getTotalEnergies
 
 !----------------------------------------------------------------------------
-  subroutine getRefEig(exportDirEigs, refEig)
+  subroutine getRefEig(isp, refBand, exportDirEigs, refEig)
 
-    use miscUtilities, only: ignoreNextNLinesFromFile
+    use miscUtilities, only: ignoreNextNLinesFromFile, int2str
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: isp
+      !! Current spin channel
+    integer, intent(in) :: refBand
+      !! Band of WZP reference carrier
+
     character(len=300), intent(in) :: exportDirEigs
       !! Path to export for system to get eigenvalues
 
@@ -325,7 +330,7 @@ module energyTabulatorMod
 
     if(ionode) then
 
-      fName = trim(exportDirEigs)//"/eigenvalues.1.1"
+      fName = trim(exportDirEigs)//"/eigenvalues."//trim(int2str(isp))//".1"
         !! Use first k-point as reference and assume that initial
         !! state is not spin polarized
 
@@ -349,7 +354,7 @@ module energyTabulatorMod
 !----------------------------------------------------------------------------
   subroutine getRefToDefectEigDiff(iBandFinit, isp, refEig, exportDirInitInit, dEEigRefDefect)
 
-    use miscUtilities, only: ignoreNextNLinesFromFile
+    use miscUtilities, only: ignoreNextNLinesFromFile, int2str
 
     implicit none
 
@@ -381,7 +386,7 @@ module energyTabulatorMod
 
     if(ionode) then
 
-      fName = trim(exportDirInitInit)//"/eigenvalues.1.1"
+      fName = trim(exportDirInitInit)//"/eigenvalues."//trim(int2str(isp))//".1"
         !! Use first k-point as reference and assume that initial
         !! state is not spin polarized
 
@@ -453,8 +458,6 @@ module energyTabulatorMod
     integer :: totalNumberOfElements
       !! Total number of overlaps to output
 
-    real(kind=dp) :: dE
-      !! Energy difference to be output
     real(kind=dp) :: dEDelta
       !! Energy to be used in delta function
     real(kind=dp) :: dEEigRef
@@ -666,7 +669,7 @@ module energyTabulatorMod
   end subroutine readEigenvalues
   
 !----------------------------------------------------------------------------
-  subroutine readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, order, energyTableDir, dE)
+  subroutine readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, energyTableDir, dE)
     !! Read all energies from energy table and store in dE
     
     use miscUtilities, only: ignoreNextNLinesFromFile, int2str
@@ -680,8 +683,6 @@ module energyTabulatorMod
       !! Current global k-point
     integer, intent(in) :: isp
       !! Current spin channel
-    integer, intent(in) :: order
-      !! Order of matrix element (0 or 1)
 
     character(len=300) :: energyTableDir
       !! Path to energy table

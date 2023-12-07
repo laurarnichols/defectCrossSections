@@ -60,11 +60,11 @@ program energyTabulatorMain
   call getTotalEnergies(exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, eTotInitInit, eTotFinalInit, eTotFinalFinal)
     !! Get total energies from exports of all different structures
 
-  call getRefEig(exportDirEigs, refEig)
-    !! Get reference eigenvalue
-
 
   do isp = 1, nSpins
+
+    call getRefEig(isp, refBand, exportDirEigs, refEig)
+      !! Get reference eigenvalue
 
     if(captured) call getRefToDefectEigDiff(iBandFinit, isp, refEig, exportDirInitInit, dEEigRefDefect)
 

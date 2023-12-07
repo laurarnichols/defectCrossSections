@@ -111,7 +111,7 @@ program LSFmain
         ! In the future, can just skip the ones that have already been 
         ! calculated.
 
-        call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, order, energyTableDir, dE(:,:,:,ikLocal))
+        call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, energyTableDir, dE(:,:,:,ikLocal))
 
         if(order == 0) then
           ! Read zeroth-order matrix element
