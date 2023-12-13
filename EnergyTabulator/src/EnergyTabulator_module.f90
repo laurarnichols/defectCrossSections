@@ -54,9 +54,11 @@ module energyTabulatorMod
 
   logical :: captured
     !! If carrier is captured as opposed to scattered
+  logical :: elecCarrier
+    !! If carrier is electron as opposed to hole
 
   namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, energyTableDir, &
-                         eCorrectTot, eCorrectEigRef, captured,  &
+                         eCorrectTot, eCorrectEigRef, captured, elecCarrier, &
                          iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand
 
 
@@ -64,7 +66,7 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigRef, energyTableDir, &
-        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured)
+        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
     !! Set the default values for input variables and start timer
     !!
     !! <h2>Walkthrough</h2>
@@ -104,6 +106,8 @@ module energyTabulatorMod
 
     logical, intent(out) :: captured
       !! If carrier is captured as opposed to scattered
+    logical, intent(out) :: elecCarrier
+      !! If carrier is electron as opposed to hole
 
 
     iBandIinit  = -1
@@ -121,13 +125,14 @@ module energyTabulatorMod
     exportDirFinalInit = ''
     exportDirFinalFinal = ''
 
-    captured = .false.
+    captured = .true.
+    elecCarrier = .true.
 
   end subroutine initialize
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigRef, energyTableDir, &
-      exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured)
+      exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
 
     implicit none
 
@@ -158,6 +163,8 @@ module energyTabulatorMod
 
     logical, intent(in) :: captured
       !! If carrier is captured as opposed to scattered
+    logical, intent(in) :: elecCarrier
+      !! If carrier is electron as opposed to hole
 
     ! Local variables:
     logical :: abortExecution
@@ -178,6 +185,7 @@ module energyTabulatorMod
       abortExecution = .true.
     endif
     write(*,'("captured = ",L)') captured
+    write(*,'("elecCarrier = ",L)') elecCarrier
 
     eCorrectTot = eCorrectTot*eVToHartree
     eCorrectEigRef = eCorrectEigRef*eVToHartree
@@ -352,7 +360,7 @@ module energyTabulatorMod
   end subroutine getRefEig
 
 !----------------------------------------------------------------------------
-  subroutine getRefToDefectEigDiff(iBandFinit, isp, refEig, exportDirInitInit, dEEigRefDefect)
+  subroutine getRefToDefectEigDiff(iBandFinit, isp, refBand, exportDirInitInit, elecCarrier, dEEigRefDefect)
 
     use miscUtilities, only: ignoreNextNLinesFromFile, int2str
 
@@ -363,13 +371,15 @@ module energyTabulatorMod
       !! Energy band for final state
     integer, intent(in) :: isp
       !! Current spin channel
-
-    real(kind=dp), intent(in) :: refEig
-      !! Eigenvalue of WZP reference carrier
+    integer, intent(in) :: refBand
+      !! Band of WZP reference carrier
 
     character(len=300), intent(in) :: exportDirInitInit
       !! Path to export for initial charge state
       !! in the initial positions
+
+    logical, intent(in) :: elecCarrier
+      !! If carrier is electron as opposed to hole
 
     ! Output variables:
     real(kind=dp), intent(out) :: dEEigRefDefect
@@ -379,6 +389,11 @@ module energyTabulatorMod
     ! Local variables:
     real(kind=dp) :: defectEig
       !! Eigenvalue of the defect for capture
+    real(kind=dp) :: refEig
+      !! Eigenvalue of WZP reference carrier (not the same
+      !! as `refEig` used in other places in the code; this
+      !! is just to determine the correct distance between
+      !! the defect and the band states
 
     character(len=300) :: fName
       !! File name
@@ -399,7 +414,27 @@ module energyTabulatorMod
     
       close(72)
 
-      dEEigRefDefect = abs(refEig - defectEig)
+
+      open(72, file=fName)
+
+      call ignoreNextNLinesFromFile(72, 2 + (refBand-1))
+        ! Ignore header and all bands before reference band
+    
+      read(72, '(ES24.15E3)') refEig
+    
+      close(72)
+
+
+      !> Switch the order of the eigenvalue subtraction
+      !> for hole vs electron capture to represent that 
+      !> the actual energy we need is that of the electron
+      if(elecCarrier) then
+        dEEigRefDefect = refEig - defectEig
+      else
+        dEEigRefDefect = defectEig - refEig
+      endif
+
+      write(*,'("isp = ", i1, " refEig, defectEig, dEEigRefDefect: ", 3ES24.15E3)') isp, refEig, defectEig, dEEigRefDefect 
 
     endif
 
@@ -411,7 +446,7 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine writeEnergyTable(iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, dEEigRefDefect, eCorrectTot, eCorrectEigRef, &
-      eTotInitInit, eTotFinalInit, eTotFinalFinal, refEig, energyTableDir, exportDirEigs, captured)
+      eTotInitInit, eTotFinalInit, eTotFinalFinal, refEig, energyTableDir, exportDirEigs, captured, elecCarrier)
   
     implicit none
     
@@ -449,6 +484,8 @@ module energyTabulatorMod
 
     logical, intent(in) :: captured
       !! If carrier is captured as opposed to scattered
+    logical, intent(in) :: elecCarrier
+      !! If carrier is electron as opposed to hole
 
     ! Local variables:
     integer :: ibi, ibf
@@ -533,14 +570,17 @@ module energyTabulatorMod
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
 
-        dEEigRef = abs(eigvI(ibi) - refEig + eCorrectEigRef)
+        !> Switch the order of the eigenvalue subtraction
+        !> for hole vs electron capture to represent that 
+        !> the actual energy we need is that of the electron
+        if(elecCarrier) then
+          dEEigRef = eigvI(ibi) - refEig + eCorrectEigRef
+        else
+          dEEigRef = refEig - eigvI(ibi) + eCorrectEigRef
+        endif
           !! All of the energies require an eigenvalue difference 
           !! from a reference band. Calculate this once to be used
           !! for all of the energies.
-          !!
-          !! In both hole and electron capture, the actual electron
-          !! energy decreases, so the negative absolute value of the
-          !! eigenvalue difference is used.
           !!
           !! The energy correction `eCorrectEigRef` should be zero if
           !! the reference state and initial state are both in the conduction
