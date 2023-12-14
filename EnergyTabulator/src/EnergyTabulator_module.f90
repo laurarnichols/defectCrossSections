@@ -16,15 +16,14 @@ module energyTabulatorMod
 
 
   ! Variables that should be passed as arguments
-  integer :: CBMorVBMBand
-    !! Band of CBM (electron capture) or VBM (hole capture)
   integer :: refBand
     !! Band of WZP reference carrier
 
+  real(kind=dp) :: dEEigRefDefect
+    !! Eigenvalue difference between the reference
+    !! eigenvalue and the defect level
   real(kind=dp) :: eCorrectTot
     !! Total-energy correction, if any
-  real(kind=dp) :: eCorrectEigF
-    !! Correction to eigenvalue difference with final state, if any
   real(kind=dp) :: eCorrectEigRef
     !! Correction to eigenvalue difference with reference carrier, if any
   real(kind=dp) :: eTotInitInit
@@ -36,6 +35,8 @@ module energyTabulatorMod
   real(kind=dp) :: eTotFinalFinal
     !! Total energy of the relaxed final charge
     !! state (final positions)
+  real(kind=dp) :: refEig
+    !! Eigenvalue of WZP reference carrier
 
   character(len=300) :: energyTableDir
     !! Path to energy tables
@@ -51,16 +52,21 @@ module energyTabulatorMod
     !! Path to export for final charge state
     !! in the final positions
 
+  logical :: captured
+    !! If carrier is captured as opposed to scattered
+  logical :: elecCarrier
+    !! If carrier is electron as opposed to hole
+
   namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, energyTableDir, &
-                         eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, CBMorVBMBand
+                         eCorrectTot, eCorrectEigRef, captured, elecCarrier, &
+                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-        energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigRef, energyTableDir, &
+        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
     !! Set the default values for input variables and start timer
     !!
     !! <h2>Walkthrough</h2>
@@ -76,15 +82,11 @@ module energyTabulatorMod
     ! Output variables:
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
-    integer, intent(out) :: CBMorVBMBand
-      !! Band of CBM (electron capture) or VBM (hole capture)
     integer, intent(out) :: refBand
       !! Band of WZP reference carrier
 
     real(kind=dp), intent(out) :: eCorrectTot
       !! Total-energy correction, if any
-    real(kind=dp), intent(out) :: eCorrectEigF
-      !! Correction to eigenvalue difference with final state, if any
     real(kind=dp), intent(out) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
@@ -102,16 +104,19 @@ module energyTabulatorMod
       !! Path to export for final charge state
       !! in the final positions
 
+    logical, intent(out) :: captured
+      !! If carrier is captured as opposed to scattered
+    logical, intent(out) :: elecCarrier
+      !! If carrier is electron as opposed to hole
+
 
     iBandIinit  = -1
     iBandIfinal = -1
     iBandFinit  = -1
     iBandFfinal = -1
     refBand = -1
-    CBMorVBMBand = -1
 
     eCorrectTot = 0.0_dp
-    eCorrectEigF = 0.0_dp
     eCorrectEigRef = 0.0_dp
 
     energyTableDir = './'
@@ -120,26 +125,25 @@ module energyTabulatorMod
     exportDirFinalInit = ''
     exportDirFinalFinal = ''
 
+    captured = .true.
+    elecCarrier = .true.
+
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CBMorVBMBand, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-        energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigRef, energyTableDir, &
+      exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
-    integer, intent(in) :: CBMorVBMBand
-      !! Band of CBM (electron capture) or VBM (hole capture)
     integer, intent(in) :: refBand
       !! Band of WZP reference carrier
 
     real(kind=dp), intent(inout) :: eCorrectTot
       !! Total-energy correction, if any
-    real(kind=dp), intent(inout) :: eCorrectEigF
-      !! Correction to eigenvalue difference with final state, if any
     real(kind=dp), intent(inout) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
@@ -157,6 +161,11 @@ module energyTabulatorMod
       !! Path to export for final charge state
       !! in the final positions
 
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
+    logical, intent(in) :: elecCarrier
+      !! If carrier is electron as opposed to hole
+
     ! Local variables:
     logical :: abortExecution
       !! Whether or not to abort the execution
@@ -167,14 +176,18 @@ module energyTabulatorMod
     abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
     abortExecution = checkIntInitialization('refBand', refBand, 1, int(1e9)) .or. abortExecution
-    abortExecution = checkIntInitialization('CBMorVBMBand', CBMorVBMBand, 1, int(1e9)) .or. abortExecution
 
     write(*,'("eCorrectTot = ", f8.4, " (eV)")') eCorrectTot
-    write(*,'("eCorrectEigF = ", f8.4, " (eV)")') eCorrectEigF
     write(*,'("eCorrectEigRef = ", f8.4, " (eV)")') eCorrectEigRef
 
+    if(captured .and. iBandFinit /= iBandFfinal) then
+      write(*,'("Capture only expected for a single final-state band.")')
+      abortExecution = .true.
+    endif
+    write(*,'("captured = ",L)') captured
+    write(*,'("elecCarrier = ",L)') elecCarrier
+
     eCorrectTot = eCorrectTot*eVToHartree
-    eCorrectEigF = eCorrectEigF*eVToHartree
     eCorrectEigRef = eCorrectEigRef*eVToHartree
 
     abortExecution = checkDirInitialization('exportDirEigs', exportDirEigs, 'input') .or. abortExecution
@@ -299,27 +312,157 @@ module energyTabulatorMod
   end subroutine getTotalEnergies
 
 !----------------------------------------------------------------------------
-  subroutine writeEnergyTable(CBMorVBMBand, iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, refBand, eCorrectTot, eCorrectEigF, eCorrectEigRef, &
-        eTotInitInit, eTotFinalInit, eTotFinalFinal, energyTableDir, exportDirEigs)
+  subroutine getRefEig(isp, refBand, exportDirEigs, refEig)
+
+    use miscUtilities, only: ignoreNextNLinesFromFile, int2str
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: isp
+      !! Current spin channel
+    integer, intent(in) :: refBand
+      !! Band of WZP reference carrier
+
+    character(len=300), intent(in) :: exportDirEigs
+      !! Path to export for system to get eigenvalues
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: refEig
+      !! Eigenvalue of WZP reference carrier
+
+    ! Local variables:
+    character(len=300) :: fName
+      !! File name
+
+
+    if(ionode) then
+
+      fName = trim(exportDirEigs)//"/eigenvalues."//trim(int2str(isp))//".1"
+        !! Use first k-point as reference and assume that initial
+        !! state is not spin polarized
+
+      open(72, file=fName)
+
+      call ignoreNextNLinesFromFile(72, 2 + (refBand-1))
+        ! Ignore header and all bands before reference band
+    
+      read(72, '(ES24.15E3)') refEig
+    
+      close(72)
+
+    endif
+
+    call MPI_BCAST(refEig, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return
+
+  end subroutine getRefEig
+
+!----------------------------------------------------------------------------
+  subroutine getRefToDefectEigDiff(iBandFinit, isp, refBand, exportDirInitInit, elecCarrier, dEEigRefDefect)
+
+    use miscUtilities, only: ignoreNextNLinesFromFile, int2str
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iBandFinit
+      !! Energy band for final state
+    integer, intent(in) :: isp
+      !! Current spin channel
+    integer, intent(in) :: refBand
+      !! Band of WZP reference carrier
+
+    character(len=300), intent(in) :: exportDirInitInit
+      !! Path to export for initial charge state
+      !! in the initial positions
+
+    logical, intent(in) :: elecCarrier
+      !! If carrier is electron as opposed to hole
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: dEEigRefDefect
+      !! Eigenvalue difference between the reference
+      !! eigenvalue and the defect level
+
+    ! Local variables:
+    real(kind=dp) :: defectEig
+      !! Eigenvalue of the defect for capture
+    real(kind=dp) :: refEig
+      !! Eigenvalue of WZP reference carrier (not the same
+      !! as `refEig` used in other places in the code; this
+      !! is just to determine the correct distance between
+      !! the defect and the band states
+
+    character(len=300) :: fName
+      !! File name
+
+
+    if(ionode) then
+
+      fName = trim(exportDirInitInit)//"/eigenvalues."//trim(int2str(isp))//".1"
+        !! Use first k-point as reference and assume that initial
+        !! state is not spin polarized
+
+      open(72, file=fName)
+
+      call ignoreNextNLinesFromFile(72, 2 + (iBandFinit-1))
+        ! Ignore header and all bands before reference band
+    
+      read(72, '(ES24.15E3)') defectEig
+    
+      close(72)
+
+
+      open(72, file=fName)
+
+      call ignoreNextNLinesFromFile(72, 2 + (refBand-1))
+        ! Ignore header and all bands before reference band
+    
+      read(72, '(ES24.15E3)') refEig
+    
+      close(72)
+
+
+      !> Switch the order of the eigenvalue subtraction
+      !> for hole vs electron capture to represent that 
+      !> the actual energy we need is that of the electron
+      if(elecCarrier) then
+        dEEigRefDefect = refEig - defectEig
+      else
+        dEEigRefDefect = defectEig - refEig
+      endif
+
+      write(*,'("isp = ", i1, " refEig, defectEig, dEEigRefDefect: ", 3ES24.15E3)') isp, refEig, defectEig, dEEigRefDefect 
+
+    endif
+
+    call MPI_BCAST(dEEigRefDefect, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return
+
+  end subroutine getRefToDefectEigDiff
+
+!----------------------------------------------------------------------------
+  subroutine writeEnergyTable(iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, dEEigRefDefect, eCorrectTot, eCorrectEigRef, &
+      eTotInitInit, eTotFinalInit, eTotFinalFinal, refEig, energyTableDir, exportDirEigs, captured, elecCarrier)
   
     implicit none
     
     ! Input variables:
-    integer, intent(in) :: CBMorVBMBand
-      !! Band of CBM (electron capture) or VBM (hole capture)
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
     integer, intent(in) :: ikLocal
       !! Current local k-point
     integer, intent(in) :: isp
       !! Current spin channel
-    integer, intent(in) :: refBand
-      !! Band of WZP reference carrier
 
+    real(kind=dp), intent(in) :: dEEigRefDefect
+      !! Eigenvalue difference between the reference
+      !! eigenvalue and the defect level
     real(kind=dp), intent(in) :: eCorrectTot
       !! Total-energy correction, if any
-    real(kind=dp), intent(in) :: eCorrectEigF
-      !! Correction to eigenvalue difference with final state, if any
     real(kind=dp), intent(in) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
     real(kind=dp), intent(in) :: eTotInitInit
@@ -331,11 +474,18 @@ module energyTabulatorMod
     real(kind=dp), intent(in) :: eTotFinalFinal
       !! Total energy of the relaxed final charge
       !! state (final positions)
+    real(kind=dp), intent(in) :: refEig
+      !! Eigenvalue of WZP reference carrier
 
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy tables
     character(len=300), intent(in) :: exportDirEigs
       !! Path to export for system to get eigenvalues
+
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
+    logical, intent(in) :: elecCarrier
+      !! If carrier is electron as opposed to hole
 
     ! Local variables:
     integer :: ibi, ibf
@@ -345,10 +495,10 @@ module energyTabulatorMod
     integer :: totalNumberOfElements
       !! Total number of overlaps to output
 
-    real(kind=dp) :: dE
-      !! Energy difference to be output
     real(kind=dp) :: dEDelta
       !! Energy to be used in delta function
+    real(kind=dp) :: dEEigRef
+      !! Eigenvalue difference from initial to reference
     real(kind=dp) :: dEFirst
       !! Energy to be used in first-order matrix element
     real(kind=dp) :: dEPlot
@@ -363,14 +513,10 @@ module energyTabulatorMod
       !! charge states to be used in delta function
     real(kind=dp) :: dEZeroth
       !! Energy to be used in zeroth-order matrix element
-    real(kind=dp) :: eigCBMorVBM
-      !! Eigenvalue of either the CBM or VBM
     real(kind=dp) :: eigvF(iBandFinit:iBandFfinal)
       !! Final-state eigenvalues
     real(kind=dp) :: eigvI(iBandIinit:iBandIfinal)
       !! Initial-state eigenvalues
-    real(kind=dp) :: refEig
-      !! Eigenvalue of WZP reference carrier
     real(kind=dp) :: t1, t2
       !! Timers
     
@@ -419,49 +565,68 @@ module energyTabulatorMod
     write(17, '(a, " Format : ''(2i10,4ES24.15E3)''")') trim(text)
 
 
-    call readEigenvalues(CBMorVBMBand, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, refBand, exportDirEigs, eigvF, eigvI, &
-          eigCBMorVBM, refEig)
+    call readEigenvalues(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, exportDirEigs, eigvF, eigvI)
 
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
 
-        dEDelta = dETotWRelax - abs(eigvI(ibi) - refEig + eCorrectEigRef)
+        !> Switch the order of the eigenvalue subtraction
+        !> for hole vs electron capture to represent that 
+        !> the actual energy we need is that of the electron
+        if(elecCarrier) then
+          dEEigRef = eigvI(ibi) - refEig + eCorrectEigRef
+        else
+          dEEigRef = refEig - eigvI(ibi) + eCorrectEigRef
+        endif
+          !! All of the energies require an eigenvalue difference 
+          !! from a reference band. Calculate this once to be used
+          !! for all of the energies.
+          !!
+          !! The energy correction `eCorrectEigRef` should be zero if
+          !! the reference state and initial state are both in the conduction
+          !! band or both in the valence band, since eigenvalue differences
+          !! within the bands are okay at the PBE level and do not need
+          !! to be corrected. One example where this correction would 
+          !! be needed is setting up the negative charge state of the
+          !! triply-hydrogenated Si defect. The simplest treatment of that
+          !! charge state has the reference carrier in the valence band top,
+          !! so the distance between the valence band and the conduction band
+          !! would need to be corrected from PBE to HSE.
+
+        dEDelta = dETotWRelax - dEEigRef
           !! To get the total energy that needs to be conserved (what
           !! goes into the delta function), add the total energy 
           !! difference between the two relaxed charge states and the
           !! additional eigenvalue energy difference between the initial
           !! state and the WZP reference-carrier state. 
-          !!
-          !! In both hole and electron capture, the actual electron
-          !! energy decreases, so the negative absolute value of the
-          !! eigenvalue difference is used.
-          !!
-          !! The energy correction `eCorrectEigRef` is only applied to
-          !! the eigenvalue energy difference between the initial state
-          !! and the reference state. This correction should be zero if
-          !! the reference state and initial state are both in the conduction
-          !! band or both in the valence band, since eigenvalue differences
-          !! within the bands are okay at the PBE level and do not need
-          !! to be corrected.
 
-        dEZeroth = dETotElecOnly - abs(eigvI(ibi) - refEig + eCorrectEigRef)
+        dEZeroth = dETotElecOnly - dEEigRef
           !! The zeroth-order matrix element contains the electronic-only
           !! energy difference. We get that from a total energy difference
           !! between the two charge states in the initial positions. Like
           !! in the energy for the delta function, the additional carrier
           !! energy must also be included with a potential correction.
 
-        dEFirst = abs(eigvI(ibi) - eigvF(ibf) + eCorrectEigF)
-          !! First-order term contains only the unperturbed eigenvalue
+        if(captured) then
+          dEFirst = dEEigRef + dEEigRefDefect
+        else
+          dEFirst = abs(eigvI(ibi) - eigvF(ibf))
+        endif
+          !! The first-order term contains only the unperturbed eigenvalue
           !! difference. The perturbative expansion has 
           !! \(\varepsilon_i - \varepsilon_f\), in terms of the actual 
           !! electron. The absolute value is needed for the hole case.
-          !! A potential correction term is included in case the PBE
-          !! energy levels must be used.
+          !! 
+          !! For capture, the defect level should not have dispersion, and
+          !! the level of the defect changes between charge states, so we
+          !! use a single reference energy and distance to the defect, taken
+          !! from the initial-charge-state HSE calculation. For the scattering
+          !! case, the bands do not have those issues, so we can directly 
+          !! use the final-state eigenvalue.
 
-        dEPlot = abs(eigvI(ibi) - eigCBMorVBM)/eVToHartree
-          !! Energy plotted should be positive carrier energy in reference
-          !! to the CBM (electrons) or VBM (holes)
+        dEPlot = abs(dEZeroth)/eVToHartree
+          !! Energy plotted should be the positive, electronic-only energy 
+          !! difference (same as in zeroth-order) in eV
         
         write(17, 1001) ibf, ibi, dEDelta, dEZeroth, dEFirst, dEPlot
             
@@ -482,37 +647,28 @@ module energyTabulatorMod
   end subroutine writeEnergyTable
   
 !----------------------------------------------------------------------------
-  subroutine readEigenvalues(CBMorVBMBand, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, refBand, exportDirEigs, eigvF, eigvI, &
-        eigCBMorVBM, refEig)
+  subroutine readEigenvalues(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, exportDirEigs, eigvF, eigvI)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
     
     ! Input variables
-    integer, intent(in) :: CBMorVBMBand
-      !! Band of CBM (electron capture) or VBM (hole capture)
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
     integer, intent(in) :: ikGlobal
       !! Current global k-point
     integer, intent(in) :: isp
       !! Current spin channel
-    integer, intent(in) :: refBand
-      !! Band of WZP reference carrier
 
     character(len=300), intent(in) :: exportDirEigs
       !! Path to export for system to get eigenvalues
 
     ! Output variables:
-    real(kind=dp), intent(out) :: eigCBMorVBM
-      !! Eigenvalue of either the CBM or VBM
     real(kind=dp), intent(out) :: eigvF(iBandFinit:iBandFfinal)
       !! Final-state eigenvalues
     real(kind=dp), intent(out) :: eigvI(iBandIinit:iBandIfinal)
       !! Initial-state eigenvalues
-    real(kind=dp), intent(out) :: refEig
-      !! Eigenvalue of WZP reference carrier
 
     ! Local variables:
     integer :: ib
@@ -548,32 +704,12 @@ module energyTabulatorMod
     close(72)
 
 
-    open(72, file=fName)
-
-    call ignoreNextNLinesFromFile(72, 2 + (refBand-1))
-      ! Ignore header and all bands before reference band
-    
-    read(72, '(ES24.15E3)') refEig
-    
-    close(72)
-
-
-    open(72, file=fName)
-
-    call ignoreNextNLinesFromFile(72, 2 + (CBMorVBMBand-1))
-      ! Ignore header and all bands before either CBM or VBM
-    
-    read(72, '(ES24.15E3)') eigCBMorVBM
-    
-    close(72)
-
-    
     return
     
   end subroutine readEigenvalues
   
 !----------------------------------------------------------------------------
-  subroutine readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, order, energyTableDir, dE)
+  subroutine readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, energyTableDir, dE)
     !! Read all energies from energy table and store in dE
     
     use miscUtilities, only: ignoreNextNLinesFromFile, int2str
@@ -587,8 +723,6 @@ module energyTabulatorMod
       !! Current global k-point
     integer, intent(in) :: isp
       !! Current spin channel
-    integer, intent(in) :: order
-      !! Order of matrix element (0 or 1)
 
     character(len=300) :: energyTableDir
       !! Path to energy table
