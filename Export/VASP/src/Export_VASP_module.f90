@@ -3791,7 +3791,7 @@ module wfcExportVASPMod
       
           do ib = 1, nBands
 
-            write(72, '(2ES24.15E3)') real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(isp,ib,ik)
+            write(72, '(i10, 2ES24.15E3)') ib, real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(isp,ib,ik)
 
           enddo
       

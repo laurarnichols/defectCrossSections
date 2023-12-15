@@ -673,6 +673,8 @@ module energyTabulatorMod
     ! Local variables:
     integer :: ib
       !! Loop index
+    integer :: iDum
+      !! Dummy integer to ignore band index
 
     character(len=300) :: fName
       !! File name
@@ -686,7 +688,7 @@ module energyTabulatorMod
       ! Ignore header and all bands before lowest initial-state band
     
     do ib = iBandIinit, iBandIfinal
-      read(72, '(ES24.15E3)') eigvI(ib)
+      read(72, '(i10, ES24.15E3)') iDum, eigvI(ib)
     enddo
     
     close(72)
@@ -698,7 +700,7 @@ module energyTabulatorMod
       ! Ignore header and all bands before lowest final-state band
     
     do ib = iBandFinit, iBandFfinal
-      read(72, '(ES24.15E3)') eigvF(ib)
+      read(72, '(i10, ES24.15E3)') iDum, eigvF(ib)
     enddo
     
     close(72)
