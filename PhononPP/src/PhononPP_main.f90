@@ -98,6 +98,8 @@ program PhononPPMain
   !> norms.
   projNorm = 0.0_dp
 
+  write(memoLine,'("  shift = ", ES9.2E1)') shift
+
   do j = iModeStart, iModeEnd
 
     displacement = getShiftDisplacement(nAtoms, eigenvector(:,:,j), mass, shift)
@@ -110,7 +112,7 @@ program PhononPPMain
 
       shiftedPOSCARFName = trim(prefix)//"_"//trim(int2strLeadZero(j,suffixLength))
 
-      call writePOSCARNewPos(nAtoms, shiftedPositions, initPOSCARFName, shiftedPOSCARFName, .true.)
+      call writePOSCARNewPos(nAtoms, shiftedPositions, initPOSCARFName, shiftedPOSCARFName, trim(memoLine)//' j = '//int2str(j), .true.)
 
     endif
 

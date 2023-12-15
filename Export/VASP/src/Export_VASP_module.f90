@@ -3786,12 +3786,12 @@ module wfcExportVASPMod
 
           open(72, file=trim(exportDir)//"/eigenvalues."//trim(int2str(isp))//"."//trim(int2str(ik)))
       
-          write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
+          write(72, '("# Spin, k-point index: ",2i10, " Format: ''(a23, 2i10)''")') isp, ik
           write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
       
           do ib = 1, nBands
 
-            write(72, '(2ES24.15E3)') real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(isp,ib,ik)
+            write(72, '(i10, 2ES24.15E3)') ib, real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(isp,ib,ik)
 
           enddo
       

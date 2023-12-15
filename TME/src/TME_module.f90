@@ -60,7 +60,7 @@ module TMEmod
   character(len = 300) :: input, inputPC, textDum, elementsPath
   character(len = 320) :: mkdir
   
-  integer :: ik, ki, kf, ig, ibi, ibf
+  integer :: ik, ig, ibi, ibf
   integer :: JMAX, iTypes, iPn
   integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
   integer :: numOfTypes, nBands, nProjsSD
@@ -112,7 +112,7 @@ module TMEmod
   logical :: gamma_only, master, calculateVfis, coulomb, tmes_file_exists
   
   namelist /TME_Input/ exportDirSD, exportDirPC, elementsPath, energyTableDir, iBandIinit, &
-                       iBandIfinal, iBandFinit, iBandFfinal, ki, kf, calculateVfis, VfisOutput, &
+                       iBandIfinal, iBandFinit, iBandFfinal, calculateVfis, VfisOutput, &
                        eBin, order, dqFName, phononModeJ
   
   
@@ -228,9 +228,6 @@ contains
     dqFName = ''
     elementsPath = './TMEs'
     VfisOutput = ''
-    
-    ki = -1
-    kf = -1
 
     order = -1
 
