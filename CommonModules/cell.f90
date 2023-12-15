@@ -94,7 +94,7 @@ module cell
   end function cartDispProjOnPhononEigsNorm
 
 !----------------------------------------------------------------------------
-  subroutine writePOSCARNewPos(nAtoms, atomPositions, initFName, newFName, cart_)
+  subroutine writePOSCARNewPos(nAtoms, atomPositions, initFName, newFName, memoLine_, cart_)
 
     implicit none
 
@@ -109,6 +109,8 @@ module cell
       !! File name for initial POSCAR
     character(len=300), intent(in) :: newFName
       !! File name for POSCAR with new positions
+    character(len=300), optional :: memoLine_
+      !! Input memo line to add to first note line
 
     logical, optional :: cart_
       !! Input for whether or not to write coordinates in Cartesian
@@ -116,6 +118,9 @@ module cell
     ! Local variables:
     integer :: ix, ia, iLine
       !! Loop indices
+
+    character(len=300) :: memoLine
+      !! Memo line to add to first note line
 
     logical :: cart
       !! Whether or not to write coordinates in Cartesian
@@ -128,9 +133,15 @@ module cell
       !! Line to read from file
 
 
+
+    memoLine = ''
+    if(present(memoLine_)) memoLine = memoLine_
+      !! Set optional argument memoLine with a default empty string
+
     cart = .false.
     if(present(cart_)) cart = cart_
       !! Set optional argument cart with default value false
+
 
     !> Make sure the POSCAR file exists
     inquire(file=trim(initFName), exist=fileExists)
@@ -140,9 +151,13 @@ module cell
     open(unit=15, file=trim(initFName))
     open(unit=20, file=trim(newFName))
 
+
+    read(15,'(A)') line 
+    write(20,'(A)') trim(line)//trim(memoLine)
+      !! Add optional memoLine to first comment line
   
-    !> Write first 6 lines as-is
-    do iLine = 1, 6
+    !> Write next 5 lines as-is
+    do iLine = 2, 6
       read(15,'(A)') line 
       write(20,'(A)') trim(line) 
     enddo

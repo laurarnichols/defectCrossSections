@@ -46,10 +46,12 @@ module PhononPPMod
 
   character(len=300) :: dqFName
     !! File name for generalized-coordinate norms
-  character(len=300) :: phononFName
-    !! File name for mesh.yaml phonon file
   character(len=300) :: initPOSCARFName, finalPOSCARFName
     !! File name for POSCAR for relaxed initial and final charge states
+  character(len=300) :: memoLine
+    !! Memo line to output shift and mode number to shifted POSCARs
+  character(len=300) :: phononFName
+    !! File name for mesh.yaml phonon file
   character(len=300) :: prefix
     !! Prefix for shifted POSCARs
   character(len=300) :: shiftedPOSCARFName
