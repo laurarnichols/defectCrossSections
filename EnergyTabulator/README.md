@@ -27,7 +27,6 @@ The inputs should look like
   eCorrectTot = real				  ! size of total-energy correction in eV; default 0.0
   eCorrectEigRef = real			  ! size of correction to eig diff to ref carrier in eV; default 0.0
   refBand = integer						! band location of WZP reference carrier
-  CBMorVBMBand = integer      ! band for CBM (for electrons) or VBM (for holes)
   
   ! Band range for overlaps
   iBandIinit = integer						! lowest initial-state band
