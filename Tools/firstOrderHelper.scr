@@ -1,0 +1,259 @@
+#!/bin/bash
+#SBATCH --nodes 1
+#SBATCH --ntasks-per-node=128
+#SBATCH -C cpu
+#SBATCH -q debug
+#SBATCH -t 00:30:00
+#SBATCH -J SiVH3_submit
+#SBATCH -o %x.o%j
+#SBATCH -e %x.e%j
+#SBATCH --mail-type=begin,end,fail
+#SBATCH --mail-user=laura.r.nichols@vanderbilt.edu
+
+
+submitVASP() {
+  local i=$1
+
+  cd disp-$i
+
+  cp ../{INCAR,KPOINTS,POTCAR,CHG,CHGCAR,WAVECAR} ./
+
+  cp ../../../PhononPP/ph_POSCAR_$i ./POSCAR
+
+  # Generate a script
+  cat > run_VASP.scr << EOF
+#!/bin/bash
+#SBATCH --nodes 2
+#SBATCH --ntasks-per-node=128
+#SBATCH -C cpu
+#SBATCH -q regular
+#SBATCH -t 00:13:00
+#SBATCH -J ${i}SiVH3scf
+#SBATCH -o %x.o%j
+#SBATCH -e %x.e%j
+#SBATCH --mail-type=fail
+#SBATCH --mail-user=laura.r.nichols@vanderbilt.edu
+
+module load vasp
+
+srun --cpu-bind=cores vasp_std
+EOF
+
+  sbatch run_VASP.scr
+
+  cd ../
+}
+
+clean() {
+  local i=$1
+
+  cd disp-$i
+
+  rm ./*
+
+  rm -r export
+
+  cd ../
+
+}
+
+submitAll() {
+  local i=$1
+
+  cd disp-$i
+
+  cp ../{INCAR,KPOINTS,POTCAR,CHG,CHGCAR,WAVECAR,SiVH3_export.in} ./
+
+  cp ../../../PhononPP/ph_POSCAR_$i ./POSCAR
+
+  cat > TME.in << EOF
+&TME_Input
+
+ exportDirSD    = './export'  ! path to the export dir
+ exportDirPC    = '/pscratch/sd/l/lnichols/SiVH3/GaNPaper/VASPAndExport/neutralChargeState/positivePositions/PBE/exportGamma'  ! path to the export dir
+ energyTableDir = '/pscratch/sd/l/lnichols/SiVH3/GaNPaper/posToNeut/EnergyTabulator/'
+
+ order          = 1 ! zeroth-order
+
+ ! Parameters to get dq_j
+ dqFName = '/pscratch/sd/l/lnichols/SiVH3/GaNPaper/posToNeut/PhononPP/dq.txt'
+ phononModeJ = ${i}           ! phonon-mode index
+
+ elementsPath   = './TME'       ! path to store outputs
+
+ iBandIinit  = 1025         ! initial state initial band
+ iBandIfinal = 1088         ! initial state final band
+ iBandFinit  = 1024         ! final state initial band
+ iBandFfinal = 1024         ! final state final band
+
+ calculateVfis = .false.    ! Set to .true. only if there is an incoming electron that will be captured in the system.
+/
+
+EOF
+
+  # Generate a script
+  cat > run_VASPExportTME.scr << EOF
+#!/bin/bash
+#SBATCH --nodes 2
+#SBATCH --ntasks-per-node=128
+#SBATCH -C cpu
+#SBATCH -q regular
+#SBATCH -t 00:22:00
+#SBATCH -J ${i}SiVH3scfExportTME
+#SBATCH -o %x.o%j
+#SBATCH -e %x.e%j
+#SBATCH --mail-type=fail
+#SBATCH --mail-user=laura.r.nichols@vanderbilt.edu
+
+module load vasp
+
+srun --cpu-bind=cores vasp_std
+
+if [ \$? -eq 0 ]; then
+  srun ~/defectCrossSections/bin/Export_VASP.x -nk 1 -nb 4 < SiVH3_export.in > SiVH3_export.out
+fi
+
+if [ \$? -eq 0 ]; then
+  srun ~/defectCrossSections/bin/TME.x -nk 1 < TME.in > TME.out
+fi
+EOF
+
+  sbatch run_VASPExportTME.scr
+
+  cd ../
+}
+
+submitExportAndTME() {
+
+  local i=$1
+
+  cp SiVH3_export.in disp-$i
+
+  cd disp-$i
+
+  cat > TME.in << EOF
+&TME_Input
+
+ exportDirSD    = './export'  ! path to the export dir
+ exportDirPC    = '/pscratch/sd/l/lnichols/SiVH3/GaNPaper/VASPAndExport/neutralChargeState/positivePositions/PBE/exportGamma'  ! path to the export dir
+ energyTableDir = '/pscratch/sd/l/lnichols/SiVH3/GaNPaper/posToNeut/EnergyTabulator/'
+
+ order          = 1 ! zeroth-order
+
+ ! Parameters to get dq_j
+ dqFName = '/pscratch/sd/l/lnichols/SiVH3/GaNPaper/posToNeut/PhononPP/dq.txt'
+ phononModeJ = ${i}           ! phonon-mode index
+
+ elementsPath   = './TME'       ! path to store outputs
+
+ iBandIinit  = 1025         ! initial state initial band
+ iBandIfinal = 1088         ! initial state final band
+ iBandFinit  = 1024         ! final state initial band
+ iBandFfinal = 1024         ! final state final band
+
+ calculateVfis = .false.    ! Set to .true. only if there is an incoming electron that will be captured in the system.
+/
+
+EOF
+
+  cat > run_ExportTME.scr << EOF
+#!/bin/bash
+#SBATCH --nodes 2
+#SBATCH --ntasks-per-node=128
+#SBATCH -C cpu
+#SBATCH -q regular
+#SBATCH -t 00:10:00
+#SBATCH -J ${i}SiVH3ExportTME
+#SBATCH -o %x.o%j
+#SBATCH -e %x.e%j
+#SBATCH --mail-type=fail
+#SBATCH --mail-user=laura.r.nichols@vanderbilt.edu
+
+srun ~/defectCrossSections/bin/Export_VASP.x -nk 1 -nb 4 < SiVH3_export.in > SiVH3_export.out
+
+if [ \$? -eq 0 ]; then
+  srun ~/defectCrossSections/bin/TME.x -nk 1 < TME.in > TME.out
+fi
+EOF
+
+  sbatch run_ExportTME.scr
+
+  cd ../
+}
+
+cleanForResubmit() {
+  local i=$1
+
+  cd disp-$1
+
+  rm -r ./*
+
+  cd ../
+}
+
+getShiftedOverlaps() {
+
+  local i=$1
+
+  # Remove leading zeros
+  i_no_zeros="${1#"${1%%[!0]*}"}"
+
+  cd disp-$1
+
+  # Input files
+  overlap_file="TME/allElecOverlap.1.1"
+  baseline_overlap_file="../disp-0001/orthNonDisp/TME/allElecOverlap.1.1"
+  energy_file="../../../EnergyTabulator/newVersion/energyTable.1.1"
+  displacement_file="../../../PhononPP/dq.txt"
+
+  mkdir shiftedTMEECorrNew
+
+  # Output file
+  output_file="shiftedTMEECorrNew/allElecOverlap.1.1"
+
+  # Temporary file for intermediate calculations
+  temp_file="temp.txt"
+
+  # Numbers of header lines for each file type
+  header_lines_overlap=8
+  header_lines_baseline=8
+  header_lines_energy=9
+  header_lines_displacement=1
+
+  head -n $((header_lines_overlap - 1)) "$overlap_file"> "$output_file"
+
+  displacement_line=$(tail -n +$((header_lines_displacement + i_no_zeros)) "$displacement_file" | head -n 1)
+
+  paste <(tail -n +$header_lines_overlap "$overlap_file" | awk '{print $5}') \
+        <(tail -n +$header_lines_baseline "$baseline_overlap_file" | awk '{print $5}') \
+        <(tail -n +$header_lines_energy "$energy_file" | awk '{print $5}') \
+        <(seq 64 | xargs -I{} echo "$displacement_line" | awk '{print $2}') | \
+  awk '{w_if=sqrt($1); w_if0=sqrt($2); E=$3; dq=$4; result=((w_if-w_if0)*E/dq)^2; printf "%.15E\n", result}' > "$temp_file"
+
+  paste <(tail -n +$header_lines_overlap "$overlap_file" | awk '{print $1, $2, $3, $4, $5}') \
+        <(awk '{printf "%.15E\n", $1}' "$temp_file") | \
+        awk '{printf "%7d%7d%24.15E%24.15E%24.15E%24.15E\n", $1, $2, $3, $4, $5, $6}' >> "$output_file"
+
+  rm "$temp_file"
+
+  echo "$i"
+
+  cd ../
+}
+
+for i in {0001..1539}
+do
+
+  #cleanForResubmit $i
+  #submitAll $i
+  #submitVASP $i
+  #submitExportAndTME $i
+  #clean $i
+  getShiftedOverlaps $i
+  #cd disp-$i
+  #cp ../INCAR ./
+  #sbatch run_VASP.scr
+  #cd ../
+
+done
+
