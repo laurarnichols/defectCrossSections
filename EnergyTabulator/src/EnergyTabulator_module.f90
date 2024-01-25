@@ -734,20 +734,39 @@ module energyTabulatorMod
       !! All energy differences from energy table
 
     ! Local variables:
+    integer :: iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
+      !! Energy band bounds for initial and final state from the energy table file
     integer :: ibi, ibf
       !! Loop indices
     integer :: iDum
       !! Dummy integer to ignore input
+
+    real(kind=dp) :: dE_(4)
+      !! Input energy
+
+    character(len=300) :: fName
+      !! Energy table file name
     
     
-    open(27, file=trim(energyTableDir)//"/energyTable."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
+    fName = trim(energyTableDir)//"/energyTable."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
+
+    open(27, file=trim(fName), status='unknown')
+
+    read(27,*)
+    read(27,'(5i10)') iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
+
+    ! Check the input band bounds against those in the energy file
+    if(iBandIinit < iBandIinit_ .or. iBandIfinal > iBandIfinal_ .or. iBandFinit < iBandFinit_ .or. iBandFfinal > iBandFfinal_) &
+      call exitError('readEnergyTable', 'given band bounds are outside those in energy table '//trim(fName), 1)
     
-    call ignoreNextNLinesFromFile(27,8)
+    call ignoreNextNLinesFromFile(27,6)
     
-    do ibf = iBandFinit, iBandFfinal
-      do ibi = iBandIinit, iBandIfinal
+    do ibf = iBandFinit_, iBandFfinal_
+      do ibi = iBandIinit_, iBandIfinal_
       
-        read(27,*) iDum, iDum, dE(ibf,ibi,:)
+        read(27,*) iDum, iDum, dE_
+
+        if(ibi >= iBandIinit .and. ibi <= iBandIfinal .and. ibf >= iBandFinit .and. ibf <= iBandFfinal) dE(ibf,ibi,:) = dE_(:)
           
       enddo
     enddo
