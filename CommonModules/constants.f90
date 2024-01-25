@@ -20,9 +20,8 @@ module constants
   real(kind=dp), parameter ::          hbar = 1.0545718e-34_dp
   real(kind=dp), parameter ::            kB = 1.38064852e-23_dp
     !! Boltzmann constant
-  real(kind=dp), parameter ::            pi = 3.1415926535897932_dp
+  real(kind=dp), parameter ::            pi = atan(1.0_dp)*4.0_dp
   real(kind=dp), parameter ::   ryToHartree = 0.5_dp
-  real(kind=dp), parameter ::         sq4pi = 3.544907701811032_dp
   real(kind=dp), parameter ::  THzToHartree = 1.0_dp/6579.683920729_dp
   real(kind=dp), parameter ::       THzToHz = 1e12_dp
   real(kind=dp), parameter ::         twopi = 2.0_dp*pi

@@ -1,5 +1,5 @@
 module TMEmod
-  use constants, only: dp, pi, sq4pi, eVToHartree, ii
+  use constants, only: dp, pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
   use energyTabulatorMod, only: energyTableDir, readEnergyTable
   use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, nSpins, order

@@ -20,8 +20,6 @@ module TMEModule
     !! Conversion factor from Hartree to eV
   real(kind = dp), parameter :: pi = 3.141592653589793_dp
     !! Pi
-  real(kind = dp), parameter :: sq4pi = 3.544907701811032_dp
-    !! \(\sqrt{4\pi}\)
   !
   ! Declare complex parameter
   complex(kind = dp), parameter ::    ii = cmplx(0.0_dp, 1.0_dp, kind = dp)
