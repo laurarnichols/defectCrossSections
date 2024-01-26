@@ -183,10 +183,12 @@ module errorsAndMPI
           case('-nk', '-nPools', '-nPoolss') 
             call get_command_argument(narg, arg)
             read(arg, *) nPools_
+            write(*, '(/5X,"User selected ",I5," k-point pools")') nPools_
             narg = narg + 1
           case('-nb', '-nband', '-nbgrp', '-nband_group') 
             call get_command_argument(narg, arg)
             read(arg, *) nBandGroups_
+            write(*, '(/5X,"User selected ",I5," band groups")') nBandGroups_
             narg = narg + 1
           case default
             command_line = trim(command_line) // ' ' // trim(arg)
@@ -197,6 +199,8 @@ module errorsAndMPI
       if(len_trim(command_line) /= 0) then
         write(*,*) 'Unprocessed command line arguments: ' // trim(command_line)
       endif
+
+      write(*, '(/5X,"Parallel version (MPI), running on ",I5," processors")') nProcs
 
     endif
 
