@@ -480,6 +480,8 @@ module PhononPPMod
 !----------------------------------------------------------------------------
   subroutine calcAndWriteSj(nModes, omegaFreq, projNorm)
 
+    use miscUtilities, only: hpsort_eps
+
     implicit none
 
     ! Input variables:
@@ -492,8 +494,13 @@ module PhononPPMod
       !! Generalized norms after displacement
 
     ! Local variables:
-    integer :: j
+    integer :: j, jSort
       !! Loop index
+    integer :: modeIndex(nModes)
+      !! Track mode indices after sorting
+
+    real(kind=dp) :: Sj(nModes)
+      !! Hold the Sj values to be sorted
 
 
     call mpiSumDoubleV(projNorm, worldComm)
@@ -502,13 +509,27 @@ module PhononPPMod
 
     if(ionode) then
 
+      do j = 1, nModes
+
+        modeIndex(j) = j
+
+        Sj(j) = projNorm(j)**2*omegaFreq(j)*THzToHz/(2*hbar) 
+
+      enddo
+
+      call hpsort_eps(nModes, Sj, modeIndex, 1e-14_dp)
+        ! Sort in ascending order
+
       open(60, file="./Sj.out")
 
       write(60,'(1i7)') nModes
 
       do j = 1, nModes
 
-        write(60,'(1i7, 2ES24.15E3)') j, projNorm(j)**2*omegaFreq(j)*THzToHz/(2*hbar), omegaFreq(j)
+        jSort = modeIndex(nModes-(j-1))
+
+        write(60,'(1i7, 2ES24.15E3)') modeIndex(jSort), Sj(nModes-(j-1)), omegaFreq(jSort)
+          ! Write out in descending order
 
       enddo
 

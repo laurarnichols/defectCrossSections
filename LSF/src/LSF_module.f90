@@ -363,8 +363,11 @@ contains
     ! Local variables:
     integer :: iDum
       !! Dummy integer
-    integer :: j
+    integer :: j, jSort
       !! Loop index
+
+    real(kind=dp) :: Sj_, omega_
+      !! Input variables
   
   
     if(ionode) then
@@ -385,7 +388,9 @@ contains
     if(ionode) then
 
       do j = 1, nModes
-        read(12,*) iDum, Sj(j), omega(j) ! freq read from Sj.out is f(in Thz)*2pi
+        read(12,*) jSort, Sj_, omega_! freq read from Sj.out is f(in Thz)*2pi
+        Sj(jSort) = Sj_
+        omega(jSort) = omega_
       end do
 
       omega(:) = omega(:)*THzToHz
