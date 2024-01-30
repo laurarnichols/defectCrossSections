@@ -35,7 +35,7 @@ program TMEmain
   call cpu_time(t1)
 
 
-  call readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
+  call readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineFName, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     !! @todo Figure out if `realLattVec` used anywhere. If not remove. @endtodo

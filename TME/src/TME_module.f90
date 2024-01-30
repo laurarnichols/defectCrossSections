@@ -1,3 +1,6 @@
+! NOTE: This file has different programming styles because
+! I haven't been able to fully clean this file up yet.
+! Please excuse the mess.
 module TMEmod
   use constants, only: dp, pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
@@ -49,12 +52,19 @@ module TMEmod
   complex(kind=dp), allocatable :: Ylm(:,:)
     !! Spherical harmonics
   
+  character(len=300) :: baselineFName
+    !! File name for baseline overlap to optionally
+    !! be subtracted for the first-order term
   character(len=300) :: dqFName
     !! File name for generalized-coordinate norms
   character(len=300) :: exportDirSD, exportDirPC
     !! Paths to exports for SD (left) and PC (right) 
     !! systems to use for wave function overlaps <SD|PC>
 
+  logical :: subtractBaseline
+    !! If baseline should be subtracted from first-order
+    !! overlap for increased numerical accuracy in the 
+    !! derivative
 
   character(len = 200) :: VfisOutput
   character(len = 300) :: input, inputPC, textDum, elementsPath
@@ -113,13 +123,13 @@ module TMEmod
   
   namelist /TME_Input/ exportDirSD, exportDirPC, elementsPath, energyTableDir, iBandIinit, &
                        iBandIfinal, iBandFinit, iBandFfinal, calculateVfis, VfisOutput, &
-                       eBin, order, dqFName, phononModeJ
+                       eBin, order, dqFName, phononModeJ, subtractBaseline, baselineFName
   
   
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
+  subroutine readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineFName, subtractBaseline)
 
     use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
     
@@ -139,6 +149,15 @@ contains
     real(kind=dp), intent(out) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
 
+    character(len=300), intent(out) :: baselineFName
+      !! File name for baseline overlap to optionally
+      !! be subtracted for the first-order term
+
+    logical, intent(out) :: subtractBaseline
+      !! If baseline should be subtracted from first-order
+      !! overlap for increased numerical accuracy in the 
+      !! derivative
+
     ! Local variables:    
     integer :: iDum
       !! Dummy integer to ignore file input
@@ -152,11 +171,11 @@ contains
 
     if(ionode) then
     
-      call initialize()
+      call initialize(baselineFName, subtractBaseline)
     
       read(5, TME_Input, iostat=ios)
     
-      call checkInitialization()
+      call checkInitialization(baselineFName, subtractBaseline)
 
     endif
 
@@ -170,12 +189,14 @@ contains
     call MPI_BCAST(phononModeJ, 1, MPI_INTEGER, root, worldComm, ierr)
 
     call MPI_BCAST(calculateVfis, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(subtractBaseline, 1, MPI_LOGICAL, root, worldComm, ierr)
 
     call MPI_BCAST(eBin, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call MPI_BCAST(exportDirSD, len(exportDirSD), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(exportDirPC, len(exportDirPC), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(baselineFName, len(baselineFName), MPI_CHARACTER, root, worldComm, ierr)
 
     call MPI_BCAST(elementsPath, len(elementsPath), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(VfisOutput, len(exportDirSD), MPI_CHARACTER, root, worldComm, ierr)
@@ -215,11 +236,19 @@ contains
   end subroutine readInput
   
 !----------------------------------------------------------------------------
-  subroutine initialize()
+  subroutine initialize(baselineFName, subtractBaseline)
     
     implicit none
 
     ! Output variables:
+    character(len=300), intent(out) :: baselineFName
+      !! File name for baseline overlap to optionally
+      !! be subtracted for the first-order term
+
+    logical, intent(out) :: subtractBaseline
+      !! If baseline should be subtracted from first-order
+      !! overlap for increased numerical accuracy in the 
+      !! derivative
     
 
     exportDirSD = ''
@@ -228,6 +257,7 @@ contains
     dqFName = ''
     elementsPath = './TMEs'
     VfisOutput = ''
+    baselineFName = ''
 
     order = -1
 
@@ -241,15 +271,26 @@ contains
     iBandFfinal = -1
     
     calculateVfis = .false.
+    subtractBaseline = .false.
     
     return
     
   end subroutine initialize
   
 !----------------------------------------------------------------------------
-  subroutine checkInitialization()
+  subroutine checkInitialization(baselineFName, subtractBaseline)
     
     implicit none
+
+    ! Output variables:
+    character(len=300), intent(inout) :: baselineFName
+      !! File name for baseline overlap to optionally
+      !! be subtracted for the first-order term
+
+    logical, intent(inout) :: subtractBaseline
+      !! If baseline should be subtracted from first-order
+      !! overlap for increased numerical accuracy in the 
+      !! derivative
     
     ! Local variables
     logical :: abortExecution
@@ -266,6 +307,8 @@ contains
     if(order == 1) then
       abortExecution = checkFileInitialization('dqFName', dqFName) .or. abortExecution
       abortExecution = checkIntInitialization('phononModeJ', phononModeJ, 1, int(1e9)) .or. abortExecution
+
+      if(subtractBaseline) abortExecution = checkFileInitialization('baselineFName', baselineFName) .or. abortExecution
     endif
 
     abortExecution = checkStringInitialization('elementsPath', elementsPath) .or. abortExecution
