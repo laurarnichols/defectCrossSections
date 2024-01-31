@@ -114,6 +114,9 @@ module wfcExportVASPMod
   logical :: groupForGroupVelocity
     !! If there are groups of k-points for group
     !! velocity calculation
+  logical :: loopSpins
+    !! Whether to loop over available spin channels;
+    !! otherwise, use selected spin channel
   
   character(len=256) :: exportDir
     !! Directory to be used for export
@@ -165,7 +168,8 @@ module wfcExportVASPMod
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(ispSelect, nDispkPerCoord, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+  subroutine readInputParams(ispSelect, nDispkPerCoord, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, loopSpins, &
+        exportDir, pattern, VASPDir)
 
     implicit none
 
@@ -187,6 +191,9 @@ module wfcExportVASPMod
     logical, intent(out) :: groupForGroupVelocity
       !! If there are groups of k-points for group
       !! velocity calculation
+    logical, intent(out) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
 
     character(len=256), intent(out) :: exportDir
       !! Directory to be used for export
@@ -208,7 +215,8 @@ module wfcExportVASPMod
     
       if(ierr /= 0) call exitError('readInputParams', 'reading inputParams namelist', abs(ierr))
 
-      call checkInitialization(ispSelect, nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+      call checkInitialization(ispSelect, nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, &
+            pattern, VASPDir, loopSpins)
 
     endif
 
@@ -216,6 +224,7 @@ module wfcExportVASPMod
     call MPI_BCAST(VASPDir, len(VASPDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energiesOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(gammaOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(loopSpins, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(groupForGroupVelocity, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(ispSelect, 1, MPI_INTEGER, root, worldComm, ierr)
 
@@ -280,7 +289,8 @@ module wfcExportVASPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(ispSelect, nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+  subroutine checkInitialization(ispSelect, nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, &
+        VASPDir, loopSpins)
     
     implicit none
 
@@ -306,6 +316,11 @@ module wfcExportVASPMod
     character(len=256), intent(in) :: VASPDir
       !! Directory with VASP files
 
+    ! Output variables:
+    logical, intent(out) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
+
     ! Local variables:
     logical :: abortExecution
       !! Whether or not to abort the execution
@@ -325,8 +340,10 @@ module wfcExportVASPMod
 
     if(checkIntInitialization('ispSelect', ispSelect, 1, 2)) then
       write(*,*) "Looping over spin."
+      loopSpins = .true.
     else
       write(*,'("Only exporting spin channel ", i2)') ispSelect
+      loopSpins = .false.
     endif
 
     abortExecution = checkDirInitialization('VASPDir', VASPDir, 'OUTCAR') .or. abortExecution
