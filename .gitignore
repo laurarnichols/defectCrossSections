@@ -3,3 +3,4 @@
 *.mod
 *.a
 make.sys
+.ipynb_checkpoints
