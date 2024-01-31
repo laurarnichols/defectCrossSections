@@ -35,7 +35,7 @@ program TMEmain
   call cpu_time(t1)
 
 
-  call readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, subtractBaseline)
+  call readInput(maxAngMom, maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     !! @todo Figure out if `realLattVec` used anywhere. If not remove. @endtodo
@@ -64,9 +64,9 @@ program TMEmain
 
 
   allocate(gCart(3,nGVecsLocal))
-  allocate(Ylm((JMAX+1)**2,nGVecsLocal))
+  allocate(Ylm((maxAngMom+1)**2,nGVecsLocal))
 
-  call setUpTables(JMAX, nGVecsLocal, mill_local, numOfTypes, recipLattVec, atoms, gCart, Ylm)
+  call setUpTables(maxAngMom, nGVecsLocal, mill_local, numOfTypes, recipLattVec, atoms, gCart, Ylm)
 
   deallocate(mill_local)
 
@@ -235,11 +235,11 @@ program TMEmain
           !> Have all processes calculate the PAW k correction
       
           if(isp == 1 .or. nSpinsPC == 2 .or. spin1Read) &
-            call pawCorrectionK('PC', nIonsPC, TYPNIPC, JMAX, nGVecsLocal, numOfTypesPC, numOfTypes, posIonPC, gCart, Ylm, atomsPC, atoms, pawKPC)
+            call pawCorrectionK('PC', nIonsPC, TYPNIPC, maxAngMom, nGVecsLocal, numOfTypesPC, numOfTypes, posIonPC, gCart, Ylm, atomsPC, atoms, pawKPC)
       
 
           if(isp == 1 .or. nSpinsSD == 2 .or. spin1Read) &
-            call pawCorrectionK('SD', nIonsSD, TYPNISD, JMAX, nGVecsLocal, numOfTypes, numOfTypes, posIonSD, gCart, Ylm, atoms, atoms, pawSDK)
+            call pawCorrectionK('SD', nIonsSD, TYPNISD, maxAngMom, nGVecsLocal, numOfTypes, numOfTypes, posIonSD, gCart, Ylm, atoms, atoms, pawSDK)
 
         
           call cpu_time(t2)

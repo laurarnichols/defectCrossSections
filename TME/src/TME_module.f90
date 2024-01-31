@@ -26,6 +26,8 @@ module TMEmod
     !! For timing different processes
 
 
+  integer :: maxAngMom
+    !! Maximum angular momentum of the projectors
   integer :: maxGIndexGlobal
     !! Maximum G-vector index among all \(G+k\)
     !! and processors for PC and SD
@@ -72,7 +74,7 @@ module TMEmod
   character(len = 320) :: mkdir
   
   integer :: ik, ig, ibi, ibf
-  integer :: JMAX, iTypes, iPn
+  integer :: iTypes, iPn
   integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
   integer :: numOfTypes, nProjsSD
   integer :: numOfUsedGvecsPP, ios, npwNi, npwNf, npwMi, npwMf
@@ -123,13 +125,15 @@ module TMEmod
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, subtractBaseline)
+  subroutine readInput(maxAngMom, maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, subtractBaseline)
 
     use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
     
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: maxAngMom
+      !! Maximum angular momentum of the projectors
     integer, intent(out) :: maxGIndexGlobal
       !! Maximum G-vector index among all \(G+k\)
       !! and processors for PC and SD
@@ -191,8 +195,16 @@ contains
 
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
 
-    call readInputPC(nKPoints, maxGIndexGlobalPC)
-    call readInputSD(nKPoints, maxGIndexGlobalSD, nGVecsGlobal, realLattVec, recipLattVec)
+
+    maxAngMom = 0
+
+    call readInputPC(maxAngMom, nKPoints, maxGIndexGlobalPC)
+    call readInputSD(maxAngMom, nKPoints, maxGIndexGlobalSD, nGVecsGlobal, realLattVec, recipLattVec)
+
+    call MPI_BCAST(maxAngMom, 1, MPI_INTEGER, root, worldComm, ierr)
+    
+    maxAngMom = 2*maxAngMom + 1
+
     
     if(ionode) then
       
@@ -317,13 +329,15 @@ contains
   end subroutine checkInitialization
   
 !----------------------------------------------------------------------------
-  subroutine readInputPC(nKPoints, maxGIndexGlobalPC)
+  subroutine readInputPC(maxAngMom, nKPoints, maxGIndexGlobalPC)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
 
-    ! Outpu variables:
+    ! Output variables:
+    integer, intent(inout) :: maxAngMom
+      !! Maximum angular momentum of the projectors
     integer, intent(out) :: nKPoints
       !! Total number of k-points
 
@@ -546,6 +560,12 @@ contains
     if(ionode) then
     
       close(50)
+
+      do iType = 1, numOfTypes
+        do i = 1, atoms(iType)%lMax
+          if(atoms(iType)%lps(i) > maxAngMom) maxAngMom = atoms(iType)%lps(i)
+        enddo
+      enddo
     
       call cpu_time(t2)
       write(*,'(" Reading input files done in:                ", f10.2, " secs.")') t2-t1
@@ -558,11 +578,13 @@ contains
   end subroutine readInputPC
   
 !----------------------------------------------------------------------------
-  subroutine readInputSD(nKPoints, maxGIndexGlobalSD, nGVecsGlobal, realLattVec, recipLattVec)
+  subroutine readInputSD(maxAngMom, nKPoints, maxGIndexGlobalSD, nGVecsGlobal, realLattVec, recipLattVec)
     !
     implicit none
     
     ! Input variables:
+    integer, intent(inout) :: maxAngMom
+      !! Maximum angular momentum of the projectors
     integer, intent(in) :: nKPoints
       !! Total number of k-points
 
@@ -816,20 +838,11 @@ contains
     
       close(50)
 
-      JMAX = 0
       do iType = 1, numOfTypes
         do i = 1, atoms(iType)%lMax
-          if ( atoms(iType)%lps(i) > JMAX ) JMAX = atoms(iType)%lps(i)
+          if(atoms(iType)%lps(i) > maxAngMom) maxAngMom = atoms(iType)%lps(i)
         enddo
       enddo
-    
-      JMAX = 2*JMAX + 1
-
-    endif
-
-    call MPI_BCAST(JMAX, 1, MPI_INTEGER, root, worldComm, ierr)
-    
-    if(ionode) then
 
       call cpu_time(t2)
       write(*,'(" Reading solid defect inputs done in:                ", f10.2, " secs.")') t2-t1
@@ -968,12 +981,12 @@ contains
   end subroutine getFullPWGrid
 
 !----------------------------------------------------------------------------
-  subroutine setUpTables(JMAX, nGVecsLocal, mill_local, numOfTypes, recipLattVec, atomsSD, gCart, Ylm)
+  subroutine setUpTables(maxAngMom, nGVecsLocal, mill_local, numOfTypes, recipLattVec, atomsSD, gCart, Ylm)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: JMAX
+    integer, intent(in) :: maxAngMom
       !! Max J index from L and M
     integer, intent(in) :: nGVecsLocal
       !! Number of local G-vectors
@@ -992,7 +1005,7 @@ contains
     real(kind=dp), intent(out) :: gCart(3,nGVecsLocal)
       !! G-vectors in Cartesian coordinates
 
-    complex(kind=dp), intent(out) :: Ylm((JMAX+1)**2,nGVecsLocal)
+    complex(kind=dp), intent(out) :: Ylm((maxAngMom+1)**2,nGVecsLocal)
       !! Spherical harmonics
 
     ! Local variables:
@@ -1001,7 +1014,7 @@ contains
 
     real(kind=dp) :: gUnit(3)
       !! Unit G-vector
-    real(kind=dp) :: JL(0:JMAX)
+    real(kind=dp) :: JL(0:maxAngMom)
       !! Bessel_j temporary variable
     real(kind=dp) :: q
       !! Magnitude of G-vector
@@ -1011,7 +1024,7 @@ contains
     
     do iT = 1, numOfTypes
 
-      allocate(atomsSD(iT)%bes_J_qr( 0:JMAX, atomsSD(iT)%iRc, nGVecsLocal))
+      allocate(atomsSD(iT)%bes_J_qr( 0:maxAngMom, atomsSD(iT)%iRc, nGVecsLocal))
       atomsSD(iT)%bes_J_qr(:,:,:) = 0.0_dp
       
     enddo
@@ -1026,7 +1039,7 @@ contains
       if(abs(q) > 1.0e-6_dp) gUnit = gUnit/q
         !! Get unit vector for Ylm calculation
 
-      call getYlm(gUnit, JMAX, Ylm(:,ig))
+      call getYlm(gUnit, maxAngMom, Ylm(:,ig))
         !! Calculate all the needed spherical harmonics
 
       do iT = 1, numOfTypes
@@ -1034,7 +1047,7 @@ contains
         do iR = 1, atomsSD(iT)%iRc
 
           JL = 0.0_dp
-          call bessel_j(q*atomsSD(iT)%r(iR), JMAX, JL) ! returns the spherical bessel at qr point
+          call bessel_j(q*atomsSD(iT)%r(iR), maxAngMom, JL) ! returns the spherical bessel at qr point
             ! Previously used SD atoms structure here for both PC and SD
           atomsSD(iT)%bes_J_qr(:,iR,ig) = JL(:)
 
@@ -1466,7 +1479,7 @@ contains
   end subroutine pawCorrectionWfc
 
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionK(crystalType, nAtoms, iType, JMAX, nGVecsLocal, numOfTypes, numOfTypesSD, atomPositions, gCart, Ylm, atoms, atomsSD, pawK)
+  subroutine pawCorrectionK(crystalType, nAtoms, iType, maxAngMom, nGVecsLocal, numOfTypes, numOfTypesSD, atomPositions, gCart, Ylm, atoms, atomsSD, pawK)
     
     implicit none
 
@@ -1475,7 +1488,7 @@ contains
       !! Number of atoms
     integer, intent(in) :: iType(nAtoms)
       !! Atom type index
-    integer, intent(in) :: JMAX
+    integer, intent(in) :: maxAngMom
       !! Max J index from L and M
     integer, intent(in) :: nGVecsLocal
       !! Number of local G-vectors
@@ -1489,7 +1502,7 @@ contains
     real(kind=dp), intent(in) :: gCart(3,nGVecsLocal)
       !! G-vectors in Cartesian coordinates
 
-    complex(kind=dp), intent(in) :: Ylm((JMAX+1)**2,nGVecsLocal)
+    complex(kind=dp), intent(in) :: Ylm((maxAngMom+1)**2,nGVecsLocal)
       !! Spherical harmonics
 
     character(len=2), intent(in) :: crystalType
