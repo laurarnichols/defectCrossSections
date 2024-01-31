@@ -11,6 +11,7 @@ The results must then be post-processed to be used as input to the other program
 The input file should look like
 ```f90
 &inputParams
+  ispSelect = integer                                   ! selection of a single spin channel; default unused
   VASPDir = 'path-to-VASP-output'                       ! default './'
   exportDir = 'path-to-put-exported-files'              ! default './Export'
   gammaOnly = logical                                   ! default .false.

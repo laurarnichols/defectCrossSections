@@ -76,6 +76,9 @@ module wfcExportVASPMod
     !! and for local PWs in the original order
   integer, allocatable :: iMill(:)
     !! Indices of miller indices after sorting
+  integer :: ispSelect
+    !! Selection of a single spin channel if input
+    !! by the user
   integer, allocatable :: iType(:)
     !! Atom type index
   integer :: fftGridSize(3)
@@ -156,17 +159,20 @@ module wfcExportVASPMod
 
   type (potcar), allocatable :: pot(:)
 
-  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity, nDispkPerCoord, pattern
+  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity, nDispkPerCoord, pattern, ispSelect
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(nDispkPerCoord, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+  subroutine readInputParams(ispSelect, nDispkPerCoord, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(out) :: nDispkPerCoord
       !! Number of displaced k-points per coordinate
       
@@ -196,13 +202,13 @@ module wfcExportVASPMod
 
     if(ionode) then
     
-      call initialize(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+      call initialize(ispSelect, nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
       read(5, inputParams, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading inputParams namelist', abs(ierr))
 
-      call checkInitialization(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+      call checkInitialization(ispSelect, nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
     endif
 
@@ -211,6 +217,7 @@ module wfcExportVASPMod
     call MPI_BCAST(energiesOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(gammaOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(groupForGroupVelocity, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(ispSelect, 1, MPI_INTEGER, root, worldComm, ierr)
 
 
     if(groupForGroupVelocity) then
@@ -230,11 +237,14 @@ module wfcExportVASPMod
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+  subroutine initialize(ispSelect, nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
     
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(out) :: nDispkPerCoord
       !! Number of displaced k-points per coordinate
 
@@ -255,6 +265,7 @@ module wfcExportVASPMod
 
 
     nDispkPerCoord = -1
+    ispSelect = -1
 
     energiesOnly = .false.
     gammaOnly = .false.
@@ -269,11 +280,14 @@ module wfcExportVASPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+  subroutine checkInitialization(ispSelect, nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
     
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(in) :: nDispkPerCoord
       !! Number of displaced k-points per coordinate
       
@@ -307,6 +321,12 @@ module wfcExportVASPMod
     if(groupForGroupVelocity) then
       abortExecution = checkIntInitialization('nDispkPerCoord', nDispkPerCoord, 1, maxNumDispkPerCoord) .or. abortExecution
       abortExecution = checkStringInitialization('pattern', pattern) .or. abortExecution
+    endif
+
+    if(checkIntInitialization('ispSelect', ispSelect, 1, 2)) then
+      write(*,*) "Looping over spin."
+    else
+      write(*,'("Only exporting spin channel ", i2)') ispSelect
     endif
 
     abortExecution = checkDirInitialization('VASPDir', VASPDir, 'OUTCAR') .or. abortExecution
