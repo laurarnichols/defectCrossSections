@@ -6,11 +6,9 @@ The code also assumes that all atom types in the `PC` system are also in the `SD
 
 Output files are 
 * `allElecOverlap.isp.ik` -- for each band in range and a given spin and k-point: initial and final band, all-electron overlaps, and matrix elements
-* `output` -- information about input variables
-* `VfisVsEofKpt`/`VfisVsE` -- optional k-binned matrix elements
 * stdout -- timing information and status updates
 
-The same TME code is used for both the zeroth-order and the first-order matrix elements. For both orders, the overlap part comes from from the TME code and the energy difference comes from the [`EnergyTabulator`](../EnergyTabulator) code.
+The same TME code is used for both the zeroth-order and the first-order matrix elements. For both orders, the overlap part comes from from the `TME` code and the energy difference comes from the [`EnergyTabulator`](../EnergyTabulator) code.
 
 ## Zeroth-order
 
@@ -35,10 +33,7 @@ The `TME` input file for the zeroth-order should look like
     ! Note: code logic only currently tested for single final band state (iBandFinit = iBandFfinal)
   
   ! Output info
-  elementsPath = 'path-to-store-overlap-files' 			! default './TMEs'
-  calculateVfis = .true. or .false.				! if k-binned overlaps should be calculated and output; default .false.
-  eBin = real							! size of energy bin if used
-  VfisOutput = 'path-to-write-k-binned-overlaps' 		! default './VfisVsE'
+  outputDir = 'path-to-store-overlap-files' 			! default './TMEs'
 /
 ```
 _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of the file. They represent a namelist and fortran will not recognize the group of variables without this specific format_
@@ -46,6 +41,9 @@ _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of th
 ## First-order
 
 The first-order term has a matrix element for each mode: $$M_j = \frac{\varepsilon_i - \varepsilon_f}{\delta q_j} \langle \phi_f^j | \phi_i\rangle,$$ where $\varepsilon_i - \varepsilon_f$ is the eigenvalue energy difference between the initial and final band states and $|\phi_f^j\rangle$ is the final-state defect orbital after displacing the atoms along the phonon directions by a small $\delta q_j$. The formalism assumes that the phonon modes are the same in the initial and final electronic states, so it doesn't matter which electronic state is used as long as the same charge state is used for both input wave functions and the atoms are in the initial positions. In practice, the ground state is usually simplest and fastest.
+
+The equation above for the matrix element assumes that the wave functions are orthogonal, but the numerical overlaps of the non-displaced wave functions $\langle \phi_{l'}|\phi_l\rangle$ are not actually $\delta_{ll'}$. To increase the numerical accuracy of the matrix elements, it is best to subtract the non-displaced wave function overlaps: $$M_j = \frac{\varepsilon_i - \varepsilon_f}{\delta q_j} \left( \langle \phi_f^j | \phi_i\rangle - \langle \phi_f|\phi_i\rangle \right).$$
+These overlaps can be found by inputting the non-displaced system for the PC and SD inputs. These baseline overlaps can then be subtracted from the overlaps from all of the mode-shifted overlaps.
 
 The `TME` input file for the first-order term should look like
 ```f90
@@ -57,6 +55,10 @@ The `TME` input file for the first-order term should look like
   exportDirSD    = 'path-to-displaced-defect-export'
   exportDirPC    = 'path-to-undisplaced-defect-export'
   energyTableDir = 'path-to-energy-tables'
+
+  ! Baseline info:
+  subtractBaseline = .true. or .false. ! If "orthogonal" overlap should be subtracted
+  baselineDir = 'path-to-non-displaced-overlaps'
   
   ! Band range for overlaps
   iBandIinit = integer						! lowest initial-state band
@@ -70,10 +72,7 @@ The `TME` input file for the first-order term should look like
   phononModeJ = integer           ! phonon-mode index
   
   ! Output info
-  elementsPath = 'path-to-store-overlap-files' 			! default './TMEs'
-  calculateVfis = .true. or .false.				! if k-binned overlaps should be calculated and output; default .false.
-  eBin = real							! size of energy bin if used
-  VfisOutput = 'path-to-write-k-binned-overlaps' 		! default './VfisVsE'
+  outputDir = 'path-to-store-overlap-files' 			! default './TMEs'
 /
 ```
 _Note: Do not alter the `&TME_Input` or `/` lines at the beginning and end of the file. They represent a namelist and fortran will not recognize the group of variables without this specific format_
