@@ -74,7 +74,7 @@ module TMEmod
   integer :: ik, ig, ibi, ibf
   integer :: JMAX, iTypes, iPn
   integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
-  integer :: numOfTypes, nBands, nProjsSD
+  integer :: numOfTypes, nProjsSD
   integer :: numOfUsedGvecsPP, ios, npwNi, npwNf, npwMi, npwMf
   integer :: np, nI, nF, nPP, ind2
   integer :: i, j, n1, n2, n3, n4, n, id, npw
@@ -684,21 +684,16 @@ contains
       do ni = 1, nIonsSD
         read(50,'(i10, 3ES24.15E3)') TYPNISD(ni), (posIonSD(j,ni), j = 1,3)
       enddo
+    
+      read(50, '(a)') textDum
+      read(50, *) 
 
     endif
   
     call MPI_BCAST(TYPNISD, size(TYPNISD), MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(posIonSD, size(posIonSD), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
-    if(ionode) then
-    
-      read(50, '(a)') textDum
-      read(50, '(i10)') nBands
 
-    endif
-
-    call MPI_BCAST(nBands, 1, MPI_INTEGER, root, worldComm, ierr)
-    
     allocate(atoms(numOfTypes))
     
     nProjsSD = 0
