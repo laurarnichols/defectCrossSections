@@ -347,6 +347,8 @@ contains
       !! and processors for PC
     
     ! Local variables:
+    integer :: nBands
+      !! Number of bands
     integer :: i, j, l, ind, ik, iDum, iType, ni, irc
     
     real(kind = dp) :: t1, t2 
@@ -429,7 +431,13 @@ contains
       enddo
     
       read(50, '(a)') textDum
-      read(50, * )
+      read(50,*) nBands
+
+      if(iBandIfinal > nBands .or. iBandFfinal) call exitError('readInputPC', 'band limits outside the number of bands in the system', 1)
+        ! Only need to test these bands because we tested in
+        ! the `checkInitialization` subroutine to make sure
+        ! that the `initial` bands are lower than the `final`
+        ! bands
 
     endif
 
@@ -601,6 +609,8 @@ contains
       !! Reciprocal lattice vectors
     
     ! Local variables:
+    integer :: nBands
+      !! Number of bands
     integer :: nKpts
       !! Number of k-points read from SD file
 
@@ -708,7 +718,13 @@ contains
       enddo
     
       read(50, '(a)') textDum
-      read(50, *) 
+      read(50,*) nBands
+
+      if(iBandIfinal > nBands .or. iBandFfinal) call exitError('readInputPC', 'band limits outside the number of bands in the system', 1)
+        ! Only need to test these bands because we tested in
+        ! the `checkInitialization` subroutine to make sure
+        ! that the `initial` bands are lower than the `final`
+        ! bands
 
     endif
   
