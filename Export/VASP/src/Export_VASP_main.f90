@@ -47,7 +47,7 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
+  call readWAVECAR(ispSelect, loopSpins, VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
       kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, reclenWav, eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 

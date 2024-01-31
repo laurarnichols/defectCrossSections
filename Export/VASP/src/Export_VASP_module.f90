@@ -365,7 +365,7 @@ module wfcExportVASPMod
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
+  subroutine readWAVECAR(ispSelect, loopSpins, VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
         kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, reclenWav, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
@@ -375,9 +375,16 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+
+    logical, intent(in) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
+
     character(len=256), intent(in) :: VASPDir
       !! Directory with VASP files
-
     
     ! Output variables:
     real(kind=dp), intent(out) :: realLattVec(3,3)
@@ -451,6 +458,14 @@ module wfcExportVASPMod
       nSpins = nint(nspin_real)
       prec = nint(prec_real)
         ! Convert input variables to integers
+
+
+      if(.not. loopSpins .and. checkIntInitialization('ispSelect', ispSelect, 1, nSpins)) &
+        call exitError('readWAVECAR', 'selected spin larger than number of spin channels available', 1)
+        ! Not looping spins (i.e., a single spin channel was selected),
+        ! make sure that the selected spin channel is not larger than
+        ! the number of spin channels available in the system
+
 
       if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
