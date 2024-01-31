@@ -75,18 +75,20 @@ submitAll() {
 
  order          = 1 ! zeroth-order
 
+ subtractBaseline = .true.
+ baselineDir = '/pscratch/sd/l/lnichols/SiVH3/GaNPaper/posToNeut/firstOrder/TME/orthNonDisp'
+
  ! Parameters to get dq_j
  dqFName = '/pscratch/sd/l/lnichols/SiVH3/GaNPaper/posToNeut/PhononPP/dq.txt'
  phononModeJ = ${i}           ! phonon-mode index
 
- elementsPath   = './TME'       ! path to store outputs
+ outputDir   = './TME'       ! path to store outputs
 
  iBandIinit  = 1025         ! initial state initial band
  iBandIfinal = 1088         ! initial state final band
  iBandFinit  = 1024         ! final state initial band
  iBandFfinal = 1024         ! final state final band
 
- calculateVfis = .false.    ! Set to .true. only if there is an incoming electron that will be captured in the system.
 /
 
 EOF
