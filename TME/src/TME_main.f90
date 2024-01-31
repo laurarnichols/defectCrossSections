@@ -35,7 +35,7 @@ program TMEmain
   call cpu_time(t1)
 
 
-  call readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
+  call readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     !! @todo Figure out if `realLattVec` used anywhere. If not remove. @endtodo
@@ -99,19 +99,7 @@ program TMEmain
     
     call MPI_BCAST(bothSpinChannelsExist, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
 
-    if(bothSpinChannelsExist) then
-
-      if(indexInPool == 0) then
-
-        do isp = 1, nSpins
-
-          call readUfis(ikLocal,isp)
-
-        enddo
-
-      endif
-    
-    else
+    if(.not. bothSpinChannelsExist) then
 
       !-----------------------------------------------------------------------------------------------
       !> Read projectors
@@ -167,17 +155,7 @@ program TMEmain
         !-----------------------------------------------------------------------------------------------
         !> Check if the `allElecOverlap.isp.ik` file exists
 
-        if(overlapFileExists(ikGlobal, isp)) then
-
-          if(indexInPool == 0) then
-
-            call readUfis(ikLocal,isp)
-
-          endif
-
-          spin1Read = .true.
-    
-        else
+        if(.not. overlapFileExists(ikGlobal, isp)) then
 
           !-----------------------------------------------------------------------------------------------
           !> Read wave functions and calculate overlap
@@ -292,8 +270,11 @@ program TMEmain
           if(indexInPool == 0) then 
           
             Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_SDPhi(:,:) + paw_PsiPC(:,:)
+
+            if(order == 1 .and. subtractBaseline) &
+              call readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, nSpins, Ufi)
         
-            call writeResults(ikLocal,isp)
+            call writeResults(ikLocal,isp, Ufi)
         
           endif
   
@@ -318,8 +299,6 @@ program TMEmain
 
   call MPI_BARRIER(worldComm, ierr)
   if(ionode) write(*,'("Done with k loop!")')
-    
-  if(calculateVfis .and. indexInPool == 0) call calculateVfiElements()
 
   
   call finalizeCalculation()

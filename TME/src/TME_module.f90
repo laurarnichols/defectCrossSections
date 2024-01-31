@@ -1,3 +1,6 @@
+! NOTE: This file has different programming styles because
+! I haven't been able to fully clean this file up yet.
+! Please excuse the mess.
 module TMEmod
   use constants, only: dp, pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
@@ -49,15 +52,23 @@ module TMEmod
   complex(kind=dp), allocatable :: Ylm(:,:)
     !! Spherical harmonics
   
+  character(len=300) :: baselineDir
+    !! Directory for baseline overlap to optionally
+    !! be subtracted for the first-order term
   character(len=300) :: dqFName
     !! File name for generalized-coordinate norms
   character(len=300) :: exportDirSD, exportDirPC
     !! Paths to exports for SD (left) and PC (right) 
     !! systems to use for wave function overlaps <SD|PC>
+  character(len=300) :: outputDir
+    !! Path to where matrix elements should be output
 
+  logical :: subtractBaseline
+    !! If baseline should be subtracted from first-order
+    !! overlap for increased numerical accuracy in the 
+    !! derivative
 
-  character(len = 200) :: VfisOutput
-  character(len = 300) :: input, inputPC, textDum, elementsPath
+  character(len = 300) :: input, inputPC, textDum
   character(len = 320) :: mkdir
   
   integer :: ik, ig, ibi, ibf
@@ -65,15 +76,12 @@ module TMEmod
   integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
   integer :: numOfTypes, nBands, nProjsSD
   integer :: numOfUsedGvecsPP, ios, npwNi, npwNf, npwMi, npwMf
-  integer :: gx, gy, gz, nGvsI, nGvsF, nGi, nGf
   integer :: np, nI, nF, nPP, ind2
   integer :: i, j, n1, n2, n3, n4, n, id, npw
   
-  integer, allocatable :: counts(:), displmnt(:), nPWsI(:), nPWsF(:)
-  
   real(kind = dp) t0, tf
   
-  real(kind = dp) :: omega, threej
+  real(kind = dp) :: omega
   
   real(kind = dp), allocatable :: gvecs(:,:), posIonSD(:,:), posIonPC(:,:)
   real(kind = dp), allocatable :: wk(:), xk(:,:)
@@ -106,20 +114,16 @@ module TMEmod
   
   TYPE(vec), allocatable :: vecs(:), newVecs(:)
   
-  real(kind = dp) :: eBin
-  complex(kind = dp) :: paw, pseudo1, pseudo2, paw2
-  
-  logical :: gamma_only, master, calculateVfis, coulomb, tmes_file_exists
-  
-  namelist /TME_Input/ exportDirSD, exportDirPC, elementsPath, energyTableDir, iBandIinit, &
-                       iBandIfinal, iBandFinit, iBandFfinal, calculateVfis, VfisOutput, &
-                       eBin, order, dqFName, phononModeJ
+
+  namelist /TME_Input/ exportDirSD, exportDirPC, outputDir, energyTableDir, &
+                       iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
+                       order, dqFName, phononModeJ, subtractBaseline, baselineDir
   
   
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
+  subroutine readInput(maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, subtractBaseline)
 
     use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
     
@@ -139,6 +143,15 @@ contains
     real(kind=dp), intent(out) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
 
+    character(len=300), intent(out) :: baselineDir
+      !! File name for baseline overlap to optionally
+      !! be subtracted for the first-order term
+
+    logical, intent(out) :: subtractBaseline
+      !! If baseline should be subtracted from first-order
+      !! overlap for increased numerical accuracy in the 
+      !! derivative
+
     ! Local variables:    
     integer :: iDum
       !! Dummy integer to ignore file input
@@ -152,11 +165,11 @@ contains
 
     if(ionode) then
     
-      call initialize()
+      call initialize(baselineDir, subtractBaseline)
     
       read(5, TME_Input, iostat=ios)
     
-      call checkInitialization()
+      call checkInitialization(baselineDir, subtractBaseline)
 
     endif
 
@@ -169,16 +182,14 @@ contains
 
     call MPI_BCAST(phononModeJ, 1, MPI_INTEGER, root, worldComm, ierr)
 
-    call MPI_BCAST(calculateVfis, 1, MPI_LOGICAL, root, worldComm, ierr)
-
-    call MPI_BCAST(eBin, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(subtractBaseline, 1, MPI_LOGICAL, root, worldComm, ierr)
 
     call MPI_BCAST(exportDirSD, len(exportDirSD), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(exportDirPC, len(exportDirPC), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(baselineDir, len(baselineDir), MPI_CHARACTER, root, worldComm, ierr)
 
-    call MPI_BCAST(elementsPath, len(elementsPath), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(VfisOutput, len(exportDirSD), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
 
     call readInputPC(nKPoints, maxGIndexGlobalPC)
     call readInputSD(nKPoints, maxGIndexGlobalSD, nGVecsGlobal, realLattVec, recipLattVec)
@@ -215,41 +226,57 @@ contains
   end subroutine readInput
   
 !----------------------------------------------------------------------------
-  subroutine initialize()
+  subroutine initialize(baselineDir, subtractBaseline)
     
     implicit none
 
     ! Output variables:
+    character(len=300), intent(out) :: baselineDir
+      !! File name for baseline overlap to optionally
+      !! be subtracted for the first-order term
+
+    logical, intent(out) :: subtractBaseline
+      !! If baseline should be subtracted from first-order
+      !! overlap for increased numerical accuracy in the 
+      !! derivative
     
 
     exportDirSD = ''
     exportDirPC = ''
     energyTableDir = ''
     dqFName = ''
-    elementsPath = './TMEs'
-    VfisOutput = ''
+    outputDir = './TMEs'
+    baselineDir = ''
 
     order = -1
 
     phononModeJ = -1
-    
-    eBin = 0.01_dp
     
     iBandIinit  = -1
     iBandIfinal = -1
     iBandFinit  = -1
     iBandFfinal = -1
     
-    calculateVfis = .false.
+    subtractBaseline = .false.
     
     return
     
   end subroutine initialize
   
 !----------------------------------------------------------------------------
-  subroutine checkInitialization()
+  subroutine checkInitialization(baselineDir, subtractBaseline)
     
     implicit none
+
+    ! Output variables:
+    character(len=300), intent(inout) :: baselineDir
+      !! File name for baseline overlap to optionally
+      !! be subtracted for the first-order term
+
+    logical, intent(inout) :: subtractBaseline
+      !! If baseline should be subtracted from first-order
+      !! overlap for increased numerical accuracy in the 
+      !! derivative
     
     ! Local variables
     logical :: abortExecution
@@ -266,36 +293,20 @@ contains
     if(order == 1) then
       abortExecution = checkFileInitialization('dqFName', dqFName) .or. abortExecution
       abortExecution = checkIntInitialization('phononModeJ', phononModeJ, 1, int(1e9)) .or. abortExecution
+
+      if(subtractBaseline) abortExecution = checkDirInitialization('baselineDir', baselineDir, 'allElecOverlap.1.1') .or. abortExecution
     endif
 
-    abortExecution = checkStringInitialization('elementsPath', elementsPath) .or. abortExecution
+    abortExecution = checkStringInitialization('outputDir', outputDir) .or. abortExecution
     abortExecution = checkIntInitialization('iBandIinit', iBandIinit, 1, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
     abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
 
 
-    call system('mkdir -p '//trim(elementsPath))
+    call system('mkdir -p '//trim(outputDir))
 
     
-    write(*,'("calculateVfis = ", l )') calculateVfis
-
-    if(calculateVfis) then
-      if(iBandFinit /= iBandFfinal) then
-        write(*,*)
-        write(*,'(" Vfis can be calculated only if there is a single final-state band!")')
-        write(*,'(" This variable is mandatory and thus the program will not be executed!")')
-        abortExecution = .true.
-      endif
-
-      abortExecution = checkStringInitialization('VfisOutput', VfisOutput) .or. abortExecution
-      abortExecution = checkDoubleInitialization('eBin', eBin, 0.0_dp, 2.0_dp) .or. abortExecution
-
-    endif
-
-    eBin = eBin*eVToHartree
-    
-
     if(abortExecution) then
       write(*,'(" Program stops!")')
       stop
@@ -847,12 +858,19 @@ contains
       !! Current spin channel
 
     ! Output variables:
+    character(len=300) :: fName
+      !! File name for overlap
+
     logical :: fileExists
       !! If the overlap file exists for the given 
       !! k-point and spin channel
 
 
-    inquire(file=trim(getMatrixElementFNameWPath(ikGlobal, isp, elementsPath)), exist=fileExists)
+    fName = trim(getMatrixElementFNameWPath(ikGlobal, isp, outputDir))
+
+    inquire(file=fName, exist=fileExists)
+
+    if(fileExists) write(*,'("Overlap file ", a, " exists and will not be recalculated.")') trim(fName)
     
   end function overlapFileExists
 
@@ -1562,9 +1580,88 @@ contains
     return
     
   end subroutine pawCorrectionK
+
+!----------------------------------------------------------------------------
+  subroutine readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, nSpins, Ufi)
+    
+    implicit none
+    
+    ! Input variables:
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+    integer, intent(in) :: ikLocal
+      !! Current local k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+    integer, intent(in) :: nSpins
+      !! Number of spin channels
+
+    ! Output variables:
+    complex(kind=dp), intent(inout) :: Ufi(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,nKPerPool,nSpins)
+      !! All-electron overlap
+
+    ! Local variables:
+    integer :: iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
+      !! Energy band bounds for initial and final state from the energy table file
+    integer :: ibi, ibf
+      !! Loop indices
+    integer :: iDum
+      !! Dummy integer to ignore input
+    integer :: ikGlobal
+      !! Current global k-point
+    
+    real(kind = dp) :: rDum
+      !! Dummy real to ignore input
+
+    complex(kind = dp):: baselineOverlap
+      !! Input complex overlap 
+
+    character(len=300) :: baselineFName
+      !! Name of baseline overlap file
+
+
+    ikGlobal = ikLocal+ikStart_pool-1
+
+    baselineFName = trim(getMatrixElementFNameWPath(ikGlobal, isp, baselineDir)) 
+    open(17, file=trim(baselineFName), status='unknown')
+
+    read(17,*) 
+    read(17,*) 
+    read(17,*) 
+    read(17,*) 
+    read(17,'(5i10)') iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
+
+    ! Check the input band bounds against those in the baseline overlap file
+    if(iBandIinit < iBandIinit_ .or. iBandIfinal > iBandIfinal_ .or. iBandFinit < iBandFinit_ .or. iBandFfinal > iBandFfinal_) &
+      call exitError('readAndSubtractBaseline', 'given band bounds are outside those in baseline overlap file '//trim(baselineFName), 1)
+    
+    read(17,*) 
+
+    if(order == 1) read(17,*)
+      ! Ignore additional line for phonon mode 
+
+    
+    do ibf = iBandFinit_, iBandFfinal_
+      do ibi = iBandIinit_, iBandIfinal_
+      
+        read(17, 1001) iDum, iDum, baselineOverlap, rDum, rDum
+
+        if(ibi >= iBandIinit .and. ibi <= iBandIfinal .and. ibf >= iBandFinit .and. ibf <= iBandFfinal) &
+          Ufi(ibf,ibi,ikLocal,isp) = Ufi(ibf,ibi,ikLocal,isp) - baselineOverlap
+          
+      enddo
+    enddo
+    
+    close(17)
+    
+ 1001 format(2i7,4ES24.15E3)
+    
+    return
+    
+  end subroutine readAndSubtractBaseline
   
 !----------------------------------------------------------------------------
-  subroutine writeResults(ikLocal, isp)
+  subroutine writeResults(ikLocal, isp, Ufi)
     
     implicit none
     
@@ -1573,6 +1670,9 @@ contains
       !! Current local k-point
     integer, intent(in) :: isp
       !! Current spin channel
+
+    complex(kind=dp), intent(in) :: Ufi(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,nKPerPool,nSpins)
+      !! All-electron overlap
 
     ! Local variables:
     integer :: ibi, ibf
@@ -1592,7 +1692,7 @@ contains
 
     ikGlobal = ikLocal+ikStart_pool-1
     
-    open(17, file=trim(getMatrixElementFNameWPath(ikGlobal, isp, elementsPath)), status='unknown')
+    open(17, file=trim(getMatrixElementFNameWPath(ikGlobal, isp, outputDir)), status='unknown')
     
     write(17, '("# Total number of k-points, k-point index, spin index Format : ''(3i10)''")')
     write(17,'(3i10)') nKPoints, ikGlobal, isp
@@ -1615,7 +1715,11 @@ contains
 
       write(17,'("# Phonon mode j, dq_j (Bohr*sqrt(elec. mass)). Format: ''(a78, i7, ES24.15E3)'' ", i7, ES24.15E3)') phononModeJ, dq_j
     
-      text = "# Final Band, Initial Band, Complex <f|i>, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2/(Bohr*sqrt(elec. mass))^2)" 
+      if(subtractBaseline) then
+        text = "# Final Band, Initial Band, Complex <f|i>-baseline, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2/(Bohr*sqrt(elec. mass))^2)" 
+      else
+        text = "# Final Band, Initial Band, Complex <f|i>, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2/(Bohr*sqrt(elec. mass))^2)" 
+      endif
       write(17, '(a, " Format : ''(2i7,4ES24.15E3)''")') trim(text)
 
     endif
@@ -1645,244 +1749,6 @@ contains
     return
     
   end subroutine writeResults
-  
-!----------------------------------------------------------------------------
-  subroutine readUfis(ikLocal,isp)
-    
-    implicit none
-    
-    ! Input variables:
-    integer, intent(in) :: ikLocal
-      !! Current local k-point
-    integer, intent(in) :: isp
-      !! Current spin channel
-
-    ! Local variables:
-    integer :: ikGlobal
-      !! Current global k-point
-    
-    integer :: ibi, ibf, totalNumberOfElements, i
-    real(kind = dp) :: rDum
-    complex(kind = dp):: cUfi
-
-
-    ikGlobal = ikLocal+ikStart_pool-1
-
-    open(17, file=trim(getMatrixElementFNameWPath(ikGlobal, isp, elementsPath)), status='unknown')
-
-    read(17,*) 
-    read(17,*) 
-    read(17,*) 
-    read(17,*) 
-    read(17,*) totalNumberOfElements
-    read(17,*) 
-
-    if(order == 1) read(17,*)
-      ! Ignore additional line for phonon mode 
-    
-    do i = 1, totalNumberOfElements
-      
-      read(17, 1001) ibf, ibi, cUfi, rDum, rDum
-      Ufi(ibf,ibi,ikLocal,isp) = cUfi
-          
-    enddo
-    
-    close(17)
-    
-    write(*,'("    Ufi(:,:) of k-point ", i4, " and spin ", i1, " read from file.")') ikGlobal, isp
-    
- 1001 format(2i7,4ES24.15E3)
-    
-    return
-    
-  end subroutine readUfis
-  
-!----------------------------------------------------------------------------
-  subroutine calculateVfiElements()
-    !! THIS SUBROUTINE IS NOT UP TO DATE!! DO NOT USE IT!
-    
-    implicit none
-    
-    integer :: ikLocal, ikGlobal, ib, nOfEnergies, iE, isp
-    
-    real(kind = dp) :: eMin, eMax, E, av, sd, x, EiMinusEf, DHifMin
-    real(kind=dp) :: eigvI(iBandIinit:iBandIfinal), eigvF(iBandFinit:iBandFfinal)
-    
-    real(kind = dp), allocatable :: sumWk(:), sAbsVfiOfE2(:), absVfiOfE2(:)
-    integer, allocatable :: nKsInEbin(:)
-    
-    character (len = 300) :: text
-    character (len = 300) :: fNameBase
-    character (len = 300) :: fNameSK
-
-    call exitError('calculateVfiElements', 'K-point binning is out of date! Do not use!', 1)
-
-    allocate(DE(iBandIinit:iBandIfinal, nKPerPool, nSpins))
-    allocate(absVfi2(iBandIinit:iBandIfinal, nKPerPool, nSpins))
-     
-    DE(:,:,:) = 0.0_dp
-    absVfi2(:,:,:) = 0.0_dp 
-    
-    do isp = 1, nSpins
-  
-      do ikLocal = 1, nKPerPool
-
-        ikGlobal = ikLocal+ikStart_pool-1
-      
-        eigvI(:) = 0.0_dp
-        eigvF(:) = 0.0_dp
-      
-        !call readEigenvalues(ikGlobal, isp)
-      
-        do ib = iBandIinit, iBandIfinal
-
-          EiMinusEf = eigvI(ib) - eigvF(iBandFinit)
-          absVfi2(ib,ikLocal,isp) = EiMinusEf**2*( abs(Ufi(iBandFinit,ib,ikLocal,isp))**2 - abs(Ufi(iBandFinit,ib,ikLocal,isp))**4 )
-        
-          DE(ib,ikLocal,isp) = sqrt(EiMinusEf**2 - 4.0_dp*absVfi2(ib,ikLocal,isp))
-
-        enddo
-
-      enddo
-      
-    enddo
-    
-    eMin = minval(DE(:,:,:))
-    call MPI_ALLREDUCE(MPI_IN_PLACE, eMin, 1, MPI_DOUBLE_PRECISION, MPI_MIN, interPoolComm, ierr)
-
-    eMax = maxval(DE(:,:,:))
-    call MPI_ALLREDUCE(MPI_IN_PLACE, eMax, 1, MPI_DOUBLE_PRECISION, MPI_MAX, interPoolComm, ierr)
-
-    nOfEnergies = int((eMax-eMin)/eBin) + 1
-    
-    allocate(absVfiOfE2(0:nOfEnergies), nKsInEbin(0:nOfEnergies), sumWk(0:nOfEnergies))
-    
-    absVfiOfE2(:) = 0.0_dp
-    nKsInEbin(:) = 0
-    sumWk(:) = 0.0_dp
-    DHifMin = 0.0_dp
-    
-    do isp = 1, nSpins
-      
-      do ikLocal = 1, nKPerPool
-
-        ikGlobal = ikLocal+ikStart_pool-1
-      
-        do ib = iBandIinit, iBandIfinal
-        
-          if(abs(eMin - DE(ib, ikLocal, isp)) < 1.0e-3_dp) DHifMin = absVfi2(ib, ikLocal,isp)
-
-          iE = int((DE(ib, ikLocal, isp) - eMin)/eBin)
-
-          if(absVfi2(ib, ikLocal, isp) > 0.0_dp) then
-
-            absVfiOfE2(iE) = absVfiOfE2(iE) + wkPC(ikGlobal)*absVfi2(ib, ikLocal, isp)
-  
-            sumWk(iE) = sumWk(iE) + wkPC(ikGlobal)
-
-            nKsInEbin(iE) = nKsInEbin(iE) + 1
-
-          else
-            write(*,*) 'absVfi2', absVfi2(ib, ikLocal, isp)
-          endif
-        
-        enddo
-      
-      enddo
-
-    enddo
-
-    call MPI_ALLREDUCE(MPI_IN_PLACE, DHifMin, 1, MPI_DOUBLE_PRECISION, MPI_SUM, interPoolComm, ierr)
-    call mpiSumDoubleV(absVfiOfE2, interPoolComm)
-    call mpiSumDoubleV(sumWk, interPoolComm)
-    call mpiSumIntV(nKsInEbin, interPoolComm)
-
-    allocate(sAbsVfiOfE2(0:nOfEnergies))
-    
-    sAbsVfiOfE2 = 0.0_dp
-    
-    do isp = 1, nSpins
-  
-      do ikLocal = 1, nKPerPool
-
-        ikGlobal = ikLocal+ikStart_pool-1
-    
-        open(11, file=trim(VfisOutput)//'ofKpt.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal)), status='unknown')
-      
-        do ib = iBandIinit, iBandIfinal
-        
-          iE = int((DE(ib, ikLocal, isp) - eMin)/eBin)
-
-          av = absVfiOfE2(iE)/sumWk(iE)
-
-          x = absVfi2(ib, ikLocal, isp)
-
-          write(11, '(2ES24.15E3,2i10)') (eMin + iE*eBin), x, isp, ikGlobal
-          !write(12, '(2ES24.15E3,i10)') DE(ib,ik), absVfi2(ib, ik), ik
-
-          sAbsVfiOfE2(iE) = sAbsVfiOfE2(iE) + wkPC(ikGlobal)*(x - av)**2/sumWk(iE)
-        
-        enddo
-
-        close(11)
-      
-      enddo
-
-    enddo
-
-    call mpiSumDoubleV(sAbsVfiOfE2, interPoolComm)
-    
-    if(myPoolId == 0) then
-
-      open(11, file=trim(VfisOutput)//'ofKpt', status='unknown')
-    
-      write(11, '("# |<f|V|i>|^2 versus energy for all the k-points.")')
-      write(text, '("# Energy (shifted by eBin/2) (Hartree), |<f|V|i>|^2 (Hartree)^2,")')
-      write(11, '(a, " spin index, k-point index. Format : ''(2ES24.15E3,,i2,i10)''")') trim(text)
-
-      close(11)
-
-      do isp = 1, nSpins
-
-        do ikGlobal = 1, nKPoints
-
-          fNameBase = trim(VfisOutput)//'ofKpt'
-          fNameSK = trim(fNameBase)//'.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal))
-
-          call execute_command_line('cat '//trim(fNameSK)//' >> '//trim(fNameBase)//'&& rm '//trim(fNameSK))
-
-        enddo
-
-      enddo
-
-      open(63, file=trim(VfisOutput), status='unknown')
-    
-      write(63, '("# Averaged |<f|V|i>|^2 over K-points versus energy.")')
-      write(63, '("#                 Cell volume : ", ES24.15E3, " (a.u.)^3,   Format : ''(ES24.15E3)''")') omega
-      write(63, '("#   Minimun transition energy : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eMin
-      write(63, '("# |DHif|^2 at minimum Tr. En. : ", ES24.15E3, " (Hartree^2),Format : ''(ES24.15E3)''")') DHifMin
-      write(63, '("#                  Energy bin : ", ES24.15E3, " (Hartree),  Format : ''(ES24.15E3)''")') eBin
-      write(text, '("# Energy (Hartree), averaged |<f|V|i>|^2 over K-points (Hartree)^2,")')
-      write(63, '(a, " standard deviation (Hartree)^2. Format : ''(3ES24.15E3)''")') trim(text)
-    
-      do iE = 0, nOfEnergies
-        E = iE*eBin
-        av = 0.0_dp
-        sd = 0.0_dp
-        if (nKsInEbin(iE) > 0) then
-          av = absVfiOfE2(iE)/sumWk(iE)
-          sd = sqrt(sAbsVfiOfE2(iE))
-        endif
-        write(63,'(3ES24.15E3)') eMin + E, av, sd
-      enddo
-    
-      close(63)
-    
-    endif  
-    
-    return
-    
-  end subroutine calculateVfiElements
    
 !----------------------------------------------------------------------------
   subroutine bessel_j (x, lmax, jl)

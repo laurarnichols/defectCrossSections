@@ -75,18 +75,20 @@ submitAll() {
 
  order          = 1 ! zeroth-order
 
+ subtractBaseline = .true.
+ baselineDir = '/pscratch/sd/l/lnichols/SiVH3/GaNPaper/posToNeut/firstOrder/TME/orthNonDisp'
+
  ! Parameters to get dq_j
  dqFName = '/pscratch/sd/l/lnichols/SiVH3/GaNPaper/posToNeut/PhononPP/dq.txt'
  phononModeJ = ${i}           ! phonon-mode index
 
- elementsPath   = './TME'       ! path to store outputs
+ outputDir   = './TME'       ! path to store outputs
 
  iBandIinit  = 1025         ! initial state initial band
  iBandIfinal = 1088         ! initial state final band
  iBandFinit  = 1024         ! final state initial band
  iBandFfinal = 1024         ! final state final band
 
- calculateVfis = .false.    ! Set to .true. only if there is an incoming electron that will be captured in the system.
 /
 
 EOF
@@ -224,14 +226,14 @@ getShiftedOverlaps() {
 
   displacement_line=$(tail -n +$((header_lines_displacement + i_no_zeros)) "$displacement_file" | head -n 1)
 
-  paste <(tail -n +$header_lines_overlap "$overlap_file" | awk '{print $5}') \
-        <(tail -n +$header_lines_baseline "$baseline_overlap_file" | awk '{print $5}') \
-        <(tail -n +$header_lines_energy "$energy_file" | awk '{print $5}') \
-        <(seq 64 | xargs -I{} echo "$displacement_line" | awk '{print $2}') | \
-  awk '{w_if=sqrt($1); w_if0=sqrt($2); E=$3; dq=$4; result=((w_if-w_if0)*E/dq)^2; printf "%.15E\n", result}' > "$temp_file"
+  paste <(tail -n +$header_lines_overlap "$overlap_file" | awk '{printf "%24.15E%24.15E\n", $3, $4}') \
+        <(tail -n +$header_lines_baseline "$baseline_overlap_file" | awk '{printf "%24.15E%24.15E\n", $3, $4}') \
+        <(tail -n +$header_lines_energy "$energy_file" | awk '{printf "%24.15E\n",  $5}') \
+        <(seq 64 | xargs -I{} echo "$displacement_line" | awk '{printf "%24.15E\n",  $2}') | \
+        awk '{x=$1-$3; y=$2-$4; norm2=x^2+y^2; E=$5; dq=$6; result=norm2*(E/dq)^2; printf "%24.15E%24.15E%24.15E%24.15E\n", x, y, norm2, result}' > "$temp_file"
 
-  paste <(tail -n +$header_lines_overlap "$overlap_file" | awk '{print $1, $2, $3, $4, $5}') \
-        <(awk '{printf "%.15E\n", $1}' "$temp_file") | \
+  paste <(tail -n +$header_lines_overlap "$overlap_file" | awk '{print $1, $2}') \
+        <(awk '{printf "%24.15E%24.15E%24.15E%24.15E\n", $1, $2, $3, $4}' "$temp_file") | \
         awk '{printf "%7d%7d%24.15E%24.15E%24.15E%24.15E\n", $1, $2, $3, $4, $5, $6}' >> "$output_file"
 
   rm "$temp_file"
