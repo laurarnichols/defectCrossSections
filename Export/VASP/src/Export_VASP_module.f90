@@ -2167,12 +2167,16 @@ module wfcExportVASPMod
   end subroutine readPOTCAR
 
 !----------------------------------------------------------------------------
-  subroutine projAndWav(maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, gVecMillerIndicesGlobalSort, &
-      igkSort2OrigLocal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+  subroutine projAndWav(ispSelect, maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, &
+      gVecMillerIndicesGlobalSort, igkSort2OrigLocal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, recipLattVec, &
+      exportDir, VASPDir, gammaOnly, loopSpins, pot)
 
     implicit none
 
     ! Input variables: 
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(in) :: maxGkVecsLocal
       !! Max number of G+k vectors across all k-points
       !! in this pool
@@ -2218,6 +2222,9 @@ module wfcExportVASPMod
 
     logical, intent(in) :: gammaOnly
       !! If the gamma only VASP code is used
+    logical, intent(in) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
 
     type (potcar) :: pot(nAtomTypes)
       !! Holds all information needed from POTCAR
@@ -2335,38 +2342,41 @@ module wfcExportVASPMod
 
       do isp = 1, nSpins
 
-        isk = ikGlobal + (isp - 1)*nKPoints
-          !! Define index to combine k-point and spin
+        if(loopSpins .or. isp == ispSelect) then
+          isk = ikGlobal + (isp - 1)*nKPoints
+            !! Define index to combine k-point and spin
 
-        irec = 2 + isk + (isk - 1)*nBands
-          ! Have all processes increment the record number so
-          ! they know where they are supposed to access the WAVECAR
-          ! once/if they are the I/O node
+          irec = 2 + isk + (isk - 1)*nBands
+            ! Have all processes increment the record number so
+            ! they know where they are supposed to access the WAVECAR
+            ! once/if they are the I/O node
 
-        if(ionode) &
-          write(*, '("      k-point ",i4," in pool, spin ",i1,": [ ] Wavefunctions  [ ] Projections")') ikLocal, isp
-        call cpu_time(t1)
+          if(ionode) &
+            write(*, '("      k-point ",i4," in pool, spin ",i1,": [ ] Wavefunctions  [ ] Projections")') ikLocal, isp
+          call cpu_time(t1)
 
-        call readAndWriteWavefunction(ikLocal, isp, nGkVecsLocal_ik, nPWs1k, exportDir, irec, coeffLocal)
-
-
-        call cpu_time(t2)
-        if(ionode) &
-          write(*, '("      k-point ",i4," in pool, spin ",i1,": [X] Wavefunctions  [ ] Projections (",f7.2," secs)")') &
-                ikLocal, isp, t2-t1
-        call cpu_time(t1)
+          call readAndWriteWavefunction(ikLocal, isp, nGkVecsLocal_ik, nPWs1k, exportDir, irec, coeffLocal)
 
 
-        call getAndWriteProjections(ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, compFact, & 
-                  phaseExp, coeffLocal, exportDir, pot)
+          call cpu_time(t2)
+          if(ionode) &
+            write(*, '("      k-point ",i4," in pool, spin ",i1,": [X] Wavefunctions  [ ] Projections (",f7.2," secs)")') &
+                  ikLocal, isp, t2-t1
+          call cpu_time(t1)
 
 
-        call cpu_time(t2)
-        if(ionode) &
-          write(*, '("      k-point ",i4," in pool, spin ",i1,": [X] Wavefunctions  [X] Projections (",f7.2," secs)")') &
-                ikLocal, isp, t2-t1
-        call cpu_time(t1)
+          call getAndWriteProjections(ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, compFact, & 
+                    phaseExp, coeffLocal, exportDir, pot)
 
+
+          call cpu_time(t2)
+          if(ionode) &
+            write(*, '("      k-point ",i4," in pool, spin ",i1,": [X] Wavefunctions  [X] Projections (",f7.2," secs)")') &
+                  ikLocal, isp, t2-t1
+          call cpu_time(t1)
+
+
+        endif
 
       enddo
 

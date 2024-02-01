@@ -148,8 +148,9 @@ program wfcExportVASPMain
 
   if(.not. energiesOnly) then
 
-    call projAndWav(maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, gVecMillerIndicesGlobalSort, &
-        igkSort2OrigLocal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+    call  projAndWav(ispSelect, maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, &
+        gVecMillerIndicesGlobalSort, igkSort2OrigLocal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, recipLattVec, &
+        exportDir, VASPDir, gammaOnly, loopSpins, pot)
 
 
     deallocate(igkSort2OrigLocal, nGkVecsLocal, iGkStart_pool, iGkEnd_pool, gVecMillerIndicesGlobalSort)
