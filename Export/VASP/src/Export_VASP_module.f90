@@ -98,6 +98,8 @@ module wfcExportVASPMod
     !! Local number of G-vectors on this processor
   integer, allocatable :: nPWs1kGlobal(:)
     !! Input number of plane waves for a single k-point for all processors
+  integer :: nSpinsCalc
+    !! Number of spins to calculate/allocate
   integer :: maxGIndexGlobal
     !! Maximum G-vector index among all \(G+k\)
     !! and processors
@@ -366,7 +368,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(ispSelect, loopSpins, VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
-        kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, reclenWav, eigenE)
+        kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, nSpinsCalc, reclenWav, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -411,6 +413,8 @@ module wfcExportVASPMod
       !! for all processors
     integer, intent(out) :: nSpins
       !! Number of spins
+    integer, intent(out) :: nSpinsCalc
+      !! Number of spins to calculate/allocate
     integer, intent(out) :: reclenWav
       !! Number of records in WAVECAR file
 
@@ -460,11 +464,30 @@ module wfcExportVASPMod
         ! Convert input variables to integers
 
 
-      if(.not. loopSpins .and. checkIntInitialization('ispSelect', ispSelect, 1, nSpins)) &
-        call exitError('readWAVECAR', 'selected spin larger than number of spin channels available', 1)
-        ! Not looping spins (i.e., a single spin channel was selected),
-        ! make sure that the selected spin channel is not larger than
-        ! the number of spin channels available in the system
+      ! To read the VASP output files correctly, we need to
+      ! track the number of spins in the system and the number
+      ! of spins we need to calculate, so that we can allocate
+      ! space for only the number of spin channels we need.
+      if(.not. loopSpins) then
+
+        if(checkIntInitialization('ispSelect', ispSelect, 1, nSpins)) then
+
+          call exitError('readWAVECAR', 'selected spin larger than number of spin channels available', 1)
+          ! Not looping spins (i.e., a single spin channel was selected),
+          ! make sure that the selected spin channel is not larger than
+          ! the number of spin channels available in the system
+
+        else
+
+          nSpinsCalc = 1
+
+        endif 
+
+      else
+
+        nSpinsCalc = nSpins
+
+      endif
 
 
       if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
@@ -546,7 +569,7 @@ module wfcExportVASPMod
     call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(recipLattVec, size(recipLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
-    call preliminaryWAVECARScan(nBands, nKPoints, nSpins, reclenWav, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
+    call preliminaryWAVECARScan(ispSelect, nBands, nKPoints, nSpins, nSpinsCalc, reclenWav, loopSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
       !! * For each spin and k-point, read the number of
       !!   \(G+k\) vectors below the energy cutoff, the
       !!   position of the k-point in reciprocal space, 
@@ -671,7 +694,8 @@ module wfcExportVASPMod
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine preliminaryWAVECARScan(nBands, nKPoints, nSpins, reclenWav, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
+  subroutine preliminaryWAVECARScan(ispSelect, nBands, nKPoints, nSpins, nSpinsCalc, reclenWav, loopSpins, bandOccupation, kPosition, &
+          nPWs1kGlobal, eigenE)
     !! For each spin and k-point, read the number of
     !! \(G+k\) vectors below the energy cutoff, the
     !! position of the k-point in reciprocal space, 
@@ -683,14 +707,23 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(in) :: nBands
       !! Total number of bands
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     integer, intent(in) :: nSpins
       !! Number of spins
+    integer, intent(in) :: nSpinsCalc
+      !! Number of spins to calculate/allocate
     integer, intent(in) :: reclenWav
       !! Number of records in the WAVECAR file
+
+    logical, intent(in) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
 
 
     ! Output variables:
@@ -718,10 +751,10 @@ module wfcExportVASPMod
       !! Full WAVECAR file name including path
 
 
-    allocate(bandOccupation(nSpins, nBands, nKPoints))
+    allocate(bandOccupation(nSpinsCalc, nBands, nKPoints))
     allocate(kPosition(3,nKPoints))
     allocate(nPWs1kGlobal(nKPoints))
-    allocate(eigenE(nSpins,nKPoints,nBands))
+    allocate(eigenE(nSpinsCalc,nKPoints,nBands))
     
     fileName = trim(VASPDir)//'/WAVECAR'
 
@@ -745,22 +778,40 @@ module wfcExportVASPMod
         
           irec = irec + 1
 
-          read(unit=wavecarUnit,rec=irec) nPWs1kGlobal_real, (kPosition(i,ik),i=1,3), &
-                 (eigenE(isp,ik,iband), bandOccupation(isp, iband, ik), iband=1,nBands)
+
+          if(loopSpins .or. isp == ispSelect) then
+            ! After adding this, I realized that the spin-independent
+            ! values like number of plane waves and k position are
+            ! being overwritten. This seems to be working okay, so
+            ! VASP must just repeat the same information for each spin 
+            ! channel
+
             ! Read in the number of \(G+k\) plane wave vectors below the energy
             ! cutoff, the position of the k-point in reciprocal space, and
-            ! the eigenvalue and occupation for each band
+            ! the eigenvalue and occupation for each band.
+            !
+            ! Have to be careful about indexing the spin channel because we
+            ! allocate a smaller array if a single spin channel is selected.
+            if(loopSpins) then
+              read(unit=wavecarUnit,rec=irec) nPWs1kGlobal_real, (kPosition(i,ik),i=1,3), &
+                     (eigenE(isp,ik,iband), bandOccupation(isp, iband, ik), iband=1,nBands)
+            else
+              read(unit=wavecarUnit,rec=irec) nPWs1kGlobal_real, (kPosition(i,ik),i=1,3), &
+                     (eigenE(1,ik,iband), bandOccupation(1, iband, ik), iband=1,nBands)
+            endif
 
-          nPWs1kGlobal(ik) = nint(nPWs1kGlobal_real)
-            !! @note
-            !!  `nPWs1kGlobal(ik)` corresponds to `WDES%NPLWKP_TOT(K)` in VASP (see 
-            !!  subroutine `OUTWAV` in `fileio.F`). In the `GEN_INDEX` subroutine in
-            !!  `wave.F`, `WDES%NGVECTOR(NK) = WDES%NPLWKP(NK)/WDES%NRSPINORS`, where
-            !!  `NRSPINORS=1` for our case. `WDES%NPLWKP(NK)` and `WDES%NPLWKP_TOT(K)`
-            !!  are set the same way and neither `NGVECTOR(NK)` nor `NPLWKP_TOT(K)` are
-            !!  changed anywhere else, so I am treating them as equivalent. I am not
-            !!  sure why there are two separate variables defined.
-            !! @endnote
+            nPWs1kGlobal(ik) = nint(nPWs1kGlobal_real)
+              !! @note
+              !!  `nPWs1kGlobal(ik)` corresponds to `WDES%NPLWKP_TOT(K)` in VASP (see 
+              !!  subroutine `OUTWAV` in `fileio.F`). In the `GEN_INDEX` subroutine in
+              !!  `wave.F`, `WDES%NGVECTOR(NK) = WDES%NPLWKP(NK)/WDES%NRSPINORS`, where
+              !!  `NRSPINORS=1` for our case. `WDES%NPLWKP(NK)` and `WDES%NPLWKP_TOT(K)`
+              !!  are set the same way and neither `NGVECTOR(NK)` nor `NPLWKP_TOT(K)` are
+              !!  changed anywhere else, so I am treating them as equivalent. I am not
+              !!  sure why there are two separate variables defined.
+              !! @endnote
+
+          endif
 
           irec = irec + nBands
             ! Skip the records for the plane-wave coefficients for now.
