@@ -340,8 +340,8 @@ module wfcExportVASPMod
       abortExecution = checkStringInitialization('pattern', pattern) .or. abortExecution
     endif
 
-    if(checkIntInitialization('ispSelect', ispSelect, 1, 2)) then
-      write(*,*) "Looping over spin."
+    if(ispSelect < 1 .or. ispSelect > 2) then
+      write(*,*) "No valid choice for spin channel selection given. Looping over spin."
       loopSpins = .true.
     else
       write(*,'("Only exporting spin channel ", i2)') ispSelect
