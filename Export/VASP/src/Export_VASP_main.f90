@@ -180,11 +180,15 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call writeGridInfo(nGVecsGlobal, gVecMillerIndicesGlobalOrig, maxGIndexGlobal, exportDir)
+  if(ionode) call writeGridInfo(nGVecsGlobal, gVecMillerIndicesGlobalOrig, maxGIndexGlobal, exportDir)
     !! * Write out grid boundaries and miller indices
     !!   for just \(G+k\) combinations below cutoff energy
     !!   in one file and all miller indices in another 
     !!   file
+    !!
+    !!  Make sure only ionode calls this subroutine because
+    !!  `gVecMillerIndicesGlobalOrig` is not allocated on the
+    !!  other processes
 
   if(.not. energiesOnly .and. ionode) deallocate(gVecMillerIndicesGlobalOrig)
 
