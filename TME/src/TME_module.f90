@@ -433,9 +433,10 @@ contains
       enddo
     
       read(50, '(a)') textDum
-      read(50,*) nBands
+      read(50,'(i10)') nBands
 
-      if(iBandIfinal > nBands .or. iBandFfinal) call exitError('readInputPC', 'band limits outside the number of bands in the system', 1)
+      if(iBandIfinal > nBands .or. iBandFfinal > nBands) &
+        call exitError('readInputPC', 'band limits outside the number of bands in the system '//trim(int2str(nBands)), 1)
         ! Only need to test these bands because we tested in
         ! the `checkInitialization` subroutine to make sure
         ! that the `initial` bands are lower than the `final`
@@ -720,9 +721,10 @@ contains
       enddo
     
       read(50, '(a)') textDum
-      read(50,*) nBands
+      read(50,'(i10)') nBands
 
-      if(iBandIfinal > nBands .or. iBandFfinal) call exitError('readInputPC', 'band limits outside the number of bands in the system', 1)
+      if(iBandIfinal > nBands .or. iBandFfinal > nBands) &
+        call exitError('readInputSD', 'band limits outside the number of bands in the system '//trim(int2str(nBands)), 1)
         ! Only need to test these bands because we tested in
         ! the `checkInitialization` subroutine to make sure
         ! that the `initial` bands are lower than the `final`
