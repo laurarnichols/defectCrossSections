@@ -561,6 +561,7 @@ module wfcExportVASPMod
 
     call MPI_BCAST(reclenWav, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(nSpinsCalc, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nBands, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(wfcVecCut, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
