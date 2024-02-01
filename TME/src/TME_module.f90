@@ -77,7 +77,7 @@ module TMEmod
   integer :: iTypes, iPn
   integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
   integer :: numOfTypes, nProjsSD
-  integer :: numOfUsedGvecsPP, ios, npwNi, npwNf, npwMi, npwMf
+  integer :: numOfUsedGvecsPP, npwNi, npwNf, npwMi, npwMf
   integer :: np, nI, nF, nPP, ind2
   integer :: i, j, n1, n2, n3, n4, n, id, npw
   
@@ -171,7 +171,9 @@ contains
     
       call initialize(baselineDir, subtractBaseline)
     
-      read(5, TME_Input, iostat=ios)
+      read(5, TME_Input, iostat=ierr)
+    
+      if(ierr /= 0) call exitError('readInputParams', 'reading TME_Input namelist', abs(ierr))
     
       call checkInitialization(baselineDir, subtractBaseline)
 
