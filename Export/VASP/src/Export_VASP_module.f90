@@ -1,6 +1,6 @@
 module wfcExportVASPMod
   
-  use constants, only: dp, angToBohr, eVToRy, ryToHartree, pi, twopi
+  use constants, only: dp, angToBohr, eVToRy, RyToHartree, eVToHartree, pi, twopi
   use base, only: nKPoints, nSpins
   use errorsAndMPI
   use cell
@@ -823,7 +823,7 @@ module wfcExportVASPMod
 
       close(wavecarUnit)
 
-      eigenE(:,:,:) = eigenE(:,:,:)*eVToRy
+      eigenE(:,:,:) = eigenE(:,:,:)*eVToHartree
 
     endif
 
@@ -3679,21 +3679,23 @@ module wfcExportVASPMod
       flush(mainOutFileUnit)
     
       do isp = 1, nSpins
-        do ik = 1, nKPoints
+        if(loopSpins .or. isp == ispSelect) then
+          do ik = 1, nKPoints
 
-          open(72, file=trim(exportDir)//"/eigenvalues."//trim(int2str(isp))//"."//trim(int2str(ik)))
+            open(72, file=trim(exportDir)//"/eigenvalues."//trim(int2str(isp))//"."//trim(int2str(ik)))
       
-          write(72, '("# Spin, k-point index: ",2i10, " Format: ''(a23, 2i10)''")') isp, ik
-          write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
+            write(72, '("# Spin, k-point index: ",2i10, " Format: ''(a23, 2i10)''")') isp, ik
+            write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
       
-          do ib = 1, nBands
+            do ib = 1, nBands
+  
+              write(72, '(i10, 2ES24.15E3)') ib, real(eigenE(isp,ik,ib)), bandOccupation(isp,ib,ik)
 
-            write(72, '(i10, 2ES24.15E3)') ib, real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(isp,ib,ik)
-
+            enddo
+      
+            close(72)
           enddo
-      
-          close(72)
-        enddo
+        endif
       enddo
 
     endif
