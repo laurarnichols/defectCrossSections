@@ -243,7 +243,7 @@ program wfcExportVASPMain
     !! * Write Fermi energy and eigenvalues and occupations for each band
 
   if(groupForGroupVelocity) then
-    call writeGroupedEigenvalues(nBands, nDispkPerCoord, nKPoints, nSpins, bandOccupation, patternArr, eigenE, pattern)
+    call writeGroupedEigenvalues(ispSelect, nBands, nDispkPerCoord, nKPoints, nSpins, bandOccupation, patternArr, eigenE, loopSpins, pattern)
     deallocate(patternArr)
   endif
 

@@ -3711,13 +3711,17 @@ module wfcExportVASPMod
   end subroutine writeEigenvalues
 
 !----------------------------------------------------------------------------
-  subroutine writeGroupedEigenvalues(nBands, nDispkPerCoord, nKPoints, nSpins, bandOccupation, patternArr, eigenE, pattern)
+  subroutine writeGroupedEigenvalues(ispSelect, nBands, nDispkPerCoord, nKPoints, nSpins, bandOccupation, patternArr, eigenE, &
+        loopSpins, pattern)
 
     use miscUtilities, only: int2str, hpsort_eps
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(in) :: nBands
       !! Total number of bands
     integer, intent(in) :: nDispkPerCoord
@@ -3735,6 +3739,10 @@ module wfcExportVASPMod
 
     complex*16, intent(in) :: eigenE(nSpins,nKPoints,nBands)
       !! Band eigenvalues
+
+    logical, intent(in) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
 
     character(len=300), intent(in) :: pattern
       ! Character input for displacement pattern
@@ -3786,62 +3794,64 @@ module wfcExportVASPMod
         ! Get sorted index order for patternArr from negative to positive
     
       do isp = 1, nSpins
-        do ikGroup = 1, nKGroups
-          do ix = 1, 3
-            do ikx = 1, nDispkPerCoord+1
+        if(loopSpins .or. isp == ispSelect) then
+          do ikGroup = 1, nKGroups
+            do ix = 1, 3
+              do ikx = 1, nDispkPerCoord+1
 
-              if(iPattSort(ikx) == 1) then
-                ! This is the zero point. We add it to the
-                ! sorting array in case the points aren't 
-                ! symmetric about zero displacement.
+                if(iPattSort(ikx) == 1) then
+                  ! This is the zero point. We add it to the
+                  ! sorting array in case the points aren't 
+                  ! symmetric about zero displacement.
 
-                ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
-                     1                          ! Skip to base k-point
+                  ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
+                       1                          ! Skip to base k-point
 
-              else
+                else
 
-                ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
-                     1 + &                      ! Skip base k-point
-                     (ix-1)*nDispkPerCoord + &  ! Skip previous displaced coordinates
-                     iPattSort(ikx)-1           ! Skip to sorted value from displacement pattern minus zero-displacement point
+                  ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
+                       1 + &                      ! Skip base k-point
+                       (ix-1)*nDispkPerCoord + &  ! Skip previous displaced coordinates
+                       iPattSort(ikx)-1           ! Skip to sorted value from displacement pattern minus zero-displacement point
+                endif
+
+                eigsForOutput(:,ikx,ix) = real(eigenE(isp,ik,:))*ryToHartree
+
+              enddo
+
+              if(ix == 1) then
+                open(72, file=trim(exportDir)//"/groupedEigenvaluesX."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
+              else if(ix == 2) then
+                open(72, file=trim(exportDir)//"/groupedEigenvaluesY."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
+              else if(ix == 3) then
+                open(72, file=trim(exportDir)//"/groupedEigenvaluesZ."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
               endif
-
-              eigsForOutput(:,ikx,ix) = real(eigenE(isp,ik,:))*ryToHartree
-
-            enddo
-
-            if(ix == 1) then
-              open(72, file=trim(exportDir)//"/groupedEigenvaluesX."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
-            else if(ix == 2) then
-              open(72, file=trim(exportDir)//"/groupedEigenvaluesY."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
-            else if(ix == 3) then
-              open(72, file=trim(exportDir)//"/groupedEigenvaluesZ."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
-            endif
         
-            write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
-            write(72,'("# Input displacement pattern:")')
-            write(72,'(a)') trim(pattern)
+              write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
+              write(72,'("# Input displacement pattern:")')
+              write(72,'(a)') trim(pattern)
 
-            if(ix == 1) then
-              write(72, '("# Eigenvalues (Hartree) - to + for x, band occupation number Format: ''",a"''")') trim(formatString)
-            else if(ix == 2) then
-              write(72, '("# Eigenvalues (Hartree) - to + for y, band occupation number Format: ''",a"''")') trim(formatString)
-            else if(ix == 3) then
-              write(72, '("# Eigenvalues (Hartree) - to + for z, band occupation number Format: ''",a"''")') trim(formatString)
-            endif
+              if(ix == 1) then
+                write(72, '("# Eigenvalues (Hartree) - to + for x, band occupation number Format: ''",a"''")') trim(formatString)
+              else if(ix == 2) then
+                write(72, '("# Eigenvalues (Hartree) - to + for y, band occupation number Format: ''",a"''")') trim(formatString)
+              else if(ix == 3) then
+                write(72, '("# Eigenvalues (Hartree) - to + for z, band occupation number Format: ''",a"''")') trim(formatString)
+              endif
       
-            do ib = 1, nBands
+              do ib = 1, nBands
 
-              write(72,formatString) &
-                (eigsForOutput(ib,ikx,ix), ikx=1,nDispkPerCoord+1), & ! k-points for this coordinate from - to +
-                bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup+1)       ! band occupation from base k-point           
+                write(72,formatString) &
+                  (eigsForOutput(ib,ikx,ix), ikx=1,nDispkPerCoord+1), & ! k-points for this coordinate from - to +
+                  bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup+1)       ! band occupation from base k-point           
+
+              enddo
+      
+              close(72)
 
             enddo
-      
-            close(72)
-
           enddo
-        enddo
+        endif
      enddo
     endif
     
