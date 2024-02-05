@@ -1,7 +1,7 @@
 module wfcExportVASPMod
   
   use constants, only: dp, angToBohr, eVToRy, RyToHartree, eVToHartree, pi, twopi
-  use base, only: nKPoints, nSpins
+  use base, only: nKPoints, nSpins, ispSelect, loopSpins
   use errorsAndMPI
   use cell
   use mpi
@@ -76,9 +76,6 @@ module wfcExportVASPMod
     !! and for local PWs in the original order
   integer, allocatable :: iMill(:)
     !! Indices of miller indices after sorting
-  integer :: ispSelect
-    !! Selection of a single spin channel if input
-    !! by the user
   integer, allocatable :: iType(:)
     !! Atom type index
   integer :: fftGridSize(3)
@@ -116,9 +113,6 @@ module wfcExportVASPMod
   logical :: groupForGroupVelocity
     !! If there are groups of k-points for group
     !! velocity calculation
-  logical :: loopSpins
-    !! Whether to loop over available spin channels;
-    !! otherwise, use selected spin channel
   
   character(len=256) :: exportDir
     !! Directory to be used for export
