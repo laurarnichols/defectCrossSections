@@ -3357,7 +3357,7 @@ module wfcExportVASPMod
   end subroutine getAndWriteProjections
 
 !----------------------------------------------------------------------------
-  subroutine writeKInfo(nBands, nKPoints, nGkLessECutGlobal, nSpins, bandOccupation, kWeight, kPosition)
+  subroutine writeKInfo(nKPoints, nGkLessECutGlobal, nSpins, kWeight, kPosition)
     !! Calculate the highest occupied band for each k-point
     !! and write out k-point information
     !!
@@ -3367,8 +3367,6 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: nBands
-      !! Total number of bands
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     integer, intent(in) :: nGkLessECutGlobal(nKPoints)
@@ -3377,50 +3375,17 @@ module wfcExportVASPMod
     integer, intent(in) :: nSpins
       !! Number of spins
 
-    real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands, nKPoints)
-      !! Occupation of band
     real(kind=dp), intent(in) :: kWeight(nKPoints)
       !! K-point weights
     real(kind=dp), intent(in) :: kPosition(3,nKPoints)
       !! Position of k-points in reciprocal space
 
-
-    ! Output variables:
-
-
     ! Local variables:
-    integer :: groundState(nSpins,nKPoints)
-      !! Holds the highest occupied band
-      !! for each k-point and spin
-    integer :: ik, isp
-      !! Loop indices
+    integer :: ik
+      !! Loop index
 
 
     if(ionode) then
-
-      call getGroundState(nBands, nKPoints, nSpins, bandOccupation, groundState)
-        !! * For each k-point, find the index of the 
-        !!   highest occupied band
-        !!
-        !! @note
-        !!  Although `groundState` is written out in `Export`,
-        !!  it is not currently used by the `TME` program.
-        !! @endnote
-
-      open(72, file=trim(exportDir)//"/groundState")
-
-      write(72, '("# isp, ik, groundState(isp,ik). Format: ''(3i10)''")')
-
-      do isp = 1, nSpins
-        do ik = 1, nKPoints
-
-          write(72, '(3i10)') isp, ik, groundState(isp,ik)
-
-        enddo
-      enddo
-
-      close(72)
-          
 
       write(mainOutFileUnit, '("# Number of spins. Format: ''(i10)''")')
       write(mainOutFileUnit, '(i10)') nSpins
@@ -3450,60 +3415,6 @@ module wfcExportVASPMod
 
     return
   end subroutine writeKInfo
-
-!----------------------------------------------------------------------------
-  subroutine getGroundState(nBands, nKPoints, nSpins, bandOccupation, groundState)
-    !! * For each k-point, find the index of the 
-    !!   highest occupied band
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nBands
-      !! Total number of bands
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-    integer, intent(in) :: nSpins
-      !! Number of spins
-
-    real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands, nKPoints)
-      !! Occupation of band
-
-    
-    ! Output variables:
-    integer, intent(out) :: groundState(nSpins, nKPoints)
-      !! Holds the highest occupied band
-      !! for each k-point and spin
-
-
-    ! Local variables:
-    integer :: ik, ibnd, isp
-      !! Loop indices
-
-
-    groundState(:,:) = 0
-    do isp = 1, nSpins
-      do ik = 1, nKPoints
-
-        do ibnd = 1, nBands
-
-          if (bandOccupation(isp,ibnd,ik) < 0.5_dp) then
-            !! @todo Figure out if boundary for "occupied" should be 0.5 or less @endtodo
-          !if (et(ibnd,ik) > ef) then
-
-            groundState(isp,ik) = ibnd - 1
-            goto 10
-
-          endif
-        enddo
-
-10      continue
-
-      enddo
-    enddo
-
-    return
-  end subroutine getGroundState
 
 !----------------------------------------------------------------------------
   subroutine writeGridInfo(nGVecsGlobal, gVecMillerIndicesGlobalOrig, maxGIndexGlobal, exportDir)

@@ -164,9 +164,8 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call writeKInfo(nBands, nKPoints, nGkLessECutGlobal, nSpins, bandOccupation, kWeight, kPosition)
-    !! * Calculate ground state and write out k-point 
-    !!   information to `input` file
+  call writeKInfo(nKPoints, nGkLessECutGlobal, nSpins, kWeight, kPosition)
+    !! * Write out k-point information to `input` file
 
   deallocate(kPosition)
   deallocate(kWeight)
