@@ -239,7 +239,7 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call writeEigenvalues(nBands, nKPoints, nSpins, bandOccupation, eFermi, eTot, eigenE)
+  call writeEigenvalues(ispSelect, nBands, nKPoints, nSpins, bandOccupation, eFermi, eTot, eigenE, loopSpins)
     !! * Write Fermi energy and eigenvalues and occupations for each band
 
   if(groupForGroupVelocity) then

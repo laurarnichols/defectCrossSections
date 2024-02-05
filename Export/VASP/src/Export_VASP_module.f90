@@ -3640,7 +3640,7 @@ module wfcExportVASPMod
   end subroutine writePseudoInfo
 
 !----------------------------------------------------------------------------
-  subroutine writeEigenvalues(nBands, nKPoints, nSpins, bandOccupation, eFermi, eTot, eigenE)
+  subroutine writeEigenvalues(ispSelect, nBands, nKPoints, nSpins, bandOccupation, eFermi, eTot, eigenE, loopSpins)
     !! Write Fermi energy and eigenvalues and occupations for each band
 
     use miscUtilities, only: int2str
@@ -3648,6 +3648,9 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(in) :: nBands
       !! Total number of bands
     integer, intent(in) :: nKPoints
@@ -3664,6 +3667,10 @@ module wfcExportVASPMod
 
     complex*16, intent(in) :: eigenE(nSpins,nKPoints,nBands)
       !! Band eigenvalues
+
+    logical, intent(in) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
 
     ! Local variables:
     integer :: ik, ib, isp
