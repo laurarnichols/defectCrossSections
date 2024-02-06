@@ -38,7 +38,8 @@ program wfcExportVASPMain
     !! * Split up processors between pools and generate MPI
     !!   communicators for pools
 
-  call readInputParams(nDispkPerCoord, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+  call readInputParams(ispSelect, nDispkPerCoord, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, loopSpins, &
+      exportDir, pattern, VASPDir)
     !! * Initialize, read, check, and broadcast input parameters
 
   if(ionode) &
@@ -46,7 +47,7 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
+  call readWAVECAR(ispSelect, loopSpins, VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
       kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, reclenWav, eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 
@@ -147,8 +148,9 @@ program wfcExportVASPMain
 
   if(.not. energiesOnly) then
 
-    call projAndWav(maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, gVecMillerIndicesGlobalSort, &
-        igkSort2OrigLocal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+    call  projAndWav(ispSelect, maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, &
+        gVecMillerIndicesGlobalSort, igkSort2OrigLocal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, recipLattVec, &
+        exportDir, VASPDir, gammaOnly, loopSpins, pot)
 
 
     deallocate(igkSort2OrigLocal, nGkVecsLocal, iGkStart_pool, iGkEnd_pool, gVecMillerIndicesGlobalSort)
@@ -162,9 +164,8 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call writeKInfo(nBands, nKPoints, nGkLessECutGlobal, nSpins, bandOccupation, kWeight, kPosition)
-    !! * Calculate ground state and write out k-point 
-    !!   information to `input` file
+  call writeKInfo(nKPoints, nGkLessECutGlobal, nSpins, kWeight, kPosition)
+    !! * Write out k-point information to `input` file
 
   deallocate(kPosition)
   deallocate(kWeight)
@@ -178,11 +179,15 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call writeGridInfo(nGVecsGlobal, gVecMillerIndicesGlobalOrig, maxGIndexGlobal, exportDir)
+  if(ionode) call writeGridInfo(nGVecsGlobal, gVecMillerIndicesGlobalOrig, maxGIndexGlobal, exportDir)
     !! * Write out grid boundaries and miller indices
     !!   for just \(G+k\) combinations below cutoff energy
     !!   in one file and all miller indices in another 
     !!   file
+    !!
+    !!  Make sure only ionode calls this subroutine because
+    !!  `gVecMillerIndicesGlobalOrig` is not allocated on the
+    !!  other processes
 
   if(.not. energiesOnly .and. ionode) deallocate(gVecMillerIndicesGlobalOrig)
 
@@ -234,11 +239,11 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call writeEigenvalues(nBands, nKPoints, nSpins, bandOccupation, eFermi, eTot, eigenE)
+  call writeEigenvalues(ispSelect, nBands, nKPoints, nSpins, bandOccupation, eFermi, eTot, eigenE, loopSpins)
     !! * Write Fermi energy and eigenvalues and occupations for each band
 
   if(groupForGroupVelocity) then
-    call writeGroupedEigenvalues(nBands, nDispkPerCoord, nKPoints, nSpins, bandOccupation, patternArr, eigenE, pattern)
+    call writeGroupedEigenvalues(ispSelect, nBands, nDispkPerCoord, nKPoints, nSpins, bandOccupation, patternArr, eigenE, loopSpins, pattern)
     deallocate(patternArr)
   endif
 

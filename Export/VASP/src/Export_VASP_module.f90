@@ -1,7 +1,7 @@
 module wfcExportVASPMod
   
-  use constants, only: dp, angToBohr, eVToRy, ryToHartree, pi, twopi
-  use base, only: nKPoints, nSpins
+  use constants, only: dp, angToBohr, eVToRy, RyToHartree, eVToHartree, pi, twopi
+  use base, only: nKPoints, nSpins, ispSelect, loopSpins
   use errorsAndMPI
   use cell
   use mpi
@@ -156,17 +156,21 @@ module wfcExportVASPMod
 
   type (potcar), allocatable :: pot(:)
 
-  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity, nDispkPerCoord, pattern
+  namelist /inputParams/ VASPDir, exportDir, gammaOnly, energiesOnly, groupForGroupVelocity, nDispkPerCoord, pattern, ispSelect
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(nDispkPerCoord, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+  subroutine readInputParams(ispSelect, nDispkPerCoord, patternArr, energiesOnly, gammaOnly, groupForGroupVelocity, loopSpins, &
+        exportDir, pattern, VASPDir)
 
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(out) :: nDispkPerCoord
       !! Number of displaced k-points per coordinate
       
@@ -181,6 +185,9 @@ module wfcExportVASPMod
     logical, intent(out) :: groupForGroupVelocity
       !! If there are groups of k-points for group
       !! velocity calculation
+    logical, intent(out) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
 
     character(len=256), intent(out) :: exportDir
       !! Directory to be used for export
@@ -196,13 +203,14 @@ module wfcExportVASPMod
 
     if(ionode) then
     
-      call initialize(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+      call initialize(ispSelect, nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
 
       read(5, inputParams, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading inputParams namelist', abs(ierr))
 
-      call checkInitialization(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+      call checkInitialization(ispSelect, nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, &
+            pattern, VASPDir, loopSpins)
 
     endif
 
@@ -210,7 +218,9 @@ module wfcExportVASPMod
     call MPI_BCAST(VASPDir, len(VASPDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energiesOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(gammaOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(loopSpins, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(groupForGroupVelocity, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(ispSelect, 1, MPI_INTEGER, root, worldComm, ierr)
 
 
     if(groupForGroupVelocity) then
@@ -230,11 +240,14 @@ module wfcExportVASPMod
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+  subroutine initialize(ispSelect, nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
     
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(out) :: nDispkPerCoord
       !! Number of displaced k-points per coordinate
 
@@ -255,6 +268,7 @@ module wfcExportVASPMod
 
 
     nDispkPerCoord = -1
+    ispSelect = -1
 
     energiesOnly = .false.
     gammaOnly = .false.
@@ -269,11 +283,15 @@ module wfcExportVASPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, VASPDir)
+  subroutine checkInitialization(ispSelect, nDispkPerCoord, energiesOnly, gammaOnly, groupForGroupVelocity, exportDir, pattern, &
+        VASPDir, loopSpins)
     
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(in) :: nDispkPerCoord
       !! Number of displaced k-points per coordinate
       
@@ -292,6 +310,11 @@ module wfcExportVASPMod
     character(len=256), intent(in) :: VASPDir
       !! Directory with VASP files
 
+    ! Output variables:
+    logical, intent(out) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
+
     ! Local variables:
     logical :: abortExecution
       !! Whether or not to abort the execution
@@ -307,6 +330,14 @@ module wfcExportVASPMod
     if(groupForGroupVelocity) then
       abortExecution = checkIntInitialization('nDispkPerCoord', nDispkPerCoord, 1, maxNumDispkPerCoord) .or. abortExecution
       abortExecution = checkStringInitialization('pattern', pattern) .or. abortExecution
+    endif
+
+    if(ispSelect < 1 .or. ispSelect > 2) then
+      write(*,*) "No valid choice for spin channel selection given. Looping over spin."
+      loopSpins = .true.
+    else
+      write(*,'("Only exporting spin channel ", i2)') ispSelect
+      loopSpins = .false.
     endif
 
     abortExecution = checkDirInitialization('VASPDir', VASPDir, 'OUTCAR') .or. abortExecution
@@ -328,7 +359,7 @@ module wfcExportVASPMod
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine readWAVECAR(VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
+  subroutine readWAVECAR(ispSelect, loopSpins, VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
         kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, reclenWav, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
@@ -338,9 +369,16 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+
+    logical, intent(in) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
+
     character(len=256), intent(in) :: VASPDir
       !! Directory with VASP files
-
     
     ! Output variables:
     real(kind=dp), intent(out) :: realLattVec(3,3)
@@ -414,6 +452,21 @@ module wfcExportVASPMod
       nSpins = nint(nspin_real)
       prec = nint(prec_real)
         ! Convert input variables to integers
+
+
+      ! If not looping spins (i.e., a single spin channel was selected),
+      ! make sure that the selected spin channel is not larger than
+      ! the number of spin channels available in the system
+      if(.not. loopSpins) then
+
+        if(checkIntInitialization('ispSelect', ispSelect, 1, nSpins)) &
+          call exitError('readWAVECAR', 'selected spin larger than number of spin channels available', 1)
+          ! Put this inside the other if statement and not as an `.and.`
+          ! condition because fortran does not short-circuit within
+          ! conditionals, and the call to `checkIntInitialization` will
+          ! output an error message even if `loopSpins = .true.`
+      endif
+
 
       if(prec .eq. 45210) call exitError('readWAVECAR', 'WAVECAR_double requires complex*16', 1)
 
@@ -494,7 +547,7 @@ module wfcExportVASPMod
     call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(recipLattVec, size(recipLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
-    call preliminaryWAVECARScan(nBands, nKPoints, nSpins, reclenWav, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
+    call preliminaryWAVECARScan(ispSelect, nBands, nKPoints, nSpins, reclenWav, loopSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
       !! * For each spin and k-point, read the number of
       !!   \(G+k\) vectors below the energy cutoff, the
       !!   position of the k-point in reciprocal space, 
@@ -619,7 +672,8 @@ module wfcExportVASPMod
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine preliminaryWAVECARScan(nBands, nKPoints, nSpins, reclenWav, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
+  subroutine preliminaryWAVECARScan(ispSelect, nBands, nKPoints, nSpins, reclenWav, loopSpins, bandOccupation, kPosition, &
+          nPWs1kGlobal, eigenE)
     !! For each spin and k-point, read the number of
     !! \(G+k\) vectors below the energy cutoff, the
     !! position of the k-point in reciprocal space, 
@@ -631,6 +685,9 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(in) :: nBands
       !! Total number of bands
     integer, intent(in) :: nKPoints
@@ -639,6 +696,10 @@ module wfcExportVASPMod
       !! Number of spins
     integer, intent(in) :: reclenWav
       !! Number of records in the WAVECAR file
+
+    logical, intent(in) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
 
 
     ! Output variables:
@@ -670,6 +731,9 @@ module wfcExportVASPMod
     allocate(kPosition(3,nKPoints))
     allocate(nPWs1kGlobal(nKPoints))
     allocate(eigenE(nSpins,nKPoints,nBands))
+
+    bandOccupation = -1.0_dp
+    eigenE = 0.0_dp
     
     fileName = trim(VASPDir)//'/WAVECAR'
 
@@ -693,22 +757,34 @@ module wfcExportVASPMod
         
           irec = irec + 1
 
-          read(unit=wavecarUnit,rec=irec) nPWs1kGlobal_real, (kPosition(i,ik),i=1,3), &
-                 (eigenE(isp,ik,iband), bandOccupation(isp, iband, ik), iband=1,nBands)
+
+          if(loopSpins .or. isp == ispSelect) then
+            ! After adding this, I realized that the spin-independent
+            ! values like number of plane waves and k position are
+            ! being overwritten. This seems to be working okay, so
+            ! VASP must just repeat the same information for each spin 
+            ! channel
+
+
             ! Read in the number of \(G+k\) plane wave vectors below the energy
             ! cutoff, the position of the k-point in reciprocal space, and
-            ! the eigenvalue and occupation for each band
+            ! the eigenvalue and occupation for each band.
+            read(unit=wavecarUnit,rec=irec) nPWs1kGlobal_real, (kPosition(i,ik),i=1,3), &
+                     (eigenE(isp,ik,iband), bandOccupation(isp, iband, ik), iband=1,nBands)
 
-          nPWs1kGlobal(ik) = nint(nPWs1kGlobal_real)
-            !! @note
-            !!  `nPWs1kGlobal(ik)` corresponds to `WDES%NPLWKP_TOT(K)` in VASP (see 
-            !!  subroutine `OUTWAV` in `fileio.F`). In the `GEN_INDEX` subroutine in
-            !!  `wave.F`, `WDES%NGVECTOR(NK) = WDES%NPLWKP(NK)/WDES%NRSPINORS`, where
-            !!  `NRSPINORS=1` for our case. `WDES%NPLWKP(NK)` and `WDES%NPLWKP_TOT(K)`
-            !!  are set the same way and neither `NGVECTOR(NK)` nor `NPLWKP_TOT(K)` are
-            !!  changed anywhere else, so I am treating them as equivalent. I am not
-            !!  sure why there are two separate variables defined.
-            !! @endnote
+
+            nPWs1kGlobal(ik) = nint(nPWs1kGlobal_real)
+              !! @note
+              !!  `nPWs1kGlobal(ik)` corresponds to `WDES%NPLWKP_TOT(K)` in VASP (see 
+              !!  subroutine `OUTWAV` in `fileio.F`). In the `GEN_INDEX` subroutine in
+              !!  `wave.F`, `WDES%NGVECTOR(NK) = WDES%NPLWKP(NK)/WDES%NRSPINORS`, where
+              !!  `NRSPINORS=1` for our case. `WDES%NPLWKP(NK)` and `WDES%NPLWKP_TOT(K)`
+              !!  are set the same way and neither `NGVECTOR(NK)` nor `NPLWKP_TOT(K)` are
+              !!  changed anywhere else, so I am treating them as equivalent. I am not
+              !!  sure why there are two separate variables defined.
+              !! @endnote
+
+          endif
 
           irec = irec + nBands
             ! Skip the records for the plane-wave coefficients for now.
@@ -719,7 +795,7 @@ module wfcExportVASPMod
 
       close(wavecarUnit)
 
-      eigenE(:,:,:) = eigenE(:,:,:)*eVToRy
+      eigenE(:,:,:) = eigenE(:,:,:)*eVToHartree
 
     endif
 
@@ -2064,12 +2140,16 @@ module wfcExportVASPMod
   end subroutine readPOTCAR
 
 !----------------------------------------------------------------------------
-  subroutine projAndWav(maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, gVecMillerIndicesGlobalSort, &
-      igkSort2OrigLocal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, recipLattVec, exportDir, VASPDir, gammaOnly, pot)
+  subroutine projAndWav(ispSelect, maxGkVecsLocal, nAtoms, nAtomTypes, nBands, nGkVecsLocal, nGVecsGlobal, nKPoints, nSpins, &
+      gVecMillerIndicesGlobalSort, igkSort2OrigLocal, nPWs1kGlobal, reclenWav, atomPositionsDir, kPosition, omega, recipLattVec, &
+      exportDir, VASPDir, gammaOnly, loopSpins, pot)
 
     implicit none
 
     ! Input variables: 
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(in) :: maxGkVecsLocal
       !! Max number of G+k vectors across all k-points
       !! in this pool
@@ -2115,6 +2195,9 @@ module wfcExportVASPMod
 
     logical, intent(in) :: gammaOnly
       !! If the gamma only VASP code is used
+    logical, intent(in) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
 
     type (potcar) :: pot(nAtomTypes)
       !! Holds all information needed from POTCAR
@@ -2232,38 +2315,41 @@ module wfcExportVASPMod
 
       do isp = 1, nSpins
 
-        isk = ikGlobal + (isp - 1)*nKPoints
-          !! Define index to combine k-point and spin
+        if(loopSpins .or. isp == ispSelect) then
+          isk = ikGlobal + (isp - 1)*nKPoints
+            !! Define index to combine k-point and spin
 
-        irec = 2 + isk + (isk - 1)*nBands
-          ! Have all processes increment the record number so
-          ! they know where they are supposed to access the WAVECAR
-          ! once/if they are the I/O node
+          irec = 2 + isk + (isk - 1)*nBands
+            ! Have all processes increment the record number so
+            ! they know where they are supposed to access the WAVECAR
+            ! once/if they are the I/O node
 
-        if(ionode) &
-          write(*, '("      k-point ",i4," in pool, spin ",i1,": [ ] Wavefunctions  [ ] Projections")') ikLocal, isp
-        call cpu_time(t1)
+          if(ionode) &
+            write(*, '("      k-point ",i4," in pool, spin ",i1,": [ ] Wavefunctions  [ ] Projections")') ikLocal, isp
+          call cpu_time(t1)
 
-        call readAndWriteWavefunction(ikLocal, isp, nGkVecsLocal_ik, nPWs1k, exportDir, irec, coeffLocal)
-
-
-        call cpu_time(t2)
-        if(ionode) &
-          write(*, '("      k-point ",i4," in pool, spin ",i1,": [X] Wavefunctions  [ ] Projections (",f7.2," secs)")') &
-                ikLocal, isp, t2-t1
-        call cpu_time(t1)
+          call readAndWriteWavefunction(ikLocal, isp, nGkVecsLocal_ik, nPWs1k, exportDir, irec, coeffLocal)
 
 
-        call getAndWriteProjections(ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, compFact, & 
-                  phaseExp, coeffLocal, exportDir, pot)
+          call cpu_time(t2)
+          if(ionode) &
+            write(*, '("      k-point ",i4," in pool, spin ",i1,": [X] Wavefunctions  [ ] Projections (",f7.2," secs)")') &
+                  ikLocal, isp, t2-t1
+          call cpu_time(t1)
 
 
-        call cpu_time(t2)
-        if(ionode) &
-          write(*, '("      k-point ",i4," in pool, spin ",i1,": [X] Wavefunctions  [X] Projections (",f7.2," secs)")') &
-                ikLocal, isp, t2-t1
-        call cpu_time(t1)
+          call getAndWriteProjections(ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, compFact, & 
+                    phaseExp, coeffLocal, exportDir, pot)
 
+
+          call cpu_time(t2)
+          if(ionode) &
+            write(*, '("      k-point ",i4," in pool, spin ",i1,": [X] Wavefunctions  [X] Projections (",f7.2," secs)")') &
+                  ikLocal, isp, t2-t1
+          call cpu_time(t1)
+
+
+        endif
 
       enddo
 
@@ -3243,7 +3329,7 @@ module wfcExportVASPMod
   end subroutine getAndWriteProjections
 
 !----------------------------------------------------------------------------
-  subroutine writeKInfo(nBands, nKPoints, nGkLessECutGlobal, nSpins, bandOccupation, kWeight, kPosition)
+  subroutine writeKInfo(nKPoints, nGkLessECutGlobal, nSpins, kWeight, kPosition)
     !! Calculate the highest occupied band for each k-point
     !! and write out k-point information
     !!
@@ -3253,8 +3339,6 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: nBands
-      !! Total number of bands
     integer, intent(in) :: nKPoints
       !! Total number of k-points
     integer, intent(in) :: nGkLessECutGlobal(nKPoints)
@@ -3263,50 +3347,17 @@ module wfcExportVASPMod
     integer, intent(in) :: nSpins
       !! Number of spins
 
-    real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands, nKPoints)
-      !! Occupation of band
     real(kind=dp), intent(in) :: kWeight(nKPoints)
       !! K-point weights
     real(kind=dp), intent(in) :: kPosition(3,nKPoints)
       !! Position of k-points in reciprocal space
 
-
-    ! Output variables:
-
-
     ! Local variables:
-    integer :: groundState(nSpins,nKPoints)
-      !! Holds the highest occupied band
-      !! for each k-point and spin
-    integer :: ik, isp
-      !! Loop indices
+    integer :: ik
+      !! Loop index
 
 
     if(ionode) then
-
-      call getGroundState(nBands, nKPoints, nSpins, bandOccupation, groundState)
-        !! * For each k-point, find the index of the 
-        !!   highest occupied band
-        !!
-        !! @note
-        !!  Although `groundState` is written out in `Export`,
-        !!  it is not currently used by the `TME` program.
-        !! @endnote
-
-      open(72, file=trim(exportDir)//"/groundState")
-
-      write(72, '("# isp, ik, groundState(isp,ik). Format: ''(3i10)''")')
-
-      do isp = 1, nSpins
-        do ik = 1, nKPoints
-
-          write(72, '(3i10)') isp, ik, groundState(isp,ik)
-
-        enddo
-      enddo
-
-      close(72)
-          
 
       write(mainOutFileUnit, '("# Number of spins. Format: ''(i10)''")')
       write(mainOutFileUnit, '(i10)') nSpins
@@ -3336,60 +3387,6 @@ module wfcExportVASPMod
 
     return
   end subroutine writeKInfo
-
-!----------------------------------------------------------------------------
-  subroutine getGroundState(nBands, nKPoints, nSpins, bandOccupation, groundState)
-    !! * For each k-point, find the index of the 
-    !!   highest occupied band
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nBands
-      !! Total number of bands
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-    integer, intent(in) :: nSpins
-      !! Number of spins
-
-    real(kind=dp), intent(in) :: bandOccupation(nSpins, nBands, nKPoints)
-      !! Occupation of band
-
-    
-    ! Output variables:
-    integer, intent(out) :: groundState(nSpins, nKPoints)
-      !! Holds the highest occupied band
-      !! for each k-point and spin
-
-
-    ! Local variables:
-    integer :: ik, ibnd, isp
-      !! Loop indices
-
-
-    groundState(:,:) = 0
-    do isp = 1, nSpins
-      do ik = 1, nKPoints
-
-        do ibnd = 1, nBands
-
-          if (bandOccupation(isp,ibnd,ik) < 0.5_dp) then
-            !! @todo Figure out if boundary for "occupied" should be 0.5 or less @endtodo
-          !if (et(ibnd,ik) > ef) then
-
-            groundState(isp,ik) = ibnd - 1
-            goto 10
-
-          endif
-        enddo
-
-10      continue
-
-      enddo
-    enddo
-
-    return
-  end subroutine getGroundState
 
 !----------------------------------------------------------------------------
   subroutine writeGridInfo(nGVecsGlobal, gVecMillerIndicesGlobalOrig, maxGIndexGlobal, exportDir)
@@ -3615,7 +3612,7 @@ module wfcExportVASPMod
   end subroutine writePseudoInfo
 
 !----------------------------------------------------------------------------
-  subroutine writeEigenvalues(nBands, nKPoints, nSpins, bandOccupation, eFermi, eTot, eigenE)
+  subroutine writeEigenvalues(ispSelect, nBands, nKPoints, nSpins, bandOccupation, eFermi, eTot, eigenE, loopSpins)
     !! Write Fermi energy and eigenvalues and occupations for each band
 
     use miscUtilities, only: int2str
@@ -3623,6 +3620,9 @@ module wfcExportVASPMod
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(in) :: nBands
       !! Total number of bands
     integer, intent(in) :: nKPoints
@@ -3640,6 +3640,10 @@ module wfcExportVASPMod
     complex*16, intent(in) :: eigenE(nSpins,nKPoints,nBands)
       !! Band eigenvalues
 
+    logical, intent(in) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
+
     ! Local variables:
     integer :: ik, ib, isp
       !! Loop indices
@@ -3654,21 +3658,23 @@ module wfcExportVASPMod
       flush(mainOutFileUnit)
     
       do isp = 1, nSpins
-        do ik = 1, nKPoints
+        if(loopSpins .or. isp == ispSelect) then
+          do ik = 1, nKPoints
 
-          open(72, file=trim(exportDir)//"/eigenvalues."//trim(int2str(isp))//"."//trim(int2str(ik)))
+            open(72, file=trim(exportDir)//"/eigenvalues."//trim(int2str(isp))//"."//trim(int2str(ik)))
       
-          write(72, '("# Spin, k-point index: ",2i10, " Format: ''(a23, 2i10)''")') isp, ik
-          write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
+            write(72, '("# Spin, k-point index: ",2i10, " Format: ''(a23, 2i10)''")') isp, ik
+            write(72, '("# Eigenvalues (Hartree), band occupation number. Format: ''(2ES24.15E3)''")')
       
-          do ib = 1, nBands
+            do ib = 1, nBands
+  
+              write(72, '(i10, 2ES24.15E3)') ib, real(eigenE(isp,ik,ib)), bandOccupation(isp,ib,ik)
 
-            write(72, '(i10, 2ES24.15E3)') ib, real(eigenE(isp,ik,ib))*ryToHartree, bandOccupation(isp,ib,ik)
-
+            enddo
+      
+            close(72)
           enddo
-      
-          close(72)
-        enddo
+        endif
       enddo
 
     endif
@@ -3677,13 +3683,17 @@ module wfcExportVASPMod
   end subroutine writeEigenvalues
 
 !----------------------------------------------------------------------------
-  subroutine writeGroupedEigenvalues(nBands, nDispkPerCoord, nKPoints, nSpins, bandOccupation, patternArr, eigenE, pattern)
+  subroutine writeGroupedEigenvalues(ispSelect, nBands, nDispkPerCoord, nKPoints, nSpins, bandOccupation, patternArr, eigenE, &
+        loopSpins, pattern)
 
     use miscUtilities, only: int2str, hpsort_eps
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(in) :: nBands
       !! Total number of bands
     integer, intent(in) :: nDispkPerCoord
@@ -3701,6 +3711,10 @@ module wfcExportVASPMod
 
     complex*16, intent(in) :: eigenE(nSpins,nKPoints,nBands)
       !! Band eigenvalues
+
+    logical, intent(in) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
 
     character(len=300), intent(in) :: pattern
       ! Character input for displacement pattern
@@ -3752,62 +3766,64 @@ module wfcExportVASPMod
         ! Get sorted index order for patternArr from negative to positive
     
       do isp = 1, nSpins
-        do ikGroup = 1, nKGroups
-          do ix = 1, 3
-            do ikx = 1, nDispkPerCoord+1
+        if(loopSpins .or. isp == ispSelect) then
+          do ikGroup = 1, nKGroups
+            do ix = 1, 3
+              do ikx = 1, nDispkPerCoord+1
 
-              if(iPattSort(ikx) == 1) then
-                ! This is the zero point. We add it to the
-                ! sorting array in case the points aren't 
-                ! symmetric about zero displacement.
+                if(iPattSort(ikx) == 1) then
+                  ! This is the zero point. We add it to the
+                  ! sorting array in case the points aren't 
+                  ! symmetric about zero displacement.
 
-                ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
-                     1                          ! Skip to base k-point
+                  ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
+                       1                          ! Skip to base k-point
 
-              else
+                else
 
-                ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
-                     1 + &                      ! Skip base k-point
-                     (ix-1)*nDispkPerCoord + &  ! Skip previous displaced coordinates
-                     iPattSort(ikx)-1           ! Skip to sorted value from displacement pattern minus zero-displacement point
+                  ik = (ikGroup-1)*nkPerGroup + & ! Skip all k-points from previous group
+                       1 + &                      ! Skip base k-point
+                       (ix-1)*nDispkPerCoord + &  ! Skip previous displaced coordinates
+                       iPattSort(ikx)-1           ! Skip to sorted value from displacement pattern minus zero-displacement point
+                endif
+
+                eigsForOutput(:,ikx,ix) = real(eigenE(isp,ik,:))*ryToHartree
+
+              enddo
+
+              if(ix == 1) then
+                open(72, file=trim(exportDir)//"/groupedEigenvaluesX."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
+              else if(ix == 2) then
+                open(72, file=trim(exportDir)//"/groupedEigenvaluesY."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
+              else if(ix == 3) then
+                open(72, file=trim(exportDir)//"/groupedEigenvaluesZ."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
               endif
-
-              eigsForOutput(:,ikx,ix) = real(eigenE(isp,ik,:))*ryToHartree
-
-            enddo
-
-            if(ix == 1) then
-              open(72, file=trim(exportDir)//"/groupedEigenvaluesX."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
-            else if(ix == 2) then
-              open(72, file=trim(exportDir)//"/groupedEigenvaluesY."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
-            else if(ix == 3) then
-              open(72, file=trim(exportDir)//"/groupedEigenvaluesZ."//trim(int2str(isp))//"."//trim(int2str(ikGroup)))
-            endif
         
-            write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
-            write(72,'("# Input displacement pattern:")')
-            write(72,'(a)') trim(pattern)
+              write(72, '("# Spin : ",i10, " Format: ''(a9, i10)''")') isp
+              write(72,'("# Input displacement pattern:")')
+              write(72,'(a)') trim(pattern)
 
-            if(ix == 1) then
-              write(72, '("# Eigenvalues (Hartree) - to + for x, band occupation number Format: ''",a"''")') trim(formatString)
-            else if(ix == 2) then
-              write(72, '("# Eigenvalues (Hartree) - to + for y, band occupation number Format: ''",a"''")') trim(formatString)
-            else if(ix == 3) then
-              write(72, '("# Eigenvalues (Hartree) - to + for z, band occupation number Format: ''",a"''")') trim(formatString)
-            endif
+              if(ix == 1) then
+                write(72, '("# Eigenvalues (Hartree) - to + for x, band occupation number Format: ''",a"''")') trim(formatString)
+              else if(ix == 2) then
+                write(72, '("# Eigenvalues (Hartree) - to + for y, band occupation number Format: ''",a"''")') trim(formatString)
+              else if(ix == 3) then
+                write(72, '("# Eigenvalues (Hartree) - to + for z, band occupation number Format: ''",a"''")') trim(formatString)
+              endif
       
-            do ib = 1, nBands
+              do ib = 1, nBands
 
-              write(72,formatString) &
-                (eigsForOutput(ib,ikx,ix), ikx=1,nDispkPerCoord+1), & ! k-points for this coordinate from - to +
-                bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup+1)       ! band occupation from base k-point           
+                write(72,formatString) &
+                  (eigsForOutput(ib,ikx,ix), ikx=1,nDispkPerCoord+1), & ! k-points for this coordinate from - to +
+                  bandOccupation(isp,ib,(ikGroup-1)*nkPerGroup+1)       ! band occupation from base k-point           
+
+              enddo
+      
+              close(72)
 
             enddo
-      
-            close(72)
-
           enddo
-        enddo
+        endif
      enddo
     endif
     

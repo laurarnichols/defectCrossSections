@@ -5,7 +5,7 @@ module TMEmod
   use constants, only: dp, pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
   use energyTabulatorMod, only: energyTableDir, readEnergyTable
-  use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, nSpins, order
+  use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, nSpins, order, ispSelect, loopSpins
 
   use errorsAndMPI
   use mpi
@@ -77,7 +77,7 @@ module TMEmod
   integer :: iTypes, iPn
   integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
   integer :: numOfTypes, nProjsSD
-  integer :: numOfUsedGvecsPP, ios, npwNi, npwNf, npwMi, npwMf
+  integer :: numOfUsedGvecsPP, npwNi, npwNf, npwMi, npwMf
   integer :: np, nI, nF, nPP, ind2
   integer :: i, j, n1, n2, n3, n4, n, id, npw
   
@@ -119,19 +119,24 @@ module TMEmod
 
   namelist /TME_Input/ exportDirSD, exportDirPC, outputDir, energyTableDir, &
                        iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
-                       order, dqFName, phononModeJ, subtractBaseline, baselineDir
+                       order, dqFName, phononModeJ, subtractBaseline, baselineDir, &
+                       ispSelect
   
   
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInput(maxAngMom, maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, subtractBaseline)
+  subroutine readInput(ispSelect, maxAngMom, maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, &
+        loopSpins, subtractBaseline)
 
     use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
     
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(out) :: maxAngMom
       !! Maximum angular momentum of the projectors
     integer, intent(out) :: maxGIndexGlobal
@@ -151,6 +156,9 @@ contains
       !! File name for baseline overlap to optionally
       !! be subtracted for the first-order term
 
+    logical, intent(out) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
     logical, intent(out) :: subtractBaseline
       !! If baseline should be subtracted from first-order
       !! overlap for increased numerical accuracy in the 
@@ -169,11 +177,13 @@ contains
 
     if(ionode) then
     
-      call initialize(baselineDir, subtractBaseline)
+      call initialize(ispSelect, baselineDir, subtractBaseline)
     
-      read(5, TME_Input, iostat=ios)
+      read(5, TME_Input, iostat=ierr)
     
-      call checkInitialization(baselineDir, subtractBaseline)
+      if(ierr /= 0) call exitError('readInputParams', 'reading TME_Input namelist', abs(ierr))
+    
+      call checkInitialization(ispSelect, baselineDir, subtractBaseline, loopSpins)
 
     endif
 
@@ -183,6 +193,9 @@ contains
     call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
 
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    call MPI_BCAST(ispSelect, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(loopSpins, 1, MPI_LOGICAL, root, worldComm, ierr)
 
     call MPI_BCAST(phononModeJ, 1, MPI_INTEGER, root, worldComm, ierr)
 
@@ -238,11 +251,15 @@ contains
   end subroutine readInput
   
 !----------------------------------------------------------------------------
-  subroutine initialize(baselineDir, subtractBaseline)
+  subroutine initialize(ispSelect, baselineDir, subtractBaseline)
     
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+
     character(len=300), intent(out) :: baselineDir
       !! File name for baseline overlap to optionally
       !! be subtracted for the first-order term
@@ -262,6 +279,8 @@ contains
 
     order = -1
 
+    ispSelect = -1
+
     phononModeJ = -1
     
     iBandIinit  = -1
@@ -276,19 +295,28 @@ contains
   end subroutine initialize
   
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(baselineDir, subtractBaseline)
+  subroutine checkInitialization(ispSelect, baselineDir, subtractBaseline, loopSpins)
     
     implicit none
 
-    ! Output variables:
-    character(len=300), intent(inout) :: baselineDir
+    ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+
+    character(len=300), intent(in) :: baselineDir
       !! File name for baseline overlap to optionally
       !! be subtracted for the first-order term
 
-    logical, intent(inout) :: subtractBaseline
+    logical, intent(in) :: subtractBaseline
       !! If baseline should be subtracted from first-order
       !! overlap for increased numerical accuracy in the 
       !! derivative
+
+    ! Output variables:
+    logical, intent(out) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
     
     ! Local variables
     logical :: abortExecution
@@ -306,7 +334,21 @@ contains
       abortExecution = checkFileInitialization('dqFName', dqFName) .or. abortExecution
       abortExecution = checkIntInitialization('phononModeJ', phononModeJ, 1, int(1e9)) .or. abortExecution
 
-      if(subtractBaseline) abortExecution = checkDirInitialization('baselineDir', baselineDir, 'allElecOverlap.1.1') .or. abortExecution
+      if(subtractBaseline) then
+        if(ispSelect == 2) then
+          abortExecution = checkDirInitialization('baselineDir', baselineDir, 'allElecOverlap.2.1') .or. abortExecution
+        else
+          abortExecution = checkDirInitialization('baselineDir', baselineDir, 'allElecOverlap.1.1') .or. abortExecution
+        endif
+      endif
+    endif
+
+    if(ispSelect < 1 .or. ispSelect > 2) then
+      write(*,*) "No valid choice for spin channel selection given. Looping over spin."
+      loopSpins = .true.
+    else
+      write(*,'("Only exporting spin channel ", i2)') ispSelect
+      loopSpins = .false.
     endif
 
     abortExecution = checkStringInitialization('outputDir', outputDir) .or. abortExecution
@@ -431,9 +473,10 @@ contains
       enddo
     
       read(50, '(a)') textDum
-      read(50,*) nBands
+      read(50,'(i10)') nBands
 
-      if(iBandIfinal > nBands .or. iBandFfinal) call exitError('readInputPC', 'band limits outside the number of bands in the system', 1)
+      if(iBandIfinal > nBands .or. iBandFfinal > nBands) &
+        call exitError('readInputPC', 'band limits outside the number of bands in the system '//trim(int2str(nBands)), 1)
         ! Only need to test these bands because we tested in
         ! the `checkInitialization` subroutine to make sure
         ! that the `initial` bands are lower than the `final`
@@ -718,9 +761,10 @@ contains
       enddo
     
       read(50, '(a)') textDum
-      read(50,*) nBands
+      read(50,'(i10)') nBands
 
-      if(iBandIfinal > nBands .or. iBandFfinal) call exitError('readInputPC', 'band limits outside the number of bands in the system', 1)
+      if(iBandIfinal > nBands .or. iBandFfinal > nBands) &
+        call exitError('readInputSD', 'band limits outside the number of bands in the system '//trim(int2str(nBands)), 1)
         ! Only need to test these bands because we tested in
         ! the `checkInitialization` subroutine to make sure
         ! that the `initial` bands are lower than the `final`

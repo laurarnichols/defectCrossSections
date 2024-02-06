@@ -19,6 +19,9 @@ The `TME` input file for the zeroth-order should look like
 &TME_Input
   ! Which order of matrix element to calculate
   order = 0
+
+  ! Spin channel selection; default unused
+  ispSelect = integer  
   
   ! Systems used for overlaps
   exportDirSD    = 'path-to-final-charge-state-initial-positions-export'
@@ -50,6 +53,9 @@ The `TME` input file for the first-order term should look like
 &TME_Input
   ! Which order of matrix element to calculate
   order = 1
+
+  ! Spin channel selection; default unused
+  ispSelect = integer                                   
   
   ! Systems used for overlaps
   exportDirSD    = 'path-to-displaced-defect-export'

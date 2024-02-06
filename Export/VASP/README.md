@@ -11,6 +11,7 @@ The results must then be post-processed to be used as input to the other program
 The input file should look like
 ```f90
 &inputParams
+  ispSelect = integer                                   ! selection of a single spin channel; default unused
   VASPDir = 'path-to-VASP-output'                       ! default './'
   exportDir = 'path-to-put-exported-files'              ! default './Export'
   gammaOnly = logical                                   ! default .false.
@@ -26,7 +27,6 @@ The output files are
 * `eigenvalues.isp.ik` -- eigenvalues for each band for given spin channel and k-point
 * `groupedEigenvalues.isp.ik` -- grouped eigenvalues for each base k-point and spin channel if `groupForGroupVelocity = .true.`
 * `grid.ik` -- Miller indices for G-vectors such that $G+k < $ cutoff
-* `groundState` -- highest occupied band for each spin channel and k-point
 * `input` -- main output file with cell, k-point, pseudopotential information, and total energy
 * `mgrid` -- full G-vector grid in Miller indices
 * `projections.isp.ik` -- $\langle \beta | \psi \rangle$ for given spin channel and k-point

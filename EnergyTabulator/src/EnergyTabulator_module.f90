@@ -2,7 +2,7 @@ module energyTabulatorMod
   
   use constants, only: dp, eVToHartree
   use miscUtilities, only: int2str
-  use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, nSpins
+  use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, nSpins, loopSpins, ispSelect
   use errorsAndMPI
   use mpi
 
@@ -58,15 +58,15 @@ module energyTabulatorMod
     !! If carrier is electron as opposed to hole
 
   namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, energyTableDir, &
-                         eCorrectTot, eCorrectEigRef, captured, elecCarrier, &
+                         eCorrectTot, eCorrectEigRef, captured, elecCarrier, ispSelect, &
                          iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigRef, energyTableDir, &
-        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef, &
+        energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
     !! Set the default values for input variables and start timer
     !!
     !! <h2>Walkthrough</h2>
@@ -82,6 +82,9 @@ module energyTabulatorMod
     ! Output variables:
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(out) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(out) :: refBand
       !! Band of WZP reference carrier
 
@@ -116,6 +119,8 @@ module energyTabulatorMod
     iBandFfinal = -1
     refBand = -1
 
+    ispSelect = -1
+
     eCorrectTot = 0.0_dp
     eCorrectEigRef = 0.0_dp
 
@@ -131,14 +136,17 @@ module energyTabulatorMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, eCorrectTot, eCorrectEigRef, energyTableDir, &
-      exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef, &
+      energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier, loopSpins)
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
     integer, intent(in) :: refBand
       !! Band of WZP reference carrier
 
@@ -166,6 +174,11 @@ module energyTabulatorMod
     logical, intent(in) :: elecCarrier
       !! If carrier is electron as opposed to hole
 
+    ! Output variables:
+    logical, intent(out) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
+
     ! Local variables:
     logical :: abortExecution
       !! Whether or not to abort the execution
@@ -177,8 +190,19 @@ module energyTabulatorMod
     abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
     abortExecution = checkIntInitialization('refBand', refBand, 1, int(1e9)) .or. abortExecution
 
+
+    if(ispSelect < 1 .or. ispSelect > 2) then
+      write(*,*) "No valid choice for spin channel selection given. Looping over spin."
+      loopSpins = .true.
+    else
+      write(*,'("Only exporting spin channel ", i2)') ispSelect
+      loopSpins = .false.
+    endif
+
+
     write(*,'("eCorrectTot = ", f8.4, " (eV)")') eCorrectTot
     write(*,'("eCorrectEigRef = ", f8.4, " (eV)")') eCorrectEigRef
+
 
     if(captured .and. iBandFinit /= iBandFfinal) then
       write(*,'("Capture only expected for a single final-state band.")')
@@ -187,8 +211,10 @@ module energyTabulatorMod
     write(*,'("captured = ",L)') captured
     write(*,'("elecCarrier = ",L)') elecCarrier
 
+
     eCorrectTot = eCorrectTot*eVToHartree
     eCorrectEigRef = eCorrectEigRef*eVToHartree
+
 
     abortExecution = checkDirInitialization('exportDirEigs', exportDirEigs, 'input') .or. abortExecution
     abortExecution = checkDirInitialization('exportDirInitInit', exportDirInitInit, 'input') .or. abortExecution
@@ -332,6 +358,12 @@ module energyTabulatorMod
       !! Eigenvalue of WZP reference carrier
 
     ! Local variables:
+    integer :: iDum
+      !! Dummy integer to ignore band index
+
+    real(kind=dp) :: rDum
+      !! Dummy real to ignore occupation
+
     character(len=300) :: fName
       !! File name
 
@@ -347,7 +379,7 @@ module energyTabulatorMod
       call ignoreNextNLinesFromFile(72, 2 + (refBand-1))
         ! Ignore header and all bands before reference band
     
-      read(72, '(ES24.15E3)') refEig
+      read(72, '(i10, 2ES24.15E3)') iDum, refEig, rDum
     
       close(72)
 
@@ -387,8 +419,13 @@ module energyTabulatorMod
       !! eigenvalue and the defect level
 
     ! Local variables:
+    integer :: iDum
+      !! Dummy integer to ignore band index
+
     real(kind=dp) :: defectEig
       !! Eigenvalue of the defect for capture
+    real(kind=dp) :: rDum
+      !! Dummy real to ignore occupation
     real(kind=dp) :: refEig
       !! Eigenvalue of WZP reference carrier (not the same
       !! as `refEig` used in other places in the code; this
@@ -410,7 +447,7 @@ module energyTabulatorMod
       call ignoreNextNLinesFromFile(72, 2 + (iBandFinit-1))
         ! Ignore header and all bands before reference band
     
-      read(72, '(ES24.15E3)') defectEig
+      read(72, '(i10, 2ES24.15E3)') iDum, defectEig, rDum
     
       close(72)
 
@@ -420,7 +457,7 @@ module energyTabulatorMod
       call ignoreNextNLinesFromFile(72, 2 + (refBand-1))
         ! Ignore header and all bands before reference band
     
-      read(72, '(ES24.15E3)') refEig
+      read(72, '(i10, 2ES24.15E3)') iDum, refEig, rDum
     
       close(72)
 
@@ -433,8 +470,6 @@ module energyTabulatorMod
       else
         dEEigRefDefect = defectEig - refEig
       endif
-
-      write(*,'("isp = ", i1, " refEig, defectEig, dEEigRefDefect: ", 3ES24.15E3)') isp, refEig, defectEig, dEEigRefDefect 
 
     endif
 
@@ -676,6 +711,9 @@ module energyTabulatorMod
     integer :: iDum
       !! Dummy integer to ignore band index
 
+    real(kind=dp) :: rDum
+      !! Dummy real to ignore occupation
+
     character(len=300) :: fName
       !! File name
 
@@ -688,7 +726,7 @@ module energyTabulatorMod
       ! Ignore header and all bands before lowest initial-state band
     
     do ib = iBandIinit, iBandIfinal
-      read(72, '(i10, ES24.15E3)') iDum, eigvI(ib)
+      read(72, '(i10, 2ES24.15E3)') iDum, eigvI(ib), rDum
     enddo
     
     close(72)
@@ -700,7 +738,7 @@ module energyTabulatorMod
       ! Ignore header and all bands before lowest final-state band
     
     do ib = iBandFinit, iBandFfinal
-      read(72, '(i10, ES24.15E3)') iDum, eigvF(ib)
+      read(72, '(i10, 2ES24.15E3)') iDum, eigvF(ib), rDum
     enddo
     
     close(72)
