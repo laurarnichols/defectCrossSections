@@ -183,7 +183,7 @@ contains
     
       if(ierr /= 0) call exitError('readInputParams', 'reading TME_Input namelist', abs(ierr))
     
-      call checkInitialization(ispSelect, baselineDir, loopSpins, subtractBaseline)
+      call checkInitialization(ispSelect, baselineDir, subtractBaseline, loopSpins)
 
     endif
 
@@ -295,11 +295,11 @@ contains
   end subroutine initialize
   
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(ispSelect, baselineDir, loopSpins, subtractBaseline)
+  subroutine checkInitialization(ispSelect, baselineDir, subtractBaseline, loopSpins)
     
     implicit none
 
-    ! Output variables:
+    ! Input variables:
     integer, intent(in) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
@@ -308,13 +308,15 @@ contains
       !! File name for baseline overlap to optionally
       !! be subtracted for the first-order term
 
-    logical, intent(out) :: loopSpins
-      !! Whether to loop over available spin channels;
-      !! otherwise, use selected spin channel
     logical, intent(in) :: subtractBaseline
       !! If baseline should be subtracted from first-order
       !! overlap for increased numerical accuracy in the 
       !! derivative
+
+    ! Output variables:
+    logical, intent(out) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
     
     ! Local variables
     logical :: abortExecution
