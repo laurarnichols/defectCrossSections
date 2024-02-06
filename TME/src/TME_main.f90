@@ -6,16 +6,11 @@ program TMEmain
   integer :: ikLocal, ikGlobal, isp
     !! Loop indices
 
-  logical :: bothSpinChannelsExist = .false.
-    !! If `allElecOverlap.isp.ik` files exist
-    !! for both spin channels at the current 
-    !! k-point
-  logical :: spin1Read = .false.
-    !! If spin channel 1 at the current k-point
-    !! was read from a file. Tells us if we need
-    !! to read/calculate some things  for the second
-    !! that are normally done for the first channel
-    !! only
+  logical :: calcSpinDepSD, calcSpinDepPC
+    !! If spin-dependent subroutines should be called
+  logical :: thisKComplete = .false.
+    !! If needed `allElecOverlap.isp.ik` files exist
+    !! at the current k-point
 
   
   call mpiInitialization('TME')
@@ -90,17 +85,19 @@ program TMEmain
     
     if(indexInPool == 0) then
 
-      if(nSpins == 1) then
-        bothSpinChannelsExist = overlapFileExists(ikGlobal, 1)
+      if(nSpins == 1 .or. ispSelect == 1) then
+        thisKComplete = overlapFileExists(ikGlobal, 1)
+      else if(ispSelect == 2) then
+        thisKComplete = overlapFileExists(ikGlobal, 2)
       else if(nSpins == 2) then
-        bothSpinChannelsExist = overlapFileExists(ikGlobal, 1) .and. overlapFileExists(ikGlobal, 2)
+        thisKComplete = overlapFileExists(ikGlobal, 1) .and. overlapFileExists(ikGlobal, 2)
       endif
       
     endif
     
-    call MPI_BCAST(bothSpinChannelsExist, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
+    call MPI_BCAST(thisKComplete, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
 
-    if(.not. bothSpinChannelsExist) then
+    if(.not. thisKComplete) then
 
       !-----------------------------------------------------------------------------------------------
       !> Read projectors
@@ -151,149 +148,157 @@ program TMEmain
       
       do isp = 1, nSpins
 
-        if(ionode) write(*,'("  Beginning spin loop ", i2, " of ", i2)') isp, nSpins
+        if(loopSpins .or. isp == ispSelect) then
 
-        !-----------------------------------------------------------------------------------------------
-        !> Check if the `allElecOverlap.isp.ik` file exists
+          if(ionode) write(*,'("  Beginning spin ", i2)') isp
 
-        if(.not. overlapFileExists(ikGlobal, isp)) then
+          calcSpinDepPC = (isp == 1) .or. (nSpinsPC == 2 .and. (ispSelect == 2 .or. overlapFileExists(ikGlobal,1)))
+          calcSpinDepSD = (isp == 1) .or. (nSpinsSD == 2 .and. (ispSelect == 2 .or. overlapFileExists(ikGlobal,1)))
+            ! If either of the systems only has a single spin 
+            ! channel, some inputs and calculations do not need
+            ! to be redone for both spin channels. However, we
+            ! still need to make sure to calculate these values
+            ! for the second spin channel if the first spin channel
+            ! was not done for some reason (e.g., the file already
+            ! existed or only the second spin channel was selected).
 
           !-----------------------------------------------------------------------------------------------
-          !> Read wave functions and calculate overlap
+          !> Check if the `allElecOverlap.isp.ik` file exists
+
+          if(.not. overlapFileExists(ikGlobal, isp)) then
+
+            !-----------------------------------------------------------------------------------------------
+            !> Read wave functions and calculate overlap
       
-          if(ionode) write(*, '("    Ufi calculation: [ ] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k")') 
-          call cpu_time(t1)
+            if(ionode) write(*, '("    Ufi calculation: [ ] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k")') 
+            call cpu_time(t1)
 
 
-          if(isp == 1 .or. nSpinsPC == 2 .or. spin1Read) &
-            call readWfc('PC', iBandIinit, iBandIfinal, iGkStart_poolPC, ikGlobal, min(isp,nSpinsPC), nGkVecsLocalPC, npwsPC(ikGlobal), wfcPC)
+            if(calcSpinDepPC) &
+              call readWfc('PC', iBandIinit, iBandIfinal, iGkStart_poolPC, ikGlobal, min(isp,nSpinsPC), nGkVecsLocalPC, npwsPC(ikGlobal), wfcPC)
         
-          if(isp == 1 .or. nSpinsSD == 2 .or. spin1Read) &
-            call readWfc('SD', iBandFinit, iBandFfinal, iGkStart_poolSD, ikGlobal, min(isp,nSpinsSD), nGkVecsLocalSD, npwsSD(ikGlobal), wfcSD)
+            if(calcSpinDepSD) &
+              call readWfc('SD', iBandFinit, iBandFfinal, iGkStart_poolSD, ikGlobal, min(isp,nSpinsSD), nGkVecsLocalSD, npwsSD(ikGlobal), wfcSD)
         
-          call calculatePWsOverlap(ikLocal, isp)
-        
-
-          call cpu_time(t2)
-          if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
-          call cpu_time(t1)
-
-
-          !-----------------------------------------------------------------------------------------------
-          !> Calculate cross projections
-
-          if(isp == 1 .or. nSpinsSD == 2 .or. spin1Read) &
-            call calculateCrossProjection(iBandFinit, iBandFfinal, nGkVecsLocalPC, nGkVecsLocalSD, nProjsPC, betaPC, wfcSD, cProjBetaPCPsiSD)
-
-
-          if(isp == 1 .or. nSpinsPC == 2 .or. spin1Read) &
-            call calculateCrossProjection(iBandIinit, iBandIfinal, nGkVecsLocalSD, nGkVecsLocalPC, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
+            call calculatePWsOverlap(ikLocal, isp)
         
 
-          call cpu_time(t2)
-          if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
-          call cpu_time(t1)
+            call cpu_time(t2)
+            if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
+            call cpu_time(t1)
 
 
-          !-----------------------------------------------------------------------------------------------
-          !> Have process 0 in each pool calculate the PAW wave function correction for PC
+            !-----------------------------------------------------------------------------------------------
+            !> Calculate cross projections
 
-          if(isp == 1 .or. nSpinsPC == 2 .or. spin1Read) &
-            call readProjections('PC', iBandIinit, iBandIfinal, ikGlobal, min(isp,nSpinsPC), nProjsPC, cProjPC)
-
-          if(indexInPool == 0) then
-
-            call pawCorrectionWfc(nIonsPC, TYPNIPC, nProjsPC, numOfTypesPC, cProjPC, cProjBetaPCPsiSD, atomsPC, paw_PsiPC)
-
-          endif
+            if(calcSpinDepSD) &
+              call calculateCrossProjection(iBandFinit, iBandFfinal, nGkVecsLocalPC, nGkVecsLocalSD, nProjsPC, betaPC, wfcSD, cProjBetaPCPsiSD)
 
 
-          !-----------------------------------------------------------------------------------------------
-          !> Have process 1 in each pool calculate the PAW wave function correction for PC
+            if(calcSpinDepPC) &
+              call calculateCrossProjection(iBandIinit, iBandIfinal, nGkVecsLocalSD, nGkVecsLocalPC, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
+        
 
-          if(isp == 1 .or. nSpinsSD == 2 .or. spin1Read) &
-            call readProjections('SD', iBandFinit, iBandFfinal, ikGlobal, min(isp,nSpinsSD), nProjsSD, cProjSD)
+            call cpu_time(t2)
+            if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
+            call cpu_time(t1)
 
-          if(indexInPool == 1) then
 
-            call pawCorrectionWfc(nIonsSD, TYPNISD, nProjsSD, numOfTypes, cProjBetaSDPhiPC, cProjSD, atoms, paw_SDPhi)
+            !-----------------------------------------------------------------------------------------------
+            !> Have process 0 in each pool calculate the PAW wave function correction for PC
 
-          endif
+            if(calcSpinDepPC) &
+              call readProjections('PC', iBandIinit, iBandIfinal, ikGlobal, min(isp,nSpinsPC), nProjsPC, cProjPC)
 
-          call cpu_time(t2)
-          if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
-          call cpu_time(t1)
+            if(indexInPool == 0) then
+
+              call pawCorrectionWfc(nIonsPC, TYPNIPC, nProjsPC, numOfTypesPC, cProjPC, cProjBetaPCPsiSD, atomsPC, paw_PsiPC)
+
+            endif
+
+
+            !-----------------------------------------------------------------------------------------------
+            !> Have process 1 in each pool calculate the PAW wave function correction for PC
+
+            if(calcSpinDepSD) &
+              call readProjections('SD', iBandFinit, iBandFfinal, ikGlobal, min(isp,nSpinsSD), nProjsSD, cProjSD)
+
+            if(indexInPool == 1) then
+
+              call pawCorrectionWfc(nIonsSD, TYPNISD, nProjsSD, numOfTypes, cProjBetaSDPhiPC, cProjSD, atoms, paw_SDPhi)
+
+            endif
+
+            call cpu_time(t2)
+            if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
+            call cpu_time(t1)
       
       
-          !-----------------------------------------------------------------------------------------------
-          !> Broadcast wave function corrections to other processes
+            !-----------------------------------------------------------------------------------------------
+            !> Broadcast wave function corrections to other processes
 
-          call MPI_BCAST(paw_PsiPC, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
-          call MPI_BCAST(paw_SDPhi, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
+            call MPI_BCAST(paw_PsiPC, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
+            call MPI_BCAST(paw_SDPhi, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
 
 
-          !-----------------------------------------------------------------------------------------------
-          !> Have all processes calculate the PAW k correction
+            !-----------------------------------------------------------------------------------------------
+            !> Have all processes calculate the PAW k correction
       
-          if(isp == 1 .or. nSpinsPC == 2 .or. spin1Read) &
-            call pawCorrectionK('PC', nIonsPC, TYPNIPC, maxAngMom, nGVecsLocal, numOfTypesPC, numOfTypes, posIonPC, gCart, Ylm, atomsPC, atoms, pawKPC)
+            if(calcSpinDepPC) &
+              call pawCorrectionK('PC', nIonsPC, TYPNIPC, maxAngMom, nGVecsLocal, numOfTypesPC, numOfTypes, posIonPC, gCart, Ylm, atomsPC, atoms, pawKPC)
       
 
-          if(isp == 1 .or. nSpinsSD == 2 .or. spin1Read) &
-            call pawCorrectionK('SD', nIonsSD, TYPNISD, maxAngMom, nGVecsLocal, numOfTypes, numOfTypes, posIonSD, gCart, Ylm, atoms, atoms, pawSDK)
+            if(calcSpinDepSD) &
+              call pawCorrectionK('SD', nIonsSD, TYPNISD, maxAngMom, nGVecsLocal, numOfTypes, numOfTypes, posIonSD, gCart, Ylm, atoms, atoms, pawSDK)
 
         
-          call cpu_time(t2)
-          if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [X] PAW k (",f8.2," secs)")') t2-t1
-          call cpu_time(t1)
+            call cpu_time(t2)
+            if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [X] PAW k (",f8.2," secs)")') t2-t1
+            call cpu_time(t1)
       
 
-          !-----------------------------------------------------------------------------------------------
-          !> Sum over PAW k corrections
+            !-----------------------------------------------------------------------------------------------
+            !> Sum over PAW k corrections
 
-          paw_id(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
+            paw_id(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
       
-          do ibi = iBandIinit, iBandIfinal
+            do ibi = iBandIinit, iBandIfinal
         
-            do ibf = iBandFinit, iBandFfinal   
-              paw_id(ibf,ibi) = dot_product(conjg(pawSDK(ibf,ibi,:)),pawKPC(ibf,ibi,:))
+              do ibf = iBandFinit, iBandFfinal   
+                paw_id(ibf,ibi) = dot_product(conjg(pawSDK(ibf,ibi,:)),pawKPC(ibf,ibi,:))
+              enddo
+        
             enddo
-        
-          enddo
 
-          Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_id(:,:)*16.0_dp*pi*pi/omega
+            Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_id(:,:)*16.0_dp*pi*pi/omega
 
 
-          call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(:,:,ikLocal,isp), size(Ufi(:,:,ikLocal,isp)), MPI_DOUBLE_COMPLEX, &
-                  MPI_SUM, intraPoolComm, ierr)
+            call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(:,:,ikLocal,isp), size(Ufi(:,:,ikLocal,isp)), MPI_DOUBLE_COMPLEX, &
+                    MPI_SUM, intraPoolComm, ierr)
 
 
-          if(indexInPool == 0) then 
+            if(indexInPool == 0) then 
           
-            Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_SDPhi(:,:) + paw_PsiPC(:,:)
+              Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_SDPhi(:,:) + paw_PsiPC(:,:)
 
-            if(order == 1 .and. subtractBaseline) &
-              call readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, nSpins, Ufi)
+              if(order == 1 .and. subtractBaseline) &
+                call readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, nSpins, Ufi)
         
-            call writeResults(ikLocal,isp, Ufi)
+              call writeResults(ikLocal,isp, Ufi)
         
-          endif
+            endif
   
-      
-        endif ! If this spin channel exists
-
-
-        if(isp == nSpins) then
-          deallocate(wfcSD, wfcPC)
-          deallocate(betaPC, betaSD)
-          deallocate(cProjBetaPCPsiSD, cProjBetaSDPhiPC)
-          deallocate(cProjPC, cProjSD)
-          deallocate(pawKPC, pawSDK)
-          deallocate(paw_id)
-          deallocate(paw_PsiPC, paw_SDPhi)
-        endif
-
+          endif ! If this spin channel file doesn't exist
+        endif ! If this spin channel shouldn't be skipped
       enddo ! Spin loop
+
+      deallocate(wfcSD, wfcPC)
+      deallocate(betaPC, betaSD)
+      deallocate(cProjBetaPCPsiSD, cProjBetaSDPhiPC)
+      deallocate(cProjPC, cProjSD)
+      deallocate(pawKPC, pawSDK)
+      deallocate(paw_id)
+      deallocate(paw_PsiPC, paw_SDPhi)
     endif ! If both spin channels exist
   enddo ! k-point loop
 

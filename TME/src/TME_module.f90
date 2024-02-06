@@ -332,7 +332,13 @@ contains
       abortExecution = checkFileInitialization('dqFName', dqFName) .or. abortExecution
       abortExecution = checkIntInitialization('phononModeJ', phononModeJ, 1, int(1e9)) .or. abortExecution
 
-      if(subtractBaseline) abortExecution = checkDirInitialization('baselineDir', baselineDir, 'allElecOverlap.1.1') .or. abortExecution
+      if(subtractBaseline) then
+        if(ispSelect == 2) then
+          abortExecution = checkDirInitialization('baselineDir', baselineDir, 'allElecOverlap.2.1') .or. abortExecution
+        else
+          abortExecution = checkDirInitialization('baselineDir', baselineDir, 'allElecOverlap.1.1') .or. abortExecution
+        endif
+      endif
     endif
 
     if(ispSelect < 1 .or. ispSelect > 2) then
