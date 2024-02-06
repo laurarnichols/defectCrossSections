@@ -1059,7 +1059,7 @@ module wfcExportVASPMod
 
     integer :: igx, igy, igz, ig
       !! Loop indices
-    integer, allocatable :: mill_local(:,:)
+    integer, allocatable :: gVecMillerIndicesLocal(:,:)
       !! Integer coefficients for G-vectors
     integer :: millX, millY, millZ
       !! Miller indices for each direction; in order
@@ -1150,14 +1150,14 @@ module wfcExportVASPMod
     call MPI_BCAST(gVecMillerIndicesGlobalSort, size(gVecMillerIndicesGlobalSort), MPI_INTEGER, root, worldComm, ierr)
 
 
-    call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobalSort, gIndexLocalToGlobal, mill_local, nGVecsLocal)
+    call distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobalSort, gIndexLocalToGlobal, gVecMillerIndicesLocal, nGVecsLocal)
       !! * Split up the G-vectors and Miller indices over processors 
 
     allocate(gVecInCart(3,nGVecsLocal))
     allocate(realMillLocal(3,nGVecsLocal))
 
-    realMillLocal = real(mill_local)
-    deallocate(mill_local)
+    realMillLocal = real(gVecMillerIndicesLocal)
+    deallocate(gVecMillerIndicesLocal)
 
     gVecInCart = direct2cart(nGVecsLocal, realMillLocal, recipLattVec)
 
@@ -1167,7 +1167,7 @@ module wfcExportVASPMod
   end subroutine calculateGvecs
 
 !----------------------------------------------------------------------------
-  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobalSort, gIndexLocalToGlobal, mill_local, nGVecsLocal)
+  subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobalSort, gIndexLocalToGlobal, gVecMillerIndicesLocal, nGVecsLocal)
     !! Figure out how many G-vectors there should be per processor.
     !! G-vectors are split up in a round robin fashion over processors
     !! in a single k-point pool.
@@ -1189,7 +1189,7 @@ module wfcExportVASPMod
     ! Output variables:
     integer, allocatable, intent(out) :: gIndexLocalToGlobal(:)
       !! Converts local index `ig` to global index
-    integer, allocatable, intent(out) :: mill_local(:,:)
+    integer, allocatable, intent(out) :: gVecMillerIndicesLocal(:,:)
       !! Integer coefficients for G-vectors
     integer, intent(out) :: nGVecsLocal
       !! Local number of G-vectors on this processor
@@ -1217,7 +1217,7 @@ module wfcExportVASPMod
       !>   index (the value stored at `gIndexLocalToGlobal(ig)`)
       !>   and get local miller indices
       allocate(gIndexLocalToGlobal(nGVecsLocal))
-      allocate(mill_local(3,nGVecsLocal))
+      allocate(gVecMillerIndicesLocal(3,nGVecsLocal))
 
       ig_l = 0
       do ig_g = 1, nGVecsGlobal
@@ -1226,7 +1226,7 @@ module wfcExportVASPMod
         
           ig_l = ig_l + 1
           gIndexLocalToGlobal(ig_l) = ig_g
-          mill_local(:,ig_l) = gVecMillerIndicesGlobalSort(:,ig_g)
+          gVecMillerIndicesLocal(:,ig_l) = gVecMillerIndicesGlobalSort(:,ig_g)
 
         endif
 
