@@ -8,6 +8,8 @@ program TMEmain
 
   logical :: calcSpinDepSD, calcSpinDepPC
     !! If spin-dependent subroutines should be called
+  logical :: spin1Skipped
+    !! If the first spin channel was skipped
   logical :: thisKComplete = .false.
     !! If needed `allElecOverlap.isp.ik` files exist
     !! at the current k-point
@@ -148,12 +150,14 @@ program TMEmain
       
       do isp = 1, nSpins
 
-        if(loopSpins .or. isp == ispSelect) then
+        if(isp == 1 .and. (ispSelect == 2 .or. overlapFileExists(ikGlobal,1))) then
+          spin1Skipped = .true.
+        else if(loopSpins .or. isp == ispSelect) then
 
           if(ionode) write(*,'("  Beginning spin ", i2)') isp
 
-          calcSpinDepPC = (isp == 1) .or. (nSpinsPC == 2 .and. (ispSelect == 2 .or. overlapFileExists(ikGlobal,1)))
-          calcSpinDepSD = (isp == 1) .or. (nSpinsSD == 2 .and. (ispSelect == 2 .or. overlapFileExists(ikGlobal,1)))
+          calcSpinDepPC = isp == 1 .or. nSpinsPC == 2 .or. spin1Skipped
+          calcSpinDepSD = isp == 1 .or. nSpinsSD == 2 .or. spin1Skipped
             ! If either of the systems only has a single spin 
             ! channel, some inputs and calculations do not need
             ! to be redone for both spin channels. However, we
