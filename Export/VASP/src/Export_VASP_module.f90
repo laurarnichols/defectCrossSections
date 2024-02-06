@@ -1311,7 +1311,7 @@ module wfcExportVASPMod
 
     integer :: ik, igk, ig
       !! Loop indices
-    integer, allocatable :: gKIndexGlobal(:,:)
+    integer, allocatable :: igk2igGlobal(:,:)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors
     integer, allocatable :: gKIndexLocalToGlobal(:,:)
@@ -1487,14 +1487,14 @@ module wfcExportVASPMod
       !! * Calculate the maximum number of G-vectors 
       !!   among all k-points
 
-    allocate(gKIndexGlobal(maxNumPWsGlobal, nKPoints))
+    allocate(igk2igGlobal(maxNumPWsGlobal, nKPoints))
 
   
-    gKIndexGlobal(:,:) = 0
+    igk2igGlobal(:,:) = 0
     do ik = 1, nKPoints
 
       call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, maxGIndexGlobal, maxNumPWsGlobal, nGkLessECutGlobal, &
-          nGkLessECutLocal, gKIndexGlobal)
+          nGkLessECutLocal, igk2igGlobal)
         !! * For each k-point, gather all of the \(G+k\) indices
         !!   among all processors in a single global array
     
@@ -1504,7 +1504,7 @@ module wfcExportVASPMod
 
     allocate(igkSort2OrigGlobal(maxNumPWsGlobal, nKPoints))
 
-    igkSort2OrigGlobal = gKIndexGlobal
+    igkSort2OrigGlobal = igk2igGlobal
 
     if(ionode) then
 
@@ -1517,7 +1517,7 @@ module wfcExportVASPMod
 
         do ig = 1, ngk_tmp
 
-          realiMillGk(ig) = real(iMill(gKIndexGlobal(ig,ik)))
+          realiMillGk(ig) = real(iMill(igk2igGlobal(ig,ik)))
             !! * Get only the original indices that correspond
             !!   to G vectors s.t. \(|G+k|\) is less than the
             !!   cutoff
@@ -1539,7 +1539,7 @@ module wfcExportVASPMod
 
     endif
 
-    deallocate(gKIndexGlobal)
+    deallocate(igk2igGlobal)
 
     call MPI_BCAST(igkSort2OrigGlobal, size(igkSort2OrigGlobal), MPI_INTEGER, root, worldComm, ierr)
 
@@ -1553,7 +1553,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, maxGIndexGlobal, maxNumPWsGlobal, nGkLessECutGlobal, &
-      nGkLessECutLocal, gKIndexGlobal)
+      nGkLessECutLocal, igk2igGlobal)
     !! Gather the \(G+k\) vector indices in single, global 
     !! array
     !!
@@ -1595,7 +1595,7 @@ module wfcExportVASPMod
 
 
     ! Output variables:
-    integer, intent(out) :: gKIndexGlobal(maxNumPWsGlobal, nKPoints)
+    integer, intent(out) :: igk2igGlobal(maxNumPWsGlobal, nKPoints)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors
 
@@ -1646,7 +1646,7 @@ module wfcExportVASPMod
 
         ngg = ngg + 1
 
-        gKIndexGlobal(ngg, ik) = ig
+        igk2igGlobal(ngg, ik) = ig
 
       endif
     enddo
