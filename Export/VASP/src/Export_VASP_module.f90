@@ -95,8 +95,6 @@ module wfcExportVASPMod
     !! Local number of G-vectors on this processor
   integer, allocatable :: nPWs1kGlobal(:)
     !! Input number of plane waves for a single k-point for all processors
-  integer :: nSpinsCalc
-    !! Number of spins to calculate/allocate
   integer :: maxGIndexGlobal
     !! Maximum G-vector index among all \(G+k\)
     !! and processors
@@ -362,7 +360,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine readWAVECAR(ispSelect, loopSpins, VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
-        kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, nSpinsCalc, reclenWav, eigenE)
+        kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, reclenWav, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
     !! <h2>Walkthrough</h2>
@@ -407,8 +405,6 @@ module wfcExportVASPMod
       !! for all processors
     integer, intent(out) :: nSpins
       !! Number of spins
-    integer, intent(out) :: nSpinsCalc
-      !! Number of spins to calculate/allocate
     integer, intent(out) :: reclenWav
       !! Number of records in WAVECAR file
 
@@ -458,29 +454,17 @@ module wfcExportVASPMod
         ! Convert input variables to integers
 
 
-      ! To read the VASP output files correctly, we need to
-      ! track the number of spins in the system and the number
-      ! of spins we need to calculate, so that we can allocate
-      ! space for only the number of spin channels we need.
+      ! If not looping spins (i.e., a single spin channel was selected),
+      ! make sure that the selected spin channel is not larger than
+      ! the number of spin channels available in the system
       if(.not. loopSpins) then
 
-        if(checkIntInitialization('ispSelect', ispSelect, 1, nSpins)) then
-
+        if(checkIntInitialization('ispSelect', ispSelect, 1, nSpins)) &
           call exitError('readWAVECAR', 'selected spin larger than number of spin channels available', 1)
-          ! Not looping spins (i.e., a single spin channel was selected),
-          ! make sure that the selected spin channel is not larger than
-          ! the number of spin channels available in the system
-
-        else
-
-          nSpinsCalc = 1
-
-        endif 
-
-      else
-
-        nSpinsCalc = nSpins
-
+          ! Put this inside the other if statement and not as an `.and.`
+          ! condition because fortran does not short-circuit within
+          ! conditionals, and the call to `checkIntInitialization` will
+          ! output an error message even if `loopSpins = .true.`
       endif
 
 
@@ -555,7 +539,6 @@ module wfcExportVASPMod
 
     call MPI_BCAST(reclenWav, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(nSpinsCalc, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nBands, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(wfcVecCut, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -564,7 +547,7 @@ module wfcExportVASPMod
     call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(recipLattVec, size(recipLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
-    call preliminaryWAVECARScan(ispSelect, nBands, nKPoints, nSpins, nSpinsCalc, reclenWav, loopSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
+    call preliminaryWAVECARScan(ispSelect, nBands, nKPoints, nSpins, reclenWav, loopSpins, bandOccupation, kPosition, nPWs1kGlobal, eigenE)
       !! * For each spin and k-point, read the number of
       !!   \(G+k\) vectors below the energy cutoff, the
       !!   position of the k-point in reciprocal space, 
@@ -689,7 +672,7 @@ module wfcExportVASPMod
   end subroutine estimateMaxNumPlanewaves
 
 !----------------------------------------------------------------------------
-  subroutine preliminaryWAVECARScan(ispSelect, nBands, nKPoints, nSpins, nSpinsCalc, reclenWav, loopSpins, bandOccupation, kPosition, &
+  subroutine preliminaryWAVECARScan(ispSelect, nBands, nKPoints, nSpins, reclenWav, loopSpins, bandOccupation, kPosition, &
           nPWs1kGlobal, eigenE)
     !! For each spin and k-point, read the number of
     !! \(G+k\) vectors below the energy cutoff, the
@@ -711,8 +694,6 @@ module wfcExportVASPMod
       !! Total number of k-points
     integer, intent(in) :: nSpins
       !! Number of spins
-    integer, intent(in) :: nSpinsCalc
-      !! Number of spins to calculate/allocate
     integer, intent(in) :: reclenWav
       !! Number of records in the WAVECAR file
 
@@ -746,10 +727,13 @@ module wfcExportVASPMod
       !! Full WAVECAR file name including path
 
 
-    allocate(bandOccupation(nSpinsCalc, nBands, nKPoints))
+    allocate(bandOccupation(nSpins, nBands, nKPoints))
     allocate(kPosition(3,nKPoints))
     allocate(nPWs1kGlobal(nKPoints))
-    allocate(eigenE(nSpinsCalc,nKPoints,nBands))
+    allocate(eigenE(nSpins,nKPoints,nBands))
+
+    bandOccupation = -1.0_dp
+    eigenE = 0.0_dp
     
     fileName = trim(VASPDir)//'/WAVECAR'
 
@@ -781,19 +765,13 @@ module wfcExportVASPMod
             ! VASP must just repeat the same information for each spin 
             ! channel
 
+
             ! Read in the number of \(G+k\) plane wave vectors below the energy
             ! cutoff, the position of the k-point in reciprocal space, and
             ! the eigenvalue and occupation for each band.
-            !
-            ! Have to be careful about indexing the spin channel because we
-            ! allocate a smaller array if a single spin channel is selected.
-            if(loopSpins) then
-              read(unit=wavecarUnit,rec=irec) nPWs1kGlobal_real, (kPosition(i,ik),i=1,3), &
+            read(unit=wavecarUnit,rec=irec) nPWs1kGlobal_real, (kPosition(i,ik),i=1,3), &
                      (eigenE(isp,ik,iband), bandOccupation(isp, iband, ik), iband=1,nBands)
-            else
-              read(unit=wavecarUnit,rec=irec) nPWs1kGlobal_real, (kPosition(i,ik),i=1,3), &
-                     (eigenE(1,ik,iband), bandOccupation(1, iband, ik), iband=1,nBands)
-            endif
+
 
             nPWs1kGlobal(ik) = nint(nPWs1kGlobal_real)
               !! @note

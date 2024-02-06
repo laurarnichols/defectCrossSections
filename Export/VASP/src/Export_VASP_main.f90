@@ -48,7 +48,7 @@ program wfcExportVASPMain
 
 
   call readWAVECAR(ispSelect, loopSpins, VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
-      kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, nSpinsCalc, reclenWav, eigenE)
+      kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, reclenWav, eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 
 
