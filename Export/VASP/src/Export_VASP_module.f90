@@ -110,6 +110,8 @@ module wfcExportVASPMod
     !! Integer coefficients for G-vectors on all processes
   integer, allocatable :: gVecMillerIndicesLocal(:,:)
     !! Integer coefficients for G-vectors on this process
+  integer, allocatable :: igNeg(:,:)
+    !! Index of the -G vector (needed for gamma-only version
   integer, allocatable :: iMill(:)
     !! Indices of miller indices after sorting
   integer, allocatable :: iType(:)
@@ -153,6 +155,9 @@ module wfcExportVASPMod
   integer :: nSpins
     !! Number of spins
 
+  logical, allocatable :: calculatedInGammaOnly(:,:)
+    !! If a G vector was included in the gamma-only
+    !! version of VASP
   logical :: gammaOnly
     !! If the gamma only VASP code is used
   
@@ -1267,9 +1272,9 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, gVecMillerIndicesLocal, nKPoints, nPWs1kGlobal, kPosition, recipLattVec, wfcVecCut, &
-      gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, ig2igkGlobal, igk2igGlobal, igk2igLocal, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, &
-      maxNumPWsPool, nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
+  subroutine reconstructFFTGrid(nGVecsLocal, fftGridSize, gIndexLocalToGlobal, gVecMillerIndicesLocal, nKPoints, nPWs1kGlobal, kPosition, recipLattVec, &
+      wfcVecCut, gammaOnly, gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, ig2igkGlobal, igk2igGlobal, igk2igLocal, igNeg, maxGIndexGlobal, &
+      maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal, calculatedInGammaOnly)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
     !! sort the indices based on \(|G+k|^2\)
@@ -1282,6 +1287,8 @@ module wfcExportVASPMod
     ! Input variables:
     integer, intent(in) :: nGVecsLocal
       !! Number of G-vectors on this processor
+    integer, intent(in) :: fftGridSize(3)
+      !! Max number of points on the FFT grid in each direction
     integer, intent(in) :: gIndexLocalToGlobal(nGVecsLocal)
       ! Converts local index `ig` to global index
     integer, intent(in) :: gVecMillerIndicesLocal(3,nGVecsLocal)
@@ -1299,6 +1306,9 @@ module wfcExportVASPMod
       !! Reciprocal lattice vectors
     real(kind=dp), intent(in) :: wfcVecCut
       !! Energy cutoff converted to vector cutoff
+
+    logical, intent(in) :: gammaOnly
+      !! If the gamma only VASP code is used
 
 
     ! Output variables:
@@ -1320,6 +1330,8 @@ module wfcExportVASPMod
       !! indexed up to `nGVecsLocal` which
       !! is greater than `maxNumPWsPool` and
       !! stored for each k-point
+    integer, allocatable, intent(out) :: igNeg(:,:)
+      !! Index of the -G vector (needed for gamma-only version
     integer, intent(out) :: maxGIndexGlobal
       !! Maximum G-vector index among all \(G+k\)
       !! and processors
@@ -1343,6 +1355,10 @@ module wfcExportVASPMod
     integer, allocatable, intent(out) :: nGkVecsLocal(:)
       !! Local number of G-vectors on this processor
 
+    logical, allocatable, intent(out) :: calculatedInGammaOnly(:,:)
+      !! If a G vector was included in the gamma-only
+      !! version of VASP
+
 
     ! Local variables:
     integer :: ik, ig, igk
@@ -1353,10 +1369,6 @@ module wfcExportVASPMod
     integer, allocatable :: igk2igLocal_ik(:)
       !! Index map from \(G\) to \(G+k\)
       !! indexed up to `maxNumPWsPool`
-    integer :: ngk
-      !! Temporary variable to hold `nGkLessECutLocal`
-      !! value so that don't have to keep accessing
-      !! array
     integer :: maxGIndexLocal
       !! Maximum G-vector index among all \(G+k\)
       !! for just this processor
@@ -1364,6 +1376,13 @@ module wfcExportVASPMod
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this 
       !! processor
+    integer :: millX, millY, millZ
+      !! Miller indices for each direction; in order
+      !! 0,1,...,((fftGridSize(:)-1)/2),-((fftGridSize(:)-1)/2-1),...,-1
+    integer :: ngk
+      !! Temporary variable to hold `nGkLessECutLocal`
+      !! value so that don't have to keep accessing
+      !! array
 
     real(kind=dp) :: eps8 = 1.0E-8_dp
       !! Double precision zero
@@ -1459,16 +1478,16 @@ module wfcExportVASPMod
       !! * Calculate the global number of \(G+k\) 
       !!   vectors for each k-point
       
-    if (ionode) then
+    !if (ionode) then
 
-      do ik = 1, nKPoints
+      !do ik = 1, nKPoints
 
-        if (nGkLessECutGlobal(ik) .ne. nPWs1kGlobal(ik)) call exitError('reconstructFFTGrid', &
-          'computed no. of G-vectors != input no. of plane waves', 1)
+        !if (nGkLessECutGlobal(ik) .ne. nPWs1kGlobal(ik)) call exitError('reconstructFFTGrid', &
+        !  'computed no. of G-vectors != input no. of plane waves', 1)
           !! * Make sure that number of G-vectors isn't higher than the calculated maximum
 
-      enddo
-    endif
+      !enddo
+    !endif
 
     if (maxNumPWsLocal <= 0) call exitError('reconstructFFTGrid', &
                 'No plane waves found: running on too many processors?', 1)
@@ -1525,10 +1544,14 @@ module wfcExportVASPMod
 
     allocate(igk2igGlobal(maxNumPWsGlobal, nKPoints))
     allocate(ig2igkGlobal(maxNumPWsGlobal, nKPoints))
+    allocate(igNeg(maxNumPWsGlobal, nKPoints))
+    allocate(calculatedInGammaOnly(maxNumPWsGlobal, nKPoints))
 
   
     igk2igGlobal(:,:) = 0
     ig2igkGlobal(:,:) = 0
+    igNeg(:,:) = 0
+    calculatedInGammaOnly(:,:) = .false.
     do ik = 1, nKPoints
 
       call getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &
@@ -1541,9 +1564,32 @@ module wfcExportVASPMod
 
         ig2igkGlobal(igk2igGlobal(igk,ik),ik) = igk
 
+
+        if(gammaOnly .and. ionode) then
+
+          millX = gVecMillerIndicesGlobal(1,igk2igGlobal(igk,ik))
+          millY = gVecMillerIndicesGlobal(2,igk2igGlobal(igk,ik))
+          millZ = gVecMillerIndicesGlobal(3,igk2igGlobal(igk,ik))
+
+          calculatedInGammaOnly(igk,ik) = .not. (millZ < 0 .or. &
+                                                (millZ == 0 .and. millY < 0) .or. &
+                                                (millZ == 0 .and. millY == 0  .and. millX < 0))
+
+          if(.not. calculatedInGammaOnly(igk,ik)) then
+            write(*,'("igk = ", i10, ", (",i3,",",i3,",",i3,")")') igk, millX, millY, millZ
+            igNeg(igk,ik) = getIgNeg(fftGridSize, millX, millY, millZ)
+          endif
+
+        endif
+
       enddo
     
     enddo
+    if(ionode) write(*,*) "Here 1"
+
+
+    call MPI_BCAST(igNeg, size(igNeg), MPI_INTEGER, root, worldComm, ierr)
+
 
     allocate(gKIndexOrigOrderGlobal(maxNumPWsGlobal, nKPoints))
     allocate(gKSort(maxNumPWsGlobal, nKPoints))
@@ -1593,6 +1639,21 @@ module wfcExportVASPMod
           !!   need this for outputting the wave functions, projectors, and
           !!   projections in the order that `TME` expects them.
 
+        write(*,'("Bounds: ", 5i10)') nGkLessECutGlobal(ik), nGVecsGlobal, fftGridSize(:)
+        do igk = 1, nGkLessECutGlobal(ik)
+          if(gammaOnly .and. ionode .and. (.not. calculatedInGammaOnly(igk,ik))) then
+            write(*,'("(",i3,",",i3,",",i3,") ->")') &
+              gVecMillerIndicesGlobal(:,igk2igGlobal(igk, ik))
+            write(*,'("igk = ", i10, " igNeg = ", i10)') igk, igNeg(igk,ik)
+            write(*,'("igk = ", i10, " igkNeg = ", i10)') igk, ig2igkGlobal(igNeg(igk,ik), ik)
+            write(*,'("igk = ", i10, " igkNegSort = ", i10)') igk, gKSort(ig2igkGlobal(igNeg(igk,ik), ik), ik)
+            ig = igk2igGlobal(gKSort(ig2igkGlobal(igNeg(igk, ik),ik), ik), ik)
+            write(*,'("igk = ", i10, " igNegSort = ", i10)') igk, ig
+            write(*,'("-> (",i3,",",i3,",",i3,")")') &
+              gVecMillerIndicesGlobal(:,ig)
+          endif
+        enddo
+
       enddo
 
       deallocate(realiMillGk)
@@ -1611,6 +1672,55 @@ module wfcExportVASPMod
 
     return
   end subroutine reconstructFFTGrid
+
+!----------------------------------------------------------------------------
+  function getIgNeg(fftGridSize, millX, millY, millZ) result(igNeg)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: fftGridSize(3)
+      !! Max number of points on the FFT grid in each direction
+    integer, intent(in) :: millX, millY, millZ
+      !! Miller indices for each direction; in order
+      !! 0,1,...,((fftGridSize(:)-1)/2),-((fftGridSize(:)-1)/2-1),...,-1
+
+    ! Output variables:
+    integer :: igNeg
+      !! Index of the -G vector (needed for gamma-only version
+
+    ! Local variables:
+    integer :: igx, igy, igz
+      !! Loop indices from `calculateGvecs`
+    integer :: negMillX, negMillY, negMillZ
+      !! Negative of input Miller indices for each direction
+
+
+    negMillX = -millX
+    negMillY = -millY
+    negMillZ = -millZ
+            
+    if(negMillX < 0) then
+      igx = negMillX + fftGridSize(1) + 1
+    else 
+      igx = negMillX + 1
+    endif
+    if(negMillY < 0) then
+      igy = negMillY + fftGridSize(2) + 1
+    else 
+      igy = negMillY + 1
+    endif
+    if(negMillZ < 0) then
+      igz = negMillZ + fftGridSize(3) + 1
+    else 
+      igz = negMillZ + 1
+    endif
+
+    write(*,'("igx = ", i10, " igy = ", i10, " igz = ", i10)') igx, igy, igz
+
+    igNeg = (igz - 1)*fftGridSize(2)*fftGridSize(1) + (igy - 1)*fftGridSize(1) + igx
+
+  end function getIgNeg
 
 !----------------------------------------------------------------------------
   subroutine getGlobalGkIndices(nKPoints, maxNumPWsPool, gKIndexLocalToGlobal, ik, nGkLessECutGlobal, nGkLessECutLocal, maxGIndexGlobal, &

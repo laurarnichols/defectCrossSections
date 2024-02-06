@@ -125,9 +125,9 @@ program wfcExportVASPMain
     !!   over processes
 
 
-  call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, gVecMillerIndicesLocal, nKPoints, nPWs1kGlobal, kPosition, recipLattVec, wfcVecCut, &
-      gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, ig2igkGlobal, igk2igGlobal, igk2igLocal, maxGIndexGlobal, maxGkVecsLocal, maxNumPWsGlobal, &
-      maxNumPWsPool, nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal)
+  call reconstructFFTGrid(nGVecsLocal, fftGridSize, gIndexLocalToGlobal, gVecMillerIndicesLocal, nKPoints, nPWs1kGlobal, kPosition, recipLattVec, &
+      wfcVecCut, gammaOnly, gKIndexLocalToGlobal, gKIndexOrigOrderLocal, gKSort, ig2igkGlobal, igk2igGlobal, igk2igLocal, igNeg, maxGIndexGlobal, &
+      maxGkVecsLocal, maxNumPWsGlobal, maxNumPWsPool, nGkLessECutGlobal, nGkLessECutLocal, nGkVecsLocal, calculatedInGammaOnly)
     !! * Determine which G-vectors result in \(G+k\)
     !!   below the energy cutoff for each k-point and
     !!   sort the indices based on \(|G+k|^2\)
@@ -141,6 +141,8 @@ program wfcExportVASPMain
 
 
   deallocate(ig2igkGlobal)
+  deallocate(igNeg)
+  deallocate(calculatedInGammaOnly)
   deallocate(gIndexLocalToGlobal)
   deallocate(gVecMillerIndicesLocal)
 
