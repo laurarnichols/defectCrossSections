@@ -6,7 +6,7 @@ There are 4 different energy differences that need to be tabulated:
 * First-order matrix element: eigenvalue difference between initial and final state
 * Plotting: same as zeroth-order but positive and in eV
 
-Instead of calculating these energies in all of the different programs in different ways, this program tabulates all of the required energies so that they can easily be read by other programs. Following the format of the other programs, this code will output an energy table file `energyTable.isp.ik` for each spin (`isp`) and k-point (`ik`). The spins and k-points come from the system that is used for the eigenvalues. 
+Instead of calculating these energies in all of the different programs in different ways, this program tabulates all of the required energies so that they can easily be read by other programs. Following the format of the other programs, this code will output an energy table file `energyTable.isp.ik` for each spin (`isp`) (or the single selected spin) and k-point (`ik`). The spins and k-points come from the system that is used for the eigenvalues. 
 
 The inputs should look like
 ```f90
@@ -18,6 +18,9 @@ The inputs should look like
   exportDirInitInit = 'path-to-relaxed-initial-charge-state-export'
   exportDirFinalInit = 'path-to-final-charge-state-initial-positions-export'
   exportDirFinalFinal = 'path-to-relaxed-final-charge-state-export'
+
+  ! Spin channel selection; default unused
+  ispSelect = integer   
 
   ! Physical problem details
   captured = .true. or .false.      ! If the carrier is captured
