@@ -109,18 +109,19 @@ program wfcExportVASPMain
     call cpu_time(t1)
 
     call calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobalOrig, gVecMillerIndicesGlobalSort, &
-        iMill, nGVecsGlobal, nGVecsLocal)
+        gVecMillerIndicesLocal, iMill, nGVecsGlobal, nGVecsLocal)
       !! * Calculate Miller indices and G-vectors and split
       !!   over processors
 
 
-    call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, &
-        wfcVecCut, igkSort2OrigLocal, maxGIndexGlobal, maxGkVecsLocal, nGkLessECutGlobal, nGkVecsLocal)
+    call reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, gVecMillerIndicesLocal, nKPoints, nPWs1kGlobal, kPosition, & 
+        gVecInCart, recipLattVec, wfcVecCut, gammaOnly, igkSort2OrigLocal, maxGIndexGlobal, maxGkVecsLocal, nGkLessECutGlobal, nGkVecsLocal)
       !! * Determine which G-vectors result in \(G+k\)
       !!   below the energy cutoff for each k-point and
       !!   sort the indices based on \(|G+k|^2\)
 
 
+    deallocate(gVecMillerIndicesLocal)
     deallocate(gIndexLocalToGlobal)
     deallocate(gVecInCart)
   endif

@@ -71,6 +71,8 @@ module wfcExportVASPMod
     !! Integer coefficients for G-vectors on all processors (original order)
   integer, allocatable :: gVecMillerIndicesGlobalSort(:,:)
     !! Integer coefficients for G-vectors on all processors (sorted)
+  integer, allocatable :: gVecMillerIndicesLocal(:,:)
+    !! Integer coefficients for G-vectors
   integer, allocatable :: igkSort2OrigLocal(:,:)
     !! Indices of \(G+k\) vectors in just this pool
     !! and for local PWs in the original order
@@ -322,10 +324,9 @@ module wfcExportVASPMod
 
     abortExecution = .false.
 
-    if(gammaOnly .and. .not. energiesOnly) then
-      write(*,'("ERROR: gamma-only version only currently implemented for exporting energies only")')
-      abortExecution = .true.
-    endif
+    write(*,'("gammaOnly = ''",L,"''")') gammaOnly
+    write(*,'("energiesOnly = ''",L,"''")') energiesOnly
+
 
     if(groupForGroupVelocity) then
       abortExecution = checkIntInitialization('nDispkPerCoord', nDispkPerCoord, 1, maxNumDispkPerCoord) .or. abortExecution
@@ -1011,7 +1012,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateGvecs(fftGridSize, recipLattVec, gVecInCart, gIndexLocalToGlobal, gVecMillerIndicesGlobalOrig, gVecMillerIndicesGlobalSort, &
-      iMill, nGVecsGlobal, nGVecsLocal)
+      gVecMillerIndicesLocal, iMill, nGVecsGlobal, nGVecsLocal)
     !! Calculate Miller indices and G-vectors and split
     !! over processors
     !!
@@ -1041,6 +1042,8 @@ module wfcExportVASPMod
       !! Integer coefficients for G-vectors on all processors (original order)
     integer, allocatable, intent(out) :: gVecMillerIndicesGlobalSort(:,:)
       !! Integer coefficients for G-vectors on all processors (sorted)
+    integer, allocatable :: gVecMillerIndicesLocal(:,:)
+      !! Integer coefficients for G-vectors
     integer, allocatable, intent(out) :: iMill(:)
       !! Indices of miller indices after sorting
     integer, intent(out) :: nGVecsGlobal
@@ -1059,8 +1062,6 @@ module wfcExportVASPMod
 
     integer :: igx, igy, igz, ig
       !! Loop indices
-    integer, allocatable :: gVecMillerIndicesLocal(:,:)
-      !! Integer coefficients for G-vectors
     integer :: millX, millY, millZ
       !! Miller indices for each direction; in order
       !! 0,1,...,((fftGridSize(:)-1)/2),-((fftGridSize(:)-1)/2-1),...,-1
@@ -1157,7 +1158,6 @@ module wfcExportVASPMod
     allocate(realMillLocal(3,nGVecsLocal))
 
     realMillLocal = real(gVecMillerIndicesLocal)
-    deallocate(gVecMillerIndicesLocal)
 
     gVecInCart = direct2cart(nGVecsLocal, realMillLocal, recipLattVec)
 
@@ -1240,8 +1240,8 @@ module wfcExportVASPMod
   end subroutine distributeGvecsOverProcessors
 
 !----------------------------------------------------------------------------
-  subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, nKPoints, nPWs1kGlobal, kPosition, gVecInCart, recipLattVec, &
-      wfcVecCut, igkSort2OrigLocal, maxGIndexGlobal, maxGkVecsLocal, nGkLessECutGlobal, nGkVecsLocal)
+  subroutine reconstructFFTGrid(nGVecsLocal, gIndexLocalToGlobal, gVecMillerIndicesLocal, nKPoints, nPWs1kGlobal, kPosition, & 
+      gVecInCart, recipLattVec, wfcVecCut, gammaOnly, igkSort2OrigLocal, maxGIndexGlobal, maxGkVecsLocal, nGkLessECutGlobal, nGkVecsLocal)
     !! Determine which G-vectors result in \(G+k\)
     !! below the energy cutoff for each k-point and
     !! sort the indices based on \(|G+k|^2\)
@@ -1260,6 +1260,8 @@ module wfcExportVASPMod
       ! Global number of G-vectors
     integer, intent(in) :: gIndexLocalToGlobal(nGVecsLocal)
       ! Converts local index `ig` to global index
+    integer, intent(in) :: gVecMillerIndicesLocal(3,nGVecsLocal)
+      !! Integer coefficients for G-vectors
     !integer, intent(in) :: iMill(nGVecsGlobal)
       ! Indices of miller indices after sorting
     integer, intent(in) :: nKPoints
@@ -1278,6 +1280,8 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: wfcVecCut
       !! Energy cutoff converted to vector cutoff
 
+    logical, intent(in) :: gammaOnly
+      !! If the gamma only VASP code is used
 
     ! Output variables:
     integer, allocatable, intent(out) :: igkSort2OrigLocal(:,:)
@@ -1328,13 +1332,22 @@ module wfcExportVASPMod
     integer, allocatable :: igkSort2OrigGlobal(:,:)
       !! Indices of \(G+k\) vectors for each k-point
       !! and all processors in the original order
+    integer :: maxGIndexLocal
+      !! Maximum G-vector index among all \(G+k\)
+      !! for just this processor
     integer :: maxNumPWsGlobal
       !! Max number of \(G+k\) vectors with magnitude
       !! less than `wfcVecCut` among all k-points
+    integer :: maxNumPWsLocal
+      !! Maximum number of \(G+k\) vectors
+      !! across all k-points for just this 
+      !! processor
     integer :: maxNumPWsPool
       !! Maximum number of \(G+k\) vectors
       !! across all k-points for just this 
       !! pool
+    integer :: millX, millY, millZ
+      !! Store Miller indices for this G vector
     integer :: ngk_tmp
       !! Temporary variable to hold `nGkLessECutLocal`
       !! value so that don't have to keep accessing
@@ -1343,13 +1356,6 @@ module wfcExportVASPMod
       !! Number of \(G+k\) vectors with magnitude
       !! less than `wfcVecCut` for each
       !! k-point, on this processor
-    integer :: maxGIndexLocal
-      !! Maximum G-vector index among all \(G+k\)
-      !! for just this processor
-    integer :: maxNumPWsLocal
-      !! Maximum number of \(G+k\) vectors
-      !! across all k-points for just this 
-      !! processor
 
     
     maxNumPWsLocal = 0
@@ -1382,15 +1388,27 @@ module wfcExportVASPMod
 
         if (q <= wfcVecCut) then
 
-          ngk_tmp = ngk_tmp + 1
-            ! If \(|G+k| \leq \) `wfcVecCut` increment the count for
-            ! this k-point
+          millX = gVecMillerIndicesLocal(1,ig)
+          millY = gVecMillerIndicesLocal(2,ig)
+          millZ = gVecMillerIndicesLocal(3,ig)
+          ! If not Gamma-only, ignore the testing on the 
+          ! Miller indices. Otherwise, only increment if
+          ! on the reduced Gamma-only PW grid.
+          if(.not. gammaOnly .or. .not. (millZ < 0 .or. &
+                                        (millZ == 0 .and. millY < 0) .or. &
+                                        (millZ == 0 .and. millY == 0 .and. millX < 0))) then
 
-          gkMod(ik,ngk_tmp) = q
-            ! Store the modulus for sorting
+            ngk_tmp = ngk_tmp + 1
+              ! If \(|G+k| \leq \) `wfcVecCut` increment the count for
+              ! this k-point
 
-          igk2igLocal(ik,ngk_tmp) = ig
-            ! Store the index for this G-vector
+            gkMod(ik,ngk_tmp) = q
+              ! Store the modulus for sorting
+
+            igk2igLocal(ik,ngk_tmp) = ig
+              ! Store the index for this G-vector
+
+          endif
 
         !else
 
@@ -1429,7 +1447,9 @@ module wfcExportVASPMod
 
         if (nGkLessECutGlobal(ik) .ne. nPWs1kGlobal(ik)) call exitError('reconstructFFTGrid', &
           'computed no. of G-vectors != input no. of plane waves', 1)
-          !! * Make sure that number of G-vectors isn't higher than the calculated maximum
+          ! Make sure the calculated number of G+k vectors
+          ! is the same as the number of plane waves used
+          ! by VASP
 
       enddo
     endif
