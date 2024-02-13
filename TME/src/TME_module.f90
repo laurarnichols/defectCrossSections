@@ -28,9 +28,6 @@ module TMEmod
 
   integer :: maxAngMom
     !! Maximum angular momentum of the projectors
-  integer :: maxGIndexGlobal
-    !! Maximum G-vector index among all \(G+k\)
-    !! and processors for PC and SD
   integer, allocatable :: mill_local(:,:)
     !! Local Miller indices
   integer :: nGVecsGlobal
@@ -126,8 +123,7 @@ module TMEmod
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInput(ispSelect, maxAngMom, maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, &
-        loopSpins, subtractBaseline)
+  subroutine readInput(ispSelect, maxAngMom, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, loopSpins, subtractBaseline)
 
     use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
     
@@ -139,9 +135,6 @@ contains
       !! by the user
     integer, intent(out) :: maxAngMom
       !! Maximum angular momentum of the projectors
-    integer, intent(out) :: maxGIndexGlobal
-      !! Maximum G-vector index among all \(G+k\)
-      !! and processors for PC and SD
     integer, intent(out) :: nGVecsGlobal
       !! Global number of G-vectors
     integer, intent(out) :: nKPoints
@@ -167,12 +160,6 @@ contains
     ! Local variables:    
     integer :: iDum
       !! Dummy integer to ignore file input
-    integer :: maxGIndexGlobalPC
-      !! Maximum G-vector index among all \(G+k\)
-      !! and processors for PC
-    integer :: maxGIndexGlobalSD
-      !! Maximum G-vector index among all \(G+k\)
-      !! and processors for SD
     
 
     if(ionode) then
@@ -211,8 +198,8 @@ contains
 
     maxAngMom = 0
 
-    call readInputPC(maxAngMom, nKPoints, maxGIndexGlobalPC)
-    call readInputSD(maxAngMom, nKPoints, maxGIndexGlobalSD, nGVecsGlobal, realLattVec, recipLattVec)
+    call readInputPC(maxAngMom, nKPoints)
+    call readInputSD(maxAngMom, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
 
     call MPI_BCAST(maxAngMom, 1, MPI_INTEGER, root, worldComm, ierr)
     
@@ -231,18 +218,15 @@ contains
 
       endif
 
-      maxGIndexGlobal = max(maxGIndexGlobalPC, maxGIndexGlobalSD)
-
-      if(maxGIndexGlobal > nGVecsGlobal) call exitError('readInput', &
-          'Trying to reference G vecs outside of max grid size. Try switching which grid is read.', 1)
+      ! Update this to read and test the number of plane waves/G-vectors
+      !if(nGVecsGlobalPC /= nGVecsGlobal) call exitError('readInput', &
+      !    'Number of plane waves in each system does not match. Must use same VASP version and cutoff.', 1)
 
     endif
 
     if(order == 1) then
       call MPI_BCAST(dq_j, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     endif
-
-    call MPI_BCAST(maxGIndexGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
 
     nSpins = max(nSpinsPC,nSpinsSD)
     
@@ -371,7 +355,7 @@ contains
   end subroutine checkInitialization
   
 !----------------------------------------------------------------------------
-  subroutine readInputPC(maxAngMom, nKPoints, maxGIndexGlobalPC)
+  subroutine readInputPC(maxAngMom, nKPoints)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
@@ -384,10 +368,7 @@ contains
       !! Total number of k-points
 
     ! Output variables:
-    integer, intent(out) :: maxGIndexGlobalPC
-      !! Maximum G-vector index among all \(G+k\)
-      !! and processors for PC
-    
+
     ! Local variables:
     integer :: nBands
       !! Number of bands
@@ -411,6 +392,12 @@ contains
     
       read(50, '(a)') textDum
       read(50, * ) 
+
+      read(50, '(a)') textDum
+      read(50, * ) ! nGVecsGlobalPC
+
+      read(50, '(a)') textDum
+      read(50, * ) ! fftGridSize(1:3)
     
       read(50, '(a)') textDum
       read(50, '(i10)') nSpinsPC
@@ -443,13 +430,7 @@ contains
 
     if(ionode) then
 
-      read(50, '(a)') textDum
-      read(50, * ) ! nGVecsGlobal
-    
-      read(50, '(a)') textDum
-      read(50, '(i10)') maxGIndexGlobalPC
-
-      call ignoreNextNLinesFromFile(50, 10)
+      call ignoreNextNLinesFromFile(50, 8)
     
       read(50, '(a)') textDum
       read(50, '(i10)') nIonsPC
@@ -629,7 +610,7 @@ contains
   end subroutine readInputPC
   
 !----------------------------------------------------------------------------
-  subroutine readInputSD(maxAngMom, nKPoints, maxGIndexGlobalSD, nGVecsGlobal, realLattVec, recipLattVec)
+  subroutine readInputSD(maxAngMom, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
     !
     implicit none
     
@@ -640,9 +621,6 @@ contains
       !! Total number of k-points
 
     ! Output variables:
-    integer, intent(out) :: maxGIndexGlobalSD
-      !! Maximum G-vector index among all \(G+k\)
-      !! and processors for SD
     integer, intent(out) :: nGVecsGlobal
       !! Global number of G-vectors
 
@@ -683,6 +661,13 @@ contains
     call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     
     if(ionode) then
+    
+      read(50, '(a)') textDum
+      read(50, '(i10)') nGVecsGlobal
+    
+      read(50, '(a)') textDum     
+      read(50,*) 
+      !read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
 
       read(50, '(a)') textDum
       read(50, '(i10)') nSpinsSD
@@ -696,6 +681,7 @@ contains
 
     endif
 
+    call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nSpinsSD, 1, MPI_INTEGER, root, worldComm, ierr)
 
     
@@ -718,16 +704,6 @@ contains
     if(ionode) then
     
       read(50, '(a)') textDum
-      read(50, '(i10)') nGVecsGlobal
-    
-      read(50, '(a)') textDum
-      read(50, '(i10)') maxGIndexGlobalSD
-    
-      read(50, '(a)') textDum     
-      read(50,*) 
-      !read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
-    
-      read(50, '(a)') textDum
       read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,1)
       read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,2)
       read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,3)
@@ -745,7 +721,6 @@ contains
 
     endif
 
-    call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(recipLattVec, size(recipLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(nIonsSD, 1, MPI_INTEGER, root, worldComm, ierr)
