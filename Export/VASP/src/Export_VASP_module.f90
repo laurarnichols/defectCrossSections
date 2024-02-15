@@ -2102,7 +2102,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine projAndWav(nGkVecsLocal_ik, gkMillerIndicesLocal, ikLocal, nAtoms, ispSelect, iType, nAtomTypes, nPWs1kGlobal_ik, &
-        nBands, nKPoints, nSpins, atomPositionsDir, gkMod, gkUnit, multFact, omega, loopSpins, exportDir, pot)
+        nBands, nKPoints, nSpins, atomPositionsDir, gkMod, gkUnit, multFact, omega, gammaOnly, loopSpins, exportDir, pot)
 
     implicit none
 
@@ -2144,6 +2144,8 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: omega
       !! Volume of unit cell
 
+    logical, intent(in) :: gammaOnly
+      !! If the gamma only VASP code is used
     logical, intent(in) :: loopSpins
       !! Whether to loop over available spin channels;
       !! otherwise, use selected spin channel
@@ -2213,7 +2215,7 @@ module wfcExportVASPMod
 
 
     if(myBgrpId == 0) call writeProjectors(ikLocal, nAtoms, iType, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nPWs1kGlobal_ik, realProjWoPhase, &
-              compFact, phaseExp, exportDir, pot, nProj)
+              compFact, phaseExp, gammaOnly, exportDir, pot, nProj)
 
     call MPI_BCAST(nProj, 1, MPI_INTEGER, root, intraPoolComm, ierr)
 
@@ -2240,7 +2242,7 @@ module wfcExportVASPMod
           write(*, '("      k-point ",i4," in pool, spin ",i1,": [ ] Wavefunctions  [ ] Projections")') ikLocal, isp
         call cpu_time(t1)
 
-        call readAndWriteWavefunction(ikLocal, isp, nGkVecsLocal_ik, nPWs1kGlobal_ik, exportDir, irec, coeffLocal)
+        call readAndWriteWavefunction(ikLocal, isp, nGkVecsLocal_ik, nPWs1kGlobal_ik, gammaOnly, exportDir, irec, coeffLocal)
 
 
         call cpu_time(t2)
@@ -2251,7 +2253,7 @@ module wfcExportVASPMod
 
 
         call getAndWriteProjections(ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, compFact, & 
-                  phaseExp, coeffLocal, exportDir, pot)
+                  phaseExp, coeffLocal, gammaOnly, exportDir, pot)
 
 
         call cpu_time(t2)
@@ -2718,7 +2720,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine writeProjectors(ik, nAtoms, iType, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nPWs1kGlobal_ik, realProjWoPhase, compFact, &
-      phaseExp, exportDir, pot, nProj)
+      phaseExp, gammaOnly, exportDir, pot, nProj)
 
     use miscUtilities, only: int2str
 
@@ -2749,6 +2751,9 @@ module wfcExportVASPMod
     complex(kind=dp), intent(in) :: phaseExp(nGkVecsLocal_ik,nAtoms)
       !! Exponential phase factor
 
+    logical, intent(in) :: gammaOnly
+      !! If the gamma only VASP code is used
+
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
 
@@ -2771,6 +2776,8 @@ module wfcExportVASPMod
 
     complex(kind=dp), allocatable :: beta(:)
       !! Projectors for single plane wave
+    complex(kind=dp), allocatable :: betaNegG(:)
+      !! Projectors for -G plane waves if Gamma-only
 
 
     !> Set up base file name
@@ -2788,6 +2795,7 @@ module wfcExportVASPMod
 
 
     allocate(beta(nProj))
+    allocate(betaNegG(nProj))
 
     inquire(iolength=reclen) beta(:)
       !! Get the record length needed to write a double complex
@@ -2802,7 +2810,13 @@ module wfcExportVASPMod
       !! Have root process write header values
 
       nProj_real = nProj
-      nPWs1k_real = nPWs1kGlobal_ik
+
+      if(gammaOnly) then
+        nPWs1k_real = 2*nPWs1kGlobal_ik - 1
+      else
+        nPWs1k_real = nPWs1kGlobal_ik
+      endif
+
       write(63,rec=1) nProj_real, nPWs1k_real
         !! Write out the number of projectors and number of
         !! \(G+k\) vectors at this k-point below the energy
@@ -2835,6 +2849,17 @@ module wfcExportVASPMod
             !!    `NONL_S%LSPIRAL = .FALSE.`, so spin spirals are not calculated, which makes
             !!    `NONL_S%QPROJ` spin-independent. This is why there is no spin index on `realProjWoPhase`.
             !! @endnote
+
+          if(gammaOnly) betaNegG(ipr) = -realProjWoPhase(igkLocal,ilm,iT)*phaseExp(igkLocal,ia)*conjg(compFact(ilm,iT))
+            ! The gamma-only version has only G=0 and the +G vectors
+            ! for each +G/-G pair because of the relationship C(G)=C*(-G)
+            ! for the wave function coefficients. The +G coefficients are
+            ! included in the normal equation used for the not-Gamma-only
+            ! case (`beta`), but we must manually include the effects of
+            ! the -G vectors. `compFact` is unchanged. `realProjWoPhase`
+            ! becomes negative because it has `gkUnit`, which is the G+k
+            ! unit vector and k=0 at Gamma. `phaseExp` is e^{2\pi iG\cdot r},
+            ! so -G is the complex conjugate of +G. 
         enddo
       enddo
 
@@ -2843,7 +2868,13 @@ module wfcExportVASPMod
 
       write(63,rec=igkGlobal+1) (beta(ipr), ipr=1,nProj)
 
+      if(gammaOnly) then
+        if(.not. (indexInBgrp == 0 .and. igkLocal == 1)) write(63,rec=igkGlobal+nPWs1kGlobal_ik+1) (betaNegG(ipr), ipr=1,nProj)
+      endif
+
     enddo
+
+    deallocate(betaNegG)
 
     close(63)
 
@@ -2851,7 +2882,7 @@ module wfcExportVASPMod
   end subroutine writeProjectors
 
 !----------------------------------------------------------------------------
-  subroutine readAndWriteWavefunction(ik, isp, nGkVecsLocal_ik, nPWs1kGlobal_ik, exportDir, irec, coeffLocal)
+  subroutine readAndWriteWavefunction(ik, isp, nGkVecsLocal_ik, nPWs1kGlobal_ik, gammaOnly, exportDir, irec, coeffLocal)
     !! For each spin and k-point, read and write the plane
     !! wave coefficients for each band
     !!
@@ -2872,6 +2903,9 @@ module wfcExportVASPMod
       !! for a given k-point
     integer, intent(in) :: nPWs1kGlobal_ik
       !! Input number of plane waves for the given k-point
+
+    logical, intent(in) :: gammaOnly
+      !! If the gamma only VASP code is used
       
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
@@ -2913,6 +2947,8 @@ module wfcExportVASPMod
         !! Get the record length needed to write a double complex
         !! array of length nPWs1kGlobal_ik
 
+      if(gammaOnly) reclen = 2*reclen - reclen/nPWs1kGlobal_ik
+
       open(63, file=trim(fNameExport), access='direct', form='unformatted', recl=reclen)
         !! Open output file with direct access
 
@@ -2949,7 +2985,17 @@ module wfcExportVASPMod
         read(unit=wavecarUnit,rec=irec) (coeff(ipw), ipw=1,nPWs1kGlobal_ik)
           ! Read in the plane wave coefficients for each band
 
-        write(63,rec=ib) (coeff(ipw), ipw=1,nPWs1kGlobal_ik)
+        
+        if(gammaOnly) then
+          ! The gamma-only version has only G=0 and the +G vectors
+          ! for each +G/-G pair because of the relationship C(G)=C*(-G)
+          ! for the wave function coefficients. Write out the G=0 and +G
+          ! coefficients, then write out the complex conjugate for
+          ! the -G vectors (not including the first G=0 again).
+          write(63,rec=ib) (coeff(ipw), ipw=1,nPWs1kGlobal_ik), (conjg(coeff(ipw)), ipw=2,nPWs1kGlobal_ik)
+        else
+          write(63,rec=ib) (coeff(ipw), ipw=1,nPWs1kGlobal_ik)
+        endif
           !! @note
           !!  I was trying to convert these coefficients based
           !!  on the units previously listed in the `wfc.ik` file, 
@@ -2978,7 +3024,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteProjections(ik, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, compFact, &
-          phaseExp, coeffLocal, exportDir, pot)
+          phaseExp, coeffLocal, gammaOnly, exportDir, pot)
 
     use miscUtilities, only: int2str
 
@@ -3009,7 +3055,10 @@ module wfcExportVASPMod
     complex(kind=dp), intent(in) :: phaseExp(nGkVecsLocal_ik,nAtoms)
 
     complex*8, intent(in) :: coeffLocal(nGkVecsLocal_ik, ibStart_bgrp:ibEnd_bgrp)
-      !! Plane wave coefficients
+     !! Plane wave coefficients
+
+    logical, intent(in) :: gammaOnly
+      !! If the gamma only VASP code is used
       
     character(len=256), intent(in) :: exportDir
       !! Directory to be used for export
@@ -3052,7 +3101,28 @@ module wfcExportVASPMod
 
             ipr = ipr + 1
 
-            projection(ipr) = compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*phaseExp(:,ia)*coeffLocal(:,ib))
+            if(gammaOnly) then
+              ! The gamma-only version has only G=0 and the +G vectors
+              ! for each +G/-G pair because of the relationship C(G)=C*(-G)
+              ! for the wave function coefficients. The +G coefficients are
+              ! included in the normal equation used for the not-Gamma-only
+              ! case (below), but we must manually include the effects of
+              ! the -G vectors. `compFact` is unchanged. `realProjWoPhase`
+              ! becomes negative because it has `gkUnit`, which is the G+k
+              ! unit vector and k=0 at Gamma. `phaseExp` is e^{2\pi iG\cdot r},
+              ! so -G is the complex conjugate of +G. And we know that the
+              ! coefficients have the same complex-conjugate relationship.
+              projection(ipr) = compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*(phaseExp(:,ia)*coeffLocal(:,ib) - &
+                                                                          conjg(phaseExp(:,ia)*coeffLocal(:,ib))))
+
+
+              ! Make sure to subtract out G=0, which is the first
+              ! G-vector, for Gamma-only because it is included twice.
+              if(indexInBgrp == 0) projection(ipr) = projection(ipr) - &
+                                                     compFact(ilm,iT)*(-realProjWoPhase(1,ilm,iT))*conjg(phaseExp(1,ia)*coeffLocal(1,ib))
+            else
+              projection(ipr) = compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*phaseExp(:,ia)*coeffLocal(:,ib))
+            endif
               ! Calculate projection (sum over plane waves)
               ! Don't need to worry about sorting because projection
               ! has sum over plane waves.
@@ -3114,20 +3184,18 @@ module wfcExportVASPMod
       write(mainOutFileUnit, '("# ik, nPWs1kGlobal(ik), wk(ik), xk(1:3,ik). Format: ''(2i10,4ES24.15E3)''")')
       flush(mainOutFileUnit)
 
-      if(energiesOnly) then
-        do ik = 1, nKPoints
-    
+      do ik = 1, nKPoints
+      
+        if(energiesOnly) then
           write(mainOutFileUnit, '(2i10,4ES24.15E3)') ik, -1, kWeight(ik), kPosition(1:3,ik)
             ! Skip writing out grid info
-
-        enddo
-      else
-        do ik = 1, nKPoints
-    
+        else if(gammaOnly) then
+          write(mainOutFileUnit, '(2i10,4ES24.15E3)') ik, 2*nPWs1kGlobal(ik)-1, kWeight(ik), kPosition(1:3,ik)
+        else
           write(mainOutFileUnit, '(2i10,4ES24.15E3)') ik, nPWs1kGlobal(ik), kWeight(ik), kPosition(1:3,ik)
+        endif
 
-        enddo
-      endif
+      enddo
 
     endif
 

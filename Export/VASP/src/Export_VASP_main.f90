@@ -169,7 +169,7 @@ program wfcExportVASPMain
       call cpu_time(t1)
 
       call projAndWav(nGkVecsLocal_ik, gkMillerIndicesLocal, ikLocal, nAtoms, ispSelect, iType, nAtomTypes, nPWs1kGlobal(ikGlobal), &
-            nBands, nKPoints, nSpins, atomPositionsDir, gkMod, gkUnit, multFact, omega, loopSpins, exportDir, pot)
+            nBands, nKPoints, nSpins, atomPositionsDir, gkMod, gkUnit, multFact, omega, gammaOnly, loopSpins, exportDir, pot)
 
     enddo
 
