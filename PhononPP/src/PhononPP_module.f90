@@ -57,17 +57,19 @@ module PhononPPMod
   character(len=300) :: shiftedPOSCARFName
     !! File name for shifted POSCAR
 
+  logical :: captured
+    !! If carrier is captured as opposed to scattered
   logical :: generateShiftedPOSCARs
     !! If shifted POSCARs should be generated
 
 
-  namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs
+  namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, captured, generateShiftedPOSCARs
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputs(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
+  subroutine readInputs(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, captured, generateShiftedPOSCARs)
 
     implicit none
 
@@ -84,13 +86,15 @@ module PhononPPMod
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(out) :: captured
+      !! If carrier is captured as opposed to scattered
     logical, intent(out) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
 
 
     if(ionode) then
 
-      call initialize(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
+      call initialize(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, captured, generateShiftedPOSCARs)
         !! * Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -99,7 +103,7 @@ module PhononPPMod
       if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
+      call checkInitialization(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, captured, generateShiftedPOSCARs)
 
     endif
 
@@ -108,6 +112,7 @@ module PhononPPMod
     call MPI_BCAST(finalPOSCARFName, len(finalPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(initPOSCARFName, len(initPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(captured, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(generateShiftedPOSCARs, 1, MPI_LOGICAL, root, worldComm, ierr)
 
     return
@@ -115,7 +120,7 @@ module PhononPPMod
   end subroutine readInputs
 
 !----------------------------------------------------------------------------
-  subroutine initialize(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
+  subroutine initialize(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, captured, generateShiftedPOSCARs)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -137,6 +142,8 @@ module PhononPPMod
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(out) :: captured
+      !! If carrier is captured as opposed to scattered
     logical, intent(out) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
 
@@ -149,6 +156,7 @@ module PhononPPMod
 
     shift = 0.01_dp
 
+    captured = .true.
     generateShiftedPOSCARs = .true.
 
     return
@@ -156,7 +164,7 @@ module PhononPPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
+  subroutine checkInitialization(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, captured, generateShiftedPOSCARs)
 
     implicit none
 
@@ -173,6 +181,8 @@ module PhononPPMod
     character(len=300), intent(in) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
     logical, intent(in) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
 
@@ -189,6 +199,7 @@ module PhononPPMod
     abortExecution = checkStringInitialization('dqFName', dqFName) .or. abortExecution
 
 
+    write(*,'("captured = ''",L1,"''")') captured
     write(*,'("generateShiftedPOSCARs = ''",L1,"''")') generateShiftedPOSCARs
 
 

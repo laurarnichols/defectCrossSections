@@ -14,7 +14,7 @@ program PhononPPMain
 
   call mpiInitialization('PhononPP')
 
-  call readInputs(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs)
+  call readInputs(shift, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, captured, generateShiftedPOSCARs)
 
   if(ionode) then
     call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
