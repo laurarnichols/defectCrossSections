@@ -4,20 +4,48 @@ Shifts atom positions by a magnitude of `shift` along each phonon-mode eigenvect
 
 **Assumes phonons only at Gamma point!** 
 
-Input should look like
+There are two cases that `PhononPP` can be run with: a single displacement (e.g., capture) or a set of displacements based on bands (e.g., scattering). For a single displacement, the inputs should look like
 ```
 &inputParams
-  initPOSCARFName  = 'path-to-init-poscar'                     ! Default: './POSCAR_init', used as based for shifted POSCARs
+  singleDisp = .true.             ! If there's a single displacement to consider, default .true.
+
+  initPOSCARFName  = 'path-to-init-poscar'                     ! Default: './POSCAR_init'
   finalPOSCARFName = 'path-to-final-poscar'                    ! Default: './POSCAR_final'
+
   phononFName      = 'path-to-phonopy-output-yaml-file'        ! Default: './mesh.yaml'
-  prefix           = 'prefix-for-shifted-poscars'              ! Default: './ph_POSCAR'
   dqFName          = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
 
   shift = shift-magnitude                ! Real (Angstrom), default 0.01 A
 
   generateShiftedPOSCARs = logical       ! Logical, default .true.
+  prefix           = 'prefix-for-shifted-poscars'              ! Default: './ph_POSCAR'; ignored if .not. generateShiftedPOSCARs
+  basePOSCARFName = 'path-to-base-poscar'                      ! Default: initPOSCARFName; optional to use as base for shift
 /
 ```
+
+
+For a range of displacements, the inputs should look like
+```
+&inputParams
+  singleDisp = .false.             ! If there's a single displacement to consider, default .true.
+
+  CONTCARsBaseDir  = 'path-to-base-dir-for-relaxed-positions'   
+  iBandIinit = integer						! lowest initial-state band
+  iBandIfinal = integer						! highest initial-state band
+  iBandFinit = integer						! lowest final-state band
+  iBandFfinal = integer						! highest final-state band
+
+  phononFName      = 'path-to-phonopy-output-yaml-file'        ! Default: './mesh.yaml'
+  dqFName          = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
+
+  shift = shift-magnitude                ! Real (Angstrom), default 0.01 A
+
+  generateShiftedPOSCARs = logical       ! Logical, default .true.
+  prefix           = 'prefix-for-shifted-poscars'              ! Default: './ph_POSCAR'; ignored if .not. generateShiftedPOSCARs
+  basePOSCARFName = 'path-to-base-poscar'                      ! Required when considering multiple displacements
+/
+```
+
 
 To run, use
 ```
