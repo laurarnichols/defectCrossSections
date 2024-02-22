@@ -1528,6 +1528,75 @@ module wfcExportVASPMod
   end subroutine calculateGvecs
 
 !----------------------------------------------------------------------------
+  subroutine writeGridInfo(fftGridSize, nGVecsGlobal, gVecMillerIndicesGlobalOrig, exportDir)
+    !! Write out grid boundaries and miller indices
+    !! for just \(G+k\) combinations below cutoff energy
+    !! in one file and all miller indices in another 
+    !! file
+    !!
+    !! <h2>Walkthrough</h2>
+    !!
+
+    use miscUtilities, only: int2str
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: fftGridSize(3)
+      !! Max number of points on the FFT grid in each direction
+    integer, intent(in) :: nGVecsGlobal
+      !! Global number of G-vectors
+
+    integer, intent(in) :: gVecMillerIndicesGlobalOrig(3,nGVecsGlobal)
+      !! Integer coefficients for G-vectors on all processors (original order)
+
+    character(len=256), intent(in) :: exportDir
+      !! Directory to be used for export
+
+    ! Local variables:
+    integer :: ig
+      !! Loop index
+
+
+    if (ionode) then
+    
+      !> * Write the global number of G-vectors, the maximum
+      !>   G-vector index, and the max/min miller indices
+      write(mainOutFileUnit, '("# Number of G-vectors. Format: ''(i10)''")')
+      if(energiesOnly) then
+        write(mainOutFileUnit,'(i10)') -1
+      else
+        write(mainOutFileUnit, '(i10)') nGVecsGlobal
+      endif
+    
+      write(mainOutFileUnit, '("# FFT Grid size in x, y and z axis. Format: ''(3i10)''")')
+      if(energiesOnly) then
+        write(mainOutFileUnit,'(3i10)') -1, -1, -1
+      else
+        write(mainOutFileUnit, '(3i10)') fftGridSize(1:3)
+      endif
+
+    endif
+    
+    if(.not. energiesOnly .and. ionode) then
+
+      !> * Output all miller indices in `mgrid` file
+      open(72, file=trim(exportDir)//"/mgrid")
+      write(72, '("# Full G-vectors grid")')
+      write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
+    
+      do ig = 1, nGVecsGlobal
+        write(72, '(4i10)') ig, gVecMillerIndicesGlobalOrig(1:3,ig)
+      enddo
+    
+      close(72)
+
+    endif
+
+    return
+  end subroutine writeGridInfo
+
+!----------------------------------------------------------------------------
   subroutine distributeGvecsOverProcessors(nGVecsGlobal, gVecMillerIndicesGlobalSort, gIndexLocalToGlobal, gVecMillerIndicesLocal, nGVecsLocal)
     !! Figure out how many G-vectors there should be per processor.
     !! G-vectors are split up in a round robin fashion over processors
@@ -1599,75 +1668,6 @@ module wfcExportVASPMod
 
     return
   end subroutine distributeGvecsOverProcessors
-
-!----------------------------------------------------------------------------
-  subroutine writeGridInfo(fftGridSize, nGVecsGlobal, gVecMillerIndicesGlobalOrig, exportDir)
-    !! Write out grid boundaries and miller indices
-    !! for just \(G+k\) combinations below cutoff energy
-    !! in one file and all miller indices in another 
-    !! file
-    !!
-    !! <h2>Walkthrough</h2>
-    !!
-
-    use miscUtilities, only: int2str
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: fftGridSize(3)
-      !! Max number of points on the FFT grid in each direction
-    integer, intent(in) :: nGVecsGlobal
-      !! Global number of G-vectors
-
-    integer, intent(in) :: gVecMillerIndicesGlobalOrig(3,nGVecsGlobal)
-      !! Integer coefficients for G-vectors on all processors (original order)
-
-    character(len=256), intent(in) :: exportDir
-      !! Directory to be used for export
-
-    ! Local variables:
-    integer :: ig
-      !! Loop index
-
-
-    if (ionode) then
-    
-      !> * Write the global number of G-vectors, the maximum
-      !>   G-vector index, and the max/min miller indices
-      write(mainOutFileUnit, '("# Number of G-vectors. Format: ''(i10)''")')
-      if(energiesOnly) then
-        write(mainOutFileUnit,'(i10)') -1
-      else
-        write(mainOutFileUnit, '(i10)') nGVecsGlobal
-      endif
-    
-      write(mainOutFileUnit, '("# FFT Grid size in x, y and z axis. Format: ''(3i10)''")')
-      if(energiesOnly) then
-        write(mainOutFileUnit,'(3i10)') -1, -1, -1
-      else
-        write(mainOutFileUnit, '(3i10)') fftGridSize(1:3)
-      endif
-
-    endif
-    
-    if(.not. energiesOnly .and. ionode) then
-
-      !> * Output all miller indices in `mgrid` file
-      open(72, file=trim(exportDir)//"/mgrid")
-      write(72, '("# Full G-vectors grid")')
-      write(72, '("# G-vector index, G-vector(1:3) miller indices. Format: ''(4i10)''")')
-    
-      do ig = 1, nGVecsGlobal
-        write(72, '(4i10)') ig, gVecMillerIndicesGlobalOrig(1:3,ig)
-      enddo
-    
-      close(72)
-
-    endif
-
-    return
-  end subroutine writeGridInfo
 
 !----------------------------------------------------------------------------
   subroutine generateGkGrid(nGVecsGlobal, nGVecsLocal, gIndexLocalToGlobal, gVecMillerIndicesLocal, ikLocal, iMill, nPWs1kGlobal_ik, &
@@ -1762,7 +1762,7 @@ module wfcExportVASPMod
     gkMillerIndicesLocal = 0
     gkMod = 0.0_dp
     gkUnit = 0.0_dp
-    multFact = 0.0_dp
+    multFact = 1.0_dp
 
     ! Calculate the number of plane waves used in the VASP 
     ! calculation. The G+k combination has to be less than 
