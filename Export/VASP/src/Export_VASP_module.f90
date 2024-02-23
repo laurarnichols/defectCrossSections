@@ -2157,6 +2157,9 @@ module wfcExportVASPMod
       !! Holds all information needed from POTCAR
 
     ! Local variables:
+    integer :: gNegSign(64)
+      !! Sign to multiply real part of projector for -G if
+      !! using Gamma only
     integer :: ikGlobal, isp, isk
       !! Loop indices
     integer :: irec
@@ -2201,7 +2204,7 @@ module wfcExportVASPMod
     call cpu_time(t1)
 
 
-    if(myBgrpId == 0) call calculateRealProjWoPhase(nAtomTypes, nGkVecsLocal_ik, gkMod, gkUnit, multFact, omega, pot, realProjWoPhase, compFact)
+    if(myBgrpId == 0) call calculateRealProjWoPhase(nAtomTypes, nGkVecsLocal_ik, gkMod, gkUnit, multFact, omega, pot, gNegSign, realProjWoPhase, compFact)
 
     call MPI_BCAST(realProjWoPhase, size(realProjWoPhase), MPI_DOUBLE_PRECISION, 0, interBgrpComm, ierr)
     call MPI_BCAST(compFact, size(compFact), MPI_DOUBLE_COMPLEX, 0, interBgrpComm, ierr)
@@ -2214,8 +2217,8 @@ module wfcExportVASPMod
     call cpu_time(t1)
 
 
-    if(myBgrpId == 0) call writeProjectors(ikLocal, nAtoms, iType, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nPWs1kGlobal_ik, realProjWoPhase, &
-              compFact, phaseExp, gammaOnly, exportDir, pot, nProj)
+    if(myBgrpId == 0) call writeProjectors(gNegSign, ikLocal, nAtoms, iType, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nPWs1kGlobal_ik, & 
+        realProjWoPhase, compFact, phaseExp, gammaOnly, exportDir, pot, nProj)
 
     call MPI_BCAST(nProj, 1, MPI_INTEGER, root, intraPoolComm, ierr)
 
@@ -2252,8 +2255,8 @@ module wfcExportVASPMod
         call cpu_time(t1)
 
 
-        call getAndWriteProjections(ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, compFact, & 
-                  phaseExp, coeffLocal, gammaOnly, exportDir, pot)
+        call getAndWriteProjections(gNegSign, ikGlobal, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, & 
+              compFact, phaseExp, coeffLocal, gammaOnly, exportDir, pot)
 
 
         call cpu_time(t2)
@@ -2326,7 +2329,7 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(nAtomTypes, nGkVecsLocal_ik, gkMod, gkUnit, multFact, omega, pot, realProjWoPhase, compFact)
+  subroutine calculateRealProjWoPhase(nAtomTypes, nGkVecsLocal_ik, gkMod, gkUnit, multFact, omega, pot, gNegSign, realProjWoPhase, compFact)
     implicit none
 
     ! Input variables:
@@ -2350,6 +2353,9 @@ module wfcExportVASPMod
       !! Holds all information needed from POTCAR
 
     ! Output variables:
+    integer, intent(out) :: gNegSign(64)
+      !! Sign to multiply real part of projector for -G if
+      !! using Gamma only
     real(kind=dp), intent(out) :: realProjWoPhase(nGkVecsLocal_ik,64,nAtomTypes)
       !! Real projectors without phase
 
@@ -2384,6 +2390,9 @@ module wfcExportVASPMod
       !! Pseudopotential
     real(kind=dp), allocatable :: Ylm(:,:)
       !! Spherical harmonics
+
+
+    gNegSign = 1
 
 
     YDimL = maxL(nAtomTypes, pot)
@@ -2421,38 +2430,44 @@ module wfcExportVASPMod
         endif
 
         do im = 0, imMax
+
+          if(ilmBase+im >= 2 .and. ilmBase+im <= 4) gNegSign(ilm+im) = -1
+            ! For Gamma-only, we need to store the sign change 
+            ! that results in using -G in the spherical harmonics.
+            ! The sign is only flipped for L=1 case.
           
           do ipw = 1, nGkVecsLocal_ik
 
             realProjWoPhase(ipw,ilm+im,iT) = pseudoV(ipw)*Ylm(ipw,ilmBase+im)
-              !! @note
-              !!  This code does not work with spin spirals! For that to work, would need 
-              !!  an additional index at the end of the array for `ISPINOR`.
-              !! @endnote
-              !!
-              !! @todo Add test to kill job if `NONL_S%LSPIRAL = .TRUE.` @endtodo
-              !!
-              !! @note
-              !!  `realProjWoPhase` corresponds to `QPROJ`, but it only stores as much as needed 
-              !!  for our application.
-              !! @endnote
-              !!
-              !! @note
-              !!  `QPROJ` is accessed as `QPROJ(ipw,ilm,iT,ik,1)`, where `ipw` is over the number
-              !!  of plane waves at a specfic k-point, `ilm` goes from 1 to `WDES%LMMAX(iT)` and
-              !!  `iT` is the atom-type index.
-              !! @endnote
-              !!
-              !! @note
-              !!  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
-              !!  `SPHER` is called with `IZERO=1` along with the comment "relalculate the 
-              !!  projection operators (the array was used as a workspace)." `SPHER` is what is
-              !!  used to calculate `QPROJ`.
-              !!
-              !!  Based on this comment, I am going to assume `IZERO = 1`, which means that
-              !!  `realProjWoPhase` is calculated directly rather than being added to what was
-              !!  previously stored in the array, as is done in the `SPHER` subroutine.
-              !! @endnote
+              ! @note
+              !  This code does not work with spin spirals! For that to work, would need 
+              !  an additional index at the end of the array for `ISPINOR`.
+              ! @endnote
+              !
+              ! @todo Add test to kill job if `NONL_S%LSPIRAL = .TRUE.` @endtodo
+              !
+              ! @note
+              !  `realProjWoPhase` corresponds to `QPROJ`, but it only stores as much as needed 
+              !  for our application.
+              ! @endnote
+              !
+              ! @note
+              !  `QPROJ` is accessed as `QPROJ(ipw,ilm,iT,ik,1)`, where `ipw` is over the number
+              !  of plane waves at a specfic k-point, `ilm` goes from 1 to `WDES%LMMAX(iT)` and
+              !  `iT` is the atom-type index.
+              ! @endnote
+              !
+              ! @note
+              !  At the end of the subroutine `STRENL` in `nonl.F` that calculates the forces,
+              !  `SPHER` is called with `IZERO=1` along with the comment "relalculate the 
+              !  projection operators (the array was used as a workspace)." `SPHER` is what is
+              !  used to calculate `QPROJ`.
+              !
+              !  Based on this comment, I am going to assume `IZERO = 1`, which means that
+              !  `realProjWoPhase` is calculated directly rather than being added to what was
+              !  previously stored in the array, as is done in the `SPHER` subroutine.
+              ! @endnote
+
           enddo
         enddo
         
@@ -2719,14 +2734,17 @@ module wfcExportVASPMod
   end subroutine getPseudoV
 
 !----------------------------------------------------------------------------
-  subroutine writeProjectors(ik, nAtoms, iType, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nPWs1kGlobal_ik, realProjWoPhase, compFact, &
-      phaseExp, gammaOnly, exportDir, pot, nProj)
+  subroutine writeProjectors(gNegSign, ik, nAtoms, iType, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nPWs1kGlobal_ik, realProjWoPhase, &
+      compFact, phaseExp, gammaOnly, exportDir, pot, nProj)
 
     use miscUtilities, only: int2str
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: gNegSign(64)
+      !! Sign to multiply real part of projector for -G if
+      !! using Gamma only
     integer, intent(in) :: ik
       !! Current k-point
     integer, intent(in) :: nAtoms
@@ -2850,7 +2868,8 @@ module wfcExportVASPMod
             !!    `NONL_S%QPROJ` spin-independent. This is why there is no spin index on `realProjWoPhase`.
             !! @endnote
 
-          if(gammaOnly) betaNegG(ipr) = -realProjWoPhase(igkLocal,ilm,iT)*phaseExp(igkLocal,ia)*conjg(compFact(ilm,iT))
+
+          if(gammaOnly) betaNegG(ipr) = gNegSign(ilm)*realProjWoPhase(igkLocal,ilm,iT)*phaseExp(igkLocal,ia)*conjg(compFact(ilm,iT))
             ! The gamma-only version has only G=0 and the +G vectors
             ! for each +G/-G pair because of the relationship C(G)=C*(-G)
             ! for the wave function coefficients. The +G coefficients are
@@ -3023,14 +3042,17 @@ module wfcExportVASPMod
   end subroutine readAndWriteWavefunction
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteProjections(ik, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, compFact, &
-          phaseExp, coeffLocal, gammaOnly, exportDir, pot)
+  subroutine getAndWriteProjections(gNegSign, ik, isp, nAtoms, nAtomTypes, nAtomsEachType, nGkVecsLocal_ik, nProj, realProjWoPhase, &
+        compFact, phaseExp, coeffLocal, gammaOnly, exportDir, pot)
 
     use miscUtilities, only: int2str
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: gNegSign(64)
+      !! Sign to multiply real part of projector for -G if
+      !! using Gamma only
     integer, intent(in) :: ik
       !! Current k-point
     integer, intent(in) :: isp
@@ -3112,14 +3134,14 @@ module wfcExportVASPMod
               ! unit vector and k=0 at Gamma. `phaseExp` is e^{2\pi iG\cdot r},
               ! so -G is the complex conjugate of +G. And we know that the
               ! coefficients have the same complex-conjugate relationship.
-              projection(ipr) = compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*(phaseExp(:,ia)*coeffLocal(:,ib) - &
-                                                                          conjg(phaseExp(:,ia)*coeffLocal(:,ib))))
+              projection(ipr) = compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*(phaseExp(:,ia)*coeffLocal(:,ib) +  &
+                                                            gNegSign(ilm)*conjg(phaseExp(:,ia)*coeffLocal(:,ib))))
 
 
               ! Make sure to subtract out G=0, which is the first
               ! G-vector, for Gamma-only because it is included twice.
               if(indexInBgrp == 0) projection(ipr) = projection(ipr) - &
-                                                     compFact(ilm,iT)*(-realProjWoPhase(1,ilm,iT))*conjg(phaseExp(1,ia)*coeffLocal(1,ib))
+                                                     compFact(ilm,iT)*(gNegSign(ilm)*realProjWoPhase(1,ilm,iT))*conjg(phaseExp(1,ia)*coeffLocal(1,ib))
             else
               projection(ipr) = compFact(ilm,iT)*sum(realProjWoPhase(:,ilm,iT)*phaseExp(:,ia)*coeffLocal(:,ib))
             endif
