@@ -1786,15 +1786,15 @@ module wfcExportVASPMod
         millZ = gVecMillerIndicesLocal(3,ig)
         ! If not Gamma-only, ignore the testing on the Miller indices. 
         ! Otherwise, only increment if on the reduced, Gamma-only PW grid.
-        if(.not. gammaOnly .or. .not. (millZ < 0 .or. &
-                                      (millZ == 0 .and. millY < 0) .or. &
-                                      (millZ == 0 .and. millY == 0 .and. millX < 0))) then
+        if(.not. gammaOnly .or. .not. (millX < 0 .or. &
+                                      (millX == 0 .and. millY < 0) .or. &
+                                      (millX == 0 .and. millY == 0 .and. millZ < 0))) then
 
           ngk_tmp = ngk_tmp + 1
             ! If \(|G+k| \leq \) `wfcVecCut` increment the count for
             ! this k-point
 
-          if(gammaOnly .and. (millX /= 0 .or. millY /= 0 .or. millZ /= 0)) multFact(ngk_tmp) = sqrt(2._dp)
+          !if(gammaOnly .and. (millX /= 0 .or. millY /= 0 .or. millZ /= 0)) multFact(ngk_tmp) = sqrt(2._dp)
 
           gkMillerIndicesLocal(:,ngk_tmp) = gVecMillerIndicesLocal(:,ig)
 
@@ -3003,6 +3003,8 @@ module wfcExportVASPMod
 
         read(unit=wavecarUnit,rec=irec) (coeff(ipw), ipw=1,nPWs1kGlobal_ik)
           ! Read in the plane wave coefficients for each band
+
+        if(ionode .and. ib < 10) write(*,'()')
 
         
         if(gammaOnly) then
