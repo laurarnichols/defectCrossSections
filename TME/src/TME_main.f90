@@ -8,7 +8,7 @@ program TMEmain
 
   logical :: calcSpinDepSD, calcSpinDepPC
     !! If spin-dependent subroutines should be called
-  logical :: spin1Skipped
+  logical :: spin1Skipped = .false.
     !! If the first spin channel was skipped
   logical :: thisKComplete = .false.
     !! If needed `allElecOverlap.isp.ik` files exist
@@ -32,8 +32,7 @@ program TMEmain
   call cpu_time(t1)
 
 
-  call readInput(ispSelect, maxAngMom, maxGIndexGlobal, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, &
-        loopSpins, subtractBaseline)
+  call readInput(ispSelect, maxAngMom, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, loopSpins, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     !! @todo Figure out if `realLattVec` used anywhere. If not remove. @endtodo
@@ -150,9 +149,13 @@ program TMEmain
       
       do isp = 1, nSpins
 
-        if(isp == 1 .and. (ispSelect == 2 .or. overlapFileExists(ikGlobal,1))) then
-          spin1Skipped = .true.
-        else if(loopSpins .or. isp == ispSelect) then
+        if(indexInPool == 0) then
+          if(isp == 1 .and. (ispSelect == 2 .or. overlapFileExists(ikGlobal,1))) spin1Skipped = .true.
+        endif
+
+        call MPI_BCAST(spin1Skipped, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
+
+        if(loopSpins .or. isp == ispSelect) then
 
           if(ionode) write(*,'("  Beginning spin ", i2)') isp
 
