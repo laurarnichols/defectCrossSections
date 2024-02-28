@@ -2,8 +2,9 @@ module PhononPPMod
   
   use constants, only: dp, angToBohr, angToM, daltonToElecM, elecMToKg, THzToHz, pi, hbar
   use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-  use cell, only: nAtoms, omega, realLattVec, cartDispProjOnPhononEigsNorm, readPOSCAR
-  use miscUtilities, only: int2str
+  use cell, only: nAtoms, omega, realLattVec, cartDispProjOnPhononEigsNorm, readPOSCAR, writePOSCARNewPos
+  use miscUtilities, only: int2str, int2strLeadZero
+  use generalComputations, only: direct2cart
   use errorsAndMPI
   use mpi
 
@@ -17,31 +18,22 @@ module PhononPPMod
     !! Timers
 
   ! Variables that should be passed as arguments:
-  integer :: nAtomsFinal
-    !! Number of atoms from final-state POSCAR
   integer :: nModes
     !! Number of phonon modes
   integer :: nModesLocal
     !! Local number of phonon modes
-  integer :: suffixLength
-    !! Length of shifted POSCAR file suffix
+
 
   real(kind=dp), allocatable :: atomPositionsDirInit(:,:)
     !! Atom positions in initial relaxed positions
-  real(kind=dp), allocatable :: displacement(:,:)
-    !! Atom displacements in angstrom
   real(kind=dp), allocatable :: eigenvector(:,:,:)
     !! Eigenvectors for each atom for each mode
-  real(kind=dp), allocatable :: projNorm(:)
-    !! Generalized norms after displacement
   real(kind=dp), allocatable :: mass(:)
     !! Masses of atoms
   real(kind=dp), allocatable :: omegaFreq(:)
     !! Frequency for each mode
   real(kind=dp) :: shift
     !! Magnitude of shift along phonon eigenvectors
-  real(kind=dp), allocatable :: shiftedPositions(:,:)
-    !! Positions after shift along eigenvector
 
   character(len=300) :: basePOSCARFName
     !! File name for intial POSCAR to calculate shift from
@@ -51,14 +43,10 @@ module PhononPPMod
     !! File name for generalized-coordinate norms
   character(len=300) :: initPOSCARFName, finalPOSCARFName
     !! File name for POSCAR for relaxed initial and final charge states
-  character(len=300) :: memoLine
-    !! Memo line to output shift and mode number to shifted POSCARs
   character(len=300) :: phononFName
     !! File name for mesh.yaml phonon file
   character(len=300) :: prefix
     !! Prefix for shifted POSCARs
-  character(len=300) :: shiftedPOSCARFName
-    !! File name for shifted POSCAR
 
   logical :: singleDisp
     !! If there is just a single displacement to consider
@@ -817,6 +805,137 @@ module PhononPPMod
     return
 
   end subroutine calcAndWriteSj
+
+!----------------------------------------------------------------------------
+  subroutine calculateShiftAndDq(nAtoms, nModes, eigenvector, mass, shift, generateShiftedPOSCARs, basePOSCARFName, dqFName, prefix)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(inout) :: nAtoms
+      !! Number of atoms
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: eigenvector(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each mode
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Mass of atoms
+    real(kind=dp), intent(in) :: shift
+      !! Magnitude of shift along phonon eigenvectors
+
+    logical, intent(in) :: generateShiftedPOSCARs
+      !! If shifted POSCARs should be generated
+      
+    character(len=300), intent(in) :: basePOSCARFName
+      !! File name for intial POSCAR to calculate shift from
+    character(len=300), intent(in) :: dqFName
+      !! File name for generalized-coordinate norms
+    character(len=300), intent(in) :: prefix
+      !! Prefix for shifted POSCARs
+
+    ! Local variables:
+    integer :: j
+      !! Loop index
+    integer :: suffixLength
+      !! Length of shifted POSCAR file suffix
+
+    real(kind=dp), allocatable :: atomPositionsDirInit(:,:)
+      !! Atom positions in initial relaxed positions
+    real(kind=dp), allocatable :: displacement(:,:)
+      !! Atom displacements in angstrom
+    real(kind=dp) :: omega
+      !! Volume of supercell
+    real(kind=dp), allocatable :: projNorm(:)
+      !! Generalized norms after displacement
+    real(kind=dp) :: realLattVec(3,3)
+      !! Real space lattice vectors
+    real(kind=dp), allocatable :: shiftedPositions(:,:)
+      !! Positions after shift along eigenvector
+
+    character(len=300) :: memoLine
+      !! Memo line to output shift and mode number to shifted POSCARs
+    character(len=300) :: shiftedPOSCARFName
+      !! File name for shifted POSCAR
+
+
+    if(generateShiftedPOSCARs) then
+      if(nModes < 10) then
+        suffixLength = 1
+      else if(nModes < 100) then
+        suffixLength = 2
+      else if(nModes < 1000) then
+        suffixLength = 3
+      else if(nModes < 10000) then
+        suffixLength = 4
+      else if(nModes < 100000) then
+        suffixLength = 5
+      endif
+    endif
+
+
+    if(ionode) then
+
+      call readPOSCAR(basePOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
+      call standardizeCoordinates(nAtoms, atomPositionsDirInit)
+
+    endif
+
+    call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+    if(.not. ionode) allocate(atomPositionsDirInit(3,nAtoms))
+    call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+
+    allocate(shiftedPositions(3,nAtoms))
+    allocate(projNorm(nModes))
+    allocate(displacement(3,nAtoms))
+    projNorm = 0.0_dp
+
+    write(memoLine,'("  shift = ", ES9.2E1)') shift
+
+
+    ! Get the displacement for each mode to 
+    ! calculate the derivative of the wave function.
+    ! Project onto the phonon eigenvectors (here,
+    ! the effect is just to convert back to generalized
+    ! coordinates because the displacement is already
+    ! a scaled form of the eigenvectors), then (if needed)
+    ! write the shifted positions and generalized displacement
+    ! norms.
+    do j = iModeStart, iModeEnd
+
+      displacement = getShiftDisplacement(nAtoms, eigenvector(:,:,j), realLattVec, mass, shift)
+
+      projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, eigenvector(:,:,j), mass, realLattVec)
+
+      if(generateShiftedPOSCARs) then
+
+        shiftedPositions = direct2cart(nAtoms, atomPositionsDirInit, realLattVec) + displacement
+
+        shiftedPOSCARFName = trim(prefix)//"_"//trim(int2strLeadZero(j,suffixLength))
+
+        call writePOSCARNewPos(nAtoms, shiftedPositions, basePOSCARFName, shiftedPOSCARFName, trim(memoLine)//' j = '//int2str(j), .true.)
+
+      endif
+
+    enddo
+
+
+    deallocate(atomPositionsDirInit)
+    deallocate(shiftedPositions)
+    deallocate(displacement)
+
+
+    projNorm = projNorm*angToBohr*sqrt(daltonToElecM)
+    call writeDqs(nModes, projNorm, dqFName)
+
+
+    deallocate(projNorm)
+
+    return 
+
+  end subroutine calculateShiftAndDq
 
 !----------------------------------------------------------------------------
   function getShiftDisplacement(nAtoms, eigenvector, realLattVec, mass, shift) result(displacement)

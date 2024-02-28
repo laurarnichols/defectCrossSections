@@ -1,9 +1,6 @@
 program PhononPPMain
 
   use PhononPPMod
-  use generalComputations, only: direct2cart
-  use cell, only: readPOSCAR, cartDispProjOnPhononEigsNorm, writePOSCARNewPos
-  use miscUtilities, only: int2strLeadZero
   
   implicit none
 
@@ -56,79 +53,12 @@ program PhononPPMain
   deallocate(omegaFreq)
 
 
+  call calculateShiftAndDq(nAtoms, nModes, eigenvector, mass, shift, generateShiftedPOSCARs, basePOSCARFName, dqFName, prefix)
 
-
-  if(nModes < 10) then
-    suffixLength = 1
-  else if(nModes < 100) then
-    suffixLength = 2
-  else if(nModes < 1000) then
-    suffixLength = 3
-  else if(nModes < 10000) then
-    suffixLength = 4
-  else if(nModes < 100000) then
-    suffixLength = 5
-  endif
-
-
-
-
-  if(ionode) then
-
-  call readPOSCAR(basePOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
-  call standardizeCoordinates(nAtoms, atomPositionsDirInit)
-
-  endif
-
-  call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
-  if(.not. ionode) allocate(atomPositionsDirInit(3,nAtoms))
-  call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-  call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-
-
-  ! Get the displacement for each mode to 
-  ! calculate the derivative of the wave function.
-  ! Project onto the phonon eigenvectors (here,
-  ! the effect is just to convert back to generalized
-  ! coordinates because the displacement is already
-  ! a scaled form of the eigenvectors), then (if needed)
-  ! write the shifted positions and generalized displacement
-  ! norms.
-  allocate(shiftedPositions(3,nAtoms))
-  allocate(projNorm(nModes))
-  allocate(displacement(3,nAtoms))
-  projNorm = 0.0_dp
-
-  write(memoLine,'("  shift = ", ES9.2E1)') shift
-
-  do j = iModeStart, iModeEnd
-
-    displacement = getShiftDisplacement(nAtoms, eigenvector(:,:,j), realLattVec, mass, shift)
-
-    projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, eigenvector(:,:,j), mass, realLattVec)
-
-    if(generateShiftedPOSCARs) then
-
-      shiftedPositions = direct2cart(nAtoms, atomPositionsDirInit, realLattVec) + displacement
-
-      shiftedPOSCARFName = trim(prefix)//"_"//trim(int2strLeadZero(j,suffixLength))
-
-      call writePOSCARNewPos(nAtoms, shiftedPositions, basePOSCARFName, shiftedPOSCARFName, trim(memoLine)//' j = '//int2str(j), .true.)
-
-    endif
-
-  enddo
 
   deallocate(mass)
-  deallocate(atomPositionsDirInit)
   deallocate(eigenvector)
-  deallocate(shiftedPositions)
-  deallocate(displacement)
 
-  projNorm = projNorm*angToBohr*sqrt(daltonToElecM)
-  call writeDqs(nModes, projNorm, dqFName)
-
-  deallocate(projNorm)
 
   call MPI_Barrier(worldComm, ierr)
  
