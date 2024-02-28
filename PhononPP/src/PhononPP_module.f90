@@ -59,8 +59,6 @@ module PhononPPMod
     !! Prefix for shifted POSCARs
   character(len=300) :: shiftedPOSCARFName
     !! File name for shifted POSCAR
-  character(len=300) :: SjFName
-    !! File name for the Sj output
 
   logical :: singleDisp
     !! If there is just a single displacement to consider
@@ -289,10 +287,6 @@ module PhononPPMod
     real(kind=dp), intent(inout) :: atomPositionsDir(3,nAtoms)
       !! Atom positions in direct coordinates
 
-    ! Local variables:
-    integer :: ia, ix
-      !! Loop indices
-
 
     where(atomPositionsDir(:,:) < 0)
       atomPositionsDir(:,:) = 1.0_dp + atomPositionsDir(:,:)
@@ -303,7 +297,7 @@ module PhononPPMod
   end subroutine standardizeCoordinates
 
 !----------------------------------------------------------------------------
-  subroutine readPhonons(nAtoms, nModes, phononFName, eigenvector, mass, omegaFreq)
+  subroutine readPhonons(nAtoms, nModes, atomPositionsDirInit, phononFName, eigenvector, mass, omegaFreq)
 
     use miscUtilities, only: getFirstLineWithKeyword
 
@@ -314,6 +308,9 @@ module PhononPPMod
       !! Number of atoms
     integer, intent(in) :: nModes
       !! Number of modes
+
+    real(kind=dp), intent(in) :: atomPositionsDirInit(3,nAtoms)
+      !! Atom positions in initial relaxed positions
 
     character(len=300), intent(in) :: phononFName
       !! File name for mesh.yaml phonon file
@@ -436,6 +433,117 @@ module PhononPPMod
   end subroutine readPhonons
 
 !----------------------------------------------------------------------------
+  subroutine calculateSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nAtoms, nModes, eigenvector, mass, omegaFreq, singleDisp, & 
+        CONTCARsBaseDir, initPOSCARFName, finalPOSCARFName)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+    integer, intent(inout) :: nAtoms
+      !! Number of atoms in intial system
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: eigenvector(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each mode
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Mass of atoms
+    real(kind=dp), intent(in) :: omegaFreq(nModes)
+      !! Frequency for each mode
+
+    logical, intent(in) :: singleDisp
+      !! If there is just a single displacement to consider
+
+    character(len=300), intent(in) :: CONTCARsBaseDir
+      !! Base dir for sets of relaxed files if not captured
+    character(len=300), intent(inout) :: initPOSCARFName, finalPOSCARFName
+      !! File name for POSCAR for relaxed initial and final charge states
+
+    ! Local variables:
+    integer :: ibi, ibf
+      !! Loop indices
+
+    real(kind=dp), allocatable :: atomPositionsDirInit(:,:)
+      !! Atom positions in initial relaxed positions
+    real(kind=dp) :: omega
+      !! Volume of supercell
+    real(kind=dp) :: realLattVec(3,3)
+      !! Real space lattice vectors
+
+    character(len=300) :: SjFName
+      !! File name for the Sj output
+
+
+    if(singleDisp) then
+      if(ionode) then
+        call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
+        call standardizeCoordinates(nAtoms, atomPositionsDirInit)
+      endif
+
+      call MPI_BCAST(nAtoms, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+      if(.not. ionode) allocate(atomPositionsDirInit(3,nAtoms))
+      call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+      SjFName = 'Sj.out'
+      call getSingleDisp(nAtoms, nModes, atomPositionsDirInit, eigenvector, mass, omega, omegaFreq, finalPOSCARFName, SjFName)
+
+      deallocate(atomPositionsDirInit)
+
+    else
+
+      ! I do a loop over all of the bands. Depending on the band selection,
+      ! this could result in duplicate pairs (e.g., .1.2 and .2.1), but I 
+      ! can't think of a general way to exlude these pairs without a significant
+      ! amount of work to track the pairs that have already been calcualted.
+      ! Any solution I can think of would not hold for both hole and electron
+      ! capture and/or different ranges of bands selected by the user. For
+      ! now, I just have the code output all of the duplicate pairs and the
+      ! user/LSF code can use whatever they need from that.
+      do ibi = iBandIinit, iBandIfinal
+
+        ! Get the initial positions for this band 
+        if(ionode) then
+          initPOSCARFName = trim(CONTCARsBaseDir)//'/'//trim(int2str(ibi))//'/CONTCAR'
+
+          call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
+          call standardizeCoordinates(nAtoms, atomPositionsDirInit)
+        endif
+
+        call MPI_BCAST(nAtoms, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+        if(.not. ionode) allocate(atomPositionsDirInit(3,nAtoms))
+        call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+        do ibf = iBandFinit, iBandFfinal
+
+          if(ibf /= ibi) then
+            ! Set the final positions and output file names
+            finalPOSCARFName = trim(CONTCARsBaseDir)//'/'//trim(int2str(ibf))//'/CONTCAR'
+            SjFName = 'Sj.'//trim(int2str(ibi))//'.'//trim(int2str(ibf))//'.out'
+
+            ! Get displacement and output ranked Sj for a single pair of states
+            call getSingleDisp(nAtoms, nModes, atomPositionsDirInit, eigenvector, mass, omega, omegaFreq, finalPOSCARFName, SjFName)
+
+          endif
+        enddo
+
+        ! Positions are allocated in readPOSCAR, so we need to 
+        ! deallocate them after every loop
+        deallocate(atomPositionsDirInit)
+      enddo
+
+    endif
+
+
+    return
+
+  end subroutine calculateSj
+
+!----------------------------------------------------------------------------
   subroutine getSingleDisp(nAtoms, nModes, atomPositionsDirInit, eigenvector, mass, omega, omegaFreq, finalPOSCARFName, SjFName)
 
     implicit none
@@ -476,11 +584,13 @@ module PhononPPMod
       !! Volume of final-state supercell
     real(kind=dp) :: projNorm(nModes)
       !! Generalized norms after displacement
+    real(kind=dp) :: realLattVec(3,3)
+      !! Real space lattice vectors
 
     
     if(ionode) then
       call readPOSCAR(finalPOSCARFName, nAtomsFinal, atomPositionsDirFinal, omegaFinal, realLattVec)
-        ! I don't define realLattVec here because I don't use the input value
+        ! I define realLattVec locally here because I don't use the input value
         ! nor do I want to output the value from here. It is assumed for now
         ! that the lattice vectors for the two systems are compatible. This
         ! would be a good test to add at some point in the future.
@@ -497,6 +607,7 @@ module PhononPPMod
 
     if(.not. ionode) allocate(atomPositionsDirFinal(3,nAtoms))
     call MPI_BCAST(atomPositionsDirFinal, size(atomPositionsDirFinal), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   
 
     ! Define the displacement for the relaxation, 
@@ -507,7 +618,7 @@ module PhononPPMod
     projNorm = 0.0_dp
     do j = iModeStart, iModeEnd
 
-      projNorm(j) = cartDispProjOnPhononEigsNorm(j, nAtoms, displacement, eigenvector(:,:,j), mass)
+      projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, eigenvector(:,:,j), mass, realLattVec)
 
     enddo
 
@@ -708,7 +819,7 @@ module PhononPPMod
   end subroutine calcAndWriteSj
 
 !----------------------------------------------------------------------------
-  function getShiftDisplacement(nAtoms, eigenvector, mass, shift) result(displacement)
+  function getShiftDisplacement(nAtoms, eigenvector, realLattVec, mass, shift) result(displacement)
 
     implicit none
 
@@ -720,6 +831,8 @@ module PhononPPMod
       !! Eigenvectors for each atom for this mode
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Masses of atoms
+    real(kind=dp), intent(in) :: realLattVec(3,3)
+      !! Real space lattice vectors
     real(kind=dp), intent(in) :: shift
       !! Magnitude of shift along phonon eigenvectors
 

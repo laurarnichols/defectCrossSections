@@ -24,7 +24,7 @@ module cell
   contains
 
 !----------------------------------------------------------------------------
-  function cartDispProjOnPhononEigsNorm(j, nAtoms, displacement, eigenvector, mass) result(projNorm)
+  function cartDispProjOnPhononEigsNorm(nAtoms, displacement, eigenvector, mass, realLattVec) result(projNorm)
     !! Project the displacement onto the phonon eigenvectors
     !! and return the norm of that projection across all atoms
 
@@ -40,6 +40,8 @@ module cell
       !! Eigenvectors for each atom for a single mode
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Masses of atoms
+    real(kind=dp), intent(in) :: realLattVec(3,3)
+      !! Real space lattice vectors
 
     ! Output variables:
     real(kind=dp) :: projNorm
@@ -48,7 +50,7 @@ module cell
 
 
     ! Local variables:
-    integer :: ia, j
+    integer :: ia
       !! Loop index
 
     real(kind=dp) :: eig(3)
@@ -79,6 +81,7 @@ module cell
       eigDotEig = eigDotEig + dot_product(eig,eig)
 
     enddo
+
 
     proj(:,:) = genDispDotEig/eigDotEig*eigenvector(:,:)
 
