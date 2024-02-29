@@ -11,7 +11,7 @@ program PhononPPMain
 
   call mpiInitialization('PhononPP')
 
-  call readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, &
+  call readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, &
         phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
 
   ! Read one initial POSCAR to get the number of atoms

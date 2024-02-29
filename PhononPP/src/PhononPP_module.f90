@@ -28,6 +28,9 @@ module PhononPPMod
     !! Atom positions in initial relaxed positions
   real(kind=dp), allocatable :: eigenvector(:,:,:)
     !! Eigenvectors for each atom for each mode
+  real(kind=dp) :: freqThresh
+    !! Threshold for frequency to determine if the mode 
+    !! should be skipped or not
   real(kind=dp), allocatable :: mass(:)
     !! Masses of atoms
   real(kind=dp), allocatable :: omegaFreq(:)
@@ -55,13 +58,13 @@ module PhononPPMod
 
 
   namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, singleDisp, &
-                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CONTCARsBaseDir, basePOSCARFName
+                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CONTCARsBaseDir, basePOSCARFName, freqThresh
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, &
+  subroutine readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, &
         phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
 
     implicit none
@@ -70,6 +73,9 @@ module PhononPPMod
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
 
+    real(kind=dp), intent(out) :: freqThresh
+      !! Threshold for frequency to determine if the mode 
+      !! should be skipped or not
     real(kind=dp), intent(out) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -94,8 +100,8 @@ module PhononPPMod
 
     if(ionode) then
 
-      call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, & 
-            finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+      call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, & 
+            dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
         ! Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -104,8 +110,8 @@ module PhononPPMod
       if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, &
-            phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThres, shift, basePOSCARFName, CONTCARsBaseDir, &
+          dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
 
     endif
 
@@ -114,6 +120,7 @@ module PhononPPMod
     call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(freqThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(shift, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(basePOSCARFName, len(basePOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(CONTCARsBaseDir, len(CONTCARsBaseDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -128,8 +135,8 @@ module PhononPPMod
   end subroutine readInputs
 
 !----------------------------------------------------------------------------
-    subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, & 
-          finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, & 
+        dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -142,6 +149,9 @@ module PhononPPMod
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
 
+    real(kind=dp), intent(out) :: freqThresh
+      !! Threshold for frequency to determine if the mode 
+      !! should be skipped or not
     real(kind=dp), intent(out) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -177,6 +187,7 @@ module PhononPPMod
     phononFName = 'mesh.yaml'
     prefix = 'ph_POSCAR'
 
+    freqThresh = 0.5_dp
     shift = 0.01_dp
 
     generateShiftedPOSCARs = .true.
@@ -187,8 +198,8 @@ module PhononPPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, &
-        phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThres, shift, basePOSCARFName, CONTCARsBaseDir, &
+      dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -196,6 +207,9 @@ module PhononPPMod
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
 
+    real(kind=dp), intent(in) :: freqThresh
+      !! Threshold for frequency to determine if the mode 
+      !! should be skipped or not
     real(kind=dp), intent(in) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -225,6 +239,7 @@ module PhononPPMod
     abortExecution = checkFileInitialization('phononFName', phononFName)
     abortExecution = checkStringInitialization('dqFName', dqFName) .or. abortExecution
     abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 1.0_dp) .or. abortExecution
+    abortExecution = checkDoubleInitialization('freqThres', freqThresh, 0.0_dp, 1.0_dp) .or. abortExecution
 
 
     write(*,'("singleDisp = ''",L1,"''")') singleDisp
