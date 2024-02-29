@@ -39,7 +39,7 @@ program PhononPPMain
   allocate(mass(nAtoms))
   allocate(omegaFreq(nModes))
 
-  call readPhonons(nAtoms, nModes, atomPositionsDirInit, phononFName, eigenvector, mass, omegaFreq)
+  call readPhonons(nAtoms, nModes, atomPositionsDirInit, freqThresh, phononFName, eigenvector, mass, omegaFreq)
 
   deallocate(atomPositionsDirInit)
 

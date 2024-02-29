@@ -110,7 +110,7 @@ module PhononPPMod
       if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThres, shift, basePOSCARFName, CONTCARsBaseDir, &
+      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, &
           dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
 
     endif
@@ -198,7 +198,7 @@ module PhononPPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThres, shift, basePOSCARFName, CONTCARsBaseDir, &
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, &
       dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
 
     implicit none
@@ -300,7 +300,7 @@ module PhononPPMod
   end subroutine standardizeCoordinates
 
 !----------------------------------------------------------------------------
-  subroutine readPhonons(nAtoms, nModes, atomPositionsDirInit, phononFName, eigenvector, mass, omegaFreq)
+  subroutine readPhonons(nAtoms, nModes, atomPositionsDirInit, freqThresh, phononFName, eigenvector, mass, omegaFreq)
 
     use miscUtilities, only: getFirstLineWithKeyword
 
@@ -314,6 +314,9 @@ module PhononPPMod
 
     real(kind=dp), intent(in) :: atomPositionsDirInit(3,nAtoms)
       !! Atom positions in initial relaxed positions
+    real(kind=dp), intent(in) :: freqThresh
+      !! Threshold for frequency to determine if the mode 
+      !! should be skipped or not
 
     character(len=300), intent(in) :: phononFName
       !! File name for mesh.yaml phonon file
@@ -331,12 +334,16 @@ module PhononPPMod
       !! Loop index
     integer :: nAtomsFromPhon
       !! Number of atoms from phonon file
+    integer :: nUsed
+      !! Number of phonon modes used based on frequency threshold
 
     real(kind=dp) :: coordFromPhon(3,nAtoms)
       !! Corodinates from phonon file
     real(kind=dp) :: displacement(3,nAtoms)
       !! Displacement (needed as argument to check 
       !! compatibility)
+    real(kind=dp) :: omegaFreq_j
+      !! Frequency for a single mode
     real(kind=dp) :: qPos(3)
       !! Phonon q position
 
@@ -396,12 +403,25 @@ module PhononPPMod
       read(57,'(A)') line
         !! Ignore next 3 lines
 
+
+      nUsed = 0
       do j = 1, nModes+3
 
         read(57,'(A)') ! Ignore mode number
 
+
         read(57,'(A)') line
-        if(j > 3) read(line(15:len(trim(line))),*) omegaFreq(j-3)
+        read(line(15:len(trim(line))),*) omegaFreq_j
+        if(abs(omegaFreq_j) > freqThresh) then
+          nUsed = nUsed + 1
+          omegaFreq(nUsed) = omegaFreq_j
+
+          if(omegaFreq_j < 0) write(*,'("WARNING: Negative frequency detected in mode ", i7,&
+            "! Re-relax the structure using the POSCAR shifted along this mode''s eigenvector.")') j
+        else
+          write(*,'("Skipping mode ", i7, " with freqency ", ES24.15E3,".")') j, omegaFreq_j
+        endif
+
 
         read(57,'(A)') ! Ignore eigenvector section header
 
@@ -412,14 +432,15 @@ module PhononPPMod
           do ix = 1, 3
 
             read(57,'(A)') line
-            if(j > 3) read(line(10:len(trim(line))),*) eigenvector(ix,ia,j-3)
-              !! Only store the eigenvectors after the first 3 modes 
-              !! because those are the acoustic modes and we only want
-              !! the optical modes.
+            if(abs(omegaFreq_j) > freqThresh)  read(line(10:len(trim(line))),*) eigenvector(ix,ia,nUsed)
+              !! Only store the eigenvectors if the mode isn't skipped
+              !! because those are the translational modes 
 
           enddo
         enddo
       enddo
+
+      if(nUsed /= nModes) call exitError('readPhonons', 'Did not skip 3 modes based on threshold set. Check threshold.', 1)
 
       omegaFreq(:) = omegaFreq(:)*2*pi
 

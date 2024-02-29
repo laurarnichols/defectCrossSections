@@ -16,6 +16,7 @@ There are two cases that `PhononPP` can be run with: a single displacement (e.g.
   dqFName          = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
 
   shift = shift-magnitude                ! Real (Angstrom), default 0.01 A
+  freqThresh = frequency-threshold       ! Threshold for keeping frequencies, default 0.5 (same units as Phononpy)
 
   generateShiftedPOSCARs = logical       ! Logical, default .true.
   prefix           = 'prefix-for-shifted-poscars'              ! Default: './ph_POSCAR'; ignored if .not. generateShiftedPOSCARs
@@ -39,6 +40,7 @@ For a range of displacements, the inputs should look like
   dqFName          = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
 
   shift = shift-magnitude                ! Real (Angstrom), default 0.01 A
+  freqThresh = frequency-threshold       ! Threshold for keeping frequencies, default 0.5 (same units as Phononpy)
 
   generateShiftedPOSCARs = logical       ! Logical, default .true.
   prefix           = 'prefix-for-shifted-poscars'              ! Default: './ph_POSCAR'; ignored if .not. generateShiftedPOSCARs
