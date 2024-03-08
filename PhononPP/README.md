@@ -20,12 +20,14 @@ There are two cases that `PhononPP` can be run with: a single displacement (e.g.
 
   ! Calculating dq:
   dqFName = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
-  shift   = shift-magnitude                           ! Real (Angstrom), default 0.01 A
 
   ! Generating shifted POSCARs:
   generateShiftedPOSCARs = logical                         ! Logical, default .true.
   prefix                 = 'prefix-for-shifted-poscars'    ! Default: './ph_POSCAR'
-  basePOSCARFName        = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from
+
+  ! Needed to get dq and shifted POSCARs:
+  basePOSCARFName = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from
+  shift           = shift-magnitude                 ! Real (Angstrom), default 0.01 A
 /
 ```
 
@@ -49,12 +51,14 @@ For a range of displacements, the inputs should look like
 
   ! Calculating dq:
   dqFName = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
-  shift   = shift-magnitude                           ! Real (Angstrom), default 0.01 A
 
   ! Generating shifted POSCARs:
   generateShiftedPOSCARs = logical                         ! Logical, default .true.
   prefix                 = 'prefix-for-shifted-poscars'    ! Default: './ph_POSCAR'
-  basePOSCARFName        = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from
+
+  ! Needed to get dq and shifted POSCARs:
+  basePOSCARFName = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from
+  shift           = shift-magnitude                 ! Real (Angstrom), default 0.01 A
 /
 ```
 
