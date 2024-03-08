@@ -12,12 +12,15 @@ program PhononPPMain
   call mpiInitialization('PhononPP')
 
   call readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, &
-        phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+        phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcSj, generateShiftedPOSCARs, singleDisp)
 
   ! Read one initial POSCAR to get the number of atoms
   if(ionode) then
 
-    if(.not. singleDisp) initPOSCARFName = trim(CONTCARsBaseDir)//'/'//trim(int2str(iBandIinit))//'/CONTCAR'
+    ! If calculating Sj, will either have initPOSCARFName or CONTCARsBaseDir
+    if(calcSj .and. .not. singleDisp) initPOSCARFName = trim(CONTCARsBaseDir)//'/'//trim(int2str(iBandIinit))//'/CONTCAR'
+    ! Otherwise, must be calculating shifted POSCARs, so we will have basePOSCARFName
+    if(.not. calcSj) initPOSCARFName = trim(basePOSCARFName)
 
     call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
     call standardizeCoordinates(nAtoms, atomPositionsDirInit)
@@ -46,7 +49,8 @@ program PhononPPMain
   call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
 
 
-  call calculateSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nAtoms, nModes, eigenvector, mass, omegaFreq, singleDisp, & 
+  if(calcSj) &
+    call calculateSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nAtoms, nModes, eigenvector, mass, omegaFreq, singleDisp, & 
         CONTCARsBaseDir, initPOSCARFName, finalPOSCARFName)
 
 

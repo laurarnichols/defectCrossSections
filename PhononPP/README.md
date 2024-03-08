@@ -9,18 +9,23 @@ There are two cases that `PhononPP` can be run with: a single displacement (e.g.
 &inputParams
   singleDisp = .true.             ! If there's a single displacement to consider, default .true.
 
+  ! Required to read phonons:
+  phononFName      = 'path-to-phonopy-output-yaml-file'        ! Default: './mesh.yaml'
+  freqThresh = frequency-threshold       ! Threshold for keeping frequencies, default 0.5 (same units as Phononpy)
+
+  ! Calculating Sj
+  calcSj           = logical                                   ! Default: .true.; if Sj should be calculated
   initPOSCARFName  = 'path-to-init-poscar'                     ! Default: './POSCAR_init'
   finalPOSCARFName = 'path-to-final-poscar'                    ! Default: './POSCAR_final'
 
-  phononFName      = 'path-to-phonopy-output-yaml-file'        ! Default: './mesh.yaml'
-  dqFName          = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
+  ! Calculating dq:
+  dqFName = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
+  shift   = shift-magnitude                           ! Real (Angstrom), default 0.01 A
 
-  shift = shift-magnitude                ! Real (Angstrom), default 0.01 A
-  freqThresh = frequency-threshold       ! Threshold for keeping frequencies, default 0.5 (same units as Phononpy)
-
-  generateShiftedPOSCARs = logical       ! Logical, default .true.
-  prefix           = 'prefix-for-shifted-poscars'              ! Default: './ph_POSCAR'; ignored if .not. generateShiftedPOSCARs
-  basePOSCARFName = 'path-to-base-poscar'                      ! Default: initPOSCARFName; optional to use as base for shift
+  ! Generating shifted POSCARs:
+  generateShiftedPOSCARs = logical                         ! Logical, default .true.
+  prefix                 = 'prefix-for-shifted-poscars'    ! Default: './ph_POSCAR'
+  basePOSCARFName        = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from
 /
 ```
 
@@ -30,21 +35,26 @@ For a range of displacements, the inputs should look like
 &inputParams
   singleDisp = .false.             ! If there's a single displacement to consider, default .true.
 
-  CONTCARsBaseDir  = 'path-to-base-dir-for-relaxed-positions'   
-  iBandIinit = integer						! lowest initial-state band
-  iBandIfinal = integer						! highest initial-state band
-  iBandFinit = integer						! lowest final-state band
-  iBandFfinal = integer						! highest final-state band
-
+  ! Required to read phonons:
   phononFName      = 'path-to-phonopy-output-yaml-file'        ! Default: './mesh.yaml'
-  dqFName          = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
-
-  shift = shift-magnitude                ! Real (Angstrom), default 0.01 A
   freqThresh = frequency-threshold       ! Threshold for keeping frequencies, default 0.5 (same units as Phononpy)
 
-  generateShiftedPOSCARs = logical       ! Logical, default .true.
-  prefix           = 'prefix-for-shifted-poscars'              ! Default: './ph_POSCAR'; ignored if .not. generateShiftedPOSCARs
-  basePOSCARFName = 'path-to-base-poscar'                      ! Required when considering multiple displacements
+  ! Calculating Sj
+  calcSj           = logical                                   ! Default: .true.; if Sj should be calculated
+  CONTCARsBaseDir  = 'path-to-base-dir-for-relaxed-positions'   
+  iBandIinit       = integer						! lowest initial-state band
+  iBandIfinal      = integer						! highest initial-state band
+  iBandFinit       = integer						! lowest final-state band
+  iBandFfinal      = integer						! highest final-state band
+
+  ! Calculating dq:
+  dqFName = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
+  shift   = shift-magnitude                           ! Real (Angstrom), default 0.01 A
+
+  ! Generating shifted POSCARs:
+  generateShiftedPOSCARs = logical                         ! Logical, default .true.
+  prefix                 = 'prefix-for-shifted-poscars'    ! Default: './ph_POSCAR'
+  basePOSCARFName        = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from
 /
 ```
 

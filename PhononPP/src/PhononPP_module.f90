@@ -51,6 +51,8 @@ module PhononPPMod
   character(len=300) :: prefix
     !! Prefix for shifted POSCARs
 
+  logical :: calcSj
+    !! If Sj should be calculated
   logical :: singleDisp
     !! If there is just a single displacement to consider
   logical :: generateShiftedPOSCARs
@@ -58,14 +60,14 @@ module PhononPPMod
 
 
   namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, singleDisp, &
-                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CONTCARsBaseDir, basePOSCARFName, freqThresh
+                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CONTCARsBaseDir, basePOSCARFName, freqThresh, calcSj
 
 
   contains
 
 !----------------------------------------------------------------------------
   subroutine readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, &
-        phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+        phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcSj, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -92,6 +94,8 @@ module PhononPPMod
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(out) :: calcSj
+      !! If Sj should be calculated
     logical, intent(out) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
     logical, intent(out) :: singleDisp
@@ -101,7 +105,7 @@ module PhononPPMod
     if(ionode) then
 
       call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, & 
-            dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+            dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcSj, generateShiftedPOSCARs, singleDisp)
         ! Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -111,7 +115,7 @@ module PhononPPMod
         !! * Exit calculation if there's an error
 
       call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, &
-          dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+          dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcSj, generateShiftedPOSCARs, singleDisp)
 
     endif
 
@@ -127,6 +131,7 @@ module PhononPPMod
     call MPI_BCAST(finalPOSCARFName, len(finalPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(initPOSCARFName, len(initPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(calcSj, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(generateShiftedPOSCARs, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(singleDisp, 1, MPI_LOGICAL, root, worldComm, ierr)
 
@@ -136,7 +141,7 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, & 
-        dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+        dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcSj, generateShiftedPOSCARs, singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -168,6 +173,8 @@ module PhononPPMod
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(out) :: calcSj
+      !! If Sj should be calculated
     logical, intent(out) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
     logical, intent(out) :: singleDisp
@@ -181,7 +188,7 @@ module PhononPPMod
 
     CONTCARsBaseDir = ''
     dqFName = 'dq.txt'
-    basePOSCARFName = ''
+    basePOSCARFName = 'POSCAR_init'
     initPOSCARFName = 'POSCAR_init'
     finalPOSCARFName = 'POSCAR_final'
     phononFName = 'mesh.yaml'
@@ -192,6 +199,7 @@ module PhononPPMod
 
     generateShiftedPOSCARs = .true.
     singleDisp = .true.
+    calcSj = .true.
 
     return
 
@@ -199,7 +207,7 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, &
-      dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+      dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcSj, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -226,6 +234,8 @@ module PhononPPMod
     character(len=300), intent(in) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(in) :: calcSj
+      !! If Sj should be calculated
     logical, intent(in) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
     logical, intent(in) :: singleDisp
@@ -236,37 +246,50 @@ module PhononPPMod
       !! Whether or not to abort the execution
 
 
+    if(.not. calcSj .and. .not. generateShiftedPOSCARs) &
+      call exitError('checkInitialization','You must choose at least one option to run this program!',1)
+
+
+    ! Must-haves for reading phonons:
     abortExecution = checkFileInitialization('phononFName', phononFName)
-    abortExecution = checkStringInitialization('dqFName', dqFName) .or. abortExecution
-    abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 1.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('freqThres', freqThresh, 0.0_dp, 1.0_dp) .or. abortExecution
 
 
-    write(*,'("singleDisp = ''",L1,"''")') singleDisp
-    if(singleDisp) then
-      abortExecution = checkFileInitialization('initPOSCARFName', initPOSCARFName) .or. abortExecution
-      abortExecution = checkFileInitialization('finalPOSCARFName', finalPOSCARFName) .or. abortExecution
+    ! Need for calculating Sj:
+    write(*,'("calcSj = ''",L1,"''")') calcSj
+    if(calcSj) then
 
-      if(generateShiftedPOSCARs) then
-        if(checkFileInitialization('basePOSCARFName', basePOSCARFName)) then
-          write(*,'("Defaulting to using the initial relaxed positions as the base for the shift.")')
-          basePOSCARFName = trim(initPOSCARFName)
-        endif
+      write(*,'("singleDisp = ''",L1,"''")') singleDisp
+
+      if(singleDisp) then
+
+        abortExecution = checkFileInitialization('initPOSCARFName', initPOSCARFName) .or. abortExecution
+        abortExecution = checkFileInitialization('finalPOSCARFName', finalPOSCARFName) .or. abortExecution
+
+      else
+
+        abortExecution = checkIntInitialization('iBandIinit', iBandIinit, 1, int(1e9)) .or. abortExecution
+        abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
+        abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
+        abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
+
+        abortExecution = checkDirInitialization('CONTCARsBaseDir', CONTCARsBaseDir, trim(int2str(iBandIinit))//'/CONTCAR') .or. abortExecution
       endif
-    else
-      abortExecution = checkIntInitialization('iBandIinit', iBandIinit, 1, int(1e9)) .or. abortExecution
-      abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
-      abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
-      abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
-
-      abortExecution = checkDirInitialization('CONTCARsBaseDir', CONTCARsBaseDir, trim(int2str(iBandIinit))//'/CONTCAR') .or. abortExecution
-
-      if(generateShiftedPOSCARs) abortExecution = checkFileInitialization('basePOSCARFName', basePOSCARFName) .or. abortExecution
     endif
 
-    write(*,'("generateShiftedPOSCARs = ''",L1,"''")') generateShiftedPOSCARs
-    if(generateShiftedPOSCARs) abortExecution = checkStringInitialization('prefix', prefix) .or. abortExecution
 
+    ! Need for dq:
+    abortExecution = checkStringInitialization('dqFName', dqFName) .or. abortExecution
+    abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 1.0_dp) .or. abortExecution
+
+    ! Need for shifted POSCARs:
+    write(*,'("generateShiftedPOSCARs = ''",L1,"''")') generateShiftedPOSCARs
+    if(generateShiftedPOSCARs) then
+
+      abortExecution = checkStringInitialization('prefix', prefix) .or. abortExecution
+      abortExecution = checkFileInitialization('basePOSCARFName', basePOSCARFName) .or. abortExecution
+
+    endif
 
     if(abortExecution) then
       write(*, '(" Program stops!")')
