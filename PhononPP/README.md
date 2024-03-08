@@ -19,6 +19,7 @@ There are two cases that `PhononPP` can be run with: a single displacement (e.g.
   finalPOSCARFName = 'path-to-final-poscar'                    ! Default: './POSCAR_final'
 
   ! Calculating dq:
+  calcDq  = logical                                   ! Default: .true.; if dq output file should be generated
   dqFName = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
 
   ! Generating shifted POSCARs:
@@ -50,6 +51,7 @@ For a range of displacements, the inputs should look like
   iBandFfinal      = integer						! highest final-state band
 
   ! Calculating dq:
+  calcDq  = logical                                   ! Default: .true.; if dq output file should be generated
   dqFName = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
 
   ! Generating shifted POSCARs:
