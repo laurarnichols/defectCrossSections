@@ -396,7 +396,7 @@ module PhononPPMod
     endif
 
 
-    call MPI_BCAST(nAtoms, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
     allocate(coordFromPhon(3,nAtoms))
     allocate(mass(nAtoms))
 
@@ -549,15 +549,15 @@ module PhononPPMod
       if(ionode) then
         call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
         call standardizeCoordinates(nAtoms, atomPositionsDirInit)
-
-        call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirInit, displacement)
       endif
 
-      call MPI_BCAST(nAtoms, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
 
       if(.not. ionode) allocate(atomPositionsDirInit(3,nAtoms))
       call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+      call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirInit, displacement)
 
       SjFName = 'Sj.out'
       call getSingleDisp(nAtoms, nModes, atomPositionsDirInit, eigenvector, mass, omega, omegaFreq, finalPOSCARFName, SjFName)
@@ -582,14 +582,14 @@ module PhononPPMod
 
           call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
           call standardizeCoordinates(nAtoms, atomPositionsDirInit)
-
-          call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirInit, displacement)
         endif
 
-        call MPI_BCAST(nAtoms, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+        call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
 
         if(.not. ionode) allocate(atomPositionsDirInit(3,nAtoms))
         call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+        call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirInit, displacement)
 
         do ibf = iBandFinit, iBandFfinal
 
@@ -736,6 +736,7 @@ module PhononPPMod
 
 
     if(ionode) then
+
       abortExecution = .false.
 
       do ia= 1, nAtoms
@@ -969,8 +970,6 @@ module PhononPPMod
       call readPOSCAR(basePOSCARFName, nAtoms, atomPositionsDirBase, omega, realLattVec)
       call standardizeCoordinates(nAtoms, atomPositionsDirBase)
 
-      call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirBase, displacement)
-
     endif
 
     call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -978,10 +977,13 @@ module PhononPPMod
     call MPI_BCAST(atomPositionsDirBase, size(atomPositionsDirBase), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
+    allocate(displacement(3,nAtoms))
+
+    call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirBase, displacement)
+
 
     allocate(shiftedPositions(3,nAtoms))
     allocate(projNorm(nModes))
-    allocate(displacement(3,nAtoms))
     projNorm = 0.0_dp
 
     write(memoLine,'("  shift = ", ES9.2E1)') shift

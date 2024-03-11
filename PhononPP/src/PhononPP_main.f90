@@ -4,8 +4,6 @@ program PhononPPMain
   
   implicit none
 
-  integer :: j
-    !! Loop indices
 
   call cpu_time(t0)
 
