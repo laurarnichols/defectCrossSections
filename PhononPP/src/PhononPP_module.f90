@@ -18,6 +18,9 @@ module PhononPPMod
     !! Timers
 
   ! Variables that should be passed as arguments:
+  integer :: dispInd(2)
+    !! Index of atoms to check displacement
+    !! between if calcMaxDisp
   integer :: nModes
     !! Number of phonon modes
   integer :: nModesLocal
@@ -53,6 +56,8 @@ module PhononPPMod
 
   logical :: calcDq
     !! If dq output file should be generated
+  logical :: calcMaxDisp
+    !! If calculating the maximum displacement between a pair of atoms
   logical :: calcSj
     !! If Sj should be calculated
   logical :: singleDisp
@@ -62,18 +67,23 @@ module PhononPPMod
 
 
   namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, singleDisp, &
-                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CONTCARsBaseDir, basePOSCARFName, freqThresh, calcSj, calcDq
+                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CONTCARsBaseDir, basePOSCARFName, freqThresh, calcSj, &
+                         calcDq, calcMaxDisp, dispInd
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, &
-        phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcSj, generateShiftedPOSCARs, singleDisp)
+  subroutine readInputs(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, &
+        dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, &
+        singleDisp)
 
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: dispInd(2)
+      !! Index of atoms to check displacement
+      !! between if calcMaxDisp
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
 
@@ -98,6 +108,8 @@ module PhononPPMod
 
     logical, intent(out) :: calcDq
       !! If dq output file should be generated
+    logical, intent(out) :: calcMaxDisp
+      !! If calculating the maximum displacement between a pair of atoms
     logical, intent(out) :: calcSj
       !! If Sj should be calculated
     logical, intent(out) :: generateShiftedPOSCARs
@@ -108,8 +120,9 @@ module PhononPPMod
 
     if(ionode) then
 
-      call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, & 
-            dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcSj, generateShiftedPOSCARs, singleDisp)
+      call initialize(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, & 
+            dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, &
+            singleDisp)
         ! Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -118,25 +131,31 @@ module PhononPPMod
       if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, &
-          dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcSj, generateShiftedPOSCARs, singleDisp)
+      call checkInitialization(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, &
+          dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, &
+          singleDisp)
 
     endif
 
     ! Send to other processes only what they need to know
+    call MPI_BCAST(dispInd, 2, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandIinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+
     call MPI_BCAST(freqThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(shift, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
     call MPI_BCAST(basePOSCARFName, len(basePOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(CONTCARsBaseDir, len(CONTCARsBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(finalPOSCARFName, len(finalPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(initPOSCARFName, len(initPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
+
     call MPI_BCAST(calcDq, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(calcSj, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(calcMaxDisp, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(generateShiftedPOSCARs, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(singleDisp, 1, MPI_LOGICAL, root, worldComm, ierr)
 
@@ -145,8 +164,9 @@ module PhononPPMod
   end subroutine readInputs
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, & 
-        dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcSj, generateShiftedPOSCARs, singleDisp)
+  subroutine initialize(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, & 
+        dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, &
+        singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -156,6 +176,9 @@ module PhononPPMod
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: dispInd(2)
+      !! Index of atoms to check displacement
+      !! between if calcMaxDisp
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
 
@@ -180,6 +203,8 @@ module PhononPPMod
 
     logical, intent(out) :: calcDq
       !! If dq output file should be generated
+    logical, intent(out) :: calcMaxDisp
+      !! If calculating the maximum displacement between a pair of atoms
     logical, intent(out) :: calcSj
       !! If Sj should be calculated
     logical, intent(out) :: generateShiftedPOSCARs
@@ -188,6 +213,7 @@ module PhononPPMod
       !! If there is just a single displacement to consider
 
 
+    dispInd = -1
     iBandIinit  = -1
     iBandIfinal = -1
     iBandFinit  = -1
@@ -206,6 +232,7 @@ module PhononPPMod
 
     calcDq = .true.
     calcSj = .true.
+    calcMaxDisp = .false.
     generateShiftedPOSCARs = .true.
     singleDisp = .true.
 
@@ -214,12 +241,16 @@ module PhononPPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, &
-      dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcSj, generateShiftedPOSCARs, singleDisp)
+  subroutine checkInitialization(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, &
+      CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, &
+      generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: dispInd(2)
+      !! Index of atoms to check displacement
+      !! between if calcMaxDisp
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
 
@@ -244,6 +275,8 @@ module PhononPPMod
 
     logical, intent(in) :: calcDq
       !! If dq output file should be generated
+    logical, intent(in) :: calcMaxDisp
+      !! If calculating the maximum displacement between a pair of atoms
     logical, intent(in) :: calcSj
       !! If Sj should be calculated
     logical, intent(in) :: generateShiftedPOSCARs
@@ -256,7 +289,7 @@ module PhononPPMod
       !! Whether or not to abort the execution
 
 
-    if(.not. (calcDq .or. calcSj .or. generateShiftedPOSCARs)) &
+    if(.not. (calcDq .or. calcMaxDisp .or. calcSj .or. generateShiftedPOSCARs)) &
       call exitError('checkInitialization','You must choose at least one option to run this program!',1)
 
 
@@ -296,10 +329,16 @@ module PhononPPMod
     write(*,'("generateShiftedPOSCARs = ''",L1,"''")') generateShiftedPOSCARs
     if(generateShiftedPOSCARs) abortExecution = checkStringInitialization('prefix', prefix) .or. abortExecution
 
-    ! Needed for dq and shifted POSCARs:
-    if(calcDq .or. generateShiftedPOSCARs) then
+    ! Needed for dq and shifted POSCARs and calculating max displacement:
+    if(calcDq .or. generateShiftedPOSCARs .or. calcMaxDisp) then
       abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 1.0_dp) .or. abortExecution
       abortExecution = checkFileInitialization('basePOSCARFName', basePOSCARFName) .or. abortExecution
+    endif
+
+    ! Need for calculating max displacement:
+    if(calcMaxDisp) then
+      abortExecution = checkIntInitialization('dispInd(1)', dispInd(1), 1, int(1e9)) .or. abortExecution
+      abortExecution = checkIntInitialization('dispInd(2)', dispInd(2), 1, int(1e9)) .or. abortExecution
     endif
 
     if(abortExecution) then
@@ -893,12 +932,15 @@ module PhononPPMod
   end subroutine calcAndWriteSj
 
 !----------------------------------------------------------------------------
-  subroutine calculateShiftAndDq(nAtoms, nModes, coordFromPhon, eigenvector, mass, shift, calcDq, generateShiftedPOSCARs, & 
-        basePOSCARFName, dqFName, prefix)
+  subroutine calculateShiftAndDq(dispInd, nAtoms, nModes, coordFromPhon, eigenvector, mass, shift, calcDq, calcMaxDisp, &
+        generateShiftedPOSCARs, basePOSCARFName, dqFName, prefix)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: dispInd(2)
+      !! Index of atoms to check displacement
+      !! between if calcMaxDisp
     integer, intent(inout) :: nAtoms
       !! Number of atoms
     integer, intent(in) :: nModes
@@ -915,6 +957,8 @@ module PhononPPMod
 
     logical, intent(in) :: calcDq
       !! If dq output file should be generated
+    logical, intent(in) :: calcMaxDisp
+      !! If calculating the maximum displacement between a pair of atoms
     logical, intent(in) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
       
@@ -941,6 +985,13 @@ module PhononPPMod
       !! Generalized norms after displacement
     real(kind=dp) :: realLattVec(3,3)
       !! Real space lattice vectors
+    real(kind=dp) :: relDisp(3)
+      !! Relative displacement between selected atoms
+      !! if calculating the maximum displacement
+    real(kind=dp), allocatable :: relDispMag(:)
+      !! Magnitude of relative displacement between 
+      !! selected atoms if checking the maximum
+      !! displacement
     real(kind=dp), allocatable :: shiftedPositions(:,:)
       !! Positions after shift along eigenvector
 
@@ -983,8 +1034,10 @@ module PhononPPMod
 
 
     allocate(shiftedPositions(3,nAtoms))
+    allocate(relDispMag(nModes))
     allocate(projNorm(nModes))
     projNorm = 0.0_dp
+    relDispMag = 0.0_dp
 
     write(memoLine,'("  shift = ", ES9.2E1)') shift
 
@@ -1000,6 +1053,12 @@ module PhononPPMod
     do j = iModeStart, iModeEnd
 
       displacement = getShiftDisplacement(nAtoms, eigenvector(:,:,j), realLattVec, mass, shift)
+
+      if(calcMaxDisp) then
+        relDisp = displacement(:,dispInd(1)) - displacement(:,dispInd(2))
+
+        relDispMag(j) = sqrt(dot_product(relDisp,relDisp))
+      endif
 
       if(calcDq) projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, eigenvector(:,:,j), mass, realLattVec)
 
@@ -1019,6 +1078,15 @@ module PhononPPMod
     deallocate(atomPositionsDirBase)
     deallocate(shiftedPositions)
     deallocate(displacement)
+
+    if(calcMaxDisp) then
+      call mpiSumDoubleV(relDispMag, worldComm)
+
+      if(ionode) write(*,'("Maximum displacement between atoms ", i4," and ",i4," is ",1ES12.3E2," in mode ",i6)') &
+            dispInd(1), dispInd(2), relDispMag(maxloc(relDispMag)), maxloc(relDispMag)
+    endif
+
+    deallocate(relDispMag)
 
 
     if(calcDq) then
