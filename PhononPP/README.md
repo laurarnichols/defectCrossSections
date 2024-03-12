@@ -25,8 +25,12 @@ There are two cases that `PhononPP` can be run with: a single displacement (e.g.
   ! Generating shifted POSCARs:
   generateShiftedPOSCARs = logical                         ! Logical, default .true.
   prefix                 = 'prefix-for-shifted-poscars'    ! Default: './ph_POSCAR'
+  
+  ! Calculating max displacement:
+  calcMaxDisp = logical               ! Default .false.; if max displacement between two atoms across modes should be calculated
+  dispInd     = int1, int2            ! Two integers for indices of atoms to get relative displacement for each mode             
 
-  ! Needed to get dq and shifted POSCARs:
+  ! Needed to get dq and shifted POSCARs and calculating max displacement:
   basePOSCARFName = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from
   shift           = shift-magnitude                 ! Real (Angstrom), default 0.01 A
 /
@@ -58,7 +62,11 @@ For a range of displacements, the inputs should look like
   generateShiftedPOSCARs = logical                         ! Logical, default .true.
   prefix                 = 'prefix-for-shifted-poscars'    ! Default: './ph_POSCAR'
 
-  ! Needed to get dq and shifted POSCARs:
+  ! Calculating max displacement:
+  calcMaxDisp = logical               ! Default .false.; if max displacement between two atoms across modes should be calculated
+  dispInd     = int1, int2            ! Two integers for indices of atoms to get relative displacement for each mode             
+
+  ! Needed to get dq and shifted POSCARs and calculating max displacement:
   basePOSCARFName = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from
   shift           = shift-magnitude                 ! Real (Angstrom), default 0.01 A
 /
