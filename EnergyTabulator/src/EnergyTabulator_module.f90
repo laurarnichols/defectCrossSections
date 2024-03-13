@@ -65,6 +65,90 @@ module energyTabulatorMod
   contains
 
 !----------------------------------------------------------------------------
+  subroutine readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef, &
+        energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
+
+    implicit none
+
+    ! Output variables:
+    integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+    integer, intent(out) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+    integer, intent(out) :: refBand
+      !! Band of WZP reference carrier
+
+    real(kind=dp), intent(out) :: eCorrectTot
+      !! Total-energy correction, if any
+    real(kind=dp), intent(out) :: eCorrectEigRef
+      !! Correction to eigenvalue difference with reference carrier, if any
+
+    character(len=300), intent(out) :: energyTableDir
+      !! Path to energy tables
+    character(len=300), intent(out) :: exportDirEigs
+      !! Path to export for system to get eigenvalues
+    character(len=300), intent(out) :: exportDirInitInit
+      !! Path to export for initial charge state
+      !! in the initial positions
+    character(len=300), intent(out) :: exportDirFinalInit
+      !! Path to export for final charge state
+       !! in the initial positions
+    character(len=300), intent(out) :: exportDirFinalFinal
+      !! Path to export for final charge state
+      !! in the final positions
+
+    logical, intent(out) :: captured
+      !! If carrier is captured as opposed to scattered
+    logical, intent(out) :: elecCarrier
+      !! If carrier is electron as opposed to hole
+
+
+    if(ionode) then
+
+      ! Set default values for input variables and start timers
+      call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef, energyTableDir, &
+            exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
+    
+      ! Read input variables
+      read(5, inputParams, iostat=ierr)
+    
+      if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
+
+      ! Check that all variables were properly set
+      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef,&
+            energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier, loopSpins)
+
+    endif
+
+
+    ! Broadcast all input variables
+    call MPI_BCAST(iBandIinit, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(refBand, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    call MPI_BCAST(ispSelect, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(loopSpins, 1, MPI_LOGICAL, root, worldComm, ierr)
+
+    call MPI_BCAST(eCorrectTot, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(eCorrectEigRef, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(exportDirEigs, len(exportDirEigs), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(exportDirInitInit, len(exportDirInitInit), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(exportDirFinalInit, len(exportDirFinalInit), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(exportDirFinalFinal, len(exportDirFinalFinal), MPI_CHARACTER, root, worldComm, ierr)
+
+    call MPI_BCAST(captured, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(elecCarrier, 1, MPI_LOGICAL, root, worldComm, ierr)
+
+    return
+
+  end subroutine readInputs
+
+!----------------------------------------------------------------------------
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef, &
         energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
     !! Set the default values for input variables and start timer
