@@ -2,8 +2,9 @@ module PhononPPMod
   
   use constants, only: dp, angToBohr, angToM, daltonToElecM, elecMToKg, THzToHz, pi, hbar
   use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-  use cell, only: nAtoms, omega, realLattVec, cartDispProjOnPhononEigsNorm, readPOSCAR
-  use miscUtilities, only: int2str
+  use cell, only: nAtoms, omega, realLattVec, cartDispProjOnPhononEigsNorm, readPOSCAR, writePOSCARNewPos
+  use miscUtilities, only: int2str, int2strLeadZero
+  use generalComputations, only: direct2cart
   use errorsAndMPI
   use mpi
 
@@ -17,31 +18,28 @@ module PhononPPMod
     !! Timers
 
   ! Variables that should be passed as arguments:
-  integer :: nAtomsFinal
-    !! Number of atoms from final-state POSCAR
+  integer :: dispInd(2)
+    !! Index of atoms to check displacement
+    !! between if calcMaxDisp
   integer :: nModes
     !! Number of phonon modes
   integer :: nModesLocal
     !! Local number of phonon modes
-  integer :: suffixLength
-    !! Length of shifted POSCAR file suffix
 
-  real(kind=dp), allocatable :: atomPositionsDirInit(:,:)
-    !! Atom positions in initial relaxed positions
-  real(kind=dp), allocatable :: displacement(:,:)
-    !! Atom displacements in angstrom
+
+  real(kind=dp), allocatable :: coordFromPhon(:,:)
+    !! Corodinates from phonon file
   real(kind=dp), allocatable :: eigenvector(:,:,:)
     !! Eigenvectors for each atom for each mode
-  real(kind=dp), allocatable :: projNorm(:)
-    !! Generalized norms after displacement
+  real(kind=dp) :: freqThresh
+    !! Threshold for frequency to determine if the mode 
+    !! should be skipped or not
   real(kind=dp), allocatable :: mass(:)
     !! Masses of atoms
   real(kind=dp), allocatable :: omegaFreq(:)
     !! Frequency for each mode
   real(kind=dp) :: shift
     !! Magnitude of shift along phonon eigenvectors
-  real(kind=dp), allocatable :: shiftedPositions(:,:)
-    !! Positions after shift along eigenvector
 
   character(len=300) :: basePOSCARFName
     !! File name for intial POSCAR to calculate shift from
@@ -51,17 +49,17 @@ module PhononPPMod
     !! File name for generalized-coordinate norms
   character(len=300) :: initPOSCARFName, finalPOSCARFName
     !! File name for POSCAR for relaxed initial and final charge states
-  character(len=300) :: memoLine
-    !! Memo line to output shift and mode number to shifted POSCARs
   character(len=300) :: phononFName
     !! File name for mesh.yaml phonon file
   character(len=300) :: prefix
     !! Prefix for shifted POSCARs
-  character(len=300) :: shiftedPOSCARFName
-    !! File name for shifted POSCAR
-  character(len=300) :: SjFName
-    !! File name for the Sj output
 
+  logical :: calcDq
+    !! If dq output file should be generated
+  logical :: calcMaxDisp
+    !! If calculating the maximum displacement between a pair of atoms
+  logical :: calcSj
+    !! If Sj should be calculated
   logical :: singleDisp
     !! If there is just a single displacement to consider
   logical :: generateShiftedPOSCARs
@@ -69,21 +67,29 @@ module PhononPPMod
 
 
   namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, singleDisp, &
-                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CONTCARsBaseDir, basePOSCARFName
+                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CONTCARsBaseDir, basePOSCARFName, freqThresh, calcSj, &
+                         calcDq, calcMaxDisp, dispInd
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, &
-        phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+  subroutine readInputs(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, &
+        dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, &
+        singleDisp)
 
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: dispInd(2)
+      !! Index of atoms to check displacement
+      !! between if calcMaxDisp
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
 
+    real(kind=dp), intent(out) :: freqThresh
+      !! Threshold for frequency to determine if the mode 
+      !! should be skipped or not
     real(kind=dp), intent(out) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -100,6 +106,12 @@ module PhononPPMod
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(out) :: calcDq
+      !! If dq output file should be generated
+    logical, intent(out) :: calcMaxDisp
+      !! If calculating the maximum displacement between a pair of atoms
+    logical, intent(out) :: calcSj
+      !! If Sj should be calculated
     logical, intent(out) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
     logical, intent(out) :: singleDisp
@@ -108,8 +120,9 @@ module PhononPPMod
 
     if(ionode) then
 
-      call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, & 
-            finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+      call initialize(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, & 
+            dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, &
+            singleDisp)
         ! Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -118,22 +131,31 @@ module PhononPPMod
       if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, &
-            phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+      call checkInitialization(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, &
+          dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, &
+          singleDisp)
 
     endif
 
     ! Send to other processes only what they need to know
+    call MPI_BCAST(dispInd, 2, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandIinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    call MPI_BCAST(freqThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(shift, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
     call MPI_BCAST(basePOSCARFName, len(basePOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(CONTCARsBaseDir, len(CONTCARsBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(finalPOSCARFName, len(finalPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(initPOSCARFName, len(initPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
+
+    call MPI_BCAST(calcDq, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(calcSj, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(calcMaxDisp, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(generateShiftedPOSCARs, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(singleDisp, 1, MPI_LOGICAL, root, worldComm, ierr)
 
@@ -142,8 +164,9 @@ module PhononPPMod
   end subroutine readInputs
 
 !----------------------------------------------------------------------------
-    subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, & 
-          finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+  subroutine initialize(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, & 
+        dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, &
+        singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -153,9 +176,15 @@ module PhononPPMod
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: dispInd(2)
+      !! Index of atoms to check displacement
+      !! between if calcMaxDisp
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
 
+    real(kind=dp), intent(out) :: freqThresh
+      !! Threshold for frequency to determine if the mode 
+      !! should be skipped or not
     real(kind=dp), intent(out) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -172,12 +201,19 @@ module PhononPPMod
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(out) :: calcDq
+      !! If dq output file should be generated
+    logical, intent(out) :: calcMaxDisp
+      !! If calculating the maximum displacement between a pair of atoms
+    logical, intent(out) :: calcSj
+      !! If Sj should be calculated
     logical, intent(out) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
     logical, intent(out) :: singleDisp
       !! If there is just a single displacement to consider
 
 
+    dispInd = -1
     iBandIinit  = -1
     iBandIfinal = -1
     iBandFinit  = -1
@@ -185,14 +221,18 @@ module PhononPPMod
 
     CONTCARsBaseDir = ''
     dqFName = 'dq.txt'
-    basePOSCARFName = ''
+    basePOSCARFName = 'POSCAR_init'
     initPOSCARFName = 'POSCAR_init'
     finalPOSCARFName = 'POSCAR_final'
     phononFName = 'mesh.yaml'
     prefix = 'ph_POSCAR'
 
+    freqThresh = 0.5_dp
     shift = 0.01_dp
 
+    calcDq = .true.
+    calcSj = .true.
+    calcMaxDisp = .false.
     generateShiftedPOSCARs = .true.
     singleDisp = .true.
 
@@ -201,15 +241,22 @@ module PhononPPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, &
-        phononFName, finalPOSCARFName, initPOSCARFName, prefix, generateShiftedPOSCARs, singleDisp)
+  subroutine checkInitialization(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, &
+      CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, &
+      generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: dispInd(2)
+      !! Index of atoms to check displacement
+      !! between if calcMaxDisp
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
 
+    real(kind=dp), intent(in) :: freqThresh
+      !! Threshold for frequency to determine if the mode 
+      !! should be skipped or not
     real(kind=dp), intent(in) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -226,6 +273,12 @@ module PhononPPMod
     character(len=300), intent(in) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(in) :: calcDq
+      !! If dq output file should be generated
+    logical, intent(in) :: calcMaxDisp
+      !! If calculating the maximum displacement between a pair of atoms
+    logical, intent(in) :: calcSj
+      !! If Sj should be calculated
     logical, intent(in) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
     logical, intent(in) :: singleDisp
@@ -236,36 +289,57 @@ module PhononPPMod
       !! Whether or not to abort the execution
 
 
+    if(.not. (calcDq .or. calcMaxDisp .or. calcSj .or. generateShiftedPOSCARs)) &
+      call exitError('checkInitialization','You must choose at least one option to run this program!',1)
+
+
+    ! Must-haves for reading phonons:
     abortExecution = checkFileInitialization('phononFName', phononFName)
-    abortExecution = checkStringInitialization('dqFName', dqFName) .or. abortExecution
-    abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 1.0_dp) .or. abortExecution
+    abortExecution = checkDoubleInitialization('freqThres', freqThresh, 0.0_dp, 1.0_dp) .or. abortExecution
 
 
-    write(*,'("singleDisp = ''",L1,"''")') singleDisp
-    if(singleDisp) then
-      abortExecution = checkFileInitialization('initPOSCARFName', initPOSCARFName) .or. abortExecution
-      abortExecution = checkFileInitialization('finalPOSCARFName', finalPOSCARFName) .or. abortExecution
+    ! Need for calculating Sj:
+    write(*,'("calcSj = ''",L1,"''")') calcSj
+    if(calcSj) then
 
-      if(generateShiftedPOSCARs) then
-        if(checkFileInitialization('basePOSCARFName', basePOSCARFName)) then
-          write(*,'("Defaulting to using the initial relaxed positions as the base for the shift.")')
-          basePOSCARFName = trim(initPOSCARFName)
-        endif
+      write(*,'("singleDisp = ''",L1,"''")') singleDisp
+
+      if(singleDisp) then
+
+        abortExecution = checkFileInitialization('initPOSCARFName', initPOSCARFName) .or. abortExecution
+        abortExecution = checkFileInitialization('finalPOSCARFName', finalPOSCARFName) .or. abortExecution
+
+      else
+
+        abortExecution = checkIntInitialization('iBandIinit', iBandIinit, 1, int(1e9)) .or. abortExecution
+        abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
+        abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
+        abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
+
+        abortExecution = checkDirInitialization('CONTCARsBaseDir', CONTCARsBaseDir, trim(int2str(iBandIinit))//'/CONTCAR') .or. abortExecution
       endif
-    else
-      abortExecution = checkIntInitialization('iBandIinit', iBandIinit, 1, int(1e9)) .or. abortExecution
-      abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
-      abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
-      abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
-
-      abortExecution = checkDirInitialization('CONTCARsBaseDir', CONTCARsBaseDir, trim(int2str(iBandIinit))//'/CONTCAR') .or. abortExecution
-
-      if(generateShiftedPOSCARs) abortExecution = checkFileInitialization('basePOSCARFName', basePOSCARFName) .or. abortExecution
     endif
 
+
+    ! Need for dq:
+    write(*,'("calcDq = ''",L1,"''")') calcDq
+    if(calcDq) abortExecution = checkStringInitialization('dqFName', dqFName) .or. abortExecution
+
+    ! Need for shifted POSCARs:
     write(*,'("generateShiftedPOSCARs = ''",L1,"''")') generateShiftedPOSCARs
     if(generateShiftedPOSCARs) abortExecution = checkStringInitialization('prefix', prefix) .or. abortExecution
 
+    ! Needed for dq and shifted POSCARs and calculating max displacement:
+    if(calcDq .or. generateShiftedPOSCARs .or. calcMaxDisp) then
+      abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 1.0_dp) .or. abortExecution
+      abortExecution = checkFileInitialization('basePOSCARFName', basePOSCARFName) .or. abortExecution
+    endif
+
+    ! Need for calculating max displacement:
+    if(calcMaxDisp) then
+      abortExecution = checkIntInitialization('dispInd(1)', dispInd(1), 1, int(1e9)) .or. abortExecution
+      abortExecution = checkIntInitialization('dispInd(2)', dispInd(2), 1, int(1e9)) .or. abortExecution
+    endif
 
     if(abortExecution) then
       write(*, '(" Program stops!")')
@@ -289,10 +363,6 @@ module PhononPPMod
     real(kind=dp), intent(inout) :: atomPositionsDir(3,nAtoms)
       !! Atom positions in direct coordinates
 
-    ! Local variables:
-    integer :: ia, ix
-      !! Loop indices
-
 
     where(atomPositionsDir(:,:) < 0)
       atomPositionsDir(:,:) = 1.0_dp + atomPositionsDir(:,:)
@@ -303,40 +373,43 @@ module PhononPPMod
   end subroutine standardizeCoordinates
 
 !----------------------------------------------------------------------------
-  subroutine readPhonons(nAtoms, nModes, phononFName, eigenvector, mass, omegaFreq)
+  subroutine readPhonons(freqThresh, phononFName, nAtoms, nModes, coordFromPhon, eigenvector, mass, omegaFreq)
 
     use miscUtilities, only: getFirstLineWithKeyword
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: nAtoms
-      !! Number of atoms
-    integer, intent(in) :: nModes
-      !! Number of modes
+    real(kind=dp), intent(in) :: freqThresh
+      !! Threshold for frequency to determine if the mode 
+      !! should be skipped or not
 
     character(len=300), intent(in) :: phononFName
       !! File name for mesh.yaml phonon file
 
     ! Output variables:
-    real(kind=dp), intent(out) :: eigenvector(3,nAtoms,nModes)
+    integer, intent(out) :: nAtoms
+      !! Number of atoms
+    integer, intent(out) :: nModes
+      !! Number of modes
+
+    real(kind=dp), allocatable, intent(out) :: coordFromPhon(:,:)
+      !! Corodinates from phonon file
+    real(kind=dp), allocatable, intent(out) :: eigenvector(:,:,:)
       !! Eigenvectors for each atom for each mode
-    real(kind=dp), intent(out) :: mass(nAtoms)
+    real(kind=dp), allocatable, intent(out) :: mass(:)
       !! Masses of atoms
-    real(kind=dp), intent(out) :: omegaFreq(nModes)
+    real(kind=dp), allocatable, intent(out) :: omegaFreq(:)
       !! Frequency for each mode
 
     ! Local variables:
     integer :: j, ia, ix
       !! Loop index
-    integer :: nAtomsFromPhon
-      !! Number of atoms from phonon file
+    integer :: nUsed
+      !! Number of phonon modes used based on frequency threshold
 
-    real(kind=dp) :: coordFromPhon(3,nAtoms)
-      !! Corodinates from phonon file
-    real(kind=dp) :: displacement(3,nAtoms)
-      !! Displacement (needed as argument to check 
-      !! compatibility)
+    real(kind=dp) :: omegaFreq_j
+      !! Frequency for a single mode
     real(kind=dp) :: qPos(3)
       !! Phonon q position
 
@@ -357,11 +430,17 @@ module PhononPPMod
 
 
       line = getFirstLineWithKeyword(57,'natom')
-      read(line(7:len(trim(line))),*) nAtomsFromPhon
+      read(line(7:len(trim(line))),*) nAtoms
 
-      if(nAtoms /= nAtomsFromPhon) &
-        call exitError('readPhonon', 'number of atoms does not match: '//trim(int2str(nAtoms))//' '//trim(int2str(nAtomsFromPhon)), 1)
+    endif
 
+
+    call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+    allocate(coordFromPhon(3,nAtoms))
+    allocate(mass(nAtoms))
+
+
+    if(ionode) then
 
       line = getFirstLineWithKeyword(57,'points')
         !! Ignore everything next until you get to points line
@@ -378,7 +457,15 @@ module PhononPPMod
 
     endif
 
-    call getRelaxDispAndCheckCompatibility(nAtoms, atomPositionsDirInit, coordFromPhon, displacement)
+    call MPI_BCAST(coordFromPhon, size(coordFromPhon), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(mass, size(mass), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+
+    nModes = 3*nAtoms - 3
+
+    allocate(eigenvector(3,nAtoms,nModes))
+    allocate(omegaFreq(nModes))
+
 
     if(ionode) then
 
@@ -396,12 +483,25 @@ module PhononPPMod
       read(57,'(A)') line
         !! Ignore next 3 lines
 
+
+      nUsed = 0
       do j = 1, nModes+3
 
         read(57,'(A)') ! Ignore mode number
 
+
         read(57,'(A)') line
-        if(j > 3) read(line(15:len(trim(line))),*) omegaFreq(j-3)
+        read(line(15:len(trim(line))),*) omegaFreq_j
+        if(abs(omegaFreq_j) > freqThresh) then
+          nUsed = nUsed + 1
+          omegaFreq(nUsed) = omegaFreq_j
+
+          if(omegaFreq_j < 0) write(*,'("WARNING: Negative frequency detected in mode ", i7,&
+            "! Re-relax the structure using the POSCAR shifted along this mode''s eigenvector.")') j
+        else
+          write(*,'("Skipping mode ", i7, " with freqency ", ES24.15E3,".")') j, omegaFreq_j
+        endif
+
 
         read(57,'(A)') ! Ignore eigenvector section header
 
@@ -412,14 +512,15 @@ module PhononPPMod
           do ix = 1, 3
 
             read(57,'(A)') line
-            if(j > 3) read(line(10:len(trim(line))),*) eigenvector(ix,ia,j-3)
-              !! Only store the eigenvectors after the first 3 modes 
-              !! because those are the acoustic modes and we only want
-              !! the optical modes.
+            if(abs(omegaFreq_j) > freqThresh)  read(line(10:len(trim(line))),*) eigenvector(ix,ia,nUsed)
+              !! Only store the eigenvectors if the mode isn't skipped
+              !! because those are the translational modes 
 
           enddo
         enddo
       enddo
+
+      if(nUsed /= nModes) call exitError('readPhonons', 'Did not skip 3 modes based on threshold set. Check threshold.', 1)
 
       omegaFreq(:) = omegaFreq(:)*2*pi
 
@@ -428,12 +529,131 @@ module PhononPPMod
     endif
 
     call MPI_BCAST(eigenvector, size(eigenvector), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(mass, size(mass), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(omegaFreq, size(omegaFreq), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
   end subroutine readPhonons
+
+!----------------------------------------------------------------------------
+  subroutine calculateSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nAtoms, nModes, coordFromPhon, eigenvector, mass, &
+        omegaFreq, singleDisp, CONTCARsBaseDir, initPOSCARFName, finalPOSCARFName)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+    integer, intent(inout) :: nAtoms
+      !! Number of atoms in intial system
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: coordFromPhon(3,nAtoms)
+      !! Corodinates from phonon file
+    real(kind=dp), intent(in) :: eigenvector(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each mode
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Mass of atoms
+    real(kind=dp), intent(in) :: omegaFreq(nModes)
+      !! Frequency for each mode
+
+    logical, intent(in) :: singleDisp
+      !! If there is just a single displacement to consider
+
+    character(len=300), intent(in) :: CONTCARsBaseDir
+      !! Base dir for sets of relaxed files if not captured
+    character(len=300), intent(inout) :: initPOSCARFName, finalPOSCARFName
+      !! File name for POSCAR for relaxed initial and final charge states
+
+    ! Local variables:
+    integer :: ibi, ibf
+      !! Loop indices
+
+    real(kind=dp), allocatable :: atomPositionsDirInit(:,:)
+      !! Atom positions in initial relaxed positions
+    real(kind=dp) :: displacement(3,nAtoms)
+      !! Displacement vector; not used here, only output 
+      !! from check compatibility
+    real(kind=dp) :: omega
+      !! Volume of supercell
+    real(kind=dp) :: realLattVec(3,3)
+      !! Real space lattice vectors
+
+    character(len=300) :: SjFName
+      !! File name for the Sj output
+
+
+    if(singleDisp) then
+      if(ionode) then
+        call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
+        call standardizeCoordinates(nAtoms, atomPositionsDirInit)
+      endif
+
+      call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+
+      if(.not. ionode) allocate(atomPositionsDirInit(3,nAtoms))
+      call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+      call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirInit, displacement)
+
+      SjFName = 'Sj.out'
+      call getSingleDisp(nAtoms, nModes, atomPositionsDirInit, eigenvector, mass, omega, omegaFreq, finalPOSCARFName, SjFName)
+
+      deallocate(atomPositionsDirInit)
+
+    else
+
+      ! I do a loop over all of the bands. Depending on the band selection,
+      ! this could result in duplicate pairs (e.g., .1.2 and .2.1), but I 
+      ! can't think of a general way to exlude these pairs without a significant
+      ! amount of work to track the pairs that have already been calcualted.
+      ! Any solution I can think of would not hold for both hole and electron
+      ! capture and/or different ranges of bands selected by the user. For
+      ! now, I just have the code output all of the duplicate pairs and the
+      ! user/LSF code can use whatever they need from that.
+      do ibi = iBandIinit, iBandIfinal
+
+        ! Get the initial positions for this band 
+        if(ionode) then
+          initPOSCARFName = trim(CONTCARsBaseDir)//'/'//trim(int2str(ibi))//'/CONTCAR'
+
+          call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
+          call standardizeCoordinates(nAtoms, atomPositionsDirInit)
+        endif
+
+        call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+
+        if(.not. ionode) allocate(atomPositionsDirInit(3,nAtoms))
+        call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+        call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirInit, displacement)
+
+        do ibf = iBandFinit, iBandFfinal
+
+          if(ibf /= ibi) then
+            ! Set the final positions and output file names
+            finalPOSCARFName = trim(CONTCARsBaseDir)//'/'//trim(int2str(ibf))//'/CONTCAR'
+            SjFName = 'Sj.'//trim(int2str(ibi))//'.'//trim(int2str(ibf))//'.out'
+
+            ! Get displacement and output ranked Sj for a single pair of states
+            call getSingleDisp(nAtoms, nModes, atomPositionsDirInit, eigenvector, mass, omega, omegaFreq, finalPOSCARFName, SjFName)
+
+          endif
+        enddo
+
+        ! Positions are allocated in readPOSCAR, so we need to 
+        ! deallocate them after every loop
+        deallocate(atomPositionsDirInit)
+      enddo
+
+    endif
+
+
+    return
+
+  end subroutine calculateSj
 
 !----------------------------------------------------------------------------
   subroutine getSingleDisp(nAtoms, nModes, atomPositionsDirInit, eigenvector, mass, omega, omegaFreq, finalPOSCARFName, SjFName)
@@ -476,11 +696,13 @@ module PhononPPMod
       !! Volume of final-state supercell
     real(kind=dp) :: projNorm(nModes)
       !! Generalized norms after displacement
+    real(kind=dp) :: realLattVec(3,3)
+      !! Real space lattice vectors
 
     
     if(ionode) then
       call readPOSCAR(finalPOSCARFName, nAtomsFinal, atomPositionsDirFinal, omegaFinal, realLattVec)
-        ! I don't define realLattVec here because I don't use the input value
+        ! I define realLattVec locally here because I don't use the input value
         ! nor do I want to output the value from here. It is assumed for now
         ! that the lattice vectors for the two systems are compatible. This
         ! would be a good test to add at some point in the future.
@@ -497,6 +719,7 @@ module PhononPPMod
 
     if(.not. ionode) allocate(atomPositionsDirFinal(3,nAtoms))
     call MPI_BCAST(atomPositionsDirFinal, size(atomPositionsDirFinal), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   
 
     ! Define the displacement for the relaxation, 
@@ -507,7 +730,7 @@ module PhononPPMod
     projNorm = 0.0_dp
     do j = iModeStart, iModeEnd
 
-      projNorm(j) = cartDispProjOnPhononEigsNorm(j, nAtoms, displacement, eigenvector(:,:,j), mass)
+      projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, eigenvector(:,:,j), mass, realLattVec)
 
     enddo
 
@@ -552,6 +775,7 @@ module PhononPPMod
 
 
     if(ionode) then
+
       abortExecution = .false.
 
       do ia= 1, nAtoms
@@ -672,7 +896,7 @@ module PhononPPMod
       !! * Get the generalized-displacement norms
       !!   from all processes
 
-    if(ionode) then
+      if(ionode) then
 
       do j = 1, nModes
 
@@ -708,7 +932,177 @@ module PhononPPMod
   end subroutine calcAndWriteSj
 
 !----------------------------------------------------------------------------
-  function getShiftDisplacement(nAtoms, eigenvector, mass, shift) result(displacement)
+  subroutine calculateShiftAndDq(dispInd, nAtoms, nModes, coordFromPhon, eigenvector, mass, shift, calcDq, calcMaxDisp, &
+        generateShiftedPOSCARs, basePOSCARFName, dqFName, prefix)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: dispInd(2)
+      !! Index of atoms to check displacement
+      !! between if calcMaxDisp
+    integer, intent(inout) :: nAtoms
+      !! Number of atoms
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: coordFromPhon(3,nAtoms)
+      !! Corodinates from phonon file
+    real(kind=dp), intent(in) :: eigenvector(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each mode
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Mass of atoms
+    real(kind=dp), intent(in) :: shift
+      !! Magnitude of shift along phonon eigenvectors
+
+    logical, intent(in) :: calcDq
+      !! If dq output file should be generated
+    logical, intent(in) :: calcMaxDisp
+      !! If calculating the maximum displacement between a pair of atoms
+    logical, intent(in) :: generateShiftedPOSCARs
+      !! If shifted POSCARs should be generated
+      
+    character(len=300), intent(in) :: basePOSCARFName
+      !! File name for intial POSCAR to calculate shift from
+    character(len=300), intent(in) :: dqFName
+      !! File name for generalized-coordinate norms
+    character(len=300), intent(in) :: prefix
+      !! Prefix for shifted POSCARs
+
+    ! Local variables:
+    integer :: j
+      !! Loop index
+    integer :: suffixLength
+      !! Length of shifted POSCAR file suffix
+
+    real(kind=dp), allocatable :: atomPositionsDirBase(:,:)
+      !! Atom positions in initial relaxed positions
+    real(kind=dp), allocatable :: displacement(:,:)
+      !! Atom displacements in angstrom
+    real(kind=dp) :: omega
+      !! Volume of supercell
+    real(kind=dp), allocatable :: projNorm(:)
+      !! Generalized norms after displacement
+    real(kind=dp) :: realLattVec(3,3)
+      !! Real space lattice vectors
+    real(kind=dp) :: relDisp(3)
+      !! Relative displacement between selected atoms
+      !! if calculating the maximum displacement
+    real(kind=dp), allocatable :: relDispMag(:)
+      !! Magnitude of relative displacement between 
+      !! selected atoms if checking the maximum
+      !! displacement
+    real(kind=dp), allocatable :: shiftedPositions(:,:)
+      !! Positions after shift along eigenvector
+
+    character(len=300) :: memoLine
+      !! Memo line to output shift and mode number to shifted POSCARs
+    character(len=300) :: shiftedPOSCARFName
+      !! File name for shifted POSCAR
+
+
+    if(generateShiftedPOSCARs) then
+      if(nModes < 10) then
+        suffixLength = 1
+      else if(nModes < 100) then
+        suffixLength = 2
+      else if(nModes < 1000) then
+        suffixLength = 3
+      else if(nModes < 10000) then
+        suffixLength = 4
+      else if(nModes < 100000) then
+        suffixLength = 5
+      endif
+    endif
+
+
+    if(ionode) then
+
+      call readPOSCAR(basePOSCARFName, nAtoms, atomPositionsDirBase, omega, realLattVec)
+      call standardizeCoordinates(nAtoms, atomPositionsDirBase)
+
+    endif
+
+    call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+    if(.not. ionode) allocate(atomPositionsDirBase(3,nAtoms))
+    call MPI_BCAST(atomPositionsDirBase, size(atomPositionsDirBase), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    allocate(displacement(3,nAtoms))
+
+    call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirBase, displacement)
+
+
+    allocate(shiftedPositions(3,nAtoms))
+    allocate(relDispMag(nModes))
+    allocate(projNorm(nModes))
+    projNorm = 0.0_dp
+    relDispMag = 0.0_dp
+
+    write(memoLine,'("  shift = ", ES9.2E1)') shift
+
+
+    ! Get the displacement for each mode to 
+    ! calculate the derivative of the wave function.
+    ! Project onto the phonon eigenvectors (here,
+    ! the effect is just to convert back to generalized
+    ! coordinates because the displacement is already
+    ! a scaled form of the eigenvectors), then (if needed)
+    ! write the shifted positions and generalized displacement
+    ! norms.
+    do j = iModeStart, iModeEnd
+
+      displacement = getShiftDisplacement(nAtoms, eigenvector(:,:,j), realLattVec, mass, shift)
+
+      if(calcMaxDisp) then
+        relDisp = displacement(:,dispInd(1)) - displacement(:,dispInd(2))
+
+        relDispMag(j) = sqrt(dot_product(relDisp,relDisp))
+      endif
+
+      if(calcDq) projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, eigenvector(:,:,j), mass, realLattVec)
+
+      if(generateShiftedPOSCARs) then
+
+        shiftedPositions = direct2cart(nAtoms, atomPositionsDirBase, realLattVec) + displacement
+
+        shiftedPOSCARFName = trim(prefix)//"_"//trim(int2strLeadZero(j,suffixLength))
+
+        call writePOSCARNewPos(nAtoms, shiftedPositions, basePOSCARFName, shiftedPOSCARFName, trim(memoLine)//' j = '//int2str(j), .true.)
+
+      endif
+
+    enddo
+
+
+    deallocate(atomPositionsDirBase)
+    deallocate(shiftedPositions)
+    deallocate(displacement)
+
+    if(calcMaxDisp) then
+      call mpiSumDoubleV(relDispMag, worldComm)
+
+      if(ionode) write(*,'("Maximum displacement between atoms ", i4," and ",i4," is ",1ES12.3E2," in mode ",i6)') &
+            dispInd(1), dispInd(2), relDispMag(maxloc(relDispMag)), maxloc(relDispMag)
+    endif
+
+    deallocate(relDispMag)
+
+
+    if(calcDq) then
+      projNorm = projNorm*angToBohr*sqrt(daltonToElecM)
+      call writeDqs(nModes, projNorm, dqFName)
+    endif
+
+
+    deallocate(projNorm)
+
+    return 
+
+  end subroutine calculateShiftAndDq
+
+!----------------------------------------------------------------------------
+  function getShiftDisplacement(nAtoms, eigenvector, realLattVec, mass, shift) result(displacement)
 
     implicit none
 
@@ -720,6 +1114,8 @@ module PhononPPMod
       !! Eigenvectors for each atom for this mode
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Masses of atoms
+    real(kind=dp), intent(in) :: realLattVec(3,3)
+      !! Real space lattice vectors
     real(kind=dp), intent(in) :: shift
       !! Magnitude of shift along phonon eigenvectors
 

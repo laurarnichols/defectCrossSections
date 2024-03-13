@@ -9,17 +9,30 @@ There are two cases that `PhononPP` can be run with: a single displacement (e.g.
 &inputParams
   singleDisp = .true.             ! If there's a single displacement to consider, default .true.
 
+  ! Required to read phonons:
+  phononFName      = 'path-to-phonopy-output-yaml-file'        ! Default: './mesh.yaml'
+  freqThresh = frequency-threshold       ! Threshold for keeping frequencies, default 0.5 (same units as Phononpy)
+
+  ! Calculating Sj
+  calcSj           = logical                                   ! Default: .true.; if Sj should be calculated
   initPOSCARFName  = 'path-to-init-poscar'                     ! Default: './POSCAR_init'
   finalPOSCARFName = 'path-to-final-poscar'                    ! Default: './POSCAR_final'
 
-  phononFName      = 'path-to-phonopy-output-yaml-file'        ! Default: './mesh.yaml'
-  dqFName          = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
+  ! Calculating dq:
+  calcDq  = logical                                   ! Default: .true.; if dq output file should be generated
+  dqFName = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
 
-  shift = shift-magnitude                ! Real (Angstrom), default 0.01 A
+  ! Generating shifted POSCARs:
+  generateShiftedPOSCARs = logical                         ! Logical, default .true.
+  prefix                 = 'prefix-for-shifted-poscars'    ! Default: './ph_POSCAR'
+  
+  ! Calculating max displacement:
+  calcMaxDisp = logical               ! Default .false.; if max displacement between two atoms across modes should be calculated
+  dispInd     = int1, int2            ! Two integers for indices of atoms to get relative displacement for each mode             
 
-  generateShiftedPOSCARs = logical       ! Logical, default .true.
-  prefix           = 'prefix-for-shifted-poscars'              ! Default: './ph_POSCAR'; ignored if .not. generateShiftedPOSCARs
-  basePOSCARFName = 'path-to-base-poscar'                      ! Default: initPOSCARFName; optional to use as base for shift
+  ! Needed to get dq and shifted POSCARs and calculating max displacement:
+  basePOSCARFName = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from
+  shift           = shift-magnitude                 ! Real (Angstrom), default 0.01 A
 /
 ```
 
@@ -29,20 +42,33 @@ For a range of displacements, the inputs should look like
 &inputParams
   singleDisp = .false.             ! If there's a single displacement to consider, default .true.
 
-  CONTCARsBaseDir  = 'path-to-base-dir-for-relaxed-positions'   
-  iBandIinit = integer						! lowest initial-state band
-  iBandIfinal = integer						! highest initial-state band
-  iBandFinit = integer						! lowest final-state band
-  iBandFfinal = integer						! highest final-state band
-
+  ! Required to read phonons:
   phononFName      = 'path-to-phonopy-output-yaml-file'        ! Default: './mesh.yaml'
-  dqFName          = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
+  freqThresh = frequency-threshold       ! Threshold for keeping frequencies, default 0.5 (same units as Phononpy)
 
-  shift = shift-magnitude                ! Real (Angstrom), default 0.01 A
+  ! Calculating Sj
+  calcSj           = logical                                   ! Default: .true.; if Sj should be calculated
+  CONTCARsBaseDir  = 'path-to-base-dir-for-relaxed-positions'   
+  iBandIinit       = integer						! lowest initial-state band
+  iBandIfinal      = integer						! highest initial-state band
+  iBandFinit       = integer						! lowest final-state band
+  iBandFfinal      = integer						! highest final-state band
 
-  generateShiftedPOSCARs = logical       ! Logical, default .true.
-  prefix           = 'prefix-for-shifted-poscars'              ! Default: './ph_POSCAR'; ignored if .not. generateShiftedPOSCARs
-  basePOSCARFName = 'path-to-base-poscar'                      ! Required when considering multiple displacements
+  ! Calculating dq:
+  calcDq  = logical                                   ! Default: .true.; if dq output file should be generated
+  dqFName = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
+
+  ! Generating shifted POSCARs:
+  generateShiftedPOSCARs = logical                         ! Logical, default .true.
+  prefix                 = 'prefix-for-shifted-poscars'    ! Default: './ph_POSCAR'
+
+  ! Calculating max displacement:
+  calcMaxDisp = logical               ! Default .false.; if max displacement between two atoms across modes should be calculated
+  dispInd     = int1, int2            ! Two integers for indices of atoms to get relative displacement for each mode             
+
+  ! Needed to get dq and shifted POSCARs and calculating max displacement:
+  basePOSCARFName = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from
+  shift           = shift-magnitude                 ! Real (Angstrom), default 0.01 A
 /
 ```
 
