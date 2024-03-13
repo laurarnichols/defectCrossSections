@@ -339,11 +339,12 @@ module energyTabulatorMod
     
       open(50, file=trim(exportDirEigs)//'/input', status = 'old')
     
-      read(50,*) 
-      read(50,*) 
-      read(50,*) 
+      ! Ignore cell volume, number of G-vectors, and 
+      ! FFT grid size
+      call ignoreNextNLinesFromFile(50,6)
+      read(50,*) ! nSpins comment
       read(50, '(i10)') nSpins
-      read(50,*) 
+      read(50,*) ! nKPoints comment
       read(50, '(i10)') nKPoints
 
     endif
