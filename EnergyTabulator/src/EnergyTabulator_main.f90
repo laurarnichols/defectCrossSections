@@ -13,8 +13,8 @@ program energyTabulatorMain
   call mpiInitialization('EnergyTabulator')
 
   ! Get inputs from user
-  call readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef, energyTableDir, &
-        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
+  call readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef, CONTCARsBaseDir, & 
+        energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
 
 
   call getnSpinsAndnKPoints(exportDirEigs, nKPoints, nSpins)
