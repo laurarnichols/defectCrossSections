@@ -123,6 +123,22 @@ program wfcExportVASPMain
       ! Calculate Miller indices and G-vectors and split
       ! over processors
 
+  else
+    allocate(gVecMillerIndicesLocal(3,1))
+    call writeGridInfo(fftGridSize, 1, gVecMillerIndicesLocal, exportDir)
+      ! Need to call this to output dummy lines in the
+      ! `input` file so that other codes can read it
+      ! seamlessly
+      !
+      ! Note that the gVecMillerIndicesLocal array is passed 
+      ! here. This is nonsense, but for energiesOnly, those 
+      ! values are ignored. We only need the shapes and array
+      ! type to match up. This is not technically the best thing 
+      ! to do for clarity, but the variable actually used is only 
+      ! defined locally in the calculateGvecs subroutine to save 
+      ! space. It is not worth it to do more for a variable that 
+      ! is ignored anyways.
+    deallocate(gVecMillerIndicesLocal)
   endif
 
 
