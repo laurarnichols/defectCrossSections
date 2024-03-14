@@ -4,9 +4,6 @@ program energyTabulatorMain
   
   implicit none
 
-  integer :: isp, ikLocal
-    !! Loop indices
-
   real(kind=dp) :: t0, t2
     !! Timers
 
@@ -27,28 +24,12 @@ program energyTabulatorMain
   call distributeItemsInSubgroups(myid, nKPoints, nProcs, nProcs, nProcs, ikStart, ikEnd, nkPerProc)
 
 
-  ! Get total energies from exports of all different structures
-  call getTotalEnergy(exportDirInitInit, eTotInitInit)
-  call getTotalEnergy(exportDirFinalInit, eTotFinalInit)
-  call getTotalEnergy(exportDirFinalFinal, eTotFinalFinal)
-
-
-  do isp = 1, nSpins
-    if(loopSpins .or. isp == ispSelect) then
-
-      ! Get reference eigenvalue
-      call getRefEig(isp, refBand, exportDirEigs, refEig)
-
-      if(captured) call getRefToDefectEigDiff(iBandFinit, isp, refBand, exportDirInitInit, elecCarrier, dEEigRefDefect)
-
-      do ikLocal = 1, nkPerProc
-
-        call writeEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, dEEigRefDefect, eCorrectTot, eCorrectEigRef, &
-              eTotInitInit, eTotFinalInit, eTotFinalFinal, refEig, energyTableDir, exportDirEigs, captured, elecCarrier)
-
-      enddo
-    endif
-  enddo
+  if(captured) then
+    call calcAndWriteCaptureEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, nSpins, refBand, eCorrectTot, &
+         eCorrectEigRef, elecCarrier, loopSpins, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
+  else
+    call calcAndWriteScatterEnergies()
+  endif
 
 
   call MPI_Barrier(worldComm, ierr)
