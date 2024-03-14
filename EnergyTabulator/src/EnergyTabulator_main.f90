@@ -28,7 +28,9 @@ program energyTabulatorMain
 
 
   ! Get total energies from exports of all different structures
-  call getTotalEnergies(exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, eTotInitInit, eTotFinalInit, eTotFinalFinal)
+  call getTotalEnergy(exportDirInitInit, eTotInitInit)
+  call getTotalEnergy(exportDirFinalInit, eTotFinalInit)
+  call getTotalEnergy(exportDirFinalFinal, eTotFinalFinal)
 
 
   do isp = 1, nSpins

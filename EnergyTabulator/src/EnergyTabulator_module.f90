@@ -357,33 +357,19 @@ module energyTabulatorMod
   end subroutine getnSpinsAndnKPoints
 
 !----------------------------------------------------------------------------
-  subroutine getTotalEnergies(exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, eTotInitInit, eTotFinalInit, eTotFinalFinal)
+  subroutine getTotalEnergy(exportDir, eTot)
 
     use miscUtilities, only: getFirstLineWithKeyword
 
     implicit none
 
     ! Input variables:
-    character(len=300), intent(in) :: exportDirInitInit
-      !! Path to export for initial charge state
-      !! in the initial positions
-    character(len=300), intent(in) :: exportDirFinalInit
-      !! Path to export for final charge state
-      !! in the initial positions
-    character(len=300), intent(in) :: exportDirFinalFinal
-      !! Path to export for final charge state
-      !! in the final positions
+    character(len=300), intent(in) :: exportDir
+      !! Path to export directory
 
     ! Output variables:
-    real(kind=dp), intent(out) :: eTotInitInit
-      !! Total energy of the relaxed initial charge
-      !! state (initial positions)
-    real(kind=dp), intent(out) :: eTotFinalInit
-      !! Total energy of the unrelaxed final charge
-      !! state (initial positions)
-    real(kind=dp), intent(out) :: eTotFinalFinal
-      !! Total energy of the relaxed final charge
-      !! state (final positions)
+    real(kind=dp), intent(out) :: eTot
+      !! Total energy read from the `input` file
 
     ! Local variables:
     character(len=300) :: line
@@ -391,36 +377,17 @@ module energyTabulatorMod
 
 
     if(ionode) then
-      open(30,file=trim(exportDirFinalFinal)//'/input')
+      open(30,file=trim(exportDir)//'/input')
       line = getFirstLineWithKeyword(30, 'Total Energy')
-      read(30,*) eTotFinalFinal
+      read(30,*) eTot
       close(30)
-        !! Get the total energy of the relaxed final charge state
-        !! (final positions)
-
-      open(30,file=trim(exportDirFinalInit)//'/input')
-      line = getFirstLineWithKeyword(30, 'Total Energy')
-      read(30,*) eTotFinalInit
-      close(30)
-        !! Get the total energy of the unrelaxed final charge state
-        !! (initial positions)
-
-      open(30,file=trim(exportDirInitInit)//'/input')
-      line = getFirstLineWithKeyword(30, 'Total Energy')
-      read(30,*) eTotInitInit
-      close(30)
-        !! Get the total energy of the unrelaxed final charge state
-        !! (initial positions)
-
     endif
 
-    call MPI_BCAST(eTotFinalFinal, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(eTotFinalInit, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(eTotInitInit, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(eTot, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
-  end subroutine getTotalEnergies
+  end subroutine getTotalEnergy
 
 !----------------------------------------------------------------------------
   subroutine getRefEig(isp, refBand, exportDirEigs, refEig)
