@@ -442,8 +442,8 @@ module energyTabulatorMod
     do isp = 1, nSpins
       if(loopSpins .or. isp == ispSelect) then
 
-        ! Get reference eigenvalue
-        call getRefEig(isp, refBand, exportDirEigs, refEig)
+        ! Get reference eigenvalue from the Gamma point
+        call getSingleEig(refBand, 1, isp, exportDirEigs, refEig)
 
         call getRefToDefectEigDiff(iBandFinit, isp, refBand, exportDirInitInit, elecCarrier, dEEigRefDefect)
 
@@ -678,8 +678,8 @@ module energyTabulatorMod
     do isp = 1, nSpins
       if(loopSpins .or. isp == ispSelect) then
 
-        ! Get reference eigenvalue
-        call getRefEig(isp, refBand, exportDirEigs, refEig)
+        ! Get reference eigenvalue from the Gamma point
+        call getSingleEig(refBand, 1, isp, exportDirEigs, refEig)
 
         do ikLocal = 1, nkPerProc
 
@@ -847,24 +847,26 @@ module energyTabulatorMod
   end subroutine getTotalEnergy
 
 !----------------------------------------------------------------------------
-  subroutine getRefEig(isp, refBand, exportDirEigs, refEig)
+  subroutine getSingleEig(ib, ik, isp, exportDir, eig_ib)
 
     use miscUtilities, only: ignoreNextNLinesFromFile, int2str
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ib
+      !! Band index to get eigenvalue for
+    integer, intent(in) :: ik
+      !! K-point index
     integer, intent(in) :: isp
       !! Current spin channel
-    integer, intent(in) :: refBand
-      !! Band of WZP reference carrier
 
-    character(len=300), intent(in) :: exportDirEigs
-      !! Path to export for system to get eigenvalues
+    character(len=300), intent(in) :: exportDir
+      !! Path to export for system to get eigenvalue
 
     ! Output variables:
-    real(kind=dp), intent(out) :: refEig
-      !! Eigenvalue of WZP reference carrier
+    real(kind=dp), intent(out) :: eig_ib
+      !! Eigenvalue at band index
 
     ! Local variables:
     integer :: iDum
@@ -879,26 +881,24 @@ module energyTabulatorMod
 
     if(ionode) then
 
-      fName = trim(exportDirEigs)//"/eigenvalues."//trim(int2str(isp))//".1"
-        !! Use first k-point as reference and assume that initial
-        !! state is not spin polarized
+      fName = trim(exportDir)//"/eigenvalues."//trim(int2str(isp))//"."//trim(int2str(ik))
 
       open(72, file=fName)
 
-      call ignoreNextNLinesFromFile(72, 2 + (refBand-1))
+      call ignoreNextNLinesFromFile(72, 2 + (ib-1))
         ! Ignore header and all bands before reference band
     
-      read(72, '(i10, 2ES24.15E3)') iDum, refEig, rDum
+      read(72, '(i10, 2ES24.15E3)') iDum, eig_ib, rDum
     
       close(72)
 
     endif
 
-    call MPI_BCAST(refEig, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(eig_ib, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
-  end subroutine getRefEig
+  end subroutine getSingleEig
 
 !----------------------------------------------------------------------------
   subroutine getRefToDefectEigDiff(iBandFinit, isp, refBand, exportDirInitInit, elecCarrier, dEEigRefDefect)
@@ -928,52 +928,27 @@ module energyTabulatorMod
       !! eigenvalue and the defect level
 
     ! Local variables:
-    integer :: iDum
-      !! Dummy integer to ignore band index
-
     real(kind=dp) :: defectEig
       !! Eigenvalue of the defect for capture
-    real(kind=dp) :: rDum
-      !! Dummy real to ignore occupation
     real(kind=dp) :: refEig
       !! Eigenvalue of WZP reference carrier (not the same
       !! as `refEig` used in other places in the code; this
       !! is just to determine the correct distance between
       !! the defect and the band states
 
-    character(len=300) :: fName
-      !! File name
-
 
     if(ionode) then
 
-      fName = trim(exportDirInitInit)//"/eigenvalues."//trim(int2str(isp))//".1"
-        !! Use first k-point as reference and assume that initial
-        !! state is not spin polarized
-
-      open(72, file=fName)
-
-      call ignoreNextNLinesFromFile(72, 2 + (iBandFinit-1))
-        ! Ignore header and all bands before reference band
-    
-      read(72, '(i10, 2ES24.15E3)') iDum, defectEig, rDum
-    
-      close(72)
+      ! Get eigenvalues for the reference band and defect level from 
+      ! the relaxed initial charge state because that correctly reflects
+      ! the binding energy.
+      call getSingleEig(refBand, 1, isp, exportDirInitInit, refEig)
+      call getSingleEig(iBandFinit, 1, isp, exportDirInitInit, defectEig)
 
 
-      open(72, file=fName)
-
-      call ignoreNextNLinesFromFile(72, 2 + (refBand-1))
-        ! Ignore header and all bands before reference band
-    
-      read(72, '(i10, 2ES24.15E3)') iDum, refEig, rDum
-    
-      close(72)
-
-
-      !> Switch the order of the eigenvalue subtraction
-      !> for hole vs electron capture to represent that 
-      !> the actual energy we need is that of the electron
+      ! Switch the order of the eigenvalue subtraction for hole vs electron
+      ! capture to represent that the actual energy we need is that of the 
+      ! electron
       if(elecCarrier) then
         dEEigRefDefect = refEig - defectEig
       else
@@ -987,89 +962,6 @@ module energyTabulatorMod
     return
 
   end subroutine getRefToDefectEigDiff
-
-!----------------------------------------------------------------------------
-  subroutine writeEnergyTable(iBandIInit, iBandIFinal, iBandFInit, iBandFFinal, ikLocal, isp, dEEigRefDefect, eCorrectTot, eCorrectEigRef, &
-      eTotInitInit, eTotFinalInit, eTotFinalFinal, refEig, energyTableDir, exportDirEigs, captured, elecCarrier)
-  
-    implicit none
-    
-    ! Input variables:
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
-    integer, intent(in) :: ikLocal
-      !! Current local k-point
-    integer, intent(in) :: isp
-      !! Current spin channel
-
-    real(kind=dp), intent(in) :: dEEigRefDefect
-      !! Eigenvalue difference between the reference
-      !! eigenvalue and the defect level
-    real(kind=dp), intent(in) :: eCorrectTot
-      !! Total-energy correction, if any
-    real(kind=dp), intent(in) :: eCorrectEigRef
-      !! Correction to eigenvalue difference with reference carrier, if any
-    real(kind=dp), intent(in) :: eTotInitInit
-      !! Total energy of the relaxed initial charge
-      !! state (initial positions)
-    real(kind=dp), intent(in) :: eTotFinalInit
-      !! Total energy of the unrelaxed final charge
-      !! state (initial positions)
-    real(kind=dp), intent(in) :: eTotFinalFinal
-      !! Total energy of the relaxed final charge
-      !! state (final positions)
-    real(kind=dp), intent(in) :: refEig
-      !! Eigenvalue of WZP reference carrier
-
-    character(len=300), intent(in) :: energyTableDir
-      !! Path to energy tables
-    character(len=300), intent(in) :: exportDirEigs
-      !! Path to export for system to get eigenvalues
-
-    logical, intent(in) :: captured
-      !! If carrier is captured as opposed to scattered
-    logical, intent(in) :: elecCarrier
-      !! If carrier is electron as opposed to hole
-
-    ! Local variables:
-    integer :: ibi, ibf
-      !! Loop indices
-    integer :: ikGlobal
-      !! Current global k-point
-    integer :: totalNumberOfElements
-      !! Total number of overlaps to output
-
-    real(kind=dp) :: dEDelta
-      !! Energy to be used in delta function
-    real(kind=dp) :: dEEigRef
-      !! Eigenvalue difference from initial to reference
-    real(kind=dp) :: dEFirst
-      !! Energy to be used in first-order matrix element
-    real(kind=dp) :: dEPlot
-      !! Energy to be used for plotting
-    real(kind=dp) :: dETotElecOnly
-      !! Total energy difference between charge states
-      !! with no change in atomic positions to get the
-      !! electronic-only energy to be used in the 
-      !! zeroth-order matrix element
-    real(kind=dp) :: dETotWRelax
-      !! Total energy difference between relaxed
-      !! charge states to be used in delta function
-    real(kind=dp) :: dEZeroth
-      !! Energy to be used in zeroth-order matrix element
-    real(kind=dp) :: eigvF(iBandFinit:iBandFfinal)
-      !! Final-state eigenvalues
-    real(kind=dp) :: eigvI(iBandIinit:iBandIfinal)
-      !! Initial-state eigenvalues
-    
-    character(len = 300) :: text
-      !! Text for header
-
-
-
-    return
-
-  end subroutine writeEnergyTable
   
 !----------------------------------------------------------------------------
   subroutine readEigenvalues(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, exportDirEigs, eigvF, eigvI)
