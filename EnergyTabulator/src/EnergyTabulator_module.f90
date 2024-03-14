@@ -546,14 +546,9 @@ module energyTabulatorMod
               ! 
               ! For capture, the defect level should not have dispersion, and the level of the 
               ! defect changes between charge states, so we use a single reference energy and
-              ! distance to the defect, taken from the initial-charge-state HSE calculation. 
-              ! For the scattering case, the bands do not have those issues, so we can directly 
-              ! use the final-state eigenvalue.
-              if(captured) then
-                dEFirst = dEEigRef + dEEigRefDefect
-              else
-                dEFirst = abs(eigvI(ibi) - eigvF(ibf))
-              endif
+              ! distance to the defect, taken from the initial-charge-state, Gamma-only HSE 
+              ! calculation. 
+              dEFirst = dEEigRef + dEEigRefDefect
 
           
               ! Energy plotted should be the positive, electronic-only energy difference (same
@@ -584,9 +579,235 @@ module energyTabulatorMod
   end subroutine calcAndWriteCaptureEnergies
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteScatterEnergies()
+  subroutine calcAndWriteScatterEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, nSpins, refBand, eCorrectTot, &
+        eCorrectEigRef, elecCarrier, loopSpins, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
 
     implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+    integer, intent(in) :: nSpins
+      !! Number of spin channels
+    integer, intent(in) :: refBand
+      !! Band of WZP reference carrier
+
+    real(kind=dp), intent(in) :: eCorrectTot
+      !! Total-energy correction, if any
+    real(kind=dp), intent(in) :: eCorrectEigRef
+      !! Correction to eigenvalue difference with reference carrier, if any
+
+    logical, intent(in) :: elecCarrier
+      !! If carrier is electron as opposed to hole
+    logical, intent(in) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
+
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy tables
+    character(len=300), intent(in) :: exportDirEigs
+      !! Path to export for system to get eigenvalues
+    character(len=300), intent(in) :: exportDirInitInit
+      !! Path to export for initial charge state
+      !! in the initial positions
+    character(len=300), intent(in) :: exportDirFinalInit
+      !! Path to export for final charge state
+      !! in the initial positions
+    character(len=300), intent(in) :: exportDirFinalFinal
+      !! Path to export for final charge state
+      !! in the final positions
+
+    ! Local variables:
+    integer :: isp, ikLocal, ikGlobal, ibi, ibf
+      !! Loop indices
+    integer :: totalNumberOfElements
+      !! Total number of overlaps to output
+
+    real(kind=dp) :: dEDelta
+      !! Energy to be used in delta function
+    real(kind=dp) :: dEEigRef
+      !! Eigenvalue difference from initial to reference
+    real(kind=dp) :: dEEigRefDefect
+      !! Eigenvalue difference between the reference
+      !! eigenvalue and the defect level
+    real(kind=dp) :: dEFirst
+      !! Energy to be used in first-order matrix element
+    real(kind=dp) :: dEPlot
+      !! Energy to be used for plotting
+    real(kind=dp) :: dETotElecOnly
+      !! Total energy difference between charge states
+      !! with no change in atomic positions to get the
+      !! electronic-only energy to be used in the 
+      !! zeroth-order matrix element
+    real(kind=dp) :: dETotWRelax
+      !! Total energy difference between relaxed
+      !! charge states to be used in delta function
+    real(kind=dp) :: dEZeroth
+      !! Energy to be used in zeroth-order matrix element
+    real(kind=dp) :: eigvF(iBandFinit:iBandFfinal)
+      !! Final-state eigenvalues
+    real(kind=dp) :: eigvI(iBandIinit:iBandIfinal)
+      !! Initial-state eigenvalues
+    real(kind=dp) :: eTotInitInit
+      !! Total energy of the relaxed initial charge
+      !! state (initial positions)
+    real(kind=dp) :: eTotFinalInit
+      !! Total energy of the unrelaxed final charge
+      !! state (initial positions)
+    real(kind=dp) :: eTotFinalFinal
+      !! Total energy of the relaxed final charge
+      !! state (final positions)
+    real(kind=dp) :: refEig
+      !! Eigenvalue of WZP reference carrier
+    real(kind=dp) :: t1, t2
+      !! Timers
+    
+    character(len = 300) :: text
+      !! Text for header
+
+
+    ! Get total energies from exports of all different structures
+    call getTotalEnergy(exportDirInitInit, eTotInitInit)
+    call getTotalEnergy(exportDirFinalInit, eTotFinalInit)
+    call getTotalEnergy(exportDirFinalFinal, eTotFinalFinal)
+
+
+    do isp = 1, nSpins
+      if(loopSpins .or. isp == ispSelect) then
+
+        ! Get reference eigenvalue
+        call getRefEig(isp, refBand, exportDirEigs, refEig)
+
+        do ikLocal = 1, nkPerProc
+
+          ikGlobal = ikLocal+ikStart-1
+    
+
+          ! Update status to user
+          call cpu_time(t1)
+          write(*, '(" Writing energy table of k-point ", i2, " and spin ", i1, ".")') ikGlobal, isp
+    
+
+          ! Open file and write header (same for capture and scattering)
+          open(17, file=trim(energyTableDir)//"/energyTable."//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), status='unknown')
+    
+          text = "# Total number of <f|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
+          write(17,'(a, " Format : ''(5i10)''")') trim(text)
+    
+          totalNumberOfElements = (iBandIfinal - iBandIinit + 1)*(iBandFfinal - iBandFinit + 1)
+          write(17,'(5i10)') totalNumberOfElements, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+
+
+          ! Include in the output file that these energies are tabulated for capture
+          write(17,'("# Energies tabulated for capture? Alternative is scattering.)")')
+          write(17,'(L4)') .true.
+    
+
+          ! Get the total energy difference between the two charge states, 
+          ! including the atomic relaxation energy (with a potential energy
+          ! correction defined by the user). This dE is used in the delta 
+          ! function.
+          dETotWRelax = eTotFinalFinal - eTotInitInit + eCorrectTot
+
+          write(17,'("# Total-energy difference (Hartree). Format: ''(ES24.15E3)''")') 
+          write(17,'("# With relaxation (for delta function)")')
+          write(17,'(ES24.15E3)') dETotWRelax
+
+
+          ! Get the total energy difference between the two charge states, 
+          ! not including atomic relaxation (with a potential energy correction
+          ! defined by the user). This dE represents the total electronic-only
+          ! energy difference between the two charge states and goes in the
+          ! zeroth-order matrix element.
+          dETotElecOnly = eTotFinalInit - eTotInitInit + eCorrectTot
+
+          write(17,'("# Electronic only without relaxation (for zeroth-order matrix element)")')
+          write(17,'(ES24.15E3)') dETotElecOnly
+    
+
+          ! Output header for main data and loop over bands
+          text = "# Final Band, Initial Band, Delta Function (Hartree), Zeroth-order (Hartree), First-order (Hartree), Plotting (eV)" 
+          write(17, '(a, " Format : ''(2i10,4ES24.15E3)''")') trim(text)
+
+
+          call readEigenvalues(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, exportDirEigs, eigvF, eigvI)
+
+          do ibf = iBandFinit, iBandFfinal
+            do ibi = iBandIinit, iBandIfinal
+
+              ! All of the energies require an eigenvalue difference from a reference band.
+              ! Calculate this once to be used for all of the energies.
+              !
+              ! The energy correction `eCorrectEigRef` should be zero if the reference state
+              ! and initial state are both in the conduction band or both in the valence band,
+              ! since eigenvalue differences within the bands are okay at the PBE level and 
+              ! do not need to be corrected. One example where this correction would be needed 
+              ! is setting up the negative charge state of the triply-hydrogenated Si defect. 
+              ! The simplest treatment of that charge state has the reference carrier in the 
+              ! valence band top, so the distance between the valence band and the conduction 
+              ! band would need to be corrected from PBE to HSE.
+              !
+              ! Switch the order of the eigenvalue subtraction for hole vs electron capture
+              ! to represent that the actual energy we need is that of the electron.
+              if(elecCarrier) then
+                dEEigRef = eigvI(ibi) - refEig + eCorrectEigRef
+              else
+                dEEigRef = refEig - eigvI(ibi) + eCorrectEigRef
+              endif
+
+    
+              ! To get the total energy that needs to be conserved (what goes into the delta
+              ! function), add the total energy difference between the two relaxed charge states
+              ! and the additional eigenvalue energy difference between the initial state and
+              ! the WZP reference-carrier state. 
+              dEDelta = dETotWRelax - dEEigRef
+
+
+              ! The zeroth-order matrix element contains the electronic-only energy difference.
+              ! We get that from a total energy difference between the two charge states in the
+              ! initial positions. Like in the energy for the delta function, the additional 
+              ! carrier energy must also be included with a potential correction.
+              dEZeroth = dETotElecOnly - dEEigRef
+
+
+              ! The first-order term contains only the unperturbed eigenvalue difference. The
+              ! perturbative expansion has \(\varepsilon_i - \varepsilon_f\), in terms of the 
+              ! actual electron (rather than hole). The absolute value is needed for the hole 
+              ! case.
+              ! 
+              ! For capture, the defect level should not have dispersion, and the level of the 
+              ! defect changes between charge states, so we use a single reference energy and
+              ! distance to the defect, taken from the initial-charge-state HSE calculation. 
+              ! For the scattering case, the bands do not have those issues, so we can directly 
+              ! use the final-state eigenvalue.
+              dEFirst = abs(eigvI(ibi) - eigvF(ibf))
+
+          
+              ! Energy plotted should be the positive, electronic-only energy difference (same
+              ! as in zeroth-order) in eV
+              dEPlot = abs(dEZeroth)/eVToHartree
+        
+
+              write(17, 1001) ibf, ibi, dEDelta, dEZeroth, dEFirst, dEPlot
+            
+            enddo ! Loop over initial bands
+          enddo ! Loop over final bands
+
+    
+          close(17)
+    
+          call cpu_time(t2)
+          write(*, '(" Writing energy table of k-point ", i4, "and spin ", i1, " done in:                   ", f10.2, " secs.")') &
+            ikGlobal, isp, t2-t1
+    
+ 1001     format(2i7,4ES24.15E3)
+
+        enddo ! Loop over local k-points
+      endif ! If we should calculate this spin
+    enddo ! Loop over spins
 
     return
 
