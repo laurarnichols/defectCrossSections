@@ -285,6 +285,9 @@ module PhononPPMod
       !! If there is just a single displacement to consider
 
     ! Local variables:
+    integer :: ibi, ibf
+      !! Loop indices
+
     logical :: abortExecution
       !! Whether or not to abort the execution
 
@@ -316,7 +319,18 @@ module PhononPPMod
         abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
         abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
 
-        abortExecution = checkDirInitialization('CONTCARsBaseDir', CONTCARsBaseDir, trim(int2str(iBandIinit))//'/CONTCAR') .or. abortExecution
+        do ibi = iBandIinit, iBandIfinal
+          abortExecution = checkFileInitialization('CONTCARsBaseDir/'//trim(int2str(ibi))//'/CONTCAR', &
+                                               trim(CONTCARsBaseDir)//'/'//trim(int2str(ibi))//'/CONTCAR') .or. abortExecution
+        enddo
+
+        do ibf = iBandFinit, iBandFfinal
+          if(ibf < iBandIinit .or. ibf > iBandIfinal) &
+            abortExecution = checkFileInitialization('CONTCARsBaseDir/'//trim(int2str(ibf))//'/CONTCAR', &
+                                               trim(CONTCARsBaseDir)//'/'//trim(int2str(ibf))//'/CONTCAR') .or. abortExecution
+
+        enddo
+
       endif
     endif
 
