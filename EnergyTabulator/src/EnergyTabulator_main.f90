@@ -25,7 +25,7 @@ program energyTabulatorMain
 
 
   if(captured) then
-    call calcAndWriteCaptureEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, nSpins, refBand, eCorrectTot, &
+    call calcAndWriteCaptureEnergies(iBandIinit, iBandIfinal, iBandFinit, ispSelect, nSpins, refBand, eCorrectTot, &
          eCorrectEigRef, elecCarrier, loopSpins, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
   else
     call calcAndWriteScatterEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, nSpins, refBand, eCorrectTot, &

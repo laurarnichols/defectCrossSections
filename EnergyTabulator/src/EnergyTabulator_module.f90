@@ -343,13 +343,13 @@ module energyTabulatorMod
   end subroutine getnSpinsAndnKPoints
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteCaptureEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, nSpins, refBand, eCorrectTot, &
+  subroutine calcAndWriteCaptureEnergies(iBandIinit, iBandIfinal, iBandFinit, ispSelect, nSpins, refBand, eCorrectTot, &
         eCorrectEigRef, elecCarrier, loopSpins, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit
       !! Energy band bounds for initial and final state
     integer, intent(in) :: ispSelect
       !! Selection of a single spin channel if input
@@ -385,7 +385,7 @@ module energyTabulatorMod
       !! in the final positions
 
     ! Local variables:
-    integer :: isp, ikLocal, ikGlobal, ibi, ibf
+    integer :: isp, ikLocal, ikGlobal, ibi
       !! Loop indices
     integer :: totalNumberOfElements
       !! Total number of overlaps to output
@@ -411,8 +411,6 @@ module energyTabulatorMod
       !! charge states to be used in delta function
     real(kind=dp) :: dEZeroth
       !! Energy to be used in zeroth-order matrix element
-    real(kind=dp) :: eigvF(iBandFinit:iBandFfinal)
-      !! Final-state eigenvalues
     real(kind=dp) :: eigvI(iBandIinit:iBandIfinal)
       !! Initial-state eigenvalues
     real(kind=dp) :: eTotInitInit
@@ -499,67 +497,65 @@ module energyTabulatorMod
           write(17, '(a, " Format : ''(2i10,4ES24.15E3)''")') trim(text)
 
 
-          call readEigenvalues(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, exportDirEigs, eigvF, eigvI)
+          call readEigenvalues(iBandIinit, iBandIfinal, ikGlobal, isp, exportDirEigs, eigvI)
 
-          do ibf = iBandFinit, iBandFfinal
-            do ibi = iBandIinit, iBandIfinal
+          do ibi = iBandIinit, iBandIfinal
 
-              ! All of the energies require an eigenvalue difference from a reference band.
-              ! Calculate this once to be used for all of the energies.
-              !
-              ! The energy correction `eCorrectEigRef` should be zero if the reference state
-              ! and initial state are both in the conduction band or both in the valence band,
-              ! since eigenvalue differences within the bands are okay at the PBE level and 
-              ! do not need to be corrected. One example where this correction would be needed 
-              ! is setting up the negative charge state of the triply-hydrogenated Si defect. 
-              ! The simplest treatment of that charge state has the reference carrier in the 
-              ! valence band top, so the distance between the valence band and the conduction 
-              ! band would need to be corrected from PBE to HSE.
-              !
-              ! Switch the order of the eigenvalue subtraction for hole vs electron capture
-              ! to represent that the actual energy we need is that of the electron.
-              if(elecCarrier) then
-                dEEigRef = eigvI(ibi) - refEig + eCorrectEigRef
-              else
-                dEEigRef = refEig - eigvI(ibi) + eCorrectEigRef
-              endif
+            ! All of the energies require an eigenvalue difference from a reference band.
+            ! Calculate this once to be used for all of the energies.
+            !
+            ! The energy correction `eCorrectEigRef` should be zero if the reference state
+            ! and initial state are both in the conduction band or both in the valence band,
+            ! since eigenvalue differences within the bands are okay at the PBE level and 
+            ! do not need to be corrected. One example where this correction would be needed 
+            ! is setting up the negative charge state of the triply-hydrogenated Si defect. 
+            ! The simplest treatment of that charge state has the reference carrier in the 
+            ! valence band top, so the distance between the valence band and the conduction 
+            ! band would need to be corrected from PBE to HSE.
+            !
+            ! Switch the order of the eigenvalue subtraction for hole vs electron capture
+            ! to represent that the actual energy we need is that of the electron.
+            if(elecCarrier) then
+              dEEigRef = eigvI(ibi) - refEig + eCorrectEigRef
+            else
+              dEEigRef = refEig - eigvI(ibi) + eCorrectEigRef
+            endif
 
     
-              ! To get the total energy that needs to be conserved (what goes into the delta
-              ! function), add the total energy difference between the two relaxed charge states
-              ! and the additional eigenvalue energy difference between the initial state and
-              ! the WZP reference-carrier state. 
-              dEDelta = dETotWRelax - dEEigRef
+            ! To get the total energy that needs to be conserved (what goes into the delta
+            ! function), add the total energy difference between the two relaxed charge states
+            ! and the additional eigenvalue energy difference between the initial state and
+            ! the WZP reference-carrier state. 
+            dEDelta = dETotWRelax - dEEigRef
 
 
-              ! The zeroth-order matrix element contains the electronic-only energy difference.
-              ! We get that from a total energy difference between the two charge states in the
-              ! initial positions. Like in the energy for the delta function, the additional 
-              ! carrier energy must also be included with a potential correction.
-              dEZeroth = dETotElecOnly - dEEigRef
+            ! The zeroth-order matrix element contains the electronic-only energy difference.
+            ! We get that from a total energy difference between the two charge states in the
+            ! initial positions. Like in the energy for the delta function, the additional 
+            ! carrier energy must also be included with a potential correction.
+            dEZeroth = dETotElecOnly - dEEigRef
 
 
-              ! The first-order term contains only the unperturbed eigenvalue difference. The
-              ! perturbative expansion has \(\varepsilon_i - \varepsilon_f\), in terms of the 
-              ! actual electron (rather than hole). The absolute value is needed for the hole 
-              ! case.
-              ! 
-              ! For capture, the defect level should not have dispersion, and the level of the 
-              ! defect changes between charge states, so we use a single reference energy and
-              ! distance to the defect, taken from the initial-charge-state, Gamma-only HSE 
-              ! calculation. 
-              dEFirst = dEEigRef + dEEigRefDefect
+            ! The first-order term contains only the unperturbed eigenvalue difference. The
+            ! perturbative expansion has \(\varepsilon_i - \varepsilon_f\), in terms of the 
+            ! actual electron (rather than hole). The absolute value is needed for the hole 
+            ! case.
+            ! 
+            ! For capture, the defect level should not have dispersion, and the level of the 
+            ! defect changes between charge states, so we use a single reference energy and
+            ! distance to the defect, taken from the initial-charge-state, Gamma-only HSE 
+            ! calculation. 
+            dEFirst = dEEigRef + dEEigRefDefect
 
           
-              ! Energy plotted should be the positive, electronic-only energy difference (same
-              ! as in zeroth-order) in eV
-              dEPlot = abs(dEZeroth)/eVToHartree
+            ! Energy plotted should be the positive, electronic-only energy difference (same
+            ! as in zeroth-order) in eV
+            dEPlot = abs(dEZeroth)/eVToHartree
         
 
-              write(17, 1001) ibf, ibi, dEDelta, dEZeroth, dEFirst, dEPlot
+            write(17, 1001) iBandFinit, ibi, dEDelta, dEZeroth, dEFirst, dEPlot
             
-            enddo ! Loop over initial bands
-          enddo ! Loop over final bands
+          enddo ! Loop over initial bands
 
     
           close(17)
@@ -733,7 +729,7 @@ module energyTabulatorMod
           write(17, '(a, " Format : ''(2i10,4ES24.15E3)''")') trim(text)
 
 
-          call readEigenvalues(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, exportDirEigs, eigvF, eigvI)
+          call readEigenvalues(iBandIinit, iBandIfinal, ikGlobal, isp, exportDirEigs, eigvI)
 
           do ibf = iBandFinit, iBandFfinal
             do ibi = iBandIinit, iBandIfinal
@@ -964,15 +960,15 @@ module energyTabulatorMod
   end subroutine getRefToDefectEigDiff
   
 !----------------------------------------------------------------------------
-  subroutine readEigenvalues(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, exportDirEigs, eigvF, eigvI)
+  subroutine readEigenvalues(iBandInit, iBandFinal, ikGlobal, isp, exportDirEigs, eigv)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
     
     ! Input variables
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
+    integer, intent(in) :: iBandInit, iBandFinal
+      !! Energy band bounds
     integer, intent(in) :: ikGlobal
       !! Current global k-point
     integer, intent(in) :: isp
@@ -982,10 +978,8 @@ module energyTabulatorMod
       !! Path to export for system to get eigenvalues
 
     ! Output variables:
-    real(kind=dp), intent(out) :: eigvF(iBandFinit:iBandFfinal)
-      !! Final-state eigenvalues
-    real(kind=dp), intent(out) :: eigvI(iBandIinit:iBandIfinal)
-      !! Initial-state eigenvalues
+    real(kind=dp), intent(out) :: eigv(iBandInit:iBandFinal)
+      !! Eigenvalues
 
     ! Local variables:
     integer :: ib
@@ -1004,28 +998,15 @@ module energyTabulatorMod
 
     open(72, file=fName)
 
-    call ignoreNextNLinesFromFile(72, 2 + (iBandIinit-1))
-      ! Ignore header and all bands before lowest initial-state band
+    ! Ignore header and all bands before lowest band
+    call ignoreNextNLinesFromFile(72, 2 + (iBandInit-1))
     
-    do ib = iBandIinit, iBandIfinal
-      read(72, '(i10, 2ES24.15E3)') iDum, eigvI(ib), rDum
+    do ib = iBandInit, iBandFinal
+      read(72, '(i10, 2ES24.15E3)') iDum, eigv(ib), rDum
     enddo
     
     close(72)
     
-
-    open(72, file=fName)
-
-    call ignoreNextNLinesFromFile(72, 2 + (iBandFinit-1))
-      ! Ignore header and all bands before lowest final-state band
-    
-    do ib = iBandFinit, iBandFfinal
-      read(72, '(i10, 2ES24.15E3)') iDum, eigvF(ib), rDum
-    enddo
-    
-    close(72)
-
-
     return
     
   end subroutine readEigenvalues
