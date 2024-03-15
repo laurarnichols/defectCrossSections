@@ -608,7 +608,8 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine calcAndWriteScatterEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, nSpins, refBand, eCorrectTot, &
-        eCorrectEigRef, elecCarrier, loopSpins, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
+        eCorrectEigRef, elecCarrier, loopSpins, bandExportsBaseDir, energyTableDir, exportDirEigs, exportDirInitInit, &
+        exportDirFinalInit, exportDirFinalFinal)
 
     implicit none
 
@@ -634,6 +635,8 @@ module energyTabulatorMod
       !! Whether to loop over available spin channels;
       !! otherwise, use selected spin channel
 
+    character(len=300), intent(in) :: bandExportsBaseDir
+      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy tables
     character(len=300), intent(in) :: exportDirEigs

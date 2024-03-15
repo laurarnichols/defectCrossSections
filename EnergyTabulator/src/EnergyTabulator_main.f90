@@ -29,7 +29,8 @@ program energyTabulatorMain
          eCorrectEigRef, elecCarrier, loopSpins, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
   else
     call calcAndWriteScatterEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, nSpins, refBand, eCorrectTot, &
-         eCorrectEigRef, elecCarrier, loopSpins, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
+        eCorrectEigRef, elecCarrier, loopSpins, bandExportsBaseDir, energyTableDir, exportDirEigs, exportDirInitInit, &
+        exportDirFinalInit, exportDirFinalFinal)
   endif
 
 
