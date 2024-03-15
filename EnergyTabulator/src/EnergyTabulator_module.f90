@@ -24,7 +24,7 @@ module energyTabulatorMod
   real(kind=dp) :: eCorrectEigRef
     !! Correction to eigenvalue difference with reference carrier, if any
 
-  character(len=300) :: CONTCARsBaseDir
+  character(len=300) :: bandExportsBaseDir
     !! Base dir for sets of relaxed files if not captured
   character(len=300) :: energyTableDir
     !! Path to energy tables
@@ -46,7 +46,7 @@ module energyTabulatorMod
     !! If carrier is electron as opposed to hole
 
   namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, energyTableDir, &
-                         eCorrectTot, eCorrectEigRef, captured, elecCarrier, ispSelect, CONTCARsBaseDir, &
+                         eCorrectTot, eCorrectEigRef, captured, elecCarrier, ispSelect, bandExportsBaseDir, &
                          iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand
 
 
@@ -54,7 +54,7 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef, &
-        CONTCARsBaseDir, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
+        bandExportsBaseDir, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
 
     implicit none
 
@@ -72,7 +72,7 @@ module energyTabulatorMod
     real(kind=dp), intent(out) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
-    character(len=300), intent(out) :: CONTCARsBaseDir
+    character(len=300), intent(out) :: bandExportsBaseDir
       !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy tables
@@ -97,7 +97,7 @@ module energyTabulatorMod
     if(ionode) then
 
       ! Set default values for input variables and start timers
-      call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef, CONTCARsBaseDir, &
+      call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef, bandExportsBaseDir, &
             energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
     
       ! Read input variables
@@ -107,7 +107,7 @@ module energyTabulatorMod
 
       ! Check that all variables were properly set
       call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef, &
-            CONTCARsBaseDir, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, &
+            bandExportsBaseDir, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, &
             elecCarrier, loopSpins)
 
     endif
@@ -126,7 +126,7 @@ module energyTabulatorMod
     call MPI_BCAST(eCorrectTot, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(eCorrectEigRef, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
-    call MPI_BCAST(CONTCARsBaseDir, len(CONTCARsBaseDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(bandExportsBaseDir, len(bandExportsBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(exportDirEigs, len(exportDirEigs), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(exportDirInitInit, len(exportDirInitInit), MPI_CHARACTER, root, worldComm, ierr)
@@ -142,7 +142,7 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef, &
-        CONTCARsBaseDir, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
+        bandExportsBaseDir, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier)
     !! Set the default values for input variables and start timer
     !!
     !! <h2>Walkthrough</h2>
@@ -169,7 +169,7 @@ module energyTabulatorMod
     real(kind=dp), intent(out) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
-    character(len=300), intent(out) :: CONTCARsBaseDir
+    character(len=300), intent(out) :: bandExportsBaseDir
       !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy tables
@@ -202,7 +202,7 @@ module energyTabulatorMod
     eCorrectTot = 0.0_dp
     eCorrectEigRef = 0.0_dp
 
-    CONTCARsBaseDir = ''
+    bandExportsBaseDir = ''
     energyTableDir = './'
     exportDirEigs = ''
     exportDirInitInit = ''
@@ -216,7 +216,7 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, refBand, eCorrectTot, eCorrectEigRef, &
-      CONTCARsBaseDir, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier, loopSpins)
+      bandExportsBaseDir, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, captured, elecCarrier, loopSpins)
 
     implicit none
 
@@ -234,7 +234,7 @@ module energyTabulatorMod
     real(kind=dp), intent(inout) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
-    character(len=300), intent(in) :: CONTCARsBaseDir
+    character(len=300), intent(in) :: bandExportsBaseDir
       !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy tables
@@ -301,14 +301,14 @@ module energyTabulatorMod
     else
 
       do ibi = iBandIinit, iBandIfinal
-        abortExecution = checkFileInitialization('CONTCARsBaseDir/'//trim(int2str(ibi))//'/CONTCAR', &
-                                             trim(CONTCARsBaseDir)//'/'//trim(int2str(ibi))//'/CONTCAR') .or. abortExecution
+        abortExecution = checkFileInitialization('bandExportsBaseDir/'//trim(int2str(ibi))//'/export/input', &
+                                             trim(bandExportsBaseDir)//'/'//trim(int2str(ibi))//'/export/input') .or. abortExecution
       enddo
 
       do ibf = iBandFinit, iBandFfinal
         if(ibf < iBandIinit .or. ibf > iBandIfinal) &
-          abortExecution = checkFileInitialization('CONTCARsBaseDir/'//trim(int2str(ibf))//'/CONTCAR', &
-                                               trim(CONTCARsBaseDir)//'/'//trim(int2str(ibf))//'/CONTCAR') .or. abortExecution
+          abortExecution = checkFileInitialization('bandExportsBaseDir/'//trim(int2str(ibf))//'/export/input', &
+                                               trim(bandExportsBaseDir)//'/'//trim(int2str(ibf))//'/export/input') .or. abortExecution
 
       enddo
 
@@ -696,12 +696,12 @@ module energyTabulatorMod
 
     ! Get total energies from exports of all different structures
     do ibi = iBandIinit, iBandIfinal
-      path = trim(CONTCARsBaseDir)//'/'//trim(int2str(ibi))//'/'
+      path = trim(bandExportsBaseDir)//'/'//trim(int2str(ibi))//'/'
       call getTotalEnergy(path, eTotInit(ibi))
     enddo
 
     do ibf = iBandFinit, iBandFfinal
-      path = trim(CONTCARsBaseDir)//'/'//trim(int2str(ibf))//'/'
+      path = trim(bandExportsBaseDir)//'/'//trim(int2str(ibf))//'/'
       call getTotalEnergy(path, eTotFinal(ibf))
     enddo
 
