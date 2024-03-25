@@ -28,7 +28,7 @@ There are two cases that `PhononPP` can be run with: a single displacement (e.g.
   
   ! Calculating max displacement:
   calcMaxDisp = logical               ! Default .false.; if max displacement between two atoms across modes should be calculated
-  dispInd     = int1, int2            ! Two integers for indices of atoms to get relative displacement for each mode             
+  disp2AtomInd     = int1, int2            ! Two integers for indices of atoms to get relative displacement for each mode             
 
   ! Needed to get dq and shifted POSCARs and calculating max displacement:
   basePOSCARFName = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from
@@ -69,7 +69,7 @@ For a range of displacements, the inputs should look like
 
   ! Calculating max displacement:
   calcMaxDisp = logical               ! Default .false.; if max displacement between two atoms across modes should be calculated
-  dispInd     = int1, int2            ! Two integers for indices of atoms to get relative displacement for each mode             
+  disp2AtomInd     = int1, int2            ! Two integers for indices of atoms to get relative displacement for each mode             
 
   ! Needed to get dq and shifted POSCARs and calculating max displacement:
   basePOSCARFName = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from

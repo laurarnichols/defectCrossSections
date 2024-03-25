@@ -9,7 +9,7 @@ program PhononPPMain
 
   call mpiInitialization('PhononPP')
 
-  call readInputs(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, freqThresh, &
+  call readInputs(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, freqThresh, &
         shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, & 
         calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
 
@@ -28,7 +28,7 @@ program PhononPPMain
 
 
   if(calcDq .or. generateShiftedPOSCARs .or. calcMaxDisp) &
-    call calculateShiftAndDq(dispInd, nAtoms, nModes, coordFromPhon, eigenvector, mass, shift, calcDq, calcMaxDisp, &
+    call calculateShiftAndDq(disp2AtomInd, nAtoms, nModes, coordFromPhon, eigenvector, mass, shift, calcDq, calcMaxDisp, &
           generateShiftedPOSCARs, basePOSCARFName, dqFName, prefix)
 
 

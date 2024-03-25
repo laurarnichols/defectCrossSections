@@ -18,7 +18,7 @@ module PhononPPMod
     !! Timers
 
   ! Variables that should be passed as arguments:
-  integer :: dispInd(2)
+  integer :: disp2AtomInd(2)
     !! Index of atoms to check displacement
     !! between if calcMaxDisp
   integer :: ikIinit, ikIfinal, ikFinit, ikFfinal
@@ -70,20 +70,20 @@ module PhononPPMod
 
   namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, singleDisp, &
                          iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CONTCARsBaseDir, basePOSCARFName, freqThresh, calcSj, &
-                         calcDq, calcMaxDisp, dispInd, ikIinit, ikIfinal, ikFinit, ikFfinal
+                         calcDq, calcMaxDisp, disp2AtomInd, ikIinit, ikIfinal, ikFinit, ikFfinal
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputs(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, freqThresh, &
+  subroutine readInputs(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, freqThresh, &
         shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, & 
         calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
     ! Output variables:
-    integer, intent(out) :: dispInd(2)
+    integer, intent(out) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
@@ -124,7 +124,7 @@ module PhononPPMod
 
     if(ionode) then
 
-      call initialize(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
+      call initialize(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
             freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, &
             prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
         ! Set default values for input variables and start timers
@@ -135,14 +135,14 @@ module PhononPPMod
       if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
+      call checkInitialization(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
           freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, &
           calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
 
     endif
 
     ! Send to other processes only what they need to know
-    call MPI_BCAST(dispInd, 2, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(disp2AtomInd, 2, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandIinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -173,7 +173,7 @@ module PhononPPMod
   end subroutine readInputs
 
 !----------------------------------------------------------------------------
-  subroutine initialize(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
+  subroutine initialize(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
         freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, &
         prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
     !! Set the default values for input variables, open output files,
@@ -185,7 +185,7 @@ module PhononPPMod
     implicit none
 
     ! Output variables:
-    integer, intent(out) :: dispInd(2)
+    integer, intent(out) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
@@ -224,7 +224,7 @@ module PhononPPMod
       !! If there is just a single displacement to consider
 
 
-    dispInd = -1
+    disp2AtomInd = -1
     iBandIinit  = -1
     iBandIfinal = -1
     iBandFinit  = -1
@@ -257,14 +257,14 @@ module PhononPPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
+  subroutine checkInitialization(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
       freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, &
       calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: dispInd(2)
+    integer, intent(in) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
@@ -379,8 +379,8 @@ module PhononPPMod
 
     ! Need for calculating max displacement:
     if(calcMaxDisp) then
-      abortExecution = checkIntInitialization('dispInd(1)', dispInd(1), 1, int(1e9)) .or. abortExecution
-      abortExecution = checkIntInitialization('dispInd(2)', dispInd(2), 1, int(1e9)) .or. abortExecution
+      abortExecution = checkIntInitialization('disp2AtomInd(1)', disp2AtomInd(1), 1, int(1e9)) .or. abortExecution
+      abortExecution = checkIntInitialization('disp2AtomInd(2)', disp2AtomInd(2), 1, int(1e9)) .or. abortExecution
     endif
 
     if(abortExecution) then
@@ -981,13 +981,13 @@ module PhononPPMod
   end subroutine calcAndWriteSj
 
 !----------------------------------------------------------------------------
-  subroutine calculateShiftAndDq(dispInd, nAtoms, nModes, coordFromPhon, eigenvector, mass, shift, calcDq, calcMaxDisp, &
+  subroutine calculateShiftAndDq(disp2AtomInd, nAtoms, nModes, coordFromPhon, eigenvector, mass, shift, calcDq, calcMaxDisp, &
         generateShiftedPOSCARs, basePOSCARFName, dqFName, prefix)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: dispInd(2)
+    integer, intent(in) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
     integer, intent(inout) :: nAtoms
@@ -1104,7 +1104,7 @@ module PhononPPMod
       displacement = getShiftDisplacement(nAtoms, eigenvector(:,:,j), realLattVec, mass, shift)
 
       if(calcMaxDisp) then
-        relDisp = displacement(:,dispInd(1)) - displacement(:,dispInd(2))
+        relDisp = displacement(:,disp2AtomInd(1)) - displacement(:,disp2AtomInd(2))
 
         relDispMag(j) = sqrt(dot_product(relDisp,relDisp))
       endif
@@ -1132,7 +1132,7 @@ module PhononPPMod
       call mpiSumDoubleV(relDispMag, worldComm)
 
       if(ionode) write(*,'("Maximum displacement between atoms ", i4," and ",i4," is ",1ES12.3E2," in mode ",i6)') &
-            dispInd(1), dispInd(2), relDispMag(maxloc(relDispMag)), maxloc(relDispMag)
+            disp2AtomInd(1), disp2AtomInd(2), relDispMag(maxloc(relDispMag)), maxloc(relDispMag)
     endif
 
     deallocate(relDispMag)
