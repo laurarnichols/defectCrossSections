@@ -9,9 +9,9 @@ program PhononPPMain
 
   call mpiInitialization('PhononPP')
 
-  call readInputs(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, &
-        CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, & 
-        generateShiftedPOSCARs, singleDisp)
+  call readInputs(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, freqThresh, &
+        shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, & 
+        calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
 
 
   call readPhonons(freqThresh, phononFName, nAtoms, nModes, coordFromPhon, eigenvector, mass, omegaFreq)
@@ -20,8 +20,8 @@ program PhononPPMain
 
 
   if(calcSj) &
-    call calculateSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nAtoms, nModes, coordFromPhon, eigenvector, mass, &
-          omegaFreq, singleDisp, CONTCARsBaseDir, initPOSCARFName, finalPOSCARFName)
+    call calculateSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, nAtoms, nModes, &
+          coordFromPhon, eigenvector, mass, omegaFreq, singleDisp, CONTCARsBaseDir, initPOSCARFName, finalPOSCARFName)
 
 
   deallocate(omegaFreq)
