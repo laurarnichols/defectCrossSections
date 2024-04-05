@@ -373,7 +373,7 @@ module PhononPPMod
 
     ! Needed for dq and shifted POSCARs and calculating max displacement:
     if(calcDq .or. generateShiftedPOSCARs .or. calcMaxDisp) then
-      abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 1.0_dp) .or. abortExecution
+      abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 10.0_dp) .or. abortExecution
       abortExecution = checkFileInitialization('basePOSCARFName', basePOSCARFName) .or. abortExecution
     endif
 
