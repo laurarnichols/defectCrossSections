@@ -6,7 +6,7 @@ module LSFmod
   use miscUtilities, only: int2strLeadZero, int2str
   use errorsAndMPI
 
-  use energyTabulatorMod, only: energyTableDir, readEnergyTable
+  use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable
 
   implicit none 
 
@@ -491,7 +491,7 @@ contains
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
-    real(kind=dp), intent(in) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal,4,nkPerPool)
+    real(kind=dp), intent(in) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal,3,nkPerPool)
       !! All energy differences from energy table
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
@@ -626,10 +626,10 @@ contains
 
         write(37,'("# Temperature (K): ", f7.1)') temperature
 
-        write(37,'("# Initial state, dEPlot (eV), Transition rate Format : ''(i10, f10.5, ES24.15E3)''")')
+        write(37,'("# Initial state, Transition rate Format : ''(i10, f10.5, ES24.15E3)''")')
 
         do ibi = iBandIinit, iBandIfinal
-          write(37,'(i10, f10.5,ES24.14E3)') ibi, dE(iBandFinit,ibi,4,ikLocal), transitionRate(ibi,ikLocal)
+          write(37,'(i10, ES24.14E3)') ibi, transitionRate(ibi,ikLocal)
             ! Plotting energy doesn't depend on final band, so
             ! just pick one
         enddo

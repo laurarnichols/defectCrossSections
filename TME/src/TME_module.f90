@@ -4,7 +4,7 @@
 module TMEmod
   use constants, only: dp, pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
-  use energyTabulatorMod, only: energyTableDir, readEnergyTable
+  use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable
   use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, nSpins, order, ispSelect, loopSpins
 
   use errorsAndMPI
@@ -83,7 +83,7 @@ module TMEmod
   real(kind = dp) :: omega
   
   real(kind = dp), allocatable :: gvecs(:,:), posIonSD(:,:), posIonPC(:,:)
-  real(kind = dp), allocatable :: wk(:), xk(:,:)
+  real(kind = dp), allocatable :: xk(:,:)
   real(kind = dp), allocatable :: DE(:,:,:), absVfi2(:,:,:)
   
   complex(kind = dp), allocatable :: paw_SDKKPC(:,:), paw_id(:,:)
@@ -96,7 +96,7 @@ module TMEmod
   integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:)
   integer, allocatable :: npwsSD(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
   integer, allocatable :: npwsPC(:)
-  real(kind = dp), allocatable :: wkPC(:), xkPC(:,:)
+  real(kind = dp), allocatable :: xkPC(:,:)
   
   type :: atom
     integer :: numOfAtoms, lMax, lmMax, nMax, iRc
@@ -375,6 +375,8 @@ contains
     integer :: i, j, l, ind, ik, iDum, iType, ni, irc
     
     real(kind = dp) :: t1, t2 
+    real(kind=dp) :: rDum
+      !! Dummy real variable
     
     character(len = 300) :: textDum
     
@@ -410,7 +412,7 @@ contains
     call MPI_BCAST(nSpinsPC, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     
-    allocate(npwsPC(nKPoints), wkPC(nKPoints), xkPC(3,nKPoints))
+    allocate(npwsPC(nKPoints), xkPC(3,nKPoints))
     
     if(ionode) then
 
@@ -418,14 +420,13 @@ contains
     
       do ik = 1, nKPoints
       
-        read(50, '(2i10,4ES24.15E3)') iDum, npwsPC(ik), wkPC(ik), xkPC(1:3,ik)
+        read(50, '(2i10,4ES24.15E3)') iDum, npwsPC(ik), rDum, xkPC(1:3,ik)
       
       enddo
 
     endif
     
     call MPI_BCAST(npwsPC, nKPoints, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(wkPC, nKPoints, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(xkPC, nKPoints, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     if(ionode) then
@@ -638,6 +639,7 @@ contains
     integer :: i, j, l, ind, ik, iDum, iType, ni, irc
     
     real(kind = dp) :: t1, t2
+    real(kind=dp) :: rDum
     
     character(len = 300) :: textDum
     
@@ -685,20 +687,19 @@ contains
     call MPI_BCAST(nSpinsSD, 1, MPI_INTEGER, root, worldComm, ierr)
 
     
-    allocate(npwsSD(nKPoints), wk(nKPoints), xk(3,nKPoints))
+    allocate(npwsSD(nKPoints), xk(3,nKPoints))
 
     if(ionode) then
     
       do ik = 1, nKPoints
       
-        read(50, '(2i10,4ES24.15E3)') iDum, npwsSD(ik), wk(ik), xk(1:3,ik)
+        read(50, '(2i10,4ES24.15E3)') iDum, npwsSD(ik), rDum, xk(1:3,ik)
       
       enddo
 
     endif
     
     call MPI_BCAST(npwsSD, nKPoints, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(wk, nKPoints, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(xk, nKPoints, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     if(ionode) then
@@ -1725,7 +1726,7 @@ contains
     integer :: totalNumberOfElements
       !! Total number of overlaps to output
 
-    real(kind=dp) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal,4)
+    real(kind=dp) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal,3)
       !! Energy difference to be combined with
       !! overlap for matrix element
     
@@ -1768,7 +1769,7 @@ contains
     endif
 
 
-    call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, energyTableDir, dE)
+    call readCaptureEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, energyTableDir, dE)
 
     do ibf = iBandFinit, iBandFfinal
       do ibi = iBandIinit, iBandIfinal
@@ -2109,7 +2110,6 @@ contains
 
 
     deallocate(npwsPC)
-    deallocate(wkPC)
     deallocate(xkPC)
     deallocate(posIonPC)
     deallocate(TYPNIPC)
@@ -2127,7 +2127,6 @@ contains
     deallocate(atomsPC)
 
     deallocate(npwsSD)
-    deallocate(wk)
     deallocate(xk)
     deallocate(posIonSD)
     deallocate(TYPNISD)
