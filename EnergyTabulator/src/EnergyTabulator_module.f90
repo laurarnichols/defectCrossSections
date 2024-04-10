@@ -583,7 +583,7 @@ module energyTabulatorMod
           write(17, '(a, " Format : ''(2i10,4ES24.15E3)''")') trim(text)
 
           
-          open(27,file="dEPlot."//trim(int2str(isp)))
+          open(27,file="dEPlot."//trim(int2str(isp))//trim(int2str(ikGlobal)))
           write(27,'("# ib, Total elec. energy diff. from ref. (eV)")')
 
 
