@@ -957,13 +957,20 @@ module wfcExportVASPMod
         !!    density.
         !! @endnote
 
+      line = getFirstLineWithKeyword(57,'stress')
+        ! The stress keyword only shows up once at the end of
+        ! the calculation, so search for that first, then read
+        ! the final total energy. 
+        ! NOTE: This only works for nonrelaxations.
       line = getFirstLineWithKeyword(57,'e_wo_entrp')
         !! * Ignore everything until you get to a
         !!   line with `'e_wo_entrp'`, indicating the
         !!   tag with the total energy
 
       read(line,'(a25,f16.8,a5)') cDum, eTot, cDum
+      write(*,*) eTot
       eTot = eTot*eVToRy
+      write(*,*) eTot
 
 
       line = getFirstLineWithKeyword(57,'efermi')
