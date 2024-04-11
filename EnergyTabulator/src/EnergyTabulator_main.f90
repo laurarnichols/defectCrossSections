@@ -15,7 +15,7 @@ program energyTabulatorMain
   ! Get inputs from user
   call readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
         ispSelect, refBand, eCorrectTot, eCorrectEigRef, allStatesBaseDir, energyTableDir, exportDirEigs, &
-        exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, singleStateExportDir, captured, elecCarrier)
+        exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, singleStateExportDir, captured, elecCarrier, loopSpins)
 
 
   call getnSpinsAndnKPoints(exportDirEigs, nKPoints, nSpins)

@@ -52,18 +52,13 @@ module energyTabulatorMod
   logical :: elecCarrier
     !! If carrier is electron as opposed to hole
 
-  namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, energyTableDir, &
-                         eCorrectTot, eCorrectEigRef, captured, elecCarrier, ispSelect, allStatesBaseDir, singleStateExportDir, &
-                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-                         ibShift_eig
-
 
   contains
 
 !----------------------------------------------------------------------------
   subroutine readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
         ispSelect, refBand, eCorrectTot, eCorrectEigRef, allStatesBaseDir, energyTableDir, exportDirEigs, &
-        exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, singleStateExportDir, captured, elecCarrier)
+        exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, singleStateExportDir, captured, elecCarrier, loopSpins)
 
     implicit none
 
@@ -108,6 +103,14 @@ module energyTabulatorMod
       !! If carrier is captured as opposed to scattered
     logical, intent(out) :: elecCarrier
       !! If carrier is electron as opposed to hole
+    logical, intent(out) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
+  
+    namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, energyTableDir, &
+                           eCorrectTot, eCorrectEigRef, captured, elecCarrier, ispSelect, allStatesBaseDir, singleStateExportDir, &
+                           iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, ikIinit, ikIfinal, ikFinit, ikFfinal, &
+                           ibShift_eig
 
 
     if(ionode) then
@@ -549,11 +552,11 @@ module energyTabulatorMod
           write(17,'(L4)') .true.
 
     
-          text = "# Total number of transitions, Initial States (bandI, bandF), Final States (bandI, bandF)"
+          text = "# Total number of transitions, Initial States (bandI, bandF), Final State (band)"
           write(17,'(a, " Format : ''(5i10)''")') trim(text)
     
-          nTransitions = (iBandIfinal - iBandIinit + 1)*(iBandFfinal - iBandFinit + 1)
-          write(17,'(5i10)') nTransitions, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+          nTransitions = (iBandIfinal - iBandIinit + 1)
+          write(17,'(5i10)') nTransitions, iBandIinit, iBandIfinal, iBandFinit
     
 
           ! Get the total energy difference between the two charge states, 
@@ -1215,10 +1218,10 @@ module energyTabulatorMod
 
 
     read(27,*)
-    read(27,'(5i10)') iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
+    read(27,'(5i10)') iDum, iBandIinit_, iBandIfinal_, iBandFinit_
 
     ! Check the input band bounds against those in the energy file
-    if(iBandIinit < iBandIinit_ .or. iBandIfinal > iBandIfinal_ .or. iBandFinit < iBandFinit_ .or. iBandFfinal > iBandFfinal_) &
+    if(iBandIinit < iBandIinit_ .or. iBandIfinal > iBandIfinal_ .or. iBandFinit /= iBandFinit_ .or. iBandFfinal /= iBandFfinal_) &
       call exitError('readCaptureEnergyTable', 'given band bounds are outside those in energy table '//trim(fName), 1)
     
     call ignoreNextNLinesFromFile(27,6)
