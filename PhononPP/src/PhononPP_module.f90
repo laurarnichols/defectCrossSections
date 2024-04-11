@@ -18,9 +18,11 @@ module PhononPPMod
     !! Timers
 
   ! Variables that should be passed as arguments:
-  integer :: dispInd(2)
+  integer :: disp2AtomInd(2)
     !! Index of atoms to check displacement
     !! between if calcMaxDisp
+  integer :: ikIinit, ikIfinal, ikFinit, ikFfinal
+    !! K-point bounds for initial and final state
   integer :: nModes
     !! Number of phonon modes
   integer :: nModesLocal
@@ -68,24 +70,26 @@ module PhononPPMod
 
   namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, singleDisp, &
                          iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CONTCARsBaseDir, basePOSCARFName, freqThresh, calcSj, &
-                         calcDq, calcMaxDisp, dispInd
+                         calcDq, calcMaxDisp, disp2AtomInd, ikIinit, ikIfinal, ikFinit, ikFfinal
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputs(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, &
-        dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, &
-        singleDisp)
+  subroutine readInputs(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, freqThresh, &
+        shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, & 
+        calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
     ! Output variables:
-    integer, intent(out) :: dispInd(2)
+    integer, intent(out) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(out) :: ikIinit, ikIfinal, ikFinit, ikFfinal
+      !! K-point bounds for initial and final state
 
     real(kind=dp), intent(out) :: freqThresh
       !! Threshold for frequency to determine if the mode 
@@ -120,9 +124,9 @@ module PhononPPMod
 
     if(ionode) then
 
-      call initialize(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, & 
-            dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, &
-            singleDisp)
+      call initialize(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
+            freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, &
+            prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
         ! Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -131,18 +135,23 @@ module PhononPPMod
       if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, &
-          dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, &
-          singleDisp)
+      call checkInitialization(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
+          freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, &
+          calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
 
     endif
 
     ! Send to other processes only what they need to know
-    call MPI_BCAST(dispInd, 2, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(disp2AtomInd, 2, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandIinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    call MPI_BCAST(ikIinit, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(ikIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(ikFinit, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(ikFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
 
     call MPI_BCAST(freqThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(shift, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -164,9 +173,9 @@ module PhononPPMod
   end subroutine readInputs
 
 !----------------------------------------------------------------------------
-  subroutine initialize(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, & 
-        dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, &
-        singleDisp)
+  subroutine initialize(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
+        freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, &
+        prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -176,11 +185,13 @@ module PhononPPMod
     implicit none
 
     ! Output variables:
-    integer, intent(out) :: dispInd(2)
+    integer, intent(out) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
     integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(out) :: ikIinit, ikIfinal, ikFinit, ikFfinal
+      !! K-point bounds for initial and final state
 
     real(kind=dp), intent(out) :: freqThresh
       !! Threshold for frequency to determine if the mode 
@@ -213,11 +224,16 @@ module PhononPPMod
       !! If there is just a single displacement to consider
 
 
-    dispInd = -1
+    disp2AtomInd = -1
     iBandIinit  = -1
     iBandIfinal = -1
     iBandFinit  = -1
     iBandFfinal = -1
+
+    ikIinit  = -1
+    ikIfinal = -1
+    ikFinit  = -1
+    ikFfinal = -1
 
     CONTCARsBaseDir = ''
     dqFName = 'dq.txt'
@@ -241,18 +257,20 @@ module PhononPPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(dispInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, freqThresh, shift, basePOSCARFName, &
-      CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, &
-      generateShiftedPOSCARs, singleDisp)
+  subroutine checkInitialization(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
+      freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, &
+      calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: dispInd(2)
+    integer, intent(in) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(in) :: ikIinit, ikIfinal, ikFinit, ikFfinal
+      !! K-point bounds for initial and final state
 
     real(kind=dp), intent(in) :: freqThresh
       !! Threshold for frequency to determine if the mode 
@@ -285,6 +303,9 @@ module PhononPPMod
       !! If there is just a single displacement to consider
 
     ! Local variables:
+    integer :: ibi, ibf, iki, ikf
+      !! Loop indices
+
     logical :: abortExecution
       !! Whether or not to abort the execution
 
@@ -315,8 +336,29 @@ module PhononPPMod
         abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
         abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
         abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
+        
+        abortExecution = checkIntInitialization('ikIinit', ikIinit, 0, int(1e9)) .or. abortExecution
+        abortExecution = checkIntInitialization('ikIfinal', ikIfinal, ikIinit, int(1e9)) .or. abortExecution
+        abortExecution = checkIntInitialization('ikFinit', ikFinit, 0, int(1e9)) .or. abortExecution
+        abortExecution = checkIntInitialization('ikFfinal', ikFfinal, ikFinit, int(1e9)) .or. abortExecution 
 
-        abortExecution = checkDirInitialization('CONTCARsBaseDir', CONTCARsBaseDir, trim(int2str(iBandIinit))//'/CONTCAR') .or. abortExecution
+        do iki = ikIinit, ikIfinal
+          do ibi = iBandIinit, iBandIfinal
+            abortExecution = checkFileInitialization('CONTCARsBaseDir/k'//trim(int2str(iki))//'_b'//trim(int2str(ibi))//'/CONTCAR', &
+                             trim(CONTCARsBaseDir)//'/k'//trim(int2str(iki))//'_b'//trim(int2str(ibi))//'/CONTCAR') .or. abortExecution
+          enddo
+        enddo
+
+        do ikf = ikFinit, ikFfinal
+          do ibf = iBandFinit, iBandFfinal
+            ! Only test the existence of files that haven't already been tested
+            if((ikf < ikIinit .or. ikf > ikIfinal) .or. (ibf < iBandIinit .or. ibf > iBandIfinal)) & 
+              abortExecution = checkFileInitialization('CONTCARsBaseDir/k'//trim(int2str(ikf))//'_b'//trim(int2str(ibf))//'/CONTCAR', &
+                             trim(CONTCARsBaseDir)//'/k'//trim(int2str(ikf))//'_b'//trim(int2str(ibf))//'/CONTCAR') .or. abortExecution
+
+          enddo
+        enddo
+
       endif
     endif
 
@@ -331,14 +373,14 @@ module PhononPPMod
 
     ! Needed for dq and shifted POSCARs and calculating max displacement:
     if(calcDq .or. generateShiftedPOSCARs .or. calcMaxDisp) then
-      abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 1.0_dp) .or. abortExecution
+      abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 10.0_dp) .or. abortExecution
       abortExecution = checkFileInitialization('basePOSCARFName', basePOSCARFName) .or. abortExecution
     endif
 
     ! Need for calculating max displacement:
     if(calcMaxDisp) then
-      abortExecution = checkIntInitialization('dispInd(1)', dispInd(1), 1, int(1e9)) .or. abortExecution
-      abortExecution = checkIntInitialization('dispInd(2)', dispInd(2), 1, int(1e9)) .or. abortExecution
+      abortExecution = checkIntInitialization('disp2AtomInd(1)', disp2AtomInd(1), 1, int(1e9)) .or. abortExecution
+      abortExecution = checkIntInitialization('disp2AtomInd(2)', disp2AtomInd(2), 1, int(1e9)) .or. abortExecution
     endif
 
     if(abortExecution) then
@@ -536,14 +578,16 @@ module PhononPPMod
   end subroutine readPhonons
 
 !----------------------------------------------------------------------------
-  subroutine calculateSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nAtoms, nModes, coordFromPhon, eigenvector, mass, &
-        omegaFreq, singleDisp, CONTCARsBaseDir, initPOSCARFName, finalPOSCARFName)
+  subroutine calculateSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, nAtoms, nModes, &
+          coordFromPhon, eigenvector, mass, omegaFreq, singleDisp, CONTCARsBaseDir, initPOSCARFName, finalPOSCARFName)
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
       !! Energy band bounds for initial and final state
+    integer, intent(in) :: ikIinit, ikIfinal, ikFinit, ikFfinal
+      !! K-point bounds for initial and final state
     integer, intent(inout) :: nAtoms
       !! Number of atoms in intial system
     integer, intent(in) :: nModes
@@ -567,7 +611,7 @@ module PhononPPMod
       !! File name for POSCAR for relaxed initial and final charge states
 
     ! Local variables:
-    integer :: ibi, ibf
+    integer :: ibi, ibf, iki, ikf
       !! Loop indices
 
     real(kind=dp), allocatable :: atomPositionsDirInit(:,:)
@@ -605,47 +649,52 @@ module PhononPPMod
 
     else
 
-      ! I do a loop over all of the bands. Depending on the band selection,
-      ! this could result in duplicate pairs (e.g., .1.2 and .2.1), but I 
-      ! can't think of a general way to exlude these pairs without a significant
-      ! amount of work to track the pairs that have already been calcualted.
-      ! Any solution I can think of would not hold for both hole and electron
-      ! capture and/or different ranges of bands selected by the user. For
-      ! now, I just have the code output all of the duplicate pairs and the
-      ! user/LSF code can use whatever they need from that.
-      do ibi = iBandIinit, iBandIfinal
+      do iki = ikIinit, ikIfinal
+        ! I do a loop over all of the bands. Depending on the band selection,
+        ! this could result in duplicate pairs (e.g., .1.2 and .2.1), but I 
+        ! can't think of a general way to exlude these pairs without a significant
+        ! amount of work to track the pairs that have already been calcualted.
+        ! Any solution I can think of would not hold for both hole and electron
+        ! capture and/or different ranges of bands selected by the user. For
+        ! now, I just have the code output all of the duplicate pairs and the
+        ! user/LSF code can use whatever they need from that.
+        do ibi = iBandIinit, iBandIfinal
 
-        ! Get the initial positions for this band 
-        if(ionode) then
-          initPOSCARFName = trim(CONTCARsBaseDir)//'/'//trim(int2str(ibi))//'/CONTCAR'
+          ! Get the initial positions for this band 
+          if(ionode) then
+            initPOSCARFName = trim(CONTCARsBaseDir)//'/k'//trim(int2str(iki))//'_b'//trim(int2str(ibi))//'/CONTCAR'
 
-          call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
-          call standardizeCoordinates(nAtoms, atomPositionsDirInit)
-        endif
-
-        call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
-
-        if(.not. ionode) allocate(atomPositionsDirInit(3,nAtoms))
-        call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-
-        call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirInit, displacement)
-
-        do ibf = iBandFinit, iBandFfinal
-
-          if(ibf /= ibi) then
-            ! Set the final positions and output file names
-            finalPOSCARFName = trim(CONTCARsBaseDir)//'/'//trim(int2str(ibf))//'/CONTCAR'
-            SjFName = 'Sj.'//trim(int2str(ibi))//'.'//trim(int2str(ibf))//'.out'
-
-            ! Get displacement and output ranked Sj for a single pair of states
-            call getSingleDisp(nAtoms, nModes, atomPositionsDirInit, eigenvector, mass, omega, omegaFreq, finalPOSCARFName, SjFName)
-
+            call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
+            call standardizeCoordinates(nAtoms, atomPositionsDirInit)
           endif
-        enddo
 
-        ! Positions are allocated in readPOSCAR, so we need to 
-        ! deallocate them after every loop
-        deallocate(atomPositionsDirInit)
+          call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+
+          if(.not. ionode) allocate(atomPositionsDirInit(3,nAtoms))
+          call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+          call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirInit, displacement)
+
+          do ikf = ikFinit, ikFfinal
+            do ibf = iBandFinit, iBandFfinal
+
+              if(iki /= ikf .or. ibf /= ibi) then
+                ! Set the final positions and output file names
+                finalPOSCARFName = trim(CONTCARsBaseDir)//'/k'//trim(int2str(ikf))//'_b'//trim(int2str(ibf))//'/CONTCAR'
+                SjFName = 'Sj.k'//trim(int2str(iki))//'_b'//trim(int2str(ibi))//'.k'&
+                                //trim(int2str(ikf))//'_b'//trim(int2str(ibf))//'.out'
+
+                ! Get displacement and output ranked Sj for a single pair of states
+                call getSingleDisp(nAtoms, nModes, atomPositionsDirInit, eigenvector, mass, omega, omegaFreq, finalPOSCARFName, SjFName)
+
+              endif
+            enddo
+          enddo
+
+          ! Positions are allocated in readPOSCAR, so we need to 
+          ! deallocate them after every loop
+          deallocate(atomPositionsDirInit)
+        enddo
       enddo
 
     endif
@@ -932,13 +981,13 @@ module PhononPPMod
   end subroutine calcAndWriteSj
 
 !----------------------------------------------------------------------------
-  subroutine calculateShiftAndDq(dispInd, nAtoms, nModes, coordFromPhon, eigenvector, mass, shift, calcDq, calcMaxDisp, &
+  subroutine calculateShiftAndDq(disp2AtomInd, nAtoms, nModes, coordFromPhon, eigenvector, mass, shift, calcDq, calcMaxDisp, &
         generateShiftedPOSCARs, basePOSCARFName, dqFName, prefix)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: dispInd(2)
+    integer, intent(in) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
     integer, intent(inout) :: nAtoms
@@ -1055,7 +1104,7 @@ module PhononPPMod
       displacement = getShiftDisplacement(nAtoms, eigenvector(:,:,j), realLattVec, mass, shift)
 
       if(calcMaxDisp) then
-        relDisp = displacement(:,dispInd(1)) - displacement(:,dispInd(2))
+        relDisp = displacement(:,disp2AtomInd(1)) - displacement(:,disp2AtomInd(2))
 
         relDispMag(j) = sqrt(dot_product(relDisp,relDisp))
       endif
@@ -1083,7 +1132,7 @@ module PhononPPMod
       call mpiSumDoubleV(relDispMag, worldComm)
 
       if(ionode) write(*,'("Maximum displacement between atoms ", i4," and ",i4," is ",1ES12.3E2," in mode ",i6)') &
-            dispInd(1), dispInd(2), relDispMag(maxloc(relDispMag)), maxloc(relDispMag)
+            disp2AtomInd(1), disp2AtomInd(2), relDispMag(maxloc(relDispMag)), maxloc(relDispMag)
     endif
 
     deallocate(relDispMag)

@@ -3004,8 +3004,6 @@ module wfcExportVASPMod
         read(unit=wavecarUnit,rec=irec) (coeff(ipw), ipw=1,nPWs1kGlobal_ik)
           ! Read in the plane wave coefficients for each band
 
-        if(ionode .and. ib < 10) write(*,'()')
-
         
         if(gammaOnly) then
           ! The gamma-only version has only G=0 and the +G vectors

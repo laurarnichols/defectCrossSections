@@ -4,7 +4,7 @@ Shifts atom positions by a magnitude of `shift` along each phonon-mode eigenvect
 
 **Assumes phonons only at Gamma point!** 
 
-There are two cases that `PhononPP` can be run with: a single displacement (e.g., capture) or a set of displacements based on bands (e.g., scattering). For a single displacement, the inputs should look like
+There are two cases that `PhononPP` can be run with: a single displacement (e.g., capture) or a set of displacements based on bands/k-points (e.g., scattering). For a single displacement, the inputs should look like
 ```
 &inputParams
   singleDisp = .true.             ! If there's a single displacement to consider, default .true.
@@ -28,7 +28,7 @@ There are two cases that `PhononPP` can be run with: a single displacement (e.g.
   
   ! Calculating max displacement:
   calcMaxDisp = logical               ! Default .false.; if max displacement between two atoms across modes should be calculated
-  dispInd     = int1, int2            ! Two integers for indices of atoms to get relative displacement for each mode             
+  disp2AtomInd     = int1, int2            ! Two integers for indices of atoms to get relative displacement for each mode             
 
   ! Needed to get dq and shifted POSCARs and calculating max displacement:
   basePOSCARFName = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from
@@ -54,6 +54,11 @@ For a range of displacements, the inputs should look like
   iBandFinit       = integer						! lowest final-state band
   iBandFfinal      = integer						! highest final-state band
 
+  ikIinit          = integer                        ! lowest initial-state k-point
+  ikIfinal         = integer                        ! highest initial-state k-point
+  ikFinit          = integer                        ! lowest final-state k-point
+  ikFfinal         = integer                        ! highest final-state k-point
+
   ! Calculating dq:
   calcDq  = logical                                   ! Default: .true.; if dq output file should be generated
   dqFName = 'file-to-output-generalized-coord-norms'  ! Default: './dq.txt'
@@ -64,7 +69,7 @@ For a range of displacements, the inputs should look like
 
   ! Calculating max displacement:
   calcMaxDisp = logical               ! Default .false.; if max displacement between two atoms across modes should be calculated
-  dispInd     = int1, int2            ! Two integers for indices of atoms to get relative displacement for each mode             
+  disp2AtomInd     = int1, int2            ! Two integers for indices of atoms to get relative displacement for each mode             
 
   ! Needed to get dq and shifted POSCARs and calculating max displacement:
   basePOSCARFName = 'path-to-base-poscar'           ! Default: './POSCAR_init'; base to shift from
@@ -81,7 +86,7 @@ in a PBS/SLURM script. Parallelization is implemented, but is usually not needed
 
 Output:
 * `3*nAtoms-3` shifted POSCAR files with name `prefix_j`, where j is the mode number padded by leading zeros
-* `Sj.out`, which contains the Huang-Rhys factor and the phonon-mode frequencies
+* `Sj.k<iki>_b<ibi>.k<ikf>_b<ibf>.out`, which contains the Huang-Rhys factor and the phonon-mode frequencies
 * `dq.txt`, which has the $\delta q\_j$ used in the first-order matrix elements
 
 _Note: The first 3 modes in the yaml file are ignored because those are the acoustic modes and we only want the optical modes._

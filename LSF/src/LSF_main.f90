@@ -82,7 +82,7 @@ program LSFmain
     !! * Distribute k-points in pools
 
 
-  allocate(dE(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,4,nkPerPool))
+  allocate(dE(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,3,nkPerPool))
 
   if(order == 0) then
     mDim = 1
@@ -111,7 +111,7 @@ program LSFmain
         ! In the future, can just skip the ones that have already been 
         ! calculated.
 
-        call readEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, energyTableDir, dE(:,:,:,ikLocal))
+        call readCaptureEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, energyTableDir, dE(:,:,:,ikLocal))
 
         if(order == 0) then
           ! Read zeroth-order matrix element
@@ -140,9 +140,7 @@ program LSFmain
       endif
     enddo
 
-    dE(:,:,1:3,:) = dE(:,:,1:3,:)*HartreeToJ
-      ! First 3 columns are in Hartree. Last is in eV,
-      ! but we want to leave it that way just for output.
+    dE = dE*HartreeToJ
 
     if(order == 1) then
       matrixElement(:,:,:,:) = matrixElement(:,:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
