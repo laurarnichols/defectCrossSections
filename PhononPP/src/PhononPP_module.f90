@@ -1,7 +1,7 @@
 module PhononPPMod
   
   use constants, only: dp, angToBohr, angToM, daltonToElecM, elecMToKg, THzToHz, pi, hbar
-  use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+  use energyTabulatorMod, only: energyTableDir, readScatterEnergyTable
   use cell, only: nAtoms, omega, realLattVec, cartDispProjOnPhononEigsNorm, readPOSCAR, writePOSCARNewPos
   use miscUtilities, only: int2str, int2strLeadZero
   use generalComputations, only: direct2cart
@@ -21,8 +21,6 @@ module PhononPPMod
   integer :: disp2AtomInd(2)
     !! Index of atoms to check displacement
     !! between if calcMaxDisp
-  integer :: ikIinit, ikIfinal, ikFinit, ikFfinal
-    !! K-point bounds for initial and final state
   integer :: nModes
     !! Number of phonon modes
   integer :: nModesLocal
@@ -69,16 +67,14 @@ module PhononPPMod
 
 
   namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, singleDisp, &
-                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, CONTCARsBaseDir, basePOSCARFName, freqThresh, calcSj, &
-                         calcDq, calcMaxDisp, disp2AtomInd, ikIinit, ikIfinal, ikFinit, ikFfinal
+                         CONTCARsBaseDir, basePOSCARFName, freqThresh, calcSj, calcDq, calcMaxDisp, disp2AtomInd, energyTableDir
 
 
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputs(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, freqThresh, &
-        shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, & 
-        calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
+  subroutine readInputs(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, phononFName, &
+        finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -86,10 +82,6 @@ module PhononPPMod
     integer, intent(out) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
-    integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
-    integer, intent(out) :: ikIinit, ikIfinal, ikFinit, ikFfinal
-      !! K-point bounds for initial and final state
 
     real(kind=dp), intent(out) :: freqThresh
       !! Threshold for frequency to determine if the mode 
@@ -103,6 +95,8 @@ module PhononPPMod
       !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(out) :: dqFName
       !! File name for generalized-coordinate norms
+    character(len=300), intent(out) :: energyTableDir
+      !! Path to energy table to get allowed transitions
     character(len=300), intent(out) :: phononFName
       !! File name for mesh.yaml phonon file
     character(len=300), intent(out) :: initPOSCARFName, finalPOSCARFName
@@ -124,9 +118,8 @@ module PhononPPMod
 
     if(ionode) then
 
-      call initialize(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-            freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, &
-            prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
+      call initialize(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, phononFName, &
+          finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
         ! Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -135,29 +128,20 @@ module PhononPPMod
       if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-          freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, &
-          calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
+      call checkInitialization(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
+          phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
 
     endif
 
     ! Send to other processes only what they need to know
     call MPI_BCAST(disp2AtomInd, 2, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(iBandIinit, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
-
-    call MPI_BCAST(ikIinit, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(ikIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(ikFinit, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(ikFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
 
     call MPI_BCAST(freqThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(shift, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call MPI_BCAST(basePOSCARFName, len(basePOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(CONTCARsBaseDir, len(CONTCARsBaseDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(finalPOSCARFName, len(finalPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(initPOSCARFName, len(initPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
@@ -173,9 +157,8 @@ module PhononPPMod
   end subroutine readInputs
 
 !----------------------------------------------------------------------------
-  subroutine initialize(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-        freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, &
-        prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
+  subroutine initialize(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, phononFName, &
+        finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -188,10 +171,6 @@ module PhononPPMod
     integer, intent(out) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
-    integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
-    integer, intent(out) :: ikIinit, ikIfinal, ikFinit, ikFfinal
-      !! K-point bounds for initial and final state
 
     real(kind=dp), intent(out) :: freqThresh
       !! Threshold for frequency to determine if the mode 
@@ -205,6 +184,8 @@ module PhononPPMod
       !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(out) :: dqFName
       !! File name for generalized-coordinate norms
+    character(len=300), intent(out) :: energyTableDir
+      !! Path to energy table to get allowed transitions
     character(len=300), intent(out) :: phononFName
       !! File name for mesh.yaml phonon file
     character(len=300), intent(out) :: initPOSCARFName, finalPOSCARFName
@@ -225,18 +206,10 @@ module PhononPPMod
 
 
     disp2AtomInd = -1
-    iBandIinit  = -1
-    iBandIfinal = -1
-    iBandFinit  = -1
-    iBandFfinal = -1
-
-    ikIinit  = -1
-    ikIfinal = -1
-    ikFinit  = -1
-    ikFfinal = -1
 
     CONTCARsBaseDir = ''
     dqFName = 'dq.txt'
+    energyTableDir = ''
     basePOSCARFName = 'POSCAR_init'
     initPOSCARFName = 'POSCAR_init'
     finalPOSCARFName = 'POSCAR_final'
@@ -257,9 +230,8 @@ module PhononPPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(disp2AtomInd, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-      freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, phononFName, finalPOSCARFName, initPOSCARFName, prefix, &
-      calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
+  subroutine checkInitialization(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
+      phononFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -267,10 +239,6 @@ module PhononPPMod
     integer, intent(in) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
-    integer, intent(in) :: ikIinit, ikIfinal, ikFinit, ikFfinal
-      !! K-point bounds for initial and final state
 
     real(kind=dp), intent(in) :: freqThresh
       !! Threshold for frequency to determine if the mode 
@@ -284,6 +252,8 @@ module PhononPPMod
       !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(in) :: dqFName
       !! File name for generalized-coordinate norms
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy table to get allowed transitions
     character(len=300), intent(in) :: phononFName
       !! File name for mesh.yaml phonon file
     character(len=300), intent(in) :: initPOSCARFName, finalPOSCARFName
@@ -303,9 +273,6 @@ module PhononPPMod
       !! If there is just a single displacement to consider
 
     ! Local variables:
-    integer :: ibi, ibf, iki, ikf
-      !! Loop indices
-
     logical :: abortExecution
       !! Whether or not to abort the execution
 
@@ -332,32 +299,8 @@ module PhononPPMod
 
       else
 
-        abortExecution = checkIntInitialization('iBandIinit', iBandIinit, 1, int(1e9)) .or. abortExecution
-        abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
-        abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
-        abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
-        
-        abortExecution = checkIntInitialization('ikIinit', ikIinit, 0, int(1e9)) .or. abortExecution
-        abortExecution = checkIntInitialization('ikIfinal', ikIfinal, ikIinit, int(1e9)) .or. abortExecution
-        abortExecution = checkIntInitialization('ikFinit', ikFinit, 0, int(1e9)) .or. abortExecution
-        abortExecution = checkIntInitialization('ikFfinal', ikFfinal, ikFinit, int(1e9)) .or. abortExecution 
-
-        do iki = ikIinit, ikIfinal
-          do ibi = iBandIinit, iBandIfinal
-            abortExecution = checkFileInitialization('CONTCARsBaseDir/k'//trim(int2str(iki))//'_b'//trim(int2str(ibi))//'/CONTCAR', &
-                             trim(CONTCARsBaseDir)//'/k'//trim(int2str(iki))//'_b'//trim(int2str(ibi))//'/CONTCAR') .or. abortExecution
-          enddo
-        enddo
-
-        do ikf = ikFinit, ikFfinal
-          do ibf = iBandFinit, iBandFfinal
-            ! Only test the existence of files that haven't already been tested
-            if((ikf < ikIinit .or. ikf > ikIfinal) .or. (ibf < iBandIinit .or. ibf > iBandIfinal)) & 
-              abortExecution = checkFileInitialization('CONTCARsBaseDir/k'//trim(int2str(ikf))//'_b'//trim(int2str(ibf))//'/CONTCAR', &
-                             trim(CONTCARsBaseDir)//'/k'//trim(int2str(ikf))//'_b'//trim(int2str(ibf))//'/CONTCAR') .or. abortExecution
-
-          enddo
-        enddo
+        write(*,'("CONTCARsBaseDir = ''",a,"''")') trim(CONTCARsBaseDir)
+        abortExecution = checkFileInitialization('energyTableDir', trim(energyTableDir)//'/energyTable.1') .or. abortExecution
 
       endif
     endif
@@ -578,16 +521,12 @@ module PhononPPMod
   end subroutine readPhonons
 
 !----------------------------------------------------------------------------
-  subroutine calculateSj(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFinit, ikFfinal, nAtoms, nModes, &
-          coordFromPhon, eigenvector, mass, omegaFreq, singleDisp, CONTCARsBaseDir, initPOSCARFName, finalPOSCARFName)
+  subroutine calculateSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omegaFreq, singleDisp, CONTCARsBaseDir, energyTableDir, &
+          initPOSCARFName, finalPOSCARFName)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
-    integer, intent(in) :: ikIinit, ikIfinal, ikFinit, ikFfinal
-      !! K-point bounds for initial and final state
     integer, intent(inout) :: nAtoms
       !! Number of atoms in intial system
     integer, intent(in) :: nModes
@@ -607,95 +546,69 @@ module PhononPPMod
 
     character(len=300), intent(in) :: CONTCARsBaseDir
       !! Base dir for sets of relaxed files if not captured
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy table
     character(len=300), intent(inout) :: initPOSCARFName, finalPOSCARFName
       !! File name for POSCAR for relaxed initial and final charge states
 
     ! Local variables:
-    integer :: ibi, ibf, iki, ikf
-      !! Loop indices
+    integer :: iE
+      !! Loop index
+    integer, allocatable :: iki(:), ikf(:), ibi(:), ibf(:)
+      !! Allowed state indices
+    integer :: nTransitions
+      !! Total number of transitions 
 
-    real(kind=dp), allocatable :: atomPositionsDirInit(:,:)
-      !! Atom positions in initial relaxed positions
-    real(kind=dp) :: displacement(3,nAtoms)
-      !! Displacement vector; not used here, only output 
-      !! from check compatibility
-    real(kind=dp) :: omega
-      !! Volume of supercell
-    real(kind=dp) :: realLattVec(3,3)
-      !! Real space lattice vectors
+    real(kind=dp), allocatable :: dE(:,:)
+      !! All energy differences from energy table
+
+    logical :: fileExists
+      !! If a file exists
 
     character(len=300) :: SjFName
       !! File name for the Sj output
 
 
     if(singleDisp) then
-      if(ionode) then
-        call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
-        call standardizeCoordinates(nAtoms, atomPositionsDirInit)
-      endif
-
-      call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
-
-      if(.not. ionode) allocate(atomPositionsDirInit(3,nAtoms))
-      call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-      call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-
-      call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirInit, displacement)
-
+  
       SjFName = 'Sj.out'
-      call getSingleDisp(nAtoms, nModes, atomPositionsDirInit, eigenvector, mass, omega, omegaFreq, finalPOSCARFName, SjFName)
-
-      deallocate(atomPositionsDirInit)
+      call getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omegaFreq, initPOSCARFName, finalPOSCARFName, SjFName)
 
     else
 
-      do iki = ikIinit, ikIfinal
-        ! I do a loop over all of the bands. Depending on the band selection,
-        ! this could result in duplicate pairs (e.g., .1.2 and .2.1), but I 
-        ! can't think of a general way to exlude these pairs without a significant
-        ! amount of work to track the pairs that have already been calcualted.
-        ! Any solution I can think of would not hold for both hole and electron
-        ! capture and/or different ranges of bands selected by the user. For
-        ! now, I just have the code output all of the duplicate pairs and the
-        ! user/LSF code can use whatever they need from that.
-        do ibi = iBandIinit, iBandIfinal
+      call readScatterEnergyTable(1, energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
+        ! Assume that the transitions allowed is the same for both
+        ! spin channels
 
-          ! Get the initial positions for this band 
-          if(ionode) then
-            initPOSCARFName = trim(CONTCARsBaseDir)//'/k'//trim(int2str(iki))//'_b'//trim(int2str(ibi))//'/CONTCAR'
 
-            call readPOSCAR(initPOSCARFName, nAtoms, atomPositionsDirInit, omega, realLattVec)
-            call standardizeCoordinates(nAtoms, atomPositionsDirInit)
-          endif
+      do iE = 1, nTransitions
 
-          call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+        ! Set initial and final file names based on state indices read
+        ! from energy table. Make sure both files exist.
+        if(ionode) then
+          initPOSCARFName = trim(CONTCARsBaseDir)//'/k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'/CONTCAR'
+          inquire(file=trim(initPOSCARFName), exist=fileExists)
+          if(.not. fileExists) call exitError('calculateSj', 'File does not exist!! '//trim(initPOSCARFName), 1)
 
-          if(.not. ionode) allocate(atomPositionsDirInit(3,nAtoms))
-          call MPI_BCAST(atomPositionsDirInit, size(atomPositionsDirInit), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+          finalPOSCARFName = trim(CONTCARsBaseDir)//'/k'//trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'/CONTCAR'
+          inquire(file=trim(finalPOSCARFName), exist=fileExists)
+          if(.not. fileExists) call exitError('calculateSj', 'File does not exist!! '//trim(finalPOSCARFName), 1)
+        endif
 
-          call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirInit, displacement)
 
-          do ikf = ikFinit, ikFfinal
-            do ibf = iBandFinit, iBandFfinal
+        ! Set Sj output file name
+        SjFName = 'Sj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
+                        //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
 
-              if(iki /= ikf .or. ibf /= ibi) then
-                ! Set the final positions and output file names
-                finalPOSCARFName = trim(CONTCARsBaseDir)//'/k'//trim(int2str(ikf))//'_b'//trim(int2str(ibf))//'/CONTCAR'
-                SjFName = 'Sj.k'//trim(int2str(iki))//'_b'//trim(int2str(ibi))//'.k'&
-                                //trim(int2str(ikf))//'_b'//trim(int2str(ibf))//'.out'
+        call getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omegaFreq, initPOSCARFName, finalPOSCARFName, SjFName)
 
-                ! Get displacement and output ranked Sj for a single pair of states
-                call getSingleDisp(nAtoms, nModes, atomPositionsDirInit, eigenvector, mass, omega, omegaFreq, finalPOSCARFName, SjFName)
-
-              endif
-            enddo
-          enddo
-
-          ! Positions are allocated in readPOSCAR, so we need to 
-          ! deallocate them after every loop
-          deallocate(atomPositionsDirInit)
-        enddo
       enddo
+
+      deallocate(iki)
+      deallocate(ikf)
+      deallocate(ibi)
+      deallocate(ibf)
+      deallocate(dE)
 
     endif
 
@@ -705,76 +618,56 @@ module PhononPPMod
   end subroutine calculateSj
 
 !----------------------------------------------------------------------------
-  subroutine getSingleDisp(nAtoms, nModes, atomPositionsDirInit, eigenvector, mass, omega, omegaFreq, finalPOSCARFName, SjFName)
+  subroutine getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omegaFreq, initPOSCARFName, finalPOSCARFName, SjFName)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: nAtoms
+    integer, intent(inout) :: nAtoms
       !! Number of atoms in intial system
     integer, intent(in) :: nModes
       !! Number of modes
 
-    real(kind=dp), intent(in) :: atomPositionsDirInit(3,nAtoms)
-      !! Atom positions in initial relaxed positions
+    real(kind=dp), intent(in) :: coordFromPhon(3,nAtoms)
+      !! Corodinates from phonon file
     real(kind=dp), intent(in) :: eigenvector(3,nAtoms,nModes)
       !! Eigenvectors for each atom for each mode
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Mass of atoms
-    real(kind=dp), intent(in) :: omega
-      !! Volume of initial-state supercell
     real(kind=dp), intent(in) :: omegaFreq(nModes)
       !! Frequency for each mode
 
-    character(len=300), intent(in) :: finalPOSCARFName
-      !! File name for CONTCAR for relaxed final state
+    character(len=300), intent(in) :: initPOSCARFName, finalPOSCARFName
+      !! File names for CONTCARs for different states
     character(len=300), intent(in) :: SjFName
       !! File name for the Sj output
 
     ! Local variables:
     integer :: j
       !! Loop index
-    integer :: nAtomsFinal
-      !! Number of atoms in final system
 
-    real(kind=dp), allocatable :: atomPositionsDirFinal(:,:)
-      !! Atom positions in final relaxed positions
+    real(kind=dp), allocatable :: atomPositionsDirInit(:,:), atomPositionsDirFinal(:,:)
+      !! Atom positions in difference relaxed positions
     real(kind=dp) :: displacement(3,nAtoms)
       !! Displacement 
-    real(kind=dp) :: omegaFinal
-      !! Volume of final-state supercell
+    real(kind=dp) :: omegaInit, omegaFinal
+      !! Volume of supercell
     real(kind=dp) :: projNorm(nModes)
       !! Generalized norms after displacement
     real(kind=dp) :: realLattVec(3,3)
       !! Real space lattice vectors
 
+
+    call getCoordsAndDisp(nAtoms, coordFromPhon, initPOSCARFName, atomPositionsDirInit, displacement, omegaInit, realLattVec)
+      ! Don't need displacement here. We only check compatibility with
+      ! coordinates from phonons. 
+
+    call getCoordsAndDisp(nAtoms, atomPositionsDirInit, finalPOSCARFName, atomPositionsDirFinal, displacement, omegaFinal, realLattVec)
+      ! It is assumed for now that the lattice vectors are the same
     
     if(ionode) then
-      call readPOSCAR(finalPOSCARFName, nAtomsFinal, atomPositionsDirFinal, omegaFinal, realLattVec)
-        ! I define realLattVec locally here because I don't use the input value
-        ! nor do I want to output the value from here. It is assumed for now
-        ! that the lattice vectors for the two systems are compatible. This
-        ! would be a good test to add at some point in the future.
-
-      call standardizeCoordinates(nAtomsFinal, atomPositionsDirFinal)
-
-      if(nAtoms /= nAtomsFinal) &
-        call exitError('getSingleDisp', 'number of atoms does not match: '//trim(int2str(nAtoms))//' '//trim(int2str(nAtomsFinal)), 1)
-
-      if(abs(omega - omegaFinal) > 1e-8) call exitError('getSingleDisp', 'volumes don''t match', 1)
-
+      if(abs(omegaInit - omegaFinal) > 1e-8) call exitError('calculateAndWriteSingleSj', 'volumes don''t match', 1)
     endif
-
-
-    if(.not. ionode) allocate(atomPositionsDirFinal(3,nAtoms))
-    call MPI_BCAST(atomPositionsDirFinal, size(atomPositionsDirFinal), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-  
-
-    ! Define the displacement for the relaxation, 
-    ! project onto the phonon eigenvectors, and
-    ! get Sj
-    call getRelaxDispAndCheckCompatibility(nAtoms, atomPositionsDirFinal, atomPositionsDirInit, displacement)
   
     projNorm = 0.0_dp
     do j = iModeStart, iModeEnd
@@ -787,14 +680,64 @@ module PhononPPMod
     call calcAndWriteSj(nModes, omegaFreq, projNorm, SjFName)
 
 
+    deallocate(atomPositionsDirInit)
     deallocate(atomPositionsDirFinal)
 
     return
 
-  end subroutine getSingleDisp
+  end subroutine getAndWriteSingleSj
 
 !----------------------------------------------------------------------------
-  subroutine getRelaxDispAndCheckCompatibility(nAtoms, atomPositionsDirFinal, atomPositionsDirInit, displacement)
+  subroutine getCoordsAndDisp(nAtoms, atomPositionsDirStart, POSCARFName, atomPositionsDirEnd, displacement, omega, realLattVec)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(inout) :: nAtoms
+      !! Number of atoms in intial system
+
+    real(kind=dp), intent(in) :: atomPositionsDirStart(3,nAtoms)
+      !! Atom positions in direct coordinates to serve as the
+      !! starting point for calculating the displacement (end-start)
+
+    character(len=300), intent(in) :: POSCARFName
+      !! File name for POSCAR
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: atomPositionsDirEnd(:,:)
+      !! Atom positions in direct coordinates to serve as the
+      !! ending point for calculating the displacement (end-start)
+    real(kind=dp), intent(out) :: displacement(3,nAtoms)
+      !! Displacement vector; not used here, only output 
+      !! from check compatibility
+    real(kind=dp), intent(out) :: omega
+      !! Volume of supercell
+    real(kind=dp), intent(out) :: realLattVec(3,3)
+      !! Real space lattice vectors
+
+    ! Local variables:
+
+    
+    if(ionode) then
+      call readPOSCAR(POSCARFName, nAtoms, atomPositionsDirEnd, omega, realLattVec)
+      call standardizeCoordinates(nAtoms, atomPositionsDirEnd)
+    endif
+
+    call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    if(.not. ionode) allocate(atomPositionsDirEnd(3,nAtoms))
+    call MPI_BCAST(atomPositionsDirEnd, size(atomPositionsDirEnd), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    call getRelaxDispAndCheckCompatibility(nAtoms, atomPositionsDirEnd, atomPositionsDirStart, displacement)
+
+    return
+
+  end subroutine getCoordsAndDisp
+
+!----------------------------------------------------------------------------
+  subroutine getRelaxDispAndCheckCompatibility(nAtoms, atomPositionsDirEnd, atomPositionsDirStart, displacement)
 
     implicit none
 
@@ -802,7 +745,7 @@ module PhononPPMod
     integer, intent(in) :: nAtoms
       !! Number of atoms
 
-    real(kind=dp), intent(in) :: atomPositionsDirInit(3,nAtoms), atomPositionsDirFinal(3,nAtoms)
+    real(kind=dp), intent(in) :: atomPositionsDirStart(3,nAtoms), atomPositionsDirEnd(3,nAtoms)
       !! Atom positions in initial and final relaxed positions
 
     ! Output variables:
@@ -816,7 +759,7 @@ module PhononPPMod
       !! Inner (not crossing boundary) and outer
       !! (crossing boundary) distance between two 
       !! points
-    real(kind=dp) :: posInit, posFinal
+    real(kind=dp) :: posStart, posEnd
       !! Local storage of single coordinate
 
     logical :: abortExecution
@@ -831,15 +774,15 @@ module PhononPPMod
 
         do ix = 1, 3
 
-          posInit = atomPositionsDirInit(ix,ia)
-          posFinal = atomPositionsDirFinal(ix,ia)
+          posStart = atomPositionsDirStart(ix,ia)
+          posEnd = atomPositionsDirEnd(ix,ia)
 
-          dispInner = posFinal - posInit
+          dispInner = posEnd - posStart
 
-          if(posFinal > posInit) then
-            dispOuter = -posInit + posFinal - 1
+          if(posEnd > posStart) then
+            dispOuter = -posStart + posEnd - 1
           else
-            dispOuter = 1 - posInit + posFinal
+            dispOuter = 1 - posStart + posEnd
           endif
 
           if(abs(dispInner) < abs(dispOuter)) then
