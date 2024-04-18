@@ -32,7 +32,7 @@ program TMEmain
   call cpu_time(t1)
 
 
-  call readInput(ispSelect, maxAngMom, nKPoints, nGVecsGlobal, baselineDir, loopSpins, subtractBaseline)
+  call readInput(ispSelect, maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, baselineDir, loopSpins, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
 

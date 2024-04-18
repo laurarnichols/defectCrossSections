@@ -126,6 +126,8 @@ module TMEmod
     real(kind=dp) :: recipLattVec(3,3)
       !! Reciprocal-space lattice vectors
 
+    character(len=300) :: ID
+      !! How this system should be identified in output
     character(len=3) :: sysType
       !! Type of system for overlap:
       !! bra or ket
@@ -184,7 +186,7 @@ module TMEmod
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInput(ispSelect, maxAngMom, nKPoints, nGVecsGlobal, baselineDir, loopSpins, subtractBaseline)
+  subroutine readInput(ispSelect, maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, baselineDir, loopSpins, subtractBaseline)
 
     use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
     
@@ -200,6 +202,13 @@ contains
       !! Global number of G-vectors
     integer, intent(out) :: nKPoints
       !! Total number of k-points
+    integer, intent(inout) :: nSpins
+      !! Number of spins (tested to be consistent
+      !! across all systems)
+
+    real(kind=dp) :: omega
+      !! Cell volume (tested to be consistent
+      !! across all systems)
 
     character(len=300), intent(out) :: baselineDir
       !! File name for baseline overlap to optionally
@@ -252,28 +261,21 @@ contains
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
 
 
+    ! Initialize global variables to be tracked to make sure they
+    ! are consistent across all of the systems
     maxAngMom = 0
+    nKPoints = -1
+    nGVecsGlobal = -1
+    omega = -1.0
 
     braSys%sysType = 'bra'
-    call readInputFile(exportDirPC, maxAngMom, braSys)
+    braSys%ID = 'bra'
+    call readInputFile(exportDirPC, maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, braSys)
 
     ketSys%sysType = 'ket'
-    call readInputFile(exportDirSD, maxAngMom, ketSys)
+    ketSys%ID = 'ket'
+    call readInputFile(exportDirSD, maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, ketSys)
 
-
-    ! Check that the number of k-points and global G-vecs and set global values
-    if(ionode) then
-      if(braSys%nKPoints /= ketSys%nKPoints) call exitError('readInput', 'number of k-points in systems does not match', 1)
-      if(braSys%nGVecsGlobal /= ketSys%nGVecsGlobal) call exitError('readInput', 'number of G-vectors in systems does not match', 1)
-      if(abs(braSys%omega - ketSys%omega) > 1e-8) call exitError('readInput', 'volumes don''t match', 1)
-    endif
-
-    nKPoints = braSys%nKPoints
-    nGVecsGlobal = braSys%nGVecsGlobal
-    omega = braSys%omega
-
-
-    call MPI_BCAST(maxAngMom, 1, MPI_INTEGER, root, worldComm, ierr)
     
     maxAngMom = 2*maxAngMom + 1
 
@@ -423,7 +425,7 @@ contains
   end subroutine checkInitialization
   
 !----------------------------------------------------------------------------
-  subroutine readInputFile(exportDir, maxAngMom, sys)
+  subroutine readInputFile(exportDir, maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, sys)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
@@ -435,7 +437,21 @@ contains
 
     ! Output variables:
     integer, intent(inout) :: maxAngMom
-      !! Maximum angular momentum of the projectors
+      !! Maximum angular momentum of projectors across
+      !! all systems
+    integer, intent(inout) :: nGVecsGlobal
+      !! Number of global G-vectors (tested to be consistent
+      !! across all systems)
+    integer, intent(inout) :: nKPoints
+      !! Number of k-points (tested to be consistent
+      !! across all systems)
+    integer, intent(inout) :: nSpins
+      !! Number of spins (tested to be consistent
+      !! across all systems)
+
+    real(kind=dp) :: omega
+      !! Cell volume (tested to be consistent
+      !! across all systems)
 
     type(crystal) :: sys
        !! The crystal system
@@ -471,8 +487,35 @@ contains
       read(50,*)
       read(50,*) sys%omega
 
+
+      if(omega < 0) then
+        omega = sys%omega
+      else if(abs(omega - sys%omega) > 1e-8) then
+        call exitError('readInput', 'volumes don''t match', 1)
+      endif
+
+    endif
+
+    call MPI_BCAST(sys%omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    if(ionode) then
       read(50,*)
       read(50,*) sys%nGVecsGlobal
+
+
+      if(nGVecsGlobal < 0) then
+        nGVecsGlobal = sys%nGVecsGlobal
+      else if(sys%nGVecsGlobal /= nGVecsGlobal) then
+        call exitError('readInput', 'number of G vecs in system '//trim(sys%ID)//' does not match', 1)
+      end if
+
+    endif
+
+    call MPI_BCAST(sys%nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    if(ionode) then
 
       read(50,*)
       read(50,*) ! fftGridSize(1:3)
@@ -483,13 +526,19 @@ contains
       read(50,*) 
       read(50,'(i10)') sys%nKPoints
 
+
+      if(nKPoints < 0) then
+        nKPoints = sys%nKPoints
+      else if(sys%nKPoints /= nKPoints) then
+        call exitError('readInput', 'number of k-points in system '//trim(sys%ID)//' does not match', 1)
+      end if
     endif
 
-    call MPI_BCAST(sys%omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(sys%nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(sys%nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(sys%nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     
+
     allocate(sys%nPWs1kGlobal(sys%nKPoints))
     
     if(ionode) then
@@ -696,6 +745,8 @@ contains
       write(*,*)
 
     endif
+
+    call MPI_BCAST(maxAngMom, 1, MPI_INTEGER, root, worldComm, ierr)
     
     return
     
