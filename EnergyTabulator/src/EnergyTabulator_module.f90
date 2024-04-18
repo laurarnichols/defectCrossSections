@@ -1221,19 +1221,18 @@ module energyTabulatorMod
     read(27,'(5i10)') iDum, iBandIinit_, iBandIfinal_, iBandFinit_
 
     ! Check the input band bounds against those in the energy file
-    if(iBandIinit < iBandIinit_ .or. iBandIfinal > iBandIfinal_ .or. iBandFinit /= iBandFinit_ .or. iBandFfinal /= iBandFfinal_) &
+    if(iBandIinit < iBandIinit_ .or. iBandIfinal > iBandIfinal_ .or. iBandFinit /= iBandFinit_ .or. iBandFfinal /= iBandFinit_) &
       call exitError('readCaptureEnergyTable', 'given band bounds are outside those in energy table '//trim(fName), 1)
     
     call ignoreNextNLinesFromFile(27,6)
     
-    do ibf = iBandFinit_, iBandFfinal_
-      do ibi = iBandIinit_, iBandIfinal_
-      
-        read(27,*) iDum, iDum, dE_
 
-        if(ibi >= iBandIinit .and. ibi <= iBandIfinal .and. ibf >= iBandFinit .and. ibf <= iBandFfinal) dE(ibf,ibi,:) = dE_(:)
+    do ibi = iBandIinit_, iBandIfinal_
+      
+      read(27,*) iDum, iDum, dE_
+
+      if(ibi >= iBandIinit .and. ibi <= iBandIfinal) dE(iBandFinit_,ibi,:) = dE_(:)
           
-      enddo
     enddo
     
     close(27)
