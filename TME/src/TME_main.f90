@@ -32,10 +32,9 @@ program TMEmain
   call cpu_time(t1)
 
 
-  call readInput(ispSelect, maxAngMom, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, loopSpins, subtractBaseline)
+  call readInput(ispSelect, maxAngMom, nKPoints, nGVecsGlobal, baselineDir, loopSpins, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
-    !! @todo Figure out if `realLattVec` used anywhere. If not remove. @endtodo
 
 
   call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
@@ -63,7 +62,7 @@ program TMEmain
   allocate(gCart(3,nGVecsLocal))
   allocate(Ylm((maxAngMom+1)**2,nGVecsLocal))
 
-  call setUpTables(maxAngMom, nGVecsLocal, mill_local, numOfTypes, recipLattVec, atoms, gCart, Ylm)
+  call setUpTables(maxAngMom, nGVecsLocal, mill_local, ketSys, gCart, Ylm)
 
   deallocate(mill_local)
 
@@ -107,20 +106,20 @@ program TMEmain
       call cpu_time(t1)
 
 
-      call distributeItemsInSubgroups(indexInPool, npwsPC(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolPC, &
+      call distributeItemsInSubgroups(indexInPool, braSys%nPWs1kGlobal(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolPC, &
               iGkEnd_poolPC, nGkVecsLocalPC)
 
-      allocate(betaPC(nGkVecsLocalPC,nProjsPC))
+      allocate(betaPC(nGkVecsLocalPC,braSys%nProj))
 
-      call readProjectors('PC', iGkStart_poolPC, ikGlobal, nGkVecsLocalPC, nProjsPC, betaPC)
+      call readProjectors('PC', iGkStart_poolPC, ikGlobal, nGkVecsLocalPC, braSys, betaPC)
 
 
-      call distributeItemsInSubgroups(indexInPool, npwsSD(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolSD, &
+      call distributeItemsInSubgroups(indexInPool, ketSys%nPWs1kGlobal(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolSD, &
               iGkEnd_poolSD, nGkVecsLocalSD)
 
-      allocate(betaSD(nGkVecsLocalSD,nProjsSD))
+      allocate(betaSD(nGkVecsLocalSD,ketSys%nProj))
 
-      call readProjectors('SD', iGkStart_poolSD, ikGlobal, nGkVecsLocalSD, nProjsSD, betaSD)
+      call readProjectors('SD', iGkStart_poolSD, ikGlobal, nGkVecsLocalSD, ketSys, betaSD)
 
       call cpu_time(t2)
       if(ionode) write(*, '("  Pre-spin-loop: [X] Read projectors (",f10.2," secs)")') t2-t1
@@ -132,11 +131,11 @@ program TMEmain
       allocate(wfcPC(nGkVecsLocalPC, iBandIinit:iBandIfinal))
       allocate(wfcSD(nGkVecsLocalSD, iBandFinit:iBandFfinal))
       
-      allocate(cProjBetaPCPsiSD(nProjsPC, iBandFinit:iBandFfinal))
-      allocate(cProjBetaSDPhiPC(nProjsSD, iBandIinit:iBandIfinal))
+      allocate(cProjBetaPCPsiSD(braSys%nProj, iBandFinit:iBandFfinal))
+      allocate(cProjBetaSDPhiPC(ketSys%nProj, iBandIinit:iBandIfinal))
 
-      allocate(cProjPC(nProjsPC, iBandIinit:iBandIfinal))
-      allocate(cProjSD(nProjsSD, iBandFinit:iBandFfinal))
+      allocate(cProjPC(braSys%nProj, iBandIinit:iBandIfinal))
+      allocate(cProjSD(ketSys%nProj, iBandFinit:iBandFfinal))
 
       allocate(paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
       allocate(paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
@@ -159,8 +158,8 @@ program TMEmain
 
           if(ionode) write(*,'("  Beginning spin ", i2)') isp
 
-          calcSpinDepPC = isp == 1 .or. nSpinsPC == 2 .or. spin1Skipped
-          calcSpinDepSD = isp == 1 .or. nSpinsSD == 2 .or. spin1Skipped
+          calcSpinDepPC = isp == 1 .or. braSys%nSpins == 2 .or. spin1Skipped
+          calcSpinDepSD = isp == 1 .or. ketSys%nSpins == 2 .or. spin1Skipped
             ! If either of the systems only has a single spin 
             ! channel, some inputs and calculations do not need
             ! to be redone for both spin channels. However, we
@@ -182,10 +181,12 @@ program TMEmain
 
 
             if(calcSpinDepPC) &
-              call readWfc('PC', iBandIinit, iBandIfinal, iGkStart_poolPC, ikGlobal, min(isp,nSpinsPC), nGkVecsLocalPC, npwsPC(ikGlobal), wfcPC)
+              call readWfc('PC', iBandIinit, iBandIfinal, iGkStart_poolPC, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocalPC, &
+                braSys%nPWs1kGlobal(ikGlobal), wfcPC)
         
             if(calcSpinDepSD) &
-              call readWfc('SD', iBandFinit, iBandFfinal, iGkStart_poolSD, ikGlobal, min(isp,nSpinsSD), nGkVecsLocalSD, npwsSD(ikGlobal), wfcSD)
+              call readWfc('SD', iBandFinit, iBandFfinal, iGkStart_poolSD, ikGlobal, min(isp,ketSys%nSpins), nGkVecsLocalSD, &
+                ketSys%nPWs1kGlobal(ikGlobal), wfcSD)
         
             call calculatePWsOverlap(ikLocal, isp)
         
@@ -199,11 +200,11 @@ program TMEmain
             !> Calculate cross projections
 
             if(calcSpinDepSD) &
-              call calculateCrossProjection(iBandFinit, iBandFfinal, nGkVecsLocalPC, nGkVecsLocalSD, nProjsPC, betaPC, wfcSD, cProjBetaPCPsiSD)
+              call calculateCrossProjection(iBandFinit, iBandFfinal, nGkVecsLocalPC, nGkVecsLocalSD, braSys%nProj, betaPC, wfcSD, cProjBetaPCPsiSD)
 
 
             if(calcSpinDepPC) &
-              call calculateCrossProjection(iBandIinit, iBandIfinal, nGkVecsLocalSD, nGkVecsLocalPC, nProjsSD, betaSD, wfcPC, cProjBetaSDPhiPC)
+              call calculateCrossProjection(iBandIinit, iBandIfinal, nGkVecsLocalSD, nGkVecsLocalPC, ketSys%nProj, betaSD, wfcPC, cProjBetaSDPhiPC)
         
 
             call cpu_time(t2)
@@ -215,11 +216,11 @@ program TMEmain
             !> Have process 0 in each pool calculate the PAW wave function correction for PC
 
             if(calcSpinDepPC) &
-              call readProjections('PC', iBandIinit, iBandIfinal, ikGlobal, min(isp,nSpinsPC), nProjsPC, cProjPC)
+              call readProjections('PC', iBandIinit, iBandIfinal, ikGlobal, min(isp,braSys%nSpins), braSys%nProj, cProjPC)
 
             if(indexInPool == 0) then
 
-              call pawCorrectionWfc(nIonsPC, TYPNIPC, nProjsPC, numOfTypesPC, cProjPC, cProjBetaPCPsiSD, atomsPC, paw_PsiPC)
+              call pawCorrectionWfc(braSys%nProj, cProjPC, cProjBetaPCPsiSD, braSys, paw_PsiPC)
 
             endif
 
@@ -228,11 +229,11 @@ program TMEmain
             !> Have process 1 in each pool calculate the PAW wave function correction for PC
 
             if(calcSpinDepSD) &
-              call readProjections('SD', iBandFinit, iBandFfinal, ikGlobal, min(isp,nSpinsSD), nProjsSD, cProjSD)
+              call readProjections('SD', iBandFinit, iBandFfinal, ikGlobal, min(isp,ketSys%nSpins), ketSys%nProj, cProjSD)
 
             if(indexInPool == 1) then
 
-              call pawCorrectionWfc(nIonsSD, TYPNISD, nProjsSD, numOfTypes, cProjBetaSDPhiPC, cProjSD, atoms, paw_SDPhi)
+              call pawCorrectionWfc(ketSys%nProj, cProjBetaSDPhiPC, cProjSD, ketSys, paw_SDPhi)
 
             endif
 
@@ -252,11 +253,11 @@ program TMEmain
             !> Have all processes calculate the PAW k correction
       
             if(calcSpinDepPC) &
-              call pawCorrectionK('PC', nIonsPC, TYPNIPC, maxAngMom, nGVecsLocal, numOfTypesPC, numOfTypes, posIonPC, gCart, Ylm, atomsPC, atoms, pawKPC)
+              call pawCorrectionK('PC', maxAngMom, nGVecsLocal, gCart, Ylm, braSys, ketSys, pawKPC)
       
 
             if(calcSpinDepSD) &
-              call pawCorrectionK('SD', nIonsSD, TYPNISD, maxAngMom, nGVecsLocal, numOfTypes, numOfTypes, posIonSD, gCart, Ylm, atoms, atoms, pawSDK)
+              call pawCorrectionK('SD', maxAngMom, nGVecsLocal, gCart, Ylm, ketSys, ketSys, pawSDK)
 
         
             call cpu_time(t2)

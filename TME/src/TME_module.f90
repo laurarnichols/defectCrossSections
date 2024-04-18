@@ -18,10 +18,8 @@ module TMEmod
     !! (only order = 1)
   real(kind=dp), allocatable :: gCart(:,:)
     !! G-vectors in Cartesian coordinates
-  real(kind=dp) :: realLattVec(3,3)
-    !! Real space lattice vectors
-  real(kind=dp) :: recipLattVec(3,3)
-    !! Reciprocal lattice vectors
+  real(kind=dp) :: omega
+    !! Supercell volume
   real(kind = dp) :: t1, t2
     !! For timing different processes
 
@@ -36,8 +34,6 @@ module TMEmod
     !! Local number of G-vectors
   integer :: nGkVecsLocalPC, nGkVecsLocalSD
     !! Local number of G+k vectors on this processor
-  integer :: nSpinsPC, nSpinsSD
-    !! Number of spins for PC/SD system
   integer :: phononModeJ
     !! Index of phonon mode for the calculation
     !! of \(M_j\) (only for order=1)
@@ -67,23 +63,98 @@ module TMEmod
     !! overlap for increased numerical accuracy in the 
     !! derivative
 
-  character(len = 300) :: input, inputPC, textDum
+  ! Define a type to match the export code for the variables
+  ! that come straight from the POTCAR file
+  type potcar
+    integer, allocatable :: angMom(:)
+      !! Angular momentum of projectors
+    integer :: iRAugMax
+      !! Max index of augmentation sphere
+    integer :: lmMax
+      !! Total number of nlm channels
+    integer :: nChannels
+      !! Number of l channels;
+      !! also number of projectors
+    integer :: nMax
+      !! Number of radial grid points
+
+    real(kind=dp), allocatable :: dRadGrid(:)
+      !! Derivative of radial grid
+    real(kind=dp), allocatable :: radGrid(:)
+      !! Radial grid points
+    real(kind=dp), allocatable :: wae(:,:)
+      !! AE wavefunction
+    real(kind=dp), allocatable :: wps(:,:)
+      !! PS wavefunction
+
+    character(len=2) :: element
+  end type potcar
+
+  ! Define a type for new items calculated for PAW
+  type :: calcPAW
+    real(kind=dp), allocatable :: F(:,:)
+    real(kind=dp), allocatable :: F1(:,:,:)
+    real(kind=dp), allocatable :: F2(:,:,:)
+    real(kind=dp), allocatable :: bes_J_qr(:,:,:)
+  end type calcPAW
+
+  ! Define a type for each of the crystal inputs
+  type :: crystal
+    integer, allocatable :: iType(:)
+      !! Atom type index
+    integer :: nAtoms
+      !! Number of atoms
+    integer, allocatable :: nAtomsEachType(:)
+      !! Number of atoms of each type
+    integer :: nAtomTypes
+      !! Number of types of atoms
+    integer :: nKPoints
+      !! Number of k-points
+    integer :: nGVecsGlobal
+      !! Global number of G-vectors
+    integer :: nProj
+      !! Number of projectors across all atom types
+    integer, allocatable :: nPWs1kGlobal(:)
+      !! Global number of PWs at each k-point
+    integer :: nSpins
+      !! Number of spins
+
+    real(kind=dp), allocatable :: atomPositionsCart(:,:)
+      !! Position of atoms in cartesian coordinates
+    real(kind=dp) :: omega
+      !! Supercell volume
+    real(kind=dp) :: recipLattVec(3,3)
+      !! Reciprocal-space lattice vectors
+
+    character(len=3) :: sysType
+      !! Type of system for overlap:
+      !! bra or ket
+
+    type(potcar), allocatable :: pot(:)
+      !! Pseudopotential information from this system
+
+    type(calcPAW), allocatable :: paw(:)
+      !! Values needed for PAW formalism
+  end type crystal
+
+  type(crystal) :: braSys, ketSys
+    !! Define variables for the system used as the
+    !! <bra| and the |ket> in the overlap matrix 
+    !! element
+
+  character(len = 300) :: textDum
   character(len = 320) :: mkdir
   
   integer :: ik, ig, ibi, ibf
   integer :: iTypes, iPn
-  integer :: nIonsSD, nIonsPC, nProjsPC, numOfTypesPC
-  integer :: numOfTypes, nProjsSD
   integer :: numOfUsedGvecsPP, npwNi, npwNf, npwMi, npwMf
   integer :: np, nI, nF, nPP, ind2
   integer :: i, j, n1, n2, n3, n4, n, id, npw
   
   real(kind = dp) t0, tf
   
-  real(kind = dp) :: omega
   
-  real(kind = dp), allocatable :: gvecs(:,:), posIonSD(:,:), posIonPC(:,:)
-  real(kind = dp), allocatable :: xk(:,:)
+  real(kind = dp), allocatable :: gvecs(:,:)
   real(kind = dp), allocatable :: DE(:,:,:), absVfi2(:,:,:)
   
   complex(kind = dp), allocatable :: paw_SDKKPC(:,:), paw_id(:,:)
@@ -93,18 +164,8 @@ module TMEmod
   complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:)
   complex(kind = dp), allocatable :: cProjBetaSDPhiPC(:,:)
   
-  integer, allocatable :: TYPNISD(:), TYPNIPC(:), igvs(:,:,:), pwGvecs(:,:), iqs(:)
-  integer, allocatable :: npwsSD(:), pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
-  integer, allocatable :: npwsPC(:)
-  real(kind = dp), allocatable :: xkPC(:,:)
-  
-  type :: atom
-    integer :: numOfAtoms, lMax, lmMax, nMax, iRc
-    integer, allocatable :: lps(:)
-    real(kind = dp), allocatable :: r(:), rab(:), wae(:,:), wps(:,:), F(:,:), F1(:,:,:), F2(:,:,:), bes_J_qr(:,:,:)
-  end type atom
-  
-  TYPE(atom), allocatable :: atoms(:), atomsPC(:)
+  integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:)
+  integer, allocatable :: pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
   
   type :: vec
     integer :: ind
@@ -123,7 +184,7 @@ module TMEmod
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInput(ispSelect, maxAngMom, nKPoints, nGVecsGlobal, realLattVec, recipLattVec, baselineDir, loopSpins, subtractBaseline)
+  subroutine readInput(ispSelect, maxAngMom, nKPoints, nGVecsGlobal, baselineDir, loopSpins, subtractBaseline)
 
     use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
     
@@ -139,11 +200,6 @@ contains
       !! Global number of G-vectors
     integer, intent(out) :: nKPoints
       !! Total number of k-points
-
-    real(kind=dp), intent(out) :: realLattVec(3,3)
-      !! Real space lattice vectors
-    real(kind=dp), intent(out) :: recipLattVec(3,3)
-      !! Reciprocal lattice vectors
 
     character(len=300), intent(out) :: baselineDir
       !! File name for baseline overlap to optionally
@@ -198,8 +254,24 @@ contains
 
     maxAngMom = 0
 
-    call readInputPC(maxAngMom, nKPoints)
-    call readInputSD(maxAngMom, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
+    braSys%sysType = 'bra'
+    call readInputFile(exportDirPC, maxAngMom, braSys)
+
+    ketSys%sysType = 'ket'
+    call readInputFile(exportDirSD, maxAngMom, ketSys)
+
+
+    ! Check that the number of k-points and global G-vecs and set global values
+    if(ionode) then
+      if(braSys%nKPoints /= ketSys%nKPoints) call exitError('readInput', 'number of k-points in systems does not match', 1)
+      if(braSys%nGVecsGlobal /= ketSys%nGVecsGlobal) call exitError('readInput', 'number of G-vectors in systems does not match', 1)
+      if(abs(braSys%omega - ketSys%omega) > 1e-8) call exitError('readInput', 'volumes don''t match', 1)
+    endif
+
+    nKPoints = braSys%nKPoints
+    nGVecsGlobal = braSys%nGVecsGlobal
+    omega = braSys%omega
+
 
     call MPI_BCAST(maxAngMom, 1, MPI_INTEGER, root, worldComm, ierr)
     
@@ -218,17 +290,13 @@ contains
 
       endif
 
-      ! Update this to read and test the number of plane waves/G-vectors
-      !if(nGVecsGlobalPC /= nGVecsGlobal) call exitError('readInput', &
-      !    'Number of plane waves in each system does not match. Must use same VASP version and cutoff.', 1)
-
     endif
 
     if(order == 1) then
       call MPI_BCAST(dq_j, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     endif
 
-    nSpins = max(nSpinsPC,nSpinsSD)
+    nSpins = max(braSys%nSpins,ketSys%nSpins)
     
     return
     
@@ -355,110 +423,122 @@ contains
   end subroutine checkInitialization
   
 !----------------------------------------------------------------------------
-  subroutine readInputPC(maxAngMom, nKPoints)
+  subroutine readInputFile(exportDir, maxAngMom, sys)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
 
+    ! Input variables:
+    character(len=300) :: exportDir
+      !! Path to Export dir
+
     ! Output variables:
     integer, intent(inout) :: maxAngMom
       !! Maximum angular momentum of the projectors
-    integer, intent(out) :: nKPoints
-      !! Total number of k-points
 
-    ! Output variables:
+    type(crystal) :: sys
+       !! The crystal system
 
     ! Local variables:
+    integer :: iDum
+      !! Dummy integer
+    integer :: ik, iA, ix, iT, ip, ir, ip1, ip2, irm
+      !! Loop indices
     integer :: nBands
       !! Number of bands
-    integer :: i, j, l, ind, ik, iDum, iType, ni, irc
-    
+
     real(kind = dp) :: t1, t2 
+      !! Timers
     real(kind=dp) :: rDum
       !! Dummy real variable
-    
-    character(len = 300) :: textDum
+
+    character(len=300) :: inputFName
+      !! File name for the input file 
+    character(len=300) :: textDum
+      !! Dummy text
     
     
     if(ionode) then
       call cpu_time(t1)
     
-      write(*,*)
-      write(*,'(" Reading perfect crystal inputs.")')
-      write(*,*)
+      inputFName = trim(trim(exportDir)//'/input')
     
-      inputPC = trim(trim(exportDirPC)//'/input')
+      open(50, file=trim(inputFName), status = 'old')
     
-      open(50, file=trim(inputPC), status = 'old')
-    
-      read(50, '(a)') textDum
-      read(50, * ) 
+      read(50,*)
+      read(50,*) sys%omega
 
-      read(50, '(a)') textDum
-      read(50, * ) ! nGVecsGlobalPC
+      read(50,*)
+      read(50,*) sys%nGVecsGlobal
 
-      read(50, '(a)') textDum
-      read(50, * ) ! fftGridSize(1:3)
+      read(50,*)
+      read(50,*) ! fftGridSize(1:3)
     
-      read(50, '(a)') textDum
-      read(50, '(i10)') nSpinsPC
+      read(50,*)
+      read(50,'(i10)') sys%nSpins
     
-      read(50, '(a)') textDum
-      read(50, '(i10)') nKPoints
+      read(50,*) 
+      read(50,'(i10)') sys%nKPoints
 
     endif
 
-    call MPI_BCAST(nSpinsPC, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(sys%omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(sys%nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(sys%nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(sys%nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     
-    allocate(npwsPC(nKPoints), xkPC(3,nKPoints))
+    allocate(sys%nPWs1kGlobal(sys%nKPoints))
     
     if(ionode) then
 
-      read(50, '(a)') textDum
+      read(50,*) 
     
-      do ik = 1, nKPoints
+      do ik = 1, sys%nKPoints
       
-        read(50, '(2i10,4ES24.15E3)') iDum, npwsPC(ik), rDum, xkPC(1:3,ik)
+        read(50,'(2i10,4ES24.15E3)') iDum, sys%nPWs1kGlobal(ik), rDum, rDum, rDum, rDum
       
       enddo
 
     endif
     
-    call MPI_BCAST(npwsPC, nKPoints, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(xkPC, nKPoints, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(sys%nPWs1kGlobal, sys%nKPoints, MPI_INTEGER, root, worldComm, ierr)
 
     if(ionode) then
 
-      call ignoreNextNLinesFromFile(50, 8)
+      call ignoreNextNLinesFromFile(50, 5)
+
+      read(50,'(a5, 3ES24.15E3)') textDum, sys%recipLattVec(1:3,1)
+      read(50,'(a5, 3ES24.15E3)') textDum, sys%recipLattVec(1:3,2)
+      read(50,'(a5, 3ES24.15E3)') textDum, sys%recipLattVec(1:3,3)
     
-      read(50, '(a)') textDum
-      read(50, '(i10)') nIonsPC
+      read(50,*)
+      read(50,'(i10)') sys%nAtoms
     
-      read(50, '(a)') textDum
-      read(50, '(i10)') numOfTypesPC
+      read(50,*)
+      read(50,'(i10)') sys%nAtomTypes
     
     endif
 
-    call MPI_BCAST(nIonsPC, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(numOfTypesPC, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(sys%recipLattVec, size(sys%recipLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(sys%nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(sys%nAtomTypes, 1, MPI_INTEGER, root, worldComm, ierr)
     
-    allocate(posIonPC(3,nIonsPC), TYPNIPC(nIonsPC))
+    allocate(sys%atomPositionsCart(3,sys%nAtoms), sys%iType(sys%nAtoms))
 
 
     if(ionode) then
     
-      read(50, '(a)') textDum
-      do ni = 1, nIonsPC
-        read(50,'(i10, 3ES24.15E3)') TYPNIPC(ni), (posIonPC(j,ni) , j = 1,3)
+      read(50,*) 
+      do iA = 1, sys%nAtoms
+        read(50,'(i10, 3ES24.15E3)') sys%iType(iA), (sys%atomPositionsCart(ix,iA), ix=1,3)
       enddo
     
-      read(50, '(a)') textDum
+      read(50,*)
       read(50,'(i10)') nBands
 
       if(iBandIfinal > nBands .or. iBandFfinal > nBands) &
-        call exitError('readInputPC', 'band limits outside the number of bands in the system '//trim(int2str(nBands)), 1)
+        call exitError('readInputFile', 'band limits outside the number of bands in the system '//trim(int2str(nBands)), 1)
         ! Only need to test these bands because we tested in
         ! the `checkInitialization` subroutine to make sure
         ! that the `initial` bands are lower than the `final`
@@ -466,137 +546,144 @@ contains
 
     endif
 
-    call MPI_BCAST(TYPNIPC,  size(TYPNIPC),  MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(posIonPC, size(posIonPC), MPI_DOUBLE_PRECISION,root,worldComm,ierr)
+    call MPI_BCAST(sys%iType,  size(sys%iType),  MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(sys%atomPositionsCart, size(sys%atomPositionsCart), MPI_DOUBLE_PRECISION,root,worldComm,ierr)
     
-    allocate(atomsPC(numOfTypesPC))
+    allocate(sys%pot(sys%nAtomTypes), sys%paw(sys%nAtomTypes), sys%nAtomsEachType(sys%nAtomTypes))
 
-    nProjsPC = 0
-    do iType = 1, numOfTypesPC
+    sys%nProj = 0
+    do iT = 1, sys%nAtomTypes
       
       if(ionode) then
 
-        read(50, '(a)') textDum
-        read(50, *) 
+        read(50,*) 
+        read(50,*) !sys%pot(iT)%element
+          ! Don't use this now, but might, so I want
+          ! to easily know where it is.
       
-        read(50, '(a)') textDum
-        read(50, '(i10)') atomsPC(iType)%numOfAtoms
+        read(50,*)
+        read(50,'(i10)') sys%nAtomsEachType(iT)
 
-        read(50, '(a)') textDum
-        read(50, '(i10)') atomsPC(iType)%lMax              ! number of projectors
+        read(50,*)
+        read(50,'(i10)') sys%pot(iT)%nChannels              ! number of projectors
 
       endif
 
-      call MPI_BCAST(atomsPC(iType)%numOfAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
-      call MPI_BCAST(atomsPC(iType)%lMax, 1, MPI_INTEGER, root, worldComm, ierr)
-
-      allocate(atomsPC(iType)%lps(atomsPC(iType)%lMax))
+      call MPI_BCAST(sys%pot(iT)%nChannels, 1, MPI_INTEGER, root, worldComm, ierr)
       
+      allocate(sys%pot(iT)%angMom(sys%pot(iT)%nChannels))
+
       if(ionode) then
 
-        read(50, '(a)') textDum
+        read(50,*)
 
-        do i = 1, atomsPC(iType)%lMax 
+        do ip = 1, sys%pot(iT)%nChannels
 
-          read(50, '(2i10)') l, ind
-          atomsPC(iType)%lps(ind) = l
+          read(50,'(2i10)') sys%pot(iT)%angMom(ip), iDum
 
         enddo
 
       endif
 
-      call MPI_BCAST(atomsPC(iType)%lps, atomsPC(iType)%lMax, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(sys%pot(iT)%angMom, sys%pot(iT)%nChannels, MPI_INTEGER, root, worldComm, ierr)
 
       if(ionode) then
       
-        read(50, '(a)') textDum
-        read(50, '(i10)') atomsPC(iType)%lmMax
+        read(50,*)
+        read(50,'(i10)') sys%pot(iT)%lmMax
       
-        read(50, '(a)') textDum
-        read(50, '(2i10)') atomsPC(iType)%nMax, atomsPC(iType)%iRc
+        read(50,*)
+        read(50,'(2i10)') sys%pot(iT)%nMax, sys%pot(iT)%iRAugMax
 
       endif
     
-      call MPI_BCAST(atomsPC(iType)%lmMax, 1, MPI_INTEGER, root, worldComm, ierr)
-      call MPI_BCAST(atomsPC(iType)%nMax, 1, MPI_INTEGER, root, worldComm, ierr)
-      call MPI_BCAST(atomsPC(iType)%iRc, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(sys%pot(iT)%lmMax, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(sys%pot(iT)%nMax, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(sys%pot(iT)%iRAugMax, 1, MPI_INTEGER, root, worldComm, ierr)
 
-      allocate(atomsPC(iType)%r(atomsPC(iType)%nMax))
+      allocate(sys%pot(iT)%radGrid(sys%pot(iT)%nMax))
       
       if(ionode) then
       
-        allocate(atomsPC(iType)%rab(atomsPC(iType)%nMax))
+        allocate(sys%pot(iT)%dRadGrid(sys%pot(iT)%nMax))
 
-        read(50, '(a)') textDum
+        read(50,*)
 
-        do i = 1, atomsPC(iType)%nMax
-          read(50, '(2ES24.15E3)') atomsPC(iType)%r(i), atomsPC(iType)%rab(i)
+        do ir = 1, sys%pot(iT)%nMax
+          read(50,'(2ES24.15E3)') sys%pot(iT)%radGrid(ir), sys%pot(iT)%dRadGrid(ir)
         enddo
        
-        allocate(atomsPC(iType)%wae(atomsPC(iType)%nMax, atomsPC(iType)%lMax))
-        allocate(atomsPC(iType)%wps(atomsPC(iType)%nMax, atomsPC(iType)%lMax))
+        allocate(sys%pot(iT)%wae(sys%pot(iT)%nMax, sys%pot(iT)%nChannels))
+        allocate(sys%pot(iT)%wps(sys%pot(iT)%nMax, sys%pot(iT)%nChannels))
       
-        read(50, '(a)') textDum
-        do j = 1, atomsPC(iType)%lMax
-          do i = 1, atomsPC(iType)%nMax
-            read(50, '(2ES24.15E3)') atomsPC(iType)%wae(i, j), atomsPC(iType)%wps(i, j) 
+        read(50,*)
+        do ip = 1, sys%pot(iT)%nChannels
+          do ir = 1, sys%pot(iT)%nMax
+            read(50,'(2ES24.15E3)') sys%pot(iT)%wae(ir,ip), sys%pot(iT)%wps(ir,ip) 
           enddo
         enddo
         
       endif
 
-      allocate(atomsPC(iType)%F(atomsPC(iType)%iRc, atomsPC(iType)%lMax))
-      allocate(atomsPC(iType)%F1(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax))
-      allocate(atomsPC(iType)%F2(atomsPC(iType)%iRc, atomsPC(iType)%lMax, atomsPC(iType)%lMax))
+      allocate(sys%paw(iT)%F(sys%pot(iT)%iRAugMax, sys%pot(iT)%nChannels))
+      allocate(sys%paw(iT)%F1(sys%pot(iT)%iRAugMax, sys%pot(iT)%nChannels, sys%pot(iT)%nChannels))
+      allocate(sys%paw(iT)%F2(sys%pot(iT)%iRAugMax, sys%pot(iT)%nChannels, sys%pot(iT)%nChannels))
       
       if(ionode) then
 
-        atomsPC(iType)%F = 0.0_dp
-        atomsPC(iType)%F1 = 0.0_dp
-        atomsPC(iType)%F2 = 0.0_dp
+        sys%paw(iT)%F = 0.0_dp
+        sys%paw(iT)%F1 = 0.0_dp
+        sys%paw(iT)%F2 = 0.0_dp
       
-        do j = 1, atomsPC(iType)%lMax
+        do ip1 = 1, sys%pot(iT)%nChannels
         
-          irc = atomsPC(iType)%iRc
-          atomsPC(iType)%F(1:irc,j)=(atomsPC(iType)%wae(1:irc,j)-atomsPC(iType)%wps(1:irc,j))* &
-                atomsPC(iType)%r(1:irc)*atomsPC(iType)%rab(1:irc)
+          irm = sys%pot(iT)%iRAugMax
+
+          sys%paw(iT)%F(1:irm,ip1)=(sys%pot(iT)%wae(1:irm,ip1)-sys%pot(iT)%wps(1:irm,ip1))* &
+                                    sys%pot(iT)%radGrid(1:irm)*sys%pot(iT)%dRadGrid(1:irm)
         
-          do i = 1, atomsPC(iType)%lMax
-            atomsPC(iType)%F1(1:irc,i,j) = ( atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wae(1:irc,j) - &
-                                            atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wps(1:irc,j))*atomsPC(iType)%rab(1:irc)
+          do ip2 = 1, sys%pot(iT)%nChannels
+            if(trim(sys%sysType) == 'bra') then
+              sys%paw(iT)%F1(1:irm,ip2,ip1) = ( sys%pot(iT)%wps(1:irm,ip2)*sys%pot(iT)%wae(1:irm,ip1) - &
+                                                sys%pot(iT)%wps(1:irm,ip2)*sys%pot(iT)%wps(1:irm,ip1))*sys%pot(iT)%dRadGrid(1:irm)
+            else if(trim(sys%sysType) == 'ket') then
+              sys%paw(iT)%F1(1:irm,ip2,ip1) = ( sys%pot(iT)%wae(1:irm,ip2)*sys%pot(iT)%wps(1:irm,ip1) - &
+                                                sys%pot(iT)%wps(1:irm,ip2)*sys%pot(iT)%wps(1:irm,ip1))*sys%pot(iT)%dRadGrid(1:irm)
+            endif
           
-            atomsPC(iType)%F2(1:irc,i,j) = ( atomsPC(iType)%wae(1:irc,i)*atomsPC(iType)%wae(1:irc,j) - &
-                                             atomsPC(iType)%wae(1:irc,i)*atomsPC(iType)%wps(1:irc,j) - &
-                                             atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wae(1:irc,j) + &
-                                             atomsPC(iType)%wps(1:irc,i)*atomsPC(iType)%wps(1:irc,j))*atomsPC(iType)%rab(1:irc)
+            sys%paw(iT)%F2(1:irm,ip2,ip1) = ( sys%pot(iT)%wae(1:irm,ip2)*sys%pot(iT)%wae(1:irm,ip1) - &
+                                              sys%pot(iT)%wae(1:irm,ip2)*sys%pot(iT)%wps(1:irm,ip1) - &
+                                              sys%pot(iT)%wps(1:irm,ip2)*sys%pot(iT)%wae(1:irm,ip1) + &
+                                              sys%pot(iT)%wps(1:irm,ip2)*sys%pot(iT)%wps(1:irm,ip1))*sys%pot(iT)%dRadGrid(1:irm)
 
           enddo
         enddo
 
-        deallocate(atomsPC(iType)%wae)
-        deallocate(atomsPC(iType)%wps)
-        deallocate(atomsPC(iType)%rab)
+        deallocate(sys%pot(iT)%wae)
+        deallocate(sys%pot(iT)%wps)
+        deallocate(sys%pot(iT)%dRadGrid)
       
-        nProjsPC = nProjsPC + atomsPC(iType)%numOfAtoms*atomsPC(iType)%lmMax
+        sys%nProj = sys%nProj + sys%nAtomsEachType(iT)*sys%pot(iT)%lmMax
 
       endif
 
-      call MPI_BCAST(atomsPC(iType)%r, size(atomsPC(iType)%r), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-      call MPI_BCAST(atomsPC(iType)%F, size(atomsPC(iType)%F), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-      call MPI_BCAST(atomsPC(iType)%F1, size(atomsPC(iType)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-      call MPI_BCAST(atomsPC(iType)%F2, size(atomsPC(iType)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(sys%pot(iT)%radGrid, size(sys%pot(iT)%radGrid), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(sys%paw(iT)%F, size(sys%paw(iT)%F), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(sys%paw(iT)%F1, size(sys%paw(iT)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(sys%paw(iT)%F2, size(sys%paw(iT)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       
     enddo
   
-    call MPI_BCAST(nProjsPC, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(sys%nAtomsEachType, sys%nAtomTypes, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(sys%nProj, 1, MPI_INTEGER, root, worldComm, ierr)
 
     if(ionode) then
     
       close(50)
 
-      do iType = 1, numOfTypes
-        do i = 1, atoms(iType)%lMax
-          if(atoms(iType)%lps(i) > maxAngMom) maxAngMom = atoms(iType)%lps(i)
+      do iT = 1, sys%nAtomTypes
+        do ip = 1, sys%pot(iT)%nChannels
+          if(sys%pot(iT)%angMom(ip) > maxAngMom) maxAngMom = sys%pot(iT)%angMom(ip)
         enddo
       enddo
     
@@ -608,287 +695,7 @@ contains
     
     return
     
-  end subroutine readInputPC
-  
-!----------------------------------------------------------------------------
-  subroutine readInputSD(maxAngMom, nKPoints, nGVecsGlobal, realLattVec, recipLattVec)
-    !
-    implicit none
-    
-    ! Input variables:
-    integer, intent(inout) :: maxAngMom
-      !! Maximum angular momentum of the projectors
-    integer, intent(in) :: nKPoints
-      !! Total number of k-points
-
-    ! Output variables:
-    integer, intent(out) :: nGVecsGlobal
-      !! Global number of G-vectors
-
-    real(kind=dp), intent(out) :: realLattVec(3,3)
-      !! Real space lattice vectors
-    real(kind=dp), intent(out) :: recipLattVec(3,3)
-      !! Reciprocal lattice vectors
-    
-    ! Local variables:
-    integer :: nBands
-      !! Number of bands
-    integer :: nKpts
-      !! Number of k-points read from SD file
-
-    integer :: i, j, l, ind, ik, iDum, iType, ni, irc
-    
-    real(kind = dp) :: t1, t2
-    real(kind=dp) :: rDum
-    
-    character(len = 300) :: textDum
-    
-
-    if(ionode) then
-      call cpu_time(t1)
-    
-      write(*,*)
-      write(*,'(" Reading solid defect inputs.")')
-      write(*,*)
-    
-      input = trim(trim(exportDirSD)//'/input')
-    
-      open(50, file=trim(input), status = 'old')
-    
-      read(50, '(a)') textDum
-      read(50, '(ES24.15E3)' ) omega
-
-    endif
-
-    call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    
-    if(ionode) then
-    
-      read(50, '(a)') textDum
-      read(50, '(i10)') nGVecsGlobal
-    
-      read(50, '(a)') textDum     
-      read(50,*) 
-      !read(50, '(6i10)') fftxMin, fftxMax, fftyMin, fftyMax, fftzMin, fftzMax
-
-      read(50, '(a)') textDum
-      read(50, '(i10)') nSpinsSD
-
-      read(50, '(a)') textDum
-      read(50, '(i10)') nKpts
-
-      if(nKpts /= nKPoints) call exitError('readInputsSD', 'Number of k-points in systems must match', 1)
-    
-      read(50, '(a)') textDum
-
-    endif
-
-    call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(nSpinsSD, 1, MPI_INTEGER, root, worldComm, ierr)
-
-    
-    allocate(npwsSD(nKPoints), xk(3,nKPoints))
-
-    if(ionode) then
-    
-      do ik = 1, nKPoints
-      
-        read(50, '(2i10,4ES24.15E3)') iDum, npwsSD(ik), rDum, xk(1:3,ik)
-      
-      enddo
-
-    endif
-    
-    call MPI_BCAST(npwsSD, nKPoints, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(xk, nKPoints, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-
-    if(ionode) then
-    
-      read(50, '(a)') textDum
-      read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,1)
-      read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,2)
-      read(50, '(a5, 3ES24.15E3)') textDum, realLattVec(1:3,3)
-    
-      read(50, '(a)') textDum
-      read(50, '(a5, 3ES24.15E3)') textDum, recipLattVec(1:3,1)
-      read(50, '(a5, 3ES24.15E3)') textDum, recipLattVec(1:3,2)
-      read(50, '(a5, 3ES24.15E3)') textDum, recipLattVec(1:3,3)
-    
-      read(50, '(a)') textDum
-      read(50, '(i10)') nIonsSD
-    
-      read(50, '(a)') textDum
-      read(50, '(i10)') numOfTypes
-
-    endif
-
-    call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(recipLattVec, size(recipLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(nIonsSD, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(numOfTypes, 1, MPI_INTEGER, root, worldComm, ierr)
-    
-    allocate(posIonSD(3,nIonsSD), TYPNISD(nIonsSD))
-
-    if(ionode) then
-    
-      read(50, '(a)') textDum
-      do ni = 1, nIonsSD
-        read(50,'(i10, 3ES24.15E3)') TYPNISD(ni), (posIonSD(j,ni), j = 1,3)
-      enddo
-    
-      read(50, '(a)') textDum
-      read(50,'(i10)') nBands
-
-      if(iBandIfinal > nBands .or. iBandFfinal > nBands) &
-        call exitError('readInputSD', 'band limits outside the number of bands in the system '//trim(int2str(nBands)), 1)
-        ! Only need to test these bands because we tested in
-        ! the `checkInitialization` subroutine to make sure
-        ! that the `initial` bands are lower than the `final`
-        ! bands
-
-    endif
-  
-    call MPI_BCAST(TYPNISD, size(TYPNISD), MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(posIonSD, size(posIonSD), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-
-
-    allocate(atoms(numOfTypes))
-    
-    nProjsSD = 0
-    do iType = 1, numOfTypes
-      
-      if(ionode) then
-
-        read(50, '(a)') textDum
-        read(50, *) 
-      
-        read(50, '(a)') textDum
-        read(50, '(i10)') atoms(iType)%numOfAtoms
-      
-        read(50, '(a)') textDum
-        read(50, '(i10)') atoms(iType)%lMax              ! number of projectors
-
-      endif
-
-      call MPI_BCAST(atoms(iType)%numOfAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
-      call MPI_BCAST(atoms(iType)%lMax, 1, MPI_INTEGER, root, worldComm, ierr)
-      
-      allocate(atoms(iType)%lps(atoms(iType)%lMax))
-      
-      if(ionode) then
-
-        read(50, '(a)') textDum
-        do i = 1, atoms(iType)%lMax 
-          read(50, '(2i10)') l, ind
-          atoms(iType)%lps(ind) = l
-        enddo
-
-      endif
-
-      call MPI_BCAST(atoms(iType)%lps, size(atoms(iType)%lps), MPI_INTEGER, root, worldComm, ierr)
-
-      if(ionode) then
-      
-        read(50, '(a)') textDum
-        read(50, '(i10)') atoms(iType)%lmMax
-      
-        read(50, '(a)') textDum
-        read(50, '(2i10)') atoms(iType)%nMax, atoms(iType)%iRc
-
-      endif
-    
-      call MPI_BCAST(atoms(iType)%lmMax, 1, MPI_INTEGER, root, worldComm, ierr)
-      call MPI_BCAST(atoms(iType)%nMax, 1, MPI_INTEGER, root, worldComm, ierr)
-      call MPI_BCAST(atoms(iType)%iRc, 1, MPI_INTEGER, root, worldComm, ierr)
-
-      allocate(atoms(iType)%r(atoms(iType)%nMax))
-
-      if(ionode) then
-      
-        allocate(atoms(iType)%rab(atoms(iType)%nMax))
-      
-        read(50, '(a)') textDum
-        do i = 1, atoms(iType)%nMax
-          read(50, '(2ES24.15E3)') atoms(iType)%r(i), atoms(iType)%rab(i)
-        enddo
-       
-        allocate(atoms(iType)%wae(atoms(iType)%nMax, atoms(iType)%lMax))
-        allocate(atoms(iType)%wps(atoms(iType)%nMax, atoms(iType)%lMax))
-      
-        read(50, '(a)') textDum
-        do j = 1, atoms(iType)%lMax
-          do i = 1, atoms(iType)%nMax
-            read(50, '(2ES24.15E3)') atoms(iType)%wae(i, j), atoms(iType)%wps(i, j) 
-          enddo
-        enddo
-
-      endif
-
-        
-      allocate(atoms(iType)%F(atoms(iType)%iRc, atoms(iType)%lMax))
-      allocate(atoms(iType)%F1(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax))
-      allocate(atoms(iType)%F2(atoms(iType)%iRc, atoms(iType)%lMax, atoms(iType)%lMax))
-      
-      if(ionode) then
-
-        atoms(iType)%F = 0.0_dp
-        atoms(iType)%F1 = 0.0_dp
-        atoms(iType)%F2 = 0.0_dp
-      
-        do j = 1, atoms(iType)%lMax
-          
-          irc = atoms(iType)%iRc
-          atoms(iType)%F(1:irc,j)=(atoms(iType)%wae(1:irc,j)-atoms(iType)%wps(1:irc,j))*atoms(iType)%r(1:irc) * &
-              atoms(iType)%rab(1:irc)
-          
-          do i = 1, atoms(iType)%lMax
-                  
-            atoms(iType)%F1(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
-                                           atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
-          
-            atoms(iType)%F2(1:irc,i,j) = ( atoms(iType)%wae(1:irc,i)*atoms(iType)%wae(1:irc,j) - &
-                                           atoms(iType)%wae(1:irc,i)*atoms(iType)%wps(1:irc,j) - &
-                                           atoms(iType)%wps(1:irc,i)*atoms(iType)%wae(1:irc,j) + &
-                                           atoms(iType)%wps(1:irc,i)*atoms(iType)%wps(1:irc,j))*atoms(iType)%rab(1:irc)
-          enddo
-        enddo
-      
-        nProjsSD = nProjsSD + atoms(iType)%numOfAtoms*atoms(iType)%lmMax
-      
-        deallocate(atoms(iType)%wae)
-        deallocate(atoms(iType)%wps)
-        deallocate(atoms(iType)%rab)
-
-      endif
-
-      call MPI_BCAST(atoms(iType)%r, size(atoms(iType)%r), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-      call MPI_BCAST(atoms(iType)%F, size(atoms(iType)%F), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-      call MPI_BCAST(atoms(iType)%F1, size(atoms(iType)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-      call MPI_BCAST(atoms(iType)%F2, size(atoms(iType)%F2), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-      
-    enddo
-
-    call MPI_BCAST(nProjsSD, 1, MPI_INTEGER, root, worldComm, ierr)
-    
-    if(ionode) then
-    
-      close(50)
-
-      do iType = 1, numOfTypes
-        do i = 1, atoms(iType)%lMax
-          if(atoms(iType)%lps(i) > maxAngMom) maxAngMom = atoms(iType)%lps(i)
-        enddo
-      enddo
-
-      call cpu_time(t2)
-      write(*,'(" Reading solid defect inputs done in:                ", f10.2, " secs.")') t2-t1
-      write(*,*)
-
-    endif
-    
-    return
-    
-  end subroutine readInputSD
+  end subroutine readInputFile
   
 !----------------------------------------------------------------------------
   function overlapFileExists(ikGlobal, isp) result(fileExists)
@@ -1017,7 +824,7 @@ contains
   end subroutine getFullPWGrid
 
 !----------------------------------------------------------------------------
-  subroutine setUpTables(maxAngMom, nGVecsLocal, mill_local, numOfTypes, recipLattVec, atomsSD, gCart, Ylm)
+  subroutine setUpTables(maxAngMom, nGVecsLocal, mill_local, ketSys, gCart, Ylm)
 
     implicit none
 
@@ -1028,14 +835,9 @@ contains
       !! Number of local G-vectors
     integer, intent(in) :: mill_local(3,nGVecsLocal)
       !! Miller indices for local G-vectors
-    integer, intent(in) :: numOfTypes
-      !! Number of different atom types
 
-    real(kind=dp), intent(in) :: recipLattVec(3,3)
-      !! Reciprocal-space lattice vectors
-
-    type(atom), intent(inout) :: atomsSD(numOfTypes)
-      !! Structure to hold details for each atom for SD
+    type(crystal) :: ketSys
+       !! The ket crystal system used to set up tables
 
     ! Output variables:
     real(kind=dp), intent(out) :: gCart(3,nGVecsLocal)
@@ -1058,16 +860,16 @@ contains
 
     Ylm = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
-    do iT = 1, numOfTypes
+    do iT = 1, ketSys%nAtomTypes
 
-      allocate(atomsSD(iT)%bes_J_qr( 0:maxAngMom, atomsSD(iT)%iRc, nGVecsLocal))
-      atomsSD(iT)%bes_J_qr(:,:,:) = 0.0_dp
+      allocate(ketSys%paw(iT)%bes_J_qr( 0:maxAngMom, ketSys%pot(iT)%iRAugMax, nGVecsLocal))
+      ketSys%paw(iT)%bes_J_qr(:,:,:) = 0.0_dp
       
     enddo
 
     do ig = 1, nGVecsLocal
 
-      gCart(:,ig) = matmul(recipLattVec, mill_local(:,ig))
+      gCart(:,ig) = matmul(ketSys%recipLattVec, mill_local(:,ig))
 
       q = sqrt(dot_product(gCart(:,ig),gCart(:,ig)))
 
@@ -1078,14 +880,14 @@ contains
       call getYlm(gUnit, maxAngMom, Ylm(:,ig))
         !! Calculate all the needed spherical harmonics
 
-      do iT = 1, numOfTypes
+      do iT = 1, ketSys%nAtomTypes
 
-        do iR = 1, atomsSD(iT)%iRc
+        do iR = 1, ketSys%pot(iT)%iRAugMax
 
           JL = 0.0_dp
-          call bessel_j(q*atomsSD(iT)%r(iR), maxAngMom, JL) ! returns the spherical bessel at qr point
+          call bessel_j(q*ketSys%pot(iT)%radGrid(iR), maxAngMom, JL) ! returns the spherical bessel at qr point
             ! Previously used SD atoms structure here for both PC and SD
-          atomsSD(iT)%bes_J_qr(:,iR,ig) = JL(:)
+          ketSys%paw(iT)%bes_J_qr(:,iR,ig) = JL(:)
 
         enddo
 
@@ -1099,7 +901,7 @@ contains
   end subroutine setUpTables
 
 !----------------------------------------------------------------------------
-  subroutine readProjectors(crystalType, iGkStart_pool, ikGlobal, nGkVecsLocal, nProjs, beta)
+  subroutine readProjectors(crystalType, iGkStart_pool, ikGlobal, nGkVecsLocal, sys, beta)
     
     implicit none
 
@@ -1110,14 +912,15 @@ contains
       !! Current k point
     integer, intent(in) :: nGkVecsLocal
       !! Local number of G+k vectors on this processor
-    integer, intent(in) :: nProjs
-      !! Number of projectors
 
     character(len=2), intent(in) :: crystalType
       !! Crystal type (PC or SD) for projectors
 
+    type(crystal) :: sys
+       !! The crystal system
+
     ! Output variables:
-    complex(kind=dp), intent(out) :: beta(nGkVecsLocal,nProjs)
+    complex(kind=dp), intent(out) :: beta(nGkVecsLocal,sys%nProj)
       !! Projector of `projCrystalType` with all projectors
       !! and only local PWs/G+k vectors
     
@@ -1140,7 +943,7 @@ contains
 
     inquire(iolength=reclen) beta(1,:)
       !! Get the record length needed to write a double complex
-      !! array of length `nProjs`
+      !! array of length `nProj`
 
     open(unit=72, file=trim(fNameExport), access='direct', recl=reclen, iostat=ierr, status='old', SHARED)
 
@@ -1149,7 +952,7 @@ contains
 
       igkGlobal = igkLocal+iGkStart_pool-1
 
-      read(72,rec=igkGlobal+1) (beta(igkLocal,ipr), ipr=1,nProjs)
+      read(72,rec=igkGlobal+1) (beta(igkLocal,ipr), ipr=1,sys%nProj)
 
     enddo
 
@@ -1421,28 +1224,22 @@ contains
   end subroutine calculateCrossProjection
   
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionWfc(nAtoms, iType, nProjs, numOfTypes, cProjI, cProjF, atoms, pawWfc)
+  subroutine pawCorrectionWfc(nProjs, cProjI, cProjF, sys, pawWfc)
     ! calculates the augmentation part of the transition matrix element
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: nAtoms
-      !! Number of atoms
-    integer, intent(in) :: iType(nAtoms)
-      !! Atom type index
     integer, intent(in) :: nProjs
       !! First index for `cProjI` and `cProjF`
-    integer, intent(in) :: numOfTypes
-      !! Number of different atom types
 
     complex(kind = dp) :: cProjI(nProjs,iBandIinit:iBandIfinal)
       !! Initial-system (PC) projection
     complex(kind = dp) :: cProjF(nProjs,iBandFinit:iBandFfinal)
       !! Final-system (SD) projection
 
-    type(atom), intent(in) :: atoms(numOfTypes)
-      !! Structure to hold details for each atom
+    type(crystal), intent(in) :: sys
+       !! The crystal system
 
     ! Output variables:
     complex(kind=dp), intent(out) :: pawWfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal)
@@ -1469,25 +1266,25 @@ contains
     
     LMBASE = 0
     
-    do ia = 1, nAtoms
+    do ia = 1, sys%nAtoms
       
-      iT = iType(ia)
+      iT = sys%iType(ia)
 
       LM = 0
-      DO LL = 1, atoms(iT)%lMax
-        L = atoms(iT)%LPS(LL)
+      DO LL = 1, sys%pot(iT)%nChannels
+        L = sys%pot(iT)%angMom(LL)
         DO M = -L, L
           LM = LM + 1 !1st index for CPROJ
           
           LMP = 0
-          DO LLP = 1, atoms(iT)%lMax
-            LP = atoms(iT)%LPS(LLP)
+          DO LLP = 1, sys%pot(iT)%nChannels
+            LP = sys%pot(iT)%angMom(LLP)
             DO MP = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
               
               atomicOverlap = 0.0_dp
               if ( (L == LP).and.(M == MP) ) then 
-                atomicOverlap = sum(atoms(iT)%F1(:,LL, LLP))
+                atomicOverlap = sum(sys%paw(iT)%F1(:,LL, LLP))
                 
                 do ibi = iBandIinit, iBandIfinal
                   cProjIe = cProjI(LMP + LMBASE, ibi)
@@ -1507,7 +1304,7 @@ contains
           ENDDO
         ENDDO
       ENDDO
-      LMBASE = LMBASE + atoms(iT)%lmMax
+      LMBASE = LMBASE + sys%pot(iT)%lmMax
     ENDDO
     
     return
@@ -1515,26 +1312,16 @@ contains
   end subroutine pawCorrectionWfc
 
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionK(crystalType, nAtoms, iType, maxAngMom, nGVecsLocal, numOfTypes, numOfTypesSD, atomPositions, gCart, Ylm, atoms, atomsSD, pawK)
+  subroutine pawCorrectionK(crystalType, maxAngMom, nGVecsLocal, gCart, Ylm, sys, ketSys, pawK)
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: nAtoms
-      !! Number of atoms
-    integer, intent(in) :: iType(nAtoms)
-      !! Atom type index
     integer, intent(in) :: maxAngMom
       !! Max J index from L and M
     integer, intent(in) :: nGVecsLocal
       !! Number of local G-vectors
-    integer, intent(in) :: numOfTypes
-      !! Number of different atom types
-    integer, intent(in) :: numOfTypesSD
-      !! Number of different atom types for SD
 
-    real(kind=dp), intent(in) :: atomPositions(3,nAtoms)
-      !! Atom positions in Cartesian coordinates
     real(kind=dp), intent(in) :: gCart(3,nGVecsLocal)
       !! G-vectors in Cartesian coordinates
 
@@ -1544,11 +1331,10 @@ contains
     character(len=2), intent(in) :: crystalType
       !! Crystal type (PC or SD)
 
-    type(atom), intent(inout) :: atoms(numOfTypes)
-      !! Structure to hold details for each atom
-    type(atom), intent(in) :: atomsSD(numOfTypesSD)
-      !! Structure to hold details for each atom
-      !! for SD (needed for grid for Bessel functions)
+    type(crystal), intent(in) :: sys
+       !! The crystal system
+    type(crystal) :: ketSys
+       !! The ket crystal system used to set up tables
 
 
     ! Output variables:
@@ -1570,9 +1356,9 @@ contains
       
       LMBASE = 0
       
-      do ni = 1, nAtoms ! LOOP OVER THE IONS
+      do ni = 1, sys%nAtoms ! LOOP OVER THE IONS
         
-        qDotR = dot_product(gCart(:,ig), atomPositions(:,ni))
+        qDotR = dot_product(gCart(:,ig), sys%atomPositionsCart(:,ni))
         
         if(crystalType == 'PC') then
           ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
@@ -1580,16 +1366,17 @@ contains
           ATOMIC_CENTER = exp( ii*cmplx(qDotR, 0.0_dp, kind = dp) )
         endif
         
-        iT = iType(ni)
+        iT = sys%iType(ni)
         LM = 0
-        DO LL = 1, atoms(iT)%lMax
-          L = atoms(iT)%LPS(LL)
+        DO LL = 1, sys%pot(iT)%nChannels
+          L = sys%pot(iT)%angMom(LL)
           DO M = -L, L
             LM = LM + 1 !1st index for CPROJ
             
             FI = 0.0_dp
             
-            FI = dot_product(atomsSD(iT)%bes_J_qr(L,:,ig),atoms(iT)%F(:,LL)) ! radial part integration F contains rab
+            FI = dot_product(ketSys%paw(iT)%bes_J_qr(L,:,ig),sys%paw(iT)%F(:,LL)) 
+              ! radial part integration F contains dRadGrid
             
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
 
@@ -1616,7 +1403,7 @@ contains
           ENDDO
         ENDDO
 
-        LMBASE = LMBASE + atoms(iT)%lmMax
+        LMBASE = LMBASE + sys%pot(iT)%lmMax
       ENDDO
       
     enddo
@@ -1719,7 +1506,7 @@ contains
       !! All-electron overlap
 
     ! Local variables:
-    integer :: ibi, ibf
+    integer :: ibi, ibf, i
       !! Loop indices
     integer :: ikGlobal
       !! Current global k-point
@@ -2105,42 +1892,42 @@ contains
     
     implicit none
 
-    integer :: iType
+    integer :: iT
       !! Loop index
 
 
-    deallocate(npwsPC)
-    deallocate(xkPC)
-    deallocate(posIonPC)
-    deallocate(TYPNIPC)
+    deallocate(braSys%nPWs1kGlobal)
+    deallocate(braSys%atomPositionsCart)
+    deallocate(braSys%iType)
     deallocate(gCart)
     deallocate(Ylm)
 
-    do iType = 1, numOfTypesPC
-      deallocate(atomsPC(iType)%r)
-      deallocate(atomsPC(iType)%lps)
-      deallocate(atomsPC(iType)%F)
-      deallocate(atomsPC(iType)%F1)
-      deallocate(atomsPC(iType)%F2)
+    do iT = 1, braSys%nAtomTypes
+      deallocate(braSys%pot(iT)%radGrid)
+      deallocate(braSys%pot(iT)%angMom)
+      deallocate(braSys%paw(iT)%F)
+      deallocate(braSys%paw(iT)%F1)
+      deallocate(braSys%paw(iT)%F2)
     enddo
 
-    deallocate(atomsPC)
+    deallocate(braSys%pot)
+    deallocate(braSys%paw)
 
-    deallocate(npwsSD)
-    deallocate(xk)
-    deallocate(posIonSD)
-    deallocate(TYPNISD)
+    deallocate(ketSys%nPWs1kGlobal)
+    deallocate(ketSys%atomPositionsCart)
+    deallocate(ketSys%iType)
 
-    do iType = 1, numOfTypes
-      deallocate(atoms(iType)%lps)
-      deallocate(atoms(iType)%r)
-      deallocate(atoms(iType)%F)
-      deallocate(atoms(iType)%F1)
-      deallocate(atoms(iType)%F2)
-      deallocate(atoms(iType)%bes_J_qr)
+    do iT = 1, ketSys%nAtomTypes
+      deallocate(ketSys%pot(iT)%radGrid)
+      deallocate(ketSys%pot(iT)%angMom)
+      deallocate(ketSys%paw(iT)%F)
+      deallocate(ketSys%paw(iT)%F1)
+      deallocate(ketSys%paw(iT)%F2)
+      deallocate(ketSys%paw(iT)%bes_J_qr)
     enddo
 
-    deallocate(atoms)
+    deallocate(ketSys%pot)
+    deallocate(ketSys%paw)
 
     call MPI_Barrier(worldComm, ierr)
     
