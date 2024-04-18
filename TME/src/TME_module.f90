@@ -751,34 +751,6 @@ contains
     return
     
   end subroutine readInputFile
-  
-!----------------------------------------------------------------------------
-  function overlapFileExists(ikGlobal, isp) result(fileExists)
-    
-    implicit none
-    
-    ! Input variables:
-    integer, intent(in) :: ikGlobal
-      !! Current global k-point
-    integer, intent(in) :: isp
-      !! Current spin channel
-
-    ! Output variables:
-    character(len=300) :: fName
-      !! File name for overlap
-
-    logical :: fileExists
-      !! If the overlap file exists for the given 
-      !! k-point and spin channel
-
-
-    fName = trim(getMatrixElementFNameWPath(ikGlobal, isp, outputDir))
-
-    inquire(file=fName, exist=fileExists)
-
-    if(fileExists) write(*,'("Overlap file ", a, " exists and will not be recalculated.")') trim(fName)
-    
-  end function overlapFileExists
 
 !----------------------------------------------------------------------------
   subroutine getFullPWGrid(iGStart_pool, nGVecsLocal, nGVecsGlobal, mill_local)
@@ -954,6 +926,34 @@ contains
     return
 
   end subroutine setUpTables
+  
+!----------------------------------------------------------------------------
+  function overlapFileExists(ikGlobal, isp) result(fileExists)
+    
+    implicit none
+    
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Current global k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    ! Output variables:
+    character(len=300) :: fName
+      !! File name for overlap
+
+    logical :: fileExists
+      !! If the overlap file exists for the given 
+      !! k-point and spin channel
+
+
+    fName = trim(getMatrixElementFNameWPath(ikGlobal, isp, outputDir))
+
+    inquire(file=fName, exist=fileExists)
+
+    if(fileExists) write(*,'("Overlap file ", a, " exists and will not be recalculated.")') trim(fName)
+    
+  end function overlapFileExists
 
 !----------------------------------------------------------------------------
   subroutine readProjectors(crystalType, iGkStart_pool, ikGlobal, nGkVecsLocal, sys, beta)
