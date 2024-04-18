@@ -448,7 +448,9 @@ contains
     integer :: nBands
       !! Number of bands
 
-    real(kind = dp) :: t1, t2 
+    real(kind=dp), allocatable :: aepsDiff1(:), aepsDiff2(:)
+      !! Difference between wae and wps for different channels
+    real(kind=dp) :: t1, t2 
       !! Timers
     real(kind=dp) :: rDum
       !! Dummy real variable
@@ -628,33 +630,34 @@ contains
       allocate(sys%paw(iT)%F(sys%pot(iT)%iRAugMax, sys%pot(iT)%nChannels))
       allocate(sys%paw(iT)%F1(sys%pot(iT)%iRAugMax, sys%pot(iT)%nChannels, sys%pot(iT)%nChannels))
       allocate(sys%paw(iT)%F2(sys%pot(iT)%iRAugMax, sys%pot(iT)%nChannels, sys%pot(iT)%nChannels))
+
       
       if(ionode) then
+        
+        irm = sys%pot(iT)%iRAugMax
+        allocate(aepsDiff1(irm), aepsDiff2(irm))
 
         sys%paw(iT)%F = 0.0_dp
         sys%paw(iT)%F1 = 0.0_dp
         sys%paw(iT)%F2 = 0.0_dp
       
         do ip1 = 1, sys%pot(iT)%nChannels
-        
-          irm = sys%pot(iT)%iRAugMax
 
-          sys%paw(iT)%F(1:irm,ip1)=(sys%pot(iT)%wae(1:irm,ip1)-sys%pot(iT)%wps(1:irm,ip1))* &
-                                    sys%pot(iT)%radGrid(1:irm)*sys%pot(iT)%dRadGrid(1:irm)
+          aepsDiff1 = sys%pot(iT)%wae(1:irm,ip1) - sys%pot(iT)%wps(1:irm,ip1)
+
+          sys%paw(iT)%F(1:irm,ip1)= aepsDiff1(:)*sys%pot(iT)%radGrid(1:irm)*sys%pot(iT)%dRadGrid(1:irm)
         
           do ip2 = 1, sys%pot(iT)%nChannels
+
+            aepsDiff2 = sys%pot(iT)%wae(1:irm,ip2) - sys%pot(iT)%wps(1:irm,ip2)
+
             if(trim(sys%sysType) == 'bra') then
-              sys%paw(iT)%F1(1:irm,ip2,ip1) = ( sys%pot(iT)%wps(1:irm,ip2)*sys%pot(iT)%wae(1:irm,ip1) - &
-                                                sys%pot(iT)%wps(1:irm,ip2)*sys%pot(iT)%wps(1:irm,ip1))*sys%pot(iT)%dRadGrid(1:irm)
+              sys%paw(iT)%F1(1:irm,ip2,ip1) = sys%pot(iT)%wps(1:irm,ip2)*aepsDiff1(:)*sys%pot(iT)%dRadGrid(1:irm)
             else if(trim(sys%sysType) == 'ket') then
-              sys%paw(iT)%F1(1:irm,ip2,ip1) = ( sys%pot(iT)%wae(1:irm,ip2)*sys%pot(iT)%wps(1:irm,ip1) - &
-                                                sys%pot(iT)%wps(1:irm,ip2)*sys%pot(iT)%wps(1:irm,ip1))*sys%pot(iT)%dRadGrid(1:irm)
+              sys%paw(iT)%F1(1:irm,ip2,ip1) = sys%pot(iT)%wps(1:irm,ip1)*aepsDiff2(:)*sys%pot(iT)%dRadGrid(1:irm)
             endif
           
-            sys%paw(iT)%F2(1:irm,ip2,ip1) = ( sys%pot(iT)%wae(1:irm,ip2)*sys%pot(iT)%wae(1:irm,ip1) - &
-                                              sys%pot(iT)%wae(1:irm,ip2)*sys%pot(iT)%wps(1:irm,ip1) - &
-                                              sys%pot(iT)%wps(1:irm,ip2)*sys%pot(iT)%wae(1:irm,ip1) + &
-                                              sys%pot(iT)%wps(1:irm,ip2)*sys%pot(iT)%wps(1:irm,ip1))*sys%pot(iT)%dRadGrid(1:irm)
+            sys%paw(iT)%F2(1:irm,ip2,ip1) = aepsDiff1(:)*aepsDiff2(:)*sys%pot(iT)%dRadGrid(1:irm)
 
           enddo
         enddo
@@ -662,6 +665,7 @@ contains
         deallocate(sys%pot(iT)%wae)
         deallocate(sys%pot(iT)%wps)
         deallocate(sys%pot(iT)%dRadGrid)
+        deallocate(aepsDiff1, aepsDiff2)
       
         sys%nProj = sys%nProj + sys%nAtomsEachType(iT)*sys%pot(iT)%lmMax
 
