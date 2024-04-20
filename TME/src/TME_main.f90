@@ -17,10 +17,6 @@ program TMEmain
   if(ionode) call cpu_time(t0)
 
 
-  if(ionode) write(*, '("Pre-k-loop: [ ] Read inputs  [ ] Read full PW grid  [ ] Set up tables ")')
-  call cpu_time(t1)
-
-
   call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, order, phononModeJ, baselineDir, &
           braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, loopSpins, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
@@ -32,16 +28,8 @@ program TMEmain
   call setUpSystemArray(nSys, braExportDir, ketExportDir, crystalSystem)
 
 
-  call readPreliminaryFiles(nSys, order, phononModeJ, dqFName, omega, maxAngMom, nGVecsGlobal, nKPoints, nSpins, dq_j, &
-        crystalSystem)
-
-
-  call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
-    !! * Distribute k-points in pools
-
-  call distributeItemsInSubgroups(indexInPool, nGVecsGlobal, nProcPerPool, nProcPerPool, nProcPerPool, iGStart_pool, &
-          iGEnd_pool, nGVecsLocal)
-    !! * Distribute G-vectors across processes in pool
+  call completePreliminarySetup(nSys, order, phononModeJ, dqFName, maxAngMom, mill_local, nGVecsGlobal, nKPoints, nSpins, &
+        gCart, dq_j, omega, Ylm, crystalSystem)
 
 
   call calcAndWrite2SysMatrixElements(crystalSystem(1), crystalSystem(2))

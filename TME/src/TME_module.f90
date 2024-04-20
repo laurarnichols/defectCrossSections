@@ -454,8 +454,8 @@ contains
    end subroutine setUpSystemArray
 
 !----------------------------------------------------------------------------
-  subroutine readPreliminaryFiles(nSys, order, phononModeJ, dqFName, omega, maxAngMom, nGVecsGlobal, nKPoints, nSpins, dq_j, &
-        crystalSystem)
+  subroutine completePreliminarySetup(nSys, order, phononModeJ, dqFName, maxAngMom, mill_local, nGVecsGlobal, nKPoints, nSpins, &
+        gCart, dq_j, omega, Ylm, crystalSystem)
 
     implicit none
 
@@ -471,14 +471,12 @@ contains
     character(len=300), intent(in) :: dqFName
       !! File name for generalized-coordinate norms
 
-    real(kind=dp) :: omega
-      !! Cell volume (tested to be consistent
-      !! across all systems)
-
     ! Output variables:
     integer, intent(out) :: maxAngMom
       !! Maximum angular momentum of projectors across
       !! all systems
+    integer, allocatable, intent(out) :: mill_local(:,:)
+      !! Local Miller indices
     integer, intent(out) :: nGVecsGlobal
       !! Number of global G-vectors (tested to be consistent
       !! across all systems)
@@ -489,17 +487,28 @@ contains
       !! Number of spins (tested to be consistent
       !! across all systems)
 
+    real(kind=dp), allocatable, intent(out) :: gCart(:,:)
+      !! G-vectors in Cartesian coordinates
     real(kind=dp), intent(out) :: dq_j
       !! \(\delta q_j) for displaced wave functions
       !! (only order = 1)
+    real(kind=dp), intent(out) :: omega
+      !! Cell volume (tested to be consistent
+      !! across all systems)
+
+    complex(kind=dp), allocatable, intent(out) :: Ylm(:,:)
+      !! Spherical harmonics
 
     type(crystal) :: crystalSystem(nSys)
       !! Array containing all crystal systems
 
     ! Local variables:
-    integer :: isys
+    integer :: isys, iT
       !! Loop variable
 
+
+    if(ionode) write(*, '("Pre-k-loop: [ ] Read inputs  [ ] Read full PW grid  [ ] Set up tables ")')
+    call cpu_time(t1)
 
     ! Initialize global variables to be tracked to make sure they
     ! are consistent across all of the systems
@@ -520,9 +529,52 @@ contains
 
     if(order == 1) call readDqFile(phononModeJ, dqFName, dq_j)
 
+
+    call cpu_time(t2)
+    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [ ] Read full PW grid  [ ] Set up tables (",f10.2," secs)")') t2-t1
+    call cpu_time(t1)
+
+
+    call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
+      !! * Distribute k-points in pools
+
+    call distributeItemsInSubgroups(indexInPool, nGVecsGlobal, nProcPerPool, nProcPerPool, nProcPerPool, iGStart_pool, &
+            iGEnd_pool, nGVecsLocal)
+      !! * Distribute G-vectors across processes in pool
+
+
+    allocate(mill_local(3,nGVecsLocal))
+
+    call getFullPWGrid(nGVecsLocal, nGVecsGlobal, crystalSystem(1), mill_local)
+      ! We have already verified at this point that the number of 
+      ! G-vectors is the same in all of the systems, so it doesn't
+      ! matter which system we read the PW grid from.
+
+  
+    call cpu_time(t2)
+    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid  [ ] Set up tables (",f10.2," secs)")') t2-t1
+    call cpu_time(t1)
+
+
+    allocate(gCart(3,nGVecsLocal))
+    allocate(Ylm((maxAngMom+1)**2,nGVecsLocal))
+
+    call setUpTables(maxAngMom, nGVecsLocal, mill_local, crystalSystem(1), gCart, Ylm)
+    ! Also allocate this table for the braSys so that there isn't an error when deallocating
+    do iT = 1, crystalSystem(2)%nAtomTypes
+      allocate(crystalSystem(2)%paw(iT)%bes_J_qr(1,1,1))
+    enddo
+
+    deallocate(mill_local)
+
+  
+    call cpu_time(t2)
+    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid  [X] Set up tables (",f10.2," secs)")') t2-t1
+    call cpu_time(t1)
+
     return
 
-  end subroutine readPreliminaryFiles
+  end subroutine completePreliminarySetup
   
 !----------------------------------------------------------------------------
   subroutine readInputFile(maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, sys)
@@ -921,37 +973,6 @@ contains
     logical :: thisKComplete = .false.
       !! If needed `allElecOverlap.isp.ik` files exist
       !! at the current k-point
-
-
-    call cpu_time(t2)
-    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [ ] Read full PW grid  [ ] Set up tables (",f10.2," secs)")') t2-t1
-    call cpu_time(t1)
-
-    allocate(mill_local(3,nGVecsLocal))
-
-    call getFullPWGrid(iGStart_pool, nGVecsLocal, nGVecsGlobal, braSys, mill_local)
-
-  
-    call cpu_time(t2)
-    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid  [ ] Set up tables (",f10.2," secs)")') t2-t1
-    call cpu_time(t1)
-
-
-    allocate(gCart(3,nGVecsLocal))
-    allocate(Ylm((maxAngMom+1)**2,nGVecsLocal))
-
-    call setUpTables(maxAngMom, nGVecsLocal, mill_local, braSys, gCart, Ylm)
-    ! Also allocate this table for the braSys so that there isn't an error when deallocating
-    do iT = 1, ketSys%nAtomTypes
-      allocate(ketSys%paw(iT)%bes_J_qr(1,1,1))
-    enddo
-
-    deallocate(mill_local)
-
-  
-    call cpu_time(t2)
-    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid  [X] Set up tables (",f10.2," secs)")') t2-t1
-    call cpu_time(t1)
     
 
     allocate(Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPerPool, nSpins))
@@ -1196,21 +1217,19 @@ contains
 
   end subroutine calcAndWrite2SysMatrixElements
 !----------------------------------------------------------------------------
-  subroutine getFullPWGrid(iGStart_pool, nGVecsLocal, nGVecsGlobal, braSys, mill_local)
+  subroutine getFullPWGrid(nGVecsLocal, nGVecsGlobal, sys, mill_local)
     !! Read full PW grid from mgrid file
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: iGStart_pool
-      !! Start G-vector for each process in pool
     integer, intent(in) :: nGVecsLocal
       !! Local number of G-vectors
     integer, intent(in) :: nGVecsGlobal
       !! Global number of G-vectors
 
-    type(crystal) :: braSys
-       !! The bra crystal system used to set up tables
+    type(crystal) :: sys
+       !! Arbitrary system to read PW grid from
 
     ! Output variables:
     integer, intent(out) :: mill_local(3,nGVecsLocal)
@@ -1237,7 +1256,7 @@ contains
       
       allocate(gVecMillerIndicesGlobal(nGVecsGlobal,3))
 
-      open(72, file=trim(braSys%exportDir)//"/mgrid")
+      open(72, file=trim(sys%exportDir)//"/mgrid")
         !! Read full G-vector grid from defect folder.
         !! This assumes that the grids are the same.
     
