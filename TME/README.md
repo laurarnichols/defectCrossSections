@@ -24,8 +24,8 @@ The `TME` input file for the zeroth-order should look like
   ispSelect = integer  
   
   ! Systems used for overlaps
-  exportDirSD    = 'path-to-final-charge-state-initial-positions-export'
-  exportDirPC    = 'path-to-perfect-crystal-export'
+  braExportDir    = 'path-to-final-charge-state-initial-positions-export'
+  ketExportDir    = 'path-to-perfect-crystal-export'
   energyTableDir = 'path-to-energy-tables'
   
   ! Band range for overlaps
@@ -58,8 +58,8 @@ The `TME` input file for the first-order term should look like
   ispSelect = integer                                   
   
   ! Systems used for overlaps
-  exportDirSD    = 'path-to-displaced-defect-export'
-  exportDirPC    = 'path-to-undisplaced-defect-export'
+  braExportDir    = 'path-to-displaced-defect-export'
+  ketExportDir    = 'path-to-undisplaced-defect-export'
   energyTableDir = 'path-to-energy-tables'
 
   ! Baseline info:

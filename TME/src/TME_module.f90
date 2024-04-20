@@ -34,6 +34,8 @@ module TMEmod
     !! Local number of G-vectors
   integer :: nGkVecsLocalPC, nGkVecsLocalSD
     !! Local number of G+k vectors on this processor
+  integer :: nSys
+    !! Number of systems
   integer :: phononModeJ
     !! Index of phonon mode for the calculation
     !! of \(M_j\) (only for order=1)
@@ -50,11 +52,10 @@ module TMEmod
   character(len=300) :: baselineDir
     !! Directory for baseline overlap to optionally
     !! be subtracted for the first-order term
+  character(len=300) :: braExportDir, ketExportDir
+    !! Path to export dirs
   character(len=300) :: dqFName
     !! File name for generalized-coordinate norms
-  character(len=300) :: exportDirSD, exportDirPC
-    !! Paths to exports for SD (left) and PC (right) 
-    !! systems to use for wave function overlaps <SD|PC>
   character(len=300) :: outputDir
     !! Path to where matrix elements should be output
 
@@ -126,6 +127,8 @@ module TMEmod
     real(kind=dp) :: recipLattVec(3,3)
       !! Reciprocal-space lattice vectors
 
+    character(len=300) :: exportDir
+      !! Path to Export directory
     character(len=300) :: ID
       !! How this system should be identified in output
     character(len=3) :: sysType
@@ -143,6 +146,8 @@ module TMEmod
     !! Define variables for the system used as the
     !! <bra| and the |ket> in the overlap matrix 
     !! element
+  type(crystal), allocatable :: crystalSystem(:)
+    !! Array containing all crystal systems
 
   character(len = 300) :: textDum
   character(len = 320) :: mkdir
@@ -176,43 +181,40 @@ module TMEmod
   
   TYPE(vec), allocatable :: vecs(:), newVecs(:)
   
-
-  namelist /TME_Input/ exportDirSD, exportDirPC, outputDir, energyTableDir, &
-                       iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
-                       order, dqFName, phononModeJ, subtractBaseline, baselineDir, &
-                       ispSelect
-  
   
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInput(ispSelect, maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, baselineDir, loopSpins, subtractBaseline)
+  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, order, phononModeJ, baselineDir, &
+          braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, loopSpins, subtractBaseline)
 
     use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
     
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
     integer, intent(out) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
-    integer, intent(out) :: maxAngMom
-      !! Maximum angular momentum of the projectors
-    integer, intent(out) :: nGVecsGlobal
-      !! Global number of G-vectors
-    integer, intent(out) :: nKPoints
-      !! Total number of k-points
-    integer, intent(inout) :: nSpins
-      !! Number of spins (tested to be consistent
-      !! across all systems)
-
-    real(kind=dp) :: omega
-      !! Cell volume (tested to be consistent
-      !! across all systems)
+    integer, intent(out) :: order
+      !! Order of matrix element (0 or 1)
+    integer, intent(out) :: phononModeJ
+      !! Index of phonon mode for the calculation
+      !! of \(M_j\) (only for order=1)
 
     character(len=300), intent(out) :: baselineDir
       !! File name for baseline overlap to optionally
       !! be subtracted for the first-order term
+    character(len=300), intent(out) :: braExportDir, ketExportDir
+      !! Path to export dirs
+    character(len=300), intent(out) :: dqFName
+      !! File name for generalized-coordinate norms
+    character(len=300), intent(out) :: energyTableDir
+      !! Path to energy tables
+    character(len=300), intent(out) :: outputDir
+      !! Path to where matrix elements should be output
 
     logical, intent(out) :: loopSpins
       !! Whether to loop over available spin channels;
@@ -222,20 +224,24 @@ contains
       !! overlap for increased numerical accuracy in the 
       !! derivative
 
-    ! Local variables:    
-    integer :: iDum
-      !! Dummy integer to ignore file input
+
+    namelist /TME_Input/ ketExportDir, braExportDir, outputDir, energyTableDir, &
+                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
+                         order, dqFName, phononModeJ, subtractBaseline, baselineDir, &
+                         ispSelect
     
 
     if(ionode) then
     
-      call initialize(ispSelect, baselineDir, subtractBaseline)
+      call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, order, phononModeJ, baselineDir, &
+              braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, subtractBaseline)
     
       read(5, TME_Input, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading TME_Input namelist', abs(ierr))
     
-      call checkInitialization(ispSelect, baselineDir, subtractBaseline, loopSpins)
+      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, order, phononModeJ, &
+              baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, subtractBaseline, loopSpins)
 
     endif
 
@@ -253,70 +259,46 @@ contains
 
     call MPI_BCAST(subtractBaseline, 1, MPI_LOGICAL, root, worldComm, ierr)
 
-    call MPI_BCAST(exportDirSD, len(exportDirSD), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(exportDirPC, len(exportDirPC), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(braExportDir, len(braExportDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(ketExportDir, len(ketExportDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(baselineDir, len(baselineDir), MPI_CHARACTER, root, worldComm, ierr)
 
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
-
-
-    ! Initialize global variables to be tracked to make sure they
-    ! are consistent across all of the systems
-    maxAngMom = 0
-    nKPoints = -1
-    nGVecsGlobal = -1
-    omega = -1.0
-
-    braSys%sysType = 'bra'
-    braSys%ID = 'bra'
-    call readInputFile(exportDirPC, maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, braSys)
-
-    ketSys%sysType = 'ket'
-    ketSys%ID = 'ket'
-    call readInputFile(exportDirSD, maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, ketSys)
-
-    
-    maxAngMom = 2*maxAngMom + 1
-
-    
-    if(ionode) then
-      
-      if(order == 1) then
-
-        open(30,file=trim(dqFName))
-        call ignoreNextNLinesFromFile(30, 1+phononModeJ-1)
-          ! Ignore header and all modes before phononModeJ
-        read(30,*) iDum, dq_j
-        close(30)
-
-      endif
-
-    endif
-
-    if(order == 1) then
-      call MPI_BCAST(dq_j, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    endif
-
-    nSpins = max(braSys%nSpins,ketSys%nSpins)
     
     return
     
-  end subroutine readInput
+  end subroutine readInputParams
   
 !----------------------------------------------------------------------------
-  subroutine initialize(ispSelect, baselineDir, subtractBaseline)
+  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, order, phononModeJ, baselineDir, &
+          braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, subtractBaseline)
     
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
     integer, intent(out) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
+    integer, intent(out) :: order
+      !! Order of matrix element (0 or 1)
+    integer, intent(out) :: phononModeJ
+      !! Index of phonon mode for the calculation
+      !! of \(M_j\) (only for order=1)
 
     character(len=300), intent(out) :: baselineDir
       !! File name for baseline overlap to optionally
       !! be subtracted for the first-order term
+    character(len=300), intent(out) :: braExportDir, ketExportDir
+      !! Path to export dirs
+    character(len=300), intent(out) :: dqFName
+      !! File name for generalized-coordinate norms
+    character(len=300), intent(out) :: energyTableDir
+      !! Path to energy tables
+    character(len=300), intent(out) :: outputDir
+      !! Path to where matrix elements should be output
 
     logical, intent(out) :: subtractBaseline
       !! If baseline should be subtracted from first-order
@@ -324,8 +306,8 @@ contains
       !! derivative
     
 
-    exportDirSD = ''
-    exportDirPC = ''
+    braExportDir = ''
+    ketExportDir = ''
     energyTableDir = ''
     dqFName = ''
     outputDir = './TMEs'
@@ -349,18 +331,34 @@ contains
   end subroutine initialize
   
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(ispSelect, baselineDir, subtractBaseline, loopSpins)
+  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, order, phononModeJ, &
+          baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, subtractBaseline, loopSpins)
     
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
     integer, intent(in) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
+    integer, intent(in) :: order
+      !! Order of matrix element (0 or 1)
+    integer, intent(in) :: phononModeJ
+      !! Index of phonon mode for the calculation
+      !! of \(M_j\) (only for order=1)
 
     character(len=300), intent(in) :: baselineDir
       !! File name for baseline overlap to optionally
       !! be subtracted for the first-order term
+    character(len=300), intent(in) :: braExportDir, ketExportDir
+      !! Path to export dirs
+    character(len=300), intent(in) :: dqFName
+      !! File name for generalized-coordinate norms
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy tables
+    character(len=300), intent(in) :: outputDir
+      !! Path to where matrix elements should be output
 
     logical, intent(in) :: subtractBaseline
       !! If baseline should be subtracted from first-order
@@ -379,10 +377,18 @@ contains
     
     write(*,'("Inputs: ")')
     
-    abortExecution = checkDirInitialization('exportDirSD', exportDirSD, 'input')
-    abortExecution = checkDirInitialization('exportDirPC', exportDirPC, 'input') .or. abortExecution
+    abortExecution = checkDirInitialization('braExportDir', braExportDir, 'input')
+    abortExecution = checkDirInitialization('ketExportDir', ketExportDir, 'input') .or. abortExecution
     abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.1.1') .or. abortExecution
     abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution
+
+    if(ispSelect < 1 .or. ispSelect > 2) then
+      write(*,*) "No valid choice for spin channel selection given. Looping over spin."
+      loopSpins = .true.
+    else
+      write(*,'("Only exporting spin channel ", i2)') ispSelect
+      loopSpins = .false.
+    endif
 
     if(order == 1) then
       abortExecution = checkFileInitialization('dqFName', dqFName) .or. abortExecution
@@ -395,14 +401,6 @@ contains
           abortExecution = checkDirInitialization('baselineDir', baselineDir, 'allElecOverlap.1.1') .or. abortExecution
         endif
       endif
-    endif
-
-    if(ispSelect < 1 .or. ispSelect > 2) then
-      write(*,*) "No valid choice for spin channel selection given. Looping over spin."
-      loopSpins = .true.
-    else
-      write(*,'("Only exporting spin channel ", i2)') ispSelect
-      loopSpins = .false.
     endif
 
     abortExecution = checkStringInitialization('outputDir', outputDir) .or. abortExecution
@@ -423,17 +421,115 @@ contains
     return
     
   end subroutine checkInitialization
+
+!----------------------------------------------------------------------------
+  subroutine setUpSystemArray(nSys, braExportDir, ketExportDir, crystalSystem)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nSys
+      !! Number of systems
+
+    character(len=300), intent(in) :: braExportDir, ketExportDir
+      !! Path to export dirs
+
+    ! Output variables
+    type(crystal), allocatable :: crystalSystem(:)
+      !! Array containing all crystal systems
+
+
+    allocate(crystalSystem(nSys))
+
+    crystalSystem(1)%sysType = 'bra'
+    crystalSystem(1)%ID = 'bra'
+    crystalSystem(1)%exportDir = braExportDir
+
+    crystalSystem(2)%sysType = 'ket'
+    crystalSystem(2)%ID = 'ket'
+    crystalSystem(2)%exportDir = ketExportDir
+
+    return
+
+   end subroutine setUpSystemArray
+
+!----------------------------------------------------------------------------
+  subroutine readPreliminaryFiles(nSys, order, phononModeJ, dqFName, omega, maxAngMom, nGVecsGlobal, nKPoints, nSpins, dq_j, &
+        crystalSystem)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nSys
+      !! Number of systems to read files for
+    integer, intent(in) :: order
+      !! Order of matrix element (0 or 1)
+    integer, intent(in) :: phononModeJ
+      !! Index of phonon mode for the calculation
+      !! of \(M_j\) (only for order=1)
+
+    character(len=300), intent(in) :: dqFName
+      !! File name for generalized-coordinate norms
+
+    real(kind=dp) :: omega
+      !! Cell volume (tested to be consistent
+      !! across all systems)
+
+    ! Output variables:
+    integer, intent(out) :: maxAngMom
+      !! Maximum angular momentum of projectors across
+      !! all systems
+    integer, intent(out) :: nGVecsGlobal
+      !! Number of global G-vectors (tested to be consistent
+      !! across all systems)
+    integer, intent(out) :: nKPoints
+      !! Number of k-points (tested to be consistent
+      !! across all systems)
+    integer, intent(out) :: nSpins
+      !! Number of spins (tested to be consistent
+      !! across all systems)
+
+    real(kind=dp), intent(out) :: dq_j
+      !! \(\delta q_j) for displaced wave functions
+      !! (only order = 1)
+
+    type(crystal) :: crystalSystem(nSys)
+      !! Array containing all crystal systems
+
+    ! Local variables:
+    integer :: isys
+      !! Loop variable
+
+
+    ! Initialize global variables to be tracked to make sure they
+    ! are consistent across all of the systems
+    maxAngMom = 0
+    nKPoints = -1
+    nGVecsGlobal = -1
+    nSpins = 0
+    omega = -1.0
+
+    do isys = 1, nSys
+
+      call readInputFile(maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, crystalSystem(isys))
+
+    enddo
+    
+    maxAngMom = 2*maxAngMom + 1
+
+
+    if(order == 1) call readDqFile(phononModeJ, dqFName, dq_j)
+
+    return
+
+  end subroutine readPreliminaryFiles
   
 !----------------------------------------------------------------------------
-  subroutine readInputFile(exportDir, maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, sys)
+  subroutine readInputFile(maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, sys)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
-
-    ! Input variables:
-    character(len=300) :: exportDir
-      !! Path to Export dir
 
     ! Output variables:
     integer, intent(inout) :: maxAngMom
@@ -480,7 +576,7 @@ contains
     if(ionode) then
       call cpu_time(t1)
     
-      inputFName = trim(trim(exportDir)//'/input')
+      inputFName = trim(trim(sys%exportDir)//'/input')
     
       open(50, file=trim(inputFName), status = 'old')
     
@@ -499,6 +595,7 @@ contains
     call MPI_BCAST(sys%omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
+
     if(ionode) then
       read(50,*)
       read(50,*) sys%nGVecsGlobal
@@ -515,6 +612,7 @@ contains
     call MPI_BCAST(sys%nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nGVecsGlobal, 1, MPI_INTEGER, root, worldComm, ierr)
 
+
     if(ionode) then
 
       read(50,*)
@@ -522,6 +620,16 @@ contains
     
       read(50,*)
       read(50,'(i10)') sys%nSpins
+
+      if(sys%nSpins > nSpins) nSpins = sys%nSpins
+
+    end if
+
+    call MPI_BCAST(sys%nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
+
+
+    if(ionode) then
     
       read(50,*) 
       read(50,'(i10)') sys%nKPoints
@@ -534,7 +642,6 @@ contains
       end if
     endif
 
-    call MPI_BCAST(sys%nSpins, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(sys%nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     
@@ -753,7 +860,343 @@ contains
   end subroutine readInputFile
 
 !----------------------------------------------------------------------------
-  subroutine getFullPWGrid(iGStart_pool, nGVecsLocal, nGVecsGlobal, mill_local)
+  subroutine readDqFile(phononModeJ, dqFName, dq_j)
+
+    use miscUtilities, only: ignoreNextNLinesFromFile
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: phononModeJ
+      !! Index of phonon mode for the calculation
+      !! of \(M_j\) (only for order=1)
+
+    character(len=300), intent(in) :: dqFName
+      !! File name for generalized-coordinate norms
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: dq_j
+      !! \(\delta q_j) for displaced wave functions
+      !! (only order = 1)
+
+    ! Local variables:
+    integer :: iDum
+      !! Dummy integer
+
+    
+    if(ionode) then
+
+      open(30,file=trim(dqFName))
+      call ignoreNextNLinesFromFile(30, 1+phononModeJ-1)
+        ! Ignore header and all modes before phononModeJ
+      read(30,*) iDum, dq_j
+      close(30)
+
+    endif
+
+    call MPI_BCAST(dq_j, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return
+
+  end subroutine readDqFile
+
+!----------------------------------------------------------------------------
+  subroutine calcAndWrite2SysMatrixElements(braSys, ketSys)
+
+    implicit none
+
+    ! Input variables:
+    type(crystal) :: braSys, ketSys
+       !! The crystal systems to get the
+       !! matrix element for
+
+    ! Local variables 
+    integer :: ikLocal, ikGlobal, isp, iT
+      !! Loop indices
+
+    logical :: calcSpinDepSD, calcSpinDepPC
+      !! If spin-dependent subroutines should be called
+    logical :: spin1Skipped = .false.
+      !! If the first spin channel was skipped
+    logical :: thisKComplete = .false.
+      !! If needed `allElecOverlap.isp.ik` files exist
+      !! at the current k-point
+
+
+    call cpu_time(t2)
+    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [ ] Read full PW grid  [ ] Set up tables (",f10.2," secs)")') t2-t1
+    call cpu_time(t1)
+
+    allocate(mill_local(3,nGVecsLocal))
+
+    call getFullPWGrid(iGStart_pool, nGVecsLocal, nGVecsGlobal, braSys, mill_local)
+
+  
+    call cpu_time(t2)
+    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid  [ ] Set up tables (",f10.2," secs)")') t2-t1
+    call cpu_time(t1)
+
+
+    allocate(gCart(3,nGVecsLocal))
+    allocate(Ylm((maxAngMom+1)**2,nGVecsLocal))
+
+    call setUpTables(maxAngMom, nGVecsLocal, mill_local, braSys, gCart, Ylm)
+    ! Also allocate this table for the braSys so that there isn't an error when deallocating
+    do iT = 1, ketSys%nAtomTypes
+      allocate(ketSys%paw(iT)%bes_J_qr(1,1,1))
+    enddo
+
+    deallocate(mill_local)
+
+  
+    call cpu_time(t2)
+    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid  [X] Set up tables (",f10.2," secs)")') t2-t1
+    call cpu_time(t1)
+    
+
+    allocate(Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPerPool, nSpins))
+    Ufi(:,:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+  
+
+    do ikLocal = 1, nkPerPool
+    
+      if(ionode) write(*,'("Beginning k-point loop ", i4, " of ", i4)') ikLocal, nkPerPool
+    
+      ikGlobal = ikLocal+ikStart_pool-1
+        !! Get the global `ik` index from the local one
+    
+      if(indexInPool == 0) then
+
+        if(nSpins == 1 .or. ispSelect == 1) then
+          thisKComplete = overlapFileExists(ikGlobal, 1)
+        else if(ispSelect == 2) then
+          thisKComplete = overlapFileExists(ikGlobal, 2)
+        else if(nSpins == 2) then
+          thisKComplete = overlapFileExists(ikGlobal, 1) .and. overlapFileExists(ikGlobal, 2)
+        endif
+      
+      endif
+    
+      call MPI_BCAST(thisKComplete, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
+
+      if(.not. thisKComplete) then
+
+        !-----------------------------------------------------------------------------------------------
+        !> Read projectors
+
+        if(ionode) write(*, '("  Pre-spin-loop: [ ] Read projectors ")') 
+        call cpu_time(t1)
+
+
+        call distributeItemsInSubgroups(indexInPool, ketSys%nPWs1kGlobal(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolPC, &
+                iGkEnd_poolPC, nGkVecsLocalPC)
+
+        allocate(betaPC(nGkVecsLocalPC,ketSys%nProj))
+
+        call readProjectors(iGkStart_poolPC, ikGlobal, nGkVecsLocalPC, ketSys, betaPC)
+
+
+        call distributeItemsInSubgroups(indexInPool, braSys%nPWs1kGlobal(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolSD, &
+                iGkEnd_poolSD, nGkVecsLocalSD)
+
+        allocate(betaSD(nGkVecsLocalSD,braSys%nProj))
+
+        call readProjectors(iGkStart_poolSD, ikGlobal, nGkVecsLocalSD, braSys, betaSD)
+
+        call cpu_time(t2)
+        if(ionode) write(*, '("  Pre-spin-loop: [X] Read projectors (",f10.2," secs)")') t2-t1
+
+      
+        !-----------------------------------------------------------------------------------------------
+        !> Allocate arrays that are potentially spin-polarized and start spin loop
+
+        allocate(wfcPC(nGkVecsLocalPC, iBandIinit:iBandIfinal))
+        allocate(wfcSD(nGkVecsLocalSD, iBandFinit:iBandFfinal))
+      
+        allocate(cProjBetaPCPsiSD(ketSys%nProj, iBandFinit:iBandFfinal))
+        allocate(cProjBetaSDPhiPC(braSys%nProj, iBandIinit:iBandIfinal))
+
+        allocate(cProjPC(ketSys%nProj, iBandIinit:iBandIfinal))
+        allocate(cProjSD(braSys%nProj, iBandFinit:iBandFfinal))
+
+        allocate(paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
+        allocate(paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
+
+        allocate(pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
+        allocate(pawSDK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
+
+        allocate(paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
+
+      
+        do isp = 1, nSpins
+
+          if(indexInPool == 0) then
+            if(isp == 1 .and. (ispSelect == 2 .or. overlapFileExists(ikGlobal,1))) spin1Skipped = .true.
+          endif
+
+          call MPI_BCAST(spin1Skipped, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
+
+          if(loopSpins .or. isp == ispSelect) then
+
+            if(ionode) write(*,'("  Beginning spin ", i2)') isp
+
+            calcSpinDepPC = isp == 1 .or. ketSys%nSpins == 2 .or. spin1Skipped
+            calcSpinDepSD = isp == 1 .or. braSys%nSpins == 2 .or. spin1Skipped
+              ! If either of the systems only has a single spin 
+              ! channel, some inputs and calculations do not need
+              ! to be redone for both spin channels. However, we
+              ! still need to make sure to calculate these values
+              ! for the second spin channel if the first spin channel
+              ! was not done for some reason (e.g., the file already
+              ! existed or only the second spin channel was selected).
+
+            !-----------------------------------------------------------------------------------------------
+            !> Check if the `allElecOverlap.isp.ik` file exists
+
+            if(.not. overlapFileExists(ikGlobal, isp)) then
+
+              !-----------------------------------------------------------------------------------------------
+              !> Read wave functions and calculate overlap
+      
+              if(ionode) write(*, '("    Ufi calculation: [ ] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k")') 
+              call cpu_time(t1)
+
+
+              if(calcSpinDepPC) &
+                call readWfc(iBandIinit, iBandIfinal, iGkStart_poolPC, ikGlobal, min(isp,ketSys%nSpins), nGkVecsLocalPC, &
+                  ketSys%nPWs1kGlobal(ikGlobal), ketSys, wfcPC)
+        
+              if(calcSpinDepSD) &
+                call readWfc(iBandFinit, iBandFfinal, iGkStart_poolSD, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocalSD, &
+                  braSys%nPWs1kGlobal(ikGlobal), braSys, wfcSD)
+        
+              call calculatePWsOverlap(ikLocal, isp)
+        
+
+              call cpu_time(t2)
+              if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
+              call cpu_time(t1)
+
+
+              !-----------------------------------------------------------------------------------------------
+              !> Calculate cross projections
+
+              if(calcSpinDepSD) &
+                call calculateCrossProjection(iBandFinit, iBandFfinal, nGkVecsLocalPC, nGkVecsLocalSD, ketSys%nProj, betaPC, wfcSD, cProjBetaPCPsiSD)
+
+
+              if(calcSpinDepPC) &
+                call calculateCrossProjection(iBandIinit, iBandIfinal, nGkVecsLocalSD, nGkVecsLocalPC, braSys%nProj, betaSD, wfcPC, cProjBetaSDPhiPC)
+        
+
+              call cpu_time(t2)
+              if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
+              call cpu_time(t1)
+
+
+              !-----------------------------------------------------------------------------------------------
+              !> Have process 0 in each pool calculate the PAW wave function correction for PC
+
+              if(calcSpinDepPC) &
+                call readProjections(iBandIinit, iBandIfinal, ikGlobal, min(isp,ketSys%nSpins), ketSys%nProj, ketSys, cProjPC)
+
+              if(indexInPool == 0) then
+
+                call pawCorrectionWfc(ketSys%nProj, cProjPC, cProjBetaPCPsiSD, ketSys, paw_PsiPC)
+
+              endif
+
+
+              !-----------------------------------------------------------------------------------------------
+              !> Have process 1 in each pool calculate the PAW wave function correction for PC
+
+              if(calcSpinDepSD) &
+                call readProjections(iBandFinit, iBandFfinal, ikGlobal, min(isp,braSys%nSpins), braSys%nProj, braSys, cProjSD)
+
+              if(indexInPool == 1) then
+
+                call pawCorrectionWfc(braSys%nProj, cProjBetaSDPhiPC, cProjSD, braSys, paw_SDPhi)
+
+              endif
+
+              call cpu_time(t2)
+              if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
+              call cpu_time(t1)
+      
+      
+              !-----------------------------------------------------------------------------------------------
+              !> Broadcast wave function corrections to other processes
+
+              call MPI_BCAST(paw_PsiPC, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
+              call MPI_BCAST(paw_SDPhi, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
+
+
+              !-----------------------------------------------------------------------------------------------
+              !> Have all processes calculate the PAW k correction
+      
+              if(calcSpinDepPC) &
+                call pawCorrectionK('PC', maxAngMom, nGVecsLocal, gCart, Ylm, braSys, ketSys, pawKPC)
+      
+
+              if(calcSpinDepSD) &
+                call pawCorrectionK('SD', maxAngMom, nGVecsLocal, gCart, Ylm, braSys, braSys, pawSDK)
+
+        
+              call cpu_time(t2)
+              if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [X] PAW k (",f8.2," secs)")') t2-t1
+              call cpu_time(t1)
+      
+
+              !-----------------------------------------------------------------------------------------------
+              !> Sum over PAW k corrections
+
+              paw_id(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
+      
+              do ibi = iBandIinit, iBandIfinal
+        
+                do ibf = iBandFinit, iBandFfinal   
+                  paw_id(ibf,ibi) = dot_product(conjg(pawSDK(ibf,ibi,:)),pawKPC(ibf,ibi,:))
+                enddo
+        
+              enddo
+
+              Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_id(:,:)*16.0_dp*pi*pi/omega
+
+
+              call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(:,:,ikLocal,isp), size(Ufi(:,:,ikLocal,isp)), MPI_DOUBLE_COMPLEX, &
+                      MPI_SUM, intraPoolComm, ierr)
+
+
+              if(indexInPool == 0) then 
+          
+                Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_SDPhi(:,:) + paw_PsiPC(:,:)
+
+                if(order == 1 .and. subtractBaseline) &
+                  call readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, nSpins, Ufi)
+        
+                call writeResults(ikLocal,isp, Ufi)
+        
+              endif
+  
+            endif ! If this spin channel file doesn't exist
+          endif ! If this spin channel shouldn't be skipped
+        enddo ! Spin loop
+
+        deallocate(wfcSD, wfcPC)
+        deallocate(betaPC, betaSD)
+        deallocate(cProjBetaPCPsiSD, cProjBetaSDPhiPC)
+        deallocate(cProjPC, cProjSD)
+        deallocate(pawKPC, pawSDK)
+        deallocate(paw_id)
+        deallocate(paw_PsiPC, paw_SDPhi)
+      endif ! If both spin channels exist
+    enddo ! k-point loop
+
+    return
+
+  end subroutine calcAndWrite2SysMatrixElements
+!----------------------------------------------------------------------------
+  subroutine getFullPWGrid(iGStart_pool, nGVecsLocal, nGVecsGlobal, braSys, mill_local)
     !! Read full PW grid from mgrid file
     
     implicit none
@@ -765,6 +1208,9 @@ contains
       !! Local number of G-vectors
     integer, intent(in) :: nGVecsGlobal
       !! Global number of G-vectors
+
+    type(crystal) :: braSys
+       !! The bra crystal system used to set up tables
 
     ! Output variables:
     integer, intent(out) :: mill_local(3,nGVecsLocal)
@@ -791,7 +1237,7 @@ contains
       
       allocate(gVecMillerIndicesGlobal(nGVecsGlobal,3))
 
-      open(72, file=trim(exportDirSD)//"/mgrid")
+      open(72, file=trim(braSys%exportDir)//"/mgrid")
         !! Read full G-vector grid from defect folder.
         !! This assumes that the grids are the same.
     
@@ -851,7 +1297,7 @@ contains
   end subroutine getFullPWGrid
 
 !----------------------------------------------------------------------------
-  subroutine setUpTables(maxAngMom, nGVecsLocal, mill_local, ketSys, gCart, Ylm)
+  subroutine setUpTables(maxAngMom, nGVecsLocal, mill_local, braSys, gCart, Ylm)
 
     implicit none
 
@@ -863,8 +1309,8 @@ contains
     integer, intent(in) :: mill_local(3,nGVecsLocal)
       !! Miller indices for local G-vectors
 
-    type(crystal) :: ketSys
-       !! The ket crystal system used to set up tables
+    type(crystal) :: braSys
+       !! The bra crystal system used to set up tables
 
     ! Output variables:
     real(kind=dp), intent(out) :: gCart(3,nGVecsLocal)
@@ -887,16 +1333,16 @@ contains
 
     Ylm = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
-    do iT = 1, ketSys%nAtomTypes
+    do iT = 1, braSys%nAtomTypes
 
-      allocate(ketSys%paw(iT)%bes_J_qr( 0:maxAngMom, ketSys%pot(iT)%iRAugMax, nGVecsLocal))
-      ketSys%paw(iT)%bes_J_qr(:,:,:) = 0.0_dp
+      allocate(braSys%paw(iT)%bes_J_qr( 0:maxAngMom, braSys%pot(iT)%iRAugMax, nGVecsLocal))
+      braSys%paw(iT)%bes_J_qr(:,:,:) = 0.0_dp
       
     enddo
 
     do ig = 1, nGVecsLocal
 
-      gCart(:,ig) = matmul(ketSys%recipLattVec, mill_local(:,ig))
+      gCart(:,ig) = matmul(braSys%recipLattVec, mill_local(:,ig))
 
       q = sqrt(dot_product(gCart(:,ig),gCart(:,ig)))
 
@@ -907,14 +1353,14 @@ contains
       call getYlm(gUnit, maxAngMom, Ylm(:,ig))
         !! Calculate all the needed spherical harmonics
 
-      do iT = 1, ketSys%nAtomTypes
+      do iT = 1, braSys%nAtomTypes
 
-        do iR = 1, ketSys%pot(iT)%iRAugMax
+        do iR = 1, braSys%pot(iT)%iRAugMax
 
           JL = 0.0_dp
-          call bessel_j(q*ketSys%pot(iT)%radGrid(iR), maxAngMom, JL) ! returns the spherical bessel at qr point
+          call bessel_j(q*braSys%pot(iT)%radGrid(iR), maxAngMom, JL) ! returns the spherical bessel at qr point
             ! Previously used SD atoms structure here for both PC and SD
-          ketSys%paw(iT)%bes_J_qr(:,iR,ig) = JL(:)
+          braSys%paw(iT)%bes_J_qr(:,iR,ig) = JL(:)
 
         enddo
 
@@ -956,7 +1402,7 @@ contains
   end function overlapFileExists
 
 !----------------------------------------------------------------------------
-  subroutine readProjectors(crystalType, iGkStart_pool, ikGlobal, nGkVecsLocal, sys, beta)
+  subroutine readProjectors(iGkStart_pool, ikGlobal, nGkVecsLocal, sys, beta)
     
     implicit none
 
@@ -967,9 +1413,6 @@ contains
       !! Current k point
     integer, intent(in) :: nGkVecsLocal
       !! Local number of G+k vectors on this processor
-
-    character(len=2), intent(in) :: crystalType
-      !! Crystal type (PC or SD) for projectors
 
     type(crystal) :: sys
        !! The crystal system
@@ -989,11 +1432,7 @@ contains
       !! File names
     
 
-    if(crystalType == 'PC') then
-      fNameExport = trim(exportDirPC)//"/projectors."//trim(int2str(ikGlobal)) 
-    else
-      fNameExport = trim(exportDirSD)//"/projectors."//trim(int2str(ikGlobal))
-    endif
+    fNameExport = trim(sys%exportDir)//"/projectors."//trim(int2str(ikGlobal)) 
 
 
     inquire(iolength=reclen) beta(1,:)
@@ -1018,7 +1457,7 @@ contains
   end subroutine readProjectors
 
 !----------------------------------------------------------------------------
-  subroutine readWfc(crystalType, iBandinit, iBandfinal, iGkStart_pool, ikGlobal, isp, nGkVecsLocal, npws, wfc)
+  subroutine readWfc(iBandinit, iBandfinal, iGkStart_pool, ikGlobal, isp, nGkVecsLocal, npws, sys, wfc)
     !! Read wave function for given `crystalType` from `iBandinit`
     !! to `iBandfinal`
     
@@ -1041,8 +1480,8 @@ contains
       !! Number of G+k vectors less than
       !! the cutoff at this k-point
 
-    character(len=2), intent(in) :: crystalType
-      !! Crystal type (PC or SD)
+    type(crystal) :: sys
+       !! The crystal system
 
     ! Output variables
     complex*8, intent(out) :: wfc(nGkVecsLocal,iBandinit:iBandfinal)
@@ -1068,11 +1507,7 @@ contains
       !! File names
 
 
-    if(crystalType == 'PC') then
-      fNameExport = trim(exportDirPC)//'/wfc.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal))
-    else
-      fNameExport = trim(exportDirSD)//'/wfc.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal))
-    endif
+    fNameExport = trim(sys%exportDir)//'/wfc.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal))
     
     wfc(:,:) = cmplx(0.0_dp, 0.0_dp)
 
@@ -1145,7 +1580,7 @@ contains
   end subroutine calculatePWsOverlap
   
 !----------------------------------------------------------------------------
-  subroutine readProjections(crystalType, iBandinit, iBandfinal, ikGlobal, isp, nProjs, cProj)
+  subroutine readProjections(iBandinit, iBandfinal, ikGlobal, isp, nProjs, sys, cProj)
     
     use miscUtilities, only: ignoreNextNLinesFromFile
     
@@ -1163,8 +1598,8 @@ contains
     integer, intent(in) :: nProjs
       !! Number of projectors
 
-    character(len=2), intent(in) :: crystalType
-      !! Crystal type (PC or SD)
+    type(crystal) :: sys
+       !! The crystal system
 
     ! Output variables:
     complex(kind=dp), intent(out) :: cProj(nProjs,iBandinit:iBandfinal)
@@ -1189,11 +1624,7 @@ contains
         !! array of length nProjs
 
       ! Open the projections file for the given crystal type
-      if(crystalType == 'PC') then
-        fNameExport = trim(exportDirPC)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
-      else
-        fNameExport = trim(exportDirSD)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
-      endif
+      fNameExport = trim(sys%exportDir)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
 
 
       open(72, file=trim(fNameExport), access='direct', form='unformatted', recl=reclen)
@@ -1367,7 +1798,7 @@ contains
   end subroutine pawCorrectionWfc
 
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionK(crystalType, maxAngMom, nGVecsLocal, gCart, Ylm, sys, ketSys, pawK)
+  subroutine pawCorrectionK(crystalType, maxAngMom, nGVecsLocal, gCart, Ylm, braSys, sys, pawK)
     
     implicit none
 
@@ -1386,11 +1817,10 @@ contains
     character(len=2), intent(in) :: crystalType
       !! Crystal type (PC or SD)
 
+    type(crystal) :: braSys
+       !! The bra crystal system used to set up tables
     type(crystal), intent(in) :: sys
        !! The crystal system
-    type(crystal) :: ketSys
-       !! The ket crystal system used to set up tables
-
 
     ! Output variables:
     complex(kind=dp), intent(out) :: pawK(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,nGVecsLocal)
@@ -1430,7 +1860,7 @@ contains
             
             FI = 0.0_dp
             
-            FI = dot_product(ketSys%paw(iT)%bes_J_qr(L,:,ig),sys%paw(iT)%F(:,LL)) 
+            FI = dot_product(braSys%paw(iT)%bes_J_qr(L,:,ig),sys%paw(iT)%F(:,LL)) 
               ! radial part integration F contains dRadGrid
             
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
@@ -1561,7 +1991,7 @@ contains
       !! All-electron overlap
 
     ! Local variables:
-    integer :: ibi, ibf, i
+    integer :: ibi, ibf
       !! Loop indices
     integer :: ikGlobal
       !! Current global k-point
@@ -1943,46 +2373,44 @@ contains
   END subroutine getYlm
   
 !----------------------------------------------------------------------------
-  subroutine finalizeCalculation()
+  subroutine finalizeCalculation(nSys, crystalSystem)
     
     implicit none
 
-    integer :: iT
+    ! Input variables:
+    integer, intent(in) :: nSys
+      !! Number of crystal systems
+
+    type(crystal) :: crystalSystem(nSys)
+       !! The crystal systems to get the
+       !! matrix element for
+
+    ! Local variables:
+    integer :: iT, isys
       !! Loop index
 
 
-    deallocate(braSys%nPWs1kGlobal)
-    deallocate(braSys%atomPositionsCart)
-    deallocate(braSys%iType)
     deallocate(gCart)
     deallocate(Ylm)
 
-    do iT = 1, braSys%nAtomTypes
-      deallocate(braSys%pot(iT)%radGrid)
-      deallocate(braSys%pot(iT)%angMom)
-      deallocate(braSys%paw(iT)%F)
-      deallocate(braSys%paw(iT)%F1)
-      deallocate(braSys%paw(iT)%F2)
+    do isys = 1, nSys
+      deallocate(crystalSystem(isys)%nPWs1kGlobal)
+      deallocate(crystalSystem(isys)%atomPositionsCart)
+      deallocate(crystalSystem(isys)%iType)
+
+      do iT = 1, crystalSystem(isys)%nAtomTypes
+        deallocate(crystalSystem(isys)%pot(iT)%radGrid)
+        deallocate(crystalSystem(isys)%pot(iT)%angMom)
+        deallocate(crystalSystem(isys)%paw(iT)%F)
+        deallocate(crystalSystem(isys)%paw(iT)%F1)
+        deallocate(crystalSystem(isys)%paw(iT)%F2)
+        deallocate(crystalSystem(isys)%paw(iT)%bes_J_qr)
+      enddo
+
+      deallocate(crystalSystem(isys)%pot)
+      deallocate(crystalSystem(isys)%paw)
+
     enddo
-
-    deallocate(braSys%pot)
-    deallocate(braSys%paw)
-
-    deallocate(ketSys%nPWs1kGlobal)
-    deallocate(ketSys%atomPositionsCart)
-    deallocate(ketSys%iType)
-
-    do iT = 1, ketSys%nAtomTypes
-      deallocate(ketSys%pot(iT)%radGrid)
-      deallocate(ketSys%pot(iT)%angMom)
-      deallocate(ketSys%paw(iT)%F)
-      deallocate(ketSys%paw(iT)%F1)
-      deallocate(ketSys%paw(iT)%F2)
-      deallocate(ketSys%paw(iT)%bes_J_qr)
-    enddo
-
-    deallocate(ketSys%pot)
-    deallocate(ketSys%paw)
 
     call MPI_Barrier(worldComm, ierr)
     
