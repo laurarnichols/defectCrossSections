@@ -1298,11 +1298,18 @@ contains
   end subroutine setUpTables
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWrite2SysMatrixElements(braSys, ketSys, pot)
+  subroutine calcAndWrite2SysMatrixElements(ispSelect, nSpins, braSys, ketSys, pot)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+    integer, intent(in) :: nSpins
+      !! Number of spins (tested to be consistent
+      !! across all systems)
+
     type(crystal) :: braSys, ketSys
        !! The crystal systems to get the
        !! matrix element for
@@ -1319,9 +1326,6 @@ contains
       !! If spin-dependent subroutines should be called
     logical :: spin1Skipped = .false.
       !! If the first spin channel was skipped
-    logical :: thisKComplete = .false.
-      !! If needed `allElecOverlap.isp.ik` files exist
-      !! at the current k-point
     
 
     allocate(Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPerPool, nSpins))
@@ -1332,24 +1336,12 @@ contains
     
       if(ionode) write(*,'("Beginning k-point loop ", i4, " of ", i4)') ikLocal, nkPerPool
     
+
       ikGlobal = ikLocal+ikStart_pool-1
         !! Get the global `ik` index from the local one
     
-      if(indexInPool == 0) then
 
-        if(nSpins == 1 .or. ispSelect == 1) then
-          thisKComplete = overlapFileExists(ikGlobal, 1)
-        else if(ispSelect == 2) then
-          thisKComplete = overlapFileExists(ikGlobal, 2)
-        else if(nSpins == 2) then
-          thisKComplete = overlapFileExists(ikGlobal, 1) .and. overlapFileExists(ikGlobal, 2)
-        endif
-      
-      endif
-    
-      call MPI_BCAST(thisKComplete, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
-
-      if(.not. thisKComplete) then
+      if(.not. thisKComplete(ikGlobal, ispSelect, nSpins)) then
 
         !-----------------------------------------------------------------------------------------------
         !> Read projectors
@@ -1565,6 +1557,41 @@ contains
     return
 
   end subroutine calcAndWrite2SysMatrixElements
+
+!----------------------------------------------------------------------------
+  function thisKComplete(ikGlobal, ispSelect, nSpins)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Global k-point index
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+    integer, intent(in) :: nSpins
+      !! Number of spins (tested to be consistent
+      !! across all systems)
+
+    ! Output variables:
+    logical :: thisKComplete
+      !! If needed `allElecOverlap.isp.ik` files exist
+      !! at the current k-point
+
+
+    if(indexInPool == 0) then
+      if(nSpins == 1 .or. ispSelect == 1) then
+        thisKComplete = overlapFileExists(ikGlobal, 1)
+      else if(ispSelect == 2) then
+        thisKComplete = overlapFileExists(ikGlobal, 2)
+      else if(nSpins == 2) then
+        thisKComplete = overlapFileExists(ikGlobal, 1) .and. overlapFileExists(ikGlobal, 2)
+      endif
+    endif
+
+    call MPI_BCAST(thisKComplete, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
+
+  end function thisKComplete    
   
 !----------------------------------------------------------------------------
   function overlapFileExists(ikGlobal, isp) result(fileExists)

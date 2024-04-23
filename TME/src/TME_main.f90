@@ -32,7 +32,7 @@ program TMEmain
           dq_j, gCart, omega, recipLattVec, Ylm, crystalSystem, pot)
 
 
-  call calcAndWrite2SysMatrixElements(crystalSystem(1), crystalSystem(2), pot)
+  call calcAndWrite2SysMatrixElements(ispSelect, nSpins, crystalSystem(1), crystalSystem(2), pot)
 
 
   call MPI_BARRIER(worldComm, ierr)
