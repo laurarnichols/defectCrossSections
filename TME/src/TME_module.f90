@@ -19,7 +19,7 @@ module TMEmod
     !! Global number of G-vectors
   integer :: nGVecsLocal
     !! Local number of G-vectors
-  integer :: nGkVecsLocalPC, nGkVecsLocalSD
+  integer :: nGkVecsLocal
     !! Local number of G+k vectors on this processor
   integer :: nSys
     !! Number of systems
@@ -1350,20 +1350,20 @@ contains
         call cpu_time(t1)
 
 
-        call distributeItemsInSubgroups(indexInPool, ketSys%nPWs1kGlobal(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolPC, &
-                iGkEnd_poolPC, nGkVecsLocalPC)
+        if(braSys%nPWs1kGlobal(ikGlobal) /= ketSys%nPWs1kGlobal(ikGlobal)) &
+          call exitError('calAndWrite2SyMatrixElements', 'number of G+k vectors does not match for ik='//trim(int2str(ikGlobal)), 1)
 
-        allocate(betaPC(nGkVecsLocalPC,ketSys%nProj))
+        call distributeItemsInSubgroups(indexInPool, braSys%nPWs1kGlobal(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_pool, &
+                iGkEnd_pool, nGkVecsLocal)
 
-        call readProjectors(iGkStart_poolPC, ikGlobal, nGkVecsLocalPC, ketSys, betaPC)
+        allocate(betaPC(nGkVecsLocal,ketSys%nProj))
+
+        call readProjectors(ikGlobal, nGkVecsLocal, ketSys, betaPC)
 
 
-        call distributeItemsInSubgroups(indexInPool, braSys%nPWs1kGlobal(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_poolSD, &
-                iGkEnd_poolSD, nGkVecsLocalSD)
+        allocate(betaSD(nGkVecsLocal,braSys%nProj))
 
-        allocate(betaSD(nGkVecsLocalSD,braSys%nProj))
-
-        call readProjectors(iGkStart_poolSD, ikGlobal, nGkVecsLocalSD, braSys, betaSD)
+        call readProjectors(ikGlobal, nGkVecsLocal, braSys, betaSD)
 
         call cpu_time(t2)
         if(ionode) write(*, '("  Pre-spin-loop: [X] Read projectors (",f10.2," secs)")') t2-t1
@@ -1372,8 +1372,8 @@ contains
         !-----------------------------------------------------------------------------------------------
         !> Allocate arrays that are potentially spin-polarized and start spin loop
 
-        allocate(wfcPC(nGkVecsLocalPC, iBandIinit:iBandIfinal))
-        allocate(wfcSD(nGkVecsLocalSD, iBandFinit:iBandFfinal))
+        allocate(wfcPC(nGkVecsLocal, iBandIinit:iBandIfinal))
+        allocate(wfcSD(nGkVecsLocal, iBandFinit:iBandFfinal))
       
         allocate(cProjBetaPCPsiSD(ketSys%nProj, iBandFinit:iBandFfinal))
         allocate(cProjBetaSDPhiPC(braSys%nProj, iBandIinit:iBandIfinal))
@@ -1425,11 +1425,11 @@ contains
 
 
               if(calcSpinDepPC) &
-                call readWfc(iBandIinit, iBandIfinal, iGkStart_poolPC, ikGlobal, min(isp,ketSys%nSpins), nGkVecsLocalPC, &
+                call readWfc(iBandIinit, iBandIfinal, ikGlobal, min(isp,ketSys%nSpins), nGkVecsLocal, &
                   ketSys%nPWs1kGlobal(ikGlobal), ketSys, wfcPC)
         
               if(calcSpinDepSD) &
-                call readWfc(iBandFinit, iBandFfinal, iGkStart_poolSD, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocalSD, &
+                call readWfc(iBandFinit, iBandFfinal, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocal, &
                   braSys%nPWs1kGlobal(ikGlobal), braSys, wfcSD)
         
               call calculatePWsOverlap(ikLocal, isp)
@@ -1444,11 +1444,11 @@ contains
               !> Calculate cross projections
 
               if(calcSpinDepSD) &
-                call calculateCrossProjection(iBandFinit, iBandFfinal, nGkVecsLocalPC, nGkVecsLocalSD, ketSys%nProj, betaPC, wfcSD, cProjBetaPCPsiSD)
+                call calculateCrossProjection(iBandFinit, iBandFfinal, nGkVecsLocal, ketSys%nProj, betaPC, wfcSD, cProjBetaPCPsiSD)
 
 
               if(calcSpinDepPC) &
-                call calculateCrossProjection(iBandIinit, iBandIfinal, nGkVecsLocalSD, nGkVecsLocalPC, braSys%nProj, betaSD, wfcPC, cProjBetaSDPhiPC)
+                call calculateCrossProjection(iBandIinit, iBandIfinal, nGkVecsLocal, braSys%nProj, betaSD, wfcPC, cProjBetaSDPhiPC)
         
 
               call cpu_time(t2)
@@ -1622,13 +1622,11 @@ contains
   end function overlapFileExists
 
 !----------------------------------------------------------------------------
-  subroutine readProjectors(iGkStart_pool, ikGlobal, nGkVecsLocal, sys, beta)
+  subroutine readProjectors(ikGlobal, nGkVecsLocal, sys, beta)
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: iGkStart_pool
-      !! Start G+k index for this process in pool
     integer, intent(in) :: ikGlobal
       !! Current k point
     integer, intent(in) :: nGkVecsLocal
@@ -1677,7 +1675,7 @@ contains
   end subroutine readProjectors
 
 !----------------------------------------------------------------------------
-  subroutine readWfc(iBandinit, iBandfinal, iGkStart_pool, ikGlobal, isp, nGkVecsLocal, npws, sys, wfc)
+  subroutine readWfc(iBandinit, iBandfinal, ikGlobal, isp, nGkVecsLocal, npws, sys, wfc)
     !! Read wave function for given `crystalType` from `iBandinit`
     !! to `iBandfinal`
     
@@ -1688,8 +1686,6 @@ contains
       !! Starting band
     integer, intent(in) :: iBandfinal
       !! Ending band
-    integer, intent(in) :: iGkStart_pool
-      !! Start G+k index for this process in pool
     integer, intent(in) :: ikGlobal
       !! Current k point
     integer, intent(in) :: isp
@@ -1869,7 +1865,7 @@ contains
   end subroutine readProjections
   
 !----------------------------------------------------------------------------
-  subroutine calculateCrossProjection(iBandinit, iBandfinal, nGkVecsLocal1, nGkVecsLocal2, nProjs, beta, wfc, crossProjection)
+  subroutine calculateCrossProjection(iBandinit, iBandfinal, nGkVecsLocal, nProjs, beta, wfc, crossProjection)
     !! Calculate the cross projection of one crystal's projectors
     !! on the other crystal's wave function coefficients, distributing
     !! the result to all processors
@@ -1883,18 +1879,14 @@ contains
     integer, intent(in) :: iBandfinal
       !! Ending band for crystal wfc comes from
       !! (not `projCrystalType`)
-    integer, intent(in) :: nGkVecsLocal1
+    integer, intent(in) :: nGkVecsLocal
       !! Local number of G+k vectors on this processor
-      !! for projectors
-    integer, intent(in) :: nGkVecsLocal2
-      !! Local number of G+k vectors on this processor
-      !! for wave function
     integer, intent(in) :: nProjs
       !! Number of projectors
 
-    complex(kind=dp) :: beta(nGkVecsLocal1,nProjs)
+    complex(kind=dp) :: beta(nGkVecsLocal,nProjs)
       !! Projector of one crystal type
-    complex*8, intent(in) :: wfc(nGkVecsLocal2,iBandinit:iBandfinal)
+    complex*8, intent(in) :: wfc(nGkVecsLocal,iBandinit:iBandfinal)
       !! Wave function coefficients for local G-vectors
       !! for other crystal type
 
