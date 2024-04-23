@@ -13,19 +13,6 @@ module TMEmod
   implicit none
 
 
-  real(kind=dp) :: dq_j
-    !! \(\delta q_j) for displaced wave functions
-    !! (only order = 1)
-  real(kind=dp), allocatable :: gCart(:,:)
-    !! G-vectors in Cartesian coordinates
-  real(kind=dp) :: omega
-    !! Supercell volume
-  real(kind = dp) :: t1, t2
-    !! For timing different processes
-
-
-  integer :: maxAngMom
-    !! Maximum angular momentum of the projectors
   integer, allocatable :: mill_local(:,:)
     !! Local Miller indices
   integer :: nGVecsGlobal
@@ -39,6 +26,18 @@ module TMEmod
   integer :: phononModeJ
     !! Index of phonon mode for the calculation
     !! of \(M_j\) (only for order=1)
+
+  real(kind=dp) :: dq_j
+    !! \(\delta q_j) for displaced wave functions
+    !! (only order = 1)
+  real(kind=dp), allocatable :: gCart(:,:)
+    !! G-vectors in Cartesian coordinates
+  real(kind=dp) :: omega
+    !! Supercell volume
+  real(kind=dp) :: recipLattVec(3,3)
+    !! Reciprocal-space lattice vectors
+  real(kind = dp) :: t1, t2
+    !! For timing different processes
 
   complex(kind=dp), allocatable :: betaPC(:,:), betaSD(:,:)
     !! Projectors
@@ -64,9 +63,7 @@ module TMEmod
     !! overlap for increased numerical accuracy in the 
     !! derivative
 
-  ! Define a type to match the export code for the variables
-  ! that come straight from the POTCAR file
-  type potcar
+  type atomInfo
     integer, allocatable :: angMom(:)
       !! Angular momentum of projectors
     integer :: iRAugMax
@@ -79,8 +76,18 @@ module TMEmod
     integer :: nMax
       !! Number of radial grid points
 
+    real(kind=dp), allocatable :: bes_J_qr(:,:,:)
+      !! Needed for PAW
     real(kind=dp), allocatable :: dRadGrid(:)
       !! Derivative of radial grid
+    real(kind=dp), allocatable :: F(:,:)
+      !! Needed for PAW
+    real(kind=dp), allocatable :: F1bra(:,:,:)
+      !! Needed for PAW (bra version)
+    real(kind=dp), allocatable :: F1ket(:,:,:)
+      !! Needed for PAW (ket version)
+    real(kind=dp), allocatable :: F2(:,:,:)
+      !! Needed for PAW
     real(kind=dp), allocatable :: radGrid(:)
       !! Radial grid points
     real(kind=dp), allocatable :: wae(:,:)
@@ -89,15 +96,24 @@ module TMEmod
       !! PS wavefunction
 
     character(len=2) :: element
+      !! Name of the element
+  end type atomInfo
+
+  ! Define a type to match the export code for the variables
+  ! that come straight from the POTCAR file
+  type potcar
+    integer :: maxAngMom
+      !! Maximum angular momentum of the projectors
+    integer :: maxNAtomTypes
+      !! Maximum number of atom types across all systems
+
+    type(atomInfo), allocatable :: atom(:)
+      !! Track the pseudopotential information specific to 
+      !! each of the atoms
   end type potcar
 
-  ! Define a type for new items calculated for PAW
-  type :: calcPAW
-    real(kind=dp), allocatable :: F(:,:)
-    real(kind=dp), allocatable :: F1(:,:,:)
-    real(kind=dp), allocatable :: F2(:,:,:)
-    real(kind=dp), allocatable :: bes_J_qr(:,:,:)
-  end type calcPAW
+  type(potcar) :: pot
+    !! Global pseudopotential variable
 
   ! Define a type for each of the crystal inputs
   type :: crystal
@@ -127,6 +143,8 @@ module TMEmod
     real(kind=dp) :: recipLattVec(3,3)
       !! Reciprocal-space lattice vectors
 
+    character(len=2), allocatable :: element(:)
+      !! Element names for atoms in the system
     character(len=300) :: exportDir
       !! Path to Export directory
     character(len=300) :: ID
@@ -134,12 +152,6 @@ module TMEmod
     character(len=3) :: sysType
       !! Type of system for overlap:
       !! bra or ket
-
-    type(potcar), allocatable :: pot(:)
-      !! Pseudopotential information from this system
-
-    type(calcPAW), allocatable :: paw(:)
-      !! Values needed for PAW formalism
   end type crystal
 
   type(crystal) :: braSys, ketSys
@@ -188,7 +200,7 @@ contains
   subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, order, phononModeJ, baselineDir, &
           braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, loopSpins, subtractBaseline)
 
-    use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
+    use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
 
@@ -454,8 +466,8 @@ contains
    end subroutine setUpSystemArray
 
 !----------------------------------------------------------------------------
-  subroutine completePreliminarySetup(nSys, order, phononModeJ, dqFName, maxAngMom, mill_local, nGVecsGlobal, nKPoints, nSpins, &
-        gCart, dq_j, omega, Ylm, crystalSystem)
+  subroutine completePreliminarySetup(nSys, order, phononModeJ, dqFName, mill_local, nGVecsGlobal, nKPoints, nSpins, &
+        dq_j, gCart, omega, recipLattVec, Ylm, crystalSystem, pot)
 
     implicit none
 
@@ -472,9 +484,6 @@ contains
       !! File name for generalized-coordinate norms
 
     ! Output variables:
-    integer, intent(out) :: maxAngMom
-      !! Maximum angular momentum of projectors across
-      !! all systems
     integer, allocatable, intent(out) :: mill_local(:,:)
       !! Local Miller indices
     integer, intent(out) :: nGVecsGlobal
@@ -487,14 +496,16 @@ contains
       !! Number of spins (tested to be consistent
       !! across all systems)
 
-    real(kind=dp), allocatable, intent(out) :: gCart(:,:)
-      !! G-vectors in Cartesian coordinates
     real(kind=dp), intent(out) :: dq_j
       !! \(\delta q_j) for displaced wave functions
       !! (only order = 1)
+    real(kind=dp), allocatable, intent(out) :: gCart(:,:)
+      !! G-vectors in Cartesian coordinates
     real(kind=dp), intent(out) :: omega
       !! Cell volume (tested to be consistent
       !! across all systems)
+    real(kind=dp), intent(out) :: recipLattVec(3,3)
+      !! Reciprocal-space lattice vectors
 
     complex(kind=dp), allocatable, intent(out) :: Ylm(:,:)
       !! Spherical harmonics
@@ -502,8 +513,12 @@ contains
     type(crystal) :: crystalSystem(nSys)
       !! Array containing all crystal systems
 
+    type(potcar) :: pot
+      !! Structure containing all pseudopotential-related
+      !! information
+
     ! Local variables:
-    integer :: isys, iT
+    integer :: isys
       !! Loop variable
 
 
@@ -512,7 +527,6 @@ contains
 
     ! Initialize global variables to be tracked to make sure they
     ! are consistent across all of the systems
-    maxAngMom = 0
     nKPoints = -1
     nGVecsGlobal = -1
     nSpins = 0
@@ -520,11 +534,19 @@ contains
 
     do isys = 1, nSys
 
-      call readInputFile(maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, crystalSystem(isys))
+      call readInputFileSkipPseudo(nGVecsGlobal, nKPoints, nSpins, omega, crystalSystem(isys))
 
     enddo
+
+    recipLattVec = crystalSystem(1)%recipLattVec
+      ! Could, in principle, check that all of the systems are consistent,
+      ! but I don't want to do that right now. Right now, the code just 
+      ! assumes that they are consistent.
+
+
+    call getGlobalPseudo(nSys, crystalSystem, pot)
     
-    maxAngMom = 2*maxAngMom + 1
+    pot%maxAngMom = 2*pot%maxAngMom + 1
 
 
     if(order == 1) call readDqFile(phononModeJ, dqFName, dq_j)
@@ -557,13 +579,10 @@ contains
 
 
     allocate(gCart(3,nGVecsLocal))
-    allocate(Ylm((maxAngMom+1)**2,nGVecsLocal))
+    allocate(Ylm((pot%maxAngMom+1)**2,nGVecsLocal))
 
-    call setUpTables(maxAngMom, nGVecsLocal, mill_local, crystalSystem(1), gCart, Ylm)
+    call setUpTables(nGVecsLocal, mill_local, recipLattVec, pot, gCart, Ylm)
     ! Also allocate this table for the braSys so that there isn't an error when deallocating
-    do iT = 1, crystalSystem(2)%nAtomTypes
-      allocate(crystalSystem(2)%paw(iT)%bes_J_qr(1,1,1))
-    enddo
 
     deallocate(mill_local)
 
@@ -577,16 +596,13 @@ contains
   end subroutine completePreliminarySetup
   
 !----------------------------------------------------------------------------
-  subroutine readInputFile(maxAngMom, nGVecsGlobal, nKPoints, nSpins, omega, sys)
+  subroutine readInputFileSkipPseudo(nGVecsGlobal, nKPoints, nSpins, omega, sys)
 
-    use miscUtilities, only: ignoreNextNLinesFromFile
+    use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
     
     implicit none
 
     ! Output variables:
-    integer, intent(inout) :: maxAngMom
-      !! Maximum angular momentum of projectors across
-      !! all systems
     integer, intent(inout) :: nGVecsGlobal
       !! Number of global G-vectors (tested to be consistent
       !! across all systems)
@@ -602,18 +618,18 @@ contains
       !! across all systems)
 
     type(crystal) :: sys
-       !! The crystal system
+      !! The crystal system
 
     ! Local variables:
     integer :: iDum
       !! Dummy integer
-    integer :: ik, iA, ix, iT, ip, ir, ip1, ip2, irm
+    integer :: ik, iA, ix, iT
       !! Loop indices
     integer :: nBands
       !! Number of bands
+    integer :: lmMax
+      !! Needed to calculate nProj
 
-    real(kind=dp), allocatable :: aepsDiff1(:), aepsDiff2(:)
-      !! Difference between wae and wps for different channels
     real(kind=dp) :: t1, t2 
       !! Timers
     real(kind=dp) :: rDum
@@ -626,6 +642,7 @@ contains
     
     
     if(ionode) then
+      write(*,'(" Reading ",a," input file")') trim(sys%ID)
       call cpu_time(t1)
     
       inputFName = trim(trim(sys%exportDir)//'/input')
@@ -759,157 +776,306 @@ contains
     call MPI_BCAST(sys%iType,  size(sys%iType),  MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(sys%atomPositionsCart, size(sys%atomPositionsCart), MPI_DOUBLE_PRECISION,root,worldComm,ierr)
     
-    allocate(sys%pot(sys%nAtomTypes), sys%paw(sys%nAtomTypes), sys%nAtomsEachType(sys%nAtomTypes))
+    allocate(sys%nAtomsEachType(sys%nAtomTypes), sys%element(sys%nAtomTypes))
 
-    sys%nProj = 0
-    do iT = 1, sys%nAtomTypes
-      
-      if(ionode) then
+    if(ionode) then
 
-        read(50,*) 
-        read(50,*) !sys%pot(iT)%element
-          ! Don't use this now, but might, so I want
-          ! to easily know where it is.
+      sys%nProj = 0
+      do iT = 1, sys%nAtomTypes
+
+        textDum = getFirstLineWithKeyword(50,'Element')
+        read(50,*) sys%element(iT)
       
         read(50,*)
         read(50,'(i10)') sys%nAtomsEachType(iT)
 
+
+        textDum = getFirstLineWithKeyword(50,'Number of channels')
+        read(50,'(i10)') lmMax
+      
+        sys%nProj = sys%nProj + sys%nAtomsEachType(iT)*lmMax
+
+      enddo
+
+      close(50)
+
+    endif
+
+    call MPI_BCAST(sys%nAtomsEachType, sys%nAtomTypes, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(sys%element, size(sys%element), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(sys%nProj, 1, MPI_INTEGER, root, worldComm, ierr)
+
+   if(ionode) then
+    
+      call cpu_time(t2)
+      write(*,'(" Reading ",a," input file done in:                ", f10.2, " secs.")') trim(sys%ID), t2-t1
+      write(*,*)
+
+    endif
+    
+    return
+    
+  end subroutine readInputFileSkipPseudo
+
+!----------------------------------------------------------------------------
+  subroutine getGlobalPseudo(nSys, crystalSystem, pot)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nSys
+      !! Number of systems to read files for
+
+    type(crystal) :: crystalSystem(nSys)
+      !! Array containing all crystal systems
+
+    ! Output variables:
+    type(potcar) :: pot
+      !! Structure containing all pseudopotential-related
+      !! information
+      
+    ! Local variables:
+    integer :: isys, iT
+      !! Loop indices
+    integer :: isys_maxNAtomTypes
+      !! Index of system with the maximum number of atom
+      !! types
+
+
+    if(ionode) then
+
+      ! Get the maximum number of atom types across all systems
+      ! This will be the one to get the pseudopotential info from.
+      pot%maxNAtomTypes = 0
+      do isys = 1, nSys
+        if(crystalSystem(isys)%nAtomTypes > pot%maxNAtomTypes) then
+          pot%maxNAtomTypes = crystalSystem(isys)%nAtomTypes
+          isys_maxNAtomTypes = isys
+        endif
+      enddo
+
+
+      ! Make sure that the atom types are consistent across all systems
+      do iT = 1, pot%maxNAtomTypes
+        do isys = 1, nSys
+          if(.not. (isys == isys_maxNAtomTypes .or. iT > crystalSystem(isys)%nAtomTypes)) then
+            if(trim(crystalSystem(isys)%element(iT)) /= trim(crystalSystem(isys_maxNAtomTypes)%element(iT))) then
+              write(*,'("Element mismatch detected in atom ", i5," in systems ",a," and ",a,": ",a," ",a)') &
+                  iT, trim(crystalSystem(isys)%ID), trim(crystalSystem(isys_maxNAtomTypes)%ID), &
+                  trim(crystalSystem(isys)%element(iT)), trim(crystalSystem(isys_maxNAtomTypes)%element(iT))
+              call exitError('completePreliminarySetup', 'Elements must be consistent across all systems!', 1)
+            endif
+          endif
+        enddo
+      enddo
+
+    endif
+
+    call MPI_BCAST(pot%maxNAtomTypes, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(isys_maxNAtomTypes, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    call readPseudoFromInputFile(crystalSystem(isys_maxNAtomTypes), pot)
+
+
+    return
+
+  end subroutine getGlobalPseudo
+
+!----------------------------------------------------------------------------
+  subroutine readPseudoFromInputFile(sys, pot)
+
+    use miscUtilities, only: getFirstLineWithKeyword
+
+    implicit none
+
+    ! Input variables:
+    type(crystal) :: sys
+      !! The crystal system
+
+    ! Output variables:
+    type(potcar) :: pot
+      !! Structure containing all pseudopotential-related
+      !! information
+
+    ! Local variables:
+    integer :: iDum
+      !! Dummy integer
+    integer :: irm
+      !! Store iRAugMax for single loop
+    integer :: iT, ip, ir, ip1, ip2
+      !! Loop indices
+
+    real(kind=dp), allocatable :: aepsDiff1(:), aepsDiff2(:)
+      !! Difference between wae and wps for different channels
+
+    character(len=300) :: inputFName
+      !! File name for the input file 
+    character(len=300) :: textDum
+      !! Dummy text
+
+
+    if(ionode) then
+      write(*,'(" Reading pseudo information from ",a," input file")') trim(sys%ID)
+      call cpu_time(t1)
+    
+      inputFName = trim(trim(sys%exportDir)//'/input')
+    
+      open(50, file=trim(inputFName), status = 'old')
+
+      textDum = getFirstLineWithKeyword(50,'Number of Bands')
+      read(50,*) 
+    
+    endif
+
+
+    allocate(pot%atom(pot%maxNAtomTypes))
+    
+
+    pot%maxAngMom = 0
+    do iT = 1, sys%nAtomTypes
+      ! Could also use pot%maxNAtomTypes as they should be the same
+      
+      if(ionode) then
+
+        read(50,*) 
+        read(50,*) pot%atom(iT)%element
+      
         read(50,*)
-        read(50,'(i10)') sys%pot(iT)%nChannels              ! number of projectors
+        read(50,*)
+
+        read(50,*)
+        read(50,'(i10)') pot%atom(iT)%nChannels              ! number of projectors
 
       endif
 
-      call MPI_BCAST(sys%pot(iT)%nChannels, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(pot%atom(iT)%element, len(pot%atom(iT)%element), MPI_CHARACTER, root, worldComm, ierr)
+      call MPI_BCAST(pot%atom(iT)%nChannels, 1, MPI_INTEGER, root, worldComm, ierr)
       
-      allocate(sys%pot(iT)%angMom(sys%pot(iT)%nChannels))
+
+      allocate(pot%atom(iT)%angMom(pot%atom(iT)%nChannels))
 
       if(ionode) then
 
         read(50,*)
 
-        do ip = 1, sys%pot(iT)%nChannels
+        do ip = 1, pot%atom(iT)%nChannels
 
-          read(50,'(2i10)') sys%pot(iT)%angMom(ip), iDum
+          read(50,'(2i10)') pot%atom(iT)%angMom(ip), iDum
+          if(pot%atom(iT)%angMom(ip) > pot%maxAngMom) pot%maxAngMom = pot%atom(iT)%angMom(ip)
 
         enddo
 
       endif
 
-      call MPI_BCAST(sys%pot(iT)%angMom, sys%pot(iT)%nChannels, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(pot%atom(iT)%angMom, pot%atom(iT)%nChannels, MPI_INTEGER, root, worldComm, ierr)
+
 
       if(ionode) then
       
         read(50,*)
-        read(50,'(i10)') sys%pot(iT)%lmMax
+        read(50,'(i10)') pot%atom(iT)%lmMax
       
         read(50,*)
-        read(50,'(2i10)') sys%pot(iT)%nMax, sys%pot(iT)%iRAugMax
+        read(50,'(2i10)') pot%atom(iT)%nMax, pot%atom(iT)%iRAugMax
 
       endif
     
-      call MPI_BCAST(sys%pot(iT)%lmMax, 1, MPI_INTEGER, root, worldComm, ierr)
-      call MPI_BCAST(sys%pot(iT)%nMax, 1, MPI_INTEGER, root, worldComm, ierr)
-      call MPI_BCAST(sys%pot(iT)%iRAugMax, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(pot%atom(iT)%lmMax, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(pot%atom(iT)%nMax, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(pot%atom(iT)%iRAugMax, 1, MPI_INTEGER, root, worldComm, ierr)
 
-      allocate(sys%pot(iT)%radGrid(sys%pot(iT)%nMax))
+
+      allocate(pot%atom(iT)%radGrid(pot%atom(iT)%nMax))
       
       if(ionode) then
       
-        allocate(sys%pot(iT)%dRadGrid(sys%pot(iT)%nMax))
+        allocate(pot%atom(iT)%dRadGrid(pot%atom(iT)%nMax))
 
         read(50,*)
 
-        do ir = 1, sys%pot(iT)%nMax
-          read(50,'(2ES24.15E3)') sys%pot(iT)%radGrid(ir), sys%pot(iT)%dRadGrid(ir)
+        do ir = 1, pot%atom(iT)%nMax
+          read(50,'(2ES24.15E3)') pot%atom(iT)%radGrid(ir), pot%atom(iT)%dRadGrid(ir)
         enddo
        
-        allocate(sys%pot(iT)%wae(sys%pot(iT)%nMax, sys%pot(iT)%nChannels))
-        allocate(sys%pot(iT)%wps(sys%pot(iT)%nMax, sys%pot(iT)%nChannels))
+
+        allocate(pot%atom(iT)%wae(pot%atom(iT)%nMax, pot%atom(iT)%nChannels))
+        allocate(pot%atom(iT)%wps(pot%atom(iT)%nMax, pot%atom(iT)%nChannels))
       
         read(50,*)
-        do ip = 1, sys%pot(iT)%nChannels
-          do ir = 1, sys%pot(iT)%nMax
-            read(50,'(2ES24.15E3)') sys%pot(iT)%wae(ir,ip), sys%pot(iT)%wps(ir,ip) 
+        do ip = 1, pot%atom(iT)%nChannels
+          do ir = 1, pot%atom(iT)%nMax
+            read(50,'(2ES24.15E3)') pot%atom(iT)%wae(ir,ip), pot%atom(iT)%wps(ir,ip) 
           enddo
         enddo
         
       endif
 
-      allocate(sys%paw(iT)%F(sys%pot(iT)%iRAugMax, sys%pot(iT)%nChannels))
-      allocate(sys%paw(iT)%F1(sys%pot(iT)%iRAugMax, sys%pot(iT)%nChannels, sys%pot(iT)%nChannels))
-      allocate(sys%paw(iT)%F2(sys%pot(iT)%iRAugMax, sys%pot(iT)%nChannels, sys%pot(iT)%nChannels))
+
+      allocate(pot%atom(iT)%F(pot%atom(iT)%iRAugMax, pot%atom(iT)%nChannels))
+      allocate(pot%atom(iT)%F1bra(pot%atom(iT)%iRAugMax, pot%atom(iT)%nChannels, pot%atom(iT)%nChannels))
+      allocate(pot%atom(iT)%F1ket(pot%atom(iT)%iRAugMax, pot%atom(iT)%nChannels, pot%atom(iT)%nChannels))
+      allocate(pot%atom(iT)%F2(pot%atom(iT)%iRAugMax, pot%atom(iT)%nChannels, pot%atom(iT)%nChannels))
 
       
       if(ionode) then
         
-        irm = sys%pot(iT)%iRAugMax
+        irm = pot%atom(iT)%iRAugMax
         allocate(aepsDiff1(irm), aepsDiff2(irm))
 
-        sys%paw(iT)%F = 0.0_dp
-        sys%paw(iT)%F1 = 0.0_dp
-        sys%paw(iT)%F2 = 0.0_dp
+        pot%atom(iT)%F = 0.0_dp
+        pot%atom(iT)%F1bra = 0.0_dp
+        pot%atom(iT)%F1ket = 0.0_dp
+        pot%atom(iT)%F2 = 0.0_dp
       
-        do ip1 = 1, sys%pot(iT)%nChannels
+        do ip1 = 1, pot%atom(iT)%nChannels
 
-          aepsDiff1 = sys%pot(iT)%wae(1:irm,ip1) - sys%pot(iT)%wps(1:irm,ip1)
+          aepsDiff1 = pot%atom(iT)%wae(1:irm,ip1) - pot%atom(iT)%wps(1:irm,ip1)
 
-          sys%paw(iT)%F(1:irm,ip1)= aepsDiff1(:)*sys%pot(iT)%radGrid(1:irm)*sys%pot(iT)%dRadGrid(1:irm)
+          pot%atom(iT)%F(1:irm,ip1)= aepsDiff1(:)*pot%atom(iT)%radGrid(1:irm)*pot%atom(iT)%dRadGrid(1:irm)
         
-          do ip2 = 1, sys%pot(iT)%nChannels
+          do ip2 = 1, pot%atom(iT)%nChannels
 
-            aepsDiff2 = sys%pot(iT)%wae(1:irm,ip2) - sys%pot(iT)%wps(1:irm,ip2)
+            aepsDiff2 = pot%atom(iT)%wae(1:irm,ip2) - pot%atom(iT)%wps(1:irm,ip2)
 
-            if(trim(sys%sysType) == 'bra') then
-              sys%paw(iT)%F1(1:irm,ip2,ip1) = sys%pot(iT)%wps(1:irm,ip2)*aepsDiff1(:)*sys%pot(iT)%dRadGrid(1:irm)
-            else if(trim(sys%sysType) == 'ket') then
-              sys%paw(iT)%F1(1:irm,ip2,ip1) = sys%pot(iT)%wps(1:irm,ip1)*aepsDiff2(:)*sys%pot(iT)%dRadGrid(1:irm)
-            endif
+            pot%atom(iT)%F1bra(1:irm,ip2,ip1) = pot%atom(iT)%wps(1:irm,ip2)*aepsDiff1(:)*pot%atom(iT)%dRadGrid(1:irm)
+
+            pot%atom(iT)%F1ket(1:irm,ip2,ip1) = pot%atom(iT)%wps(1:irm,ip1)*aepsDiff2(:)*pot%atom(iT)%dRadGrid(1:irm)
           
-            sys%paw(iT)%F2(1:irm,ip2,ip1) = aepsDiff1(:)*aepsDiff2(:)*sys%pot(iT)%dRadGrid(1:irm)
+            pot%atom(iT)%F2(1:irm,ip2,ip1) = aepsDiff1(:)*aepsDiff2(:)*pot%atom(iT)%dRadGrid(1:irm)
 
           enddo
         enddo
 
-        deallocate(sys%pot(iT)%wae)
-        deallocate(sys%pot(iT)%wps)
-        deallocate(sys%pot(iT)%dRadGrid)
+        deallocate(pot%atom(iT)%wae)
+        deallocate(pot%atom(iT)%wps)
+        deallocate(pot%atom(iT)%dRadGrid)
         deallocate(aepsDiff1, aepsDiff2)
-      
-        sys%nProj = sys%nProj + sys%nAtomsEachType(iT)*sys%pot(iT)%lmMax
 
       endif
 
-      call MPI_BCAST(sys%pot(iT)%radGrid, size(sys%pot(iT)%radGrid), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-      call MPI_BCAST(sys%paw(iT)%F, size(sys%paw(iT)%F), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-      call MPI_BCAST(sys%paw(iT)%F1, size(sys%paw(iT)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-      call MPI_BCAST(sys%paw(iT)%F2, size(sys%paw(iT)%F1), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(pot%atom(iT)%radGrid, size(pot%atom(iT)%radGrid), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(pot%atom(iT)%F, size(pot%atom(iT)%F), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(pot%atom(iT)%F1bra, size(pot%atom(iT)%F1bra), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(pot%atom(iT)%F1ket, size(pot%atom(iT)%F1ket), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(pot%atom(iT)%F2, size(pot%atom(iT)%F2), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       
     enddo
-  
-    call MPI_BCAST(sys%nAtomsEachType, sys%nAtomTypes, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(sys%nProj, 1, MPI_INTEGER, root, worldComm, ierr)
+
+    call MPI_BCAST(pot%maxAngMom, 1, MPI_INTEGER, root, worldComm, ierr)
 
     if(ionode) then
     
       close(50)
-
-      do iT = 1, sys%nAtomTypes
-        do ip = 1, sys%pot(iT)%nChannels
-          if(sys%pot(iT)%angMom(ip) > maxAngMom) maxAngMom = sys%pot(iT)%angMom(ip)
-        enddo
-      enddo
     
       call cpu_time(t2)
-      write(*,'(" Reading input files done in:                ", f10.2, " secs.")') t2-t1
+      write(*,'(" Reading pseudo information from ",a," input file done in:                ", f10.2, " secs.")') trim(sys%ID), t2-t1
       write(*,*)
 
     endif
 
-    call MPI_BCAST(maxAngMom, 1, MPI_INTEGER, root, worldComm, ierr)
-    
     return
-    
-  end subroutine readInputFile
+
+  end subroutine readPseudoFromInputFile
 
 !----------------------------------------------------------------------------
   subroutine readDqFile(phononModeJ, dqFName, dq_j)
@@ -953,7 +1119,186 @@ contains
   end subroutine readDqFile
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWrite2SysMatrixElements(braSys, ketSys)
+  subroutine getFullPWGrid(nGVecsLocal, nGVecsGlobal, sys, mill_local)
+    !! Read full PW grid from mgrid file
+    
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nGVecsLocal
+      !! Local number of G-vectors
+    integer, intent(in) :: nGVecsGlobal
+      !! Global number of G-vectors
+
+    type(crystal) :: sys
+       !! Arbitrary system to read PW grid from
+
+    ! Output variables:
+    integer, intent(out) :: mill_local(3,nGVecsLocal)
+      !! Integer coefficients for G-vectors
+    
+    ! Local variables:
+    integer :: displacement(nProcPerPool)
+      !! Offset from beginning of array for
+      !! scattering/gathering G-vectors 
+    integer, allocatable :: gVecMillerIndicesGlobal(:,:)
+      !! Integer coefficients for G-vectors on all processors
+    integer :: gVecsLocalX(nGVecsLocal), gVecsLocalY(nGVecsLocal), gVecsLocalZ(nGVecsLocal)
+      !! Arrays to hold x, y, and z components of local
+      !! G-vectors to make scattering simpler
+    integer :: iDum
+      !! Ignore dummy integer
+    integer :: sendCount(nProcPerPool)
+      !! Number of items to send/recieve to/from each process
+    integer :: ig, ix
+      !! Loop index
+    
+
+    if(ionode) then
+      
+      allocate(gVecMillerIndicesGlobal(nGVecsGlobal,3))
+
+      open(72, file=trim(sys%exportDir)//"/mgrid")
+        !! Read full G-vector grid from defect folder.
+        !! This assumes that the grids are the same.
+    
+      read(72, * )
+      read(72, * )
+    
+      do ig = 1, nGVecsGlobal
+
+        read(72, '(4i10)') iDum, (gVecMillerIndicesGlobal(ig,ix),ix=1,3)
+
+      enddo
+    
+      close(72)
+
+    else
+      allocate(gVecMillerIndicesGlobal(1,3))
+        ! Must include 3 for first dimension so that scatter
+        ! statement is not out of bounds
+    endif
+
+
+    if(myPoolId == 0) then
+
+      sendCount = 0
+      sendCount(indexInPool+1) = nGVecsLocal
+      call mpiSumIntV(sendCount, intraPoolComm)
+        !! * Put the number of G+k vectors on each process
+        !!   in a single array per band group
+
+      displacement = 0
+      displacement(indexInPool+1) = iGStart_pool-1
+      call mpiSumIntV(displacement, intraPoolComm)
+        !! * Put the displacement from the beginning of the array
+        !!   for each process in a single array per band group
+
+      call MPI_SCATTERV(gVecMillerIndicesGlobal(:,1), sendCount, displacement, MPI_INTEGER, gVecsLocalX(1:nGVecsLocal), nGVecsLocal, &
+          MPI_INTEGER, 0, intraPoolComm, ierr)
+      call MPI_SCATTERV(gVecMillerIndicesGlobal(:,2), sendCount, displacement, MPI_INTEGER, gVecsLocalY(1:nGVecsLocal), nGVecsLocal, &
+          MPI_INTEGER, 0, intraPoolComm, ierr)
+      call MPI_SCATTERV(gVecMillerIndicesGlobal(:,3), sendCount, displacement, MPI_INTEGER, gVecsLocalZ(1:nGVecsLocal), nGVecsLocal, &
+          MPI_INTEGER, 0, intraPoolComm, ierr)
+
+
+      mill_local(1,:) = gVecsLocalX(:)
+      mill_local(2,:) = gVecsLocalY(:)
+      mill_local(3,:) = gVecsLocalZ(:)
+
+    endif
+
+    deallocate(gVecMillerIndicesGlobal)
+
+
+    call MPI_BCAST(mill_local, size(mill_local), MPI_INTEGER, root, interPoolComm, ierr)
+    
+    return
+    
+  end subroutine getFullPWGrid
+
+!----------------------------------------------------------------------------
+  subroutine setUpTables(nGVecsLocal, mill_local, recipLattVec, pot, gCart, Ylm)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nGVecsLocal
+      !! Number of local G-vectors
+    integer, intent(in) :: mill_local(3,nGVecsLocal)
+      !! Miller indices for local G-vectors
+
+    real(kind=dp), intent(in) :: recipLattVec(3,3)
+      !! Reciprocal-space lattice vectors
+
+    type(potcar) :: pot
+      !! Structure containing all pseudopotential-related
+      !! information
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: gCart(3,nGVecsLocal)
+      !! G-vectors in Cartesian coordinates
+
+    complex(kind=dp), intent(out) :: Ylm((pot%maxAngMom+1)**2,nGVecsLocal)
+      !! Spherical harmonics
+
+    ! Local variables:
+    integer :: ig, iT, iR
+      !! Loop indices
+
+    real(kind=dp) :: gUnit(3)
+      !! Unit G-vector
+    real(kind=dp) :: JL(0:pot%maxAngMom)
+      !! Bessel_j temporary variable
+    real(kind=dp) :: q
+      !! Magnitude of G-vector
+
+
+    Ylm = cmplx(0.0_dp, 0.0_dp, kind = dp)
+
+    do iT = 1, pot%maxNAtomTypes
+
+      allocate(pot%atom(iT)%bes_J_qr(0:pot%maxAngMom, pot%atom(iT)%iRAugMax, nGVecsLocal))
+      pot%atom(iT)%bes_J_qr = 0.0_dp
+
+    enddo
+    
+
+    do ig = 1, nGVecsLocal
+
+      gCart(:,ig) = matmul(recipLattVec, mill_local(:,ig))
+
+      q = sqrt(dot_product(gCart(:,ig),gCart(:,ig)))
+
+      gUnit(:) = gCart(:,ig)
+      if(abs(q) > 1.0e-6_dp) gUnit = gUnit/q
+        !! Get unit vector for Ylm calculation
+
+      call getYlm(gUnit, pot%maxAngMom, Ylm(:,ig))
+        !! Calculate all the needed spherical harmonics
+
+      do iT = 1, pot%maxNAtomTypes
+
+        do iR = 1, pot%atom(iT)%iRAugMax
+
+          JL = 0.0_dp
+          call bessel_j(q*pot%atom(iT)%radGrid(iR), pot%maxAngMom, JL) ! returns the spherical bessel at qr point
+
+          pot%atom(iT)%bes_J_qr(:,iR,ig) = JL(:)
+
+        enddo
+
+      enddo
+
+    enddo
+
+
+    return
+
+  end subroutine setUpTables
+
+!----------------------------------------------------------------------------
+  subroutine calcAndWrite2SysMatrixElements(braSys, ketSys, pot)
 
     implicit none
 
@@ -962,8 +1307,12 @@ contains
        !! The crystal systems to get the
        !! matrix element for
 
+    type(potcar) :: pot
+      !! Structure containing all pseudopotential-related
+      !! information
+
     ! Local variables 
-    integer :: ikLocal, ikGlobal, isp, iT
+    integer :: ikLocal, ikGlobal, isp
       !! Loop indices
 
     logical :: calcSpinDepSD, calcSpinDepPC
@@ -1123,7 +1472,7 @@ contains
 
               if(indexInPool == 0) then
 
-                call pawCorrectionWfc(ketSys%nProj, cProjPC, cProjBetaPCPsiSD, ketSys, paw_PsiPC)
+                call pawCorrectionWfc(ketSys%nProj, cProjPC, cProjBetaPCPsiSD, ketSys, pot, paw_PsiPC)
 
               endif
 
@@ -1136,7 +1485,7 @@ contains
 
               if(indexInPool == 1) then
 
-                call pawCorrectionWfc(braSys%nProj, cProjBetaSDPhiPC, cProjSD, braSys, paw_SDPhi)
+                call pawCorrectionWfc(braSys%nProj, cProjBetaSDPhiPC, cProjSD, braSys, pot, paw_SDPhi)
 
               endif
 
@@ -1156,11 +1505,11 @@ contains
               !> Have all processes calculate the PAW k correction
       
               if(calcSpinDepPC) &
-                call pawCorrectionK('PC', maxAngMom, nGVecsLocal, gCart, Ylm, braSys, ketSys, pawKPC)
+                call pawCorrectionK(nGVecsLocal, gCart, pot, Ylm, ketSys, pawKPC)
       
 
               if(calcSpinDepSD) &
-                call pawCorrectionK('SD', maxAngMom, nGVecsLocal, gCart, Ylm, braSys, braSys, pawSDK)
+                call pawCorrectionK(nGVecsLocal, gCart, pot, Ylm, braSys, pawSDK)
 
         
               call cpu_time(t2)
@@ -1216,181 +1565,6 @@ contains
     return
 
   end subroutine calcAndWrite2SysMatrixElements
-!----------------------------------------------------------------------------
-  subroutine getFullPWGrid(nGVecsLocal, nGVecsGlobal, sys, mill_local)
-    !! Read full PW grid from mgrid file
-    
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nGVecsLocal
-      !! Local number of G-vectors
-    integer, intent(in) :: nGVecsGlobal
-      !! Global number of G-vectors
-
-    type(crystal) :: sys
-       !! Arbitrary system to read PW grid from
-
-    ! Output variables:
-    integer, intent(out) :: mill_local(3,nGVecsLocal)
-      !! Integer coefficients for G-vectors
-    
-    ! Local variables:
-    integer :: displacement(nProcPerPool)
-      !! Offset from beginning of array for
-      !! scattering/gathering G-vectors 
-    integer, allocatable :: gVecMillerIndicesGlobal(:,:)
-      !! Integer coefficients for G-vectors on all processors
-    integer :: gVecsLocalX(nGVecsLocal), gVecsLocalY(nGVecsLocal), gVecsLocalZ(nGVecsLocal)
-      !! Arrays to hold x, y, and z components of local
-      !! G-vectors to make scattering simpler
-    integer :: iDum
-      !! Ignore dummy integer
-    integer :: sendCount(nProcPerPool)
-      !! Number of items to send/recieve to/from each process
-    integer :: ig, ix
-      !! Loop index
-    
-
-    if(ionode) then
-      
-      allocate(gVecMillerIndicesGlobal(nGVecsGlobal,3))
-
-      open(72, file=trim(sys%exportDir)//"/mgrid")
-        !! Read full G-vector grid from defect folder.
-        !! This assumes that the grids are the same.
-    
-      read(72, * )
-      read(72, * )
-    
-      do ig = 1, nGVecsGlobal
-
-        read(72, '(4i10)') iDum, (gVecMillerIndicesGlobal(ig,ix),ix=1,3)
-
-      enddo
-    
-      close(72)
-
-    else
-      allocate(gVecMillerIndicesGlobal(1,3))
-        ! Must include 3 for first dimension so that scatter
-        ! statement is not out of bounds
-    endif
-
-
-    if(myPoolId == 0) then
-
-      sendCount = 0
-      sendCount(indexInPool+1) = nGVecsLocal
-      call mpiSumIntV(sendCount, intraPoolComm)
-        !! * Put the number of G+k vectors on each process
-        !!   in a single array per band group
-
-      displacement = 0
-      displacement(indexInPool+1) = iGStart_pool-1
-      call mpiSumIntV(displacement, intraPoolComm)
-        !! * Put the displacement from the beginning of the array
-        !!   for each process in a single array per band group
-
-      call MPI_SCATTERV(gVecMillerIndicesGlobal(:,1), sendCount, displacement, MPI_INTEGER, gVecsLocalX(1:nGVecsLocal), nGVecsLocal, &
-          MPI_INTEGER, 0, intraPoolComm, ierr)
-      call MPI_SCATTERV(gVecMillerIndicesGlobal(:,2), sendCount, displacement, MPI_INTEGER, gVecsLocalY(1:nGVecsLocal), nGVecsLocal, &
-          MPI_INTEGER, 0, intraPoolComm, ierr)
-      call MPI_SCATTERV(gVecMillerIndicesGlobal(:,3), sendCount, displacement, MPI_INTEGER, gVecsLocalZ(1:nGVecsLocal), nGVecsLocal, &
-          MPI_INTEGER, 0, intraPoolComm, ierr)
-
-
-      mill_local(1,:) = gVecsLocalX(:)
-      mill_local(2,:) = gVecsLocalY(:)
-      mill_local(3,:) = gVecsLocalZ(:)
-
-    endif
-
-    deallocate(gVecMillerIndicesGlobal)
-
-
-    call MPI_BCAST(mill_local, size(mill_local), MPI_INTEGER, root, interPoolComm, ierr)
-    
-    return
-    
-  end subroutine getFullPWGrid
-
-!----------------------------------------------------------------------------
-  subroutine setUpTables(maxAngMom, nGVecsLocal, mill_local, braSys, gCart, Ylm)
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: maxAngMom
-      !! Max J index from L and M
-    integer, intent(in) :: nGVecsLocal
-      !! Number of local G-vectors
-    integer, intent(in) :: mill_local(3,nGVecsLocal)
-      !! Miller indices for local G-vectors
-
-    type(crystal) :: braSys
-       !! The bra crystal system used to set up tables
-
-    ! Output variables:
-    real(kind=dp), intent(out) :: gCart(3,nGVecsLocal)
-      !! G-vectors in Cartesian coordinates
-
-    complex(kind=dp), intent(out) :: Ylm((maxAngMom+1)**2,nGVecsLocal)
-      !! Spherical harmonics
-
-    ! Local variables:
-    integer :: ig, iT, iR
-      !! Loop indices
-
-    real(kind=dp) :: gUnit(3)
-      !! Unit G-vector
-    real(kind=dp) :: JL(0:maxAngMom)
-      !! Bessel_j temporary variable
-    real(kind=dp) :: q
-      !! Magnitude of G-vector
-
-
-    Ylm = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    
-    do iT = 1, braSys%nAtomTypes
-
-      allocate(braSys%paw(iT)%bes_J_qr( 0:maxAngMom, braSys%pot(iT)%iRAugMax, nGVecsLocal))
-      braSys%paw(iT)%bes_J_qr(:,:,:) = 0.0_dp
-      
-    enddo
-
-    do ig = 1, nGVecsLocal
-
-      gCart(:,ig) = matmul(braSys%recipLattVec, mill_local(:,ig))
-
-      q = sqrt(dot_product(gCart(:,ig),gCart(:,ig)))
-
-      gUnit(:) = gCart(:,ig)
-      if(abs(q) > 1.0e-6_dp) gUnit = gUnit/q
-        !! Get unit vector for Ylm calculation
-
-      call getYlm(gUnit, maxAngMom, Ylm(:,ig))
-        !! Calculate all the needed spherical harmonics
-
-      do iT = 1, braSys%nAtomTypes
-
-        do iR = 1, braSys%pot(iT)%iRAugMax
-
-          JL = 0.0_dp
-          call bessel_j(q*braSys%pot(iT)%radGrid(iR), maxAngMom, JL) ! returns the spherical bessel at qr point
-            ! Previously used SD atoms structure here for both PC and SD
-          braSys%paw(iT)%bes_J_qr(:,iR,ig) = JL(:)
-
-        enddo
-
-      enddo
-
-    enddo
-
-
-    return
-
-  end subroutine setUpTables
   
 !----------------------------------------------------------------------------
   function overlapFileExists(ikGlobal, isp) result(fileExists)
@@ -1729,7 +1903,7 @@ contains
   end subroutine calculateCrossProjection
   
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionWfc(nProjs, cProjI, cProjF, sys, pawWfc)
+  subroutine pawCorrectionWfc(nProjs, cProjI, cProjF, sys, pot, pawWfc)
     ! calculates the augmentation part of the transition matrix element
     
     implicit none
@@ -1745,6 +1919,10 @@ contains
 
     type(crystal), intent(in) :: sys
        !! The crystal system
+
+    type(potcar) :: pot
+      !! Structure containing all pseudopotential-related
+      !! information
 
     ! Output variables:
     complex(kind=dp), intent(out) :: pawWfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal)
@@ -1776,20 +1954,24 @@ contains
       iT = sys%iType(ia)
 
       LM = 0
-      DO LL = 1, sys%pot(iT)%nChannels
-        L = sys%pot(iT)%angMom(LL)
+      DO LL = 1, pot%atom(iT)%nChannels
+        L = pot%atom(iT)%angMom(LL)
         DO M = -L, L
           LM = LM + 1 !1st index for CPROJ
           
           LMP = 0
-          DO LLP = 1, sys%pot(iT)%nChannels
-            LP = sys%pot(iT)%angMom(LLP)
+          DO LLP = 1, pot%atom(iT)%nChannels
+            LP = pot%atom(iT)%angMom(LLP)
             DO MP = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
               
               atomicOverlap = 0.0_dp
               if ( (L == LP).and.(M == MP) ) then 
-                atomicOverlap = sum(sys%paw(iT)%F1(:,LL, LLP))
+                if(trim(sys%sysType) == 'bra') then
+                  atomicOverlap = sum(pot%atom(iT)%F1bra(:,LL, LLP))
+                else if(trim(sys%sysType) == 'ket') then
+                  atomicOverlap = sum(pot%atom(iT)%F1ket(:,LL, LLP))
+                endif
                 
                 do ibi = iBandIinit, iBandIfinal
                   cProjIe = cProjI(LMP + LMBASE, ibi)
@@ -1809,7 +1991,7 @@ contains
           ENDDO
         ENDDO
       ENDDO
-      LMBASE = LMBASE + sys%pot(iT)%lmMax
+      LMBASE = LMBASE + pot%atom(iT)%lmMax
     ENDDO
     
     return
@@ -1817,27 +1999,24 @@ contains
   end subroutine pawCorrectionWfc
 
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionK(crystalType, maxAngMom, nGVecsLocal, gCart, Ylm, braSys, sys, pawK)
+  subroutine pawCorrectionK(nGVecsLocal, gCart, pot, Ylm, sys, pawK)
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: maxAngMom
-      !! Max J index from L and M
     integer, intent(in) :: nGVecsLocal
       !! Number of local G-vectors
 
     real(kind=dp), intent(in) :: gCart(3,nGVecsLocal)
       !! G-vectors in Cartesian coordinates
 
-    complex(kind=dp), intent(in) :: Ylm((maxAngMom+1)**2,nGVecsLocal)
+    type(potcar) :: pot
+      !! Structure containing all pseudopotential-related
+      !! information
+
+    complex(kind=dp), intent(in) :: Ylm((pot%maxAngMom+1)**2,nGVecsLocal)
       !! Spherical harmonics
 
-    character(len=2), intent(in) :: crystalType
-      !! Crystal type (PC or SD)
-
-    type(crystal) :: braSys
-       !! The bra crystal system used to set up tables
     type(crystal), intent(in) :: sys
        !! The crystal system
 
@@ -1864,27 +2043,27 @@ contains
         
         qDotR = dot_product(gCart(:,ig), sys%atomPositionsCart(:,ni))
         
-        if(crystalType == 'PC') then
+        if(trim(sys%sysType) == 'ket') then
           ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
-        else
+        else if(trim(sys%sysType) == 'bra') then
           ATOMIC_CENTER = exp( ii*cmplx(qDotR, 0.0_dp, kind = dp) )
         endif
         
         iT = sys%iType(ni)
         LM = 0
-        DO LL = 1, sys%pot(iT)%nChannels
-          L = sys%pot(iT)%angMom(LL)
+        DO LL = 1, pot%atom(iT)%nChannels
+          L = pot%atom(iT)%angMom(LL)
           DO M = -L, L
             LM = LM + 1 !1st index for CPROJ
             
             FI = 0.0_dp
             
-            FI = dot_product(braSys%paw(iT)%bes_J_qr(L,:,ig),sys%paw(iT)%F(:,LL)) 
+            FI = dot_product(pot%atom(iT)%bes_J_qr(L,:,ig),pot%atom(iT)%F(:,LL)) 
               ! radial part integration F contains dRadGrid
             
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
 
-            if(crystalType == 'PC') then
+            if(trim(sys%sysType) == 'ket') then
 
               VifQ_aug = ATOMIC_CENTER*Ylm(ind,ig)*(-II)**L*FI
 
@@ -1894,7 +2073,7 @@ contains
               
               enddo
 
-            else
+            else if(trim(sys%sysType) == 'bra') then
 
               VifQ_aug = ATOMIC_CENTER*conjg(Ylm(ind,ig))*(II)**L*FI
 
@@ -1907,7 +2086,7 @@ contains
           ENDDO
         ENDDO
 
-        LMBASE = LMBASE + sys%pot(iT)%lmMax
+        LMBASE = LMBASE + pot%atom(iT)%lmMax
       ENDDO
       
     enddo
@@ -2392,7 +2571,7 @@ contains
   END subroutine getYlm
   
 !----------------------------------------------------------------------------
-  subroutine finalizeCalculation(nSys, crystalSystem)
+  subroutine finalizeCalculation(nSys, crystalSystem, pot)
     
     implicit none
 
@@ -2403,6 +2582,10 @@ contains
     type(crystal) :: crystalSystem(nSys)
        !! The crystal systems to get the
        !! matrix element for
+
+    type(potcar) :: pot
+      !! Structure containing all pseudopotential-related
+      !! information
 
     ! Local variables:
     integer :: iT, isys
@@ -2416,20 +2599,20 @@ contains
       deallocate(crystalSystem(isys)%nPWs1kGlobal)
       deallocate(crystalSystem(isys)%atomPositionsCart)
       deallocate(crystalSystem(isys)%iType)
-
-      do iT = 1, crystalSystem(isys)%nAtomTypes
-        deallocate(crystalSystem(isys)%pot(iT)%radGrid)
-        deallocate(crystalSystem(isys)%pot(iT)%angMom)
-        deallocate(crystalSystem(isys)%paw(iT)%F)
-        deallocate(crystalSystem(isys)%paw(iT)%F1)
-        deallocate(crystalSystem(isys)%paw(iT)%F2)
-        deallocate(crystalSystem(isys)%paw(iT)%bes_J_qr)
-      enddo
-
-      deallocate(crystalSystem(isys)%pot)
-      deallocate(crystalSystem(isys)%paw)
-
     enddo
+
+    do iT = 1, pot%maxNAtomTypes
+      deallocate(pot%atom(iT)%radGrid)
+      deallocate(pot%atom(iT)%angMom)
+      deallocate(pot%atom(iT)%F)
+      deallocate(pot%atom(iT)%F1bra)
+      deallocate(pot%atom(iT)%F1ket)
+      deallocate(pot%atom(iT)%F2)
+      deallocate(pot%atom(iT)%bes_J_qr)
+    enddo
+
+    deallocate(pot%atom)
+
 
     call MPI_Barrier(worldComm, ierr)
     

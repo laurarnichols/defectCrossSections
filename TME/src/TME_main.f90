@@ -28,18 +28,18 @@ program TMEmain
   call setUpSystemArray(nSys, braExportDir, ketExportDir, crystalSystem)
 
 
-  call completePreliminarySetup(nSys, order, phononModeJ, dqFName, maxAngMom, mill_local, nGVecsGlobal, nKPoints, nSpins, &
-        gCart, dq_j, omega, Ylm, crystalSystem)
+  call completePreliminarySetup(nSys, order, phononModeJ, dqFName, mill_local, nGVecsGlobal, nKPoints, nSpins, &
+          dq_j, gCart, omega, recipLattVec, Ylm, crystalSystem, pot)
 
 
-  call calcAndWrite2SysMatrixElements(crystalSystem(1), crystalSystem(2))
+  call calcAndWrite2SysMatrixElements(crystalSystem(1), crystalSystem(2), pot)
 
 
   call MPI_BARRIER(worldComm, ierr)
   if(ionode) write(*,'("Done with k loop!")')
 
   
-  call finalizeCalculation(nSys, crystalSystem)
+  call finalizeCalculation(nSys, crystalSystem, pot)
 
   deallocate(crystalSystem)
   
