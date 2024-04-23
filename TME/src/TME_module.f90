@@ -39,12 +39,8 @@ module TMEmod
   real(kind = dp) :: t1, t2
     !! For timing different processes
 
-  complex(kind=dp), allocatable :: betaPC(:,:), betaSD(:,:)
-    !! Projectors
   complex(kind=dp), allocatable :: Ufi(:,:,:,:)
     !! All-electron overlap
-  complex*8, allocatable :: wfcPC(:,:), wfcSD(:,:)
-    !! Wave function coefficients
   complex(kind=dp), allocatable :: Ylm(:,:)
     !! Spherical harmonics
   
@@ -142,6 +138,11 @@ module TMEmod
       !! Supercell volume
     real(kind=dp) :: recipLattVec(3,3)
       !! Reciprocal-space lattice vectors
+
+    complex(kind=dp), allocatable :: beta(:,:)
+      !! Projectors
+    complex*8, allocatable :: wfc(:,:)
+      !! Wave function coefficients
 
     character(len=2), allocatable :: element(:)
       !! Element names for atoms in the system
@@ -1356,14 +1357,13 @@ contains
         call distributeItemsInSubgroups(indexInPool, braSys%nPWs1kGlobal(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_pool, &
                 iGkEnd_pool, nGkVecsLocal)
 
-        allocate(betaPC(nGkVecsLocal,ketSys%nProj))
 
-        call readProjectors(ikGlobal, nGkVecsLocal, ketSys, betaPC)
+        allocate(braSys%beta(nGkVecsLocal,braSys%nProj))
+        allocate(ketSys%beta(nGkVecsLocal,ketSys%nProj))
 
+        call readProjectors(ikGlobal, nGkVecsLocal, braSys)
+        call readProjectors(ikGlobal, nGkVecsLocal, ketSys)
 
-        allocate(betaSD(nGkVecsLocal,braSys%nProj))
-
-        call readProjectors(ikGlobal, nGkVecsLocal, braSys, betaSD)
 
         call cpu_time(t2)
         if(ionode) write(*, '("  Pre-spin-loop: [X] Read projectors (",f10.2," secs)")') t2-t1
@@ -1372,8 +1372,8 @@ contains
         !-----------------------------------------------------------------------------------------------
         !> Allocate arrays that are potentially spin-polarized and start spin loop
 
-        allocate(wfcPC(nGkVecsLocal, iBandIinit:iBandIfinal))
-        allocate(wfcSD(nGkVecsLocal, iBandFinit:iBandFfinal))
+        allocate(braSys%wfc(nGkVecsLocal, iBandFinit:iBandFfinal))
+        allocate(ketSys%wfc(nGkVecsLocal, iBandIinit:iBandIfinal))
       
         allocate(cProjBetaPCPsiSD(ketSys%nProj, iBandFinit:iBandFfinal))
         allocate(cProjBetaSDPhiPC(braSys%nProj, iBandIinit:iBandIfinal))
@@ -1425,14 +1425,12 @@ contains
 
 
               if(calcSpinDepPC) &
-                call readWfc(iBandIinit, iBandIfinal, ikGlobal, min(isp,ketSys%nSpins), nGkVecsLocal, &
-                  ketSys%nPWs1kGlobal(ikGlobal), ketSys, wfcPC)
+                call readWfc(iBandIinit, iBandIfinal, ikGlobal, min(isp,ketSys%nSpins), nGkVecsLocal, ketSys)
         
               if(calcSpinDepSD) &
-                call readWfc(iBandFinit, iBandFfinal, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocal, &
-                  braSys%nPWs1kGlobal(ikGlobal), braSys, wfcSD)
+                call readWfc(iBandFinit, iBandFfinal, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocal, braSys)
         
-              call calculatePWsOverlap(ikLocal, isp)
+              call calculatePWsOverlap(ikLocal, isp, braSys, ketSys)
         
 
               call cpu_time(t2)
@@ -1444,11 +1442,11 @@ contains
               !> Calculate cross projections
 
               if(calcSpinDepSD) &
-                call calculateCrossProjection(iBandFinit, iBandFfinal, nGkVecsLocal, ketSys%nProj, betaPC, wfcSD, cProjBetaPCPsiSD)
+                call calculateCrossProjection(iBandFinit, iBandFfinal, ketSys, braSys, cProjBetaPCPsiSD)
 
 
               if(calcSpinDepPC) &
-                call calculateCrossProjection(iBandIinit, iBandIfinal, nGkVecsLocal, braSys%nProj, betaSD, wfcPC, cProjBetaSDPhiPC)
+                call calculateCrossProjection(iBandIinit, iBandIfinal, braSys, ketSys, cProjBetaSDPhiPC)
         
 
               call cpu_time(t2)
@@ -1460,11 +1458,11 @@ contains
               !> Have process 0 in each pool calculate the PAW wave function correction for PC
 
               if(calcSpinDepPC) &
-                call readProjections(iBandIinit, iBandIfinal, ikGlobal, min(isp,ketSys%nSpins), ketSys%nProj, ketSys, cProjPC)
+                call readProjections(iBandIinit, iBandIfinal, ikGlobal, min(isp,ketSys%nSpins), ketSys, cProjPC)
 
               if(indexInPool == 0) then
 
-                call pawCorrectionWfc(ketSys%nProj, cProjPC, cProjBetaPCPsiSD, ketSys, pot, paw_PsiPC)
+                call pawCorrectionWfc(ketSys, cProjPC, cProjBetaPCPsiSD, pot, paw_PsiPC)
 
               endif
 
@@ -1473,11 +1471,11 @@ contains
               !> Have process 1 in each pool calculate the PAW wave function correction for PC
 
               if(calcSpinDepSD) &
-                call readProjections(iBandFinit, iBandFfinal, ikGlobal, min(isp,braSys%nSpins), braSys%nProj, braSys, cProjSD)
+                call readProjections(iBandFinit, iBandFfinal, ikGlobal, min(isp,braSys%nSpins), braSys, cProjSD)
 
               if(indexInPool == 1) then
 
-                call pawCorrectionWfc(braSys%nProj, cProjBetaSDPhiPC, cProjSD, braSys, pot, paw_SDPhi)
+                call pawCorrectionWfc(braSys, cProjBetaSDPhiPC, cProjSD, pot, paw_SDPhi)
 
               endif
 
@@ -1544,8 +1542,8 @@ contains
           endif ! If this spin channel shouldn't be skipped
         enddo ! Spin loop
 
-        deallocate(wfcSD, wfcPC)
-        deallocate(betaPC, betaSD)
+        deallocate(braSys%wfc, ketSys%wfc)
+        deallocate(braSys%beta, ketSys%beta)
         deallocate(cProjBetaPCPsiSD, cProjBetaSDPhiPC)
         deallocate(cProjPC, cProjSD)
         deallocate(pawKPC, pawSDK)
@@ -1622,7 +1620,7 @@ contains
   end function overlapFileExists
 
 !----------------------------------------------------------------------------
-  subroutine readProjectors(ikGlobal, nGkVecsLocal, sys, beta)
+  subroutine readProjectors(ikGlobal, nGkVecsLocal, sys)
     
     implicit none
 
@@ -1632,13 +1630,9 @@ contains
     integer, intent(in) :: nGkVecsLocal
       !! Local number of G+k vectors on this processor
 
+    ! Output variables:
     type(crystal) :: sys
        !! The crystal system
-
-    ! Output variables:
-    complex(kind=dp), intent(out) :: beta(nGkVecsLocal,sys%nProj)
-      !! Projector of `projCrystalType` with all projectors
-      !! and only local PWs/G+k vectors
     
     ! Local variables:
     integer :: reclen
@@ -1653,7 +1647,7 @@ contains
     fNameExport = trim(sys%exportDir)//"/projectors."//trim(int2str(ikGlobal)) 
 
 
-    inquire(iolength=reclen) beta(1,:)
+    inquire(iolength=reclen) sys%beta(1,:)
       !! Get the record length needed to write a double complex
       !! array of length `nProj`
 
@@ -1664,7 +1658,7 @@ contains
 
       igkGlobal = igkLocal+iGkStart_pool-1
 
-      read(72,rec=igkGlobal+1) (beta(igkLocal,ipr), ipr=1,sys%nProj)
+      read(72,rec=igkGlobal+1) (sys%beta(igkLocal,ipr), ipr=1,sys%nProj)
 
     enddo
 
@@ -1675,7 +1669,7 @@ contains
   end subroutine readProjectors
 
 !----------------------------------------------------------------------------
-  subroutine readWfc(iBandinit, iBandfinal, ikGlobal, isp, nGkVecsLocal, npws, sys, wfc)
+  subroutine readWfc(iBandinit, iBandfinal, ikGlobal, isp, nGkVecsLocal, sys)
     !! Read wave function for given `crystalType` from `iBandinit`
     !! to `iBandfinal`
     
@@ -1692,17 +1686,10 @@ contains
       !! Current spin channel
     integer, intent(in) :: nGkVecsLocal
       !! Local number of G+k vectors on this processor
-    integer, intent(in) :: npws
-      !! Number of G+k vectors less than
-      !! the cutoff at this k-point
-
-    type(crystal) :: sys
-       !! The crystal system
 
     ! Output variables
-    complex*8, intent(out) :: wfc(nGkVecsLocal,iBandinit:iBandfinal)
-      !! Wave function coefficients for 
-      !! local G-vectors
+    type(crystal) :: sys
+       !! The crystal system
 
     ! Local variables:
     integer :: displacement(nProcPerPool)
@@ -1716,7 +1703,7 @@ contains
     integer :: ib, igk
       !! Loop indices
 
-    complex*8 :: wfcAllPWs(npws)
+    complex*8 :: wfcAllPWs(sys%nPWs1KGlobal(ikGlobal))
       !! Wave function read from file
 
     character(len=300) :: fNameExport
@@ -1725,7 +1712,7 @@ contains
 
     fNameExport = trim(sys%exportDir)//'/wfc.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal))
     
-    wfc(:,:) = cmplx(0.0_dp, 0.0_dp)
+    sys%wfc(:,:) = cmplx(0.0_dp, 0.0_dp)
 
     sendCount = 0
     sendCount(indexInPool+1) = nGkVecsLocal
@@ -1748,9 +1735,9 @@ contains
 
     do ib = iBandinit, iBandfinal
 
-      if(indexInPool == 0) read(72,rec=ib) (wfcAllPWs(igk), igk=1,npws)
+      if(indexInPool == 0) read(72,rec=ib) (wfcAllPWs(igk), igk=1,sys%nPWs1kGlobal(ikGlobal))
 
-      call MPI_SCATTERV(wfcAllPWs(:), sendCount, displacement, MPI_COMPLEX, wfc(1:nGkVecsLocal,ib), nGkVecsLocal, &
+      call MPI_SCATTERV(wfcAllPWs(:), sendCount, displacement, MPI_COMPLEX, sys%wfc(1:nGkVecsLocal,ib), nGkVecsLocal, &
         MPI_COMPLEX, 0, intraPoolComm, ierr)
 
     enddo
@@ -1762,7 +1749,7 @@ contains
   end subroutine readWfc
   
 !----------------------------------------------------------------------------
-  subroutine calculatePWsOverlap(ikLocal,isp)
+  subroutine calculatePWsOverlap(ikLocal,isp, braSys, ketSys)
     
     implicit none
     
@@ -1771,6 +1758,10 @@ contains
       !! Current local k-point
     integer, intent(in) :: isp
       !! Current spin channel
+
+    type(crystal) :: braSys, ketSys
+       !! The crystal systems to get the
+       !! matrix element for
 
     ! Local variables:
     integer :: ibi, ibf
@@ -1782,7 +1773,7 @@ contains
       
       do ibf = iBandFinit, iBandFfinal
 
-        Ufi(ibf, ibi, ikLocal,isp) = dot_product(wfcSD(:,ibf),wfcPC(:,ibi))
+        Ufi(ibf, ibi, ikLocal,isp) = dot_product(braSys%wfc(:,ibf),ketSys%wfc(:,ibi))
           !! Calculate local overlap
           ! `dot_product` automatically conjugates first argument for 
           ! complex variables.
@@ -1796,7 +1787,7 @@ contains
   end subroutine calculatePWsOverlap
   
 !----------------------------------------------------------------------------
-  subroutine readProjections(iBandinit, iBandfinal, ikGlobal, isp, nProjs, sys, cProj)
+  subroutine readProjections(iBandinit, iBandfinal, ikGlobal, isp, sys, cProj)
     
     use miscUtilities, only: ignoreNextNLinesFromFile
     
@@ -1811,14 +1802,12 @@ contains
       !! Current k point
     integer, intent(in) :: isp
       !! Current spin channel
-    integer, intent(in) :: nProjs
-      !! Number of projectors
 
     type(crystal) :: sys
        !! The crystal system
 
     ! Output variables:
-    complex(kind=dp), intent(out) :: cProj(nProjs,iBandinit:iBandfinal)
+    complex(kind=dp), intent(out) :: cProj(sys%nProj,iBandinit:iBandfinal)
       !! Projections <beta|wfc>
 
     ! Local variables:
@@ -1837,7 +1826,7 @@ contains
 
       inquire(iolength=reclen) cProj(:,iBandinit)
         !! Get the record length needed to write a complex
-        !! array of length nProjs
+        !! array of length nProj
 
       ! Open the projections file for the given crystal type
       fNameExport = trim(sys%exportDir)//"/projections."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
@@ -1865,7 +1854,7 @@ contains
   end subroutine readProjections
   
 !----------------------------------------------------------------------------
-  subroutine calculateCrossProjection(iBandinit, iBandfinal, nGkVecsLocal, nProjs, beta, wfc, crossProjection)
+  subroutine calculateCrossProjection(iBandinit, iBandfinal, sysBeta, sysWfc, crossProjection)
     !! Calculate the cross projection of one crystal's projectors
     !! on the other crystal's wave function coefficients, distributing
     !! the result to all processors
@@ -1879,19 +1868,14 @@ contains
     integer, intent(in) :: iBandfinal
       !! Ending band for crystal wfc comes from
       !! (not `projCrystalType`)
-    integer, intent(in) :: nGkVecsLocal
-      !! Local number of G+k vectors on this processor
-    integer, intent(in) :: nProjs
-      !! Number of projectors
 
-    complex(kind=dp) :: beta(nGkVecsLocal,nProjs)
-      !! Projector of one crystal type
-    complex*8, intent(in) :: wfc(nGkVecsLocal,iBandinit:iBandfinal)
-      !! Wave function coefficients for local G-vectors
-      !! for other crystal type
+    type(crystal) :: sysBeta
+       !! The crystal system to get the projectors from
+    type(crystal) :: sysWfc
+       !! The crystal system to get the wave functions from
 
     ! Output variables:
-    complex(kind=dp), intent(out) :: crossProjection(nProjs,iBandinit:iBandfinal)
+    complex(kind=dp), intent(out) :: crossProjection(sysBeta%nProj,iBandinit:iBandfinal)
       !! Projections <beta|wfc>
     
     ! Local variables:
@@ -1906,9 +1890,9 @@ contains
     crossProjection(:,:) = cmplx(0.0_dp, 0.0_dp, kind=dp)
 
     do ib = iBandinit, iBandfinal
-      do ipr = 1, nProjs
+      do ipr = 1, sysBeta%nProj
 
-        crossProjectionLocal = dot_product(beta(:,ipr),wfc(:,ib))
+        crossProjectionLocal = dot_product(sysBeta%beta(:,ipr),sysWfc%wfc(:,ib))
           ! `dot_product` automatically conjugates first argument for 
           ! complex variables.
 
@@ -1922,22 +1906,19 @@ contains
   end subroutine calculateCrossProjection
   
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionWfc(nProjs, cProjI, cProjF, sys, pot, pawWfc)
+  subroutine pawCorrectionWfc(sys, cProjI, cProjF, pot, pawWfc)
     ! calculates the augmentation part of the transition matrix element
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: nProjs
-      !! First index for `cProjI` and `cProjF`
-
-    complex(kind = dp) :: cProjI(nProjs,iBandIinit:iBandIfinal)
-      !! Initial-system (PC) projection
-    complex(kind = dp) :: cProjF(nProjs,iBandFinit:iBandFfinal)
-      !! Final-system (SD) projection
-
     type(crystal), intent(in) :: sys
        !! The crystal system
+
+    complex(kind = dp) :: cProjI(sys%nProj,iBandIinit:iBandIfinal)
+      !! Initial-system (PC) projection
+    complex(kind = dp) :: cProjF(sys%nProj,iBandFinit:iBandFfinal)
+      !! Final-system (SD) projection
 
     type(potcar) :: pot
       !! Structure containing all pseudopotential-related
