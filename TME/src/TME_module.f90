@@ -39,6 +39,9 @@ module TMEmod
   real(kind = dp) :: t1, t2
     !! For timing different processes
 
+  complex(kind = dp), allocatable :: crossProj_ketBeta_braWfc(:,:), crossProj_braBeta_ketWfc(:,:)
+    !! Cross projections with projectors from one system
+    !! and the wave function from the other
   complex(kind=dp), allocatable :: Ufi(:,:,:,:)
     !! All-electron overlap
   complex(kind=dp), allocatable :: Ylm(:,:)
@@ -141,6 +144,8 @@ module TMEmod
 
     complex(kind=dp), allocatable :: beta(:,:)
       !! Projectors
+    complex(kind=dp), allocatable :: projection(:,:)
+      !! Projections
     complex*8, allocatable :: wfc(:,:)
       !! Wave function coefficients
 
@@ -179,10 +184,7 @@ module TMEmod
   
   complex(kind = dp), allocatable :: paw_SDKKPC(:,:), paw_id(:,:)
   complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
-  complex(kind = dp), allocatable :: cProjPC(:,:), cProjSD(:,:)
   complex(kind = dp), allocatable :: paw_PsiPC(:,:), paw_SDPhi(:,:)
-  complex(kind = dp), allocatable :: cProjBetaPCPsiSD(:,:)
-  complex(kind = dp), allocatable :: cProjBetaSDPhiPC(:,:)
   
   integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:)
   integer, allocatable :: pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
@@ -1375,11 +1377,11 @@ contains
         allocate(braSys%wfc(nGkVecsLocal, iBandFinit:iBandFfinal))
         allocate(ketSys%wfc(nGkVecsLocal, iBandIinit:iBandIfinal))
       
-        allocate(cProjBetaPCPsiSD(ketSys%nProj, iBandFinit:iBandFfinal))
-        allocate(cProjBetaSDPhiPC(braSys%nProj, iBandIinit:iBandIfinal))
+        allocate(crossProj_braBeta_ketWfc(braSys%nProj, iBandIinit:iBandIfinal))
+        allocate(crossProj_ketBeta_braWfc(ketSys%nProj, iBandFinit:iBandFfinal))
 
-        allocate(cProjPC(ketSys%nProj, iBandIinit:iBandIfinal))
-        allocate(cProjSD(braSys%nProj, iBandFinit:iBandFfinal))
+        allocate(braSys%projection(braSys%nProj, iBandFinit:iBandFfinal))
+        allocate(ketSys%projection(ketSys%nProj, iBandIinit:iBandIfinal))
 
         allocate(paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
         allocate(paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
@@ -1442,11 +1444,11 @@ contains
               !> Calculate cross projections
 
               if(calcSpinDepSD) &
-                call calculateCrossProjection(iBandFinit, iBandFfinal, ketSys, braSys, cProjBetaPCPsiSD)
+                call calculateCrossProjection(iBandFinit, iBandFfinal, ketSys, braSys, crossProj_ketBeta_braWfc)
 
 
               if(calcSpinDepPC) &
-                call calculateCrossProjection(iBandIinit, iBandIfinal, braSys, ketSys, cProjBetaSDPhiPC)
+                call calculateCrossProjection(iBandIinit, iBandIfinal, braSys, ketSys, crossProj_braBeta_ketWfc)
         
 
               call cpu_time(t2)
@@ -1458,11 +1460,11 @@ contains
               !> Have process 0 in each pool calculate the PAW wave function correction for PC
 
               if(calcSpinDepPC) &
-                call readProjections(iBandIinit, iBandIfinal, ikGlobal, min(isp,ketSys%nSpins), ketSys, cProjPC)
+                call readProjections(iBandIinit, iBandIfinal, ikGlobal, min(isp,ketSys%nSpins), ketSys)
 
               if(indexInPool == 0) then
 
-                call pawCorrectionWfc(ketSys, cProjPC, cProjBetaPCPsiSD, pot, paw_PsiPC)
+                call pawCorrectionWfc(iBandFinit, iBandFfinal, ketSys, crossProj_ketBeta_braWfc, pot, paw_PsiPC)
 
               endif
 
@@ -1471,11 +1473,11 @@ contains
               !> Have process 1 in each pool calculate the PAW wave function correction for PC
 
               if(calcSpinDepSD) &
-                call readProjections(iBandFinit, iBandFfinal, ikGlobal, min(isp,braSys%nSpins), braSys, cProjSD)
+                call readProjections(iBandFinit, iBandFfinal, ikGlobal, min(isp,braSys%nSpins), braSys)
 
               if(indexInPool == 1) then
 
-                call pawCorrectionWfc(braSys, cProjBetaSDPhiPC, cProjSD, pot, paw_SDPhi)
+                call pawCorrectionWfc(iBandIinit, iBandIfinal, braSys, crossProj_braBeta_ketWfc, pot, paw_SDPhi)
 
               endif
 
@@ -1544,8 +1546,8 @@ contains
 
         deallocate(braSys%wfc, ketSys%wfc)
         deallocate(braSys%beta, ketSys%beta)
-        deallocate(cProjBetaPCPsiSD, cProjBetaSDPhiPC)
-        deallocate(cProjPC, cProjSD)
+        deallocate(crossProj_ketBeta_braWfc, crossProj_braBeta_ketWfc)
+        deallocate(braSys%projection, ketSys%projection)
         deallocate(pawKPC, pawSDK)
         deallocate(paw_id)
         deallocate(paw_PsiPC, paw_SDPhi)
@@ -1787,7 +1789,7 @@ contains
   end subroutine calculatePWsOverlap
   
 !----------------------------------------------------------------------------
-  subroutine readProjections(iBandinit, iBandfinal, ikGlobal, isp, sys, cProj)
+  subroutine readProjections(iBandinit, iBandfinal, ikGlobal, isp, sys)
     
     use miscUtilities, only: ignoreNextNLinesFromFile
     
@@ -1803,12 +1805,9 @@ contains
     integer, intent(in) :: isp
       !! Current spin channel
 
+    ! Output variables:
     type(crystal) :: sys
        !! The crystal system
-
-    ! Output variables:
-    complex(kind=dp), intent(out) :: cProj(sys%nProj,iBandinit:iBandfinal)
-      !! Projections <beta|wfc>
 
     ! Local variables:
     integer :: ib
@@ -1820,11 +1819,11 @@ contains
       !! Export file name
     
     
-    cProj(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
+    sys%projection(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
     
     if(indexInPool == 0) then
 
-      inquire(iolength=reclen) cProj(:,iBandinit)
+      inquire(iolength=reclen) sys%projection(:,iBandinit)
         !! Get the record length needed to write a complex
         !! array of length nProj
 
@@ -1838,7 +1837,7 @@ contains
       ! Read the projections
       do ib = iBandinit, iBandfinal
 
-        read(72,rec=ib) cProj(:,ib)
+        read(72,rec=ib) sys%projection(:,ib)
 
       enddo
     
@@ -1846,7 +1845,7 @@ contains
 
     endif
 
-    call MPI_BCAST(cProj, size(cProj), MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
+    call MPI_BCAST(sys%Projection, size(sys%projection), MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
       ! Broadcast entire array to all processes
     
     return
@@ -1906,19 +1905,20 @@ contains
   end subroutine calculateCrossProjection
   
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionWfc(sys, cProjI, cProjF, pot, pawWfc)
+  subroutine pawCorrectionWfc(iBandI, iBandF, sys, crossProjection, pot, pawWfc)
     ! calculates the augmentation part of the transition matrix element
     
     implicit none
 
     ! Input variables:
-    type(crystal), intent(in) :: sys
-       !! The crystal system
+    integer :: iBandI, iBandF
+      !! Band limits to index crossProjection
 
-    complex(kind = dp) :: cProjI(sys%nProj,iBandIinit:iBandIfinal)
-      !! Initial-system (PC) projection
-    complex(kind = dp) :: cProjF(sys%nProj,iBandFinit:iBandFfinal)
-      !! Final-system (SD) projection
+    type(crystal), intent(in) :: sys
+      !! The crystal system
+
+    complex(kind = dp), intent(in) :: crossProjection(sys%nProj,iBandI:iBandF)
+      !! Cross projection between systems
 
     type(potcar) :: pot
       !! Structure containing all pseudopotential-related
@@ -1929,19 +1929,13 @@ contains
       !! Augmentation part of the transition matrix element
 
     ! Local variables:
-    integer :: ia
-      !! Loop index
+    integer :: ia, ibi, ibf, iT, L, M, LP, MP
+      !! Loop indices
 
-    complex(kind = dp) :: cProjIe
-      !! Single element of initial-system (PC)
-      !! projection
-    complex(kind = dp) :: cProjFe
-      !! Single element of final-system (SD)
-      !! projection
+    complex(kind = dp) :: projectionI, projectionF
+      !! Local storage of projection elements for speed
 
-    integer :: ibi, ibf
     integer :: LL, LLP, LMBASE, LM, LMP
-    integer :: L, M, LP, MP, iT
     real(kind = dp) :: atomicOverlap
     
     
@@ -1954,45 +1948,62 @@ contains
       iT = sys%iType(ia)
 
       LM = 0
-      DO LL = 1, pot%atom(iT)%nChannels
+      do LL = 1, pot%atom(iT)%nChannels
+
         L = pot%atom(iT)%angMom(LL)
-        DO M = -L, L
+
+        do M = -L, L
           LM = LM + 1 !1st index for CPROJ
           
           LMP = 0
-          DO LLP = 1, pot%atom(iT)%nChannels
+          do LLP = 1, pot%atom(iT)%nChannels
+
             LP = pot%atom(iT)%angMom(LLP)
-            DO MP = -LP, LP
+
+            do MP = -LP, LP
               LMP = LMP + 1 ! 2nd index for CPROJ
               
               atomicOverlap = 0.0_dp
               if ( (L == LP).and.(M == MP) ) then 
                 if(trim(sys%sysType) == 'bra') then
+
                   atomicOverlap = sum(pot%atom(iT)%F1bra(:,LL, LLP))
+
+                  do ibi = iBandIinit, iBandIfinal
+                    projectionI = crossProjection(LMP + LMBASE, ibi)
+                  
+                    do ibf = iBandFinit, iBandFfinal
+                      projectionF = conjg(sys%projection(LM + LMBASE, ibf))
+                    
+                      pawWfc(ibf, ibi) = pawWfc(ibf, ibi) + projectionF*atomicOverlap*projectionI
+                      
+                    enddo
+                  enddo
+
                 else if(trim(sys%sysType) == 'ket') then
                   atomicOverlap = sum(pot%atom(iT)%F1ket(:,LL, LLP))
-                endif
-                
-                do ibi = iBandIinit, iBandIfinal
-                  cProjIe = cProjI(LMP + LMBASE, ibi)
+
+                  do ibi = iBandIinit, iBandIfinal
+                    projectionI = sys%projection(LMP + LMBASE, ibi)
                   
-                  do ibf = iBandFinit, iBandFfinal
-                    cProjFe = conjg(cProjF(LM + LMBASE, ibf))
+                    do ibf = iBandFinit, iBandFfinal
+                      projectionF = conjg(crossProjection(LM + LMBASE, ibf))
                     
-                    pawWfc(ibf, ibi) = pawWfc(ibf, ibi) + cProjFe*atomicOverlap*cProjIe
-                    
+                      pawWfc(ibf, ibi) = pawWfc(ibf, ibi) + projectionF*atomicOverlap*projectionI
+                      
+                    enddo
                   enddo
-                  
-                enddo
-                
-              endif
-              
-            ENDDO
-          ENDDO
-        ENDDO
-      ENDDO
+                endif
+
+              endif ! If l = l' and m = m'
+            enddo ! Loop over m'
+          enddo ! Loop over l'
+        enddo ! Loop over m quantum number
+      enddo ! Loop over l quantum number
+
       LMBASE = LMBASE + pot%atom(iT)%lmMax
-    ENDDO
+
+    enddo ! Loop over atoms
     
     return
     
@@ -2069,7 +2080,7 @@ contains
 
               do ibi = iBandIinit, iBandIfinal
 
-                pawK(:, ibi, ig) = pawK(:, ibi, ig) + VifQ_aug*cProjPC(LM + LMBASE, ibi)
+                pawK(:, ibi, ig) = pawK(:, ibi, ig) + VifQ_aug*sys%projection(LM + LMBASE, ibi)
               
               enddo
 
@@ -2079,7 +2090,7 @@ contains
 
               do ibf = iBandFinit, iBandFfinal
                 
-                pawK(ibf, :, ig) = pawK(ibf, :, ig) + VifQ_aug*conjg(cProjSD(LM + LMBASE, ibf))
+                pawK(ibf, :, ig) = pawK(ibf, :, ig) + VifQ_aug*conjg(sys%projection(LM + LMBASE, ibf))
                 
               enddo
             endif
