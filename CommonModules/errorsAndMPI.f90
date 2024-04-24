@@ -14,7 +14,7 @@ module errorsAndMPI
     !! Start and end atoms for processes in band group
   integer :: ibStart_bgrp, ibEnd_bgrp
     !! Start and end bands for band group
-  integer :: iGkStart_poolPC, iGkEnd_poolPC, iGkStart_poolSD, iGkEnd_poolSD
+  integer :: iGkStart_pool, iGkEnd_pool
     !! Start and end G+k vector for process in pool
   integer :: iGStart_pool, iGEnd_pool
     !! Start and end G-vector for process in pool
