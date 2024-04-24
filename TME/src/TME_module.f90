@@ -166,35 +166,12 @@ module TMEmod
     !! element
   type(crystal), allocatable :: crystalSystem(:)
     !! Array containing all crystal systems
-
-  character(len = 300) :: textDum
-  character(len = 320) :: mkdir
-  
-  integer :: ik, ig, ibi, ibf
-  integer :: iTypes, iPn
-  integer :: numOfUsedGvecsPP, npwNi, npwNf, npwMi, npwMf
-  integer :: np, nI, nF, nPP, ind2
-  integer :: i, j, n1, n2, n3, n4, n, id, npw
   
   real(kind = dp) t0, tf
-  
-  
-  real(kind = dp), allocatable :: gvecs(:,:)
-  real(kind = dp), allocatable :: DE(:,:,:), absVfi2(:,:,:)
   
   complex(kind = dp), allocatable :: paw_SDKKPC(:,:), paw_id(:,:)
   complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
   complex(kind = dp), allocatable :: paw_PsiPC(:,:), paw_SDPhi(:,:)
-  
-  integer, allocatable :: igvs(:,:,:), pwGvecs(:,:), iqs(:)
-  integer, allocatable :: pwGs(:,:), nIs(:,:), nFs(:,:), ngs(:,:)
-  
-  type :: vec
-    integer :: ind
-    integer, allocatable :: igN(:), igM(:)
-  end type vec
-  
-  TYPE(vec), allocatable :: vecs(:), newVecs(:)
   
   
 contains
@@ -1322,7 +1299,7 @@ contains
       !! information
 
     ! Local variables 
-    integer :: ikLocal, ikGlobal, isp
+    integer :: ikLocal, ikGlobal, isp, ibi, ibf
       !! Loop indices
 
     logical :: calcSpinDepSD, calcSpinDepPC
