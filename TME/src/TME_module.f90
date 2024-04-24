@@ -144,6 +144,10 @@ module TMEmod
 
     complex(kind=dp), allocatable :: beta(:,:)
       !! Projectors
+    complex(kind = dp), allocatable :: pawK(:,:,:)
+      !! PAW k correction
+    complex(kind = dp), allocatable :: pawWfc(:,:)
+      !! PAW wave function correction
     complex(kind=dp), allocatable :: projection(:,:)
       !! Projections
     complex*8, allocatable :: wfc(:,:)
@@ -169,9 +173,7 @@ module TMEmod
   
   real(kind = dp) t0, tf
   
-  complex(kind = dp), allocatable :: paw_SDKKPC(:,:), paw_id(:,:)
-  complex(kind = dp), allocatable :: pawKPC(:,:,:), pawSDK(:,:,:), pawPsiPC(:,:), pawSDPhi(:,:)
-  complex(kind = dp), allocatable :: paw_PsiPC(:,:), paw_SDPhi(:,:)
+  complex(kind = dp), allocatable :: paw_id(:,:)
   
   
 contains
@@ -1360,11 +1362,11 @@ contains
         allocate(braSys%projection(braSys%nProj, iBandFinit:iBandFfinal))
         allocate(ketSys%projection(ketSys%nProj, iBandIinit:iBandIfinal))
 
-        allocate(paw_PsiPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
-        allocate(paw_SDPhi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
+        allocate(braSys%pawWfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
+        allocate(ketSys%pawWfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
 
-        allocate(pawKPC(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
-        allocate(pawSDK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
+        allocate(braSys%pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
+        allocate(ketSys%pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
 
         allocate(paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
 
@@ -1441,7 +1443,7 @@ contains
 
               if(indexInPool == 0) then
 
-                call pawCorrectionWfc(iBandFinit, iBandFfinal, ketSys, crossProj_ketBeta_braWfc, pot, paw_PsiPC)
+                call pawCorrectionWfc(iBandFinit, iBandFfinal, ketSys, crossProj_ketBeta_braWfc, pot)
 
               endif
 
@@ -1454,7 +1456,7 @@ contains
 
               if(indexInPool == 1) then
 
-                call pawCorrectionWfc(iBandIinit, iBandIfinal, braSys, crossProj_braBeta_ketWfc, pot, paw_SDPhi)
+                call pawCorrectionWfc(iBandIinit, iBandIfinal, braSys, crossProj_braBeta_ketWfc, pot)
 
               endif
 
@@ -1466,19 +1468,19 @@ contains
               !-----------------------------------------------------------------------------------------------
               !> Broadcast wave function corrections to other processes
 
-              call MPI_BCAST(paw_PsiPC, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
-              call MPI_BCAST(paw_SDPhi, size(paw_PsiPC), MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
+              call MPI_BCAST(ketSys%pawWfc, size(ketSys%pawWfc), MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
+              call MPI_BCAST(braSys%pawWfc, size(braSys%pawWfc), MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
 
 
               !-----------------------------------------------------------------------------------------------
               !> Have all processes calculate the PAW k correction
       
               if(calcSpinDepPC) &
-                call pawCorrectionK(nGVecsLocal, gCart, pot, Ylm, ketSys, pawKPC)
+                call pawCorrectionK(nGVecsLocal, gCart, pot, Ylm, ketSys)
       
 
               if(calcSpinDepSD) &
-                call pawCorrectionK(nGVecsLocal, gCart, pot, Ylm, braSys, pawSDK)
+                call pawCorrectionK(nGVecsLocal, gCart, pot, Ylm, braSys)
 
         
               call cpu_time(t2)
@@ -1494,7 +1496,7 @@ contains
               do ibi = iBandIinit, iBandIfinal
         
                 do ibf = iBandFinit, iBandFfinal   
-                  paw_id(ibf,ibi) = dot_product(conjg(pawSDK(ibf,ibi,:)),pawKPC(ibf,ibi,:))
+                  paw_id(ibf,ibi) = dot_product(conjg(braSys%pawK(ibf,ibi,:)),ketSys%pawK(ibf,ibi,:))
                 enddo
         
               enddo
@@ -1508,7 +1510,7 @@ contains
 
               if(indexInPool == 0) then 
           
-                Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_SDPhi(:,:) + paw_PsiPC(:,:)
+                Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + braSys%pawWfc(:,:) + ketSys%pawWfc(:,:)
 
                 if(order == 1 .and. subtractBaseline) &
                   call readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, nSpins, Ufi)
@@ -1525,9 +1527,9 @@ contains
         deallocate(braSys%beta, ketSys%beta)
         deallocate(crossProj_ketBeta_braWfc, crossProj_braBeta_ketWfc)
         deallocate(braSys%projection, ketSys%projection)
-        deallocate(pawKPC, pawSDK)
+        deallocate(braSys%pawK, ketSys%pawK)
         deallocate(paw_id)
-        deallocate(paw_PsiPC, paw_SDPhi)
+        deallocate(braSys%pawWfc, ketSys%pawWfc)
       endif ! If both spin channels exist
     enddo ! k-point loop
 
@@ -1882,7 +1884,7 @@ contains
   end subroutine calculateCrossProjection
   
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionWfc(iBandI, iBandF, sys, crossProjection, pot, pawWfc)
+  subroutine pawCorrectionWfc(iBandI, iBandF, sys, crossProjection, pot)
     ! calculates the augmentation part of the transition matrix element
     
     implicit none
@@ -1891,7 +1893,7 @@ contains
     integer :: iBandI, iBandF
       !! Band limits to index crossProjection
 
-    type(crystal), intent(in) :: sys
+    type(crystal), intent(inout) :: sys
       !! The crystal system
 
     complex(kind = dp), intent(in) :: crossProjection(sys%nProj,iBandI:iBandF)
@@ -1900,10 +1902,6 @@ contains
     type(potcar) :: pot
       !! Structure containing all pseudopotential-related
       !! information
-
-    ! Output variables:
-    complex(kind=dp), intent(out) :: pawWfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal)
-      !! Augmentation part of the transition matrix element
 
     ! Local variables:
     integer :: ia, ibi, ibf, iT, L, M, LP, MP
@@ -1916,7 +1914,7 @@ contains
     real(kind = dp) :: atomicOverlap
     
     
-    pawWfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    sys%pawWfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
     LMBASE = 0
     
@@ -1952,7 +1950,7 @@ contains
                     do ibf = iBandFinit, iBandFfinal
                       projectionF = conjg(sys%projection(LM + LMBASE, ibf))
                     
-                      pawWfc(ibf, ibi) = pawWfc(ibf, ibi) + projectionF*atomicOverlap*projectionI
+                      sys%pawWfc(ibf, ibi) = sys%pawWfc(ibf, ibi) + projectionF*atomicOverlap*projectionI
                       
                     enddo
                   enddo
@@ -1966,7 +1964,7 @@ contains
                     do ibf = iBandFinit, iBandFfinal
                       projectionF = conjg(crossProjection(LM + LMBASE, ibf))
                     
-                      pawWfc(ibf, ibi) = pawWfc(ibf, ibi) + projectionF*atomicOverlap*projectionI
+                      sys%pawWfc(ibf, ibi) = sys%pawWfc(ibf, ibi) + projectionF*atomicOverlap*projectionI
                       
                     enddo
                   enddo
@@ -1987,7 +1985,7 @@ contains
   end subroutine pawCorrectionWfc
 
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionK(nGVecsLocal, gCart, pot, Ylm, sys, pawK)
+  subroutine pawCorrectionK(nGVecsLocal, gCart, pot, Ylm, sys)
     
     implicit none
 
@@ -2005,11 +2003,9 @@ contains
     complex(kind=dp), intent(in) :: Ylm((pot%maxAngMom+1)**2,nGVecsLocal)
       !! Spherical harmonics
 
-    type(crystal), intent(in) :: sys
-       !! The crystal system
-
     ! Output variables:
-    complex(kind=dp), intent(out) :: pawK(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,nGVecsLocal)
+    type(crystal), intent(inout) :: sys
+       !! The crystal system
 
     ! Local variables:
     integer :: ig, iT, ni, ibi, ibf, ind
@@ -2021,7 +2017,7 @@ contains
     complex(kind = dp) :: VifQ_aug, ATOMIC_CENTER
     
     
-    pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    sys%pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
     do ig = 1, nGVecsLocal
       
@@ -2057,7 +2053,7 @@ contains
 
               do ibi = iBandIinit, iBandIfinal
 
-                pawK(:, ibi, ig) = pawK(:, ibi, ig) + VifQ_aug*sys%projection(LM + LMBASE, ibi)
+                sys%pawK(:, ibi, ig) = sys%pawK(:, ibi, ig) + VifQ_aug*sys%projection(LM + LMBASE, ibi)
               
               enddo
 
@@ -2067,7 +2063,7 @@ contains
 
               do ibf = iBandFinit, iBandFfinal
                 
-                pawK(ibf, :, ig) = pawK(ibf, :, ig) + VifQ_aug*conjg(sys%projection(LM + LMBASE, ibf))
+                sys%pawK(ibf, :, ig) = sys%pawK(ibf, :, ig) + VifQ_aug*conjg(sys%projection(LM + LMBASE, ibf))
                 
               enddo
             endif
