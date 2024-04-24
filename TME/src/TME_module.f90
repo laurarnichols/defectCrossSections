@@ -2049,7 +2049,7 @@ contains
 
             if(trim(sys%sysType) == 'ket') then
 
-              VifQ_aug = ATOMIC_CENTER*Ylm(ind,ig)*(-II)**L*FI
+              VifQ_aug = ATOMIC_CENTER*Ylm(ind,ig)*iToTheInt(L,-1)*FI
 
               do ibi = iBandIinit, iBandIfinal
 
@@ -2059,7 +2059,7 @@ contains
 
             else if(trim(sys%sysType) == 'bra') then
 
-              VifQ_aug = ATOMIC_CENTER*conjg(Ylm(ind,ig))*(II)**L*FI
+              VifQ_aug = ATOMIC_CENTER*conjg(Ylm(ind,ig))*iToTheInt(L,1)*FI
 
               do ibf = iBandFinit, iBandFfinal
                 
@@ -2078,6 +2078,34 @@ contains
     return
     
   end subroutine pawCorrectionK
+
+!----------------------------------------------------------------------------
+  function iToTheInt(pow, sign_i)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: pow
+      !! Power for i
+    integer, intent(in) :: sign_i
+      !! Prefactor in front of i (+1 or -1)
+
+    ! Output variables:
+    complex(kind=dp) :: iToTheInt
+      !! Result of (+-i)^pow
+
+    
+    if(mod(pow,4) == 0) then
+      iToTheInt = 1.0_dp
+    else if(mod(pow,4) == 1) then
+      iToTheInt = sign_i*cmplx(0.0,1.0,kind=dp)
+    else if(mod(pow,4) == 2) then
+      iToTheInt = -1.0
+    else if(mod(pow,4) == 3) then
+      iToTheInt = -sign_i*cmplx(0.0,1.0,kind=dp)
+    endif
+
+  end function iToTheInt
 
 !----------------------------------------------------------------------------
   subroutine readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, nSpins, Ufi)
