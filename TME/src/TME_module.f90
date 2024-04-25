@@ -39,9 +39,6 @@ module TMEmod
   real(kind = dp) :: t1, t2
     !! For timing different processes
 
-  complex(kind = dp), allocatable :: crossProj_ketBeta_braWfc(:,:), crossProj_braBeta_ketWfc(:,:)
-    !! Cross projections with projectors from one system
-    !! and the wave function from the other
   complex(kind=dp), allocatable :: Ufi(:,:,:,:)
     !! All-electron overlap
   complex(kind=dp), allocatable :: Ylm(:,:)
@@ -144,6 +141,9 @@ module TMEmod
 
     complex(kind=dp), allocatable :: beta(:,:)
       !! Projectors
+    complex(kind = dp), allocatable :: crossProjection(:,:)
+      !! Cross projections with projectors from this system
+      !! and the wave function from the other
     complex(kind = dp), allocatable :: pawK(:,:,:)
       !! PAW k correction
     complex(kind = dp), allocatable :: pawWfc(:,:)
@@ -1356,8 +1356,8 @@ contains
         allocate(braSys%wfc(nGkVecsLocal, iBandFinit:iBandFfinal))
         allocate(ketSys%wfc(nGkVecsLocal, iBandIinit:iBandIfinal))
       
-        allocate(crossProj_braBeta_ketWfc(braSys%nProj, iBandIinit:iBandIfinal))
-        allocate(crossProj_ketBeta_braWfc(ketSys%nProj, iBandFinit:iBandFfinal))
+        allocate(braSys%crossProjection(braSys%nProj, iBandIinit:iBandIfinal))
+        allocate(ketSys%crossProjection(ketSys%nProj, iBandFinit:iBandFfinal))
 
         allocate(braSys%projection(braSys%nProj, iBandFinit:iBandFfinal))
         allocate(ketSys%projection(ketSys%nProj, iBandIinit:iBandIfinal))
@@ -1423,11 +1423,11 @@ contains
               !> Calculate cross projections
 
               if(calcSpinDepSD) &
-                call calculateCrossProjection(iBandFinit, iBandFfinal, ketSys, braSys, crossProj_ketBeta_braWfc)
+                call calculateCrossProjection(iBandFinit, iBandFfinal, braSys, ketSys)
 
 
               if(calcSpinDepPC) &
-                call calculateCrossProjection(iBandIinit, iBandIfinal, braSys, ketSys, crossProj_braBeta_ketWfc)
+                call calculateCrossProjection(iBandIinit, iBandIfinal, ketSys, braSys)
         
 
               call cpu_time(t2)
@@ -1443,7 +1443,7 @@ contains
 
               if(indexInPool == 0) then
 
-                call pawCorrectionWfc(iBandFinit, iBandFfinal, ketSys, crossProj_ketBeta_braWfc, pot)
+                call pawCorrectionWfc(ketSys, pot)
 
               endif
 
@@ -1456,7 +1456,7 @@ contains
 
               if(indexInPool == 1) then
 
-                call pawCorrectionWfc(iBandIinit, iBandIfinal, braSys, crossProj_braBeta_ketWfc, pot)
+                call pawCorrectionWfc(braSys, pot)
 
               endif
 
@@ -1525,7 +1525,7 @@ contains
 
         deallocate(braSys%wfc, ketSys%wfc)
         deallocate(braSys%beta, ketSys%beta)
-        deallocate(crossProj_ketBeta_braWfc, crossProj_braBeta_ketWfc)
+        deallocate(braSys%crossProjection, ketSys%crossProjection)
         deallocate(braSys%projection, ketSys%projection)
         deallocate(braSys%pawK, ketSys%pawK)
         deallocate(paw_id)
@@ -1832,7 +1832,7 @@ contains
   end subroutine readProjections
   
 !----------------------------------------------------------------------------
-  subroutine calculateCrossProjection(iBandinit, iBandfinal, sysBeta, sysWfc, crossProjection)
+  subroutine calculateCrossProjection(iBandinit, iBandfinal, sysWfc, sysBeta)
     !! Calculate the cross projection of one crystal's projectors
     !! on the other crystal's wave function coefficients, distributing
     !! the result to all processors
@@ -1847,14 +1847,12 @@ contains
       !! Ending band for crystal wfc comes from
       !! (not `projCrystalType`)
 
-    type(crystal) :: sysBeta
-       !! The crystal system to get the projectors from
     type(crystal) :: sysWfc
        !! The crystal system to get the wave functions from
 
     ! Output variables:
-    complex(kind=dp), intent(out) :: crossProjection(sysBeta%nProj,iBandinit:iBandfinal)
-      !! Projections <beta|wfc>
+    type(crystal) :: sysBeta
+       !! The crystal system to get the projectors from
     
     ! Local variables:
     integer :: ib, ipr
@@ -1865,7 +1863,7 @@ contains
       !! be summed across processors in pool
     
 
-    crossProjection(:,:) = cmplx(0.0_dp, 0.0_dp, kind=dp)
+    sysBeta%crossProjection(:,:) = cmplx(0.0_dp, 0.0_dp, kind=dp)
 
     do ib = iBandinit, iBandfinal
       do ipr = 1, sysBeta%nProj
@@ -1874,7 +1872,7 @@ contains
           ! `dot_product` automatically conjugates first argument for 
           ! complex variables.
 
-        call MPI_ALLREDUCE(crossProjectionLocal, crossProjection(ipr,ib), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
+        call MPI_ALLREDUCE(crossProjectionLocal, sysBeta%crossProjection(ipr,ib), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
 
       enddo
     enddo
@@ -1884,20 +1882,14 @@ contains
   end subroutine calculateCrossProjection
   
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionWfc(iBandI, iBandF, sys, crossProjection, pot)
+  subroutine pawCorrectionWfc(sys, pot)
     ! calculates the augmentation part of the transition matrix element
     
     implicit none
 
     ! Input variables:
-    integer :: iBandI, iBandF
-      !! Band limits to index crossProjection
-
     type(crystal), intent(inout) :: sys
       !! The crystal system
-
-    complex(kind = dp), intent(in) :: crossProjection(sys%nProj,iBandI:iBandF)
-      !! Cross projection between systems
 
     type(potcar) :: pot
       !! Structure containing all pseudopotential-related
@@ -1945,7 +1937,7 @@ contains
                   atomicOverlap = sum(pot%atom(iT)%F1bra(:,LL, LLP))
 
                   do ibi = iBandIinit, iBandIfinal
-                    projectionI = crossProjection(LMP + LMBASE, ibi)
+                    projectionI = sys%crossProjection(LMP + LMBASE, ibi)
                   
                     do ibf = iBandFinit, iBandFfinal
                       projectionF = conjg(sys%projection(LM + LMBASE, ibf))
@@ -1962,7 +1954,7 @@ contains
                     projectionI = sys%projection(LMP + LMBASE, ibi)
                   
                     do ibf = iBandFinit, iBandFfinal
-                      projectionF = conjg(crossProjection(LM + LMBASE, ibf))
+                      projectionF = conjg(sys%crossProjection(LM + LMBASE, ibf))
                     
                       sys%pawWfc(ibf, ibi) = sys%pawWfc(ibf, ibi) + projectionF*atomicOverlap*projectionI
                       
