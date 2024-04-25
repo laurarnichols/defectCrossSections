@@ -1436,29 +1436,26 @@ contains
 
 
               !-----------------------------------------------------------------------------------------------
-              !> Have process 0 in each pool calculate the PAW wave function correction for PC
+              ! Calculate PAW wave function corrections
 
               if(calcSpinDepPC) &
                 call readProjections(iBandIinit, iBandIfinal, ikGlobal, min(isp,ketSys%nSpins), ketSys)
 
-              if(indexInPool == 0) then
-
-                call pawCorrectionWfc(ketSys, pot)
-
-              endif
-
-
-              !-----------------------------------------------------------------------------------------------
-              !> Have process 1 in each pool calculate the PAW wave function correction for PC
-
               if(calcSpinDepSD) &
                 call readProjections(iBandFinit, iBandFfinal, ikGlobal, min(isp,braSys%nSpins), braSys)
 
-              if(indexInPool == 1) then
+    
+              braSys%pawWfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+              ketSys%pawWfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
 
-                call pawCorrectionWfc(braSys, pot)
 
-              endif
+              do ibi = iBandIinit, iBandIfinal
+                do ibf = iBandFinit, iBandFfinal
+                  if(indexInPool == 0) call pawCorrectionWfc(ibi, ibf, ketSys, pot)
+                  if(indexInPool == 1) call pawCorrectionWfc(ibi, ibf, braSys, pot)
+                enddo
+              enddo
+
 
               call cpu_time(t2)
               if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
@@ -1882,12 +1879,15 @@ contains
   end subroutine calculateCrossProjection
   
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionWfc(sys, pot)
+  subroutine pawCorrectionWfc(ibi, ibf, sys, pot)
     ! calculates the augmentation part of the transition matrix element
     
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ibi, ibf
+      !! Band indices
+
     type(crystal), intent(inout) :: sys
       !! The crystal system
 
@@ -1896,7 +1896,7 @@ contains
       !! information
 
     ! Local variables:
-    integer :: ia, ibi, ibf, iT, L, M, LP, MP
+    integer :: ia, iT, L, M, LP, MP
       !! Loop indices
 
     complex(kind = dp) :: projectionI, projectionF
@@ -1905,8 +1905,6 @@ contains
     integer :: LL, LLP, LMBASE, LM, LMP
     real(kind = dp) :: atomicOverlap
     
-    
-    sys%pawWfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
     LMBASE = 0
     
@@ -1936,30 +1934,21 @@ contains
 
                   atomicOverlap = sum(pot%atom(iT)%F1bra(:,LL, LLP))
 
-                  do ibi = iBandIinit, iBandIfinal
-                    projectionI = sys%crossProjection(LMP + LMBASE, ibi)
+                  projectionI = sys%crossProjection(LMP + LMBASE, ibi)
                   
-                    do ibf = iBandFinit, iBandFfinal
-                      projectionF = conjg(sys%projection(LM + LMBASE, ibf))
+                  projectionF = conjg(sys%projection(LM + LMBASE, ibf))
                     
-                      sys%pawWfc(ibf, ibi) = sys%pawWfc(ibf, ibi) + projectionF*atomicOverlap*projectionI
-                      
-                    enddo
-                  enddo
+                  sys%pawWfc(ibf, ibi) = sys%pawWfc(ibf, ibi) + projectionF*atomicOverlap*projectionI
 
                 else if(trim(sys%sysType) == 'ket') then
                   atomicOverlap = sum(pot%atom(iT)%F1ket(:,LL, LLP))
 
-                  do ibi = iBandIinit, iBandIfinal
-                    projectionI = sys%projection(LMP + LMBASE, ibi)
+                  projectionI = sys%projection(LMP + LMBASE, ibi)
                   
-                    do ibf = iBandFinit, iBandFfinal
-                      projectionF = conjg(sys%crossProjection(LM + LMBASE, ibf))
+                  projectionF = conjg(sys%crossProjection(LM + LMBASE, ibf))
                     
-                      sys%pawWfc(ibf, ibi) = sys%pawWfc(ibf, ibi) + projectionF*atomicOverlap*projectionI
+                  sys%pawWfc(ibf, ibi) = sys%pawWfc(ibf, ibi) + projectionF*atomicOverlap*projectionI
                       
-                    enddo
-                  enddo
                 endif
 
               endif ! If l = l' and m = m'
