@@ -144,7 +144,7 @@ module TMEmod
       !! and the wave function from the other
     complex(kind=dp), allocatable :: exp_iGDotR(:,:)
       !! e^(iG*R)
-    complex(kind = dp), allocatable :: pawK(:,:,:)
+    complex(kind = dp), allocatable :: pawK(:,:)
       !! PAW k correction
     complex(kind = dp), allocatable :: pawWfc(:,:)
       !! PAW wave function correction
@@ -1419,8 +1419,8 @@ contains
         allocate(braSys%pawWfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
         allocate(ketSys%pawWfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
 
-        allocate(braSys%pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
-        allocate(ketSys%pawK(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nGVecsLocal))
+        allocate(braSys%pawK(iBandFinit:iBandFfinal, nGVecsLocal))
+        allocate(ketSys%pawK(iBandIinit:iBandIfinal, nGVecsLocal))
 
         allocate(paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
 
@@ -1527,7 +1527,7 @@ contains
               !> Have all processes calculate the PAW k correction
 
               if(calcSpinDepSD) then
-                braSys%pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+                braSys%pawK(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
 
                 do ibf = iBandFinit, iBandFfinal
                   call pawCorrectionK(ibi, ibf, nGVecsLocal, pot, Ylm, braSys)
@@ -1535,7 +1535,7 @@ contains
               endif
 
               if(calcSpinDepPC) then
-                ketSys%pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+                ketSys%pawK(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
       
                 do ibi = iBandIinit, iBandIfinal
                   call pawCorrectionK(ibi, ibf, nGVecsLocal, pot, Ylm, ketSys)
@@ -1554,11 +1554,9 @@ contains
               paw_id(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
       
               do ibi = iBandIinit, iBandIfinal
-        
                 do ibf = iBandFinit, iBandFfinal   
-                  paw_id(ibf,ibi) = dot_product(conjg(braSys%pawK(ibf,ibi,:)),ketSys%pawK(ibf,ibi,:))
+                  paw_id(ibf,ibi) = dot_product(conjg(braSys%pawK(ibf,:)),ketSys%pawK(ibi,:))
                 enddo
-        
               enddo
 
               Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_id(:,:)*16.0_dp*pi*pi/omega
@@ -2091,13 +2089,13 @@ contains
 
               VifQ_aug = sys%exp_iGDotR(ni,ig)*Ylm(ind,ig)*iToTheInt(L,sign_i)*FI
 
-              sys%pawK(:, ibi, ig) = sys%pawK(:, ibi, ig) + VifQ_aug*sys%projection(LM + LMBASE, ibi)
+              sys%pawK(ibi, ig) = sys%pawK(ibi, ig) + VifQ_aug*sys%projection(LM + LMBASE, ibi)
 
             else if(trim(sys%sysType) == 'bra') then
 
               VifQ_aug = sys%exp_iGDotR(ni,ig)*conjg(Ylm(ind,ig))*iToTheInt(L,sign_i)*FI
                 
-              sys%pawK(ibf, :, ig) = sys%pawK(ibf, :, ig) + VifQ_aug*conjg(sys%projection(LM + LMBASE, ibf))
+              sys%pawK(ibf, ig) = sys%pawK(ibf, ig) + VifQ_aug*conjg(sys%projection(LM + LMBASE, ibf))
                 
             endif
           enddo
