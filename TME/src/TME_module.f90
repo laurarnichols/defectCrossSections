@@ -1548,7 +1548,7 @@ contains
                 braSys%pawK(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
 
                 do ibf = iBandFinit, iBandFfinal
-                  call pawCorrectionK(ibi, ibf, nGVecsLocal, pot, Ylm, braSys)
+                  call pawCorrectionK(ibf, nGVecsLocal, pot, Ylm, braSys)
                 enddo
               endif
 
@@ -1556,7 +1556,7 @@ contains
                 ketSys%pawK(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
       
                 do ibi = iBandIinit, iBandIfinal
-                  call pawCorrectionK(ibi, ibf, nGVecsLocal, pot, Ylm, ketSys)
+                  call pawCorrectionK(ibi, nGVecsLocal, pot, Ylm, ketSys)
                 enddo
             endif
 
@@ -2040,13 +2040,13 @@ contains
   end subroutine pawCorrectionWfc
 
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionK(ibi, ibf, nGVecsLocal, pot, Ylm, sys)
+  subroutine pawCorrectionK(ib, nGVecsLocal, pot, Ylm, sys)
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ibi, ibf
-      !! Band indices
+    integer, intent(in) :: ib
+      !! Band index
     integer, intent(in) :: nGVecsLocal
       !! Number of local G-vectors
 
@@ -2098,13 +2098,13 @@ contains
 
               VifQ_aug = sys%exp_iGDotR(iA,ig)*Ylm(ind,ig)*iToTheInt(L,sign_i)*pot%atom(iT)%FI(iL,ig)
 
-              sys%pawK(ibi, ig) = sys%pawK(ibi, ig) + VifQ_aug*sys%projection(LM + LMBASE, ibi)
+              sys%pawK(ib, ig) = sys%pawK(ib, ig) + VifQ_aug*sys%projection(LM + LMBASE, ib)
 
             else if(trim(sys%sysType) == 'bra') then
 
               VifQ_aug = sys%exp_iGDotR(iA,ig)*conjg(Ylm(ind,ig))*iToTheInt(L,sign_i)*pot%atom(iT)%FI(iL,ig)
                 
-              sys%pawK(ibf, ig) = sys%pawK(ibf, ig) + VifQ_aug*conjg(sys%projection(LM + LMBASE, ibf))
+              sys%pawK(ib, ig) = sys%pawK(ib, ig) + VifQ_aug*conjg(sys%projection(LM + LMBASE, ib))
                 
             endif
           enddo
