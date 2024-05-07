@@ -70,7 +70,7 @@ module TMEmod
     integer :: nMax
       !! Number of radial grid points
 
-    real(kind=dp), allocatable :: bes_J_qr(:,:,:)
+    real(kind=dp), allocatable :: bes_J_qr(:,:)
       !! Needed for PAW
     real(kind=dp), allocatable :: dRadGrid(:)
       !! Derivative of radial grid
@@ -82,6 +82,8 @@ module TMEmod
       !! Needed for PAW (ket version)
     real(kind=dp), allocatable :: F2(:,:,:)
       !! Needed for PAW
+    real(kind=dp), allocatable :: FI(:,:)
+      !! Radial integration with Bessel function (?)
     real(kind=dp), allocatable :: radGrid(:)
       !! Radial grid points
     real(kind=dp), allocatable :: wae(:,:)
@@ -1224,8 +1226,10 @@ contains
       !! Array containing all crystal systems
 
     ! Local variables:
-    integer :: ig, iT, iR, isys
+    integer :: ig, iT, iR, isys, iL
       !! Loop indices
+    integer :: L
+      !! Angular momentum for this channel
 
     real(kind=dp) :: gCart(3)
       !! G-vectors in Cartesian coordinates
@@ -1241,8 +1245,11 @@ contains
 
     do iT = 1, pot%maxNAtomTypes
 
-      allocate(pot%atom(iT)%bes_J_qr(0:pot%maxAngMom, pot%atom(iT)%iRAugMax, nGVecsLocal))
+      allocate(pot%atom(iT)%bes_J_qr(0:pot%maxAngMom, pot%atom(iT)%iRAugMax))
       pot%atom(iT)%bes_J_qr = 0.0_dp
+
+      allocate(pot%atom(iT)%FI(0:pot%maxAngMom, nGVecsLocal))
+      pot%atom(iT)%FI = 0.0_dp
 
     enddo
     
@@ -1277,14 +1284,24 @@ contains
           JL = 0.0_dp
           call bessel_j(q*pot%atom(iT)%radGrid(iR), pot%maxAngMom, JL) ! returns the spherical bessel at qr point
 
-          pot%atom(iT)%bes_J_qr(:,iR,ig) = JL(:)
+          pot%atom(iT)%bes_J_qr(:,iR) = JL(:)
 
+        enddo
+
+        do iL = 1, pot%atom(iT)%nChannels
+          L = pot%atom(iT)%angMom(iL)
+
+          pot%atom(iT)%FI(iL,ig) = dot_product(pot%atom(iT)%bes_J_qr(L,:),pot%atom(iT)%F(:,iL))
+            ! radial part integration F contains dRadGrid
         enddo
 
       enddo
 
     enddo
 
+    do iT = 1, pot%maxNAtomTypes
+      deallocate(pot%atom(iT)%bes_J_qr)
+    enddo
 
     return
 
@@ -2049,13 +2066,12 @@ contains
        !! The crystal system
 
     ! Local variables:
-    integer :: ig, iT, ni, ind
+    integer :: ig, iT, iA, ind, iL
       !! Loop indices
-    integer :: LL, LMBASE, LM, L, M
+    integer :: LMBASE, LM, L, M
       !! L and M quantum number trackers
     integer :: sign_i
       !! Sign in front of i
-    real(kind = dp) :: FI
     
     complex(kind = dp) :: VifQ_aug
     
@@ -2070,30 +2086,27 @@ contains
       
       LMBASE = 0
       
-      do ni = 1, sys%nAtoms ! LOOP OVER THE IONS
+      do iA = 1, sys%nAtoms
         
-        iT = sys%iType(ni)
+        iT = sys%iType(iA)
         LM = 0
-        DO LL = 1, pot%atom(iT)%nChannels
-          L = pot%atom(iT)%angMom(LL)
-            
-          FI = dot_product(pot%atom(iT)%bes_J_qr(L,:,ig),pot%atom(iT)%F(:,LL)) 
-            ! radial part integration F contains dRadGrid
+        do iL = 1, pot%atom(iT)%nChannels
+          L = pot%atom(iT)%angMom(iL)
 
           DO M = -L, L
-            LM = LM + 1 !1st index for CPROJ
+            LM = LM + 1 ! 1st index for projection
             
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
 
             if(trim(sys%sysType) == 'ket') then
 
-              VifQ_aug = sys%exp_iGDotR(ni,ig)*Ylm(ind,ig)*iToTheInt(L,sign_i)*FI
+              VifQ_aug = sys%exp_iGDotR(iA,ig)*Ylm(ind,ig)*iToTheInt(L,sign_i)*pot%atom(iT)%FI(iL,ig)
 
               sys%pawK(ibi, ig) = sys%pawK(ibi, ig) + VifQ_aug*sys%projection(LM + LMBASE, ibi)
 
             else if(trim(sys%sysType) == 'bra') then
 
-              VifQ_aug = sys%exp_iGDotR(ni,ig)*conjg(Ylm(ind,ig))*iToTheInt(L,sign_i)*FI
+              VifQ_aug = sys%exp_iGDotR(iA,ig)*conjg(Ylm(ind,ig))*iToTheInt(L,sign_i)*pot%atom(iT)%FI(iL,ig)
                 
               sys%pawK(ibf, ig) = sys%pawK(ibf, ig) + VifQ_aug*conjg(sys%projection(LM + LMBASE, ibf))
                 
@@ -2651,7 +2664,7 @@ contains
       deallocate(pot%atom(iT)%F1bra)
       deallocate(pot%atom(iT)%F1ket)
       deallocate(pot%atom(iT)%F2)
-      deallocate(pot%atom(iT)%bes_J_qr)
+      deallocate(pot%atom(iT)%FI)
     enddo
 
     deallocate(pot%atom)
