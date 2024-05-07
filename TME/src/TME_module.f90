@@ -30,8 +30,6 @@ module TMEmod
   real(kind=dp) :: dq_j
     !! \(\delta q_j) for displaced wave functions
     !! (only order = 1)
-  real(kind=dp), allocatable :: gCart(:,:)
-    !! G-vectors in Cartesian coordinates
   real(kind=dp) :: omega
     !! Supercell volume
   real(kind=dp) :: recipLattVec(3,3)
@@ -144,6 +142,8 @@ module TMEmod
     complex(kind = dp), allocatable :: crossProjection(:,:)
       !! Cross projections with projectors from this system
       !! and the wave function from the other
+    complex(kind=dp), allocatable :: exp_iGDotR(:,:)
+      !! e^(iG*R)
     complex(kind = dp), allocatable :: pawK(:,:,:)
       !! PAW k correction
     complex(kind = dp), allocatable :: pawWfc(:,:)
@@ -449,7 +449,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine completePreliminarySetup(nSys, order, phononModeJ, dqFName, mill_local, nGVecsGlobal, nKPoints, nSpins, &
-        dq_j, gCart, omega, recipLattVec, Ylm, crystalSystem, pot)
+        dq_j, omega, recipLattVec, Ylm, crystalSystem, pot)
 
     implicit none
 
@@ -481,8 +481,6 @@ contains
     real(kind=dp), intent(out) :: dq_j
       !! \(\delta q_j) for displaced wave functions
       !! (only order = 1)
-    real(kind=dp), allocatable, intent(out) :: gCart(:,:)
-      !! G-vectors in Cartesian coordinates
     real(kind=dp), intent(out) :: omega
       !! Cell volume (tested to be consistent
       !! across all systems)
@@ -560,10 +558,9 @@ contains
     call cpu_time(t1)
 
 
-    allocate(gCart(3,nGVecsLocal))
     allocate(Ylm((pot%maxAngMom+1)**2,nGVecsLocal))
 
-    call setUpTables(nGVecsLocal, mill_local, recipLattVec, pot, gCart, Ylm)
+    call setUpTables(nGVecsLocal, mill_local, nSys, recipLattVec, pot, Ylm, crystalSystem)
     ! Also allocate this table for the braSys so that there isn't an error when deallocating
 
     deallocate(mill_local)
@@ -1200,7 +1197,7 @@ contains
   end subroutine getFullPWGrid
 
 !----------------------------------------------------------------------------
-  subroutine setUpTables(nGVecsLocal, mill_local, recipLattVec, pot, gCart, Ylm)
+  subroutine setUpTables(nGVecsLocal, mill_local, nSys, recipLattVec, pot, Ylm, crystalSystem)
 
     implicit none
 
@@ -1209,6 +1206,8 @@ contains
       !! Number of local G-vectors
     integer, intent(in) :: mill_local(3,nGVecsLocal)
       !! Miller indices for local G-vectors
+    integer, intent(in) :: nSys
+      !! Number of systems to read files for
 
     real(kind=dp), intent(in) :: recipLattVec(3,3)
       !! Reciprocal-space lattice vectors
@@ -1218,16 +1217,18 @@ contains
       !! information
 
     ! Output variables:
-    real(kind=dp), intent(out) :: gCart(3,nGVecsLocal)
-      !! G-vectors in Cartesian coordinates
-
     complex(kind=dp), intent(out) :: Ylm((pot%maxAngMom+1)**2,nGVecsLocal)
       !! Spherical harmonics
 
+    type(crystal) :: crystalSystem(nSys)
+      !! Array containing all crystal systems
+
     ! Local variables:
-    integer :: ig, iT, iR
+    integer :: ig, iT, iR, isys
       !! Loop indices
 
+    real(kind=dp) :: gCart(3)
+      !! G-vectors in Cartesian coordinates
     real(kind=dp) :: gUnit(3)
       !! Unit G-vector
     real(kind=dp) :: JL(0:pot%maxAngMom)
@@ -1246,13 +1247,23 @@ contains
     enddo
     
 
+    do isys = 1, nSys
+      allocate(crystalSystem(isys)%exp_iGDotR(crystalSystem(isys)%nAtoms, nGVecsLocal))
+      crystalSystem(isys)%exp_iGDotR = 0.0_dp
+    enddo
+
+
     do ig = 1, nGVecsLocal
 
-      gCart(:,ig) = matmul(recipLattVec, mill_local(:,ig))
+      gCart(:) = matmul(recipLattVec, mill_local(:,ig))
 
-      q = sqrt(dot_product(gCart(:,ig),gCart(:,ig)))
+      do isys = 1, nSys
+        call getExpiGDotR(ig, gCart, crystalSystem(isys))
+      enddo
 
-      gUnit(:) = gCart(:,ig)
+      q = sqrt(dot_product(gCart(:),gCart(:)))
+
+      gUnit(:) = gCart(:)
       if(abs(q) > 1.0e-6_dp) gUnit = gUnit/q
         !! Get unit vector for Ylm calculation
 
@@ -1278,6 +1289,49 @@ contains
     return
 
   end subroutine setUpTables
+
+!----------------------------------------------------------------------------
+  subroutine getExpiGDotR(ig, gCart, sys)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ig
+      !! G-vector index
+
+    real(kind=dp), intent(in) :: gCart(3)
+      !! Single G vector in Cartesian coordinates
+
+    ! Output variables:
+    type(crystal) :: sys
+      !! System to get G+R vectors for
+
+    ! Local variables:
+    integer :: iA
+      !! Loop index
+    integer :: sign_i
+      !! Sign in front of i
+
+    real(kind=dp) :: GDotR
+      !! G * R
+
+
+    if(trim(sys%sysType) == 'bra') then
+      sign_i = 1
+    else if(trim(sys%sysType) == 'ket') then
+      sign_i = -1
+    endif
+        
+
+    do iA = 1, sys%nAtoms
+      GDotR = dot_product(gCart, sys%atomPositionsCart(:,iA))
+        
+      sys%exp_iGDotR(iA,ig) = exp(sign_i*ii*cmplx(GDotR, 0.0_dp, kind = dp))
+    enddo
+
+    return
+
+  end subroutine getExpiGDotR
 
 !----------------------------------------------------------------------------
   subroutine calcAndWrite2SysMatrixElements(ispSelect, nSpins, braSys, ketSys, pot)
@@ -1471,13 +1525,22 @@ contains
 
               !-----------------------------------------------------------------------------------------------
               !> Have all processes calculate the PAW k correction
-      
-              if(calcSpinDepPC) &
-                call pawCorrectionK(nGVecsLocal, gCart, pot, Ylm, ketSys)
-      
 
-              if(calcSpinDepSD) &
-                call pawCorrectionK(nGVecsLocal, gCart, pot, Ylm, braSys)
+              if(calcSpinDepSD) then
+                braSys%pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+
+                do ibf = iBandFinit, iBandFfinal
+                  call pawCorrectionK(ibi, ibf, nGVecsLocal, pot, Ylm, braSys)
+                enddo
+              endif
+
+              if(calcSpinDepPC) then
+                ketSys%pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+      
+                do ibi = iBandIinit, iBandIfinal
+                  call pawCorrectionK(ibi, ibf, nGVecsLocal, pot, Ylm, ketSys)
+                enddo
+            endif
 
         
               call cpu_time(t2)
@@ -1966,16 +2029,15 @@ contains
   end subroutine pawCorrectionWfc
 
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionK(nGVecsLocal, gCart, pot, Ylm, sys)
+  subroutine pawCorrectionK(ibi, ibf, nGVecsLocal, pot, Ylm, sys)
     
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ibi, ibf
+      !! Band indices
     integer, intent(in) :: nGVecsLocal
       !! Number of local G-vectors
-
-    real(kind=dp), intent(in) :: gCart(3,nGVecsLocal)
-      !! G-vectors in Cartesian coordinates
 
     type(potcar) :: pot
       !! Structure containing all pseudopotential-related
@@ -1989,30 +2051,28 @@ contains
        !! The crystal system
 
     ! Local variables:
-    integer :: ig, iT, ni, ibi, ibf, ind
+    integer :: ig, iT, ni, ind
       !! Loop indices
     integer :: LL, LMBASE, LM, L, M
       !! L and M quantum number trackers
-    real(kind = dp) :: qDotR, FI
+    integer :: sign_i
+      !! Sign in front of i
+    real(kind = dp) :: FI
     
-    complex(kind = dp) :: VifQ_aug, ATOMIC_CENTER
+    complex(kind = dp) :: VifQ_aug
     
-    
-    sys%pawK(:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+
+    if(trim(sys%sysType) == 'bra') then
+      sign_i = 1
+    else if(trim(sys%sysType) == 'ket') then
+      sign_i = -1
+    endif
     
     do ig = 1, nGVecsLocal
       
       LMBASE = 0
       
       do ni = 1, sys%nAtoms ! LOOP OVER THE IONS
-        
-        qDotR = dot_product(gCart(:,ig), sys%atomPositionsCart(:,ni))
-        
-        if(trim(sys%sysType) == 'ket') then
-          ATOMIC_CENTER = exp( -ii*cmplx(qDotR, 0.0_dp, kind = dp) )
-        else if(trim(sys%sysType) == 'bra') then
-          ATOMIC_CENTER = exp( ii*cmplx(qDotR, 0.0_dp, kind = dp) )
-        endif
         
         iT = sys%iType(ni)
         LM = 0
@@ -2030,29 +2090,22 @@ contains
 
             if(trim(sys%sysType) == 'ket') then
 
-              VifQ_aug = ATOMIC_CENTER*Ylm(ind,ig)*iToTheInt(L,-1)*FI
+              VifQ_aug = sys%exp_iGDotR(ni,ig)*Ylm(ind,ig)*iToTheInt(L,sign_i)*FI
 
-              do ibi = iBandIinit, iBandIfinal
-
-                sys%pawK(:, ibi, ig) = sys%pawK(:, ibi, ig) + VifQ_aug*sys%projection(LM + LMBASE, ibi)
-              
-              enddo
+              sys%pawK(:, ibi, ig) = sys%pawK(:, ibi, ig) + VifQ_aug*sys%projection(LM + LMBASE, ibi)
 
             else if(trim(sys%sysType) == 'bra') then
 
-              VifQ_aug = ATOMIC_CENTER*conjg(Ylm(ind,ig))*iToTheInt(L,1)*FI
-
-              do ibf = iBandFinit, iBandFfinal
+              VifQ_aug = sys%exp_iGDotR(ni,ig)*conjg(Ylm(ind,ig))*iToTheInt(L,sign_i)*FI
                 
-                sys%pawK(ibf, :, ig) = sys%pawK(ibf, :, ig) + VifQ_aug*conjg(sys%projection(LM + LMBASE, ibf))
+              sys%pawK(ibf, :, ig) = sys%pawK(ibf, :, ig) + VifQ_aug*conjg(sys%projection(LM + LMBASE, ibf))
                 
-              enddo
             endif
-          ENDDO
-        ENDDO
+          enddo
+        enddo
 
         LMBASE = LMBASE + pot%atom(iT)%lmMax
-      ENDDO
+      enddo
       
     enddo
     
@@ -2585,13 +2638,13 @@ contains
       !! Loop index
 
 
-    deallocate(gCart)
     deallocate(Ylm)
 
     do isys = 1, nSys
       deallocate(crystalSystem(isys)%nPWs1kGlobal)
       deallocate(crystalSystem(isys)%atomPositionsCart)
       deallocate(crystalSystem(isys)%iType)
+      deallocate(crystalSystem(isys)%exp_iGDotR)
     enddo
 
     do iT = 1, pot%maxNAtomTypes

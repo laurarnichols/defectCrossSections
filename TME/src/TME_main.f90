@@ -29,7 +29,7 @@ program TMEmain
 
 
   call completePreliminarySetup(nSys, order, phononModeJ, dqFName, mill_local, nGVecsGlobal, nKPoints, nSpins, &
-          dq_j, gCart, omega, recipLattVec, Ylm, crystalSystem, pot)
+          dq_j, omega, recipLattVec, Ylm, crystalSystem, pot)
 
 
   call calcAndWrite2SysMatrixElements(ispSelect, nSpins, crystalSystem(1), crystalSystem(2), pot)
