@@ -37,7 +37,7 @@ module TMEmod
   real(kind = dp) :: t1, t2
     !! For timing different processes
 
-  complex(kind=dp), allocatable :: Ufi(:,:,:,:)
+  complex(kind=dp), allocatable :: Ufi(:,:)
     !! All-electron overlap
   complex(kind=dp), allocatable :: Ylm(:,:)
     !! Spherical harmonics
@@ -1248,7 +1248,7 @@ contains
       allocate(pot%atom(iT)%bes_J_qr(0:pot%maxAngMom, pot%atom(iT)%iRAugMax))
       pot%atom(iT)%bes_J_qr = 0.0_dp
 
-      allocate(pot%atom(iT)%FI(0:pot%maxAngMom, nGVecsLocal))
+      allocate(pot%atom(iT)%FI(pot%atom(iT)%nChannels, nGVecsLocal))
       pot%atom(iT)%FI = 0.0_dp
 
     enddo
@@ -1381,8 +1381,7 @@ contains
       !! If the first spin channel was skipped
     
 
-    allocate(Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal, nKPerPool, nSpins))
-    Ufi(:,:,:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    allocate(Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
   
 
     do ikLocal = 1, nkPerPool
@@ -1452,6 +1451,8 @@ contains
 
           if(loopSpins .or. isp == ispSelect) then
 
+            Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+
             if(ionode) write(*,'("  Beginning spin ", i2)') isp
 
             calcSpinDepPC = isp == 1 .or. ketSys%nSpins == 2 .or. spin1Skipped
@@ -1482,7 +1483,7 @@ contains
               if(calcSpinDepSD) &
                 call readWfc(iBandFinit, iBandFfinal, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocal, braSys)
         
-              call calculatePWsOverlap(ikLocal, isp, braSys, ketSys)
+              call calculatePWsOverlap(braSys, ketSys)
         
 
               call cpu_time(t2)
@@ -1576,19 +1577,19 @@ contains
                 enddo
               enddo
 
-              Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + paw_id(:,:)*16.0_dp*pi*pi/omega
+              Ufi(:,:) = Ufi(:,:) + paw_id(:,:)*16.0_dp*pi*pi/omega
 
 
-              call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(:,:,ikLocal,isp), size(Ufi(:,:,ikLocal,isp)), MPI_DOUBLE_COMPLEX, &
+              call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(:,:), size(Ufi(:,:)), MPI_DOUBLE_COMPLEX, &
                       MPI_SUM, intraPoolComm, ierr)
 
 
               if(indexInPool == 0) then 
           
-                Ufi(:,:,ikLocal,isp) = Ufi(:,:,ikLocal,isp) + braSys%pawWfc(:,:) + ketSys%pawWfc(:,:)
+                Ufi(:,:) = Ufi(:,:) + braSys%pawWfc(:,:) + ketSys%pawWfc(:,:)
 
                 if(order == 1 .and. subtractBaseline) &
-                  call readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, nSpins, Ufi)
+                  call readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, Ufi)
         
                 call writeResults(ikLocal,isp, Ufi)
         
@@ -1805,16 +1806,11 @@ contains
   end subroutine readWfc
   
 !----------------------------------------------------------------------------
-  subroutine calculatePWsOverlap(ikLocal,isp, braSys, ketSys)
+  subroutine calculatePWsOverlap(braSys, ketSys)
     
     implicit none
     
     ! Input variables:
-    integer, intent(in) :: ikLocal
-      !! Current local k-point
-    integer, intent(in) :: isp
-      !! Current spin channel
-
     type(crystal) :: braSys, ketSys
        !! The crystal systems to get the
        !! matrix element for
@@ -1823,13 +1819,13 @@ contains
     integer :: ibi, ibf
 
     
-    Ufi(:,:,ikLocal,isp) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+    Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
     
     do ibi = iBandIinit, iBandIfinal 
       
       do ibf = iBandFinit, iBandFfinal
 
-        Ufi(ibf, ibi, ikLocal,isp) = dot_product(braSys%wfc(:,ibf),ketSys%wfc(:,ibi))
+        Ufi(ibf, ibi) = dot_product(braSys%wfc(:,ibf),ketSys%wfc(:,ibi))
           !! Calculate local overlap
           ! `dot_product` automatically conjugates first argument for 
           ! complex variables.
@@ -2152,7 +2148,7 @@ contains
   end function iToTheInt
 
 !----------------------------------------------------------------------------
-  subroutine readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, nSpins, Ufi)
+  subroutine readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, Ufi)
     
     implicit none
     
@@ -2163,11 +2159,9 @@ contains
       !! Current local k-point
     integer, intent(in) :: isp
       !! Current spin channel
-    integer, intent(in) :: nSpins
-      !! Number of spin channels
 
     ! Output variables:
-    complex(kind=dp), intent(inout) :: Ufi(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,nKPerPool,nSpins)
+    complex(kind=dp), intent(inout) :: Ufi(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
       !! All-electron overlap
 
     ! Local variables:
@@ -2217,7 +2211,7 @@ contains
         read(17, 1001) iDum, iDum, baselineOverlap, rDum, rDum
 
         if(ibi >= iBandIinit .and. ibi <= iBandIfinal .and. ibf >= iBandFinit .and. ibf <= iBandFfinal) &
-          Ufi(ibf,ibi,ikLocal,isp) = Ufi(ibf,ibi,ikLocal,isp) - baselineOverlap
+          Ufi(ibf,ibi) = Ufi(ibf,ibi) - baselineOverlap
           
       enddo
     enddo
@@ -2241,7 +2235,7 @@ contains
     integer, intent(in) :: isp
       !! Current spin channel
 
-    complex(kind=dp), intent(in) :: Ufi(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,nKPerPool,nSpins)
+    complex(kind=dp), intent(in) :: Ufi(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
       !! All-electron overlap
 
     ! Local variables:
@@ -2301,9 +2295,9 @@ contains
       do ibi = iBandIinit, iBandIfinal
         
         if(order == 0) then
-          write(17, 1001) ibf, ibi, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE(ibf,ibi,2)*Ufi(ibf,ibi,ikLocal,isp))**2
+          write(17, 1001) ibf, ibi, Ufi(ibf,ibi), abs(Ufi(ibf,ibi))**2, abs(dE(ibf,ibi,2)*Ufi(ibf,ibi))**2
         else if(order == 1) then
-          write(17, 1001) ibf, ibi, Ufi(ibf,ibi,ikLocal,isp), abs(Ufi(ibf,ibi,ikLocal,isp))**2, abs(dE(ibf,ibi,3)*Ufi(ibf,ibi,ikLocal,isp)/dq_j)**2
+          write(17, 1001) ibf, ibi, Ufi(ibf,ibi), abs(Ufi(ibf,ibi))**2, abs(dE(ibf,ibi,3)*Ufi(ibf,ibi)/dq_j)**2
         endif
             
       enddo
