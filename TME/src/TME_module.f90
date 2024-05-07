@@ -2078,13 +2078,12 @@ contains
         LM = 0
         DO LL = 1, pot%atom(iT)%nChannels
           L = pot%atom(iT)%angMom(LL)
+            
+          FI = dot_product(pot%atom(iT)%bes_J_qr(L,:,ig),pot%atom(iT)%F(:,LL)) 
+            ! radial part integration F contains dRadGrid
+
           DO M = -L, L
             LM = LM + 1 !1st index for CPROJ
-            
-            FI = 0.0_dp
-            
-            FI = dot_product(pot%atom(iT)%bes_J_qr(L,:,ig),pot%atom(iT)%F(:,LL)) 
-              ! radial part integration F contains dRadGrid
             
             ind = L*(L + 1) + M + 1 ! index for spherical harmonics
 
