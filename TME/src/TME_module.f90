@@ -141,18 +141,18 @@ module TMEmod
 
     complex(kind=dp), allocatable :: beta(:,:)
       !! Projectors
-    complex(kind = dp), allocatable :: crossProjection(:,:)
+    complex(kind = dp), allocatable :: crossProjection(:)
       !! Cross projections with projectors from this system
       !! and the wave function from the other
     complex(kind=dp), allocatable :: exp_iGDotR(:,:)
       !! e^(iG*R)
-    complex(kind = dp), allocatable :: pawK(:,:)
+    complex(kind = dp), allocatable :: pawK(:)
       !! PAW k correction
-    complex(kind = dp), allocatable :: pawWfc(:,:)
+    complex(kind = dp) :: pawWfc
       !! PAW wave function correction
-    complex(kind=dp), allocatable :: projection(:,:)
+    complex(kind=dp), allocatable :: projection(:)
       !! Projections
-    complex*8, allocatable :: wfc(:,:)
+    complex*8, allocatable :: wfc(:)
       !! Wave function coefficients
 
     character(len=2), allocatable :: element(:)
@@ -174,8 +174,6 @@ module TMEmod
     !! Array containing all crystal systems
   
   real(kind = dp) t0, tf
-  
-  complex(kind = dp), allocatable :: paw_id(:,:)
   
   
 contains
@@ -1423,22 +1421,17 @@ contains
         !-----------------------------------------------------------------------------------------------
         !> Allocate arrays that are potentially spin-polarized and start spin loop
 
-        allocate(braSys%wfc(nGkVecsLocal, iBandFinit:iBandFfinal))
-        allocate(ketSys%wfc(nGkVecsLocal, iBandIinit:iBandIfinal))
+        allocate(braSys%wfc(nGkVecsLocal))
+        allocate(ketSys%wfc(nGkVecsLocal))
       
-        allocate(braSys%crossProjection(braSys%nProj, iBandIinit:iBandIfinal))
-        allocate(ketSys%crossProjection(ketSys%nProj, iBandFinit:iBandFfinal))
+        allocate(braSys%crossProjection(braSys%nProj))
+        allocate(ketSys%crossProjection(ketSys%nProj))
 
-        allocate(braSys%projection(braSys%nProj, iBandFinit:iBandFfinal))
-        allocate(ketSys%projection(ketSys%nProj, iBandIinit:iBandIfinal))
+        allocate(braSys%projection(braSys%nProj))
+        allocate(ketSys%projection(ketSys%nProj))
 
-        allocate(braSys%pawWfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
-        allocate(ketSys%pawWfc(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
-
-        allocate(braSys%pawK(iBandFinit:iBandFfinal, nGVecsLocal))
-        allocate(ketSys%pawK(iBandIinit:iBandIfinal, nGVecsLocal))
-
-        allocate(paw_id(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
+        allocate(braSys%pawK(nGVecsLocal))
+        allocate(ketSys%pawK(nGVecsLocal))
 
       
         do isp = 1, nSpins
@@ -1466,134 +1459,55 @@ contains
               ! existed or only the second spin channel was selected).
 
             !-----------------------------------------------------------------------------------------------
-            !> Check if the `allElecOverlap.isp.ik` file exists
 
             if(.not. overlapFileExists(ikGlobal, isp)) then
-
-              !-----------------------------------------------------------------------------------------------
-              !> Read wave functions and calculate overlap
-      
-              if(ionode) write(*, '("    Ufi calculation: [ ] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k")') 
-              call cpu_time(t1)
-
-
-              if(calcSpinDepPC) &
-                call readWfc(iBandIinit, iBandIfinal, ikGlobal, min(isp,ketSys%nSpins), nGkVecsLocal, ketSys)
-        
-              if(calcSpinDepSD) &
-                call readWfc(iBandFinit, iBandFfinal, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocal, braSys)
-        
-              call calculatePWsOverlap(braSys, ketSys)
-        
-
-              call cpu_time(t2)
-              if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [ ] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
-              call cpu_time(t1)
-
-
-              !-----------------------------------------------------------------------------------------------
-              !> Calculate cross projections
-
-              if(calcSpinDepSD) &
-                call calculateCrossProjection(iBandFinit, iBandFfinal, braSys, ketSys)
-
-
-              if(calcSpinDepPC) &
-                call calculateCrossProjection(iBandIinit, iBandIfinal, ketSys, braSys)
-        
-
-              call cpu_time(t2)
-              if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [ ] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
-              call cpu_time(t1)
-
-
-              !-----------------------------------------------------------------------------------------------
-              ! Calculate PAW wave function corrections
-
-              if(calcSpinDepPC) &
-                call readProjections(iBandIinit, iBandIfinal, ikGlobal, min(isp,ketSys%nSpins), ketSys)
-
-              if(calcSpinDepSD) &
-                call readProjections(iBandFinit, iBandFfinal, ikGlobal, min(isp,braSys%nSpins), braSys)
-
-    
-              braSys%pawWfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-              ketSys%pawWfc(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-
-
-              do ibi = iBandIinit, iBandIfinal
-                do ibf = iBandFinit, iBandFfinal
-                  if(indexInPool == 0) call pawCorrectionWfc(ibi, ibf, ketSys, pot)
-                  if(indexInPool == 1) call pawCorrectionWfc(ibi, ibf, braSys, pot)
-                enddo
-              enddo
-
-
-              call cpu_time(t2)
-              if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [ ] PAW k (",f6.2," secs)")') t2-t1
-              call cpu_time(t1)
-      
-      
-              !-----------------------------------------------------------------------------------------------
-              !> Broadcast wave function corrections to other processes
-
-              call MPI_BCAST(ketSys%pawWfc, size(ketSys%pawWfc), MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
-              call MPI_BCAST(braSys%pawWfc, size(braSys%pawWfc), MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
-
-
-              !-----------------------------------------------------------------------------------------------
-              !> Have all processes calculate the PAW k correction
-
-              if(calcSpinDepSD) then
-                braSys%pawK(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-
-                do ibf = iBandFinit, iBandFfinal
-                  call pawCorrectionK(ibf, nGVecsLocal, pot, Ylm, braSys)
-                enddo
-              endif
-
-              if(calcSpinDepPC) then
-                ketSys%pawK(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-      
-                do ibi = iBandIinit, iBandIfinal
-                  call pawCorrectionK(ibi, nGVecsLocal, pot, Ylm, ketSys)
-                enddo
-            endif
-
-        
-              call cpu_time(t2)
-              if(ionode) write(*, '("    Ufi calculation: [X] Overlap  [X] Cross projections  [X] PAW wfc  [X] PAW k (",f8.2," secs)")') t2-t1
-              call cpu_time(t1)
-      
-
-              !-----------------------------------------------------------------------------------------------
-              !> Sum over PAW k corrections
-
-              paw_id(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
       
               do ibi = iBandIinit, iBandIfinal
-                do ibf = iBandFinit, iBandFfinal   
-                  paw_id(ibf,ibi) = dot_product(conjg(braSys%pawK(ibf,:)),ketSys%pawK(ibi,:))
-                enddo
-              enddo
+                !if(calcSpinDepPC) then
+                  call readWfc(ibi, ikGlobal, min(isp,ketSys%nSpins), nGkVecsLocal, ketSys)
+                  call calculateCrossProjection(ketSys, braSys)
+                    ! Get new cross projection with new `ketSys%wfc`
+                  call readProjections(ibi, ikGlobal, min(isp,ketSys%nSpins), ketSys)
+                  call pawCorrectionK(nGVecsLocal, pot, Ylm, ketSys)
+                !endif
 
-              Ufi(:,:) = Ufi(:,:) + paw_id(:,:)*16.0_dp*pi*pi/omega
+                do ibf = iBandFinit, iBandFfinal
+                  !if(calcSpinDepSD) then
+                    call readWfc(ibf, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocal, braSys)
+                    call calculateCrossProjection(braSys, ketSys)
+                      ! Get new cross projection with new `braSys%wfc`
+                    call readProjections(ibf, ikGlobal, min(isp,braSys%nSpins), braSys)
+                    call pawCorrectionK(nGVecsLocal, pot, Ylm, braSys)
+                  !endif
 
+                  Ufi(ibf, ibi) = dot_product(braSys%wfc(:),ketSys%wfc(:))
+                  if(indexInPool == 0) call pawCorrectionWfc(ketSys, pot)
+                  if(indexInPool == 1) call pawCorrectionWfc(braSys, pot)
 
-              call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(:,:), size(Ufi(:,:)), MPI_DOUBLE_COMPLEX, &
-                      MPI_SUM, intraPoolComm, ierr)
+                  call MPI_BCAST(ketSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
+                  call MPI_BCAST(braSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
 
+                  Ufi(ibf,ibi) = Ufi(ibf,ibi) + (16.0_dp*pi*pi/omega)*dot_product(conjg(braSys%pawK(:)),ketSys%pawK(:))
 
+                  call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(ibf,ibi), 1, MPI_DOUBLE_COMPLEX, &
+                          MPI_SUM, intraPoolComm, ierr)
+
+                  Ufi(ibf,ibi) = Ufi(ibf,ibi) + braSys%pawWfc + ketSys%pawWfc
+
+                enddo ! Loop over final bands
+              enddo ! Loop over initial bands
+        
+
+              !-----------------------------------------------------------------------------------------------
+              
+              ! Subtract baseline if applicable and write out results
               if(indexInPool == 0) then 
-          
-                Ufi(:,:) = Ufi(:,:) + braSys%pawWfc(:,:) + ketSys%pawWfc(:,:)
-
                 if(order == 1 .and. subtractBaseline) &
                   call readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, Ufi)
         
                 call writeResults(ikLocal,isp, Ufi)
-        
               endif
+
   
             endif ! If this spin channel file doesn't exist
           endif ! If this spin channel shouldn't be skipped
@@ -1604,8 +1518,6 @@ contains
         deallocate(braSys%crossProjection, ketSys%crossProjection)
         deallocate(braSys%projection, ketSys%projection)
         deallocate(braSys%pawK, ketSys%pawK)
-        deallocate(paw_id)
-        deallocate(braSys%pawWfc, ketSys%pawWfc)
       endif ! If both spin channels exist
     enddo ! k-point loop
 
@@ -1726,17 +1638,14 @@ contains
   end subroutine readProjectors
 
 !----------------------------------------------------------------------------
-  subroutine readWfc(iBandinit, iBandfinal, ikGlobal, isp, nGkVecsLocal, sys)
-    !! Read wave function for given `crystalType` from `iBandinit`
-    !! to `iBandfinal`
+  subroutine readWfc(ib, ikGlobal, isp, nGkVecsLocal, sys)
+    !! Read wave function at band ib for given system
     
     implicit none
     
     ! Input variables:
-    integer, intent(in) :: iBandinit
-      !! Starting band
-    integer, intent(in) :: iBandfinal
-      !! Ending band
+    integer, intent(in) :: ib
+      !! Band index
     integer, intent(in) :: ikGlobal
       !! Current k point
     integer, intent(in) :: isp
@@ -1757,7 +1666,7 @@ contains
     integer :: sendCount(nProcPerPool)
       !! Number of items to send to each process
       !! in the pool
-    integer :: ib, igk
+    integer :: igk
       !! Loop indices
 
     complex*8 :: wfcAllPWs(sys%nPWs1KGlobal(ikGlobal))
@@ -1769,7 +1678,7 @@ contains
 
     fNameExport = trim(sys%exportDir)//'/wfc.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal))
     
-    sys%wfc(:,:) = cmplx(0.0_dp, 0.0_dp)
+    sys%wfc(:) = cmplx(0.0_dp, 0.0_dp)
 
     sendCount = 0
     sendCount(indexInPool+1) = nGkVecsLocal
@@ -1788,16 +1697,14 @@ contains
       !! Get the record length needed to write a complex
       !! array of length nPWs1k
 
-    if(indexInPool == 0) open(unit=72, file=trim(fNameExport), access='direct', recl=reclen, iostat=ierr, status='old', SHARED)
+    if(indexInPool == 0) then
+      open(unit=72, file=trim(fNameExport), access='direct', recl=reclen, iostat=ierr, status='old', SHARED)
 
-    do ib = iBandinit, iBandfinal
+      read(72,rec=ib) (wfcAllPWs(igk), igk=1,sys%nPWs1kGlobal(ikGlobal))
+    endif
 
-      if(indexInPool == 0) read(72,rec=ib) (wfcAllPWs(igk), igk=1,sys%nPWs1kGlobal(ikGlobal))
-
-      call MPI_SCATTERV(wfcAllPWs(:), sendCount, displacement, MPI_COMPLEX, sys%wfc(1:nGkVecsLocal,ib), nGkVecsLocal, &
-        MPI_COMPLEX, 0, intraPoolComm, ierr)
-
-    enddo
+    call MPI_SCATTERV(wfcAllPWs(:), sendCount, displacement, MPI_COMPLEX, sys%wfc(1:nGkVecsLocal), nGkVecsLocal, &
+      MPI_COMPLEX, 0, intraPoolComm, ierr)
 
     if(indexInPool == 0) close(72)
     
@@ -1806,50 +1713,15 @@ contains
   end subroutine readWfc
   
 !----------------------------------------------------------------------------
-  subroutine calculatePWsOverlap(braSys, ketSys)
-    
-    implicit none
-    
-    ! Input variables:
-    type(crystal) :: braSys, ketSys
-       !! The crystal systems to get the
-       !! matrix element for
-
-    ! Local variables:
-    integer :: ibi, ibf
-
-    
-    Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-    
-    do ibi = iBandIinit, iBandIfinal 
-      
-      do ibf = iBandFinit, iBandFfinal
-
-        Ufi(ibf, ibi) = dot_product(braSys%wfc(:,ibf),ketSys%wfc(:,ibi))
-          !! Calculate local overlap
-          ! `dot_product` automatically conjugates first argument for 
-          ! complex variables.
-
-      enddo
-      
-    enddo
-    
-    return
-    
-  end subroutine calculatePWsOverlap
-  
-!----------------------------------------------------------------------------
-  subroutine readProjections(iBandinit, iBandfinal, ikGlobal, isp, sys)
+  subroutine readProjections(ib, ikGlobal, isp, sys)
     
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: iBandinit
-      !! Starting band
-    integer, intent(in) :: iBandfinal
-      !! Ending band
+    integer :: ib
+      !! Band index
     integer, intent(in) :: ikGlobal
       !! Current k point
     integer, intent(in) :: isp
@@ -1860,8 +1732,6 @@ contains
        !! The crystal system
 
     ! Local variables:
-    integer :: ib
-      !! Loop indices
     integer :: reclen
       !! Record length for projections files
 
@@ -1869,11 +1739,11 @@ contains
       !! Export file name
     
     
-    sys%projection(:,:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
+    sys%projection(:) = cmplx( 0.0_dp, 0.0_dp, kind = dp )
     
     if(indexInPool == 0) then
 
-      inquire(iolength=reclen) sys%projection(:,iBandinit)
+      inquire(iolength=reclen) sys%projection(:)
         !! Get the record length needed to write a complex
         !! array of length nProj
 
@@ -1885,17 +1755,13 @@ contains
     
     
       ! Read the projections
-      do ib = iBandinit, iBandfinal
-
-        read(72,rec=ib) sys%projection(:,ib)
-
-      enddo
+      read(72,rec=ib) sys%projection(:)
     
       close(72)
 
     endif
 
-    call MPI_BCAST(sys%Projection, size(sys%projection), MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
+    call MPI_BCAST(sys%projection, size(sys%projection), MPI_DOUBLE_COMPLEX, root, intraPoolComm, ierr)
       ! Broadcast entire array to all processes
     
     return
@@ -1903,7 +1769,7 @@ contains
   end subroutine readProjections
   
 !----------------------------------------------------------------------------
-  subroutine calculateCrossProjection(iBandinit, iBandfinal, sysWfc, sysBeta)
+  subroutine calculateCrossProjection(sysWfc, sysBeta)
     !! Calculate the cross projection of one crystal's projectors
     !! on the other crystal's wave function coefficients, distributing
     !! the result to all processors
@@ -1911,13 +1777,6 @@ contains
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: iBandinit
-      !! Starting band for crystal wfc comes from
-      !! (not `projCrystalType`)
-    integer, intent(in) :: iBandfinal
-      !! Ending band for crystal wfc comes from
-      !! (not `projCrystalType`)
-
     type(crystal) :: sysWfc
        !! The crystal system to get the wave functions from
 
@@ -1926,7 +1785,7 @@ contains
        !! The crystal system to get the projectors from
     
     ! Local variables:
-    integer :: ib, ipr
+    integer :: ipr
       !! Loop indices
 
     complex(kind=dp) :: crossProjectionLocal
@@ -1934,18 +1793,16 @@ contains
       !! be summed across processors in pool
     
 
-    sysBeta%crossProjection(:,:) = cmplx(0.0_dp, 0.0_dp, kind=dp)
+    sysBeta%crossProjection(:) = cmplx(0.0_dp, 0.0_dp, kind=dp)
 
-    do ib = iBandinit, iBandfinal
-      do ipr = 1, sysBeta%nProj
+    do ipr = 1, sysBeta%nProj
 
-        crossProjectionLocal = dot_product(sysBeta%beta(:,ipr),sysWfc%wfc(:,ib))
-          ! `dot_product` automatically conjugates first argument for 
-          ! complex variables.
+      crossProjectionLocal = dot_product(sysBeta%beta(:,ipr),sysWfc%wfc(:))
+        ! `dot_product` automatically conjugates first argument for 
+        ! complex variables.
 
-        call MPI_ALLREDUCE(crossProjectionLocal, sysBeta%crossProjection(ipr,ib), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
+      call MPI_ALLREDUCE(crossProjectionLocal, sysBeta%crossProjection(ipr), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
 
-      enddo
     enddo
     
     return
@@ -1953,15 +1810,12 @@ contains
   end subroutine calculateCrossProjection
   
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionWfc(ibi, ibf, sys, pot)
+  subroutine pawCorrectionWfc(sys, pot)
     ! calculates the augmentation part of the transition matrix element
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ibi, ibf
-      !! Band indices
-
     type(crystal), intent(inout) :: sys
       !! The crystal system
 
@@ -1979,6 +1833,8 @@ contains
     integer :: LL, LLP, LMBASE, LM, LMP
     real(kind = dp) :: atomicOverlap
     
+
+    sys%pawWfc = 0.0_dp
     
     LMBASE = 0
     
@@ -2008,20 +1864,20 @@ contains
 
                   atomicOverlap = sum(pot%atom(iT)%F1bra(:,LL, LLP))
 
-                  projectionI = sys%crossProjection(LMP + LMBASE, ibi)
+                  projectionI = sys%crossProjection(LMP + LMBASE)
                   
-                  projectionF = conjg(sys%projection(LM + LMBASE, ibf))
+                  projectionF = conjg(sys%projection(LM + LMBASE))
                     
-                  sys%pawWfc(ibf, ibi) = sys%pawWfc(ibf, ibi) + projectionF*atomicOverlap*projectionI
+                  sys%pawWfc = sys%pawWfc + projectionF*atomicOverlap*projectionI
 
                 else if(trim(sys%sysType) == 'ket') then
                   atomicOverlap = sum(pot%atom(iT)%F1ket(:,LL, LLP))
 
-                  projectionI = sys%projection(LMP + LMBASE, ibi)
+                  projectionI = sys%projection(LMP + LMBASE)
                   
-                  projectionF = conjg(sys%crossProjection(LM + LMBASE, ibf))
+                  projectionF = conjg(sys%crossProjection(LM + LMBASE))
                     
-                  sys%pawWfc(ibf, ibi) = sys%pawWfc(ibf, ibi) + projectionF*atomicOverlap*projectionI
+                  sys%pawWfc = sys%pawWfc + projectionF*atomicOverlap*projectionI
                       
                 endif
 
@@ -2040,13 +1896,11 @@ contains
   end subroutine pawCorrectionWfc
 
 !----------------------------------------------------------------------------
-  subroutine pawCorrectionK(ib, nGVecsLocal, pot, Ylm, sys)
+  subroutine pawCorrectionK(nGVecsLocal, pot, Ylm, sys)
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ib
-      !! Band index
     integer, intent(in) :: nGVecsLocal
       !! Number of local G-vectors
 
@@ -2077,6 +1931,8 @@ contains
     else if(trim(sys%sysType) == 'ket') then
       sign_i = -1
     endif
+
+    sys%pawK(:) = 0.0_dp
     
     do ig = 1, nGVecsLocal
       
@@ -2098,13 +1954,13 @@ contains
 
               VifQ_aug = sys%exp_iGDotR(iA,ig)*Ylm(ind,ig)*iToTheInt(L,sign_i)*pot%atom(iT)%FI(iL,ig)
 
-              sys%pawK(ib, ig) = sys%pawK(ib, ig) + VifQ_aug*sys%projection(LM + LMBASE, ib)
+              sys%pawK(ig) = sys%pawK(ig) + VifQ_aug*sys%projection(LM + LMBASE)
 
             else if(trim(sys%sysType) == 'bra') then
 
               VifQ_aug = sys%exp_iGDotR(iA,ig)*conjg(Ylm(ind,ig))*iToTheInt(L,sign_i)*pot%atom(iT)%FI(iL,ig)
                 
-              sys%pawK(ib, ig) = sys%pawK(ib, ig) + VifQ_aug*conjg(sys%projection(LM + LMBASE, ib))
+              sys%pawK(ig) = sys%pawK(ig) + VifQ_aug*conjg(sys%projection(LM + LMBASE))
                 
             endif
           enddo
