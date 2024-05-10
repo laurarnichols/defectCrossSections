@@ -641,8 +641,8 @@ module energyTabulatorMod
             dEFirst = dEEigRef + dEEigRefDefect
         
 
-            write(27,'(2i7,2f12.4)') ibi, abs(dEZeroth)/eVToHartree
-            write(17,'(2i7,3ES24.15E3)') iBandFinit, ibi, dEDelta, dEZeroth, dEFirst
+            write(27,'(i7,f12.4)') ibi, abs(dEZeroth)/eVToHartree
+            write(17,'(i7,3ES24.15E3)') ibi, dEDelta, dEZeroth, dEFirst
             
           enddo ! Loop over initial bands
 
@@ -653,8 +653,6 @@ module energyTabulatorMod
           call cpu_time(t2)
           write(*, '(" Writing energy table of k-point ", i4, "and spin ", i1, " done in:                   ", f10.2, " secs.")') &
             ikGlobal, isp, t2-t1
-    
- 1001     format(2i7,3ES24.15E3)
 
         enddo ! Loop over local k-points
       endif ! If we should calculate this spin
@@ -1166,7 +1164,7 @@ module energyTabulatorMod
   end subroutine readEigenvalues
   
 !----------------------------------------------------------------------------
-  subroutine readCaptureEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, energyTableDir, dE)
+  subroutine readCaptureEnergyTable(ikGlobal, isp, energyTableDir, ibi, ibf, nTransitions, dE)
     !! Read all energies from energy table and store in dE
     
     use miscUtilities, only: ignoreNextNLinesFromFile, int2str
@@ -1174,8 +1172,6 @@ module energyTabulatorMod
     implicit none
     
     ! Input variables:
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
     integer, intent(in) :: ikGlobal
       !! Current global k-point
     integer, intent(in) :: isp
@@ -1185,19 +1181,21 @@ module energyTabulatorMod
       !! Path to energy table
 
     ! Output variables:
-    real(kind=dp), intent(out) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal,3)
+    integer, allocatable, intent(out) :: ibi(:)
+      !! Initial-state indices
+    integer, intent(out) :: ibf
+      !! Final-state index
+    integer, intent(out) :: nTransitions
+      !! Total number of transitions 
+
+    real(kind=dp), allocatable, intent(out) :: dE(:,:)
       !! All energy differences from energy table
 
     ! Local variables:
-    integer :: iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
-      !! Energy band bounds for initial and final state from the energy table file
-    integer :: ibi, ibf
-      !! Loop indices
     integer :: iDum
-      !! Dummy integer to ignore input
-
-    real(kind=dp) :: dE_(3)
-      !! Input energy
+      !! Dummy integer
+    integer :: iE
+      !! Loop indices
 
     logical :: captured
       !! If energy table was tabulated for capture
@@ -1218,23 +1216,19 @@ module energyTabulatorMod
 
 
     read(27,*)
-    read(27,'(5i10)') iDum, iBandIinit_, iBandIfinal_, iBandFinit_
+    read(27,*) nTransitions, iDum, iDum, ibf
 
-    ! Check the input band bounds against those in the energy file
-    if(iBandIinit < iBandIinit_ .or. iBandIfinal > iBandIfinal_ .or. iBandFinit /= iBandFinit_ .or. iBandFfinal /= iBandFinit_) &
-      call exitError('readCaptureEnergyTable', 'given band bounds are outside those in energy table '//trim(fName), 1)
+    allocate(ibi(nTransitions))
+    allocate(dE(3,nTransitions))
     
     call ignoreNextNLinesFromFile(27,6)
     
-
-    do ibi = iBandIinit_, iBandIfinal_
+    do iE = 1, nTransitions
       
-      read(27,*) iDum, iDum, dE_
+      read(27,'(1i7,3ES24.15E3)') ibi(iE), dE(:,iE)
 
-      if(ibi >= iBandIinit .and. ibi <= iBandIfinal) dE(iBandFinit_,ibi,:) = dE_(:)
-          
     enddo
-    
+
     close(27)
     
     return
