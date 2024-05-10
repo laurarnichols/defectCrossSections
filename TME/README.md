@@ -1,14 +1,14 @@
 # Transition matrix element (`TME`)
 
-The `TME` program outputs matrix elements for a range of initial and final band states using all-electron overlaps from the PAW method and the appropriate energy difference to get the correct matrix element. The `Export` code must be run on all VASP calculations before `TME` can be run. The code assumes that the WZP method is used, where carriers are excited to achieve desired charge states rather than adding/removing electrons using the jellium method. 
+The `TME` program outputs matrix elements based on the all-electron overlap `<braWfc|ketWfc>` for a range of initial and final band states using all-electron overlaps from the PAW method and the appropriate energy difference to get the correct matrix element. The `Export` code must be run on all VASP calculations and the energies must be tabulated with the `EnergyTabulator` code before `TME` can be run. The code assumes that the WZP method is used, where carriers are excited to achieve desired charge states rather than adding/removing electrons using the jellium method. 
 
-The code also assumes that all atom types in the `PC` system are also in the `SD` system in the same order and that any atoms in the SD system not in the PC system are at the end.
+The code assumes that the order of the atom types in the two systems matches, with the possible addition of atom types at the end of one of the files.
 
 Output files are 
 * `allElecOverlap.isp.ik` -- for each band in range and a given spin and k-point: initial and final band, all-electron overlaps, and matrix elements
 * stdout -- timing information and status updates
 
-The same TME code is used for both the zeroth-order and the first-order matrix elements. For both orders, the overlap part comes from from the `TME` code and the energy difference comes from the [`EnergyTabulator`](../EnergyTabulator) code.
+The same TME code is used for both the zeroth-order and the first-order matrix elements. For both orders, the overlap part comes from from the `TME` code and the energy difference comes from the [`EnergyTabulator`](../EnergyTabulator) code. The band parameters are also read directly from the energy table.
 
 ## Zeroth-order
 
@@ -27,13 +27,6 @@ The `TME` input file for the zeroth-order should look like
   braExportDir    = 'path-to-final-charge-state-initial-positions-export'
   ketExportDir    = 'path-to-perfect-crystal-export'
   energyTableDir = 'path-to-energy-tables'
-  
-  ! Band range for overlaps
-  iBandIinit = integer						! lowest initial-state band
-  iBandIfinal = integer						! highest initial-state band
-  iBandFinit = integer						! lowest final-state band
-  iBandFfinal = integer						! highest final-state band
-    ! Note: code logic only currently tested for single final band state (iBandFinit = iBandFfinal)
   
   ! Output info
   outputDir = 'path-to-store-overlap-files' 			! default './TMEs'
@@ -65,13 +58,6 @@ The `TME` input file for the first-order term should look like
   ! Baseline info:
   subtractBaseline = .true. or .false. ! If "orthogonal" overlap should be subtracted
   baselineDir = 'path-to-non-displaced-overlaps'
-  
-  ! Band range for overlaps
-  iBandIinit = integer						! lowest initial-state band
-  iBandIfinal = integer						! highest initial-state band
-  iBandFinit = integer						! lowest final-state band
-  iBandFfinal = integer						! highest final-state band
-    ! Note: code logic only currently tested for single final band state (iBandFinit = iBandFfinal)
 
   ! Parameters to get dq_j
   dqFName = 'path-to-dq-file-from-shifter'

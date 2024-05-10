@@ -5,7 +5,7 @@ module TMEmod
   use constants, only: dp, pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
   use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable
-  use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, nSpins, order, ispSelect, loopSpins
+  use base, only: nKPoints, nSpins, order, ispSelect, loopSpins
 
   use errorsAndMPI
   use mpi
@@ -179,16 +179,14 @@ module TMEmod
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, order, phononModeJ, baselineDir, &
-          braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, loopSpins, subtractBaseline)
+  subroutine readInputParams(ispSelect, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, & 
+          energyTableDir, outputDir, loopSpins, subtractBaseline)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
 
     ! Output variables:
-    integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
     integer, intent(out) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
@@ -220,29 +218,23 @@ contains
 
 
     namelist /TME_Input/ ketExportDir, braExportDir, outputDir, energyTableDir, &
-                         iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, &
                          order, dqFName, phononModeJ, subtractBaseline, baselineDir, &
                          ispSelect
     
 
     if(ionode) then
     
-      call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, order, phononModeJ, baselineDir, &
-              braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, subtractBaseline)
+      call initialize(ispSelect, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, &
+              energyTableDir, outputDir, subtractBaseline)
     
       read(5, TME_Input, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading TME_Input namelist', abs(ierr))
     
-      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, order, phononModeJ, &
-              baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, subtractBaseline, loopSpins)
+      call checkInitialization(ispSelect, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, &
+              energyTableDir, outputDir, subtractBaseline, loopSpins)
 
     endif
-
-    call MPI_BCAST(iBandIinit, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
 
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
 
@@ -265,14 +257,12 @@ contains
   end subroutine readInputParams
   
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, order, phononModeJ, baselineDir, &
-          braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, subtractBaseline)
+  subroutine initialize(ispSelect, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, &
+           energyTableDir, outputDir, subtractBaseline)
     
     implicit none
 
     ! Output variables:
-    integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
     integer, intent(out) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
@@ -313,11 +303,6 @@ contains
 
     phononModeJ = -1
     
-    iBandIinit  = -1
-    iBandIfinal = -1
-    iBandFinit  = -1
-    iBandFfinal = -1
-    
     subtractBaseline = .false.
     
     return
@@ -325,14 +310,12 @@ contains
   end subroutine initialize
   
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, order, phononModeJ, &
-          baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, subtractBaseline, loopSpins)
+  subroutine checkInitialization(ispSelect, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, &
+          energyTableDir, outputDir, subtractBaseline, loopSpins)
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
     integer, intent(in) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
@@ -398,10 +381,6 @@ contains
     endif
 
     abortExecution = checkStringInitialization('outputDir', outputDir) .or. abortExecution
-    abortExecution = checkIntInitialization('iBandIinit', iBandIinit, 1, int(1e9)) .or. abortExecution
-    abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
-    abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
-    abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
 
 
     call system('mkdir -p '//trim(outputDir))
@@ -604,8 +583,6 @@ contains
       !! Dummy integer
     integer :: ik, iA, ix, iT
       !! Loop indices
-    integer :: nBands
-      !! Number of bands
     integer :: lmMax
       !! Needed to calculate nProj
 
@@ -741,14 +718,7 @@ contains
       enddo
     
       read(50,*)
-      read(50,'(i10)') nBands
-
-      if(iBandIfinal > nBands .or. iBandFfinal > nBands) &
-        call exitError('readInputFile', 'band limits outside the number of bands in the system '//trim(int2str(nBands)), 1)
-        ! Only need to test these bands because we tested in
-        ! the `checkInitialization` subroutine to make sure
-        ! that the `initial` bands are lower than the `final`
-        ! bands
+      read(50,*) ! nBands
 
     endif
 
@@ -1370,17 +1340,23 @@ contains
       !! information
 
     ! Local variables 
-    integer :: ikLocal, ikGlobal, isp, ibi, ibf
+    integer, allocatable :: ibi(:)
+      !! Initial-state indices
+    integer :: ibf
+      !! Final-state index
+    integer :: ikLocal, ikGlobal, isp, iE
       !! Loop indices
+    integer :: nTransitions
+      !! Total number of transitions 
+
+    real(kind=dp), allocatable :: dE(:,:)
+      !! All energy differences from energy table
 
     logical :: calcSpinDepSD, calcSpinDepPC
       !! If spin-dependent subroutines should be called
-    logical :: spin1Skipped = .false.
-      !! If the first spin channel was skipped
-    
+    logical :: spin1Skipped = .false., spin2Skipped = .false.
+      !! If spin channels skipped
 
-    allocate(Ufi(iBandFinit:iBandFfinal, iBandIinit:iBandIfinal))
-  
 
     do ikLocal = 1, nkPerPool
     
@@ -1433,91 +1409,108 @@ contains
         allocate(braSys%pawK(nGVecsLocal))
         allocate(ketSys%pawK(nGVecsLocal))
 
-      
-        do isp = 1, nSpins
 
-          if(indexInPool == 0) then
-            if(isp == 1 .and. (ispSelect == 2 .or. overlapFileExists(ikGlobal,1))) spin1Skipped = .true.
+        if(indexInPool == 0) then
+          if(ispSelect == 2 .or. overlapFileExists(ikGlobal,1)) spin1Skipped = .true.
+          if(ispSelect == 1 .or. overlapFileExists(ikGlobal,2)) spin2Skipped = .true.
+        endif
+
+        call MPI_BCAST(spin1Skipped, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
+        call MPI_BCAST(spin2Skipped, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
+
+
+        ! Read nTransitions and band indices from energy table, assuming that
+        ! they are the same for the two spin channels
+        if(indexInPool == 0) then
+          if(spin1Skipped) then
+            call readCaptureEnergyTable(ikGlobal, 2, energyTableDir, ibi, ibf, nTransitions, dE)
+          else
+            call readCaptureEnergyTable(ikGlobal, 1, energyTableDir, ibi, ibf, nTransitions, dE)
           endif
+        endif
 
-          call MPI_BCAST(spin1Skipped, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
+        call MPI_BCAST(nTransitions, 1, MPI_INTEGER, root, intraPoolComm, ierr)
+        if(indexInPool /= 0) allocate(ibi(nTransitions))
+        call MPI_BCAST(ibi, nTransitions, MPI_INTEGER, root, intraPoolComm, ierr)
+        call MPI_BCAST(ibf, 1, MPI_INTEGER, root, intraPoolComm, ierr)
 
-          if(loopSpins .or. isp == ispSelect) then
+        allocate(Ufi(nTransitions,nSpins))
+        Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
 
-            Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+        
+        do iE = 1, nTransitions
 
-            if(ionode) write(*,'("  Beginning spin ", i2)') isp
+          if(ionode) write(*,'("  Beginning transition ", i5, " -> ",i5)') ibi(iE), ibf
+          call cpu_time(t1)
 
-            calcSpinDepPC = isp == 1 .or. ketSys%nSpins == 2 .or. spin1Skipped
-            calcSpinDepSD = isp == 1 .or. braSys%nSpins == 2 .or. spin1Skipped
-              ! If either of the systems only has a single spin 
-              ! channel, some inputs and calculations do not need
-              ! to be redone for both spin channels. However, we
-              ! still need to make sure to calculate these values
-              ! for the second spin channel if the first spin channel
-              ! was not done for some reason (e.g., the file already
-              ! existed or only the second spin channel was selected).
+          do isp = 1, nSpins
+            if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
 
-            !-----------------------------------------------------------------------------------------------
-
-            if(.not. overlapFileExists(ikGlobal, isp)) then
+              calcSpinDepPC = isp == 1 .or. ketSys%nSpins == 2 .or. spin1Skipped
+              calcSpinDepSD = isp == 1 .or. braSys%nSpins == 2 .or. spin1Skipped
+                ! If either of the systems only has a single spin channel, some inputs and
+                ! calculations do not need to be redone for both spin channels. However, we
+                ! still need to make sure to calculate these values for the second spin
+                ! channel if the first spin channel was not done (e.g., the file already 
+                ! existed or only the second spin channel was selected).
       
-              do ibi = iBandIinit, iBandIfinal
-                !if(calcSpinDepPC) then
-                  call readWfc(ibi, ikGlobal, min(isp,ketSys%nSpins), nGkVecsLocal, ketSys)
-                  call calculateCrossProjection(ketSys, braSys)
-                    ! Get new cross projection with new `ketSys%wfc`
-                  call readProjections(ibi, ikGlobal, min(isp,ketSys%nSpins), ketSys)
-                  call pawCorrectionK(nGVecsLocal, pot, Ylm, ketSys)
-                !endif
-
-                do ibf = iBandFinit, iBandFfinal
-                  !if(calcSpinDepSD) then
-                    call readWfc(ibf, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocal, braSys)
-                    call calculateCrossProjection(braSys, ketSys)
-                      ! Get new cross projection with new `braSys%wfc`
-                    call readProjections(ibf, ikGlobal, min(isp,braSys%nSpins), braSys)
-                    call pawCorrectionK(nGVecsLocal, pot, Ylm, braSys)
-                  !endif
-
-                  Ufi(ibf, ibi) = dot_product(braSys%wfc(:),ketSys%wfc(:))
-                  if(indexInPool == 0) call pawCorrectionWfc(ketSys, pot)
-                  if(indexInPool == 1) call pawCorrectionWfc(braSys, pot)
-
-                  call MPI_BCAST(ketSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
-                  call MPI_BCAST(braSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
-
-                  Ufi(ibf,ibi) = Ufi(ibf,ibi) + (16.0_dp*pi*pi/omega)*dot_product(conjg(braSys%pawK(:)),ketSys%pawK(:))
-
-                  call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(ibf,ibi), 1, MPI_DOUBLE_COMPLEX, &
-                          MPI_SUM, intraPoolComm, ierr)
-
-                  Ufi(ibf,ibi) = Ufi(ibf,ibi) + braSys%pawWfc + ketSys%pawWfc
-
-                enddo ! Loop over final bands
-              enddo ! Loop over initial bands
-        
-
-              !-----------------------------------------------------------------------------------------------
-              
-              ! Subtract baseline if applicable and write out results
-              if(indexInPool == 0) then 
-                if(order == 1 .and. subtractBaseline) &
-                  call readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, Ufi)
-        
-                call writeResults(ikLocal,isp, Ufi)
+              if(calcSpinDepPC) then
+                call readWfc(ibi(iE), ikGlobal, min(isp,ketSys%nSpins), nGkVecsLocal, ketSys)
+                call calculateCrossProjection(ketSys, braSys)
+                  ! Get new cross projection with new `ketSys%wfc`
+                call readProjections(ibi(iE), ikGlobal, min(isp,ketSys%nSpins), ketSys)
+                call pawCorrectionK(nGVecsLocal, pot, Ylm, ketSys)
               endif
 
-  
-            endif ! If this spin channel file doesn't exist
-          endif ! If this spin channel shouldn't be skipped
-        enddo ! Spin loop
+              if(calcSpinDepSD) then
+                call readWfc(ibf, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocal, braSys)
+                call calculateCrossProjection(braSys, ketSys)
+                  ! Get new cross projection with new `braSys%wfc`
+                call readProjections(ibf, ikGlobal, min(isp,braSys%nSpins), braSys)
+                call pawCorrectionK(nGVecsLocal, pot, Ylm, braSys)
+              endif
+
+              Ufi(iE,isp) = dot_product(braSys%wfc(:),ketSys%wfc(:))
+              if(indexInPool == 0) call pawCorrectionWfc(ketSys, pot)
+              if(indexInPool == 1) call pawCorrectionWfc(braSys, pot)
+
+              call MPI_BCAST(ketSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
+              call MPI_BCAST(braSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
+
+              Ufi(iE,isp) = Ufi(iE,isp) + (16.0_dp*pi*pi/omega)*dot_product(conjg(braSys%pawK(:)),ketSys%pawK(:))
+
+              call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(iE,isp), 1, MPI_DOUBLE_COMPLEX, &
+                      MPI_SUM, intraPoolComm, ierr)
+
+              Ufi(iE,isp) = Ufi(iE,isp) + braSys%pawWfc + ketSys%pawWfc
+
+            endif ! If calculating this spin
+          enddo ! Loop over spins
+
+          call cpu_time(t2)
+          if(ionode) write(*, '("  Transition ",i5," -> ",i5," complete! (",f10.2," secs)")') ibi(iE), ibf, t2-t1
+        enddo ! Loop over transitions ibi -> ibf
+
+
+        ! Subtract baseline if applicable and write out results
+        if(indexInPool == 0) then 
+          do isp = 1, nSpins
+            if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
+                if(order == 1 .and. subtractBaseline) &
+                  call readAndSubtractBaseline(ikLocal, isp, nTransitions, Ufi(:,isp))
+        
+                call writeResults(ikLocal, isp, nTransitions, Ufi(:,isp))
+            endif 
+          enddo
+        endif
+
 
         deallocate(braSys%wfc, ketSys%wfc)
         deallocate(braSys%beta, ketSys%beta)
         deallocate(braSys%crossProjection, ketSys%crossProjection)
         deallocate(braSys%projection, ketSys%projection)
         deallocate(braSys%pawK, ketSys%pawK)
+
       endif ! If both spin channels exist
     enddo ! k-point loop
 
@@ -2004,27 +1997,27 @@ contains
   end function iToTheInt
 
 !----------------------------------------------------------------------------
-  subroutine readAndSubtractBaseline(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikLocal, isp, Ufi)
+  subroutine readAndSubtractBaseline(ikLocal, isp, nTransitions, Ufi)
+
+    use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
     
     ! Input variables:
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
     integer, intent(in) :: ikLocal
       !! Current local k-point
     integer, intent(in) :: isp
       !! Current spin channel
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
 
     ! Output variables:
-    complex(kind=dp), intent(inout) :: Ufi(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
+    complex(kind=dp), intent(inout) :: Ufi(nTransitions)
       !! All-electron overlap
 
     ! Local variables:
-    integer :: iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
-      !! Energy band bounds for initial and final state from the energy table file
-    integer :: ibi, ibf
-      !! Loop indices
+    integer :: iE
+      !! Loop index
     integer :: iDum
       !! Dummy integer to ignore input
     integer :: ikGlobal
@@ -2045,43 +2038,27 @@ contains
     baselineFName = trim(getMatrixElementFNameWPath(ikGlobal, isp, baselineDir)) 
     open(17, file=trim(baselineFName), status='unknown')
 
-    read(17,*) 
-    read(17,*) 
-    read(17,*) 
-    read(17,*) 
-    read(17,'(5i10)') iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
-
-    ! Check the input band bounds against those in the baseline overlap file
-    if(iBandIinit < iBandIinit_ .or. iBandIfinal > iBandIfinal_ .or. iBandFinit < iBandFinit_ .or. iBandFfinal > iBandFfinal_) &
-      call exitError('readAndSubtractBaseline', 'given band bounds are outside those in baseline overlap file '//trim(baselineFName), 1)
-    
-    read(17,*) 
+    call ignoreNextNLinesFromFile(17,8)
 
     if(order == 1) read(17,*)
       ! Ignore additional line for phonon mode 
 
     
-    do ibf = iBandFinit_, iBandFfinal_
-      do ibi = iBandIinit_, iBandIfinal_
-      
-        read(17, 1001) iDum, iDum, baselineOverlap, rDum, rDum
+    do iE = 1, nTransitions 
+      read(17,'(i7,4ES24.15E3)') iDum, baselineOverlap, rDum, rDum
 
-        if(ibi >= iBandIinit .and. ibi <= iBandIfinal .and. ibf >= iBandFinit .and. ibf <= iBandFfinal) &
-          Ufi(ibf,ibi) = Ufi(ibf,ibi) - baselineOverlap
+      Ufi(iE) = Ufi(iE) - baselineOverlap
           
-      enddo
     enddo
     
     close(17)
-    
- 1001 format(2i7,4ES24.15E3)
     
     return
     
   end subroutine readAndSubtractBaseline
   
 !----------------------------------------------------------------------------
-  subroutine writeResults(ikLocal, isp, Ufi)
+  subroutine writeResults(ikLocal, isp, nTransitions, Ufi)
     
     implicit none
     
@@ -2090,19 +2067,23 @@ contains
       !! Current local k-point
     integer, intent(in) :: isp
       !! Current spin channel
+    integer, intent(inout) :: nTransitions
+      !! Total number of transitions 
 
-    complex(kind=dp), intent(in) :: Ufi(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
+    complex(kind=dp), intent(in) :: Ufi(nTransitions)
       !! All-electron overlap
 
     ! Local variables:
-    integer :: ibi, ibf
-      !! Loop indices
+    integer, allocatable :: ibi(:)
+      !! Initial-state indices
+    integer :: ibf
+      !! Final-state index
+    integer :: iE
+      !! Loop index
     integer :: ikGlobal
       !! Current global k-point
-    integer :: totalNumberOfElements
-      !! Total number of overlaps to output
 
-    real(kind=dp) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal,3)
+    real(kind=dp), allocatable :: dE(:,:)
       !! Energy difference to be combined with
       !! overlap for matrix element
     
@@ -2111,7 +2092,11 @@ contains
 
 
     ikGlobal = ikLocal+ikStart_pool-1
+
+
+    call readCaptureEnergyTable(ikGlobal, isp, energyTableDir, ibi, ibf, nTransitions, dE)
     
+
     open(17, file=trim(getMatrixElementFNameWPath(ikGlobal, isp, outputDir)), status='unknown')
     
     write(17, '("# Total number of k-points, k-point index, spin index Format : ''(3i10)''")')
@@ -2119,52 +2104,49 @@ contains
 
     write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
     
-    text = "# Total number of <f|i> elements, Initial States (bandI, bandF), Final States (bandI, bandF)"
-    write(17,'(a, " Format : ''(5i10)''")') trim(text)
-    
-    totalNumberOfElements = (iBandIfinal - iBandIinit + 1)*(iBandFfinal - iBandFinit + 1)
-    write(17,'(5i10)') totalNumberOfElements, iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+    ! Include in the output file that these are capture matrix elements
+    write(17,'("# Capture matrix elements? Alternative is scattering.)")')
+    write(17,'(L4)') .true.
+
+    text = "# Total number of transitions, Initial States (bandI, bandF), Final State (band)"
+    write(17,'(a, " Format : ''(4i10)''")') trim(text)   
+  
+    write(17,'(4i10)') nTransitions, ibi(1), ibi(nTransitions), ibf
     
 
     if(order == 0) then
 
-      text = "# Final Band, Initial Band, Complex <f|i>, |<f|i>|^2, |dE*<f|i>|^2 (Hartree^2)" 
-      write(17, '(a, " Format : ''(2i10,3ES24.15E3)''")') trim(text)
+      text = "# Initial Band, Complex <f|i>, |<f|i>|^2, |dE*<f|i>|^2 (Hartree^2)" 
+      write(17, '(a, " Format : ''(i10,4ES24.15E3)''")') trim(text)
 
     else if(order == 1) then
 
       write(17,'("# Phonon mode j, dq_j (Bohr*sqrt(elec. mass)). Format: ''(a78, i7, ES24.15E3)'' ", i7, ES24.15E3)') phononModeJ, dq_j
     
       if(subtractBaseline) then
-        text = "# Final Band, Initial Band, Complex <f|i>-baseline, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2/(Bohr*sqrt(elec. mass))^2)" 
+        text = "# Initial Band, Complex <f|i>-baseline, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2/(Bohr*sqrt(elec. mass))^2)" 
       else
-        text = "# Final Band, Initial Band, Complex <f|i>, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2/(Bohr*sqrt(elec. mass))^2)" 
+        text = "# Initial Band, Complex <f|i>, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2/(Bohr*sqrt(elec. mass))^2)" 
       endif
-      write(17, '(a, " Format : ''(2i7,4ES24.15E3)''")') trim(text)
+      write(17, '(a, " Format : ''(i10,4ES24.15E3)''")') trim(text)
 
     endif
 
 
-    call readCaptureEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, isp, energyTableDir, dE)
-
-    do ibf = iBandFinit, iBandFfinal
-      do ibi = iBandIinit, iBandIfinal
+    do iE = 1, nTransitions
         
         if(order == 0) then
-          write(17, 1001) ibf, ibi, Ufi(ibf,ibi), abs(Ufi(ibf,ibi))**2, abs(dE(ibf,ibi,2)*Ufi(ibf,ibi))**2
+          write(17,'(i10,4ES24.15E3)') ibi(iE), Ufi(iE), abs(Ufi(iE))**2, abs(dE(2,iE)*Ufi(iE))**2
         else if(order == 1) then
-          write(17, 1001) ibf, ibi, Ufi(ibf,ibi), abs(Ufi(ibf,ibi))**2, abs(dE(ibf,ibi,3)*Ufi(ibf,ibi)/dq_j)**2
+          write(17,'(i10,4ES24.15E3)') ibi(iE), Ufi(iE), abs(Ufi(iE))**2, abs(dE(3,iE)*Ufi(iE)/dq_j)**2
         endif
             
-      enddo
     enddo
 
     close(17)
     
     call cpu_time(t2)
-    write(*, '("    Ufi(:,:) of k-point ", i4, " and spin ", i1, " written.")') ikGlobal, isp
-    
- 1001 format(2i7,4ES24.15E3)
+    write(*, '("    Ufi(:) of k-point ", i4, " and spin ", i1, " written.")') ikGlobal, isp
     
     return
     

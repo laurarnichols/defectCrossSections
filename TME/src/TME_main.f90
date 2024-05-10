@@ -17,8 +17,8 @@ program TMEmain
   if(ionode) call cpu_time(t0)
 
 
-  call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ispSelect, order, phononModeJ, baselineDir, &
-          braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, loopSpins, subtractBaseline)
+  call readInputParams(ispSelect, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, & 
+          energyTableDir, outputDir, loopSpins, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     
