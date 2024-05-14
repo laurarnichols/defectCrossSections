@@ -898,18 +898,6 @@ module PhononPPMod
 
       enddo
 
-      open(60, file=trim(SjFName)//'.unsrt')
-
-      write(60,'(1i7)') nModes
-
-      do j = 1, nModes
-
-        write(60,'(1i7, 2ES24.15E3)') j, Sj(j), omegaFreq(j)
-
-      enddo
-
-      close(60)
-
       call hpsort_eps(nModes, Sj, modeIndex, 1e-14_dp)
         ! Sort in ascending order
 
