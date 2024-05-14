@@ -2565,5 +2565,75 @@ contains
     fName = "allElecOverlap."//trim(int2str(isp))//"."//trim(int2str(ikGlobal))
 
   end function getMatrixElementFName
+
+!----------------------------------------------------------------------------
+  subroutine readMatrixElement(nTransitions, order, fName, matrixElement, volumeLine)
+
+    use constants, only: HartreeToJ
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: order
+      !! Order to calculate (0 or 1)
+
+    character(len=300), intent(in) :: fName
+      !! Path to matrix element file `allElecOverlap.isp.ik`
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: matrixElement(nTransitions)
+      !! Electronic matrix element
+
+    character(len=300), intent(out) :: volumeLine
+      !! Volume line from overlap file to be
+      !! output exactly in transition rate file
+
+    ! Local variables:
+    integer :: iDum
+      !! Dummy integer
+    integer :: iE
+      !! Loop index
+
+    real(kind=dp) :: rDum
+      !! Dummy real
+
+    logical :: captured
+      !! If matrix elements for capture or scattering
+
+
+    open(12,file=trim(fName))
+
+    read(12,*)
+    read(12,*)
+
+    read(12,'(a)') volumeLine
+
+    read(12,*)
+    read(12,'(L4)') captured
+
+    if(.not. captured) call exitError('readMatrixElement', 'This matrix element was not calculated for capture!', 1)
+
+    read(12,*)
+    read(12,*)
+    if(order == 1) read(12,*)
+      ! Ignore additional line for phonon mode 
+    read(12,*)
+
+
+    do iE = 1, nTransitions
+
+      read(12,'(i10,4ES24.15E3)') iDum, rDum, rDum, rDum, matrixElement(iE) ! in Hartree^2
+
+    enddo
+
+    matrixElement(:) = matrixElement(:)*HartreeToJ**2
+
+    close(12)
+
+    return
+
+  end subroutine readMatrixElement
   
 end module TMEmod
