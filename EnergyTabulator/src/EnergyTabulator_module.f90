@@ -529,7 +529,7 @@ module energyTabulatorMod
 
         ! Get reference eigenvalue from the Gamma point
         if(ionode) call getSingleEig(refBand, 1, isp, exportDirEigs, refEig)
-        call MPI_BCAST(refBand, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+        call MPI_BCAST(refEig, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
         call getRefToDefectEigDiff(iBandFinit, isp, refBand, exportDirInitInit, elecCarrier, dEEigRefDefect)
 
@@ -586,7 +586,7 @@ module energyTabulatorMod
           write(17, '(a, " Format : ''(2i10,4ES24.15E3)''")') trim(text)
 
           
-          open(27,file="dEPlot."//trim(int2str(isp))//trim(int2str(ikGlobal)))
+          open(27,file="dEPlot."//trim(int2str(isp))//'.'//trim(int2str(ikGlobal)))
           write(27,'("# ib, Total elec. energy diff. from ref. (eV)")')
 
 
@@ -938,7 +938,7 @@ module energyTabulatorMod
 
 
         ! Include in the output file that these energies are tabulated for capture
-        write(17,'("# Energies tabulated for capture? Alternative is scattering.)")')
+        write(17,'("# Energies tabulated for capture? (Alternative is scattering.)")')
         write(17,'(L4)') .false.
     
         text = "# Total number of transitions, Initial States (kI, kF, bandI, bandF), Final States (kI, kF, bandI, bandF)"
@@ -1223,6 +1223,7 @@ module energyTabulatorMod
     
     call ignoreNextNLinesFromFile(27,6)
     
+
     do iE = 1, nTransitions
       
       read(27,'(1i7,3ES24.15E3)') ibi(iE), dE(:,iE)
