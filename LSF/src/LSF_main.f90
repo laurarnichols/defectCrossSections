@@ -5,11 +5,19 @@ program LSFmain
   implicit none
 
   ! Local variables:
+  integer, allocatable :: iDum1D(:)
+    !! Integer to ignore input
+  integer :: iDum1, iDum2
+    !! Integers to ignore input
   integer :: j, ikLocal, ikGlobal
     !! Loop index
   integer :: mDim
     !! Size of first dimension for matrix element
 
+  real(kind=dp), allocatable :: ME_tmp(:)
+    !! Temporary storage of matrix element
+  real(kind=dp), allocatable :: rDum2D(:,:)
+    !! Dummy real to ignore input
   real(kind=dp) :: timerStart, timerEnd, timer1, timer2
     !! Timers
 
@@ -32,8 +40,8 @@ program LSFmain
   if(ionode) write(*, '("Pre-k-loop: [ ] Get parameters  [ ] Read Sj")')
   call cpu_time(timer1)
 
-  call readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, &
-        smearingExpTolerance, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+  call readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, temperature, &
+        energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
 
   nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
@@ -82,7 +90,21 @@ program LSFmain
     !! * Distribute k-points in pools
 
 
-  allocate(dE(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,3,nkPerPool))
+  if(ionode) then
+    call readCaptureEnergyTable(1, iSpin, energyTableDir, ibi, ibf, nTransitions, rDum2D)
+     ! Assume that band bounds and number of transitions do not depend on k-points or spin
+     ! We ignore the energy here because we are only reading ibi, ibf, and nTransitions
+
+    deallocate(rDum2D)
+  endif
+
+  call MPI_BCAST(nTransitions, 1, MPI_INTEGER, root, worldComm, ierr)
+  if(.not. ionode) allocate(ibi(nTransitions))
+  call MPI_BCAST(ibi, nTransitions, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(ibf, 1, MPI_INTEGER, root, worldComm, ierr)
+
+
+  allocate(dE(3,nTransitions,nkPerPool))
 
   if(order == 0) then
     mDim = 1
@@ -90,7 +112,8 @@ program LSFmain
     mDim = nModes
   endif
 
-  allocate(matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,nkPerPool))
+  allocate(matrixElement(mDim,nTransitions,nkPerPool))
+  allocate(ME_tmp(nTransitions))
 
   if(indexInPool == 0) then
 
@@ -111,15 +134,21 @@ program LSFmain
         ! In the future, can just skip the ones that have already been 
         ! calculated.
 
-        call readCaptureEnergyTable(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikGlobal, iSpin, energyTableDir, dE(:,:,:,ikLocal))
+        call readCaptureEnergyTable(ikGlobal, iSpin, energyTableDir, iDum1D, iDum1, iDum2, rDum2D)
+          ! Assume that band bounds and number of transitions do not depend on k-points or spin
+
+        dE(:,:,ikLocal) = rDum2D
+        deallocate(rDum2D)
 
         if(order == 0) then
           ! Read zeroth-order matrix element
 
           fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
 
-          call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(1,:,:,ikLocal), volumeLine)
+          call readMatrixElement(nTransitions, order, fName, ME_tmp, volumeLine)
             ! Includes conversion from Hartree to J
+
+          matrixElement(1,:,ikLocal) = ME_tmp
 
         else if(order == 1) then
           ! Read matrix elements for all modes
@@ -128,11 +157,13 @@ program LSFmain
 
             fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
 
-            call readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement(j,:,:,ikLocal), volumeLine)
+            call readMatrixElement(nTransitions, order, fName, ME_tmp, volumeLine)
               ! Includes conversion from Hartree to J
               !
               ! The volume line will get overwritten each time, but that's
               ! okay because the volume doesn't change between the files. 
+
+            matrixElement(j,:,ikLocal) = ME_tmp
 
           enddo
   
@@ -143,7 +174,7 @@ program LSFmain
     dE = dE*HartreeToJ
 
     if(order == 1) then
-      matrixElement(:,:,:,:) = matrixElement(:,:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
+      matrixElement(:,:,:) = matrixElement(:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
         ! Shifter program outputs dq in Bohr*sqrt(elecM), and that
         ! dq is directly used by TME to get the matrix element, so
         ! we need to convert to m*sqrt(kg). In the matrix element,
@@ -160,8 +191,8 @@ program LSFmain
   if(ionode) write(*, '("  Beginning transition-rate calculation")')
    
 
-  call getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, mDim, order, nModes, dE, &
-        gamma0, matrixElement, nj, temperature, volumeLine)
+  call getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, order, nModes, dE, gamma0, & 
+          matrixElement, temperature, volumeLine)
 
   
   deallocate(dE)

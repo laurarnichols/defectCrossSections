@@ -1,8 +1,8 @@
 module LSFmod
   
   use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ, ii, hbar, THzToHz, kB, BohrToMeter, elecMToKg
-  use base, only: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, nKPoints, order
-  use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName
+  use base, only: nKPoints, order
+  use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName, readMatrixElement
   use miscUtilities, only: int2strLeadZero, int2str
   use errorsAndMPI
 
@@ -17,14 +17,20 @@ module LSFmod
     !! process to complete
 
 
+  integer, allocatable :: ibi(:)
+    !! Initial-state indices
+  integer :: ibf
+    !! Final-state index
   integer :: iSpin
     !! Spin channel to use
   integer :: nModes
     !! Number of phonon modes
+  integer :: nTransitions
+    !! Total number of transitions 
 
   real(kind=dp) :: beta
     !! 1/kb*T
-  real(kind=dp), allocatable :: dE(:,:,:,:)
+  real(kind=dp), allocatable :: dE(:,:,:)
     !! All energy differences from energy table
   real(kind=dp) :: dt
     !! Time step size
@@ -33,7 +39,7 @@ module LSFmod
   real(kind=dp) :: hbarGamma
     !! \(\hbar\gamma\) for Lorentzian smearing
     !! to guarantee convergence
-  real(kind=dp), allocatable :: matrixElement(:,:,:,:)
+  real(kind=dp), allocatable :: matrixElement(:,:,:)
     !! Electronic matrix element
   real(kind=dp) :: maxTime
     !! Max time for integration
@@ -67,20 +73,18 @@ module LSFmod
     !! output exactly in transition rate file
 
 
-  namelist /inputParams/ iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, energyTableDir, matrixElementDir, MjBaseDir, SjInput, &
-                        temperature, hbarGamma, dt, smearingExpTolerance, outputDir, order, prefix, iSpin
+  namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjInput, temperature, hbarGamma, dt, &
+                         smearingExpTolerance, outputDir, order, prefix, iSpin
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, &
-        smearingExpTolerance, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+  subroutine readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, temperature, &
+        energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
     ! Output variables
-    integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
     integer, intent(out) :: iSpin
       !! Spin channel to use
     integer, intent(out) :: order
@@ -120,8 +124,8 @@ contains
       !! Path to Sj.out file
 
   
-    call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
-          matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+    call initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, matrixElementDir, &
+          MjBaseDir, outputDir, prefix, SjInput)
 
     if(ionode) then
 
@@ -132,7 +136,7 @@ contains
       if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
+      call checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
             matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
       dt = dt/THzToHz
@@ -147,10 +151,6 @@ contains
 
     endif
 
-    call MPI_BCAST(iBandIinit, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(iBandIfinal, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(iBandFinit, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(iBandFfinal, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(iSpin, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -175,14 +175,12 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
-        matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+  subroutine initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, matrixElementDir, &
+        MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
     ! Output variables
-    integer, intent(out) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
     integer, intent(out) :: iSpin
       !! Spin channel to use
     integer, intent(out) :: order
@@ -216,10 +214,6 @@ contains
       !! Path to Sj.out file
 
 
-    iBandIinit  = -1
-    iBandIfinal = -1
-    iBandFinit  = -1
-    iBandFfinal = -1
     iSpin = 1
     order = -1
 
@@ -240,14 +234,12 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, &
-        energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+  subroutine checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
+        matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
     ! Input variables
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
     integer, intent(in) :: iSpin
       !! Spin channel to use
     integer, intent(in) :: order
@@ -289,11 +281,7 @@ contains
       !! Whether or not to abort the execution
 
 
-    abortExecution = checkIntInitialization('iBandIinit', iBandIinit, 1, int(1e9))
-    abortExecution = checkIntInitialization('iBandIfinal', iBandIfinal, iBandIinit, int(1e9)) .or. abortExecution
-    abortExecution = checkIntInitialization('iBandFinit', iBandFinit, 1, int(1e9)) .or. abortExecution
-    abortExecution = checkIntInitialization('iBandFfinal', iBandFfinal, iBandFinit, int(1e9)) .or. abortExecution 
-    abortExecution = checkIntInitialization('iSpin', iSpin, 1, 2) .or. abortExecution 
+    abortExecution = checkIntInitialization('iSpin', iSpin, 1, 2)
     abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution 
 
     abortExecution = checkDoubleInitialization('dt', dt, 1.0d-10, 1.0d-4) .or. abortExecution
@@ -361,8 +349,6 @@ contains
       !! Huang-Rhys factor for each mode
 
     ! Local variables:
-    integer :: iDum
-      !! Dummy integer
     integer :: j, jSort
       !! Loop index
 
@@ -408,80 +394,16 @@ contains
   end subroutine readSj
 
 !----------------------------------------------------------------------------
-  subroutine readMatrixElement(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, order, fName, matrixElement, volumeLine)
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
-    integer, intent(in) :: order
-      !! Order to calculate (0 or 1)
-
-    character(len=300), intent(in) :: fName
-      !! Path to matrix element file `allElecOverlap.isp.ik`
-
-    ! Output variables:
-    real(kind=dp), intent(out) :: matrixElement(iBandFinit:iBandFfinal,iBandIinit:iBandIfinal)
-      !! Electronic matrix element
-
-    character(len=300), intent(out) :: volumeLine
-      !! Volume line from overlap file to be
-      !! output exactly in transition rate file
-
-    ! Local variables:
-    integer :: iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
-      !! Band bounds from energy table
-    integer :: iDum
-      !! Dummy integer
-    integer :: ibi, ibf
-      !! Loop indices
-
-    real(kind=dp) :: rDum
-      !! Dummy real
-
-
-    open(12,file=trim(fName))
-
-    read(12,*)
-    read(12,*)
-
-    read(12,'(a)') volumeLine
-
-    read(12,*)
-    read(12,*) iDum, iBandIinit_, iBandIfinal_, iBandFinit_, iBandFfinal_
-      ! @todo Test these values against the input values
-    read(12,*)
-
-    if(order == 1) read(12,*)
-      ! Ignore additional line for phonon mode 
-      
-
-    do ibf = iBandFinit, iBandFfinal
-      do ibi = iBandIinit, iBandIfinal
-
-        read(12,*) iDum, iDum, rDum, rDum, rDum, matrixElement(ibf,ibi) ! in Hartree^2
-
-      enddo
-    enddo
-
-    matrixElement(:,:) = matrixElement(:,:)*HartreeToJ**2
-
-    close(12)
-
-    return
-
-  end subroutine readMatrixElement
-
-!----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, iSpin, mDim, order, nModes, dE, &
-        gamma0, matrixElement, nj, temperature, volumeLine)
+  subroutine getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, order, nModes, dE, gamma0, & 
+          matrixElement, temperature, volumeLine)
     
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
-      !! Energy band bounds for initial and final state
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions)
+      !! Initial-state indices
     integer, intent(in) :: iSpin
       !! Spin index
     integer, intent(in) :: mDim
@@ -491,14 +413,12 @@ contains
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
-    real(kind=dp), intent(in) :: dE(iBandFinit:iBandFfinal,iBandIinit:iBandIFinal,3,nkPerPool)
+    real(kind=dp), intent(in) :: dE(3,nTransitions,nkPerPool)
       !! All energy differences from energy table
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
-    real(kind=dp), intent(in) :: matrixElement(mDim,iBandFinit:iBandFfinal,iBandIinit:iBandIfinal,nkPerPool)
+    real(kind=dp), intent(in) :: matrixElement(mDim,nTransitions,nkPerPool)
       !! Electronic matrix element
-    real(kind=dp), intent(in) :: nj(nModes)
-      !! \(n_j\) occupation number
     real(kind=dp), intent(in) :: temperature
 
     character(len=300), intent(in) :: volumeLine
@@ -506,7 +426,7 @@ contains
       !! output exactly in transition rate file
 
     ! Local variables:
-    integer :: iTime, ibi, ibf, ikLocal, ikGlobal
+    integer :: iTime, iE, ikLocal, ikGlobal
       !! Loop indices
     integer :: updateFrequency
       !! Frequency of steps to write status update
@@ -526,7 +446,7 @@ contains
       !! Time for each time step
     real(kind=dp) :: timer1, timer2
       !! Timers
-    real(kind=dp) :: transitionRate(iBandIinit:iBandIfinal,nkPerPool)
+    real(kind=dp) :: transitionRate(nTransitions,nkPerPool)
       !! \(Gamma_i\) transition rate
 
     complex(kind=dp) :: Aj(nModes)
@@ -569,27 +489,25 @@ contains
 
 
       do ikLocal = 1, nkPerPool
-        do ibi = iBandIinit, iBandIfinal
-          do ibf = iBandFinit, iBandFfinal
+        do iE = 1, nTransitions
 
-            if(order == 0) then
-              expPrefactor = matrixElement(1,ibf,ibi,ikLocal)
-            else if(order == 1) then
-              expPrefactor = getFirstOrderPrefactor(nModes, matrixElement(:,ibf,ibi,ikLocal), Aj)
-            endif
+          if(order == 0) then
+            expPrefactor = matrixElement(1,iE,ikLocal)
+          else if(order == 1) then
+            expPrefactor = getFirstOrderPrefactor(nModes, matrixElement(:,iE,ikLocal), Aj)
+          endif
 
-            Eif = dE(ibf,ibi,1,ikLocal)
+          Eif = dE(1,iE,ikLocal)
 
-            expArg = expArg_base + ii*Eif/hbar*time
+          expArg = expArg_base + ii*Eif/hbar*time
 
-            transitionRate(ibi,ikLocal) = transitionRate(ibi,ikLocal) + Real(multFact*expPrefactor*exp(expArg))
-              ! We are doing multiple sums (integral and sum over final states), 
-              ! but they are all commutative. Here we add in the contribution 
-              ! to the integral at this time step from a given final state. The 
-              ! loop over final states adds in the contributions from all final 
-              ! states. 
+          transitionRate(iE,ikLocal) = transitionRate(iE,ikLocal) + Real(multFact*expPrefactor*exp(expArg))
+            ! We are doing multiple sums (integral and sum over final states), 
+            ! but they are all commutative. Here we add in the contribution 
+            ! to the integral at this time step from a given final state. The 
+            ! loop over final states adds in the contributions from all final 
+            ! states. 
 
-          enddo
         enddo
       enddo
     enddo
@@ -621,15 +539,15 @@ contains
 
         write(37,'(a)') trim(volumeLine)
 
-        write(37,'("# Total number of initial states, Initial states (bandI, bandF) Format : ''(3i10)''")')
-        write(37,'(3i10)') iBandIfinal-iBandIinit+1, iBandIinit, iBandIfinal
+        write(37,'("# Total number of transitions, Initial states (bandI, bandF) Format : ''(3i10)''")')
+        write(37,'(3i10)') nTransitions, ibi(1), ibi(nTransitions)
 
         write(37,'("# Temperature (K): ", f7.1)') temperature
 
         write(37,'("# Initial state, Transition rate Format : ''(i10, f10.5, ES24.15E3)''")')
 
-        do ibi = iBandIinit, iBandIfinal
-          write(37,'(i10, ES24.14E3)') ibi, transitionRate(ibi,ikLocal)
+        do iE = 1, nTransitions
+          write(37,'(i10, ES24.14E3)') ibi(iE), transitionRate(iE,ikLocal)
             ! Plotting energy doesn't depend on final band, so
             ! just pick one
         enddo
@@ -663,12 +581,6 @@ contains
     complex(kind=dp) :: G0ExpArg
 
     ! Local variables
-    integer :: j
-      !! Loop index
-
-    real(kind=dp) :: omegaj
-      !! Local storage of frequency for this mode
-
     complex(kind=dp) :: posExp_t(nModes)
       !! Local storage of \(e^{i\omega_j t}\) for speed
 
@@ -701,9 +613,6 @@ contains
     complex(kind=dp) :: Aj_t(nModes)
 
     ! Local variables
-    real(kind=dp) :: omegaj
-      !! Local storage of frequency for this mode
-
     complex(kind=dp) :: posExp_t(nModes)
       !! Local storage of \(e^{i\omega_j t}\) for speed
 
@@ -735,10 +644,6 @@ contains
     complex(kind=dp) :: prefactor
       !! First-order exponential prefactor
 
-    ! Local variables:
-    integer :: j
-      !! Loop index
-
 
     prefactor = sum(matrixElement(:)*Aj_t(:))
 
@@ -761,7 +666,7 @@ contains
       !! k-point and spin channel
 
 
-    inquire(file=trim(outputDir)//'transitionRate.'//trim(int2str(iSpin))//"."//trim(int2str(ikGlobal)), exist=fileExists)
+    inquire(file=trim(outputDir)//'transitionRate.'//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), exist=fileExists)
     
   end function transitionRateFileExists
 

@@ -909,7 +909,7 @@ module PhononPPMod
 
         jSort = modeIndex(nModes-(j-1))
 
-        write(60,'(1i7, 2ES24.15E3)') modeIndex(jSort), Sj(nModes-(j-1)), omegaFreq(jSort)
+        write(60,'(1i7, 2ES24.15E3)') jSort, Sj(nModes-(j-1)), omegaFreq(jSort)
           ! Write out in descending order
 
       enddo
