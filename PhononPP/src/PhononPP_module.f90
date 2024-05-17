@@ -2,7 +2,7 @@ module PhononPPMod
   
   use constants, only: dp, angToBohr, angToM, daltonToElecM, elecMToKg, THzToHz, pi, hbar
   use energyTabulatorMod, only: energyTableDir, readScatterEnergyTable
-  use cell, only: nAtoms, omega, realLattVec, cartDispProjOnPhononEigsNorm, readPOSCAR, writePOSCARNewPos
+  use cell, only: nAtoms, volume, realLattVec, cartDispProjOnPhononEigsNorm, readPOSCAR, writePOSCARNewPos
   use miscUtilities, only: int2str, int2strLeadZero
   use generalComputations, only: direct2cart
   use errorsAndMPI
@@ -650,7 +650,7 @@ module PhononPPMod
       !! Atom positions in difference relaxed positions
     real(kind=dp) :: displacement(3,nAtoms)
       !! Displacement 
-    real(kind=dp) :: omegaInit, omegaFinal
+    real(kind=dp) :: volumeInit, volumeFinal
       !! Volume of supercell
     real(kind=dp) :: projNorm(nModes)
       !! Generalized norms after displacement
@@ -658,15 +658,15 @@ module PhononPPMod
       !! Real space lattice vectors
 
 
-    call getCoordsAndDisp(nAtoms, coordFromPhon, initPOSCARFName, atomPositionsDirInit, displacement, omegaInit, realLattVec)
+    call getCoordsAndDisp(nAtoms, coordFromPhon, initPOSCARFName, atomPositionsDirInit, displacement, realLattVec, volumeInit)
       ! Don't need displacement here. We only check compatibility with
       ! coordinates from phonons. 
 
-    call getCoordsAndDisp(nAtoms, atomPositionsDirInit, finalPOSCARFName, atomPositionsDirFinal, displacement, omegaFinal, realLattVec)
+    call getCoordsAndDisp(nAtoms, atomPositionsDirInit, finalPOSCARFName, atomPositionsDirFinal, displacement, realLattVec, volumeFinal)
       ! It is assumed for now that the lattice vectors are the same
     
     if(ionode) then
-      if(abs(omegaInit - omegaFinal) > 1e-8) call exitError('calculateAndWriteSingleSj', 'volumes don''t match', 1)
+      if(abs(volumeInit - volumeFinal) > 1e-8) call exitError('calculateAndWriteSingleSj', 'volumes don''t match', 1)
     endif
   
     projNorm = 0.0_dp
@@ -688,7 +688,7 @@ module PhononPPMod
   end subroutine getAndWriteSingleSj
 
 !----------------------------------------------------------------------------
-  subroutine getCoordsAndDisp(nAtoms, atomPositionsDirStart, POSCARFName, atomPositionsDirEnd, displacement, omega, realLattVec)
+  subroutine getCoordsAndDisp(nAtoms, atomPositionsDirStart, POSCARFName, atomPositionsDirEnd, displacement, realLattVec, volume)
 
     implicit none
 
@@ -710,16 +710,16 @@ module PhononPPMod
     real(kind=dp), intent(out) :: displacement(3,nAtoms)
       !! Displacement vector; not used here, only output 
       !! from check compatibility
-    real(kind=dp), intent(out) :: omega
-      !! Volume of supercell
     real(kind=dp), intent(out) :: realLattVec(3,3)
       !! Real space lattice vectors
+    real(kind=dp), intent(out) :: volume
+      !! Volume of supercell
 
     ! Local variables:
 
     
     if(ionode) then
-      call readPOSCAR(POSCARFName, nAtoms, atomPositionsDirEnd, omega, realLattVec)
+      call readPOSCAR(POSCARFName, nAtoms, atomPositionsDirEnd, realLattVec, volume)
       call standardizeCoordinates(nAtoms, atomPositionsDirEnd)
     endif
 
@@ -727,7 +727,7 @@ module PhononPPMod
 
     if(.not. ionode) allocate(atomPositionsDirEnd(3,nAtoms))
     call MPI_BCAST(atomPositionsDirEnd, size(atomPositionsDirEnd), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(volume, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call getRelaxDispAndCheckCompatibility(nAtoms, atomPositionsDirEnd, atomPositionsDirStart, displacement)
@@ -971,7 +971,7 @@ module PhononPPMod
       !! Atom positions in initial relaxed positions
     real(kind=dp), allocatable :: displacement(:,:)
       !! Atom displacements in angstrom
-    real(kind=dp) :: omega
+    real(kind=dp) :: volume
       !! Volume of supercell
     real(kind=dp), allocatable :: projNorm(:)
       !! Generalized norms after displacement
@@ -1010,7 +1010,7 @@ module PhononPPMod
 
     if(ionode) then
 
-      call readPOSCAR(basePOSCARFName, nAtoms, atomPositionsDirBase, omega, realLattVec)
+      call readPOSCAR(basePOSCARFName, nAtoms, atomPositionsDirBase, realLattVec, volume)
       call standardizeCoordinates(nAtoms, atomPositionsDirBase)
 
     endif

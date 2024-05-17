@@ -6,6 +6,7 @@ module TMEmod
   use miscUtilities, only: int2str, int2strLeadZero
   use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable
   use base, only: nKPoints, nSpins, order, ispSelect, loopSpins
+  use cell, only: volume, recipLattVec
 
   use errorsAndMPI
   use mpi
@@ -30,10 +31,6 @@ module TMEmod
   real(kind=dp) :: dq_j
     !! \(\delta q_j) for displaced wave functions
     !! (only order = 1)
-  real(kind=dp) :: omega
-    !! Supercell volume
-  real(kind=dp) :: recipLattVec(3,3)
-    !! Reciprocal-space lattice vectors
   real(kind = dp) :: t1, t2
     !! For timing different processes
 
@@ -134,10 +131,10 @@ module TMEmod
 
     real(kind=dp), allocatable :: atomPositionsCart(:,:)
       !! Position of atoms in cartesian coordinates
-    real(kind=dp) :: omega
-      !! Supercell volume
     real(kind=dp) :: recipLattVec(3,3)
       !! Reciprocal-space lattice vectors
+    real(kind=dp) :: volume
+      !! Supercell volume
 
     complex(kind=dp), allocatable :: beta(:,:)
       !! Projectors
@@ -428,7 +425,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine completePreliminarySetup(nSys, order, phononModeJ, dqFName, mill_local, nGVecsGlobal, nKPoints, nSpins, &
-        dq_j, omega, recipLattVec, Ylm, crystalSystem, pot)
+        dq_j, recipLattVec, volume, Ylm, crystalSystem, pot)
 
     implicit none
 
@@ -460,7 +457,7 @@ contains
     real(kind=dp), intent(out) :: dq_j
       !! \(\delta q_j) for displaced wave functions
       !! (only order = 1)
-    real(kind=dp), intent(out) :: omega
+    real(kind=dp), intent(out) :: volume
       !! Cell volume (tested to be consistent
       !! across all systems)
     real(kind=dp), intent(out) :: recipLattVec(3,3)
@@ -489,11 +486,11 @@ contains
     nKPoints = -1
     nGVecsGlobal = -1
     nSpins = 0
-    omega = -1.0
+    volume = -1.0
 
     do isys = 1, nSys
 
-      call readInputFileSkipPseudo(nGVecsGlobal, nKPoints, nSpins, omega, crystalSystem(isys))
+      call readInputFileSkipPseudo(nGVecsGlobal, nKPoints, nSpins, volume, crystalSystem(isys))
 
     enddo
 
@@ -554,7 +551,7 @@ contains
   end subroutine completePreliminarySetup
   
 !----------------------------------------------------------------------------
-  subroutine readInputFileSkipPseudo(nGVecsGlobal, nKPoints, nSpins, omega, sys)
+  subroutine readInputFileSkipPseudo(nGVecsGlobal, nKPoints, nSpins, volume, sys)
 
     use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
     
@@ -571,7 +568,7 @@ contains
       !! Number of spins (tested to be consistent
       !! across all systems)
 
-    real(kind=dp) :: omega
+    real(kind=dp) :: volume
       !! Cell volume (tested to be consistent
       !! across all systems)
 
@@ -606,19 +603,19 @@ contains
       open(50, file=trim(inputFName), status = 'old')
     
       read(50,*)
-      read(50,*) sys%omega
+      read(50,*) sys%volume
 
 
-      if(omega < 0) then
-        omega = sys%omega
-      else if(abs(omega - sys%omega) > 1e-8) then
+      if(volume < 0) then
+        volume = sys%volume
+      else if(abs(volume - sys%volume) > 1e-8) then
         call exitError('readInput', 'volumes don''t match', 1)
       endif
 
     endif
 
-    call MPI_BCAST(sys%omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(sys%volume, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(volume, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
 
     if(ionode) then
@@ -812,7 +809,7 @@ contains
               write(*,'("Element mismatch detected in atom ", i5," in systems ",a," and ",a,": ",a," ",a)') &
                   iT, trim(crystalSystem(isys)%ID), trim(crystalSystem(isys_maxNAtomTypes)%ID), &
                   trim(crystalSystem(isys)%element(iT)), trim(crystalSystem(isys_maxNAtomTypes)%element(iT))
-              call exitError('completePreliminarySetup', 'Elements must be consistent across all systems!', 1)
+              call exitError('getGlobalPseudo', 'Elements must be consistent across all systems!', 1)
             endif
           endif
         enddo
@@ -1477,7 +1474,7 @@ contains
               call MPI_BCAST(ketSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
               call MPI_BCAST(braSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
 
-              Ufi(iE,isp) = Ufi(iE,isp) + (16.0_dp*pi*pi/omega)*dot_product(conjg(braSys%pawK(:)),ketSys%pawK(:))
+              Ufi(iE,isp) = Ufi(iE,isp) + (16.0_dp*pi*pi/volume)*dot_product(conjg(braSys%pawK(:)),ketSys%pawK(:))
 
               call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(iE,isp), 1, MPI_DOUBLE_COMPLEX, &
                       MPI_SUM, intraPoolComm, ierr)
@@ -2102,7 +2099,7 @@ contains
     write(17, '("# Total number of k-points, k-point index, spin index Format : ''(3i10)''")')
     write(17,'(3i10)') nKPoints, ikGlobal, isp
 
-    write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') omega
+    write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') volume
     
     ! Include in the output file that these are capture matrix elements
     write(17,'("# Capture matrix elements? Alternative is scattering.)")')
