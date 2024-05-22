@@ -1352,7 +1352,7 @@ contains
     real(kind=dp), allocatable :: dE(:,:)
       !! All energy differences from energy table
 
-    logical :: calcSpinDepSD, calcSpinDepPC
+    logical :: calcSpinDepBra, calcSpinDepKet
       !! If spin-dependent subroutines should be called
     logical :: spin1Skipped = .false., spin2Skipped = .false.
       !! If spin channels skipped
@@ -1446,29 +1446,17 @@ contains
           do isp = 1, nSpins
             if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
 
-              calcSpinDepPC = isp == 1 .or. ketSys%nSpins == 2 .or. spin1Skipped
-              calcSpinDepSD = isp == 1 .or. braSys%nSpins == 2 .or. spin1Skipped
+              calcSpinDepKet = isp == 1 .or. ketSys%nSpins == 2 .or. spin1Skipped
+              calcSpinDepBra = isp == 1 .or. braSys%nSpins == 2 .or. spin1Skipped
                 ! If either of the systems only has a single spin channel, some inputs and
                 ! calculations do not need to be redone for both spin channels. However, we
                 ! still need to make sure to calculate these values for the second spin
                 ! channel if the first spin channel was not done (e.g., the file already 
                 ! existed or only the second spin channel was selected).
       
-              if(calcSpinDepPC) then
-                call readWfc(ibi(iE), ikGlobal, min(isp,ketSys%nSpins), nGkVecsLocal, ketSys)
-                call calculateCrossProjection(ketSys, braSys)
-                  ! Get new cross projection with new `ketSys%wfc`
-                call readProjections(ibi(iE), ikGlobal, min(isp,ketSys%nSpins), ketSys)
-                call pawCorrectionK(nGVecsLocal, pot, Ylm, ketSys)
-              endif
+              if(calcSpinDepKet) call calcSpinDep(ibi(iE), ikGlobal, isp, nGkVecsLocal, nGVecsLocal, ketSys, braSys)
 
-              if(calcSpinDepSD) then
-                call readWfc(ibf, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocal, braSys)
-                call calculateCrossProjection(braSys, ketSys)
-                  ! Get new cross projection with new `braSys%wfc`
-                call readProjections(ibf, ikGlobal, min(isp,braSys%nSpins), braSys)
-                call pawCorrectionK(nGVecsLocal, pot, Ylm, braSys)
-              endif
+              if(calcSpinDepBra) call calcSpinDep(ibf, ikGlobal, isp, nGkVecsLocal, nGVecsLocal, braSys, ketSys)
 
               Ufi(iE,isp) = dot_product(braSys%wfc(:),ketSys%wfc(:))
               if(indexInPool == 0) call pawCorrectionWfc(ketSys, pot)
@@ -1629,6 +1617,44 @@ contains
     return 
 
   end subroutine readProjectors
+
+!----------------------------------------------------------------------------
+  subroutine calcSpinDep(ib, ikGlobal, isp, nGkVecsLocal, nGVecsLocal, sysCalc, sysCrossProj)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ib
+      !! Band index
+    integer, intent(in) :: ikGlobal
+      !! Current k point
+    integer, intent(in) :: isp
+      !! Current spin channel
+    integer, intent(in) :: nGkVecsLocal
+      !! Local number of G+k vectors on this processor
+    integer, intent(in) :: nGVecsLocal
+      !! Number of local G-vectors
+
+    ! Output variables:
+    type(crystal) :: sysCalc
+      !! The crystal system to calculate spin-dependent 
+      !! pieces for
+    type(crystal) :: sysCrossProj
+      !! The crystal system used for the cross projection
+
+
+    call readWfc(ib, ikGlobal, min(isp,sysCalc%nSpins), nGkVecsLocal, sysCalc)
+
+    call calculateCrossProjection(sysCalc, sysCrossProj)
+      ! Get new cross projection with new `sysCalc%wfc`
+
+    call readProjections(ib, ikGlobal, min(isp,sysCalc%nSpins), sysCalc)
+
+    call pawCorrectionK(nGVecsLocal, pot, Ylm, sysCalc)
+
+    return
+
+  end subroutine calcSpinDep
 
 !----------------------------------------------------------------------------
   subroutine readWfc(ib, ikGlobal, isp, nGkVecsLocal, sys)
