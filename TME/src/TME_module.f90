@@ -1352,9 +1352,10 @@ contains
     real(kind=dp), allocatable :: dE(:,:)
       !! All energy differences from energy table
 
-    logical :: calcSpinDepBra, calcSpinDepKet
-      !! If spin-dependent subroutines should be called
-    logical :: spin1Skipped = .false., spin2Skipped = .false.
+    complex(kind=dp), allocatable :: Ufi(:,:), Ufi_iE(:)
+      !! All-electron overlap
+
+    logical :: spin1Skipped, spin2Skipped
       !! If spin channels skipped
 
 
@@ -1435,49 +1436,24 @@ contains
         call MPI_BCAST(ibf, 1, MPI_INTEGER, root, intraPoolComm, ierr)
 
         allocate(Ufi(nTransitions,nSpins))
+        allocate(Ufi_iE(nSpins))
         Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
 
         
         do iE = 1, nTransitions
-
           if(ionode) write(*,'("  Beginning transition ", i5, " -> ",i5)') ibi(iE), ibf
           call cpu_time(t1)
 
-          do isp = 1, nSpins
-            if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
+          Ufi_iE(:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
 
-              calcSpinDepKet = isp == 1 .or. ketSys%nSpins == 2 .or. spin1Skipped
-              calcSpinDepBra = isp == 1 .or. braSys%nSpins == 2 .or. spin1Skipped
-                ! If either of the systems only has a single spin channel, some inputs and
-                ! calculations do not need to be redone for both spin channels. However, we
-                ! still need to make sure to calculate these values for the second spin
-                ! channel if the first spin channel was not done (e.g., the file already 
-                ! existed or only the second spin channel was selected).
-      
-              if(calcSpinDepKet) call calcSpinDep(ibi(iE), ikGlobal, isp, nGkVecsLocal, nGVecsLocal, ketSys, braSys)
+          call calculateBandPairOverlap(ibf, ibi(iE), ikGlobal, ispSelect, nSpins, nGkVecsLocal, nGVecsLocal, spin1Skipped, &
+                spin2Skipped, braSys, ketSys, pot, Ufi_iE)
 
-              if(calcSpinDepBra) call calcSpinDep(ibf, ikGlobal, isp, nGkVecsLocal, nGVecsLocal, braSys, ketSys)
-
-              Ufi(iE,isp) = dot_product(braSys%wfc(:),ketSys%wfc(:))
-              if(indexInPool == 0) call pawCorrectionWfc(ketSys, pot)
-              if(indexInPool == 1) call pawCorrectionWfc(braSys, pot)
-
-              call MPI_BCAST(ketSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
-              call MPI_BCAST(braSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
-
-              Ufi(iE,isp) = Ufi(iE,isp) + (16.0_dp*pi*pi/omega)*dot_product(conjg(braSys%pawK(:)),ketSys%pawK(:))
-
-              call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(iE,isp), 1, MPI_DOUBLE_COMPLEX, &
-                      MPI_SUM, intraPoolComm, ierr)
-
-              Ufi(iE,isp) = Ufi(iE,isp) + braSys%pawWfc + ketSys%pawWfc
-
-            endif ! If calculating this spin
-          enddo ! Loop over spins
+          Ufi(iE,:) = Ufi_iE
 
           call cpu_time(t2)
           if(ionode) write(*, '("  Transition ",i5," -> ",i5," complete! (",f10.2," secs)")') ibi(iE), ibf, t2-t1
-        enddo ! Loop over transitions ibi -> ibf
+        enddo 
 
 
         ! Subtract baseline if applicable and write out results
@@ -1617,6 +1593,88 @@ contains
     return 
 
   end subroutine readProjectors
+  
+!----------------------------------------------------------------------------
+  subroutine calculateBandPairOverlap(ibBra, ibKet, ikGlobal, ispSelect, nSpins, nGkVecsLocal, nGVecsLocal, spin1Skipped, &
+        spin2Skipped, braSys, ketSys, pot, Ufi)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ibBra, ibKet
+      !! Band indices for bra and ket systems
+    integer, intent(in) :: ikGlobal
+      !! Current k point
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+    integer, intent(in) :: nSpins
+      !! Number of spins (tested to be consistent
+      !! across all systems)
+    integer, intent(in) :: nGkVecsLocal
+      !! Local number of G+k vectors on this processor
+    integer, intent(in) :: nGVecsLocal
+      !! Number of local G-vectors
+
+    logical, intent(in) :: spin1Skipped, spin2Skipped
+      !! If spin channels skipped
+
+    type(crystal) :: braSys, ketSys
+       !! The crystal systems to get the
+       !! matrix element for
+
+    type(potcar) :: pot
+      !! Structure containing all pseudopotential-related
+      !! information
+
+    ! Output variables:
+    complex(kind=dp) :: Ufi(nSpins)
+      !! All-electron overlap for this k-point and band pair
+
+
+    ! Local variables:
+    integer :: isp
+      !! Loop index
+
+    logical :: calcSpinDepBra, calcSpinDepKet
+      !! If spin-dependent subroutines should be called
+
+
+    do isp = 1, nSpins
+      if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
+
+        calcSpinDepKet = isp == 1 .or. ketSys%nSpins == 2 .or. spin1Skipped
+        calcSpinDepBra = isp == 1 .or. braSys%nSpins == 2 .or. spin1Skipped
+          ! If either of the systems only has a single spin channel, some inputs and
+          ! calculations do not need to be redone for both spin channels. However, we
+          ! still need to make sure to calculate these values for the second spin
+          ! channel if the first spin channel was not done (e.g., the file already 
+          ! existed or only the second spin channel was selected).
+
+
+        if(calcSpinDepBra) call calcSpinDep(ibBra, ikGlobal, isp, nGkVecsLocal, nGVecsLocal, braSys, ketSys)
+      
+        if(calcSpinDepKet) call calcSpinDep(ibKet, ikGlobal, isp, nGkVecsLocal, nGVecsLocal, ketSys, braSys)
+
+        Ufi(isp) = dot_product(braSys%wfc(:),ketSys%wfc(:))
+        if(indexInPool == 0) call pawCorrectionWfc(ketSys, pot)
+        if(indexInPool == 1) call pawCorrectionWfc(braSys, pot)
+
+        call MPI_BCAST(ketSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
+        call MPI_BCAST(braSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
+
+        Ufi(isp) = Ufi(isp) + (16.0_dp*pi*pi/omega)*dot_product(conjg(braSys%pawK(:)),ketSys%pawK(:))
+
+        call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(isp), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
+
+        Ufi(isp) = Ufi(isp) + braSys%pawWfc + ketSys%pawWfc
+
+      endif
+    enddo 
+
+    return
+
+  end subroutine calculateBandPairOverlap
 
 !----------------------------------------------------------------------------
   subroutine calcSpinDep(ib, ikGlobal, isp, nGkVecsLocal, nGVecsLocal, sysCalc, sysCrossProj)
