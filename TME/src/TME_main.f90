@@ -18,7 +18,7 @@ program TMEmain
 
 
   call readInputParams(ibBra, ibKet, ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, &
-          ketExportDir, dqFName, energyTableDir, outputDir, loopSpins, overlapOnly, subtractBaseline)
+          ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     
@@ -28,15 +28,14 @@ program TMEmain
   call setUpSystemArray(nSys, braExportDir, ketExportDir, crystalSystem)
 
 
-  call completePreliminarySetup(ispSelect, nSys, order, phononModeJ, loopSpins, overlapOnly, dqFName, ibi, &
-        ibf, mill_local, nGVecsGlobal, nGVecsLocal, nKPoints, nSpins, nTransitions, dq_j, omega, recipLattVec, Ylm, &
-        crystalSystem, pot)
+  call completePreliminarySetup(nSys, order, phononModeJ, dqFName, mill_local, nGVecsGlobal, nGVecsLocal, nKPoints, &
+        nSpins, dq_j, omega, recipLattVec, Ylm, crystalSystem, pot)
 
   
   if(overlapOnly) then
     call getAndWriteOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, crystalSystem(1), crystalSystem(2), pot)
   else
-    call getAndWriteCaptureMatrixElements(nTransitions, ibi, ibf, ispSelect, nGVecsLocal, nSpins, crystalSystem(1), crystalSystem(2), pot)
+    call getAndWriteCaptureMatrixElements(nPairs, ibKet, ibBra(1), ispSelect, nGVecsLocal, nSpins, crystalSystem(1), crystalSystem(2), pot)
   endif 
 
 
