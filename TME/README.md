@@ -1,14 +1,20 @@
 # Transition matrix element (`TME`)
 
-The `TME` program outputs matrix elements based on the all-electron overlap `<braWfc|ketWfc>` for a range of initial and final band states using all-electron overlaps from the PAW method and the appropriate energy difference to get the correct matrix element. The `Export` code must be run on all VASP calculations and the energies must be tabulated with the `EnergyTabulator` code before `TME` can be run. The code assumes that the WZP method is used, where carriers are excited to achieve desired charge states rather than adding/removing electrons using the jellium method. 
+The `TME` program primarily calculates the all-electron overlap between certain bands in two different systems, `<braWfc|ketWfc>`, based on the PAW method. In the `overlapOnly` mode, only the overlaps are output. Otherwise, the matrix element based on the given `order` is calculated. The matrix elements require the bands to be read from the `energyTable` created by the `EnergyTabulator` code, but the `overlapOnly = .true.` mode allows the specification of bands without using the energy table.
 
-The code assumes that the order of the atom types in the two systems matches, with the possible addition of atom types at the end of one of the files.
+For each calculation, the `braExportDir` and `ketExportDir` must be specified. If the states are to be read from the energy table, `energyTableDir` must be given. For the `overlapOnly` mode, it is also possible to define all of the band pairs explicitly using, e.g.
+```f90
+nPairs = 5
+braBands = '128 129 130 128 129'
+ketBands = '128 128 128 129 129'
+```
+The list of bands must be given in a string, then `nPairs` of bands will be read from the strings. You can also give a range of bands for the bra and ket systems using `iBandLBra`, `iBandHBra`, `iBandLKet`, and `iBandHKet`, where `L` and `H` represent the lower and upper limits on the bands, respectively.
 
 Output files are 
-* `allElecOverlap.isp.ik` -- for each band in range and a given spin and k-point: initial and final band, all-electron overlaps, and matrix elements
+* `allElecOverlap.isp.ik` -- for each band in range and a given spin and k-point: initial and final band, all-electron overlaps, and matrix elements (if `.not. overlapOnly`
 * stdout -- timing information and status updates
 
-The same TME code is used for both the zeroth-order and the first-order matrix elements. For both orders, the overlap part comes from from the `TME` code and the energy difference comes from the [`EnergyTabulator`](../EnergyTabulator) code. The band parameters are also read directly from the energy table.
+The same TME code is used for both the zeroth-order and the first-order matrix elements. For both orders, the overlap part comes from from the `TME` code and the energy difference comes from the [`EnergyTabulator`](../EnergyTabulator) code. The code assumes that the order of the atom types in the two systems matches, with the possible addition of atom types at the end of one of the files.
 
 ## Zeroth-order
 

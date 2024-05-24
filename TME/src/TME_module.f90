@@ -5,8 +5,12 @@ module TMEmod
   use constants, only: dp, pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
   use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable
+<<<<<<< HEAD
   use base, only: nKPoints, nSpins, order, ispSelect, loopSpins
   use cell, only: volume, recipLattVec
+=======
+  use base, only: nKPoints, nSpins, order, ispSelect
+>>>>>>> master
 
   use errorsAndMPI
   use mpi
@@ -14,14 +18,16 @@ module TMEmod
   implicit none
 
 
+  integer, allocatable :: ibBra(:), ibKet(:)
+    !! Band indices for different systems
   integer, allocatable :: mill_local(:,:)
     !! Local Miller indices
   integer :: nGVecsGlobal
     !! Global number of G-vectors
   integer :: nGVecsLocal
     !! Local number of G-vectors
-  integer :: nGkVecsLocal
-    !! Local number of G+k vectors on this processor
+  integer :: nPairs
+    !! Number of pairs of bands to get overlaps for
   integer :: nSys
     !! Number of systems
   integer :: phononModeJ
@@ -34,8 +40,6 @@ module TMEmod
   real(kind = dp) :: t1, t2
     !! For timing different processes
 
-  complex(kind=dp), allocatable :: Ufi(:,:)
-    !! All-electron overlap
   complex(kind=dp), allocatable :: Ylm(:,:)
     !! Spherical harmonics
   
@@ -49,6 +53,9 @@ module TMEmod
   character(len=300) :: outputDir
     !! Path to where matrix elements should be output
 
+  logical :: overlapOnly
+    !! If only the wave function overlap should be
+    !! calculated
   logical :: subtractBaseline
     !! If baseline should be subtracted from first-order
     !! overlap for increased numerical accuracy in the 
@@ -163,10 +170,6 @@ module TMEmod
       !! bra or ket
   end type crystal
 
-  type(crystal) :: braSys, ketSys
-    !! Define variables for the system used as the
-    !! <bra| and the |ket> in the overlap matrix 
-    !! element
   type(crystal), allocatable :: crystalSystem(:)
     !! Array containing all crystal systems
   
@@ -176,17 +179,21 @@ module TMEmod
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(ispSelect, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, & 
-          energyTableDir, outputDir, loopSpins, subtractBaseline)
+  subroutine readInputParams(ibBra, ibKet, ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, &
+          ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, subtractBaseline)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
 
     ! Output variables:
+    integer, allocatable, intent(out) :: ibBra(:), ibKet(:)
+      !! Band indices for different systems
     integer, intent(out) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
+    integer, intent(out) :: nPairs
+      !! Number of pairs of bands to get overlaps for
     integer, intent(out) :: order
       !! Order of matrix element (0 or 1)
     integer, intent(out) :: phononModeJ
@@ -205,41 +212,50 @@ contains
     character(len=300), intent(out) :: outputDir
       !! Path to where matrix elements should be output
 
-    logical, intent(out) :: loopSpins
-      !! Whether to loop over available spin channels;
-      !! otherwise, use selected spin channel
+    logical, intent(out) :: overlapOnly
+      !! If only the wave function overlap should be
+      !! calculated
     logical, intent(out) :: subtractBaseline
       !! If baseline should be subtracted from first-order
       !! overlap for increased numerical accuracy in the 
       !! derivative
 
+    ! Local variables:
+    integer :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
+      !! Optional band bounds
+
+    character(len=300) :: braBands, ketBands
+      !! Strings to take input band pairs for overlap-only
+
 
     namelist /TME_Input/ ketExportDir, braExportDir, outputDir, energyTableDir, &
                          order, dqFName, phononModeJ, subtractBaseline, baselineDir, &
-                         ispSelect
+                         ispSelect, nPairs, braBands, ketBands, overlapOnly, &
+                         iBandLBra, iBandHBra, iBandLKet, iBandHKet
     
 
     if(ionode) then
     
-      call initialize(ispSelect, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, &
-              energyTableDir, outputDir, subtractBaseline)
+      call initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, baselineDir, &
+              braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, subtractBaseline)
     
       read(5, TME_Input, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading TME_Input namelist', abs(ierr))
     
-      call checkInitialization(ispSelect, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, &
-              energyTableDir, outputDir, subtractBaseline, loopSpins)
+      call checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, &
+              baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, &
+              subtractBaseline, ibBra, ibKet)
 
     endif
 
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
 
     call MPI_BCAST(ispSelect, 1, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(loopSpins, 1, MPI_LOGICAL, root, worldComm, ierr)
 
     call MPI_BCAST(phononModeJ, 1, MPI_INTEGER, root, worldComm, ierr)
 
+    call MPI_BCAST(overlapOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(subtractBaseline, 1, MPI_LOGICAL, root, worldComm, ierr)
 
     call MPI_BCAST(braExportDir, len(braExportDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -248,21 +264,39 @@ contains
     call MPI_BCAST(baselineDir, len(baselineDir), MPI_CHARACTER, root, worldComm, ierr)
 
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
-    
+
+    call MPI_BCAST(nPairs, 1, MPI_INTEGER, root, worldComm, ierr)
+    if(.not. ionode) then
+      allocate(ibKet(nPairs))
+
+      if(overlapOnly) then
+        allocate(ibBra(nPairs))
+      else 
+        allocate(ibBra(1))
+      endif
+    endif
+
+    call MPI_BCAST(ibBra, size(ibBra), MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(ibKet, size(ibKet), MPI_INTEGER, root, worldComm, ierr)
+
     return
     
   end subroutine readInputParams
   
 !----------------------------------------------------------------------------
-  subroutine initialize(ispSelect, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, &
-           energyTableDir, outputDir, subtractBaseline)
+  subroutine initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, baselineDir, &
+          braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, subtractBaseline)
     
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
+      !! Optional band bounds
     integer, intent(out) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
+    integer, intent(out) :: nPairs
+      !! Number of pairs of bands to get overlaps for
     integer, intent(out) :: order
       !! Order of matrix element (0 or 1)
     integer, intent(out) :: phononModeJ
@@ -272,6 +306,8 @@ contains
     character(len=300), intent(out) :: baselineDir
       !! File name for baseline overlap to optionally
       !! be subtracted for the first-order term
+    character(len=300), intent(out) :: braBands, ketBands
+      !! Strings to take input band pairs for overlap-only
     character(len=300), intent(out) :: braExportDir, ketExportDir
       !! Path to export dirs
     character(len=300), intent(out) :: dqFName
@@ -281,25 +317,34 @@ contains
     character(len=300), intent(out) :: outputDir
       !! Path to where matrix elements should be output
 
+    logical, intent(out) :: overlapOnly
+      !! If only the wave function overlap should be
+      !! calculated
     logical, intent(out) :: subtractBaseline
       !! If baseline should be subtracted from first-order
       !! overlap for increased numerical accuracy in the 
       !! derivative
     
 
+    iBandLBra = -1
+    iBandHBra = -1
+    iBandLKet = -1
+    iBandHKet = -1
+    order = -1
+    nPairs = -1
+    ispSelect = -1
+    phononModeJ = -1
+
+    braBands = ''
+    ketBands = ''
     braExportDir = ''
     ketExportDir = ''
     energyTableDir = ''
     dqFName = ''
     outputDir = './TMEs'
     baselineDir = ''
-
-    order = -1
-
-    ispSelect = -1
-
-    phononModeJ = -1
     
+    overlapOnly = .false.
     subtractBaseline = .false.
     
     return
@@ -307,15 +352,20 @@ contains
   end subroutine initialize
   
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(ispSelect, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, &
-          energyTableDir, outputDir, subtractBaseline, loopSpins)
+  subroutine checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, &
+          baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, &
+          subtractBaseline, ibBra, ibKet)
     
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
+      !! Optional band bounds
     integer, intent(in) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
+    integer, intent(inout) :: nPairs
+      !! Number of pairs of bands to get overlaps for
     integer, intent(in) :: order
       !! Order of matrix element (0 or 1)
     integer, intent(in) :: phononModeJ
@@ -325,6 +375,8 @@ contains
     character(len=300), intent(in) :: baselineDir
       !! File name for baseline overlap to optionally
       !! be subtracted for the first-order term
+    character(len=300), intent(in) :: braBands, ketBands
+      !! Strings to take input band pairs for overlap-only
     character(len=300), intent(in) :: braExportDir, ketExportDir
       !! Path to export dirs
     character(len=300), intent(in) :: dqFName
@@ -334,27 +386,39 @@ contains
     character(len=300), intent(in) :: outputDir
       !! Path to where matrix elements should be output
 
+    logical, intent(in) :: overlapOnly
+      !! If only the wave function overlap should be
+      !! calculated
     logical, intent(in) :: subtractBaseline
       !! If baseline should be subtracted from first-order
       !! overlap for increased numerical accuracy in the 
       !! derivative
 
     ! Output variables:
-    logical, intent(out) :: loopSpins
-      !! Whether to loop over available spin channels;
-      !! otherwise, use selected spin channel
+    integer, allocatable, intent(out) :: ibBra(:), ibKet(:)
+      !! Band indices for different systems
     
     ! Local variables
     logical :: abortExecution
       !! If program should stop
+    logical :: bandBoundsGiven 
+      !! If optional band bounds given
+    logical :: energyTableGiven
+      !! If energy table given
+    logical :: explicitBandStringsGiven
+      !! If strings with pairs of bands given;
+      !! supercedes other choices of bands
+    logical :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
     
     
     write(*,'("Inputs: ")')
     
     abortExecution = checkDirInitialization('braExportDir', braExportDir, 'input')
     abortExecution = checkDirInitialization('ketExportDir', ketExportDir, 'input') .or. abortExecution
-    abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.1.1') .or. abortExecution
-    abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution
+    abortExecution = checkStringInitialization('outputDir', outputDir) .or. abortExecution
+
 
     if(ispSelect < 1 .or. ispSelect > 2) then
       write(*,*) "No valid choice for spin channel selection given. Looping over spin."
@@ -364,20 +428,61 @@ contains
       loopSpins = .false.
     endif
 
-    if(order == 1) then
-      abortExecution = checkFileInitialization('dqFName', dqFName) .or. abortExecution
-      abortExecution = checkIntInitialization('phononModeJ', phononModeJ, 1, int(1e9)) .or. abortExecution
+    
+    if(.not. overlapOnly) then
+      ! Require that states be read from the energy table for capture
 
-      if(subtractBaseline) then
-        if(ispSelect == 2) then
-          abortExecution = checkDirInitialization('baselineDir', baselineDir, 'allElecOverlap.2.1') .or. abortExecution
-        else
-          abortExecution = checkDirInitialization('baselineDir', baselineDir, 'allElecOverlap.1.1') .or. abortExecution
+      abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution
+
+      if(order == 1) then
+        abortExecution = checkFileInitialization('dqFName', dqFName) .or. abortExecution
+        abortExecution = checkIntInitialization('phononModeJ', phononModeJ, 1, int(1e9)) .or. abortExecution
+
+        if(subtractBaseline) then
+          if(ispSelect == 2) then
+            abortExecution = checkDirInitialization('baselineDir', baselineDir, 'allElecOverlap.2.1') .or. abortExecution
+          else
+            abortExecution = checkDirInitialization('baselineDir', baselineDir, 'allElecOverlap.1.1') .or. abortExecution
+          endif
         endif
       endif
-    endif
 
-    abortExecution = checkStringInitialization('outputDir', outputDir) .or. abortExecution
+      call getBandBoundsFromEnergyTable(ispSelect, loopSpins, energyTableDir, ibBra, ibKet, nPairs, abortExecution)
+
+    else
+      ! For overlap-only, can get the bands from explicit strings,
+      ! band bounds, or the energy table
+
+      explicitBandStringsGiven = trim(braBands) /= '' .and. trim(ketBands) /= '' 
+      bandBoundsGiven = iBandLBra > 0 .and. iBandHBra > 0 .and. &
+                        iBandLKet > 0 .and. iBandHKet > 0
+      energyTableGiven = trim(energyTableDir) /= ''
+
+
+      if(explicitBandStringsGiven) then
+
+        write(*,'("Reading states from band strings braBands and ketBands.")')
+        if(bandBoundsGiven) write(*,'("Band bounds detected; will be ignored.")')
+        if(energyTableGiven) write(*,'("Input detected for energy table; will be ignored.")')
+
+        call getBandBoundsFromBandStrings(nPairs, braBands, ketBands, ibBra, ibKet, abortExecution)
+
+      else if(bandBoundsGiven) then
+
+        write(*,'("Reading states from band ranges.")')
+        call getBandBoundsFromRanges(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibBra, ibKet, nPairs, abortExecution)
+
+      else if(energyTableGiven) then
+
+        write(*,'("Reading states from energy table.")')
+        call getBandBoundsFromEnergyTable(ispSelect, loopSpins, energyTableDir, ibBra, ibKet, nPairs, abortExecution)
+
+      else
+        write(*,'("No input detected for reading band states!")')
+        abortExecution = .true.
+      endif
+
+    endif
 
 
     call system('mkdir -p '//trim(outputDir))
@@ -391,6 +496,155 @@ contains
     return
     
   end subroutine checkInitialization
+
+!----------------------------------------------------------------------------
+  subroutine getBandBoundsFromEnergyTable(ispSelect, loopSpins, energyTableDir, ibBra, ibKet, nPairs, abortExecution)
+    ! Read nTransitions and band indices from energy table, assuming that
+    ! they are the same for the two spin channels and all k-points
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+
+    logical, intent(in) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
+
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy tables
+
+    ! Output variables:
+    integer, allocatable, intent(out) :: ibBra(:), ibKet(:)
+      !! Band indices for different systems
+    integer, intent(out) :: nPairs
+      !! Number of pairs of bands to get overlaps for
+
+    logical, intent(inout) :: abortExecution
+      !! If program should stop
+
+    ! Local variables:
+    integer :: isp
+      !! Spin channel index
+
+    real(kind=dp), allocatable :: rDum(:,:)
+      !! Dummy real to ignore energy when just getting 
+      !! band bounds and number of transitions
+
+
+    abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.1.1') .or. abortExecution
+
+    if(.not. abortExecution) then
+      if(loopSpins) then
+        isp = 1
+      else 
+        isp = ispSelect
+      endif
+
+      allocate(ibBra(1))
+
+      call readCaptureEnergyTable(1, isp, energyTableDir, ibKet, ibBra(1), nPairs, rDum)
+        ! nPairs is read from the energy table
+    endif
+
+    return
+
+  end subroutine getBandBoundsFromEnergyTable
+
+!----------------------------------------------------------------------------
+  subroutine getBandBoundsFromBandStrings(nPairs, braBands, ketBands, ibBra, ibKet, abortExecution)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nPairs
+      !! Number of pairs of bands to get overlaps for
+
+    character(len=300), intent(in) :: braBands, ketBands
+      !! Strings to take input band pairs for overlap-only
+
+    ! Output variables:
+    integer, allocatable, intent(out) :: ibBra(:), ibKet(:)
+      !! Band indices for different systems
+
+    logical, intent(inout) :: abortExecution
+      !! If program should stop
+
+    ! Local variables:
+    integer :: ip
+      !! Loop index
+
+
+    abortExecution = checkStringInitialization('braBands', braBands) .or. abortExecution
+    abortExecution = checkStringInitialization('ketBands', ketBands) .or. abortExecution
+    abortExecution = checkIntInitialization('nPairs', nPairs, 1, 100) .or. abortExecution
+      ! nPairs must be given explicitly
+
+
+    if(.not. abortExecution) then
+      allocate(ibBra(nPairs), ibKet(nPairs))
+
+      read(braBands,*,iostat=ierr) (ibBra(ip), ip=1,nPairs)
+      if(ierr /= 0) call exitError('getBandBoundsFromStrings', 'reading braBands', abs(ierr))
+
+      read(ketBands,*) (ibKet(ip), ip=1,nPairs)
+      if(ierr /= 0) call exitError('getBandBoundsFromStrings', 'reading ketBands', abs(ierr))
+    endif
+
+    return
+
+  end subroutine getBandBoundsFromBandStrings
+
+!----------------------------------------------------------------------------
+  subroutine getBandBoundsFromRanges(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibBra, ibKet, nPairs, abortExecution)
+     
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
+      !! Optional band bounds
+
+    ! Output variables:
+    integer, allocatable, intent(out) :: ibBra(:), ibKet(:)
+      !! Band indices for different systems
+    integer, intent(out) :: nPairs
+      !! Number of pairs of bands to get overlaps for
+
+    logical, intent(inout) :: abortExecution
+      !! If program should stop
+
+    ! Local variables:
+    integer :: ip, ibB, ibK
+      !! Loop indices
+
+
+
+    abortExecution = checkIntInitialization('iBandLBra', iBandLBra, 1, int(1e9))
+    abortExecution = checkIntInitialization('iBandHBra', iBandHBra, iBandLBra, int(1e9)) .or. abortExecution
+    abortExecution = checkIntInitialization('iBandLKet', iBandLKet, 1, int(1e9)) .or. abortExecution
+    abortExecution = checkIntInitialization('iBandHKet', iBandHKet, iBandLKet, int(1e9)) .or. abortExecution 
+
+    if(.not. abortExecution) then
+      nPairs = (iBandHBra - iBandLBra + 1)*(iBandHKet - iBandLKet + 1)
+        ! Calculate nPairs from input
+
+      allocate(ibBra(nPairs), ibKet(nPairs))
+
+      ip = 0
+      do ibB = iBandLBra, iBandHBra
+        do ibK = iBandLKet, iBandHKet
+          ip = ip + 1
+          ibBra(ip) = ibB
+          ibKet(ip) = ibK
+        enddo
+      enddo
+    endif
+
+    return
+
+  end subroutine getBandBoundsFromRanges
 
 !----------------------------------------------------------------------------
   subroutine setUpSystemArray(nSys, braExportDir, ketExportDir, crystalSystem)
@@ -424,8 +678,8 @@ contains
    end subroutine setUpSystemArray
 
 !----------------------------------------------------------------------------
-  subroutine completePreliminarySetup(nSys, order, phononModeJ, dqFName, mill_local, nGVecsGlobal, nKPoints, nSpins, &
-        dq_j, recipLattVec, volume, Ylm, crystalSystem, pot)
+  subroutine completePreliminarySetup(nSys, order, phononModeJ, dqFName, mill_local, nGVecsGlobal, nGVecsLocal, nKPoints, &
+        nSpins, dq_j, recipLattVec, volume, Ylm, crystalSystem, pot)
 
     implicit none
 
@@ -447,6 +701,8 @@ contains
     integer, intent(out) :: nGVecsGlobal
       !! Number of global G-vectors (tested to be consistent
       !! across all systems)
+    integer, intent(out) :: nGVecsLocal
+      !! Local number of G-vectors
     integer, intent(out) :: nKPoints
       !! Number of k-points (tested to be consistent
       !! across all systems)
@@ -457,11 +713,11 @@ contains
     real(kind=dp), intent(out) :: dq_j
       !! \(\delta q_j) for displaced wave functions
       !! (only order = 1)
+    real(kind=dp), intent(out) :: recipLattVec(3,3)
+      !! Reciprocal-space lattice vectors
     real(kind=dp), intent(out) :: volume
       !! Cell volume (tested to be consistent
       !! across all systems)
-    real(kind=dp), intent(out) :: recipLattVec(3,3)
-      !! Reciprocal-space lattice vectors
 
     complex(kind=dp), allocatable, intent(out) :: Ylm(:,:)
       !! Spherical harmonics
@@ -478,7 +734,7 @@ contains
       !! Loop variable
 
 
-    if(ionode) write(*, '("Pre-k-loop: [ ] Read inputs  [ ] Read full PW grid  [ ] Set up tables ")')
+    if(ionode) write(*, '("Pre-k-loop: [ ] Read inputs  [ ] Set up tables ")')
     call cpu_time(t1)
 
     ! Initialize global variables to be tracked to make sure they
@@ -507,12 +763,7 @@ contains
 
     if(order == 1) call readDqFile(phononModeJ, dqFName, dq_j)
 
-
-    call cpu_time(t2)
-    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [ ] Read full PW grid  [ ] Set up tables (",f10.2," secs)")') t2-t1
-    call cpu_time(t1)
-
-
+    
     call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
       !! * Distribute k-points in pools
 
@@ -528,22 +779,21 @@ contains
       ! G-vectors is the same in all of the systems, so it doesn't
       ! matter which system we read the PW grid from.
 
-  
+
     call cpu_time(t2)
-    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid  [ ] Set up tables (",f10.2," secs)")') t2-t1
+    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [ ] Set up tables (",f10.2," secs)")') t2-t1
     call cpu_time(t1)
 
 
     allocate(Ylm((pot%maxAngMom+1)**2,nGVecsLocal))
 
     call setUpTables(nGVecsLocal, mill_local, nSys, recipLattVec, pot, Ylm, crystalSystem)
-    ! Also allocate this table for the braSys so that there isn't an error when deallocating
 
     deallocate(mill_local)
 
   
     call cpu_time(t2)
-    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Read full PW grid  [X] Set up tables (",f10.2," secs)")') t2-t1
+    if(ionode) write(*, '("Pre-k-loop: [X] Read inputs  [X] Set up tables (",f10.2," secs)")') t2-t1
     call cpu_time(t1)
 
     return
@@ -1316,14 +1566,103 @@ contains
   end subroutine getExpiGDotR
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWrite2SysMatrixElements(ispSelect, nSpins, braSys, ketSys, pot)
+  subroutine getAndWriteOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, braSys, ketSys, pot)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: nPairs
+      !! Number of pairs of bands to get overlaps for
+    integer, intent(in) :: ibBra(nPairs), ibKet(nPairs)
+      !! Band indices for different systems
     integer, intent(in) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
+    integer, intent(in) :: nGVecsLocal
+      !! Local number of G-vectors
+    integer, intent(in) :: nSpins
+      !! Number of spins (tested to be consistent
+      !! across all systems)
+
+    type(crystal) :: braSys, ketSys
+       !! The crystal systems to get the
+       !! matrix element for
+
+    type(potcar) :: pot
+      !! Structure containing all pseudopotential-related
+      !! information
+
+    ! Local variables:
+    integer :: ikLocal, ikGlobal, ip, isp
+      !! Loop index
+    integer :: nGkVecsLocal
+      !! Local number of G+k vectors on this processor
+
+    complex(kind=dp) :: Ufi(nPairs,nSpins), Ufi_ip(nSpins)
+      !! All-electron overlap
+
+    logical :: spin1Skipped, spin2Skipped
+      !! If spin channels skipped
+
+
+    Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+
+    do ikLocal = 1, nkPerPool
+    
+      if(ionode) write(*,'("Beginning k-point loop ", i4, " of ", i4)') ikLocal, nkPerPool
+      ikGlobal = ikLocal+ikStart_pool-1
+        !! Get the global `ik` index from the local one
+    
+
+      if(.not. thisKComplete(ikGlobal, ispSelect, nSpins)) then
+
+        call spinAndBandIndependentSetup(ikGlobal, ispSelect, nGVecsLocal, nGkVecsLocal, spin1Skipped, &
+              spin2Skipped, braSys, ketSys)
+
+
+        do ip = 1, nPairs
+          call calculateBandPairOverlap(ibBra(ip), ibKet(ip), ikGlobal, nSpins, nGkVecsLocal, nGVecsLocal, spin1Skipped, spin2Skipped, &
+                braSys, ketSys, pot, Ufi_ip)
+
+          Ufi(ip,:) = Ufi_ip
+        enddo
+
+
+        if(indexInPool == 0) then 
+          do isp = 1, nSpins
+            if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) &
+              call writeOverlaps(nPairs, ibBra, ibKet, ikLocal, isp, Ufi(:,isp))
+          enddo
+        endif
+
+
+        call deallocateSysArrays(braSys)
+        call deallocateSysArrays(ketSys)
+
+      endif ! If both spin channels exist
+    enddo ! k-point loop
+
+    return
+
+  end subroutine getAndWriteOnlyOverlaps
+
+!----------------------------------------------------------------------------
+  subroutine getAndWriteCaptureMatrixElements(nTransitions, ibi, ibf, ispSelect, nGVecsLocal, nSpins, braSys, ketSys, pot)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions)
+      !! Initial-state indices
+    integer, intent(in) :: ibf
+      !! Final-state index
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+    integer, intent(in) :: nGVecsLocal
+      !! Local number of G-vectors
     integer, intent(in) :: nSpins
       !! Number of spins (tested to be consistent
       !! across all systems)
@@ -1337,128 +1676,43 @@ contains
       !! information
 
     ! Local variables 
-    integer, allocatable :: ibi(:)
-      !! Initial-state indices
-    integer :: ibf
-      !! Final-state index
     integer :: ikLocal, ikGlobal, isp, iE
       !! Loop indices
-    integer :: nTransitions
-      !! Total number of transitions 
+    integer :: nGkVecsLocal
+      !! Local number of G+k vectors on this processor
 
-    real(kind=dp), allocatable :: dE(:,:)
-      !! All energy differences from energy table
+    complex(kind=dp) :: Ufi(nTransitions,nSpins), Ufi_iE(nSpins)
+      !! All-electron overlap
 
-    logical :: calcSpinDepSD, calcSpinDepPC
-      !! If spin-dependent subroutines should be called
-    logical :: spin1Skipped = .false., spin2Skipped = .false.
+    logical :: spin1Skipped, spin2Skipped
       !! If spin channels skipped
 
+
+    Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
 
     do ikLocal = 1, nkPerPool
     
       if(ionode) write(*,'("Beginning k-point loop ", i4, " of ", i4)') ikLocal, nkPerPool
-    
-
       ikGlobal = ikLocal+ikStart_pool-1
         !! Get the global `ik` index from the local one
-    
+
 
       if(.not. thisKComplete(ikGlobal, ispSelect, nSpins)) then
 
-        !-----------------------------------------------------------------------------------------------
-        !> Read projectors
-
-        if(ionode) write(*, '("  Pre-spin-loop: [ ] Read projectors ")') 
-        call cpu_time(t1)
-
-
-        if(braSys%nPWs1kGlobal(ikGlobal) /= ketSys%nPWs1kGlobal(ikGlobal)) &
-          call exitError('calAndWrite2SyMatrixElements', 'number of G+k vectors does not match for ik='//trim(int2str(ikGlobal)), 1)
-
-        call distributeItemsInSubgroups(indexInPool, braSys%nPWs1kGlobal(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_pool, &
-                iGkEnd_pool, nGkVecsLocal)
-
-
-        allocate(braSys%beta(nGkVecsLocal,braSys%nProj))
-        allocate(ketSys%beta(nGkVecsLocal,ketSys%nProj))
-
-        call readProjectors(ikGlobal, nGkVecsLocal, braSys)
-        call readProjectors(ikGlobal, nGkVecsLocal, ketSys)
-
-
-        call cpu_time(t2)
-        if(ionode) write(*, '("  Pre-spin-loop: [X] Read projectors (",f10.2," secs)")') t2-t1
-
-      
-        !-----------------------------------------------------------------------------------------------
-        !> Allocate arrays that are potentially spin-polarized and start spin loop
-
-        allocate(braSys%wfc(nGkVecsLocal))
-        allocate(ketSys%wfc(nGkVecsLocal))
-      
-        allocate(braSys%crossProjection(braSys%nProj))
-        allocate(ketSys%crossProjection(ketSys%nProj))
-
-        allocate(braSys%projection(braSys%nProj))
-        allocate(ketSys%projection(ketSys%nProj))
-
-        allocate(braSys%pawK(nGVecsLocal))
-        allocate(ketSys%pawK(nGVecsLocal))
-
-
-        if(indexInPool == 0) then
-          if(ispSelect == 2 .or. overlapFileExists(ikGlobal,1)) spin1Skipped = .true.
-          if(ispSelect == 1 .or. overlapFileExists(ikGlobal,2)) spin2Skipped = .true.
-        endif
-
-        call MPI_BCAST(spin1Skipped, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
-        call MPI_BCAST(spin2Skipped, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
-
-
-        ! Read nTransitions and band indices from energy table, assuming that
-        ! they are the same for the two spin channels
-        if(indexInPool == 0) then
-          if(spin1Skipped) then
-            call readCaptureEnergyTable(ikGlobal, 2, energyTableDir, ibi, ibf, nTransitions, dE)
-          else
-            call readCaptureEnergyTable(ikGlobal, 1, energyTableDir, ibi, ibf, nTransitions, dE)
-          endif
-        endif
-
-        call MPI_BCAST(nTransitions, 1, MPI_INTEGER, root, intraPoolComm, ierr)
-        if(indexInPool /= 0) allocate(ibi(nTransitions))
-        call MPI_BCAST(ibi, nTransitions, MPI_INTEGER, root, intraPoolComm, ierr)
-        call MPI_BCAST(ibf, 1, MPI_INTEGER, root, intraPoolComm, ierr)
-
-        allocate(Ufi(nTransitions,nSpins))
-        Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+        call spinAndBandIndependentSetup(ikGlobal, ispSelect, nGVecsLocal, nGkVecsLocal, spin1Skipped, &
+              spin2Skipped, braSys, ketSys)
 
         
         do iE = 1, nTransitions
-
           if(ionode) write(*,'("  Beginning transition ", i5, " -> ",i5)') ibi(iE), ibf
           call cpu_time(t1)
 
-          do isp = 1, nSpins
-            if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
+          Ufi_iE(:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
 
-              calcSpinDepPC = isp == 1 .or. ketSys%nSpins == 2 .or. spin1Skipped
-              calcSpinDepSD = isp == 1 .or. braSys%nSpins == 2 .or. spin1Skipped
-                ! If either of the systems only has a single spin channel, some inputs and
-                ! calculations do not need to be redone for both spin channels. However, we
-                ! still need to make sure to calculate these values for the second spin
-                ! channel if the first spin channel was not done (e.g., the file already 
-                ! existed or only the second spin channel was selected).
-      
-              if(calcSpinDepPC) then
-                call readWfc(ibi(iE), ikGlobal, min(isp,ketSys%nSpins), nGkVecsLocal, ketSys)
-                call calculateCrossProjection(ketSys, braSys)
-                  ! Get new cross projection with new `ketSys%wfc`
-                call readProjections(ibi(iE), ikGlobal, min(isp,ketSys%nSpins), ketSys)
-                call pawCorrectionK(nGVecsLocal, pot, Ylm, ketSys)
-              endif
+          call calculateBandPairOverlap(ibf, ibi(iE), ikGlobal, nSpins, nGkVecsLocal, nGVecsLocal, spin1Skipped, spin2Skipped, &
+                braSys, ketSys, pot, Ufi_iE)
 
+<<<<<<< HEAD
               if(calcSpinDepSD) then
                 call readWfc(ibf, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocal, braSys)
                 call calculateCrossProjection(braSys, ketSys)
@@ -1483,10 +1737,13 @@ contains
 
             endif ! If calculating this spin
           enddo ! Loop over spins
+=======
+          Ufi(iE,:) = Ufi_iE
+>>>>>>> master
 
           call cpu_time(t2)
           if(ionode) write(*, '("  Transition ",i5," -> ",i5," complete! (",f10.2," secs)")') ibi(iE), ibf, t2-t1
-        enddo ! Loop over transitions ibi -> ibf
+        enddo 
 
 
         ! Subtract baseline if applicable and write out results
@@ -1496,24 +1753,20 @@ contains
                 if(order == 1 .and. subtractBaseline) &
                   call readAndSubtractBaseline(ikLocal, isp, nTransitions, Ufi(:,isp))
         
-                call writeResults(ikLocal, isp, nTransitions, Ufi(:,isp))
+                call writeCaptureMatrixElements(nTransitions, ibi, ibf, ikLocal, isp, Ufi(:,isp))
             endif 
           enddo
         endif
 
-
-        deallocate(braSys%wfc, ketSys%wfc)
-        deallocate(braSys%beta, ketSys%beta)
-        deallocate(braSys%crossProjection, ketSys%crossProjection)
-        deallocate(braSys%projection, ketSys%projection)
-        deallocate(braSys%pawK, ketSys%pawK)
+        call deallocateSysArrays(braSys)
+        call deallocateSysArrays(ketSys)
 
       endif ! If both spin channels exist
     enddo ! k-point loop
 
     return
 
-  end subroutine calcAndWrite2SysMatrixElements
+  end subroutine getAndWriteCaptureMatrixElements
 
 !----------------------------------------------------------------------------
   function thisKComplete(ikGlobal, ispSelect, nSpins)
@@ -1549,6 +1802,108 @@ contains
     call MPI_BCAST(thisKComplete, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
 
   end function thisKComplete    
+
+!-----------------------------------------------------------------------------------------------
+  subroutine spinAndBandIndependentSetup(ikGlobal, ispSelect, nGVecsLocal, nGkVecsLocal, spin1Skipped, &
+        spin2Skipped, braSys, ketSys)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Global k-point index
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+    integer, intent(in) :: nGVecsLocal
+      !! Number of local G-vectors
+
+    ! Output variables:
+    integer, intent(out) :: nGkVecsLocal
+      !! Local number of G+k vectors on this processor
+
+    logical, intent(out) :: spin1Skipped, spin2Skipped
+      !! If spin channels skipped
+
+    type(crystal) :: braSys, ketSys
+       !! The crystal systems to get the
+       !! matrix element for
+
+
+    if(braSys%nPWs1kGlobal(ikGlobal) /= ketSys%nPWs1kGlobal(ikGlobal)) &
+      call exitError('spinAndBandIndependentSetup', 'number of G+k vectors does not match for ik='//trim(int2str(ikGlobal)), 1)
+
+    call distributeItemsInSubgroups(indexInPool, braSys%nPWs1kGlobal(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, iGkStart_pool, &
+            iGkEnd_pool, nGkVecsLocal)
+
+
+    call allocateSysArrays(nGkVecsLocal, nGVecsLocal, braSys)
+    call allocateSysArrays(nGkVecsLocal, nGVecsLocal, ketSys)
+
+
+    call readProjectors(ikGlobal, nGkVecsLocal, braSys)
+    call readProjectors(ikGlobal, nGkVecsLocal, ketSys)
+
+
+    spin1Skipped = .false.
+    spin2Skipped = .false.
+    if(indexInPool == 0) then
+      if(ispSelect == 2 .or. overlapFileExists(ikGlobal,1)) spin1Skipped = .true.
+      if(ispSelect == 1 .or. overlapFileExists(ikGlobal,2)) spin2Skipped = .true.
+    endif
+
+    call MPI_BCAST(spin1Skipped, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
+    call MPI_BCAST(spin2Skipped, 1, MPI_LOGICAL, root, intraPoolComm, ierr)
+
+    return
+
+  end subroutine spinAndBandIndependentSetup
+
+!-----------------------------------------------------------------------------------------------
+  subroutine allocateSysArrays(nGkVecsLocal, nGVecsLocal, sys)
+
+    implicit none
+    
+    ! Input variables:
+    integer, intent(in) :: nGkVecsLocal
+      !! Local number of G+k vectors on this processor
+    integer, intent(in) :: nGVecsLocal
+      !! Number of local G-vectors
+
+    ! Output variables:
+    type(crystal) :: sys
+       !! The crystal system
+
+        
+    allocate(sys%beta(nGkVecsLocal,sys%nProj))
+    allocate(sys%wfc(nGkVecsLocal))
+    allocate(sys%crossProjection(sys%nProj))
+    allocate(sys%projection(sys%nProj))
+    allocate(sys%pawK(nGVecsLocal))
+
+    return
+
+  end subroutine allocateSysArrays
+
+!-----------------------------------------------------------------------------------------------
+  subroutine deallocateSysArrays(sys)
+
+    implicit none
+    
+    ! Output variables:
+    type(crystal) :: sys
+       !! The crystal system
+
+        
+    deallocate(sys%wfc)
+    deallocate(sys%beta)
+    deallocate(sys%crossProjection)
+    deallocate(sys%projection)
+    deallocate(sys%pawK)
+
+    return
+
+  end subroutine deallocateSysArrays
   
 !----------------------------------------------------------------------------
   function overlapFileExists(ikGlobal, isp) result(fileExists)
@@ -1626,6 +1981,123 @@ contains
     return 
 
   end subroutine readProjectors
+  
+!----------------------------------------------------------------------------
+  subroutine calculateBandPairOverlap(ibBra, ibKet, ikGlobal, nSpins, nGkVecsLocal, nGVecsLocal, spin1Skipped, spin2Skipped, &
+        braSys, ketSys, pot, Ufi)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ibBra, ibKet
+      !! Band indices for bra and ket systems
+    integer, intent(in) :: ikGlobal
+      !! Current k point
+    integer, intent(in) :: nSpins
+      !! Number of spins (tested to be consistent
+      !! across all systems)
+    integer, intent(in) :: nGkVecsLocal
+      !! Local number of G+k vectors on this processor
+    integer, intent(in) :: nGVecsLocal
+      !! Number of local G-vectors
+
+    logical, intent(in) :: spin1Skipped, spin2Skipped
+      !! If spin channels skipped
+
+    type(crystal) :: braSys, ketSys
+       !! The crystal systems to get the
+       !! matrix element for
+
+    type(potcar) :: pot
+      !! Structure containing all pseudopotential-related
+      !! information
+
+    ! Output variables:
+    complex(kind=dp) :: Ufi(nSpins)
+      !! All-electron overlap for this k-point and band pair
+
+
+    ! Local variables:
+    integer :: isp
+      !! Loop index
+
+    logical :: calcSpinDepBra, calcSpinDepKet
+      !! If spin-dependent subroutines should be called
+
+
+    do isp = 1, nSpins
+      if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
+
+        calcSpinDepKet = isp == 1 .or. ketSys%nSpins == 2 .or. spin1Skipped
+        calcSpinDepBra = isp == 1 .or. braSys%nSpins == 2 .or. spin1Skipped
+          ! If either of the systems only has a single spin channel, some inputs and
+          ! calculations do not need to be redone for both spin channels. However, we
+          ! still need to make sure to calculate these values for the second spin
+          ! channel if the first spin channel was not done (e.g., the file already 
+          ! existed or only the second spin channel was selected).
+
+
+        if(calcSpinDepBra) call calcSpinDep(ibBra, ikGlobal, isp, nGkVecsLocal, nGVecsLocal, braSys, ketSys)
+      
+        if(calcSpinDepKet) call calcSpinDep(ibKet, ikGlobal, isp, nGkVecsLocal, nGVecsLocal, ketSys, braSys)
+
+        Ufi(isp) = dot_product(braSys%wfc(:),ketSys%wfc(:))
+        if(indexInPool == 0) call pawCorrectionWfc(ketSys, pot)
+        if(indexInPool == 1) call pawCorrectionWfc(braSys, pot)
+
+        call MPI_BCAST(ketSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
+        call MPI_BCAST(braSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
+
+        Ufi(isp) = Ufi(isp) + (16.0_dp*pi*pi/volume)*dot_product(conjg(braSys%pawK(:)),ketSys%pawK(:))
+
+        call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(isp), 1, MPI_DOUBLE_COMPLEX, MPI_SUM, intraPoolComm, ierr)
+
+        Ufi(isp) = Ufi(isp) + braSys%pawWfc + ketSys%pawWfc
+
+      endif
+    enddo 
+
+    return
+
+  end subroutine calculateBandPairOverlap
+
+!----------------------------------------------------------------------------
+  subroutine calcSpinDep(ib, ikGlobal, isp, nGkVecsLocal, nGVecsLocal, sysCalc, sysCrossProj)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ib
+      !! Band index
+    integer, intent(in) :: ikGlobal
+      !! Current k point
+    integer, intent(in) :: isp
+      !! Current spin channel
+    integer, intent(in) :: nGkVecsLocal
+      !! Local number of G+k vectors on this processor
+    integer, intent(in) :: nGVecsLocal
+      !! Number of local G-vectors
+
+    ! Output variables:
+    type(crystal) :: sysCalc
+      !! The crystal system to calculate spin-dependent 
+      !! pieces for
+    type(crystal) :: sysCrossProj
+      !! The crystal system used for the cross projection
+
+
+    call readWfc(ib, ikGlobal, min(isp,sysCalc%nSpins), nGkVecsLocal, sysCalc)
+
+    call calculateCrossProjection(sysCalc, sysCrossProj)
+      ! Get new cross projection with new `sysCalc%wfc`
+
+    call readProjections(ib, ikGlobal, min(isp,sysCalc%nSpins), sysCalc)
+
+    call pawCorrectionK(nGVecsLocal, pot, Ylm, sysCalc)
+
+    return
+
+  end subroutine calcSpinDep
 
 !----------------------------------------------------------------------------
   subroutine readWfc(ib, ikGlobal, isp, nGkVecsLocal, sys)
@@ -2055,25 +2527,29 @@ contains
   end subroutine readAndSubtractBaseline
   
 !----------------------------------------------------------------------------
-  subroutine writeResults(ikLocal, isp, nTransitions, Ufi)
+  subroutine writeCaptureMatrixElements(nTransitions, ibi, ibf, ikLocal, isp, Ufi)
     
     implicit none
     
     ! Input variables:
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions)
+      !! Initial-state indices
+    integer, intent(in) :: ibf
+      !! Final-state index
     integer, intent(in) :: ikLocal
       !! Current local k-point
     integer, intent(in) :: isp
       !! Current spin channel
-    integer, intent(inout) :: nTransitions
-      !! Total number of transitions 
 
     complex(kind=dp), intent(in) :: Ufi(nTransitions)
       !! All-electron overlap
 
     ! Local variables:
-    integer, allocatable :: ibi(:)
+    integer, allocatable :: iDum1D(:)
       !! Initial-state indices
-    integer :: ibf
+    integer :: iDum0D_1, iDum0D_2
       !! Final-state index
     integer :: iE
       !! Loop index
@@ -2091,7 +2567,7 @@ contains
     ikGlobal = ikLocal+ikStart_pool-1
 
 
-    call readCaptureEnergyTable(ikGlobal, isp, energyTableDir, ibi, ibf, nTransitions, dE)
+    call readCaptureEnergyTable(ikGlobal, isp, energyTableDir, iDum1D, iDum0D_1, iDum0D_2, dE)
     
 
     open(17, file=trim(getMatrixElementFNameWPath(ikGlobal, isp, outputDir)), status='unknown')
@@ -2102,7 +2578,7 @@ contains
     write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') volume
     
     ! Include in the output file that these are capture matrix elements
-    write(17,'("# Capture matrix elements? Alternative is scattering.)")')
+    write(17,'("# Capture matrix elements? Alternative is scattering or overlap-only.)")')
     write(17,'(L4)') .true.
 
     text = "# Total number of transitions, Initial States (bandI, bandF), Final State (band)"
@@ -2147,7 +2623,67 @@ contains
     
     return
     
-  end subroutine writeResults
+  end subroutine writeCaptureMatrixElements
+  
+!----------------------------------------------------------------------------
+  subroutine writeOverlaps(nPairs, ibBra, ibKet, ikLocal, isp, Ufi)
+    
+    implicit none
+    
+    ! Input variables:
+    integer, intent(in) :: nPairs
+      !! Number of pairs of bands to get overlaps for
+    integer, intent(in) :: ibBra(nPairs), ibKet(nPairs)
+      !! Band indices for different systems
+    integer, intent(in) :: ikLocal
+      !! Current local k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+
+    complex(kind=dp), intent(in) :: Ufi(nPairs)
+      !! All-electron overlap
+
+    ! Local variables:
+    integer :: ip
+      !! Loop index
+    integer :: ikGlobal
+      !! Current global k-point
+
+
+    ikGlobal = ikLocal+ikStart_pool-1
+    
+
+    open(17, file=trim(getMatrixElementFNameWPath(ikGlobal, isp, outputDir)), status='unknown')
+    
+    write(17, '("# Total number of k-points, k-point index, spin index Format : ''(3i10)''")')
+    write(17,'(3i10)') nKPoints, ikGlobal, isp
+
+    write(17, '("# Cell volume (a.u.)^3. Format: ''(a51, ES24.15E3)'' ", ES24.15E3)') volume
+    
+    ! Include in the output file that these are capture matrix elements
+    write(17,'("# Capture matrix elements? Alternative is scattering or overlap-only.)")')
+    write(17,'(L4)') .false.
+
+    write(17,'("# Total number of pairs Format : ''(i10)''")')
+    write(17,'(i10)') nPairs
+    
+
+    write(17, '("# ibBra, ibKet, Complex <f|i>, |<f|i>|^2 Format : ''(2i10,3ES24.15E3)''")')
+
+    do ip = 1, nPairs
+        
+      write(17,'(2i10,3ES24.15E3)') ibBra(ip), ibKet(ip), Ufi(ip), abs(Ufi(ip))**2
+            
+    enddo
+
+    close(17)
+    
+    call cpu_time(t2)
+    write(*, '("    Ufi(:) of k-point ", i4, " and spin ", i1, " written.")') ikGlobal, isp
+    
+    return
+    
+  end subroutine writeOverlaps
    
 !----------------------------------------------------------------------------
   subroutine bessel_j (x, lmax, jl)

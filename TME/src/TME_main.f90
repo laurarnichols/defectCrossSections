@@ -17,8 +17,8 @@ program TMEmain
   if(ionode) call cpu_time(t0)
 
 
-  call readInputParams(ispSelect, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, & 
-          energyTableDir, outputDir, loopSpins, subtractBaseline)
+  call readInputParams(ibBra, ibKet, ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, &
+          ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     
@@ -28,15 +28,18 @@ program TMEmain
   call setUpSystemArray(nSys, braExportDir, ketExportDir, crystalSystem)
 
 
-  call completePreliminarySetup(nSys, order, phononModeJ, dqFName, mill_local, nGVecsGlobal, nKPoints, nSpins, &
-          dq_j, recipLattVec, volume, Ylm, crystalSystem, pot)
+  call completePreliminarySetup(nSys, order, phononModeJ, dqFName, mill_local, nGVecsGlobal, nGVecsLocal, nKPoints, &
+        nSpins, dq_j, recipLattVec, volume, Ylm, crystalSystem, pot)
 
-
-  call calcAndWrite2SysMatrixElements(ispSelect, nSpins, crystalSystem(1), crystalSystem(2), pot)
+  
+  if(overlapOnly) then
+    call getAndWriteOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, crystalSystem(1), crystalSystem(2), pot)
+  else
+    call getAndWriteCaptureMatrixElements(nPairs, ibKet, ibBra(1), ispSelect, nGVecsLocal, nSpins, crystalSystem(1), crystalSystem(2), pot)
+  endif 
 
 
   call MPI_BARRIER(worldComm, ierr)
-  if(ionode) write(*,'("Done with k loop!")')
 
   
   call finalizeCalculation(nSys, crystalSystem, pot)
