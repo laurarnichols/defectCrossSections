@@ -5,12 +5,8 @@ module TMEmod
   use constants, only: dp, pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
   use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable
-<<<<<<< HEAD
-  use base, only: nKPoints, nSpins, order, ispSelect, loopSpins
-  use cell, only: volume, recipLattVec
-=======
   use base, only: nKPoints, nSpins, order, ispSelect
->>>>>>> master
+  use cell, only: volume, recipLattVec
 
   use errorsAndMPI
   use mpi
@@ -1712,34 +1708,7 @@ contains
           call calculateBandPairOverlap(ibf, ibi(iE), ikGlobal, nSpins, nGkVecsLocal, nGVecsLocal, spin1Skipped, spin2Skipped, &
                 braSys, ketSys, pot, Ufi_iE)
 
-<<<<<<< HEAD
-              if(calcSpinDepSD) then
-                call readWfc(ibf, ikGlobal, min(isp,braSys%nSpins), nGkVecsLocal, braSys)
-                call calculateCrossProjection(braSys, ketSys)
-                  ! Get new cross projection with new `braSys%wfc`
-                call readProjections(ibf, ikGlobal, min(isp,braSys%nSpins), braSys)
-                call pawCorrectionK(nGVecsLocal, pot, Ylm, braSys)
-              endif
-
-              Ufi(iE,isp) = dot_product(braSys%wfc(:),ketSys%wfc(:))
-              if(indexInPool == 0) call pawCorrectionWfc(ketSys, pot)
-              if(indexInPool == 1) call pawCorrectionWfc(braSys, pot)
-
-              call MPI_BCAST(ketSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 0, intraPoolComm, ierr)
-              call MPI_BCAST(braSys%pawWfc, 1, MPI_DOUBLE_COMPLEX, 1, intraPoolComm, ierr)
-
-              Ufi(iE,isp) = Ufi(iE,isp) + (16.0_dp*pi*pi/volume)*dot_product(conjg(braSys%pawK(:)),ketSys%pawK(:))
-
-              call MPI_ALLREDUCE(MPI_IN_PLACE, Ufi(iE,isp), 1, MPI_DOUBLE_COMPLEX, &
-                      MPI_SUM, intraPoolComm, ierr)
-
-              Ufi(iE,isp) = Ufi(iE,isp) + braSys%pawWfc + ketSys%pawWfc
-
-            endif ! If calculating this spin
-          enddo ! Loop over spins
-=======
           Ufi(iE,:) = Ufi_iE
->>>>>>> master
 
           call cpu_time(t2)
           if(ionode) write(*, '("  Transition ",i5," -> ",i5," complete! (",f10.2," secs)")') ibi(iE), ibf, t2-t1
