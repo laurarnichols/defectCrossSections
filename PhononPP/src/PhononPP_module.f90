@@ -1277,4 +1277,155 @@ module PhononPPMod
 
   end subroutine writeDqs
 
+!----------------------------------------------------------------------------
+  subroutine readSjOneFreq(SjInput, nModes, omega, Sj)
+
+    implicit none
+
+    ! Input variables
+    character(len=300), intent(in) :: SjInput
+      !! Path to Sj.out file
+
+    ! Output variables:
+    integer, intent(out) :: nModes
+      !! Number of phonon modes
+
+    real(kind=dp),allocatable, intent(out) :: omega(:)
+      !! Frequency for each mode
+    real(kind=dp), allocatable, intent(out) :: Sj(:)
+      !! Huang-Rhys factor for each mode
+
+    ! Local variables:
+    integer :: j, jSort
+      !! Loop index
+
+    real(kind=dp) :: Sj_, omega_
+      !! Input variables
+
+    logical :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
+  
+  
+    if(ionode) then
+
+      open(12,file=trim(SjInput))
+
+      read(12,*)
+      read(12,*) nModes
+
+      read(12,*)
+      read(12,*) diffOmega
+
+      if(diffOmega) call exitError('readSjOneFreq', 'called one-frequency Sj, but this file tabulated for two frequencies!')
+
+    endif
+
+    call MPI_BCAST(nModes, 1, MPI_INTEGER, root, worldComm, ierr)
+
+
+    allocate(Sj(nModes))
+    allocate(omega(nModes))
+
+    
+    if(ionode) then
+
+      do j = 1, nModes
+        read(12,*) jSort, Sj_, omega_! freq read from Sj.out is f(in Thz)*2pi
+        Sj(jSort) = Sj_
+        omega(jSort) = omega_
+      end do
+
+      omega(:) = omega(:)*THzToHz
+        ! Convert to Hz*2pi
+
+      close(12)
+
+    endif
+
+    call MPI_BCAST(omega, size(omega), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(Sj, size(Sj), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return 
+
+  end subroutine readSjOneFreq
+
+!----------------------------------------------------------------------------
+  subroutine readSjTwoFreq(SjInput, nModes, omega, Sj)
+
+    implicit none
+
+    ! Input variables
+    character(len=300), intent(in) :: SjInput
+      !! Path to Sj.out file
+
+    ! Output variables:
+    integer, intent(out) :: nModes
+      !! Number of phonon modes
+
+    real(kind=dp),allocatable, intent(out) :: omega(:), omegaPrime(:)
+      !! Frequency for each mode
+    real(kind=dp), allocatable, intent(out) :: Sj(:), SjPrime(:)
+      !! Huang-Rhys factor for each mode
+
+    ! Local variables:
+    integer :: j, jSort
+      !! Loop index
+
+    real(kind=dp) :: Sj_, SjPrime_, omega_, omegaPrime_
+      !! Input variables
+
+    logical :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
+  
+  
+    if(ionode) then
+
+      open(12,file=trim(SjInput))
+
+      read(12,*)
+      read(12,*) nModes
+
+      read(12,*)
+      read(12,*) diffOmega
+
+      if(.not. diffOmega) call exitError('readSjTwoFreq', 'called two-frequency Sj, but this file tabulated for a single frequency!')
+
+    endif
+
+    call MPI_BCAST(nModes, 1, MPI_INTEGER, root, worldComm, ierr)
+
+
+    allocate(Sj(nModes), SjPrime(nModes))
+    allocate(omega(nModes), omegaPrime(nModes))
+
+    
+    if(ionode) then
+
+      do j = 1, nModes
+        read(12,*) jSort, Sj_, omega_, SjPrime_, omegaPrime_! freq read from Sj.out is f(in Thz)*2pi
+        Sj(jSort) = Sj_
+        omega(jSort) = omega_
+        SjPrime(jSort) = SjPrime_
+        omegaPrime(jSort) = omegaPrime_
+      end do
+
+      omega(:) = omega(:)*THzToHz
+      omegaPrime(:) = omegaPrime(:)*THzToHz
+        ! Convert to Hz*2pi
+
+      close(12)
+
+    endif
+
+    call MPI_BCAST(omega, size(omega), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(Sj, size(Sj), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(omegaPrime, size(omegaPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(SjPrime, size(SjPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return 
+
+  end subroutine readSjTwoFreq
+
 end module PhononPPMod
