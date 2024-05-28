@@ -1317,7 +1317,7 @@ module PhononPPMod
       read(12,*)
       read(12,*) diffOmega
 
-      if(diffOmega) call exitError('readSjOneFreq', 'called one-frequency Sj, but this file tabulated for two frequencies!')
+      if(diffOmega) call exitError('readSjOneFreq', 'called one-frequency Sj, but this file tabulated for two frequencies!', 1)
 
     endif
 
@@ -1351,7 +1351,7 @@ module PhononPPMod
   end subroutine readSjOneFreq
 
 !----------------------------------------------------------------------------
-  subroutine readSjTwoFreq(SjInput, nModes, omega, Sj)
+  subroutine readSjTwoFreq(SjInput, nModes, omega, omegaPrime, Sj, SjPrime)
 
     implicit none
 
@@ -1390,7 +1390,7 @@ module PhononPPMod
       read(12,*)
       read(12,*) diffOmega
 
-      if(.not. diffOmega) call exitError('readSjTwoFreq', 'called two-frequency Sj, but this file tabulated for a single frequency!')
+      if(.not. diffOmega) call exitError('readSjTwoFreq', 'called two-frequency Sj, but this file tabulated for a single frequency!', 1)
 
     endif
 
