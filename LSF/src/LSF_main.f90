@@ -41,7 +41,7 @@ program LSFmain
   call cpu_time(timer1)
 
   call readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, temperature, &
-        energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+        diffOmega, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
 
   nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
@@ -75,7 +75,11 @@ program LSFmain
   if(ionode) write(*, '("Pre-k-loop: [X] Get parameters  [ ] Read Sj (",f10.2," secs)")') timer2-timer1
   call cpu_time(timer1)
 
-  call readSj(SjInput, nModes, omega, Sj)
+  if(diffOmega) then
+    call readSjTwoFreq(SjInput, nModes, omega, omegaPrime, Sj, SjPrime)
+  else
+    call readSjOneFreq(SjInput, nModes, omega, Sj)
+  endif
 
   allocate(nj(nModes))
   nj(:) = 1.0_dp/(exp(hbar*omega(:)*beta) - 1.0_dp)
@@ -199,7 +203,9 @@ program LSFmain
   deallocate(matrixElement)
   deallocate(nj)
   deallocate(omega)
+  deallocate(omegaPrime)
   deallocate(Sj)
+  deallocate(SjPrime)
 
 
   call MPI_Barrier(worldComm, ierr)
