@@ -7,7 +7,7 @@ MODFLAGS= -I$(CommonModules_srcPath) -I$(EnergyTabulator_srcPath) -I.
 DEBUGFLAGS = -check all -g -warn all -traceback -gen-interfaces 
 
 TME_OBJS = TME_module.o TME_main.o
-COMMONMODS = $(CommonModules_srcPath)/commonmodules.a $(EnergyTabulator_srcPath)/EnergyTabulator_module.o
+COMMONMODS = $(EnergyTabulator_srcPath)/EnergyTabulator_module.o $(CommonModules_srcPath)/commonmodules.a
 
 all : TME.x 
 	

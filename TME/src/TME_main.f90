@@ -33,9 +33,10 @@ program TMEmain
 
   
   if(overlapOnly) then
-    call getAndWriteOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, crystalSystem(1), crystalSystem(2), pot)
+    call getAndWriteOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, volume, crystalSystem(1), crystalSystem(2), pot)
   else
-    call getAndWriteCaptureMatrixElements(nPairs, ibKet, ibBra(1), ispSelect, nGVecsLocal, nSpins, crystalSystem(1), crystalSystem(2), pot)
+    call getAndWriteCaptureMatrixElements(nPairs, ibKet, ibBra(1), ispSelect, nGVecsLocal, nSpins, volume, crystalSystem(1), & 
+          crystalSystem(2), pot)
   endif 
 
 

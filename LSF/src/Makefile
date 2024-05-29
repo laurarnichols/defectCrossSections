@@ -2,12 +2,13 @@
 -include ../../make.sys
 
 # location of needed modules
-MODFLAGS= -I$(CommonModules_srcPath) -I$(EnergyTabulator_srcPath) -I$(TME_srcPath) -I.
+MODFLAGS= -I$(CommonModules_srcPath) -I$(EnergyTabulator_srcPath) -I$(TME_srcPath) -I$(PhononPP_srcPath) -I.
 
 DEBUGFLAGS = -check all -g -warn all -traceback -gen-interfaces 
 
 LSF_OBJS = LSF_module.o LSF_main.o
-COMMONMODS = $(CommonModules_srcPath)/commonmodules.a $(EnergyTabulator_srcPath)/EnergyTabulator_module.o $(TME_srcPath)/TME_module.o
+COMMONMODS = $(EnergyTabulator_srcPath)/EnergyTabulator_module.o $(TME_srcPath)/TME_module.o $(PhononPP_srcPath)/PhononPP_module.o \
+						 $(CommonModules_srcPath)/commonmodules.a
 
 all : LSF.x 
 	
@@ -27,6 +28,8 @@ mods :
   cd $(TME_srcPath) ; \
 	make ; \
   cd $(EnergyTabulator_srcPath) ; \
+	make ; \
+  cd $(PhononPP_srcPath) ; \
   make
 
 %.o : %.f90

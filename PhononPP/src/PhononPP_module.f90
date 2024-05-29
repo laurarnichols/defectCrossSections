@@ -2,9 +2,8 @@ module PhononPPMod
   
   use constants, only: dp, angToBohr, angToM, daltonToElecM, elecMToKg, THzToHz, pi, hbar
   use energyTabulatorMod, only: energyTableDir, readScatterEnergyTable
-  use cell, only: nAtoms, volume, realLattVec, cartDispProjOnPhononEigsNorm, readPOSCAR, writePOSCARNewPos
+  use cell, only: nAtoms, volume, realLattVec
   use miscUtilities, only: int2str, int2strLeadZero
-  use generalComputations, only: direct2cart
   use errorsAndMPI
   use mpi
 
@@ -666,6 +665,8 @@ module PhononPPMod
   subroutine getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omega, omegaPrime, diffOmega, &
             initPOSCARFName, finalPOSCARFName, SjFName)
 
+    use cell, only: cartDispProjOnPhononEigsNorm
+
     implicit none
 
     ! Input variables:
@@ -739,6 +740,8 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine getCoordsAndDisp(nAtoms, atomPositionsDirStart, POSCARFName, atomPositionsDirEnd, displacement, realLattVec, volume)
+
+    use cell, only: readPOSCAR
 
     implicit none
 
@@ -1005,6 +1008,9 @@ module PhononPPMod
 !----------------------------------------------------------------------------
   subroutine calculateShiftAndDq(disp2AtomInd, nAtoms, nModes, coordFromPhon, eigenvector, mass, shift, calcDq, calcMaxDisp, &
         generateShiftedPOSCARs, basePOSCARFName, dqFName, prefix)
+
+    use generalComputations, only: direct2cart
+    use cell, only: cartDispProjOnPhononEigsNorm, readPOSCAR, writePOSCARNewPos
 
     implicit none
 
@@ -1316,6 +1322,7 @@ module PhononPPMod
 
       read(12,*)
       read(12,*) diffOmega
+      read(12,*)
 
       if(diffOmega) call exitError('readSjOneFreq', 'called one-frequency Sj, but this file tabulated for two frequencies!', 1)
 
@@ -1389,6 +1396,7 @@ module PhononPPMod
 
       read(12,*)
       read(12,*) diffOmega
+      read(12,*)
 
       if(.not. diffOmega) call exitError('readSjTwoFreq', 'called two-frequency Sj, but this file tabulated for a single frequency!', 1)
 

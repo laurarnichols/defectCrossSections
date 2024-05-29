@@ -1,6 +1,3 @@
-! NOTE: This file has different programming styles because
-! I haven't been able to fully clean this file up yet.
-! Please excuse the mess.
 module TMEmod
   use constants, only: dp, pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
@@ -1562,7 +1559,7 @@ contains
   end subroutine getExpiGDotR
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, braSys, ketSys, pot)
+  subroutine getAndWriteOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
 
     implicit none
 
@@ -1579,6 +1576,9 @@ contains
     integer, intent(in) :: nSpins
       !! Number of spins (tested to be consistent
       !! across all systems)
+
+    real(kind=dp), intent(in) :: volume
+      !! Volume of unit cell
 
     type(crystal) :: braSys, ketSys
        !! The crystal systems to get the
@@ -1617,8 +1617,8 @@ contains
 
 
         do ip = 1, nPairs
-          call calculateBandPairOverlap(ibBra(ip), ibKet(ip), ikGlobal, nSpins, nGkVecsLocal, nGVecsLocal, spin1Skipped, spin2Skipped, &
-                braSys, ketSys, pot, Ufi_ip)
+          call calculateBandPairOverlap(ibBra(ip), ibKet(ip), ikGlobal, nSpins, nGkVecsLocal, nGVecsLocal, volume, spin1Skipped, &
+                spin2Skipped, braSys, ketSys, pot, Ufi_ip)
 
           Ufi(ip,:) = Ufi_ip
         enddo
@@ -1627,7 +1627,7 @@ contains
         if(indexInPool == 0) then 
           do isp = 1, nSpins
             if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) &
-              call writeOverlaps(nPairs, ibBra, ibKet, ikLocal, isp, Ufi(:,isp))
+              call writeOverlaps(nPairs, ibBra, ibKet, ikLocal, isp, volume, Ufi(:,isp))
           enddo
         endif
 
@@ -1643,7 +1643,7 @@ contains
   end subroutine getAndWriteOnlyOverlaps
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteCaptureMatrixElements(nTransitions, ibi, ibf, ispSelect, nGVecsLocal, nSpins, braSys, ketSys, pot)
+  subroutine getAndWriteCaptureMatrixElements(nTransitions, ibi, ibf, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
 
     implicit none
 
@@ -1662,6 +1662,9 @@ contains
     integer, intent(in) :: nSpins
       !! Number of spins (tested to be consistent
       !! across all systems)
+
+    real(kind=dp), intent(in) :: volume
+      !! Volume of unit cell
 
     type(crystal) :: braSys, ketSys
        !! The crystal systems to get the
@@ -1705,8 +1708,8 @@ contains
 
           Ufi_iE(:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
 
-          call calculateBandPairOverlap(ibf, ibi(iE), ikGlobal, nSpins, nGkVecsLocal, nGVecsLocal, spin1Skipped, spin2Skipped, &
-                braSys, ketSys, pot, Ufi_iE)
+          call calculateBandPairOverlap(ibf, ibi(iE), ikGlobal, nSpins, nGkVecsLocal, nGVecsLocal, volume, spin1Skipped, &
+                spin2Skipped, braSys, ketSys, pot, Ufi_iE)
 
           Ufi(iE,:) = Ufi_iE
 
@@ -1722,7 +1725,7 @@ contains
                 if(order == 1 .and. subtractBaseline) &
                   call readAndSubtractBaseline(ikLocal, isp, nTransitions, Ufi(:,isp))
         
-                call writeCaptureMatrixElements(nTransitions, ibi, ibf, ikLocal, isp, Ufi(:,isp))
+                call writeCaptureMatrixElements(nTransitions, ibi, ibf, ikLocal, isp, volume, Ufi(:,isp))
             endif 
           enddo
         endif
@@ -1952,8 +1955,8 @@ contains
   end subroutine readProjectors
   
 !----------------------------------------------------------------------------
-  subroutine calculateBandPairOverlap(ibBra, ibKet, ikGlobal, nSpins, nGkVecsLocal, nGVecsLocal, spin1Skipped, spin2Skipped, &
-        braSys, ketSys, pot, Ufi)
+  subroutine calculateBandPairOverlap(ibBra, ibKet, ikGlobal, nSpins, nGkVecsLocal, nGVecsLocal, volume, spin1Skipped, &
+        spin2Skipped, braSys, ketSys, pot, Ufi)
 
     implicit none
 
@@ -1969,6 +1972,9 @@ contains
       !! Local number of G+k vectors on this processor
     integer, intent(in) :: nGVecsLocal
       !! Number of local G-vectors
+
+    real(kind=dp), intent(in) :: volume
+      !! Volume of unit cell
 
     logical, intent(in) :: spin1Skipped, spin2Skipped
       !! If spin channels skipped
@@ -2496,7 +2502,7 @@ contains
   end subroutine readAndSubtractBaseline
   
 !----------------------------------------------------------------------------
-  subroutine writeCaptureMatrixElements(nTransitions, ibi, ibf, ikLocal, isp, Ufi)
+  subroutine writeCaptureMatrixElements(nTransitions, ibi, ibf, ikLocal, isp, volume, Ufi)
     
     implicit none
     
@@ -2511,6 +2517,9 @@ contains
       !! Current local k-point
     integer, intent(in) :: isp
       !! Current spin channel
+
+    real(kind=dp), intent(in) :: volume
+      !! Volume of unit cell
 
     complex(kind=dp), intent(in) :: Ufi(nTransitions)
       !! All-electron overlap
@@ -2595,7 +2604,7 @@ contains
   end subroutine writeCaptureMatrixElements
   
 !----------------------------------------------------------------------------
-  subroutine writeOverlaps(nPairs, ibBra, ibKet, ikLocal, isp, Ufi)
+  subroutine writeOverlaps(nPairs, ibBra, ibKet, ikLocal, isp, volume, Ufi)
     
     implicit none
     
@@ -2608,6 +2617,9 @@ contains
       !! Current local k-point
     integer, intent(in) :: isp
       !! Current spin channel
+
+    real(kind=dp), intent(in) :: volume
+      !! Volume of unit cell
 
     complex(kind=dp), intent(in) :: Ufi(nPairs)
       !! All-electron overlap
