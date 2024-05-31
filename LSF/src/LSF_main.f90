@@ -16,6 +16,9 @@ program LSFmain
 
   real(kind=dp), allocatable :: ME_tmp(:)
     !! Temporary storage of matrix element
+  real(kind=dp), allocatable :: randVal(:)
+    !! Random adjustment to be made to frequencies
+    !! to test sensitivity
   real(kind=dp), allocatable :: rDum2D(:,:)
     !! Dummy real to ignore input
   real(kind=dp) :: timerStart, timerEnd, timer1, timer2
@@ -77,6 +80,26 @@ program LSFmain
 
   if(diffOmega) then
     call readSjTwoFreq(SjInput, nModes, omega, omegaPrime, Sj, SjPrime)
+
+    ! This is the code that I used to test what difference different
+    ! frequencies would have. I input the same two frequencies twice
+    ! and randomly adjusted the omegaPrime. 
+    !
+    ! If doing a random adjustment, must do with a single process then
+    ! broadcast, otherwise the random variables will be different across
+    ! processes.
+    !if(ionode) then
+      !call random_seed()
+      !allocate(randVal(nModes))
+      !call random_number(randVal)
+      !randVal = (randVal*2.0_dp - 1.0_dp)*0.50_dp  ! the number multiplied here is the % adjustment
+      !omegaPrime(:) = omegaPrime(:)*(1.0_dp + randVal) ! this applies the random adjustment
+      !omegaPrime(:) = omegaPrime(:)*(1.0_dp + 0.5_dp) ! this applies a uniform adjustment
+      !deallocate(randVal)
+    !endif
+
+    ! Need to rebroadcast omegaPrime if we adjust it
+    !call MPI_BCAST(omegaPrime, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   else
     call readSjOneFreq(SjInput, nModes, omega, Sj)
   endif
