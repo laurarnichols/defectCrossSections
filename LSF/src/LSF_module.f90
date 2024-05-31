@@ -553,14 +553,15 @@ contains
 
     posExp_t(:) = exp(ii*omega(:)*time)
 
-    expTimesNBarPlus1(:) = posExp_t(:)*(nj(:)+1)
+    expTimesNBarPlus1(:) = posExp_t(:)*(nj(:)+1.0_dp)
 
     if(diffOmega) then
       Aj_t(:) = (expTimesNBarPlus1(:) + nj(:))/(expTimesNBarPlus1(:) - nj(:))
 
-      sinOmegaPrime(:) = sin(omegaPrime(:)*time/2)
+      sinOmegaPrime(:) = sin(omegaPrime(:)*time/2.0_dp)
 
-      G0ExpArg = -2*ii*sum(sinOmegaPrime/(ii*Aj_t*sinOmegaPrime(:)/Sj(:) - cos(omegaPrime(:)*time/2)/SjPrime(:)))
+      G0ExpArg = -2.0_dp*ii*sum(sinOmegaPrime/(ii*Aj_t*sinOmegaPrime(:)/Sj(:) - cos(omegaPrime(:)*time/2.0_dp)/SjPrime(:)))
+
     else
       G0ExpArg = sum(Sj(:)*(expTimesNBarPlus1(:) + nj(:)/posExp_t(:) - (2.0_dp*nj(:) + 1.0_dp)))
     endif
