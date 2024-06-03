@@ -16,7 +16,7 @@ program LSFmain
 
   real(kind=dp), allocatable :: ME_tmp(:)
     !! Temporary storage of matrix element
-  real(kind=dp), allocatable :: randVal(:)
+  !real(kind=dp), allocatable :: randVal(:)
     !! Random adjustment to be made to frequencies
     !! to test sensitivity
   real(kind=dp), allocatable :: rDum2D(:,:)
