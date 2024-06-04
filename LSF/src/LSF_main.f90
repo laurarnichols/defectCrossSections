@@ -101,6 +101,10 @@ program LSFmain
     ! Need to rebroadcast omegaPrime if we adjust it
     !call MPI_BCAST(omegaPrime, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
   else
+    allocate(omegaPrime(nModes), SjPrime(nModes))
+      ! Need to allocate to avoid issues with passing variables
+      ! and deallocating
+
     call readSjOneFreq(SjInput, nModes, omega, Sj)
   endif
 
