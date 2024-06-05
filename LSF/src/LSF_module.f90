@@ -403,6 +403,8 @@ contains
 
     complex(kind=dp) :: Aj(nModes)
       !! \(A_j(t)\) for all modes
+    complex(kind=dp) :: Dj0_t(nModes)
+      !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
     complex(kind=dp) :: expArg_base
       !! Base exponential argument for each time step
     complex(kind=dp) :: expArg
@@ -428,7 +430,10 @@ contains
       time = t0 + float(iTime)*dt
         ! Must do this arithmetic with floats to avoid
         ! integer overflow
-      expArg_base = G0ExpArg(time) - gamma0*time
+
+      call setupTimeTables(time, Dj0_t)
+
+      expArg_base = ii*sum(Dj0_t(:)) - gamma0*time
       if(order == 1) Aj(:) = getAj_t(time)
 
       if(iTime == 0 .or. iTime == nStepsLocal-1) then
@@ -514,7 +519,9 @@ contains
   end subroutine getAndWriteTransitionRate
 
 !----------------------------------------------------------------------------
-  function G0ExpArg(time) 
+  subroutine setupTimeTables(time, Dj0_t)
+
+    implicit none
 
     ! Input variables:
     !integer, intent(in) :: nModes
@@ -538,11 +545,13 @@ contains
       ! should be treated as different
 
     ! Output variables:
-    complex(kind=dp) :: G0ExpArg
+    complex(kind=dp), intent(out) :: Dj0_t(nModes)
+      !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
 
-    ! Local variables
+    ! Local variables:
     real(kind=dp) :: sinOmegaPrime(nModes)
       !! sin(omega' t/2)
+
     complex(kind=dp) :: Aj_t(nModes)
       !! Aj from text. See equation below.
     complex(kind=dp) :: expTimesNBarPlus1(nModes)
@@ -560,13 +569,15 @@ contains
 
       sinOmegaPrime(:) = sin(omegaPrime(:)*time/2.0_dp)
 
-      G0ExpArg = -2.0_dp*ii*sum(sinOmegaPrime/(ii*Aj_t*sinOmegaPrime(:)/Sj(:) - cos(omegaPrime(:)*time/2.0_dp)/SjPrime(:)))
+      Dj0_t(:) = -2.0_dp*sinOmegaPrime/(ii*Aj_t*sinOmegaPrime(:)/Sj(:) - cos(omegaPrime(:)*time/2.0_dp)/SjPrime(:))
 
     else
-      G0ExpArg = sum(Sj(:)*(expTimesNBarPlus1(:) + nj(:)/posExp_t(:) - (2.0_dp*nj(:) + 1.0_dp)))
+      Dj0_t(:) = Sj(:)/ii*(expTimesNBarPlus1(:) + nj(:)/posExp_t(:) - (2.0_dp*nj(:) + 1.0_dp))
     endif
 
-  end function G0ExpArg
+    return
+
+  end subroutine
 
 !----------------------------------------------------------------------------
   function getAj_t(time) result(Aj_t)
