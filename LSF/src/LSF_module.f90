@@ -401,10 +401,10 @@ contains
     real(kind=dp) :: transitionRate(nTransitions,nkPerPool)
       !! \(Gamma_i\) transition rate
 
-    complex(kind=dp) :: Aj(nModes)
-      !! \(A_j(t)\) for all modes
     complex(kind=dp) :: Dj0_t(nModes)
       !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
+    complex(kind=dp) :: Dj1_t(nModes)
+      !! Factor multiplying |M_j|^2*G_j^0(t) in G_j^1(t)
     complex(kind=dp) :: expArg_base
       !! Base exponential argument for each time step
     complex(kind=dp) :: expArg
@@ -431,10 +431,9 @@ contains
         ! Must do this arithmetic with floats to avoid
         ! integer overflow
 
-      call setupTimeTables(time, Dj0_t)
+      call setupTimeTables(time, Dj0_t, Dj1_t)
 
       expArg_base = ii*sum(Dj0_t(:)) - gamma0*time
-      if(order == 1) Aj(:) = getAj_t(time)
 
       if(iTime == 0 .or. iTime == nStepsLocal-1) then
         multFact = 1.0_dp
@@ -451,7 +450,7 @@ contains
           if(order == 0) then
             expPrefactor = matrixElement(1,iE,ikLocal)
           else if(order == 1) then
-            expPrefactor = getFirstOrderPrefactor(nModes, matrixElement(:,iE,ikLocal), Aj)
+            expPrefactor = sum(matrixElement(:,iE,ikLocal)*Dj1_t(:))
           endif
 
           Eif = dE(1,iE,ikLocal)
@@ -519,7 +518,7 @@ contains
   end subroutine getAndWriteTransitionRate
 
 !----------------------------------------------------------------------------
-  subroutine setupTimeTables(time, Dj0_t)
+  subroutine setupTimeTables(time, Dj0_t, Dj1_t)
 
     implicit none
 
@@ -547,15 +546,23 @@ contains
     ! Output variables:
     complex(kind=dp), intent(out) :: Dj0_t(nModes)
       !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
+    complex(kind=dp), intent(out) :: Dj1_t(nModes)
+      !! Factor multiplying |M_j|^2*G_j^0(t) in G_j^1(t)
 
     ! Local variables:
+    real(kind=dp) :: cosOmegaPrime(nModes)
+      !! cos(omega' t/2)
     real(kind=dp) :: sinOmegaPrime(nModes)
       !! sin(omega' t/2)
 
     complex(kind=dp) :: Aj_t(nModes)
       !! Aj from text. See equation below.
+    complex(kind=dp) :: Dj0OverSinOmegaPrime_t(nModes)
+      !! Needed to keep from getting NaNs from cot()
     complex(kind=dp) :: expTimesNBarPlus1(nModes)
       !! Local storage of \(e^{i\omega_j t}(\bar{n}_j + 1)\) 
+    complex(kind=dp) :: njOverPosExp_t(nModes)
+      !! n_j*e^{-i\omega_j t}
     complex(kind=dp) :: posExp_t(nModes)
       !! Local storage of \(e^{i\omega_j t}\) for speed
 
@@ -568,74 +575,42 @@ contains
       Aj_t(:) = (expTimesNBarPlus1(:) + nj(:))/(expTimesNBarPlus1(:) - nj(:))
 
       sinOmegaPrime(:) = sin(omegaPrime(:)*time/2.0_dp)
+      cosOmegaPrime(:) = cos(omegaPrime(:)*time/2.0_dp)
 
-      Dj0_t(:) = -2.0_dp*sinOmegaPrime/(ii*Aj_t*sinOmegaPrime(:)/Sj(:) - cos(omegaPrime(:)*time/2.0_dp)/SjPrime(:))
+      Dj0OverSinOmegaPrime_t(:) = -2.0_dp/(ii*Aj_t*sinOmegaPrime(:)/Sj(:) - cosOmegaPrime(:)/SjPrime(:))
+      Dj0_t(:) = sinOmegaPrime(:)*Dj0OverSinOmegaPrime_t(:)
+        ! Need to factor out the sin() to avoid getting NaNs
+        ! when calculating cot() here and in Dj1_t
+
+      if(order == 1) then
+
+        Dj1_t(:) = -(hbar/omega(:))/(2.0_dp*Sj(:))*Dj0OverSinOmegaPrime_t(:)*(sinOmegaPrime(:)*Dj0_t(:)*Aj_t(:)**2 - &
+                        0.5_dp*omega(:)/omegaPrime(:)*(Aj_t(:)*cosOmegaPrime(:) - sinOmegaPrime(:)* &
+                          (omega(:)*cosOmegaPrime(:) - ii*omegaPrime(:)*Aj_t(:)*sinOmegaPrime(:))/ &
+                          (omega(:)*Aj_t(:)*sinOmegaPrime(:) + ii*omegaPrime(:)*cosOmegaPrime(:))))
+          ! I don't have access to (Delta q_j) here, and I don't want to 
+          ! get another variable to deal with. Instead, I rearranged this
+          ! to not be in terms of (Delta q_j). Also have to rearrange to 
+          ! get rid of cot()
+
+      endif
 
     else
-      Dj0_t(:) = Sj(:)/ii*(expTimesNBarPlus1(:) + nj(:)/posExp_t(:) - (2.0_dp*nj(:) + 1.0_dp))
+      njOverPosExp_t(:) = nj(:)/posExp_t(:)
+
+      Dj0_t(:) = Sj(:)/ii*(expTimesNBarPlus1(:) + njOverPosExp_t(:) - (2.0_dp*nj(:) + 1.0_dp))
+
+      if(order == 1) then
+
+        Dj1_t(:) = (hbar/omega(:))/2.0_dp*(njOverPosExp_t(:) + expTimesNBarPlus1(:) + &
+            Sj(:)*(1 + njOverPosExp_t(:) - expTimesNBarPlus1(:))**2)
+
+      endif
     endif
 
     return
 
   end subroutine
-
-!----------------------------------------------------------------------------
-  function getAj_t(time) result(Aj_t)
-    
-    implicit none
-
-    ! Input variables:
-    !integer, intent(in) :: nModes
-      ! Number of phonon modes
-
-    !real(kind=dp), intent(in) :: nj(nModes)
-      ! \(n_j\) occupation number
-    !real(kind=dp), intent(in) :: omega(nModes)
-      ! Frequency for each mode
-    !real(kind=dp), intent(in) :: Sj(nModes)
-      ! Huang-Rhys factor for each mode
-    real(kind=dp), intent(in) :: time
-      !! Time at which to calculate the \(G_0(t)\) argument
-
-    ! Output variables:
-    complex(kind=dp) :: Aj_t(nModes)
-
-    ! Local variables
-    complex(kind=dp) :: posExp_t(nModes)
-      !! Local storage of \(e^{i\omega_j t}\) for speed
-
-
-    posExp_t(:) = exp(ii*omega(:)*time)
-
-    Aj_t(:) = (2*hbar/omega(:))*(nj(:)/posExp_t(:) + (nj(:)+1)*posExp_t(:) + &
-            Sj(:)*(1 + nj(:)/posExp_t(:) - (nj(:)+1)*posExp_t(:))**2)
-
-  end function getAj_t
-
-!----------------------------------------------------------------------------
-  function getFirstOrderPrefactor(nModes, matrixElement, Aj_t) result(prefactor)
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nModes
-      !! Number of phonon modes
-
-    real(kind=dp), intent(in) :: matrixElement(nModes)
-      !! Matrix elements for each mode, given a
-      !! choice of band combination
-
-    complex(kind=dp), intent(in) :: Aj_t(nModes)
-      !! \(A_j(t)\) for all modes
-
-    ! Output variables:
-    complex(kind=dp) :: prefactor
-      !! First-order exponential prefactor
-
-
-    prefactor = sum(matrixElement(:)*Aj_t(:))
-
-  end function getFirstOrderPrefactor
   
 !----------------------------------------------------------------------------
   function transitionRateFileExists(ikGlobal, isp) result(fileExists)
