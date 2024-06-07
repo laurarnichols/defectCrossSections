@@ -481,11 +481,7 @@ contains
 
       ! Multiply by prefactor for Simpson's integration method 
       ! and prefactor for time-domain integral
-      if(order == 0) then
-        transitionRate(:,:) = transitionRate(:,:)*(dt/3.0_dp)*(2.0_dp/(hbar*hbar))
-      else if(order == 1) then
-        transitionRate(:,:) = transitionRate(:,:)*(dt/3.0_dp)*(1.0_dp/(2.0_dp*hbar*hbar))
-      endif        
+      transitionRate(:,:) = transitionRate(:,:)*(dt/3.0_dp)*(2.0_dp/(hbar*hbar))
 
       do ikLocal = 1, nkPerPool
 
