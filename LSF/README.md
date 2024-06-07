@@ -6,11 +6,13 @@ The output files are
   * `transitionRate.isp.ik` -- initial band index and transition rate (1/s)
   * stdout -- timing information and status updates
 
-The same code is used for both the zeroth-order and first-order transition rates. 
+The same code is used for both the zeroth-order and first-order transition rates. The `diffOmega` option allows for calculation of the line-shape function with different initial and final frequencies. With `diffOmega = .true.`, the PhononPP output file `Sj.out` should be tabulated using the `diffOmega = .true.` option as well.
 
 ## Zeroth-order
 
-The zeroth-order transition rate is $$\Gamma\_i^{(0)} = \frac{2}{\hbar^2} \text{Re} \int\_0^{+\infty} |M_{\text{e}}^{\text{BO}}|^2 G^{(0)}(\tau) e^{i W_{if} \tau/\hbar - \gamma \tau} d\tau,$$ where $$G^{(0)}(\tau) = \exp  \left\( \sum\_j S\_j  \left[ (\bar{n}\_j + 1)e^{i\omega\_j \tau} + \bar{n}\_j e^{-i\omega\_j \tau} - (2\bar{n}\_j + 1) \right] \right\), $$ and $S\_j$ is the Huang-Rhys factor $$S\_j = \frac{\omega\_j}{2\hbar} (\Delta q\_j)^2.$$ 
+The zeroth-order transition rate is $$\Gamma\_i^{(0)} = \frac{2}{\hbar^2} \text{Re} \int\_0^{+\infty} |M_{\text{e}}^{\text{BO}}|^2 G^{(0)}(\tau) e^{i W_{if} \tau/\hbar - \gamma \tau} d\tau,$$ where $$G^{(0)}(\tau) = e^{iD_j^{(0)}(\tau)}.$$ In general, $$D_j^{(0)}(\tau) = -2 \left[ iS_j^{-1} A_j(\tau) - {S_j'}^{-1} \cot(\omega_j'\tau/2) \right]^{-1},$$ with $$S\_j = \frac{\omega\_j}{2\hbar} (\Delta q\_j)^2,$$ $$S\_j' = \frac{\omega\_j'}{2\hbar} (\Delta q\_j)^2,$$ and $$A_j(\tau) = \frac{e^{i\omega_j\tau}(\bar{n}_j + 1) + \bar{n}_j}{e^{i\omega_j\tau}(\bar{n}_j + 1) - \bar{n}_j}.$$ When $\omega_j = \omega_j'$, $D_j^{(0)}(\tau)$ simplifies to $$D_j^{(0)}(\tau) = S\_j/i  \left[ (\bar{n}\_j + 1)e^{i\omega\_j \tau} + \bar{n}\_j e^{-i\omega\_j \tau} - (2\bar{n}\_j + 1) \right]$$
+
+
 
 The `LSF` input file for the zeroth-order should look like
 ```f90
@@ -37,7 +39,7 @@ _Note: Do not alter the `&inputParams` or `/` lines at the beginning and end of 
 
 ## First-order
 
-The first-order transition rate is $$\Gamma\_i^{(1)} = \frac{1}{2\hbar^2} \text{Re} \int\_0^{+\infty} \left[ \sum\_j |M\_j|^2 A\_j(\tau) \right] G^{(0)}(\tau) e^{iW_{if} \tau/\hbar - \gamma \tau} d\tau.$$
+The first-order transition rate is $$\Gamma\_i^{(1)} = \frac{2}{\hbar^2} \text{Re} \int\_0^{+\infty} \left[ \sum\_j |M\_j|^2 D\_j^{(1)}(\tau) \right] G^{(0)}(\tau) e^{iW_{if} \tau/\hbar - \gamma \tau} d\tau,$$ with $$D_j^{(1)} = -\left[ \frac{\Delta q_j}{2 S_j} \right]^2 D_j^{(0)}(\tau) \left( D_j^{(0)}(\tau) [A_j(\tau)]^2 - \frac{1}{2} \frac{\omega_j}{\omega_j'} \left[ A_j(\tau) \cot\frac{\omega_j' \tau}{2}  - \frac{\omega_j \cot(\omega_j'\tau/2) - i\omega_j' A_j(\tau)}{\omega_j A_j(\tau) + i\omega_j' \cot(\omega_j'\tau/2)}\right] \right).$$ When $\omega_j = \omega_j'$, $D_j^{(1)}(\tau)$ simplifies to $$D_j^{(1)}(\tau) = \frac{1}{2} \frac{\hbar}{\omega_j} \left[ (\bar{n}\_j + 1)e^{i\omega\_j \tau} + \bar{n}\_j e^{-i\omega\_j \tau} + S_j \left( 1 - (\bar{n}\_j + 1)e^{i\omega\_j \tau} + \bar{n}\_j e^{-i\omega\_j \tau} \right)^2 \right].$$
 
 The `LSF` input file for the first-order should look like
 ```f90

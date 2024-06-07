@@ -24,7 +24,7 @@ program wfcExportVASPMain
   integer :: nAtoms_
     !! Input number of atoms from CONTCAR file
 
-  real(kind=dp) :: omegaPOS, realLattVecPOS(3,3)
+  real(kind=dp) :: volumePOS, realLattVecPOS(3,3)
     !! Variables from POSCAR to compare to WAVECAR
 
   character(len=300) :: fName
@@ -51,7 +51,7 @@ program wfcExportVASPMain
   call cpu_time(t1)
 
 
-  call readWAVECARHead(ispSelect, loopSpins, VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
+  call readWAVECARHead(ispSelect, loopSpins, VASPDir, realLattVec, recipLattVec, bandOccupation, volume, wfcVecCut, &
       kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, reclenWav, eigenE)
     !! * Read cell and wavefunction data from the WAVECAR file
 
@@ -69,16 +69,16 @@ program wfcExportVASPMain
   if(ionode) then
     fName = trim(VASPDir)//'/CONTCAR'
 
-    call readPOSCAR(fName, nAtoms_, atomPositionsDir, omegaPOS, realLattVecPOS)
+    call readPOSCAR(fName, nAtoms_, atomPositionsDir, realLattVecPOS, volumePOS)
       !! * Get coordinates from CONTCAR
 
     if(nAtoms_ /= nAtoms) call exitError('export main', 'nAtoms from vasprun.xml and '//trim(fName)//' don''t match!', 1)
 
-    omegaPOS = omegaPOS*angToBohr**3
+    volumePOS = volumePOS*angToBohr**3
     realLattVecPOS = realLattVecPOS*angToBohr
 
-    if(abs(omegaPOS - omega) > 1e-5 .or. maxval(abs(realLattVecPOS-realLattVec)) > 1e-5) &
-      call exitError('export main', 'omega and lattice vectors from POSCAR and WAVECAR not consistent', 1)
+    if(abs(volumePOS - volume) > 1e-5 .or. maxval(abs(realLattVecPOS-realLattVec)) > 1e-5) &
+      call exitError('export main', 'volume and lattice vectors from POSCAR and WAVECAR not consistent', 1)
 
   endif
 
@@ -185,7 +185,7 @@ program wfcExportVASPMain
       call cpu_time(t1)
 
       call projAndWav(nGkVecsLocal_ik, gkMillerIndicesLocal, ikLocal, nAtoms, ispSelect, iType, nAtomTypes, nPWs1kGlobal(ikGlobal), &
-            nBands, nKPoints, nSpins, atomPositionsDir, gkMod, gkUnit, multFact, omega, gammaOnly, loopSpins, exportDir, pot)
+            nBands, nKPoints, nSpins, atomPositionsDir, gkMod, gkUnit, multFact, volume, gammaOnly, loopSpins, exportDir, pot)
 
     enddo
 

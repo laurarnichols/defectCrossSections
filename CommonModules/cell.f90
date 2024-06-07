@@ -14,7 +14,7 @@ module cell
 
   real(kind=dp), allocatable :: atomPositionsDir(:,:)
     !! Atom positions in direct coordinates
-  real(kind=dp) :: omega
+  real(kind=dp) :: volume
     !! Volume of unit cell
   real(kind=dp) :: realLattVec(3,3)
     !! Real space lattice vectors
@@ -201,7 +201,7 @@ module cell
   end subroutine writePOSCARNewPOS
       
 !----------------------------------------------------------------------------
-  subroutine readPOSCAR(poscarFName, nAtoms, atomPositionsDir, omega, realLattVec)
+  subroutine readPOSCAR(poscarFName, nAtoms, atomPositionsDir, realLattVec, volume)
 
     use generalComputations, only: cart2direct
 
@@ -217,10 +217,10 @@ module cell
 
     real(kind=dp), allocatable, intent(out) :: atomPositionsDir(:,:)
       !! Atom positions in direct coordinates
-    real(kind=dp), intent(out) :: omega
-      !! Volume of unit cell
     real(kind=dp), intent(out) :: realLattVec(3,3)
       !! Real space lattice vectors
+    real(kind=dp), intent(out) :: volume
+      !! Volume of unit cell
 
     ! Local variables:
     integer :: ix, jx, ia
@@ -264,21 +264,21 @@ module cell
       read(15,*) (realLattVec(jx,ix), jx=1,3)
     enddo
 
-    call calculateOmega(realLattVec, omega)
+    call calculateVolume(realLattVec, volume)
 
     if(scaleParam < 0._dp) then
       !! User can also give desired volume as a negative number. 
       !! Scale is then set the achieve the desired volume.
 
-      scaleParam = (abs(scaleParam)/abs(omega))**(1._dp/3._dp)
+      scaleParam = (abs(scaleParam)/abs(volume))**(1._dp/3._dp)
 
     endif
 
     realLattVec = realLattVec*scaleParam
-    call calculateOmega(realLattVec, omega)
+    call calculateVolume(realLattVec, volume)
       !! Recalculate volume based on scaled lattice vectors
 
-    if(omega < 0) call exitError('readPOSCAR', 'volume is less than zero', 1)
+    if(volume < 0) call exitError('readPOSCAR', 'volume is less than zero', 1)
 
     
     read(15,'(A)') line
@@ -342,7 +342,7 @@ module cell
   end subroutine readPOSCAR
 
 !----------------------------------------------------------------------------
-  subroutine calculateOmega(realLattVec, omega)
+  subroutine calculateVolume(realLattVec, volume)
     !! Calculate the cell volume as \(a_1\cdot a_2\times a_3\)
 
     use generalComputations, only: vcross
@@ -355,7 +355,7 @@ module cell
 
 
     ! Output variables:
-    real(kind=dp), intent(out) :: omega
+    real(kind=dp), intent(out) :: volume
       !! Volume of unit cell
 
 
@@ -366,13 +366,13 @@ module cell
 
     call vcross(realLattVec(:,2), realLattVec(:,3), vtmp)
 
-    omega = sum(realLattVec(:,1)*vtmp(:))
+    volume = sum(realLattVec(:,1)*vtmp(:))
 
     return
-  end subroutine calculateOmega
+  end subroutine calculateVolume
 
 !----------------------------------------------------------------------------
-  subroutine getReciprocalVectors(realLattVec, omega, recipLattVec)
+  subroutine getReciprocalVectors(realLattVec, volume, recipLattVec)
     !! Calculate the reciprocal lattice vectors from the real-space
     !! lattice vectors and the cell volume
 
@@ -383,7 +383,7 @@ module cell
     ! Input variables:
     real(kind=dp), intent(in) :: realLattVec(3,3)
       !! Real space lattice vectors
-    real(kind=dp), intent(in) :: omega
+    real(kind=dp), intent(in) :: volume
       !! Volume of unit cell
 
 
@@ -397,11 +397,11 @@ module cell
       !! Loop index
     
 
-    call vcross(2.0d0*pi*realLattVec(:,2)/omega, realLattVec(:,3), recipLattVec(:,1))
+    call vcross(2.0d0*pi*realLattVec(:,2)/volume, realLattVec(:,3), recipLattVec(:,1))
       ! \(b_1 = 2\pi/\Omega a_2\times a_3\)
-    call vcross(2.0d0*pi*realLattVec(:,3)/omega, realLattVec(:,1), recipLattVec(:,2))
+    call vcross(2.0d0*pi*realLattVec(:,3)/volume, realLattVec(:,1), recipLattVec(:,2))
       ! \(b_2 = 2\pi/\Omega a_3\times a_1\)
-    call vcross(2.0d0*pi*realLattVec(:,1)/omega, realLattVec(:,2), recipLattVec(:,3))
+    call vcross(2.0d0*pi*realLattVec(:,1)/volume, realLattVec(:,2), recipLattVec(:,3))
       ! \(b_3 = 2\pi/\Omega a_1\times a_2\)
 
 

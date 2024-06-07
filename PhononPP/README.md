@@ -4,6 +4,7 @@
 
 This code does post-processing of the phonons and relaxed structures. The current options available are (set by logical variables)
 * `calcSj` -- whether or not to calculate the Huang-Rhys factor $S_j$
+* `diffOmega` -- if $S_j$ should be tabulated for two different $\omega_j$'s
 * `calcDq` -- if the `dq.txt` file representing $\delta q_j$ for the first-order-derivative displacements should be output
 * `generateShiftedPOSCARs` -- if POSCAR files shifted from given equilibium positions along the phonon modes should be output. These are used to get the first-order matrix element.
 * `calcMaxDisp` -- if the maximum displacement across modes between a pair of atoms given a `shift` should be calculated
@@ -33,6 +34,8 @@ For a single displacement (`singleDisp = .true.`), the two relaxed geometries mu
 For multiple displacements (`singleDisp = .false.`), the path to the energy table output by `EnergyTabulator` (`energyTableDir`) must be provided. `EnergyTabulator` should be run before `PhononPP` in this case so that only the transitions with the required inputs and with allowed energies are considered. The path to the base directory (`CONTCARsBaseDir`) where there are subfolders for each of the relaxed states must also be given. It is assumed that the subfolder naming convention is `k<ik>_b<ib>` and lines up with those used for `EnergyTabulator`. For multiple displacements, there are multiple $S_j$ output files named `Sj.k<iki>_b<ibi>.k<ikf>_b<ibf>.out` based on the initial/final bands and k-points.
 
 _Note: It is also currently assumed that the allowed states are not dependent on the spin channel and that `energyTable.1` exisits._
+
+When calculating $S_j$, there is an option to calculate using a single frequency from a single phonon file or two frequencies using two phonon files. Both $S_j$ and $S_j'$ are calculated using the same $\Delta q_j$ projection of the displacement onto the initial-phonon eigenvectors, and both are output in the same file. Currently, the only option for this output file is for the modes to be sorted in order of descending $S_j$. This mode is controlled by the logical `diffOmega`, which is by default `.false.`.
 
 ### First-order items
 

@@ -4,26 +4,50 @@ program PhononPPMain
   
   implicit none
 
+  real(kind=dp), allocatable :: rDum1d(:), rDum2d(:,:), rDum3d(:,:,:)
+    !! Dummy variables to ignore input
 
   call cpu_time(t0)
 
   call mpiInitialization('PhononPP')
 
-  call readInputs(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, phononFName, &
-        finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, generateShiftedPOSCARs, singleDisp)
+  call readInputs(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
+        phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, diffOmega, &
+        generateShiftedPOSCARs, singleDisp)
 
 
-  call readPhonons(freqThresh, phononFName, nAtoms, nModes, coordFromPhon, eigenvector, mass, omegaFreq)
+  call readPhonons(freqThresh, phononFName, nAtoms, nModes, coordFromPhon, eigenvector, mass, omega)
+
+  if(diffOmega) then
+    call readPhonons(freqThresh, phononPrimeFName, nAtomsPrime, nModesPrime, coordFromPhonPrime, rDum3d, rDum1d, omegaPrime)
+      ! Ignore eigenvectors
+
+    if(nAtoms /= nAtomsPrime) call exitError('PhononPPMain', 'Number of atoms does not match in different phonon files.', 1)
+    if(nModes /= nModesPrime) call exitError('PhononPPMain', 'Number of modes does not match in different phonon files.', 1)
+
+
+    allocate(rDum2d(3,nAtoms))
+
+    call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, coordFromPhonPrime, rDum2d)
+
+    deallocate(rDum2d)
+  else
+    allocate(omegaPrime(nModes))
+      ! Need to allocate this variable either way so that 
+      ! the inputs to calculateSj match expectations
+  endif
+
 
   call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
 
 
   if(calcSj) &
-    call calculateSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omegaFreq, singleDisp, CONTCARsBaseDir, energyTableDir, &
-          initPOSCARFName, finalPOSCARFName)
+    call calculateSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omega, omegaPrime, diffOmega, singleDisp, &
+            CONTCARsBaseDir, energyTableDir, initPOSCARFName, finalPOSCARFName)
 
 
-  deallocate(omegaFreq)
+  deallocate(omega)
+  deallocate(omegaPrime)
 
 
   if(calcDq .or. generateShiftedPOSCARs .or. calcMaxDisp) &

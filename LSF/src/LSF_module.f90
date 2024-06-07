@@ -3,6 +3,7 @@ module LSFmod
   use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ, ii, hbar, THzToHz, kB, BohrToMeter, elecMToKg
   use base, only: nKPoints, order
   use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName, readMatrixElement
+  use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, Sj, SjPrime
   use miscUtilities, only: int2strLeadZero, int2str
   use errorsAndMPI
 
@@ -45,10 +46,6 @@ module LSFmod
     !! Max time for integration
   real(kind=dp), allocatable :: nj(:)
     !! \(n_j\) occupation number
-  real(kind=dp),allocatable :: omega(:)
-    !! Frequency for each mode
-  real(kind=dp), allocatable :: Sj(:)
-    !! Huang-Rhys factor for each mode
   real(kind=dp) :: smearingExpTolerance
     !! Tolerance for the Lorentzian-smearing
     !! exponential used to calculate max time
@@ -74,13 +71,13 @@ module LSFmod
 
 
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjInput, temperature, hbarGamma, dt, &
-                         smearingExpTolerance, outputDir, order, prefix, iSpin
+                         smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, temperature, &
-        energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+        diffOmega, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -105,6 +102,10 @@ contains
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
     real(kind=dp), intent(out) :: temperature
+    
+    logical, intent(out) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
 
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
@@ -124,8 +125,8 @@ contains
       !! Path to Sj.out file
 
   
-    call initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, matrixElementDir, &
-          MjBaseDir, outputDir, prefix, SjInput)
+    call initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, temperature, energyTableDir, &
+          matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     if(ionode) then
 
@@ -136,7 +137,7 @@ contains
       if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
+      call checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, temperature, energyTableDir, &
             matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
       dt = dt/THzToHz
@@ -162,6 +163,8 @@ contains
     call MPI_BCAST(smearingExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    call MPI_BCAST(diffOmega, 1, MPI_LOGICAL, root, worldComm, ierr)
   
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -175,8 +178,8 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, matrixElementDir, &
-        MjBaseDir, outputDir, prefix, SjInput)
+  subroutine initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, temperature, energyTableDir, &
+        matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -195,6 +198,10 @@ contains
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
     real(kind=dp), intent(out) :: temperature
+    
+    logical, intent(out) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
 
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
@@ -222,6 +229,8 @@ contains
     smearingExpTolerance = 0.0_dp
     temperature = 0.0_dp
 
+    diffOmega = .false.
+
     energyTableDir = ''
     matrixElementDir = ''
     MjBaseDir = ''
@@ -234,7 +243,7 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, temperature, energyTableDir, &
+  subroutine checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, temperature, energyTableDir, &
         matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
@@ -254,6 +263,10 @@ contains
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
     real(kind=dp), intent(in) :: temperature
+    
+    logical, intent(in) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
 
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
@@ -295,6 +308,8 @@ contains
     abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(iSpin))//'.1') .or. abortExecution
     abortExecution = checkFileInitialization('SjInput', SjInput) .or. abortExecution
 
+    write(*,'("diffOmega = ",L)') diffOmega
+
     if(order == 0) then 
       abortExecution = checkDirInitialization('matrixElementDir', matrixElementDir, getMatrixElementFName(1,iSpin)) .or. abortExecution
 
@@ -329,69 +344,6 @@ contains
     return 
 
   end subroutine checkInitialization
-
-!----------------------------------------------------------------------------
-  subroutine readSj(SjInput, nModes, omega, Sj)
-
-    implicit none
-
-    ! Input variables
-    character(len=300), intent(in) :: SjInput
-      !! Path to Sj.out file
-
-    ! Output variables:
-    integer, intent(out) :: nModes
-      !! Number of phonon modes
-
-    real(kind=dp),allocatable, intent(out) :: omega(:)
-      !! Frequency for each mode
-    real(kind=dp), allocatable, intent(out) :: Sj(:)
-      !! Huang-Rhys factor for each mode
-
-    ! Local variables:
-    integer :: j, jSort
-      !! Loop index
-
-    real(kind=dp) :: Sj_, omega_
-      !! Input variables
-  
-  
-    if(ionode) then
-
-      open(12,file=trim(SjInput))
-
-      read(12,*) nModes
-
-    endif
-
-    call MPI_BCAST(nModes, 1, MPI_INTEGER, root, worldComm, ierr)
-
-
-    allocate(Sj(1:nModes))
-    allocate(omega(1:nModes))
-
-    
-    if(ionode) then
-
-      do j = 1, nModes
-        read(12,*) jSort, Sj_, omega_! freq read from Sj.out is f(in Thz)*2pi
-        Sj(jSort) = Sj_
-        omega(jSort) = omega_
-      end do
-
-      omega(:) = omega(:)*THzToHz
-        ! Convert to Hz*2pi
-
-      close(12)
-
-    endif
-
-    call MPI_BCAST(omega, size(omega), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(Sj, size(Sj), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-
-    return 
-
-  end subroutine readSj
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, order, nModes, dE, gamma0, & 
@@ -449,8 +401,10 @@ contains
     real(kind=dp) :: transitionRate(nTransitions,nkPerPool)
       !! \(Gamma_i\) transition rate
 
-    complex(kind=dp) :: Aj(nModes)
-      !! \(A_j(t)\) for all modes
+    complex(kind=dp) :: Dj0_t(nModes)
+      !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
+    complex(kind=dp) :: Dj1_t(nModes)
+      !! Factor multiplying |M_j|^2*G_j^0(t) in G_j^1(t)
     complex(kind=dp) :: expArg_base
       !! Base exponential argument for each time step
     complex(kind=dp) :: expArg
@@ -476,8 +430,10 @@ contains
       time = t0 + float(iTime)*dt
         ! Must do this arithmetic with floats to avoid
         ! integer overflow
-      expArg_base = G0ExpArg(time) - gamma0*time
-      if(order == 1) Aj(:) = getAj_t(time)
+
+      call setupTimeTables(time, Dj0_t, Dj1_t)
+
+      expArg_base = ii*sum(Dj0_t(:)) - gamma0*time
 
       if(iTime == 0 .or. iTime == nStepsLocal-1) then
         multFact = 1.0_dp
@@ -494,7 +450,7 @@ contains
           if(order == 0) then
             expPrefactor = matrixElement(1,iE,ikLocal)
           else if(order == 1) then
-            expPrefactor = getFirstOrderPrefactor(nModes, matrixElement(:,iE,ikLocal), Aj)
+            expPrefactor = sum(matrixElement(:,iE,ikLocal)*Dj1_t(:))
           endif
 
           Eif = dE(1,iE,ikLocal)
@@ -525,11 +481,7 @@ contains
 
       ! Multiply by prefactor for Simpson's integration method 
       ! and prefactor for time-domain integral
-      if(order == 0) then
-        transitionRate(:,:) = transitionRate(:,:)*(dt/3.0_dp)*(2.0_dp/(hbar*hbar))
-      else if(order == 1) then
-        transitionRate(:,:) = transitionRate(:,:)*(dt/3.0_dp)*(1.0_dp/(2.0_dp*hbar*hbar))
-      endif        
+      transitionRate(:,:) = transitionRate(:,:)*(dt/3.0_dp)*(2.0_dp/(hbar*hbar))
 
       do ikLocal = 1, nkPerPool
 
@@ -562,38 +514,8 @@ contains
   end subroutine getAndWriteTransitionRate
 
 !----------------------------------------------------------------------------
-  function G0ExpArg(time) 
+  subroutine setupTimeTables(time, Dj0_t, Dj1_t)
 
-    ! Input variables:
-    !integer, intent(in) :: nModes
-      ! Number of phonon modes
-
-    !real(kind=dp), intent(in) :: nj(nModes)
-      ! \(n_j\) occupation number
-    !real(kind=dp), intent(in) :: omega(nModes)
-      ! Frequency for each mode
-    !real(kind=dp), intent(in) :: Sj(nModes)
-      ! Huang-Rhys factor for each mode
-    real(kind=dp), intent(in) :: time
-      !! Time at which to calculate the \(G_0(t)\) argument
-
-    ! Output variables:
-    complex(kind=dp) :: G0ExpArg
-
-    ! Local variables
-    complex(kind=dp) :: posExp_t(nModes)
-      !! Local storage of \(e^{i\omega_j t}\) for speed
-
-
-    posExp_t(:) = exp(ii*omega(:)*time)
-
-    G0ExpArg = sum(Sj(:)*((nj(:)+1.0_dp)*posExp_t(:) + nj(:)/posExp_t(:) - (2.0_dp*nj(:) + 1.0_dp)))
-
-  end function G0ExpArg
-
-!----------------------------------------------------------------------------
-  function getAj_t(time) result(Aj_t)
-    
     implicit none
 
     ! Input variables:
@@ -603,51 +525,88 @@ contains
     !real(kind=dp), intent(in) :: nj(nModes)
       ! \(n_j\) occupation number
     !real(kind=dp), intent(in) :: omega(nModes)
-      ! Frequency for each mode
+      ! Initial-state frequency for each mode
+    !real(kind=dp), intent(in) :: omegaPrime(nModes)
+      ! Optional final-state frequency for each mode
     !real(kind=dp), intent(in) :: Sj(nModes)
-      ! Huang-Rhys factor for each mode
+      ! Huang-Rhys factor for each mode with omega_j
+    !real(kind=dp), intent(in) :: SjPrime(nModes)
+      ! Huang-Rhys factor for each mode with omega_j'
     real(kind=dp), intent(in) :: time
       !! Time at which to calculate the \(G_0(t)\) argument
 
+    !logical, intent(in) :: diffOmega
+      ! If initial- and final-state frequencies 
+      ! should be treated as different
+
     ! Output variables:
+    complex(kind=dp), intent(out) :: Dj0_t(nModes)
+      !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
+    complex(kind=dp), intent(out) :: Dj1_t(nModes)
+      !! Factor multiplying |M_j|^2*G_j^0(t) in G_j^1(t)
+
+    ! Local variables:
+    real(kind=dp) :: cosOmegaPrime(nModes)
+      !! cos(omega' t/2)
+    real(kind=dp) :: sinOmegaPrime(nModes)
+      !! sin(omega' t/2)
+
     complex(kind=dp) :: Aj_t(nModes)
-
-    ! Local variables
+      !! Aj from text. See equation below.
+    complex(kind=dp) :: Dj0OverSinOmegaPrime_t(nModes)
+      !! Needed to keep from getting NaNs from cot()
+    complex(kind=dp) :: expTimesNBarPlus1(nModes)
+      !! Local storage of \(e^{i\omega_j t}(\bar{n}_j + 1)\) 
+    complex(kind=dp) :: njOverPosExp_t(nModes)
+      !! n_j*e^{-i\omega_j t}
     complex(kind=dp) :: posExp_t(nModes)
       !! Local storage of \(e^{i\omega_j t}\) for speed
 
 
     posExp_t(:) = exp(ii*omega(:)*time)
 
-    Aj_t(:) = (2*hbar/omega(:))*(nj(:)/posExp_t(:) + (nj(:)+1)*posExp_t(:) + &
-            Sj(:)*(1 + nj(:)/posExp_t(:) - (nj(:)+1)*posExp_t(:))**2)
+    expTimesNBarPlus1(:) = posExp_t(:)*(nj(:)+1.0_dp)
 
-  end function getAj_t
+    if(diffOmega) then
+      Aj_t(:) = (expTimesNBarPlus1(:) + nj(:))/(expTimesNBarPlus1(:) - nj(:))
 
-!----------------------------------------------------------------------------
-  function getFirstOrderPrefactor(nModes, matrixElement, Aj_t) result(prefactor)
+      sinOmegaPrime(:) = sin(omegaPrime(:)*time/2.0_dp)
+      cosOmegaPrime(:) = cos(omegaPrime(:)*time/2.0_dp)
 
-    implicit none
+      Dj0OverSinOmegaPrime_t(:) = -2.0_dp/(ii*Aj_t*sinOmegaPrime(:)/Sj(:) - cosOmegaPrime(:)/SjPrime(:))
+      Dj0_t(:) = sinOmegaPrime(:)*Dj0OverSinOmegaPrime_t(:)
+        ! Need to factor out the sin() to avoid getting NaNs
+        ! when calculating cot() here and in Dj1_t
 
-    ! Input variables:
-    integer, intent(in) :: nModes
-      !! Number of phonon modes
+      if(order == 1) then
 
-    real(kind=dp), intent(in) :: matrixElement(nModes)
-      !! Matrix elements for each mode, given a
-      !! choice of band combination
+        Dj1_t(:) = -(hbar/omega(:))/(2.0_dp*Sj(:))*Dj0OverSinOmegaPrime_t(:)*(sinOmegaPrime(:)*Dj0_t(:)*Aj_t(:)**2 - &
+                        0.5_dp*omega(:)/omegaPrime(:)*(Aj_t(:)*cosOmegaPrime(:) - sinOmegaPrime(:)* &
+                          (omega(:)*cosOmegaPrime(:) - ii*omegaPrime(:)*Aj_t(:)*sinOmegaPrime(:))/ &
+                          (omega(:)*Aj_t(:)*sinOmegaPrime(:) + ii*omegaPrime(:)*cosOmegaPrime(:))))
+          ! I don't have access to (Delta q_j) here, and I don't want to 
+          ! get another variable to deal with. Instead, I rearranged this
+          ! to not be in terms of (Delta q_j). Also have to rearrange to 
+          ! get rid of cot()
 
-    complex(kind=dp), intent(in) :: Aj_t(nModes)
-      !! \(A_j(t)\) for all modes
+      endif
 
-    ! Output variables:
-    complex(kind=dp) :: prefactor
-      !! First-order exponential prefactor
+    else
+      njOverPosExp_t(:) = nj(:)/posExp_t(:)
 
+      Dj0_t(:) = Sj(:)/ii*(expTimesNBarPlus1(:) + njOverPosExp_t(:) - (2.0_dp*nj(:) + 1.0_dp))
 
-    prefactor = sum(matrixElement(:)*Aj_t(:))
+      if(order == 1) then
 
-  end function getFirstOrderPrefactor
+        Dj1_t(:) = (hbar/omega(:))/2.0_dp*(njOverPosExp_t(:) + expTimesNBarPlus1(:) + &
+            Sj(:)*(1 + njOverPosExp_t(:) - expTimesNBarPlus1(:))**2)
+
+      endif
+    endif
+
+    return
+
+  end subroutine
   
 !----------------------------------------------------------------------------
   function transitionRateFileExists(ikGlobal, isp) result(fileExists)

@@ -343,7 +343,7 @@ module wfcExportVASPMod
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine readWAVECARHead(ispSelect, loopSpins, VASPDir, realLattVec, recipLattVec, bandOccupation, omega, wfcVecCut, &
+  subroutine readWAVECARHead(ispSelect, loopSpins, VASPDir, realLattVec, recipLattVec, bandOccupation, volume, wfcVecCut, &
         kPosition, fftGridSize, nBands, nKPoints, nPWs1kGlobal, nSpins, reclenWav, eigenE)
     !! Read cell and wavefunction data from the WAVECAR file
     !!
@@ -371,7 +371,7 @@ module wfcExportVASPMod
       !! Reciprocal lattice vectors
     real(kind=dp), allocatable, intent(out) :: bandOccupation(:,:,:)
       !! Occupation of band
-    real(kind=dp), intent(out) :: omega
+    real(kind=dp), intent(out) :: volume
       !! Volume of unit cell
     real(kind=dp), intent(out) :: wfcVecCut
       !! Energy cutoff converted to vector cutoff
@@ -476,10 +476,10 @@ module wfcExportVASPMod
       nBands = nint(nbnd_real)
         ! Convert input variables to integers
 
-      call calculateOmega(realLattVec, omega)
+      call calculateVolume(realLattVec, volume)
         !! * Calculate the cell volume as \(a_1\cdot a_2\times a_3\)
 
-      call getReciprocalVectors(realLattVec, omega, recipLattVec)
+      call getReciprocalVectors(realLattVec, volume, recipLattVec)
         !! * Calculate the reciprocal lattice vectors from the real-space
         !!   lattice vectors and the cell volume
 
@@ -501,7 +501,7 @@ module wfcExportVASPMod
       write(*,*) 'a2 =', (sngl(realLattVec(j,2)),j=1,3)
       write(*,*) 'a3 =', (sngl(realLattVec(j,3)),j=1,3)
       write(*,*) 
-      write(*,*) 'volume unit cell =', sngl(omega)
+      write(*,*) 'volume unit cell =', sngl(volume)
       write(*,*) 
       write(*,*) 'reciprocal lattice vectors:'
       write(*,*) 'b1 =', (sngl(recipLattVec(j,1)),j=1,3)
@@ -516,7 +516,7 @@ module wfcExportVASPMod
         !! @endnote
 
       write(mainOutFileUnit, '("# Cell volume (a.u.)^3. Format: ''(ES24.15E3)''")')
-      write(mainOutFileUnit, '(ES24.15E3)' ) omega
+      write(mainOutFileUnit, '(ES24.15E3)' ) volume
       flush(mainOutFileUnit)
 
     endif
@@ -526,7 +526,7 @@ module wfcExportVASPMod
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nBands, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(wfcVecCut, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(omega, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(volume, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(fftGridSize, 3, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(recipLattVec, size(recipLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -1170,7 +1170,7 @@ module wfcExportVASPMod
             read(potcarUnit,*) 
             read(potcarUnit,*) (pot(iT)%recipProj(pot(iT)%nChannels+ip,i), i=1,nonlPseudoGridSize)
               ! Read in reciprocal-space projector
-              ! I believe these units are Ang^(3/2). When multiplied by `1/sqrt(omega)`,
+              ! I believe these units are Ang^(3/2). When multiplied by `1/sqrt(volume)`,
               ! the projectors are then unitless. 
 
             ! Not really sure what the purpose of this is. Seems to be setting the grid boundary,
@@ -2102,7 +2102,7 @@ module wfcExportVASPMod
 
 !----------------------------------------------------------------------------
   subroutine projAndWav(nGkVecsLocal_ik, gkMillerIndicesLocal, ikLocal, nAtoms, ispSelect, iType, nAtomTypes, nPWs1kGlobal_ik, &
-        nBands, nKPoints, nSpins, atomPositionsDir, gkMod, gkUnit, multFact, omega, gammaOnly, loopSpins, exportDir, pot)
+        nBands, nKPoints, nSpins, atomPositionsDir, gkMod, gkUnit, multFact, volume, gammaOnly, loopSpins, exportDir, pot)
 
     implicit none
 
@@ -2141,7 +2141,7 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: multFact(nGkVecsLocal_ik)
       !! Multiplicative factor for the pseudopotential;
       !! only used in the Gamma-only version
-    real(kind=dp), intent(in) :: omega
+    real(kind=dp), intent(in) :: volume
       !! Volume of unit cell
 
     logical, intent(in) :: gammaOnly
@@ -2204,7 +2204,7 @@ module wfcExportVASPMod
     call cpu_time(t1)
 
 
-    if(myBgrpId == 0) call calculateRealProjWoPhase(nAtomTypes, nGkVecsLocal_ik, gkMod, gkUnit, multFact, omega, pot, gNegSign, realProjWoPhase, compFact)
+    if(myBgrpId == 0) call calculateRealProjWoPhase(nAtomTypes, nGkVecsLocal_ik, gkMod, gkUnit, multFact, volume, pot, gNegSign, realProjWoPhase, compFact)
 
     call MPI_BCAST(realProjWoPhase, size(realProjWoPhase), MPI_DOUBLE_PRECISION, 0, interBgrpComm, ierr)
     call MPI_BCAST(compFact, size(compFact), MPI_DOUBLE_COMPLEX, 0, interBgrpComm, ierr)
@@ -2329,7 +2329,7 @@ module wfcExportVASPMod
   end subroutine calculatePhase
 
 !----------------------------------------------------------------------------
-  subroutine calculateRealProjWoPhase(nAtomTypes, nGkVecsLocal_ik, gkMod, gkUnit, multFact, omega, pot, gNegSign, realProjWoPhase, compFact)
+  subroutine calculateRealProjWoPhase(nAtomTypes, nGkVecsLocal_ik, gkMod, gkUnit, multFact, volume, pot, gNegSign, realProjWoPhase, compFact)
     implicit none
 
     ! Input variables:
@@ -2346,7 +2346,7 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: multFact(nGkVecsLocal_ik)
       !! Multiplicative factor for the pseudopotential;
       !! only used in the Gamma-only version
-    real(kind=dp), intent(in) :: omega
+    real(kind=dp), intent(in) :: volume
       !! Volume of unit cell
 
     type (potcar) :: pot(nAtomTypes)
@@ -2411,7 +2411,7 @@ module wfcExportVASPMod
 
       do ip = 1, pot(iT)%nChannels
 
-        call getPseudoV(ip, nGkVecsLocal_ik, gkMod, multFact, omega, pot(iT), pseudoV)
+        call getPseudoV(ip, nGkVecsLocal_ik, gkMod, multFact, volume, pot(iT), pseudoV)
 
         angMom = pot(iT)%angMom(ip)
         imMax = 2*angMom
@@ -2615,7 +2615,7 @@ module wfcExportVASPMod
   end subroutine getYlm
 
 !----------------------------------------------------------------------------
-  subroutine getPseudoV(ip, nGkVecsLocal_ik, gkMod, multFact, omega, pot, pseudoV)
+  subroutine getPseudoV(ip, nGkVecsLocal_ik, gkMod, multFact, volume, pot, pseudoV)
     implicit none
 
     ! Input variables:
@@ -2630,7 +2630,7 @@ module wfcExportVASPMod
     real(kind=dp), intent(in) :: multFact(nGkVecsLocal_ik)
       !! Multiplicative factor for the pseudopotential;
       !! only used in the Gamma-only version
-    real(kind=dp), intent(in) :: omega
+    real(kind=dp), intent(in) :: volume
       !! Volume of unit cell
 
     type (potcar) :: pot
@@ -2653,8 +2653,8 @@ module wfcExportVASPMod
     real(kind=dp) :: GkLenToPseudoGrid
       !! Factor to scale from \(G+k\) length scale
       !! to non-linear grid of size `nonlPseudoGridSize`
-    real(kind=dp) :: divSqrtOmega
-      !! 1/sqrt(omega) for multiplying pseudopotential
+    real(kind=dp) :: divSqrtVolume
+      !! 1/sqrt(volume) for multiplying pseudopotential
     real(kind=dp) :: pseudoGridLoc
       !! Location of \(G+k\) vector on pseudopotential 
       !! grid, scaled by the \(|G+k|\)
@@ -2668,7 +2668,7 @@ module wfcExportVASPMod
 
     allocate(pseudoV(nGkVecsLocal_ik))
 
-    divSqrtOmega = 1/sqrt(omega/angToBohr**3)
+    divSqrtVolume = 1/sqrt(volume/angToBohr**3)
 
     GkLenToPseudoGrid = nonlPseudoGridSize/pot%maxGkNonlPs
       !! * Define a scale factor for the argument based on the
@@ -2712,7 +2712,7 @@ module wfcExportVASPMod
         !! * Decode the spline coefficients from the compressed reciprocal
         !!   projectors read from the POTCAR file
 
-      pseudoV(ipw) = (a_ipw + rem*(b_ipw + rem*(c_ipw + rem*d_ipw)))*divSqrtOmega*multFact(ipw)
+      pseudoV(ipw) = (a_ipw + rem*(b_ipw + rem*(c_ipw + rem*d_ipw)))*divSqrtVolume*multFact(ipw)
         !! * Recreate full pseudopotential from cubic spline coefficients:
         !!   \( \text{pseudo} = a_i + dx\cdot b_i + dx^2\cdot c_i + dx^3\cdot d_i \)
         !!   where the \(i\) index is the plane-wave index, and \(dx\) is the decimal
