@@ -2489,7 +2489,9 @@ contains
 
     
     do iE = 1, nTransitions 
-      read(17,'(i7,4ES24.15E3)') iDum, baselineOverlap, rDum, rDum
+      read(17,*) iDum, baselineOverlap
+        ! Read with format unspecified so that output from both
+        ! overlapOnly = .true. and .false. can be used
 
       Ufi(iE) = Ufi(iE) - baselineOverlap
           
