@@ -30,8 +30,6 @@ module TMEmod
   real(kind=dp) :: dq_j
     !! \(\delta q_j) for displaced wave functions
     !! (only order = 1)
-  real(kind = dp) :: t1, t2
-    !! For timing different processes
 
   complex(kind=dp), allocatable :: Ylm(:,:)
     !! Spherical harmonics
@@ -726,6 +724,9 @@ contains
     integer :: isys
       !! Loop variable
 
+    real(kind = dp) :: t1, t2
+      !! For timing different processes
+
 
     if(ionode) write(*, '("Pre-k-loop: [ ] Read inputs  [ ] Set up tables ")')
     call cpu_time(t1)
@@ -1096,6 +1097,8 @@ contains
 
     real(kind=dp), allocatable :: aepsDiff1(:), aepsDiff2(:)
       !! Difference between wae and wps for different channels
+    real(kind = dp) :: t1, t2
+      !! For timing different processes
 
     character(len=300) :: inputFName
       !! File name for the input file 
@@ -1594,6 +1597,9 @@ contains
     integer :: nGkVecsLocal
       !! Local number of G+k vectors on this processor
 
+    real(kind = dp) :: t1, t2
+      !! For timing different processes
+
     complex(kind=dp) :: Ufi(nPairs,nSpins), Ufi_ip(nSpins)
       !! All-electron overlap
 
@@ -1612,15 +1618,28 @@ contains
 
       if(.not. thisKComplete(ikGlobal, ispSelect, nSpins)) then
 
+        if(ionode) write(*,'("  Spin-independent setup")')
+        call cpu_time(t1)
+
         call spinAndBandIndependentSetup(ikGlobal, ispSelect, nGVecsLocal, nGkVecsLocal, spin1Skipped, &
               spin2Skipped, braSys, ketSys)
 
+        call cpu_time(t2)
+        if(ionode) write(*, '("  Spin independent setup complete! (",f10.2," secs)")') t2-t1
+
 
         do ip = 1, nPairs
+
+          if(ionode) write(*,'("  Beginning overlap <", i5, "|",i5">")') ibBra(ip), ibKet(ip)
+          call cpu_time(t1)
+
           call calculateBandPairOverlap(ibBra(ip), ibKet(ip), ikGlobal, nSpins, nGkVecsLocal, nGVecsLocal, volume, spin1Skipped, &
                 spin2Skipped, braSys, ketSys, pot, Ufi_ip)
 
           Ufi(ip,:) = Ufi_ip
+
+          call cpu_time(t2)
+          if(ionode) write(*, '("  Overlap <",i5,"|",i5,"> complete! (",f10.2," secs)")') ibBra(ip), ibKet(ip), t2-t1
         enddo
 
 
@@ -1680,6 +1699,9 @@ contains
     integer :: nGkVecsLocal
       !! Local number of G+k vectors on this processor
 
+    real(kind = dp) :: t1, t2
+      !! For timing different processes
+
     complex(kind=dp) :: Ufi(nTransitions,nSpins), Ufi_iE(nSpins)
       !! All-electron overlap
 
@@ -1698,10 +1720,16 @@ contains
 
       if(.not. thisKComplete(ikGlobal, ispSelect, nSpins)) then
 
+        if(ionode) write(*,'("  Spin-independent setup")')
+        call cpu_time(t1)
+
         call spinAndBandIndependentSetup(ikGlobal, ispSelect, nGVecsLocal, nGkVecsLocal, spin1Skipped, &
               spin2Skipped, braSys, ketSys)
 
+        call cpu_time(t2)
+        if(ionode) write(*, '("  Spin independent setup complete! (",f10.2," secs)")') t2-t1
         
+
         do iE = 1, nTransitions
           if(ionode) write(*,'("  Beginning transition ", i5, " -> ",i5)') ibi(iE), ibf
           call cpu_time(t1)
@@ -1996,6 +2024,9 @@ contains
     integer :: isp
       !! Loop index
 
+    real(kind = dp) :: t1, t2
+      !! For timing different processes
+
     logical :: calcSpinDepBra, calcSpinDepKet
       !! If spin-dependent subroutines should be called
 
@@ -2012,9 +2043,16 @@ contains
           ! existed or only the second spin channel was selected).
 
 
+        if(ionode) write(*,'("    Spin-dependent calculations started")')
+        call cpu_time(t1)
+
         if(calcSpinDepBra) call calcSpinDep(ibBra, ikGlobal, isp, nGkVecsLocal, nGVecsLocal, braSys, ketSys)
       
         if(calcSpinDepKet) call calcSpinDep(ibKet, ikGlobal, isp, nGkVecsLocal, nGVecsLocal, ketSys, braSys)
+
+        call cpu_time(t2)
+        if(ionode) write(*, '("    Spin-dependent calculations complete! (",f10.2," secs)")') t2-t1
+
 
         Ufi(isp) = dot_product(braSys%wfc(:),ketSys%wfc(:))
         if(indexInPool == 0) call pawCorrectionWfc(ketSys, pot)
@@ -2598,7 +2636,6 @@ contains
 
     close(17)
     
-    call cpu_time(t2)
     write(*, '("    Ufi(:) of k-point ", i4, " and spin ", i1, " written.")') ikGlobal, isp
     
     return
@@ -2661,7 +2698,6 @@ contains
 
     close(17)
     
-    call cpu_time(t2)
     write(*, '("    Ufi(:) of k-point ", i4, " and spin ", i1, " written.")') ikGlobal, isp
     
     return
