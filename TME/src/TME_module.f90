@@ -1665,7 +1665,7 @@ contains
   end subroutine getAndWriteOnlyOverlaps
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteMatrixElements(nTransitions, ibi, ibf, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
+  subroutine getAndWriteCaptureMatrixElements(nTransitions, ibi, ibf, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
 
     implicit none
 
@@ -1727,8 +1727,9 @@ contains
 
         call getSpinSkipped(ikGlobal, ispSelect, spin1Skipped, spin2Skipped)
 
-        call spinAndBandIndependentSetup(ikBra, ikKet, ispSelect, nGVecsLocal, captured, spin1Skipped, spin2Skipped, &
+        call spinAndBandIndependentSetup(ikBra, ikKet, ispSelect, nGVecsLocal, .true., spin1Skipped, spin2Skipped, &
                 braSys, ketSys)
+          ! Pass in true for captured
 
 
         call cpu_time(t2)
@@ -1771,7 +1772,105 @@ contains
 
     return
 
-  end subroutine getAndWriteMatrixElements
+  end subroutine getAndWriteCaptureMatrixElements
+
+!----------------------------------------------------------------------------
+  subroutine getAndWriteScatterMatrixElements(nTransitions, ibi, ibf, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions)
+      !! Initial-state indices
+    integer, intent(in) :: ibf
+      !! Final-state index
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+    integer, intent(in) :: nGVecsLocal
+      !! Local number of G-vectors
+    integer, intent(in) :: nSpins
+      !! Number of spins (tested to be consistent
+      !! across all systems)
+
+    real(kind=dp), intent(in) :: volume
+      !! Volume of unit cell
+
+    type(crystal) :: braSys, ketSys
+       !! The crystal systems to get the
+       !! matrix element for
+
+    type(potcar) :: pot
+      !! Structure containing all pseudopotential-related
+      !! information
+
+    ! Local variables 
+    integer :: ikLocal, ikGlobal, isp, iE
+      !! Loop indices
+
+    real(kind = dp) :: t1, t2
+      !! For timing different processes
+
+    complex(kind=dp) :: Ufi(nTransitions,nSpins), Ufi_iE(nSpins)
+      !! All-electron overlap
+
+    logical :: spin1Skipped, spin2Skipped
+      !! If spin channels skipped
+
+
+    Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+
+    if(ionode) write(*,'("  Spin-independent setup")')
+    call cpu_time(t1)
+
+
+    call getSpinSkipped(ikGlobal, ispSelect, spin1Skipped, spin2Skipped)
+
+    call spinAndBandIndependentSetup(ikBra, ikKet, ispSelect, nGVecsLocal, .false., spin1Skipped, spin2Skipped, &
+            braSys, ketSys)
+      ! Pass in false for captured
+
+
+    call cpu_time(t2)
+    if(ionode) write(*, '("  Spin independent setup complete! (",f10.2," secs)")') t2-t1
+        
+
+    do iE = 1, nTransitions
+      if(ionode) write(*,'("  Beginning transition ", i5, " -> ",i5)') ibi(iE), ibf
+      call cpu_time(t1)
+
+      Ufi_iE(:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+
+      call calculateBandPairOverlap(ibf, ibi(iE), ikGlobal, nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, & 
+            braSys, ketSys, pot, Ufi_iE)
+
+      Ufi(iE,:) = Ufi_iE
+
+      call cpu_time(t2)
+      if(ionode) write(*, '("  Transition ",i5," -> ",i5," complete! (",f10.2," secs)")') ibi(iE), ibf, t2-t1
+    enddo 
+
+
+    ! Subtract baseline if applicable and write out results
+    if(indexInPool == 0) then 
+      do isp = 1, nSpins
+        if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
+            if(order == 1 .and. subtractBaseline) &
+              call readAndSubtractBaseline(ikLocal, isp, nTransitions, Ufi(:,isp))
+        
+            call writeScatterMatrixElements(nTransitions, ibi, ibf, iki, ikf, isp, volume, Ufi(:,isp))
+        endif 
+      enddo
+    endif
+
+    call deallocateSysArrays(braSys)
+    call deallocateSysArrays(ketSys)
+
+    return
+
+  end subroutine getAndWriteScatterMatrixElements
 
 !----------------------------------------------------------------------------
   function thisKComplete(ikGlobal, ispSelect, nSpins)
