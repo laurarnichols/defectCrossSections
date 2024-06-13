@@ -1757,7 +1757,7 @@ contains
           do isp = 1, nSpins
             if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
                 if(order == 1 .and. subtractBaseline) &
-                  call readAndSubtractBaseline(ikLocal, isp, nTransitions, Ufi(:,isp))
+                  call readAndSubtractBaseline(ikGlobal, isp, nTransitions, Ufi(:,isp))
         
                 call writeCaptureMatrixElements(nTransitions, ibi, ibf, ikLocal, isp, volume, Ufi(:,isp))
             endif 
@@ -1858,7 +1858,7 @@ contains
       do isp = 1, nSpins
         if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
             if(order == 1 .and. subtractBaseline) &
-              call readAndSubtractBaseline(ikLocal, isp, nTransitions, Ufi(:,isp))
+              call readAndSubtractBaseline(ikGlobal, isp, nTransitions, Ufi(:,isp))
         
             call writeScatterMatrixElements(nTransitions, ibi, ibf, iki, ikf, isp, volume, Ufi(:,isp))
         endif 
@@ -2604,15 +2604,15 @@ contains
   end function iToTheInt
 
 !----------------------------------------------------------------------------
-  subroutine readAndSubtractBaseline(ikLocal, isp, nTransitions, Ufi)
+  subroutine readAndSubtractBaseline(ikGlobal, isp, nTransitions, Ufi)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
     
     ! Input variables:
-    integer, intent(in) :: ikLocal
-      !! Current local k-point
+    integer, intent(in) :: ikGlobal
+      !! Current global k-point
     integer, intent(in) :: isp
       !! Current spin channel
     integer, intent(in) :: nTransitions
@@ -2627,8 +2627,6 @@ contains
       !! Loop index
     integer :: iDum
       !! Dummy integer to ignore input
-    integer :: ikGlobal
-      !! Current global k-point
     
     real(kind = dp) :: rDum
       !! Dummy real to ignore input
@@ -2639,8 +2637,6 @@ contains
     character(len=300) :: baselineFName
       !! Name of baseline overlap file
 
-
-    ikGlobal = ikLocal+ikStart_pool-1
 
     baselineFName = trim(getMatrixElementFNameWPath(ikGlobal, isp, baselineDir)) 
     open(17, file=trim(baselineFName), status='unknown')
