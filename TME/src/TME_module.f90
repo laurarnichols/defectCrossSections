@@ -1858,7 +1858,8 @@ contains
       do isp = 1, nSpins
         if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
             if(order == 1 .and. subtractBaseline) &
-              call readAndSubtractBaseline(ikGlobal, isp, nTransitions, Ufi(:,isp))
+              call readAndSubtractBaseline(-1, isp, nTransitions, Ufi(:,isp))
+                ! Pass in ikGlobal = -1 to trigger scattering format
         
             call writeScatterMatrixElements(nTransitions, ibi, ibf, iki, ikf, isp, volume, Ufi(:,isp))
         endif 
@@ -2605,6 +2606,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine readAndSubtractBaseline(ikGlobal, isp, nTransitions, Ufi)
+    ! Passing -1 for ikGlobal will result in checking the
+    ! scattering file pattern with only the spin index
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
@@ -2648,9 +2651,14 @@ contains
 
     
     do iE = 1, nTransitions 
-      read(17,*) iDum, baselineOverlap
-        ! Read with format unspecified so that output from both
-        ! overlapOnly = .true. and .false. can be used
+      ! Read with format unspecified so that output from both
+      ! overlapOnly = .true. and .false. can be used
+      ! Use ikGlobal < 0 as a switch for scattering format
+      if(ikGlobal > 0) then
+        read(17,*) iDum, baselineOverlap
+      else
+        read(17,*) iDum, iDum, iDum, baselineOverlap
+      endif
 
       Ufi(iE) = Ufi(iE) - baselineOverlap
           
