@@ -876,16 +876,22 @@ module energyTabulatorMod
                   dEDelta = eTot(ibi,iki) - eTot(ibf,ikf)
                 endif
 
-                if(dEDelta >= 0.0_dp) then
+                !if(dEDelta >= 0.0_dp) then
                   ! If this delta-function energy is positive, the phonon energy will have to be
-                  ! negative, and we don't want to consider cooling processes.
+                  ! negative. You can potentially ignore those processes, but we actually want to
+                  ! consider all of the processes because the transition may cause a slight cooling
+                  ! or even no energy transfer into phonons, while the approach and leaving of the 
+                  ! carrier may together produce a positive energy transfer.
+                  ! 
+                  ! I am leaving this here in case we wanted to use it in the future.
 
-                  write(*,'("   ", 4i5, " Zero or neg. energy transfer")') iki, ibi, ikf, ibf
 
-                  iE = iE - 1
+                !  write(*,'("   ", 4i5, " Zero or or neg. energy transfer")') iki, ibi, ikf, ibf
 
-                  cycle
-                endif
+                !  iE = iE - 1
+
+                !  cycle
+                !endif
 
 
                 ! The zeroth-order matrix element contains the electronic-only energy difference.
