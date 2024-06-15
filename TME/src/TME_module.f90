@@ -416,7 +416,7 @@ contains
     character(len=300), intent(in) :: outputDir
       !! Path to where matrix elements should be output
 
-    logical, intent(in) :: capture
+    logical, intent(inout) :: capture
       !! If considering capture as opposed to scattering 
     logical, intent(in) :: intraK
       !! If overlaps should be calculated across different
@@ -463,6 +463,15 @@ contains
       loopSpins = .false.
     endif
 
+
+    write(*,'("overlapOnly = ",L)') overlapOnly
+    write(*,'("intraK = ",L)') intraK
+    if(overlapOnly .and. capture) then
+      write(*,'("Both overlapOnly and capture are true. Overlap only takes precedence!")')
+      capture = .false.
+    endif
+    write(*,'("capture = ",L)') capture
+
     
     if(.not. overlapOnly) then
       ! Require that states be read from the energy table for capture and scattering
@@ -502,11 +511,15 @@ contains
         if(energyTableGiven) write(*,'("Input detected for energy table; will be ignored.")')
 
         call getBandBoundsFromBandStrings(nPairs, braBands, ketBands, ibBra, ibKet, abortExecution)
+        allocate(ikBra(1),ikKet(1))
+          ! Allocate the k states to avoid issues with broadcasting
 
       else if(bandBoundsGiven .and. .not. intraK) then
 
         write(*,'("Reading states from band ranges.")')
         call getBandBoundsFromRanges(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibBra, ibKet, nPairs, abortExecution)
+        allocate(ikBra(1),ikKet(1))
+          ! Allocate the k states to avoid issues with broadcasting
 
       else if(energyTableGiven) then
 
