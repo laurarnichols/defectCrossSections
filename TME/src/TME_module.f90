@@ -46,6 +46,9 @@ module TMEmod
 
   logical :: capture
     !! If considering capture as opposed to scattering 
+  logical :: intraK
+    !! If overlaps should be calculated across different
+    !! k-points (true) or just between single k-points (false)
   logical :: overlapOnly
     !! If only the wave function overlap should be
     !! calculated
@@ -177,7 +180,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(ibBra, ikBra, ibKet, ikKet, ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, &
-          ketExportDir, dqFName, energyTableDir, outputDir, capture, overlapOnly, subtractBaseline)
+          ketExportDir, dqFName, energyTableDir, outputDir, capture, intraK, overlapOnly, subtractBaseline)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
@@ -211,6 +214,9 @@ contains
 
     logical, intent(out) :: capture
       !! If considering capture as opposed to scattering 
+    logical, intent(out) :: intraK
+      !! If overlaps should be calculated across different
+      !! k-points (true) or just between single k-points (false)
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -230,14 +236,14 @@ contains
     namelist /TME_Input/ ketExportDir, braExportDir, outputDir, energyTableDir, &
                          order, dqFName, phononModeJ, subtractBaseline, baselineDir, &
                          ispSelect, nPairs, braBands, ketBands, overlapOnly, &
-                         iBandLBra, iBandHBra, iBandLKet, iBandHKet, capture
+                         iBandLBra, iBandHBra, iBandLKet, iBandHKet, capture, intraK
     
 
     if(ionode) then
     
       call initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, baselineDir, &
-              braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, overlapOnly, &
-              subtractBaseline)
+              braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, intraK, &
+              overlapOnly, subtractBaseline)
     
       read(5, TME_Input, iostat=ierr)
     
@@ -245,7 +251,7 @@ contains
     
       call checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, &
               baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, &
-              overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
+              intraK, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
 
     endif
 
@@ -256,6 +262,7 @@ contains
     call MPI_BCAST(phononModeJ, 1, MPI_INTEGER, root, worldComm, ierr)
 
     call MPI_BCAST(capture, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(intraK, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(overlapOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(subtractBaseline, 1, MPI_LOGICAL, root, worldComm, ierr)
 
@@ -268,18 +275,24 @@ contains
 
     call MPI_BCAST(nPairs, 1, MPI_INTEGER, root, worldComm, ierr)
     if(.not. ionode) then
+      ! Every case allows for multiple ket band states
       allocate(ibKet(nPairs))
 
+      ! Capture only allows a single bra band state
       if(capture) then
         allocate(ibBra(1))
       else  
         allocate(ibBra(nPairs))
       endif
 
-      if(.not. (capture .or. overlapOnly)) then
-        allocate(ikBra(nPairs), ikKet(nPairs))
-      else
+      ! For capture or non-intra-k overlaps, we do not use the
+      ! ikBra or ikKet arrays because we just loop over k-points.
+      ! Otherwise, the k-points for each pair/transition are 
+      ! specified from the energy table file.
+      if(capture .or. (overlapOnly .and. .not. intraK)) then
         allocate(ikBra(1), ikKet(1))
+      else
+        allocate(ikBra(nPairs), ikKet(nPairs))
       endif
     endif
 
@@ -294,8 +307,8 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, baselineDir, &
-          braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, overlapOnly, &
-          subtractBaseline)
+          braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, intraK, &
+          overlapOnly, subtractBaseline)
     
     implicit none
 
@@ -329,6 +342,9 @@ contains
 
     logical, intent(out) :: capture
       !! If considering capture as opposed to scattering 
+    logical, intent(out) :: intraK
+      !! If overlaps should be calculated across different
+      !! k-points (true) or just between single k-points (false)
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -357,6 +373,7 @@ contains
     baselineDir = ''
     
     capture = .true.
+    intraK = .false.
     overlapOnly = .false.
     subtractBaseline = .false.
     
@@ -367,7 +384,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, &
           baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, &
-          overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
+          intraK, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
     
     implicit none
 
@@ -401,6 +418,9 @@ contains
 
     logical, intent(in) :: capture
       !! If considering capture as opposed to scattering 
+    logical, intent(in) :: intraK
+      !! If overlaps should be calculated across different
+      !! k-points (true) or just between single k-points (false)
     logical, intent(in) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -475,7 +495,7 @@ contains
       energyTableGiven = trim(energyTableDir) /= ''
 
 
-      if(explicitBandStringsGiven) then
+      if(explicitBandStringsGiven .and. .not. intraK) then
 
         write(*,'("Reading states from band strings braBands and ketBands.")')
         if(bandBoundsGiven) write(*,'("Band bounds detected; will be ignored.")')
@@ -483,7 +503,7 @@ contains
 
         call getBandBoundsFromBandStrings(nPairs, braBands, ketBands, ibBra, ibKet, abortExecution)
 
-      else if(bandBoundsGiven) then
+      else if(bandBoundsGiven .and. .not. intraK) then
 
         write(*,'("Reading states from band ranges.")')
         call getBandBoundsFromRanges(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibBra, ibKet, nPairs, abortExecution)
@@ -495,6 +515,9 @@ contains
             nPairs, abortExecution)
           ! Reads energy table based on `capture` variable
 
+      else if((explicitBandStringsGiven .or. bandBoundsGiven) .and. intraK) then
+        write(*,'("Explicit band strings or ranges not currently supported for intraK")')
+        abortExecution = .true.
       else
         write(*,'("No input detected for reading band states!")')
         abortExecution = .true.
@@ -711,8 +734,8 @@ contains
    end subroutine setUpSystemArray
 
 !----------------------------------------------------------------------------
-  subroutine completePreliminarySetup(nSys, order, phononModeJ, capture, dqFName, mill_local, nGVecsGlobal, nGVecsLocal, &
-        nKPoints, nSpins, dq_j, recipLattVec, volume, Ylm, crystalSystem, pot)
+  subroutine completePreliminarySetup(nSys, order, phononModeJ, capture, intraK, dqFName, mill_local, nGVecsGlobal, &
+        nGVecsLocal, nKPoints, nSpins, dq_j, recipLattVec, volume, Ylm, crystalSystem, pot)
 
     implicit none
 
@@ -727,6 +750,9 @@ contains
 
     logical, intent(in) :: capture
       !! If considering capture as opposed to scattering 
+    logical, intent(in) :: intraK
+      !! If overlaps should be calculated across different
+      !! k-points (true) or just between single k-points (false)
 
     character(len=300), intent(in) :: dqFName
       !! File name for generalized-coordinate norms
@@ -785,7 +811,7 @@ contains
 
     do isys = 1, nSys
 
-      call readInputFileSkipPseudo(nGVecsGlobal, nKPoints, nSpins, volume, crystalSystem(isys))
+      call readInputFileSkipPseudo(intraK, nGVecsGlobal, nKPoints, nSpins, volume, crystalSystem(isys))
 
     enddo
 
@@ -803,17 +829,15 @@ contains
     if(order == 1) call readDqFile(phononModeJ, dqFName, dq_j)
 
     
-    if(.not. capture) then
+    ! Distribute k-points in pools
+    ! No parallelization over k-points for scattering and intra-k overlap only
+    if(capture .or. (overlapOnly .and. .not. intraK)) then
       call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
-        ! Distribute k-points in pools
-    else
-      call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, 1, ikStart_pool, ikEnd_pool, nkPerPool)
-        ! Should only be one pool for scattering
     endif
 
+    ! Distribute G-vectors across processes in pool
     call distributeItemsInSubgroups(indexInPool, nGVecsGlobal, nProcPerPool, nProcPerPool, nProcPerPool, iGStart_pool, &
-            iGEnd_pool, nGVecsLocal)
-      ! Distribute G-vectors across processes in pool
+        iGEnd_pool, nGVecsLocal)
 
 
     allocate(mill_local(3,nGVecsLocal))
@@ -845,11 +869,16 @@ contains
   end subroutine completePreliminarySetup
   
 !----------------------------------------------------------------------------
-  subroutine readInputFileSkipPseudo(nGVecsGlobal, nKPoints, nSpins, volume, sys)
+  subroutine readInputFileSkipPseudo(intraK, nGVecsGlobal, nKPoints, nSpins, volume, sys)
 
     use miscUtilities, only: getFirstLineWithKeyword, ignoreNextNLinesFromFile
     
     implicit none
+
+    ! Input variables:
+    logical, intent(in) :: intraK
+      !! If overlaps should be calculated across different
+      !! k-points (true) or just between single k-points (false)
 
     ! Output variables:
     integer, intent(inout) :: nGVecsGlobal
@@ -951,11 +980,13 @@ contains
       read(50,'(i10)') sys%nKPoints
 
 
-      if(nKPoints < 0) then
-        nKPoints = sys%nKPoints
-      else if(sys%nKPoints /= nKPoints) then
-        call exitError('readInput', 'number of k-points in system '//trim(sys%ID)//' does not match', 1)
-      end if
+      if(.not. intraK) then
+        if(nKPoints < 0) then
+          nKPoints = sys%nKPoints
+        else if(sys%nKPoints /= nKPoints) then
+          call exitError('readInput', 'number of k-points in system '//trim(sys%ID)//' does not match', 1)
+        end if
+      endif
     endif
 
     call MPI_BCAST(sys%nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -1612,7 +1643,7 @@ contains
   end subroutine getExpiGDotR
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
+  subroutine getAndWriteInterKOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
 
     implicit none
 
@@ -1669,6 +1700,13 @@ contains
         if(ionode) write(*,'("  Spin-independent setup")')
         call cpu_time(t1)
 
+        if(indexInPool == 0) then
+          if(braSys%nPWs1kGlobal(ikGlobal) /= ketSys%nPWs1kGlobal(ikGlobal)) &
+            call exitError('getAndWriteInterKOnlyOverlaps', 'number of G+k vectors does not match for ik='//trim(int2str(ikGlobal)), 1)
+        endif
+
+        call getSpinSkipped(ikGlobal, ispSelect, spin1Skipped, spin2Skipped)
+
         call spinAndBandIndependentSetup(ikGlobal, nGVecsLocal, braSys)
         call spinAndBandIndependentSetup(ikGlobal, nGVecsLocal, ketSys)
 
@@ -1694,7 +1732,7 @@ contains
         if(indexInPool == 0) then 
           do isp = 1, nSpins
             if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) &
-              call writeOverlaps(nPairs, ibBra, ibKet, ikLocal, isp, volume, Ufi(:,isp))
+              call writeInterKOverlaps(nPairs, ibBra, ibKet, ikLocal, isp, volume, Ufi(:,isp))
           enddo
         endif
 
@@ -1707,7 +1745,7 @@ contains
 
     return
 
-  end subroutine getAndWriteOnlyOverlaps
+  end subroutine getAndWriteInterKOnlyOverlaps
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteCaptureMatrixElements(nTransitions, ibi, ibf, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
@@ -1788,8 +1826,6 @@ contains
           if(ionode) write(*,'("  Beginning transition ", i5, " -> ",i5)') ibi(iE), ibf
           call cpu_time(t1)
 
-          Ufi_iE(:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-
           call calculateBandPairOverlap(ibf, ibi(iE), ikGlobal, ikGlobal, nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, & 
                 braSys, ketSys, pot, Ufi_iE)
 
@@ -1823,7 +1859,8 @@ contains
   end subroutine getAndWriteCaptureMatrixElements
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteScatterMatrixElements(nTransitions, ibi, iki, ibf, ikf, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
+  subroutine getAndWriteScatterMatrixElementsOrOverlaps(nTransitions, ibi, iki, ibf, ikf, ispSelect, nGVecsLocal, nSpins, &
+            volume, overlapOnly, braSys, ketSys, pot)
 
     implicit none
 
@@ -1843,6 +1880,10 @@ contains
 
     real(kind=dp), intent(in) :: volume
       !! Volume of unit cell
+
+    logical, intent(in) :: overlapOnly
+      !! If only the wave function overlap should be
+      !! calculated
 
     type(crystal) :: braSys, ketSys
        !! The crystal systems to get the
@@ -1925,8 +1966,6 @@ contains
               if(ionode) write(*,'("    Beginning transition ", i5,", ",i5," -> ",i5,", ",i5)') iki(iE), ibi(iE), ikf(iE), ibf(iE)
               call cpu_time(t1)
 
-              Ufi_iE(:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-
               call calculateBandPairOverlap(ibf(iE), ibi(iE), ikf(iE), iki(iE), nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, & 
                     braSys, ketSys, pot, Ufi_iE)
 
@@ -1955,7 +1994,7 @@ contains
               call readAndSubtractBaseline(-1, isp, nTransitions, Ufi(:,isp))
                 ! Pass in ikGlobal = -1 to trigger scattering format
         
-            call writeScatterMatrixElements(nTransitions, ibi, ibf, iki, ikf, isp, volume, Ufi(:,isp))
+            call writeScatterMatrixElementsOrOverlaps(nTransitions, ibi, ibf, iki, ikf, isp, volume, Ufi(:,isp), overlapOnly)
           endif 
         enddo
       endif
@@ -1964,7 +2003,7 @@ contains
 
     return
 
-  end subroutine getAndWriteScatterMatrixElements
+  end subroutine getAndWriteScatterMatrixElementsOrOverlaps
 
 !----------------------------------------------------------------------------
   function thisKComplete(ikGlobal, ispSelect, nSpins)
@@ -2281,7 +2320,7 @@ contains
       !! information
 
     ! Output variables:
-    complex(kind=dp) :: Ufi(nSpins)
+    complex(kind=dp), intent(out) :: Ufi(nSpins)
       !! All-electron overlap for this k-point and band pair
 
 
@@ -2904,7 +2943,7 @@ contains
   end subroutine writeCaptureMatrixElements
   
 !----------------------------------------------------------------------------
-  subroutine writeScatterMatrixElements(nTransitions, ibi, ibf, iki, ikf, isp, volume, Ufi)
+  subroutine writeScatterMatrixElementsOrOverlaps(nTransitions, ibi, ibf, iki, ikf, isp, volume, Ufi, overlapOnly)
     
     implicit none
     
@@ -2921,6 +2960,10 @@ contains
 
     complex(kind=dp), intent(in) :: Ufi(nTransitions)
       !! All-electron overlap
+      
+    logical, intent(in) :: overlapOnly
+      !! If only the wave function overlap should be
+      !! calculated
 
     ! Local variables:
     integer, allocatable :: iDum1D_1(:), iDum1D_2(:), iDum1D_3(:), iDum1D_4(:)
@@ -2938,7 +2981,8 @@ contains
       !! Text for header
 
 
-    call readScatterEnergyTable(isp, energyTableDir, iDum1D_1, iDum1D_2, iDum1D_3, iDum1D_4, iDum0D, dE)
+    if(.not. overlapOnly) &
+      call readScatterEnergyTable(isp, energyTableDir, iDum1D_1, iDum1D_2, iDum1D_3, iDum1D_4, iDum0D, dE)
     
 
     open(17, file=trim(getMatrixElementFNameWPath(-1, isp, outputDir)), status='unknown')
@@ -2961,11 +3005,11 @@ contains
                                      ikf(1), ikf(nTransitions), ibf(1), ibf(nTransitions)
     
 
-    if(order == 0) then
 
+    if(overlapOnly) then
+      text = "# iki, ibi, ikf, ibf, Complex <f|i>, |<f|i>|^2" 
+    else if(order == 0) then
       text = "# iki, ibi, ikf, ibf, Complex <f|i>, |<f|i>|^2, |dE*<f|i>|^2 (Hartree^2)" 
-      write(17, '(a, " Format : ''(4i10,4ES24.15E3)''")') trim(text)
-
     else if(order == 1) then
 
       write(17,'("# Phonon mode j, dq_j (Bohr*sqrt(elec. mass)). Format: ''(a78, i7, ES24.15E3)'' ", i7, ES24.15E3)') phononModeJ, dq_j
@@ -2975,14 +3019,16 @@ contains
       else
         text = "# iki, ibi, ikf, ibf, Complex <f|i>, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2/(Bohr*sqrt(elec. mass))^2)" 
       endif
-      write(17, '(a, " Format : ''(4i10,4ES24.15E3)''")') trim(text)
-
     endif
+    
+    write(17, '(a, " Format : ''(4i10,4ES24.15E3)''")') trim(text)
 
 
     do iE = 1, nTransitions
         
-        if(order == 0) then
+        if(overlapOnly) then
+          write(17,'(4i10,3ES24.15E3)') iki(iE), ibi(iE), ikf(iE), ibf(iE), Ufi(iE), abs(Ufi(iE))**2
+        else if(order == 0) then
           write(17,'(4i10,4ES24.15E3)') iki(iE), ibi(iE), ikf(iE), ibf(iE), Ufi(iE), abs(Ufi(iE))**2, abs(dE(2,iE)*Ufi(iE))**2
         else if(order == 1) then
           write(17,'(4i10,4ES24.15E3)') iki(iE), ibi(iE), ikf(iE), ibf(iE), Ufi(iE), abs(Ufi(iE))**2, abs(dE(3,iE)*Ufi(iE)/dq_j)**2
@@ -2996,10 +3042,10 @@ contains
     
     return
     
-  end subroutine writeScatterMatrixElements
+  end subroutine writeScatterMatrixElementsOrOverlaps
   
 !----------------------------------------------------------------------------
-  subroutine writeOverlaps(nPairs, ibBra, ibKet, ikLocal, isp, volume, Ufi)
+  subroutine writeInterKOverlaps(nPairs, ibBra, ibKet, ikLocal, isp, volume, Ufi)
     
     implicit none
     
@@ -3058,7 +3104,7 @@ contains
     
     return
     
-  end subroutine writeOverlaps
+  end subroutine writeInterKOverlaps
    
 !----------------------------------------------------------------------------
   subroutine bessel_j (x, lmax, jl)
