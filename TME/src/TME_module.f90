@@ -46,7 +46,6 @@ module TMEmod
 
   logical :: capture
     !! If considering capture as opposed to scattering 
-    !! or overlaps only
   logical :: overlapOnly
     !! If only the wave function overlap should be
     !! calculated
@@ -212,7 +211,6 @@ contains
 
     logical, intent(out) :: capture
       !! If considering capture as opposed to scattering 
-      !! or overlaps only
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -331,7 +329,6 @@ contains
 
     logical, intent(out) :: capture
       !! If considering capture as opposed to scattering 
-      !! or overlaps only
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -404,7 +401,6 @@ contains
 
     logical, intent(in) :: capture
       !! If considering capture as opposed to scattering 
-      !! or overlaps only
     logical, intent(in) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -534,7 +530,6 @@ contains
 
     logical, intent(in) :: capture
       !! If considering capture as opposed to scattering 
-      !! or overlaps only
     logical, intent(in) :: loopSpins
       !! Whether to loop over available spin channels;
       !! otherwise, use selected spin channel
@@ -716,8 +711,8 @@ contains
    end subroutine setUpSystemArray
 
 !----------------------------------------------------------------------------
-  subroutine completePreliminarySetup(nSys, order, phononModeJ, dqFName, mill_local, nGVecsGlobal, nGVecsLocal, nKPoints, &
-        nSpins, dq_j, recipLattVec, volume, Ylm, crystalSystem, pot)
+  subroutine completePreliminarySetup(nSys, order, phononModeJ, capture, dqFName, mill_local, nGVecsGlobal, nGVecsLocal, &
+        nKPoints, nSpins, dq_j, recipLattVec, volume, Ylm, crystalSystem, pot)
 
     implicit none
 
@@ -729,6 +724,9 @@ contains
     integer, intent(in) :: phononModeJ
       !! Index of phonon mode for the calculation
       !! of \(M_j\) (only for order=1)
+
+    logical, intent(in) :: capture
+      !! If considering capture as opposed to scattering 
 
     character(len=300), intent(in) :: dqFName
       !! File name for generalized-coordinate norms
@@ -805,12 +803,17 @@ contains
     if(order == 1) call readDqFile(phononModeJ, dqFName, dq_j)
 
     
-    call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
-      !! * Distribute k-points in pools
+    if(.not. capture) then
+      call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
+        ! Distribute k-points in pools
+    else
+      call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, 1, ikStart_pool, ikEnd_pool, nkPerPool)
+        ! Should only be one pool for scattering
+    endif
 
     call distributeItemsInSubgroups(indexInPool, nGVecsGlobal, nProcPerPool, nProcPerPool, nProcPerPool, iGStart_pool, &
             iGEnd_pool, nGVecsLocal)
-      !! * Distribute G-vectors across processes in pool
+      ! Distribute G-vectors across processes in pool
 
 
     allocate(mill_local(3,nGVecsLocal))

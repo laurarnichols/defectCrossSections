@@ -32,7 +32,7 @@ program TMEmain
     ! different k-points, so I am going to leave this here just in case.
 
 
-  call completePreliminarySetup(nSys, order, phononModeJ, dqFName, mill_local, nGVecsGlobal, nGVecsLocal, nKPoints, &
+  call completePreliminarySetup(nSys, order, phononModeJ, capture, dqFName, mill_local, nGVecsGlobal, nGVecsLocal, nKPoints, &
         nSpins, dq_j, recipLattVec, volume, Ylm, crystalSystem, pot)
 
   
