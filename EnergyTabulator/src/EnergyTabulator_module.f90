@@ -880,18 +880,18 @@ module energyTabulatorMod
                   ! If this delta-function energy is positive, the phonon energy will have to be
                   ! negative. You can potentially ignore those processes, but we actually want to
                   ! consider all of the processes because the transition may cause a slight cooling
-                  ! or even no energy transfer into phonons, while the approach and leaving of the 
-                  ! carrier may together produce a positive energy transfer.
+                  ! while the approach and departure of the carrier may together produce a positive 
+                  ! energy transfer.
                   ! 
                   ! I am leaving this here in case we wanted to use it in the future.
+                if(abs(dEDelta) <= 1e-4_dp) then
 
+                  write(*,'("   ", 4i5, " Zero energy transfer")') iki, ibi, ikf, ibf
 
-                !  write(*,'("   ", 4i5, " Zero or or neg. energy transfer")') iki, ibi, ikf, ibf
+                  iE = iE - 1
 
-                !  iE = iE - 1
-
-                !  cycle
-                !endif
+                  cycle
+                endif
 
 
                 ! The zeroth-order matrix element contains the electronic-only energy difference.
