@@ -11,8 +11,8 @@ module TMEmod
   implicit none
 
 
-  integer, allocatable :: ibBra(:), ibKet(:)
-    !! Band indices for different systems
+  integer, allocatable :: ibBra(:), ikBra(:), ikKet(:), ibKet(:)
+    !! State indices for different systems
   integer, allocatable :: mill_local(:,:)
     !! Local Miller indices
   integer :: nGVecsGlobal
@@ -44,8 +44,9 @@ module TMEmod
   character(len=300) :: outputDir
     !! Path to where matrix elements should be output
 
-  logical :: captured
-    !! If carrier is captured as opposed to scattered
+  logical :: capture
+    !! If considering capture as opposed to scattering 
+    !! or overlaps only
   logical :: overlapOnly
     !! If only the wave function overlap should be
     !! calculated
@@ -176,16 +177,16 @@ module TMEmod
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(ibBra, ibKet, ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, &
-          ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, subtractBaseline)
+  subroutine readInputParams(ibBra, ikBra, ibKet, ikKet, ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, &
+          ketExportDir, dqFName, energyTableDir, outputDir, capture, overlapOnly, subtractBaseline)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
 
     ! Output variables:
-    integer, allocatable, intent(out) :: ibBra(:), ibKet(:)
-      !! Band indices for different systems
+    integer, allocatable, intent(out) :: ibBra(:), ikBra(:), ibKet(:), ikKet(:)
+      !! State indices for different systems
     integer, intent(out) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
@@ -209,6 +210,9 @@ contains
     character(len=300), intent(out) :: outputDir
       !! Path to where matrix elements should be output
 
+    logical, intent(out) :: capture
+      !! If considering capture as opposed to scattering 
+      !! or overlaps only
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -228,21 +232,22 @@ contains
     namelist /TME_Input/ ketExportDir, braExportDir, outputDir, energyTableDir, &
                          order, dqFName, phononModeJ, subtractBaseline, baselineDir, &
                          ispSelect, nPairs, braBands, ketBands, overlapOnly, &
-                         iBandLBra, iBandHBra, iBandLKet, iBandHKet
+                         iBandLBra, iBandHBra, iBandLKet, iBandHKet, capture
     
 
     if(ionode) then
     
       call initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, baselineDir, &
-              braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, subtractBaseline)
+              braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, overlapOnly, &
+              subtractBaseline)
     
       read(5, TME_Input, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading TME_Input namelist', abs(ierr))
     
       call checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, &
-              baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, &
-              subtractBaseline, ibBra, ibKet)
+              baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, &
+              overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
 
     endif
 
@@ -252,6 +257,7 @@ contains
 
     call MPI_BCAST(phononModeJ, 1, MPI_INTEGER, root, worldComm, ierr)
 
+    call MPI_BCAST(capture, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(overlapOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(subtractBaseline, 1, MPI_LOGICAL, root, worldComm, ierr)
 
@@ -266,15 +272,23 @@ contains
     if(.not. ionode) then
       allocate(ibKet(nPairs))
 
-      if(overlapOnly) then
-        allocate(ibBra(nPairs))
-      else 
+      if(capture) then
         allocate(ibBra(1))
+      else  
+        allocate(ibBra(nPairs))
+      endif
+
+      if(.not. (capture .or. overlapOnly)) then
+        allocate(ikBra(nPairs), ikKet(nPairs))
+      else
+        allocate(ikBra(1), ikKet(1))
       endif
     endif
 
     call MPI_BCAST(ibBra, size(ibBra), MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(ibKet, size(ibKet), MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(ikBra, size(ikBra), MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(ikKet, size(ikKet), MPI_INTEGER, root, worldComm, ierr)
 
     return
     
@@ -282,7 +296,8 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, baselineDir, &
-          braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, subtractBaseline)
+          braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, overlapOnly, &
+          subtractBaseline)
     
     implicit none
 
@@ -314,6 +329,9 @@ contains
     character(len=300), intent(out) :: outputDir
       !! Path to where matrix elements should be output
 
+    logical, intent(out) :: capture
+      !! If considering capture as opposed to scattering 
+      !! or overlaps only
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -341,6 +359,7 @@ contains
     outputDir = './TMEs'
     baselineDir = ''
     
+    capture = .true.
     overlapOnly = .false.
     subtractBaseline = .false.
     
@@ -350,8 +369,8 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, &
-          baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, &
-          subtractBaseline, ibBra, ibKet)
+          baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, &
+          overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
     
     implicit none
 
@@ -383,6 +402,9 @@ contains
     character(len=300), intent(in) :: outputDir
       !! Path to where matrix elements should be output
 
+    logical, intent(in) :: capture
+      !! If considering capture as opposed to scattering 
+      !! or overlaps only
     logical, intent(in) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -392,8 +414,8 @@ contains
       !! derivative
 
     ! Output variables:
-    integer, allocatable, intent(out) :: ibBra(:), ibKet(:)
-      !! Band indices for different systems
+    integer, allocatable, intent(out) :: ibBra(:), ikBra(:), ibKet(:), ikKet(:)
+      !! State indices for different systems
     
     ! Local variables
     logical :: abortExecution
@@ -427,7 +449,7 @@ contains
 
     
     if(.not. overlapOnly) then
-      ! Require that states be read from the energy table for capture
+      ! Require that states be read from the energy table for capture and scattering
 
       abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution
 
@@ -444,7 +466,8 @@ contains
         endif
       endif
 
-      call getBandBoundsFromEnergyTable(ispSelect, loopSpins, energyTableDir, ibBra, ibKet, nPairs, abortExecution)
+      call getBandBoundsFromEnergyTable(ispSelect, capture, loopSpins, energyTableDir, ibBra, ikBra, ibKet, ikKet, &
+          nPairs, abortExecution)
 
     else
       ! For overlap-only, can get the bands from explicit strings,
@@ -472,7 +495,9 @@ contains
       else if(energyTableGiven) then
 
         write(*,'("Reading states from energy table.")')
-        call getBandBoundsFromEnergyTable(ispSelect, loopSpins, energyTableDir, ibBra, ibKet, nPairs, abortExecution)
+        call getBandBoundsFromEnergyTable(ispSelect, capture, loopSpins, energyTableDir, ibBra, ikBra, ibKet, ikKet, &
+            nPairs, abortExecution)
+          ! Currently assumes that .not. capture reads from scatter-like file
 
       else
         write(*,'("No input detected for reading band states!")')
@@ -495,7 +520,8 @@ contains
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine getBandBoundsFromEnergyTable(ispSelect, loopSpins, energyTableDir, ibBra, ibKet, nPairs, abortExecution)
+  subroutine getBandBoundsFromEnergyTable(ispSelect, capture, loopSpins, energyTableDir, ibBra, ikBra, ibKet, ikKet, &
+            nPairs, abortExecution)
     ! Read nTransitions and band indices from energy table, assuming that
     ! they are the same for the two spin channels and all k-points
 
@@ -506,6 +532,9 @@ contains
       !! Selection of a single spin channel if input
       !! by the user
 
+    logical, intent(in) :: capture
+      !! If considering capture as opposed to scattering 
+      !! or overlaps only
     logical, intent(in) :: loopSpins
       !! Whether to loop over available spin channels;
       !! otherwise, use selected spin channel
@@ -514,8 +543,8 @@ contains
       !! Path to energy tables
 
     ! Output variables:
-    integer, allocatable, intent(out) :: ibBra(:), ibKet(:)
-      !! Band indices for different systems
+    integer, allocatable, intent(out) :: ibBra(:), ikBra(:), ibKet(:), ikKet(:)
+      !! State indices for different systems
     integer, intent(out) :: nPairs
       !! Number of pairs of bands to get overlaps for
 
@@ -531,19 +560,32 @@ contains
       !! band bounds and number of transitions
 
 
-    abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.1.1') .or. abortExecution
+    if(loopSpins) then
+      isp = 1
+    else 
+      isp = ispSelect
+    endif
 
-    if(.not. abortExecution) then
-      if(loopSpins) then
-        isp = 1
-      else 
-        isp = ispSelect
+
+    if(capture) then
+
+      abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(isp))//'.1') &
+                              .or. abortExecution
+
+      if(.not. abortExecution) then
+
+        allocate(ibBra(1), ikBra(1), ikKet(1))
+
+        call readCaptureEnergyTable(1, isp, energyTableDir, ibKet, ibBra(1), nPairs, rDum)
+          ! nPairs is read from the energy table
       endif
+    else
+      abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(isp))) &
+                              .or. abortExecution
 
-      allocate(ibBra(1))
-
-      call readCaptureEnergyTable(1, isp, energyTableDir, ibKet, ibBra(1), nPairs, rDum)
+      if(.not. abortExecution) call readScatterEnergyTable(isp, energyTableDir, ibKet, ibBra, ikKet, ikBra, nPairs, rDum)
         ! nPairs is read from the energy table
+      endif
     endif
 
     return
@@ -3473,7 +3515,7 @@ contains
     real(kind=dp) :: rDum
       !! Dummy real
 
-    logical :: captured
+    logical :: capture
       !! If matrix elements for capture or scattering
 
 
@@ -3485,7 +3527,7 @@ contains
     read(12,'(a)') volumeLine
 
     read(12,*)
-    read(12,'(L4)') captured
+    read(12,'(L4)') capture
 
     read(12,*)
     read(12,*)
@@ -3496,7 +3538,7 @@ contains
 
     do iE = 1, nTransitions
 
-      if(captured) then
+      if(capture) then
         read(12,'(i10,4ES24.15E3)') iDum, rDum, rDum, rDum, matrixElement(iE) ! in Hartree^2
       else
         read(12,'(4i10,4ES24.15E3)') iDum, iDum, iDum, iDum, rDum, rDum, rDum, matrixElement(iE) ! in Hartree^2

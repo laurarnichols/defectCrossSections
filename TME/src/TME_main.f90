@@ -17,8 +17,8 @@ program TMEmain
   if(ionode) call cpu_time(t0)
 
 
-  call readInputParams(ibBra, ibKet, ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, &
-          ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, subtractBaseline)
+  call readInputParams(ibBra, ikBra, ibKet, ikKet, ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, &
+          ketExportDir, dqFName, energyTableDir, outputDir, capture, overlapOnly, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     
@@ -38,7 +38,7 @@ program TMEmain
   
   if(overlapOnly) then
     call getAndWriteOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, volume, crystalSystem(1), crystalSystem(2), pot)
-  else if(captured) then
+  else if(capture) then
     call getAndWriteCaptureMatrixElements(nPairs, ibKet, ibBra(1), ispSelect, nGVecsLocal, nSpins, volume, crystalSystem(1), & 
           crystalSystem(2), pot)
   else
