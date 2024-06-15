@@ -491,8 +491,8 @@ contains
         endif
       endif
 
-      call getBandBoundsFromEnergyTable(ispSelect, capture, loopSpins, energyTableDir, ibBra, ikBra, ibKet, ikKet, &
-          nPairs, abortExecution)
+      call getBandBoundsFromEnergyTable(ispSelect, capture, intraK, overlapOnly, loopSpins, energyTableDir, &
+          ibBra, ikBra, ibKet, ikKet, nPairs, abortExecution)
 
     else
       ! For overlap-only, can get the bands from explicit strings,
@@ -524,8 +524,8 @@ contains
       else if(energyTableGiven) then
 
         write(*,'("Reading states from energy table.")')
-        call getBandBoundsFromEnergyTable(ispSelect, capture, loopSpins, energyTableDir, ibBra, ikBra, ibKet, ikKet, &
-            nPairs, abortExecution)
+        call getBandBoundsFromEnergyTable(ispSelect, capture, intraK, overlapOnly, loopSpins, energyTableDir, &
+            ibBra, ikBra, ibKet, ikKet, nPairs, abortExecution)
           ! Reads energy table based on `capture` variable
 
       else if((explicitBandStringsGiven .or. bandBoundsGiven) .and. intraK) then
@@ -552,8 +552,8 @@ contains
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine getBandBoundsFromEnergyTable(ispSelect, capture, loopSpins, energyTableDir, ibBra, ikBra, ibKet, ikKet, &
-            nPairs, abortExecution)
+  subroutine getBandBoundsFromEnergyTable(ispSelect, capture, intraK, overlapOnly, loopSpins, energyTableDir, &
+            ibBra, ikBra, ibKet, ikKet, nPairs, abortExecution)
     ! Read nTransitions and band indices from energy table, assuming that
     ! they are the same for the two spin channels and all k-points
 
@@ -566,6 +566,12 @@ contains
 
     logical, intent(in) :: capture
       !! If considering capture as opposed to scattering 
+    logical, intent(in) :: intraK
+      !! If overlaps should be calculated across different
+      !! k-points (true) or just between single k-points (false)
+    logical, intent(in) :: overlapOnly
+      !! If only the wave function overlap should be
+      !! calculated
     logical, intent(in) :: loopSpins
       !! Whether to loop over available spin channels;
       !! otherwise, use selected spin channel
@@ -583,6 +589,8 @@ contains
       !! If program should stop
 
     ! Local variables:
+    integer :: ibBra1
+      !! Single band index for reading from capture table
     integer :: isp
       !! Spin channel index
 
@@ -598,17 +606,26 @@ contains
     endif
 
 
-    if(capture) then
+    if(capture .or. (overlapOnly .and. .not. intraK)) then
 
       abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(isp))//'.1') &
                               .or. abortExecution
 
       if(.not. abortExecution) then
 
-        allocate(ibBra(1), ikBra(1), ikKet(1))
+        allocate(ikBra(1), ikKet(1))
 
-        call readCaptureEnergyTable(1, isp, energyTableDir, ibKet, ibBra(1), nPairs, rDum)
+        call readCaptureEnergyTable(1, isp, energyTableDir, ibKet, ibBra1, nPairs, rDum)
           ! nPairs is read from the energy table
+
+        if(capture) then
+          allocate(ibBra(1))
+        else
+          allocate(ibBra(nPairs))
+        endif
+
+        ibBra(:) = ibBra1
+
       endif
     else
       abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(isp))) &
