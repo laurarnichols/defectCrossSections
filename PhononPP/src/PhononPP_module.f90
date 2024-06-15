@@ -937,6 +937,8 @@ module PhononPPMod
     integer :: modeIndex(nModes)
       !! Track mode indices after sorting
 
+    real(kind=dp) :: omegaSj(nModes), omegaPrimeSjPrime(nModes)
+      !! omega*Sj weight used to distribute energy in modes
     real(kind=dp) :: Sj(nModes), SjPrime(nModes)
       !! Sj and Sj' Huang-Rhys factors using omega
       !! and omega'
@@ -957,13 +959,19 @@ module PhononPPMod
 
         Sj(j) = projNorm(j)**2*omega(j)*THzToHz/(2*hbar) 
 
-        if(diffOmega) SjPrime(j) = projNorm(j)**2*omegaPrime(j)*THzToHz/(2*hbar) 
-          ! The way the algebra works, they are calculated using the same
-          ! Delta q_j (projNorm)
+        omegaSj(j) = omega(j)*Sj(j)
+
+        if(diffOmega) then
+          SjPrime(j) = projNorm(j)**2*omegaPrime(j)*THzToHz/(2*hbar) 
+            ! The way the algebra works, Sj and Sj' are calculated using the same
+            ! Delta q_j (projNorm)
+
+          omegaPrimeSjPrime = omegaPrime(j)*SjPrime(j)
+        endif
 
       enddo
 
-      call hpsort_eps(nModes, Sj, modeIndex, 1e-14_dp)
+      call hpsort_eps(nModes, omegaSj, modeIndex, 1e-14_dp)
         ! Sort in ascending order
 
       open(60, file=trim(SjFName))
@@ -978,9 +986,9 @@ module PhononPPMod
 
       ! Currently always sort by initial Sj
       if(diffOmega) then
-        write(60,'("# Mode index, Sj (highest to lowest), omega_j, Sj'', omega_j''")')
+        write(60,'("# Mode index, Sj, omega_j, omega_j*Sj (highest to lowest), Sj'', omega_j'', omega_j''*Sj''")')
       else
-        write(60,'("# Mode index j, Sj (highest to lowest), omega_j")')
+        write(60,'("# Mode index, Sj, omega_j, omega_j*Sj (highest to lowest)")')
       endif
 
 
@@ -989,9 +997,10 @@ module PhononPPMod
         jSort = modeIndex(nModes-(j-1))
 
         if(diffOmega) then
-          write(60,'(1i7, 4ES24.15E3)') jSort, Sj(nModes-(j-1)), omega(jSort), SjPrime(jSort), omegaPrime(jSort)
+          write(60,'(1i7, 6ES24.15E3)') jSort, Sj(jSort), omega(jSort), omegaSj(nModes-(j-1)), &
+                                               SjPrime(jSort), omegaPrime(jSort), omegaPrimeSjPrime(jSort)
         else
-          write(60,'(1i7, 2ES24.15E3)') jSort, Sj(nModes-(j-1)), omega(jSort)
+          write(60,'(1i7, 3ES24.15E3)') jSort, Sj(jSort), omega(jSort), omegaSj(nModes-(j-1))
         endif
 
       enddo
@@ -1379,6 +1388,8 @@ module PhononPPMod
     integer :: j, jSort
       !! Loop index
 
+    real(kind=dp) :: rDum
+      !! Dummy variable to ignore input
     real(kind=dp) :: Sj_, SjPrime_, omega_, omegaPrime_
       !! Input variables
 
@@ -1412,7 +1423,7 @@ module PhononPPMod
     if(ionode) then
 
       do j = 1, nModes
-        read(12,*) jSort, Sj_, omega_, SjPrime_, omegaPrime_! freq read from Sj.out is f(in Thz)*2pi
+        read(12,*) jSort, Sj_, omega_, rDum, SjPrime_, omegaPrime_! freq read from Sj.out is f(in Thz)*2pi
         Sj(jSort) = Sj_
         omega(jSort) = omega_
         SjPrime(jSort) = SjPrime_
