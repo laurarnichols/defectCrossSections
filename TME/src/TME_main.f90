@@ -26,6 +26,10 @@ program TMEmain
   nSys = 2
 
   call setUpSystemArray(nSys, braExportDir, ketExportDir, crystalSystem)
+    ! This is not really needed for only 2 crystal systems. We don't actually
+    ! need it right now because for scattering we plan to only read from 2 exports.
+    ! However, it is possible that you could read from multiple exports for the
+    ! different k-points, so I am going to leave this here just in case.
 
 
   call completePreliminarySetup(nSys, order, phononModeJ, dqFName, mill_local, nGVecsGlobal, nGVecsLocal, nKPoints, &
@@ -34,9 +38,12 @@ program TMEmain
   
   if(overlapOnly) then
     call getAndWriteOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, volume, crystalSystem(1), crystalSystem(2), pot)
-  else
+  else if(captured) then
     call getAndWriteCaptureMatrixElements(nPairs, ibKet, ibBra(1), ispSelect, nGVecsLocal, nSpins, volume, crystalSystem(1), & 
           crystalSystem(2), pot)
+  else
+    call getAndWriteScatterMatrixElements(nPairs, ibKet, ikKet, ibBra, ikBra, ispSelect, nGVecsLocal, nSpins, volume, &
+          crystalSystem(1), crystalSystem(2), pot)
   endif 
 
 

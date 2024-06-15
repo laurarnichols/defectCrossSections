@@ -1636,7 +1636,7 @@ contains
           if(ionode) write(*,'("  Beginning overlap <", i5, "|",i5">")') ibBra(ip), ibKet(ip)
           call cpu_time(t1)
 
-          call calculateBandPairOverlap(ibBra(ip), ibKet(ip), ikGlobal, nSpins, nGVecsLocal, volume, spin1Skipped, &
+          call calculateBandPairOverlap(ibBra(ip), ibKet(ip), ikGlobal, ikGlobal, nSpins, nGVecsLocal, volume, spin1Skipped, &
                 spin2Skipped, braSys, ketSys, pot, Ufi_ip)
 
           Ufi(ip,:) = Ufi_ip
@@ -1724,12 +1724,15 @@ contains
         if(ionode) write(*,'("  Spin-independent setup")')
         call cpu_time(t1)
 
+        if(indexInPool == 0) then
+          if(braSys%nPWs1kGlobal(ikGlobal) /= ketSys%nPWs1kGlobal(ikGlobal)) &
+            call exitError('getAndWriteCaptureMatrixElements', 'number of G+k vectors does not match for ik='//trim(int2str(ikGlobal)), 1)
+        endif
 
         call getSpinSkipped(ikGlobal, ispSelect, spin1Skipped, spin2Skipped)
 
-        call spinAndBandIndependentSetup(ikBra, ikKet, ispSelect, nGVecsLocal, .true., spin1Skipped, spin2Skipped, &
-                braSys, ketSys)
-          ! Pass in true for captured
+        call spinAndBandIndependentSetup(ikGlobal, nGVecsLocal, braSys)
+        call spinAndBandIndependentSetup(ikGlobal, nGVecsLocal, ketSys)
 
 
         call cpu_time(t2)
@@ -1742,7 +1745,7 @@ contains
 
           Ufi_iE(:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
 
-          call calculateBandPairOverlap(ibf, ibi(iE), ikGlobal, nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, & 
+          call calculateBandPairOverlap(ibf, ibi(iE), ikGlobal, ikGlobal, nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, & 
                 braSys, ketSys, pot, Ufi_iE)
 
           Ufi(iE,:) = Ufi_iE
@@ -1775,17 +1778,15 @@ contains
   end subroutine getAndWriteCaptureMatrixElements
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteScatterMatrixElements(nTransitions, ibi, ibf, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
+  subroutine getAndWriteScatterMatrixElements(nTransitions, ibi, iki, ibf, ikf, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: nTransitions
       !! Total number of transitions 
-    integer, intent(in) :: ibi(nTransitions)
-      !! Initial-state indices
-    integer, intent(in) :: ibf
-      !! Final-state index
+    integer, intent(in) :: ibi(nTransitions), iki(nTransitions), ibf(nTransitions), ikf(nTransitions)
+      !! State indices
     integer, intent(in) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
@@ -1807,8 +1808,12 @@ contains
       !! information
 
     ! Local variables 
-    integer :: ikLocal, ikGlobal, isp, iE
+    integer :: ikLocal, ikGlobal, isp, iE, iU_iki, iU_ikf
       !! Loop indices
+    integer, allocatable :: ikiUnique(:), ikfUnique(:)
+      !! Unique initial and final k-points
+    integer :: nUnique_iki, nUnique_ikf
+      !! Number of unique initial and final k-points
 
     real(kind = dp) :: t1, t2
       !! For timing different processes
@@ -1822,52 +1827,95 @@ contains
 
     Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
 
-    if(ionode) write(*,'("  Spin-independent setup")')
-    call cpu_time(t1)
+    call getSpinSkipped(-1, ispSelect, spin1Skipped, spin2Skipped)
+      ! Pass in ikGlobal = -1 to trigger scattering format
+      
+    if(.not. (spin1Skipped .and. spin2Skipped)) then
 
 
-    call getSpinSkipped(ikGlobal, ispSelect, spin1Skipped, spin2Skipped)
+      ! First, get the unique k-points for each system
+      if(ionode) call getUniqueInts(nTransitions, ikf, nUnique_ikf, ikfUnique)
+      call MPI_BCAST(nUnique_ikf, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(ikfUnique, nUnique_ikf, MPI_INTEGER, root, worldComm, ierr)
 
-    call spinAndBandIndependentSetup(ikBra, ikKet, ispSelect, nGVecsLocal, .false., spin1Skipped, spin2Skipped, &
-            braSys, ketSys)
-      ! Pass in false for captured
-
-
-    call cpu_time(t2)
-    if(ionode) write(*, '("  Spin independent setup complete! (",f10.2," secs)")') t2-t1
-        
-
-    do iE = 1, nTransitions
-      if(ionode) write(*,'("  Beginning transition ", i5, " -> ",i5)') ibi(iE), ibf
-      call cpu_time(t1)
-
-      Ufi_iE(:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
-
-      call calculateBandPairOverlap(ibf, ibi(iE), ikGlobal, nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, & 
-            braSys, ketSys, pot, Ufi_iE)
-
-      Ufi(iE,:) = Ufi_iE
-
-      call cpu_time(t2)
-      if(ionode) write(*, '("  Transition ",i5," -> ",i5," complete! (",f10.2," secs)")') ibi(iE), ibf, t2-t1
-    enddo 
+      if(ionode) call getUniqueInts(nTransitions, iki, nUnique_iki, ikiUnique)
+      call MPI_BCAST(nUnique_iki, 1, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(ikiUnique, nUnique_iki, MPI_INTEGER, root, worldComm, ierr)
 
 
-    ! Subtract baseline if applicable and write out results
-    if(indexInPool == 0) then 
-      do isp = 1, nSpins
-        if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
+      ! Have an outside loop over the unique k-points. The EnergyTabulator
+      ! code uses a range of k-points and bands and loops over the initial
+      ! k-points/bands then the final k-points/bands. Looping over the unique
+      ! initial k-points then the unique final k-points and calculating only
+      ! the transitions corresponding to those will keep us from duplicating
+      ! calculations unnecessarily, and it will match the order from the 
+      ! energy table.
+      do iU_iki = 1, nUnique_iki
+
+
+        if(ionode) write(*,'("Spin-independent setup for ket sys, iki =",i5)') ikiUnique(iU_iki)
+        call cpu_time(t1)
+
+        call spinAndBandIndependentSetup(ikiUnique(iU_iki), nGVecsLocal, ketSys)
+
+        call cpu_time(t2)
+        if(ionode) write(*,'("Spin independent setup for ket sys, iki =",i5," complete! (",f10.2," secs)")') ikiUnique(iU_iki), t2-t1
+
+
+        do iU_ikf = 1, nUnique_ikf
+
+
+          if(ionode) write(*,'("  Spin-independent setup for bra sys, ikf =",i5)') ikfUnique(iU_ikf)
+          call cpu_time(t1)
+
+          call spinAndBandIndependentSetup(ikfUnique(iU_ikf), nGVecsLocal, braSys)
+
+          call cpu_time(t2)
+          if(ionode) write(*,'("  Spin independent setup for bra sys, iki =",i5," complete! (",f10.2," secs)")') ikfUnique(iU_ikf), t2-t1
+
+
+          do iE = 1, nTransitions
+            if((iki(iE) == ikiUnique(iU_iki)) .and. (ikf(iE) == ikfUnique(iU_ikf))) then
+
+              if(ionode) write(*,'("    Beginning transition ", i5,", ",i5," -> ",i5,", ",i5)') iki(iE), ibi(iE), ikf(iE), ibf(iE)
+              call cpu_time(t1)
+
+              Ufi_iE(:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+
+              call calculateBandPairOverlap(ibf(iE), ibi(iE), ikf(iE), iki(iE), nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, & 
+                    braSys, ketSys, pot, Ufi_iE)
+
+              Ufi(iE,:) = Ufi_iE
+
+              call cpu_time(t2)
+              if(ionode) write(*, '("  Transition ",i5," -> ",i5," complete! (",f10.2," secs)")') ibi(iE), ibf, t2-t1
+
+            endif
+          enddo ! Loop over all transitions
+
+          call deallocateSysArrays(braSys)
+
+        enddo ! Loop over unique final k-points
+
+        call deallocateSysArrays(ketSys)
+
+      enddo ! Loop over unique initial k-points
+
+
+      ! Subtract baseline if applicable and write out results
+      if(ionode == 0) then 
+        do isp = 1, nSpins
+          if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
             if(order == 1 .and. subtractBaseline) &
               call readAndSubtractBaseline(-1, isp, nTransitions, Ufi(:,isp))
                 ! Pass in ikGlobal = -1 to trigger scattering format
         
             call writeScatterMatrixElements(nTransitions, ibi, ibf, iki, ikf, isp, volume, Ufi(:,isp))
-        endif 
-      enddo
-    endif
+          endif 
+        enddo
+      endif
 
-    call deallocateSysArrays(braSys)
-    call deallocateSysArrays(ketSys)
+    endif
 
     return
 
@@ -1943,50 +1991,92 @@ contains
   end subroutine getSpinSkipped
 
 !-----------------------------------------------------------------------------------------------
-  subroutine spinAndBandIndependentSetup(ikBra, ikKet, nGVecsLocal, captured, braSys, ketSys)
+  subroutine getUniqueInts(arrSize, arr, nUnique, uniqueVals)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ikBra, ikKet
-      !! Global k-point indices
+    integer, intent(in) :: arrSize
+      !! Size of array to get unique values from
+    integer, intent(in) :: arr(arrSize)
+      !! Array to get unique values from
+
+    ! Output variables:
+    integer, intent(out) :: nUnique
+      !! Count of unique values in the array
+    integer, allocatable, intent(out) :: uniqueVals(:)
+      !! Unique values the size of nUnique
+
+    ! Local variables:
+    integer :: maxVal
+      !! Maximum value in the array
+    integer :: minValRemain
+      !! Min value remaining after removing the values
+      !! already found to be unique from consideration
+    integer :: uniqueValsOrigSize(arrSize)
+      !! Unique values stored in an array the size of
+      !! the input array
+
+
+    if(arrSize > 0) then
+      nUnique = 1
+      ! If there is at least one value in the array,
+      ! there is always at least one unique value
+
+      minValRemain = minval(arr)
+      maxVal = maxval(arr)
+
+      uniqueValsOrigSize(1) = minValRemain
+      
+      do while (minValRemain < maxVal)
+          minValRemain = minval(arr, mask=arr>minValRemain)
+            ! Get the minimum value remaining among numbers greater
+            ! than the previous minimum value remaining. This will
+            ! automatically exclude numbers equal to the previous
+            ! minimum value.
+
+          nUnique = nUnique + 1
+          uniqueValsOrigSize(nUnique) = minValRemain
+            ! Store the new unique value in the next slot of the 
+            ! unique-values array
+      enddo
+
+      allocate(uniqueVals(nUnique), source=uniqueValsOrigSize(1:nUnique))
+
+    endif
+
+    return
+
+  end subroutine
+
+!-----------------------------------------------------------------------------------------------
+  subroutine spinAndBandIndependentSetup(ikGlobal, nGVecsLocal, sys)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Global k-point index
     integer, intent(in) :: nGVecsLocal
       !! Number of local G-vectors
 
-    logical, intent(in) :: captured
-      !! If carrier is captured as opposed to scattered
-
     ! Output variables:
 
-    type(crystal) :: braSys, ketSys
-      !! The crystal systems to get the
-      !! matrix element for
+    type(crystal) :: sys
+      !! Crystal system to get the matrix element for
 
     ! Local variables:
     integer :: iDum
       !! Dummy integer
 
-    
-    if(captured) then
-      if(ikBra /= ikKet) call exitError('spinAndBandIndependentSetup','k-points expected to match for capture!', 1)
 
-      if(braSys%nPWs1kGlobal(ikBra) /= ketSys%nPWs1kGlobal(ikKet)) &
-        call exitError('spinAndBandIndependentSetup', 'number of G+k vectors does not match for ik='//trim(int2str(ikBra)), 1)
-    endif
+    call distributeItemsInSubgroups(indexInPool, sys%nPWs1kGlobal(ikGlobal), nProcPerPool, nProcPerPool, nProcPerPool, &
+            sys%iGkStart_pool, iDum, sys%nGkVecsLocal)
+      ! Ignore the iGkEnd_pool variable because it is never used
 
-    ! Ignore the iGkEnd_pool variables because they are never used
-    call distributeItemsInSubgroups(indexInPool, braSys%nPWs1kGlobal(ikBra), nProcPerPool, nProcPerPool, nProcPerPool, &
-            braSys%iGkStart_pool, iDum, braSys%nGkVecsLocal)
-    call distributeItemsInSubgroups(indexInPool, ketSys%nPWs1kGlobal(ikKet), nProcPerPool, nProcPerPool, nProcPerPool, &
-            ketSys%iGkStart_pool, iDum, ketSys%nGkVecsLocal)
+    call allocateSysArrays(nGVecsLocal, sys)
 
-
-    call allocateSysArrays(nGVecsLocal, braSys)
-    call allocateSysArrays(nGVecsLocal, ketSys)
-
-
-    call readProjectors(ikBra, braSys)
-    call readProjectors(ikKet, ketSys)
+    call readProjectors(ikGlobal, sys)
 
     return
 
@@ -2115,7 +2205,7 @@ contains
   end subroutine readProjectors
   
 !----------------------------------------------------------------------------
-  subroutine calculateBandPairOverlap(ibBra, ibKet, ikGlobal, nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, &
+  subroutine calculateBandPairOverlap(ibBra, ibKet, ikBra, ikKet, nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, &
           braSys, ketSys, pot, Ufi)
 
     implicit none
@@ -2123,8 +2213,8 @@ contains
     ! Input variables:
     integer, intent(in) :: ibBra, ibKet
       !! Band indices for bra and ket systems
-    integer, intent(in) :: ikGlobal
-      !! Current k point
+    integer, intent(in) :: ikBra, ikKet
+      !! Current k-point for bra and ket systems
     integer, intent(in) :: nSpins
       !! Number of spins (tested to be consistent
       !! across all systems)
