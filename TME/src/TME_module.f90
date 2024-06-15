@@ -3487,8 +3487,6 @@ contains
     read(12,*)
     read(12,'(L4)') captured
 
-    if(.not. captured) call exitError('readMatrixElement', 'This matrix element was not calculated for capture!', 1)
-
     read(12,*)
     read(12,*)
     if(order == 1) read(12,*)
@@ -3498,7 +3496,11 @@ contains
 
     do iE = 1, nTransitions
 
-      read(12,'(i10,4ES24.15E3)') iDum, rDum, rDum, rDum, matrixElement(iE) ! in Hartree^2
+      if(captured) then
+        read(12,'(i10,4ES24.15E3)') iDum, rDum, rDum, rDum, matrixElement(iE) ! in Hartree^2
+      else
+        read(12,'(4i10,4ES24.15E3)') iDum, iDum, iDum, iDum, rDum, rDum, rDum, matrixElement(iE) ! in Hartree^2
+      endif
 
     enddo
 
