@@ -1,7 +1,7 @@
 module TMEmod
   use constants, only: dp, pi, eVToHartree, ii
   use miscUtilities, only: int2str, int2strLeadZero
-  use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable
+  use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable, readScatterEnergyTable
   use base, only: nKPoints, nSpins, order, ispSelect
   use cell, only: volume, recipLattVec
 
@@ -497,7 +497,7 @@ contains
         write(*,'("Reading states from energy table.")')
         call getBandBoundsFromEnergyTable(ispSelect, capture, loopSpins, energyTableDir, ibBra, ikBra, ibKet, ikKet, &
             nPairs, abortExecution)
-          ! Currently assumes that .not. capture reads from scatter-like file
+          ! Reads energy table based on `capture` variable
 
       else
         write(*,'("No input detected for reading band states!")')
@@ -585,7 +585,6 @@ contains
 
       if(.not. abortExecution) call readScatterEnergyTable(isp, energyTableDir, ibKet, ibBra, ikKet, ikBra, nPairs, rDum)
         ! nPairs is read from the energy table
-      endif
     endif
 
     return
@@ -1667,7 +1666,8 @@ contains
         if(ionode) write(*,'("  Spin-independent setup")')
         call cpu_time(t1)
 
-        call spinAndBandIndependentSetup(ikGlobal, ispSelect, nGVecsLocal, spin1Skipped, spin2Skipped, braSys, ketSys)
+        call spinAndBandIndependentSetup(ikGlobal, nGVecsLocal, braSys)
+        call spinAndBandIndependentSetup(ikGlobal, nGVecsLocal, ketSys)
 
         call cpu_time(t2)
         if(ionode) write(*, '("  Spin independent setup complete! (",f10.2," secs)")') t2-t1
@@ -1850,7 +1850,7 @@ contains
       !! information
 
     ! Local variables 
-    integer :: ikLocal, ikGlobal, isp, iE, iU_iki, iU_ikf
+    integer :: isp, iE, iU_iki, iU_ikf
       !! Loop indices
     integer, allocatable :: ikiUnique(:), ikfUnique(:)
       !! Unique initial and final k-points
@@ -2050,7 +2050,7 @@ contains
       !! Unique values the size of nUnique
 
     ! Local variables:
-    integer :: maxVal
+    integer :: maxValOverall
       !! Maximum value in the array
     integer :: minValRemain
       !! Min value remaining after removing the values
@@ -2066,11 +2066,11 @@ contains
       ! there is always at least one unique value
 
       minValRemain = minval(arr)
-      maxVal = maxval(arr)
+      maxValOverall = maxval(arr)
 
       uniqueValsOrigSize(1) = minValRemain
       
-      do while (minValRemain < maxVal)
+      do while (minValRemain < maxValOverall)
           minValRemain = minval(arr, mask=arr>minValRemain)
             ! Get the minimum value remaining among numbers greater
             ! than the previous minimum value remaining. This will
@@ -2308,9 +2308,9 @@ contains
         if(ionode) write(*,'("    Spin-dependent calculations started")')
         call cpu_time(t1)
 
-        if(calcSpinDepBra) call calcSpinDep(ibBra, ikGlobal, isp, nGVecsLocal, braSys, ketSys)
+        if(calcSpinDepBra) call calcSpinDep(ibBra, ikBra, isp, nGVecsLocal, braSys, ketSys)
       
-        if(calcSpinDepKet) call calcSpinDep(ibKet, ikGlobal, isp, nGVecsLocal, ketSys, braSys)
+        if(calcSpinDepKet) call calcSpinDep(ibKet, ikKet, isp, nGVecsLocal, ketSys, braSys)
 
         call cpu_time(t2)
         if(ionode) write(*, '("    Spin-dependent calculations complete! (",f10.2," secs)")') t2-t1
@@ -2337,14 +2337,14 @@ contains
   end subroutine calculateBandPairOverlap
 
 !----------------------------------------------------------------------------
-  subroutine calcSpinDep(ib, ikGlobal, isp, nGVecsLocal, sysCalc, sysCrossProj)
+  subroutine calcSpinDep(ib, ikSysCalc, isp, nGVecsLocal, sysCalc, sysCrossProj)
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: ib
       !! Band index
-    integer, intent(in) :: ikGlobal
+    integer, intent(in) :: ikSysCalc
       !! Current k point
     integer, intent(in) :: isp
       !! Current spin channel
@@ -2359,12 +2359,12 @@ contains
       !! The crystal system used for the cross projection
 
 
-    call readWfc(ib, ikGlobal, min(isp,sysCalc%nSpins), sysCalc)
+    call readWfc(ib, ikSysCalc, min(isp,sysCalc%nSpins), sysCalc)
 
     call calculateCrossProjection(sysCalc, sysCrossProj)
       ! Get new cross projection with new `sysCalc%wfc`
 
-    call readProjections(ib, ikGlobal, min(isp,sysCalc%nSpins), sysCalc)
+    call readProjections(ib, ikSysCalc, min(isp,sysCalc%nSpins), sysCalc)
 
     call pawCorrectionK(nGVecsLocal, pot, Ylm, sysCalc)
 
@@ -2762,9 +2762,6 @@ contains
       !! Loop index
     integer :: iDum
       !! Dummy integer to ignore input
-    
-    real(kind = dp) :: rDum
-      !! Dummy real to ignore input
 
     complex(kind = dp):: baselineOverlap
       !! Input complex overlap 
@@ -2938,7 +2935,7 @@ contains
       !! Text for header
 
 
-    call readScatterEnergyTable(isp, energyTableDir, iDum1D_1, iDum1D_2, iDum1D__3, iDum1D_4, iDum0D, dE)
+    call readScatterEnergyTable(isp, energyTableDir, iDum1D_1, iDum1D_2, iDum1D_3, iDum1D_4, iDum0D, dE)
     
 
     open(17, file=trim(getMatrixElementFNameWPath(-1, isp, outputDir)), status='unknown')
@@ -2958,7 +2955,7 @@ contains
     write(17,'(a, " Format : ''(4i10)''")') trim(text)   
   
     write(17,'(4i10)') nTransitions, iki(1), iki(nTransitions), ibi(1), ibi(nTransitions), &
-                                     ikf(1), ikf(nTransitions), ibf(1), ibf(nTransitions
+                                     ikf(1), ikf(nTransitions), ibf(1), ibf(nTransitions)
     
 
     if(order == 0) then
@@ -2992,7 +2989,7 @@ contains
 
     close(17)
     
-    write(*, '("    Ufi(:) of k-point ", i4, " and spin ", i1, " written.")') ikGlobal, isp
+    write(*, '("    Ufi(:) of spin ", i1, " written.")') isp
     
     return
     
