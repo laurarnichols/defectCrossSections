@@ -1952,10 +1952,12 @@ contains
       ! First, get the unique k-points for each system
       if(ionode) call getUniqueInts(nTransitions, ikf, nUnique_ikf, ikfUnique)
       call MPI_BCAST(nUnique_ikf, 1, MPI_INTEGER, root, worldComm, ierr)
+      if(.not. ionode) allocate(ikfUnique(nUnique_ikf))
       call MPI_BCAST(ikfUnique, nUnique_ikf, MPI_INTEGER, root, worldComm, ierr)
 
       if(ionode) call getUniqueInts(nTransitions, iki, nUnique_iki, ikiUnique)
       call MPI_BCAST(nUnique_iki, 1, MPI_INTEGER, root, worldComm, ierr)
+      if(.not. ionode) allocate(ikiUnique(nUnique_iki))
       call MPI_BCAST(ikiUnique, nUnique_iki, MPI_INTEGER, root, worldComm, ierr)
 
 
