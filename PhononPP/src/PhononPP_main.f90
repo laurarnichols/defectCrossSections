@@ -11,7 +11,7 @@ program PhononPPMain
 
   call mpiInitialization('PhononPP')
 
-  call readInputs(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
+  call readInputs(disp2AtomInd, freqThresh, shift, temperature, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
         phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, diffOmega, &
         generateShiftedPOSCARs, singleDisp)
 
@@ -39,6 +39,9 @@ program PhononPPMain
 
 
   call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
+
+
+  call calcAndWriteNj(nModes, omega, temperature)
 
 
   if(calcSj) &

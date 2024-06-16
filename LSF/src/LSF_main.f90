@@ -43,8 +43,8 @@ program LSFmain
   if(ionode) write(*, '("Pre-k-loop: [ ] Get parameters  [ ] Read Sj")')
   call cpu_time(timer1)
 
-  call readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, temperature, &
-        diffOmega, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+  call readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, diffOmega, energyTableDir, &
+        matrixElementDir, MjBaseDir, njInput, outputDir, prefix, SjInput)
 
 
   nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
@@ -109,7 +109,7 @@ program LSFmain
   endif
 
   allocate(nj(nModes))
-  nj(:) = 1.0_dp/(exp(hbar*omega(:)*beta) - 1.0_dp)
+  call readNj(nModes, njInput, nj)
 
 
   call cpu_time(timer2)
@@ -223,7 +223,7 @@ program LSFmain
    
 
   call getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, order, nModes, dE, gamma0, & 
-          matrixElement, temperature, volumeLine)
+          matrixElement, volumeLine)
 
   
   deallocate(dE)
