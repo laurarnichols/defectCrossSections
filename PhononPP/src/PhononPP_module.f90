@@ -30,7 +30,7 @@ module PhononPPMod
 
   real(kind=dp), allocatable :: coordFromPhon(:,:), coordFromPhonPrime(:,:)
     !! Coordinates from phonon file
-  real(kind=dp), allocatable :: eigenvector(:,:,:)
+  real(kind=dp), allocatable :: eigenvector(:,:,:), eigenvectorPrime(:,:,:)
     !! Eigenvectors for each atom for each mode
   real(kind=dp) :: freqThresh
     !! Threshold for frequency to determine if the mode 
@@ -558,6 +558,117 @@ module PhononPPMod
     return
 
   end subroutine readPhonons
+
+!----------------------------------------------------------------------------
+  subroutine lineUpModes(nAtoms, nModes, eigenvector, eigenvectorPrime, omegaPrime)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nAtoms
+      !! Number of atoms in intial system
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: eigenvector(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each initial-state mode
+
+    ! Output variables:
+    real(kind=dp), intent(inout) :: eigenvectorPrime(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each final-state mode
+      !! to be resorted
+    real(kind=dp), intent(inout) :: omegaPrime(nModes)
+      !! Frequency for each mode in the order originally passed
+      !! in
+
+    ! Local variables:
+    integer :: j, jPrime, ia
+      !! Loop indices
+    integer :: maxMode, nextMaxMode
+      !! Mode indices for top 2 dot products
+
+    real(kind=dp) :: eig(3), eigPrime(3)
+      !! Local storage of eigenvectors
+    real(kind=dp) :: eigDotEig
+      !! Dot product of eigenvectors
+    real(kind=dp), allocatable :: eigenvectorPrime_in(:,:,:)
+      !! Eigenvectors for each atom for each final-state mode
+      !! in the order originally passed in
+    real(kind=dp), allocatable :: omegaPrime_in(:)
+      !! Frequency for each mode in the order originally passed
+      !! in
+    real(kind=dp) :: maxDotProd, nextMaxDotProd
+      !! Top 2 dot products of eigenvectors from different
+      !! systems
+    real(kind=dp) :: percentNextMax
+      !! Percentage nextMax/max
+
+
+    allocate(eigenvectorPrime_in(3,nAtoms,nModes), omegaPrime_in(nModes))
+
+    if(ionode) then
+      ! Output the dot products to a file for visual confirmation
+      open(17,file="topModeDotProds.out")
+
+      write(17,'("# Final-mode index, Top 2 initial-mode indices and dot products, Percent nextMax/max")')
+
+
+      ! Store the original order
+      eigenvectorPrime_in = eigenvectorPrime
+      eigenvectorPrime = 0.0_dp
+      omegaPrime_in = omegaPrime
+      omegaPrime = 0.0_dp
+
+
+      do jPrime = 1, nModes ! Loop over final phonons
+      
+        ! Track the two modes with the largest dot products. We want to
+        ! track the top 2 to make sure that there is a clear difference.
+        ! Need to track the mode indices so that we can resort the final-
+        ! state modes.
+        maxDotProd = 0.0_dp
+        nextMaxDotProd = 0.0_dp
+        percentNextMax = 0.0_dp
+        maxMode = 0
+        nextMaxMode = 0
+
+        do j = 1, nModes ! Loop over initial phonons
+
+          eigDotEig = 0.0_dp
+          do ia = 1, nAtoms
+
+            eig = eigenvector(:,ia,j)
+            eigPrime = eigenvectorPrime_in(:,ia,jPrime)
+
+            eigDotEig = eigDotEig + dot_product(eig,eigPrime)
+
+          enddo
+
+          if(eigDotEig > maxDotProd) then
+            nextMaxDotProd = maxDotProd
+            nextMaxMode = maxMode
+
+            maxDotProd = eigDotEig
+            maxMode = j
+            percentNextMax = nextMaxDotProd/maxDotProd*100.0
+          endif
+        enddo
+
+        write(17,'(2i10,ES13.4E3,i10,ES13.4E3,i7,"%")') jPrime, maxMode, maxDotProd, nextMaxMode, nextMaxDotProd, int(percentNextMax) 
+        eigenvectorPrime(:,:,maxMode) = eigenvectorPrime_in(:,:,jPrime)
+        omegaPrime(maxMode) = omegaPrime_in(jPrime)
+      enddo
+
+    endif
+
+    call MPI_BARRIER(worldComm,ierr)
+
+    call MPI_BCAST(eigenvectorPrime, size(eigenvectorPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(omegaPrime, size(omegaPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return
+
+  end subroutine lineUpModes
 
 !----------------------------------------------------------------------------
   subroutine calculateSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omega, omegaPrime, diffOmega, singleDisp, &
