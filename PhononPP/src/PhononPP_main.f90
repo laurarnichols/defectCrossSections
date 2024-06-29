@@ -4,7 +4,7 @@ program PhononPPMain
   
   implicit none
 
-  real(kind=dp), allocatable :: rDum1d(:), rDum2d(:,:), rDum3d(:,:,:)
+  real(kind=dp), allocatable :: rDum1d(:), rDum2d(:,:)
     !! Dummy variables to ignore input
 
   call cpu_time(t0)
@@ -18,12 +18,16 @@ program PhononPPMain
 
   call readPhonons(freqThresh, phononFName, nAtoms, nModes, coordFromPhon, eigenvector, mass, omega)
 
-  if(diffOmega) then
-    call readPhonons(freqThresh, phononPrimeFName, nAtomsPrime, nModesPrime, coordFromPhonPrime, rDum3d, rDum1d, omegaPrime)
-      ! Ignore eigenvectors
+  call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
 
-    if(nAtoms /= nAtomsPrime) call exitError('PhononPPMain', 'Number of atoms does not match in different phonon files.', 1)
-    if(nModes /= nModesPrime) call exitError('PhononPPMain', 'Number of modes does not match in different phonon files.', 1)
+
+  if(diffOmega) then
+    call readPhonons(freqThresh, phononPrimeFName, nAtomsPrime, nModesPrime, coordFromPhonPrime, eigenvectorPrime, rDum1d, omegaPrime)
+
+    if(ionode) then
+      if(nAtoms /= nAtomsPrime) call exitError('PhononPPMain', 'Number of atoms does not match in different phonon files.', 1)
+      if(nModes /= nModesPrime) call exitError('PhononPPMain', 'Number of modes does not match in different phonon files.', 1)
+    endif
 
 
     allocate(rDum2d(3,nAtoms))
@@ -31,14 +35,15 @@ program PhononPPMain
     call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, coordFromPhonPrime, rDum2d)
 
     deallocate(rDum2d)
+
+    call lineUpModes(nAtoms, nModes, eigenvector, eigenvectorPrime, omegaPrime)
+
+    deallocate(eigenvectorPrime)
   else
     allocate(omegaPrime(nModes))
       ! Need to allocate this variable either way so that 
       ! the inputs to calculateSj match expectations
   endif
-
-
-  call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
 
 
   if(calcSj) &
