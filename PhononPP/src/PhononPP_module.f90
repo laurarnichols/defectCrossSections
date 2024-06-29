@@ -4,6 +4,7 @@ module PhononPPMod
   use energyTabulatorMod, only: energyTableDir, readScatterEnergyTable
   use cell, only: nAtoms, volume, realLattVec
   use miscUtilities, only: int2str, int2strLeadZero
+  use hungarianOptimizationMod, only: hungarianOptimalMatching
   use errorsAndMPI
   use mpi
 
@@ -582,81 +583,45 @@ module PhononPPMod
       !! in
 
     ! Local variables:
-    integer :: j, jPrime, ia
+    integer :: jPrime
       !! Loop indices
-    integer :: maxMode, nextMaxMode
-      !! Mode indices for top 2 dot products
+    integer, allocatable :: maxMode(:)
+      !! Mode index to match initial and final
 
-    real(kind=dp) :: eig(3), eigPrime(3)
-      !! Local storage of eigenvectors
-    real(kind=dp) :: eigDotEig
-      !! Dot product of eigenvectors
+    real(kind=dp), allocatable :: eigDotEigGlobal(:,:)
+      !! Dot product of all eigenvectors
     real(kind=dp), allocatable :: eigenvectorPrime_in(:,:,:)
       !! Eigenvectors for each atom for each final-state mode
       !! in the order originally passed in
     real(kind=dp), allocatable :: omegaPrime_in(:)
       !! Frequency for each mode in the order originally passed
       !! in
-    real(kind=dp) :: maxDotProd, nextMaxDotProd
-      !! Top 2 dot products of eigenvectors from different
-      !! systems
-    real(kind=dp) :: percentNextMax
-      !! Percentage nextMax/max
 
 
-    allocate(eigenvectorPrime_in(3,nAtoms,nModes), omegaPrime_in(nModes))
+    allocate(eigenvectorPrime_in(3,nAtoms,nModes), omegaPrime_in(nModes), maxMode(nModes))
+
+    call getAllDotProds(nAtoms, nModes, eigenvector, eigenvectorPrime, eigDotEigGlobal)
 
     if(ionode) then
-      ! Output the dot products to a file for visual confirmation
-      open(17,file="topModeDotProds.out")
+      call hungarianOptimalMatching(nModes, eigDotEigGlobal, .false., maxMode)
 
-      write(17,'("# Final-mode index, Top 2 initial-mode indices and dot products, Percent nextMax/max")')
+      ! Output the dot products to a file for visual confirmation
+      open(17,file="optimalPairs.out")
+
+      write(17,'("# Initial-mode index, Final-mode index, Dot product")')
 
 
       ! Store the original order
-      eigenvectorPrime_in = eigenvectorPrime
-      eigenvectorPrime = 0.0_dp
-      omegaPrime_in = omegaPrime
-      omegaPrime = 0.0_dp
+      !eigenvectorPrime_in = eigenvectorPrime
+      !eigenvectorPrime = 0.0_dp
+      !omegaPrime_in = omegaPrime
+      !omegaPrime = 0.0_dp
 
 
-      do jPrime = 1, nModes ! Loop over final phonons
-      
-        ! Track the two modes with the largest dot products. We want to
-        ! track the top 2 to make sure that there is a clear difference.
-        ! Need to track the mode indices so that we can resort the final-
-        ! state modes.
-        maxDotProd = 0.0_dp
-        nextMaxDotProd = 0.0_dp
-        percentNextMax = 0.0_dp
-        maxMode = 0
-        nextMaxMode = 0
-
-        do j = 1, nModes ! Loop over initial phonons
-
-          eigDotEig = 0.0_dp
-          do ia = 1, nAtoms
-
-            eig = eigenvector(:,ia,j)
-            eigPrime = eigenvectorPrime_in(:,ia,jPrime)
-
-            eigDotEig = eigDotEig + dot_product(eig,eigPrime)
-
-          enddo
-
-          if(eigDotEig > maxDotProd) then
-            nextMaxDotProd = maxDotProd
-            nextMaxMode = maxMode
-
-            maxDotProd = eigDotEig
-            maxMode = j
-            percentNextMax = nextMaxDotProd/maxDotProd*100.0
-          endif
-        enddo
-
-        write(17,'(2i10,ES13.4E3,i10,ES13.4E3,i7,"%")') jPrime, maxMode, maxDotProd, nextMaxMode, nextMaxDotProd, int(percentNextMax) 
-        eigenvectorPrime(:,:,maxMode) = eigenvectorPrime_in(:,:,jPrime)
-        omegaPrime(maxMode) = omegaPrime_in(jPrime)
+      do jPrime = 1, nModes ! Loop over initial
+        write(17,'(2i10,ES13.4E3)') jPrime, maxMode(jPrime), eigDotEigGlobal(maxMode(jPrime),jPrime) 
+        !eigenvectorPrime(:,:,maxMode) = eigenvectorPrime_in(:,:,jPrime)
+        !omegaPrime(maxMode) = omegaPrime_in(jPrime)
       enddo
 
     endif
@@ -669,6 +634,89 @@ module PhononPPMod
     return
 
   end subroutine lineUpModes
+
+!----------------------------------------------------------------------------
+  subroutine getAllDotProds(nAtoms, nModes, eigenvector, eigenvectorPrime, eigDotEigGlobal)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nAtoms
+      !! Number of atoms in intial system
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: eigenvector(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each initial-state mode
+    real(kind=dp), intent(in) :: eigenvectorPrime(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each final-state mode
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: eigDotEigGlobal(:,:)
+      !! Dot product of all eigenvectors
+
+    ! Local variables:
+    integer, allocatable :: displacement(:)
+      !! Offset from beginning of array for
+      !! scattering/gathering coefficients 
+    integer :: iproc, jPrimeLocal, jPrimeGlobal, j, ia
+      !! Loop index
+    integer, allocatable :: sendCount(:)
+      !! Number of items to send/recieve to/from each process
+
+    real(kind=dp) :: eig(3), eigPrime(3)
+      !! Local storage of eigenvectors
+    real(kind=dp), allocatable :: eigDotEigLocal(:,:)
+      !! Dot product of local eigenvectors
+
+    
+    allocate(eigDotEigLocal(nModes,nModesLocal))
+
+    if(ionode) then
+      allocate(eigDotEigGlobal(nModes,nModes))
+    else
+      allocate(eigDotEigGlobal(1,1))
+    endif
+
+    ! Create array with the number of dot products calculated by each process
+    allocate(sendCount(nProcs))
+    sendCount = 0
+    sendCount(myid+1) = nModesLocal*nModes
+    call mpiSumIntV(sendCount, worldComm)
+
+    ! Create array with the starting point for each process
+    allocate(displacement(nProcs))
+    if(ionode) then
+      displacement(1) = 0
+      do iproc = 2, nProcs
+        displacement(iproc) = displacement(iproc-1) + sendCount(iproc-1)
+      enddo
+    endif
+
+
+    do jPrimeLocal = 1, nModesLocal ! Loop over final phonons
+      jPrimeGlobal = jPrimeLocal+iModeStart-1
+      do j = 1, nModes
+        eigDotEigLocal(j,jPrimeLocal) = 0.0_dp
+        do ia = 1, nAtoms
+
+          eig = eigenvector(:,ia,j)
+          eigPrime = eigenvectorPrime(:,ia,jPrimeGlobal)
+
+          eigDotEigLocal(j,jPrimeLocal) = eigDotEigLocal(j,jPrimeLocal) + dot_product(eig,eigPrime)
+
+        enddo
+      enddo
+    enddo
+
+    call MPI_GATHERV(eigDotEigLocal, nModes*nModesLocal, MPI_DOUBLE_PRECISION, &
+                     eigDotEigGlobal, sendCount, displacement, MPI_DOUBLE_PRECISION, 0, worldComm, ierr)
+
+    deallocate(eigDotEigLocal)
+
+    return
+
+  end subroutine getAllDotProds
 
 !----------------------------------------------------------------------------
   subroutine calculateSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omega, omegaPrime, diffOmega, singleDisp, &

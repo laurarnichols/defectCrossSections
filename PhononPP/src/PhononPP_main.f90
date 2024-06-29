@@ -18,6 +18,9 @@ program PhononPPMain
 
   call readPhonons(freqThresh, phononFName, nAtoms, nModes, coordFromPhon, eigenvector, mass, omega)
 
+  call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
+
+
   if(diffOmega) then
     call readPhonons(freqThresh, phononPrimeFName, nAtomsPrime, nModesPrime, coordFromPhonPrime, eigenvectorPrime, rDum1d, omegaPrime)
 
@@ -41,9 +44,6 @@ program PhononPPMain
       ! Need to allocate this variable either way so that 
       ! the inputs to calculateSj match expectations
   endif
-
-
-  call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
 
 
   if(calcSj) &
