@@ -46,6 +46,9 @@ module TMEmod
   character(len=300) :: outputDir
     !! Path to where matrix elements should be output
 
+  logical :: dqOnly
+    !! If first-order matrix elements should only be
+    !! divided by dq
   logical :: overlapOnly
     !! If only the wave function overlap should be
     !! calculated
@@ -173,7 +176,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(ibBra, ibKet, ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, &
-          ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, subtractBaseline)
+          ketExportDir, dqFName, energyTableDir, outputDir, dqOnly, overlapOnly, subtractBaseline)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
@@ -205,6 +208,9 @@ contains
     character(len=300), intent(out) :: outputDir
       !! Path to where matrix elements should be output
 
+    logical, intent(out) :: dqOnly
+      !! If first-order matrix elements should only be
+      !! divided by dq
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -224,20 +230,20 @@ contains
     namelist /TME_Input/ ketExportDir, braExportDir, outputDir, energyTableDir, &
                          order, dqFName, phononModeJ, subtractBaseline, baselineDir, &
                          ispSelect, nPairs, braBands, ketBands, overlapOnly, &
-                         iBandLBra, iBandHBra, iBandLKet, iBandHKet
+                         iBandLBra, iBandHBra, iBandLKet, iBandHKet, dqOnly
     
 
     if(ionode) then
     
       call initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, baselineDir, &
-              braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, subtractBaseline)
+              braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, dqOnly, overlapOnly, subtractBaseline)
     
       read(5, TME_Input, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading TME_Input namelist', abs(ierr))
     
       call checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, &
-              baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, &
+              baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, dqOnly, overlapOnly, &
               subtractBaseline, ibBra, ibKet)
 
     endif
@@ -248,6 +254,7 @@ contains
 
     call MPI_BCAST(phononModeJ, 1, MPI_INTEGER, root, worldComm, ierr)
 
+    call MPI_BCAST(dqOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(overlapOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(subtractBaseline, 1, MPI_LOGICAL, root, worldComm, ierr)
 
@@ -278,7 +285,7 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, baselineDir, &
-          braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, subtractBaseline)
+          braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, dqOnly, overlapOnly, subtractBaseline)
     
     implicit none
 
@@ -310,6 +317,9 @@ contains
     character(len=300), intent(out) :: outputDir
       !! Path to where matrix elements should be output
 
+    logical, intent(out) :: dqOnly
+      !! If first-order matrix elements should only be
+      !! divided by dq
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -337,6 +347,7 @@ contains
     outputDir = './TMEs'
     baselineDir = ''
     
+    dqOnly = .false.
     overlapOnly = .false.
     subtractBaseline = .false.
     
@@ -346,7 +357,7 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, &
-          baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, &
+          baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, dqOnly, overlapOnly, &
           subtractBaseline, ibBra, ibKet)
     
     implicit none
@@ -379,6 +390,9 @@ contains
     character(len=300), intent(in) :: outputDir
       !! Path to where matrix elements should be output
 
+    logical, intent(in) :: dqOnly
+      !! If first-order matrix elements should only be
+      !! divided by dq
     logical, intent(in) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -422,6 +436,7 @@ contains
     endif
 
     
+    write(*,'("overlapOnly = ''",L1,"''")') overlapOnly
     if(.not. overlapOnly) then
       ! Require that states be read from the energy table for capture
 
@@ -430,6 +445,9 @@ contains
       if(order == 1) then
         abortExecution = checkFileInitialization('dqFName', dqFName) .or. abortExecution
         abortExecution = checkIntInitialization('phononModeJ', phononModeJ, 1, int(1e9)) .or. abortExecution
+
+        write(*,'("dqOnly = ''",L1,"''")') dqOnly
+        write(*,'("subtractBaseline = ''",L1,"''")') subtractBaseline
 
         if(subtractBaseline) then
           if(ispSelect == 2) then
@@ -527,14 +545,14 @@ contains
       !! band bounds and number of transitions
 
 
-    abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.1.1') .or. abortExecution
-
     if(.not. abortExecution) then
       if(loopSpins) then
         isp = 1
       else 
         isp = ispSelect
       endif
+
+      abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(isp))//'.1') .or. abortExecution
 
       allocate(ibBra(1))
 
@@ -1643,7 +1661,8 @@ contains
   end subroutine getAndWriteOnlyOverlaps
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteCaptureMatrixElements(nTransitions, ibi, ibf, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
+  subroutine getAndWriteCaptureMatrixElements(nTransitions, ibi, ibf, ispSelect, nGVecsLocal, nSpins, dq_j, volume, dqOnly, &
+          braSys, ketSys, pot)
 
     implicit none
 
@@ -1663,8 +1682,15 @@ contains
       !! Number of spins (tested to be consistent
       !! across all systems)
 
+    real(kind=dp), intent(in) :: dq_j
+      !! \(\delta q_j) for displaced wave functions
+      !! (only order = 1)
     real(kind=dp), intent(in) :: volume
       !! Volume of unit cell
+
+    logical, intent(in) :: dqOnly
+      !! If first-order matrix elements should only be
+      !! divided by dq
 
     type(crystal) :: braSys, ketSys
        !! The crystal systems to get the
@@ -1725,7 +1751,7 @@ contains
                 if(order == 1 .and. subtractBaseline) &
                   call readAndSubtractBaseline(ikLocal, isp, nTransitions, Ufi(:,isp))
         
-                call writeCaptureMatrixElements(nTransitions, ibi, ibf, ikLocal, isp, volume, Ufi(:,isp))
+                call writeCaptureMatrixElements(nTransitions, ibi, ibf, ikLocal, isp, dq_j, volume, Ufi(:,isp), dqOnly)
             endif 
           enddo
         endif
@@ -2483,13 +2509,12 @@ contains
     open(17, file=trim(baselineFName), status='unknown')
 
     call ignoreNextNLinesFromFile(17,8)
-
-    if(order == 1) read(17,*)
-      ! Ignore additional line for phonon mode 
+      ! Assume that baseline was not run with order = 1 because
+      ! that is irrelevant for the baseline
 
     
     do iE = 1, nTransitions 
-      read(17,'(i7,4ES24.15E3)') iDum, baselineOverlap, rDum, rDum
+      read(17,'(i10,4ES24.15E3)') iDum, baselineOverlap, rDum, rDum
 
       Ufi(iE) = Ufi(iE) - baselineOverlap
           
@@ -2502,7 +2527,7 @@ contains
   end subroutine readAndSubtractBaseline
   
 !----------------------------------------------------------------------------
-  subroutine writeCaptureMatrixElements(nTransitions, ibi, ibf, ikLocal, isp, volume, Ufi)
+  subroutine writeCaptureMatrixElements(nTransitions, ibi, ibf, ikLocal, isp, dq_j, volume, Ufi, dqOnly)
     
     implicit none
     
@@ -2518,11 +2543,18 @@ contains
     integer, intent(in) :: isp
       !! Current spin channel
 
+    real(kind=dp), intent(in) :: dq_j
+      !! \(\delta q_j) for displaced wave functions
+      !! (only order = 1)
     real(kind=dp), intent(in) :: volume
       !! Volume of unit cell
 
     complex(kind=dp), intent(in) :: Ufi(nTransitions)
       !! All-electron overlap
+
+    logical, intent(in) :: dqOnly
+      !! If first-order matrix elements should only be
+      !! divided by dq
 
     ! Local variables:
     integer, allocatable :: iDum1D(:)
@@ -2545,7 +2577,8 @@ contains
     ikGlobal = ikLocal+ikStart_pool-1
 
 
-    call readCaptureEnergyTable(ikGlobal, isp, energyTableDir, iDum1D, iDum0D_1, iDum0D_2, dE)
+    if(.not. (order == 1 .and. dqOnly)) &
+      call readCaptureEnergyTable(ikGlobal, isp, energyTableDir, iDum1D, iDum0D_1, iDum0D_2, dE)
     
 
     open(17, file=trim(getMatrixElementFNameWPath(ikGlobal, isp, outputDir)), status='unknown')
@@ -2563,25 +2596,27 @@ contains
     write(17,'(a, " Format : ''(4i10)''")') trim(text)   
   
     write(17,'(4i10)') nTransitions, ibi(1), ibi(nTransitions), ibf
-    
 
-    if(order == 0) then
 
-      text = "# Initial Band, Complex <f|i>, |<f|i>|^2, |dE*<f|i>|^2 (Hartree^2)" 
-      write(17, '(a, " Format : ''(i10,4ES24.15E3)''")') trim(text)
-
-    else if(order == 1) then
-
+    if(order == 1) &
       write(17,'("# Phonon mode j, dq_j (Bohr*sqrt(elec. mass)). Format: ''(a78, i7, ES24.15E3)'' ", i7, ES24.15E3)') phononModeJ, dq_j
     
-      if(subtractBaseline) then
-        text = "# Initial Band, Complex <f|i>-baseline, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2/(Bohr*sqrt(elec. mass))^2)" 
-      else
-        text = "# Initial Band, Complex <f|i>, |<f|i>|^2, |dE*<f|i>/dq_j|^2 (Hartree^2/(Bohr*sqrt(elec. mass))^2)" 
-      endif
-      write(17, '(a, " Format : ''(i10,4ES24.15E3)''")') trim(text)
 
+    text = "# Initial Band, Complex <f|i>"
+
+    if(order == 1 .and. subtractBaseline) text = trim(text)//"-baseline"
+
+    text = trim(text)//", |<f|i>|^2,"
+
+    if(order == 0) then
+      text = trim(text)//" |dE*<f|i>|^2 (Hartree^2)"
+    else if(order == 1 .and. dqOnly) then
+      text = trim(text)//" |<f|i>/dq_j|^2 (1/(Bohr*sqrt(elec. mass))^2)"
+    else if(order == 1) then
+      text = trim(text)//" |dE*<f|i>/dq_j|^2 (Hartree^2/(Bohr*sqrt(elec. mass))^2)"
     endif
+
+    write(17, '(a, " Format : ''(i10,4ES24.15E3)''")') trim(text)
 
 
     do iE = 1, nTransitions
@@ -2589,7 +2624,11 @@ contains
         if(order == 0) then
           write(17,'(i10,4ES24.15E3)') ibi(iE), Ufi(iE), abs(Ufi(iE))**2, abs(dE(2,iE)*Ufi(iE))**2
         else if(order == 1) then
-          write(17,'(i10,4ES24.15E3)') ibi(iE), Ufi(iE), abs(Ufi(iE))**2, abs(dE(3,iE)*Ufi(iE)/dq_j)**2
+          if(dqOnly) then
+            write(17,'(i10,4ES24.15E3)') ibi(iE), Ufi(iE), abs(Ufi(iE))**2, abs(Ufi(iE)/dq_j)**2
+          else
+            write(17,'(i10,4ES24.15E3)') ibi(iE), Ufi(iE), abs(Ufi(iE))**2, abs(dE(3,iE)*Ufi(iE)/dq_j)**2
+          endif
         endif
             
     enddo

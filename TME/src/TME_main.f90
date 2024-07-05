@@ -18,7 +18,7 @@ program TMEmain
 
 
   call readInputParams(ibBra, ibKet, ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, &
-          ketExportDir, dqFName, energyTableDir, outputDir, overlapOnly, subtractBaseline)
+          ketExportDir, dqFName, energyTableDir, outputDir, dqOnly, overlapOnly, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     
@@ -35,7 +35,7 @@ program TMEmain
   if(overlapOnly) then
     call getAndWriteOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, volume, crystalSystem(1), crystalSystem(2), pot)
   else
-    call getAndWriteCaptureMatrixElements(nPairs, ibKet, ibBra(1), ispSelect, nGVecsLocal, nSpins, volume, crystalSystem(1), & 
+    call getAndWriteCaptureMatrixElements(nPairs, ibKet, ibBra(1), ispSelect, nGVecsLocal, nSpins, dq_j, volume, dqOnly, crystalSystem(1), & 
           crystalSystem(2), pot)
   endif 
 
