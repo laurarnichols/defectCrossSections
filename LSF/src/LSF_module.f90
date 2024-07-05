@@ -51,6 +51,10 @@ module LSFmod
     !! exponential used to calculate max time
   real(kind=dp) :: temperature
 
+  logical :: newEnergyTable
+    !! If this code and TME are being run with a different
+    !! energy table
+
   character(len=300) :: matrixElementDir
     !! Path to matrix element file `allElecOverlap.isp.ik`. 
     !! For first-order term, the path is just within each 
@@ -71,13 +75,13 @@ module LSFmod
 
 
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjInput, temperature, hbarGamma, dt, &
-                         smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega
+                         smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, temperature, &
-        diffOmega, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+  subroutine readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, &
+        temperature, diffOmega, newEnergyTable, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -106,6 +110,9 @@ contains
     logical, intent(out) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(out) :: newEnergyTable
+      !! If this code and TME are being run with a different
+      !! energy table
 
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
@@ -125,20 +132,21 @@ contains
       !! Path to Sj.out file
 
   
-    call initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, temperature, energyTableDir, &
-          matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+    call initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
+          temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     if(ionode) then
 
       read(5, inputParams, iostat=ierr)
         !! * Read input variables
+      write(*,*) order
 
     
       if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, temperature, energyTableDir, &
-            matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+      call checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
+            temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
       dt = dt/THzToHz
 
@@ -165,6 +173,7 @@ contains
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call MPI_BCAST(diffOmega, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(newEnergyTable, 1, MPI_LOGICAL, root, worldComm, ierr)
   
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -178,8 +187,8 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, temperature, energyTableDir, &
-        matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+  subroutine initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
+        temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -202,6 +211,9 @@ contains
     logical, intent(out) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(out) :: newEnergyTable
+      !! If this code and TME are being run with a different
+      !! energy table
 
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
@@ -230,6 +242,7 @@ contains
     temperature = 0.0_dp
 
     diffOmega = .false.
+    newEnergyTable = .false.
 
     energyTableDir = ''
     matrixElementDir = ''
@@ -243,8 +256,8 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, temperature, energyTableDir, &
-        matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+  subroutine checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
+        temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
     implicit none
 
@@ -267,6 +280,9 @@ contains
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(in) :: newEnergyTable
+      !! If this code and TME are being run with a different
+      !! energy table
 
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
@@ -309,6 +325,7 @@ contains
     abortExecution = checkFileInitialization('SjInput', SjInput) .or. abortExecution
 
     write(*,'("diffOmega = ",L)') diffOmega
+    write(*,'("newEnergyTable = ",L)') newEnergyTable
 
     if(order == 0) then 
       abortExecution = checkDirInitialization('matrixElementDir', matrixElementDir, getMatrixElementFName(1,iSpin)) .or. abortExecution
@@ -317,12 +334,13 @@ contains
 
     else if(order == 1) then
 
+      !abortExecution = checkIntInitialization('suffixLength', suffixLength, 1, 5) .or. abortExecution 
       abortExecution = checkDirInitialization('MjBaseDir', MjBaseDir, &
-            '/'//trim(prefix)//'0001/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))) .or. abortExecution
+            '/'//trim(prefix)//trim(int2strLeadZero(1,4))//'/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))) .or. abortExecution
       write(*,'("prefix = ''",a,"''")') trim(prefix)
       write(*,'("matrixElementDir = ''",a,"''")') trim(matrixElementDir)
 
-      fName = trim(MjBaseDir)//'/'//trim(prefix)//'0001/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))
+      fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(1,4))//'/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))
 
     endif
 

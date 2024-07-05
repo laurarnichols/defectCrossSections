@@ -14,6 +14,10 @@ program LSFmain
   integer :: mDim
     !! Size of first dimension for matrix element
 
+  real(kind=dp), allocatable :: dENew(:)
+    !! New energy to update matrix element; needed
+    !! not to create a temporary array when passing
+    !! a slice of dE
   real(kind=dp), allocatable :: ME_tmp(:)
     !! Temporary storage of matrix element
   !real(kind=dp), allocatable :: randVal(:)
@@ -43,8 +47,8 @@ program LSFmain
   if(ionode) write(*, '("Pre-k-loop: [ ] Get parameters  [ ] Read Sj")')
   call cpu_time(timer1)
 
-  call readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, temperature, &
-        diffOmega, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+  call readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, &
+        temperature, diffOmega, newEnergyTable, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
 
 
   nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
@@ -136,6 +140,7 @@ program LSFmain
 
 
   allocate(dE(3,nTransitions,nkPerPool))
+  allocate(dENew(nTransitions))
 
   if(order == 0) then
     mDim = 1
@@ -176,8 +181,14 @@ program LSFmain
 
           fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
 
-          call readMatrixElement(nTransitions, order, fName, ME_tmp, volumeLine)
-            ! Includes conversion from Hartree to J
+          dENew = dE(3,:,ikLocal)
+          ! Call to readMatrixElement includes conversion from Hartree to J
+          if(newEnergyTable) then
+            call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, fName, ME_tmp, volumeLine)
+          else
+            call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, fName, ME_tmp, volumeLine)
+              ! dENew will be ignored here
+          endif
 
           matrixElement(1,:,ikLocal) = ME_tmp
 
@@ -188,11 +199,16 @@ program LSFmain
 
             fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
 
-            call readMatrixElement(nTransitions, order, fName, ME_tmp, volumeLine)
-              ! Includes conversion from Hartree to J
-              !
-              ! The volume line will get overwritten each time, but that's
-              ! okay because the volume doesn't change between the files. 
+            dENew = dE(3,:,ikLocal)
+            ! Call to readMatrixElement includes conversion from Hartree to J
+            ! The volume line will get overwritten each time, but that's
+            ! okay because the volume doesn't change between the files. 
+            if(newEnergyTable) then
+              call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, fName, ME_tmp, volumeLine)
+            else
+              call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, fName, ME_tmp, volumeLine)
+                ! dENew will be ignored here
+            endif
 
             matrixElement(j,:,ikLocal) = ME_tmp
 
