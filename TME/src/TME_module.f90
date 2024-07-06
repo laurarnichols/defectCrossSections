@@ -3120,17 +3120,26 @@ contains
   end function getMatrixElementFName
 
 !----------------------------------------------------------------------------
-  subroutine readMatrixElement(nTransitions, order, fName, matrixElement, volumeLine)
+  subroutine readMatrixElement(ibL, ibH, nTransitions, order, dE, newEnergy, fName, matrixElement, volumeLine)
 
     use constants, only: HartreeToJ
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ibL, ibH
+      !! Band bounds for initial state; pass in <= 0
+      !! to ignore and read all
     integer, intent(in) :: nTransitions
       !! Total number of transitions 
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
+
+    real(kind=dp), intent(in) :: dE(nTransitions)
+      !! Optional new energy to use
+
+    logical, intent(in) :: newEnergy
+      !! If we should use a new input energy in dE
 
     character(len=300), intent(in) :: fName
       !! Path to matrix element file `allElecOverlap.isp.ik`
@@ -3145,16 +3154,29 @@ contains
 
     ! Local variables:
     integer :: iDum
-      !! Dummy integer
-    integer :: iE
+      !! Dummy integer to ignore input
+    integer :: iE, ibi, iE_
       !! Loop index
+    integer :: nTransitions_
+      !! Store the number of transitions from the file
 
+    real(kind=dp) :: dq_j
+      !! dq if order = 1
     real(kind=dp) :: rDum
       !! Dummy real
+    real(kind=dp) :: normSqOverlap, overlapWithFactors
+      !! Store the values from the input file
 
     logical :: captured
       !! If matrix elements for capture or scattering
 
+    character(len=300) :: line
+
+
+    if(ibL > 0) then
+      if(ibH < ibL) call exitError('readMatrixElement', 'High band bound is lower than low band bound!', 1)
+      if(ibH - ibL + 1 /= nTransitions) call exitError('readMatrixElement', 'Number of transitions input does not match band bounds!', 1)
+    endif
 
     open(12,file=trim(fName))
 
@@ -3169,16 +3191,41 @@ contains
     if(.not. captured) call exitError('readMatrixElement', 'This matrix element was not calculated for capture!', 1)
 
     read(12,*)
-    read(12,*)
-    if(order == 1) read(12,*)
+    read(12,*) nTransitions_
+    if(order == 1) read(12,'(a78, i7, ES24.15E3)') line, iDum, dq_j
       ! Ignore additional line for phonon mode 
     read(12,*)
 
+    if(ibL <= 0 .and. nTransitions /= nTransitions_) &
+      call exitError('readMatrixElement', 'Number of transitions to read and from file do not match, but no bounds given!', 1)
 
-    do iE = 1, nTransitions
 
-      read(12,'(i10,4ES24.15E3)') iDum, rDum, rDum, rDum, matrixElement(iE) ! in Hartree^2
+    iE = 0
+    do iE_ = 1, nTransitions_
 
+      read(12,'(i10,4ES24.15E3)') ibi, rDum, rDum, normSqOverlap, overlapWithFactors
+
+      if(ibL > 0) then
+        if(ibi >= ibL .and. ibi <= ibH) then
+          iE = iE + 1
+          if(newEnergy) then
+            matrixElement(iE) = normSqOverlap*dE(iE)**2
+
+            if(order == 1) matrixElement(iE) = matrixElement(iE)/(dq_j**2)
+          else
+            matrixElement(iE) = overlapWithFactors
+          endif
+        endif
+      else
+        if(newEnergy) then
+          matrixElement(iE_) = normSqOverlap*dE(iE_)**2
+
+          if(order == 1) matrixElement(iE_) = matrixElement(iE_)/(dq_j**2)
+        else
+          matrixElement(iE_) = overlapWithFactors
+        endif
+      endif
+        
     enddo
 
     matrixElement(:) = matrixElement(:)*HartreeToJ**2
