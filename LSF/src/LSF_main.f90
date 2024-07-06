@@ -197,7 +197,8 @@ program LSFmain
     
           do j = 1, nModes
 
-            fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,4))//'/'//trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
+            fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,suffixLength))//'/'&
+                    //trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
 
             dENew = dE(3,:,ikLocal)
             ! Call to readMatrixElement includes conversion from Hartree to J

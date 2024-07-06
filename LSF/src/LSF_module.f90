@@ -28,6 +28,8 @@ module LSFmod
     !! Number of phonon modes
   integer :: nTransitions
     !! Total number of transitions 
+  integer :: suffixLength
+    !! Length of shifted POSCAR file suffix
 
   real(kind=dp) :: beta
     !! 1/kb*T
@@ -75,7 +77,8 @@ module LSFmod
 
 
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjInput, temperature, hbarGamma, dt, &
-                         smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable
+                         smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
+                         suffixLength
 
 contains
 
@@ -334,13 +337,13 @@ contains
 
     else if(order == 1) then
 
-      !abortExecution = checkIntInitialization('suffixLength', suffixLength, 1, 5) .or. abortExecution 
+      abortExecution = checkIntInitialization('suffixLength', suffixLength, 1, 5) .or. abortExecution 
       abortExecution = checkDirInitialization('MjBaseDir', MjBaseDir, &
-            '/'//trim(prefix)//trim(int2strLeadZero(1,4))//'/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))) .or. abortExecution
+            '/'//trim(prefix)//trim(int2strLeadZero(1,suffixLength))//'/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))) .or. abortExecution
       write(*,'("prefix = ''",a,"''")') trim(prefix)
       write(*,'("matrixElementDir = ''",a,"''")') trim(matrixElementDir)
 
-      fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(1,4))//'/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))
+      fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(1,suffixLength))//'/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))
 
     endif
 
