@@ -1377,11 +1377,11 @@ module PhononPPMod
 
       eig = eigenvector(:,ia)/sqrt(mass(ia))
 
-      displacement(:,ia) = eig
-
       eig = matmul(realLattVec, eig)
         ! Convert to Cartesian coordinates before 
         ! getting norm
+
+      displacement(:,ia) = eig
 
       cartNorm = cartNorm + dot_product(eig,eig)
 
