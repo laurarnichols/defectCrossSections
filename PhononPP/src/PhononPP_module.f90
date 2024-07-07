@@ -31,8 +31,8 @@ module PhononPPMod
 
   real(kind=dp), allocatable :: coordFromPhon(:,:), coordFromPhonPrime(:,:)
     !! Coordinates from phonon file
-  real(kind=dp), allocatable :: eigenvector(:,:,:), eigenvectorPrime(:,:,:)
-    !! Eigenvectors for each atom for each mode
+  real(kind=dp), allocatable :: eigenvector(:,:,:), eigenvectorPrime(:,:,:), dqEigenvectors(:,:,:)
+    !! Eigenvectors for each atom for each mode 
   real(kind=dp) :: freqThresh
     !! Threshold for frequency to determine if the mode 
     !! should be skipped or not
@@ -71,6 +71,9 @@ module PhononPPMod
   logical :: diffOmega
     !! If initial- and final-state frequencies 
     !! should be treated as different
+  logical :: dqEigvecsFinal
+    !! If final phonon eigenvectors should be used for
+    !! Delta q, if applicable
   logical :: singleDisp
     !! If there is just a single displacement to consider
   logical :: generateShiftedPOSCARs
@@ -82,7 +85,7 @@ module PhononPPMod
 !----------------------------------------------------------------------------
   subroutine readInputs(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
         phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, diffOmega, &
-        generateShiftedPOSCARs, singleDisp)
+        dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -121,6 +124,9 @@ module PhononPPMod
     logical, intent(out) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(out) :: dqEigvecsFinal
+      !! If final phonon eigenvectors should be used for
+      !! Delta q, if applicable
     logical, intent(out) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
     logical, intent(out) :: singleDisp
@@ -129,14 +135,14 @@ module PhononPPMod
 
     namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, &
                            singleDisp, CONTCARsBaseDir, basePOSCARFName, freqThresh, calcSj, calcDq, calcMaxDisp, & 
-                           disp2AtomInd, energyTableDir, diffOmega, phononPrimeFName
+                           disp2AtomInd, energyTableDir, diffOmega, phononPrimeFName, dqEigvecsFinal
 
 
     if(ionode) then
 
       call initialize(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
           phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, &
-          diffOmega, generateShiftedPOSCARs, singleDisp)
+          diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
         ! Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -147,7 +153,7 @@ module PhononPPMod
 
       call checkInitialization(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
           phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, diffOmega, &
-          generateShiftedPOSCARs, singleDisp)
+          dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     endif
 
@@ -168,6 +174,7 @@ module PhononPPMod
     call MPI_BCAST(calcSj, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(calcMaxDisp, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(diffOmega, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(dqEigvecsFinal, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(generateShiftedPOSCARs, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(singleDisp, 1, MPI_LOGICAL, root, worldComm, ierr)
 
@@ -178,7 +185,7 @@ module PhononPPMod
 !----------------------------------------------------------------------------
   subroutine initialize(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
       phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, &
-      diffOmega, generateShiftedPOSCARs, singleDisp)
+      diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -222,6 +229,9 @@ module PhononPPMod
     logical, intent(out) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(out) :: dqEigvecsFinal
+      !! If final phonon eigenvectors should be used for
+      !! Delta q, if applicable
     logical, intent(out) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
     logical, intent(out) :: singleDisp
@@ -247,6 +257,7 @@ module PhononPPMod
     calcSj = .true.
     calcMaxDisp = .false.
     diffOmega = .false.
+    dqEigvecsFinal = .true.
     generateShiftedPOSCARs = .true.
     singleDisp = .true.
 
@@ -257,7 +268,7 @@ module PhononPPMod
 !----------------------------------------------------------------------------
   subroutine checkInitialization(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
       phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, diffOmega, &
-      generateShiftedPOSCARs, singleDisp)
+      dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -296,6 +307,9 @@ module PhononPPMod
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(in) :: dqEigvecsFinal
+      !! If final phonon eigenvectors should be used for
+      !! Delta q, if applicable
     logical, intent(in) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
     logical, intent(in) :: singleDisp
@@ -350,6 +364,8 @@ module PhononPPMod
 
     ! Needed for dq and shifted POSCARs and calculating max displacement:
     if(calcDq .or. generateShiftedPOSCARs .or. calcMaxDisp) then
+      if(diffOmega) write(*,'("dqEigvecsFinal = ''",L1,"''")') dqEigvecsFinal
+
       abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 10.0_dp) .or. abortExecution
       
       if(trim(basePOSCARFName) == '') then
@@ -719,7 +735,7 @@ module PhononPPMod
   end subroutine getAllDotProds
 
 !----------------------------------------------------------------------------
-  subroutine calculateSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omega, omegaPrime, diffOmega, singleDisp, &
+  subroutine calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, singleDisp, &
           CONTCARsBaseDir, energyTableDir, initPOSCARFName, finalPOSCARFName)
 
     implicit none
@@ -732,8 +748,9 @@ module PhononPPMod
 
     real(kind=dp), intent(in) :: coordFromPhon(3,nAtoms)
       !! Coordinates from phonon file
-    real(kind=dp), intent(in) :: eigenvector(3,nAtoms,nModes)
-      !! Eigenvectors for each atom for each mode
+    real(kind=dp), intent(in) :: dqEigenvectors(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each mode to be
+      !! used to calculate Delta q_j and displacements
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Mass of atoms
     real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
@@ -773,7 +790,7 @@ module PhononPPMod
     if(singleDisp) then
   
       SjFName = 'Sj.out'
-      call getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omega, omegaPrime, diffOmega, &
+      call getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, &
                 initPOSCARFName, finalPOSCARFName, SjFName)
 
     else
@@ -802,7 +819,7 @@ module PhononPPMod
         SjFName = 'Sj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
                         //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
 
-        call getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omega, omegaPrime, diffOmega, &
+        call getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, &
                   initPOSCARFName, finalPOSCARFName, SjFName)
 
       enddo
@@ -821,7 +838,7 @@ module PhononPPMod
   end subroutine calculateSj
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omega, omegaPrime, diffOmega, &
+  subroutine getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, &
             initPOSCARFName, finalPOSCARFName, SjFName)
 
     use cell, only: cartDispProjOnPhononEigsNorm
@@ -836,8 +853,9 @@ module PhononPPMod
 
     real(kind=dp), intent(in) :: coordFromPhon(3,nAtoms)
       !! Coordinates from phonon file
-    real(kind=dp), intent(in) :: eigenvector(3,nAtoms,nModes)
-      !! Eigenvectors for each atom for each mode
+    real(kind=dp), intent(in) :: dqEigenvectors(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each mode to be
+      !! used to calculate Delta q_j and displacements
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Mass of atoms
     real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
@@ -882,7 +900,7 @@ module PhononPPMod
     projNorm = 0.0_dp
     do j = iModeStart, iModeEnd
 
-      projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, eigenvector(:,:,j), mass, realLattVec)
+      projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, dqEigenvectors(:,:,j), mass, realLattVec)
 
     enddo
 
@@ -1165,7 +1183,7 @@ module PhononPPMod
   end subroutine calcAndWriteSj
 
 !----------------------------------------------------------------------------
-  subroutine calculateShiftAndDq(disp2AtomInd, nAtoms, nModes, coordFromPhon, eigenvector, mass, shift, calcDq, calcMaxDisp, &
+  subroutine calculateShiftAndDq(disp2AtomInd, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, shift, calcDq, calcMaxDisp, &
         generateShiftedPOSCARs, basePOSCARFName, dqFName, prefix)
 
     use generalComputations, only: direct2cart
@@ -1184,8 +1202,9 @@ module PhononPPMod
 
     real(kind=dp), intent(in) :: coordFromPhon(3,nAtoms)
       !! Coordinates from phonon file
-    real(kind=dp), intent(in) :: eigenvector(3,nAtoms,nModes)
-      !! Eigenvectors for each atom for each mode
+    real(kind=dp), intent(in) :: dqEigenvectors(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each mode to be
+      !! used to calculate Delta q_j and displacements
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Mass of atoms
     real(kind=dp), intent(in) :: shift
@@ -1288,7 +1307,7 @@ module PhononPPMod
     ! norms.
     do j = iModeStart, iModeEnd
 
-      displacement = getShiftDisplacement(nAtoms, eigenvector(:,:,j), realLattVec, mass, shift)
+      displacement = getShiftDisplacement(nAtoms, dqEigenvectors(:,:,j), realLattVec, mass, shift)
 
       if(calcMaxDisp) then
         relDisp = displacement(:,disp2AtomInd(1)) - displacement(:,disp2AtomInd(2))
@@ -1296,7 +1315,7 @@ module PhononPPMod
         relDispMag(j) = sqrt(dot_product(relDisp,relDisp))
       endif
 
-      if(calcDq) projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, eigenvector(:,:,j), mass, realLattVec)
+      if(calcDq) projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, dqEigenvectors(:,:,j), mass, realLattVec)
 
       if(generateShiftedPOSCARs) then
 
@@ -1338,7 +1357,7 @@ module PhononPPMod
   end subroutine calculateShiftAndDq
 
 !----------------------------------------------------------------------------
-  function getShiftDisplacement(nAtoms, eigenvector, realLattVec, mass, shift) result(displacement)
+  function getShiftDisplacement(nAtoms, dqEigenvectors, realLattVec, mass, shift) result(displacement)
 
     implicit none
 
@@ -1346,8 +1365,9 @@ module PhononPPMod
     integer, intent(in) :: nAtoms
       !! Number of atoms
 
-    real(kind=dp), intent(in) :: eigenvector(3,nAtoms)
-      !! Eigenvectors for each atom for this mode
+    real(kind=dp), intent(in) :: dqEigenvectors(3,nAtoms)
+      !! Eigenvectors for each atom for each mode to be
+      !! used to calculate Delta q_j and displacements
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Masses of atoms
     real(kind=dp), intent(in) :: realLattVec(3,3)
@@ -1375,7 +1395,7 @@ module PhononPPMod
     cartNorm = 0.0_dp
     do ia = 1, nAtoms
 
-      eig = eigenvector(:,ia)/sqrt(mass(ia))
+      eig = dqEigenvectors(:,ia)/sqrt(mass(ia))
 
       eig = matmul(realLattVec, eig)
         ! Convert to Cartesian coordinates before 

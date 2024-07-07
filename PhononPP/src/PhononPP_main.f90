@@ -13,7 +13,7 @@ program PhononPPMain
 
   call readInputs(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
         phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, diffOmega, &
-        generateShiftedPOSCARs, singleDisp)
+        dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
 
   call readPhonons(freqThresh, phononFName, nAtoms, nModes, coordFromPhon, eigenvector, mass, omega)
@@ -38,7 +38,6 @@ program PhononPPMain
 
     call lineUpModes(nAtoms, nModes, eigenvector, eigenvectorPrime, omegaPrime)
 
-    deallocate(eigenvectorPrime)
   else
     allocate(omegaPrime(nModes))
       ! Need to allocate this variable either way so that 
@@ -46,8 +45,24 @@ program PhononPPMain
   endif
 
 
+  ! If we need to calculate something with the eigenvectors, determine
+  ! which eigenvectors should be used.
+  allocate(dqEigenvectors(3,nAtoms,nModes))
+  if(calcSj .or. calcDq .or. generateShiftedPOSCARs .or. calcMaxDisp) then
+    if(diffOmega .and. dqEigvecsFinal) then
+      dqEigenvectors = eigenvectorPrime
+    else
+      dqEigenvectors = eigenvector
+    endif
+  endif
+
+
+  deallocate(eigenvector)
+  if(diffOmega) deallocate(eigenvectorPrime)
+
+
   if(calcSj) &
-    call calculateSj(nAtoms, nModes, coordFromPhon, eigenvector, mass, omega, omegaPrime, diffOmega, singleDisp, &
+    call calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, singleDisp, &
             CONTCARsBaseDir, energyTableDir, initPOSCARFName, finalPOSCARFName)
 
 
@@ -56,12 +71,12 @@ program PhononPPMain
 
 
   if(calcDq .or. generateShiftedPOSCARs .or. calcMaxDisp) &
-    call calculateShiftAndDq(disp2AtomInd, nAtoms, nModes, coordFromPhon, eigenvector, mass, shift, calcDq, calcMaxDisp, &
+    call calculateShiftAndDq(disp2AtomInd, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, shift, calcDq, calcMaxDisp, &
           generateShiftedPOSCARs, basePOSCARFName, dqFName, prefix)
 
 
   deallocate(coordFromPhon)
-  deallocate(eigenvector)
+  deallocate(dqEigenvectors)
   deallocate(mass)
 
 
