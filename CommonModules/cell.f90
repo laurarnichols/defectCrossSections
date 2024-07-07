@@ -303,7 +303,7 @@ module cell
     ia = 0
     do while(.true.)
 
-      read(15,'(a)') line
+      read(15,'(a)',end=200) line
       if(trim(line) == '') goto 200
         ! Read line to see if it's blank, which would
         ! indicate the end of the positions section
