@@ -3204,6 +3204,7 @@ contains
     do iE_ = 1, nTransitions_
 
       read(12,'(i10,4ES24.15E3)') ibi, rDum, rDum, normSqOverlap, overlapWithFactors
+!      read(12,'(2i7,4ES24.15E3)') iDum, ibi, rDum, rDum, normSqOverlap, overlapWithFactors
 
       if(ibL > 0) then
         if(ibi >= ibL .and. ibi <= ibH) then
