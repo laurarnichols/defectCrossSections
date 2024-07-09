@@ -3185,9 +3185,9 @@ contains
 
     read(12,'(a)') volumeLine
 
+    ! Comment out the three lines below to read old format
     read(12,*)
     read(12,'(L4)') captured
-
     if(.not. captured) call exitError('readMatrixElement', 'This matrix element was not calculated for capture!', 1)
 
     read(12,*)
@@ -3203,7 +3203,9 @@ contains
     iE = 0
     do iE_ = 1, nTransitions_
 
+      ! New format
       read(12,'(i10,4ES24.15E3)') ibi, rDum, rDum, normSqOverlap, overlapWithFactors
+      ! Old format
 !      read(12,'(2i7,4ES24.15E3)') iDum, ibi, rDum, rDum, normSqOverlap, overlapWithFactors
 
       if(ibL > 0) then
