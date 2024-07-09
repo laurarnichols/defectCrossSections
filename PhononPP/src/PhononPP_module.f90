@@ -634,8 +634,8 @@ module PhononPPMod
       omegaPrime = 0.0_dp
 
 
-      do jPrime = 1, nModes ! Loop over initial
-        write(17,'(2i10,ES13.4E3)') jPrime, maxMode(jPrime), eigDotEigGlobal(maxMode(jPrime),jPrime) 
+      do jPrime = 1, nModes ! Loop over final
+        write(17,'(2i10,ES13.4E3)') maxMode(jPrime), jPrime, eigDotEigGlobal(maxMode(jPrime),jPrime) 
         eigenvectorPrime(:,:,maxMode(jPrime)) = eigenvectorPrime_in(:,:,jPrime)
         omegaPrime(maxMode(jPrime)) = omegaPrime_in(jPrime)
       enddo
