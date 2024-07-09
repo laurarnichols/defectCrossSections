@@ -96,9 +96,11 @@ program LSFmain
       !call random_seed()
       !allocate(randVal(nModes))
       !call random_number(randVal)
-      !randVal = (randVal*2.0_dp - 1.0_dp)*0.50_dp  ! the number multiplied here is the % adjustment
+      !randVal = (randVal*2.0_dp - 1.0_dp)*0.0_dp  ! the number multiplied here is the % adjustment
+      !SjPrime(:) = SjPrime(:)/omegaPrime(:)
       !omegaPrime(:) = omegaPrime(:)*(1.0_dp + randVal) ! this applies the random adjustment
       !omegaPrime(:) = omegaPrime(:)*(1.0_dp + 0.5_dp) ! this applies a uniform adjustment
+      !SjPrime(:) = SjPrime(:)*omegaPrime(:)
       !deallocate(randVal)
     !endif
 
@@ -181,7 +183,7 @@ program LSFmain
 
           fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
 
-          dENew = dE(3,:,ikLocal)
+          dENew = dE(2,:,ikLocal)
           ! Call to readMatrixElement includes conversion from Hartree to J
           if(newEnergyTable) then
             call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, fName, ME_tmp, volumeLine)
