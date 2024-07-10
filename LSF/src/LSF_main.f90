@@ -9,7 +9,7 @@ program LSFmain
     !! Integer to ignore input
   integer :: iDum1, iDum2
     !! Integers to ignore input
-  integer :: j, ikLocal, ikGlobal
+  integer :: j, ikLocal, ikGlobal, jStore
     !! Loop index
   integer :: mDim
     !! Size of first dimension for matrix element
@@ -48,7 +48,8 @@ program LSFmain
   call cpu_time(timer1)
 
   call readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, &
-        temperature, diffOmega, newEnergyTable, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+        temperature, diffOmega, newEnergyTable, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, &
+        outputDir, PhononPPDir, prefix)
 
 
   nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
@@ -83,7 +84,7 @@ program LSFmain
   call cpu_time(timer1)
 
   if(diffOmega) then
-    call readSjTwoFreq(SjInput, nModes, omega, omegaPrime, Sj, SjPrime)
+    call readSjTwoFreq(trim(PhononPPDir)//'/Sj.out', nModes, omega, omegaPrime, Sj, SjPrime)
 
     ! This is the code that I used to test what difference different
     ! frequencies would have. I input the same two frequencies twice
@@ -111,7 +112,7 @@ program LSFmain
       ! Need to allocate to avoid issues with passing variables
       ! and deallocating
 
-    call readSjOneFreq(SjInput, nModes, omega, Sj)
+    call readSjOneFreq(trim(PhononPPDir)//'/Sj.out', nModes, omega, Sj)
   endif
 
   allocate(nj(nModes))
@@ -127,18 +128,23 @@ program LSFmain
     !! * Distribute k-points in pools
 
 
+  allocate(jReSort(nModes))
+
   if(ionode) then
     call readCaptureEnergyTable(1, iSpin, energyTableDir, ibi, ibf, nTransitions, rDum2D)
      ! Assume that band bounds and number of transitions do not depend on k-points or spin
      ! We ignore the energy here because we are only reading ibi, ibf, and nTransitions
 
     deallocate(rDum2D)
+
+    if(order == 1 .and. reSortMEs) call getjReSort(nModes, PhononPPDir, jReSort)
   endif
 
   call MPI_BCAST(nTransitions, 1, MPI_INTEGER, root, worldComm, ierr)
   if(.not. ionode) allocate(ibi(nTransitions))
   call MPI_BCAST(ibi, nTransitions, MPI_INTEGER, root, worldComm, ierr)
   call MPI_BCAST(ibf, 1, MPI_INTEGER, root, worldComm, ierr)
+  call MPI_BCAST(jReSort, nModes, MPI_INTEGER, root, worldComm, ierr)
 
 
   allocate(dE(3,nTransitions,nkPerPool))
@@ -213,7 +219,14 @@ program LSFmain
                 ! dENew will be ignored here
             endif
 
-            matrixElement(j,:,ikLocal) = ME_tmp
+            if(reSortMEs) then
+              jStore = jReSort(j)
+              if(j <= 5) write(*,*) j, jStore
+            else 
+              jStore = j
+            endif
+
+            matrixElement(jStore,:,ikLocal) = ME_tmp
 
           enddo
   
@@ -225,13 +238,15 @@ program LSFmain
 
     if(order == 1) then
       matrixElement(:,:,:) = matrixElement(:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
-        ! Shifter program outputs dq in Bohr*sqrt(elecM), and that
+        ! PhononPP program outputs dq in Bohr*sqrt(elecM), and that
         ! dq is directly used by TME to get the matrix element, so
         ! we need to convert to m*sqrt(kg). In the matrix element,
         ! dq is in the denominator and squared.
     endif
 
   endif
+
+  deallocate(jReSort)
 
 
   call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)

@@ -24,6 +24,8 @@ module LSFmod
     !! Final-state index
   integer :: iSpin
     !! Spin channel to use
+  integer, allocatable :: jReSort(:)
+    !! Indices to optionally resort matrix elements
   integer :: nModes
     !! Number of phonon modes
   integer :: nTransitions
@@ -56,6 +58,8 @@ module LSFmod
   logical :: newEnergyTable
     !! If this code and TME are being run with a different
     !! energy table
+  logical :: reSortMEs
+    !! If matrix elements should be resorted
 
   character(len=300) :: matrixElementDir
     !! Path to matrix element file `allElecOverlap.isp.ik`. 
@@ -66,25 +70,27 @@ module LSFmod
     !! matrix element calculations
   character(len=300) :: outputDir
     !! Path to output transition rates
+  character(len=300) :: PhononPPDir
+    !! Path to PhononPP output dir to get Sj.out
+    !! and potentially optimalPairs.out
   character(len=300) :: prefix
     !! Prefix of directories for first-order matrix
     !! elements
-  character(len=300) :: SjInput
-    !! Path to Sj.out file
   character(len=300) :: volumeLine
     !! Volume line from overlap file to be
     !! output exactly in transition rate file
 
 
-  namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjInput, temperature, hbarGamma, dt, &
+  namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, PhononPPDir, temperature, hbarGamma, dt, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
-                         suffixLength
+                         suffixLength, reSortMEs
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, &
-        temperature, diffOmega, newEnergyTable, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+        temperature, diffOmega, newEnergyTable, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, outputDir, &
+        PhononPPDir, prefix)
 
     implicit none
 
@@ -116,6 +122,8 @@ contains
     logical, intent(out) :: newEnergyTable
       !! If this code and TME are being run with a different
       !! energy table
+    logical, intent(out) :: reSortMEs
+      !! If matrix elements should be resorted
 
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
@@ -128,15 +136,16 @@ contains
       !! matrix element calculations
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
+    character(len=300), intent(out) :: PhononPPDir
+      !! Path to PhononPP output dir to get Sj.out
+      !! and potentially optimalPairs.out
     character(len=300), intent(out) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
-    character(len=300), intent(out) :: SjInput
-      !! Path to Sj.out file
 
   
     call initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
-          temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+          reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, PhononPPDir, prefix)
 
     if(ionode) then
 
@@ -149,7 +158,7 @@ contains
         !! * Exit calculation if there's an error
 
       call checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
-            temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+            reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, PhononPPDir, prefix)
 
       dt = dt/THzToHz
 
@@ -177,13 +186,14 @@ contains
 
     call MPI_BCAST(diffOmega, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(newEnergyTable, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(reSortMEs, 1, MPI_LOGICAL, root, worldComm, ierr)
   
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(MjBaseDir, len(MjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(PhononPPDir, len(PhononPPDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(SjInput, len(SjInput), MPI_CHARACTER, root, worldComm, ierr)
     
     return
 
@@ -191,7 +201,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
-        temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+        reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, PhononPPDir, prefix)
 
     implicit none
 
@@ -217,6 +227,8 @@ contains
     logical, intent(out) :: newEnergyTable
       !! If this code and TME are being run with a different
       !! energy table
+    logical, intent(out) :: reSortMEs
+      !! If matrix elements should be resorted
 
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
@@ -229,11 +241,12 @@ contains
       !! matrix element calculations
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
+    character(len=300), intent(out) :: PhononPPDir
+      !! Path to PhononPP output dir to get Sj.out
+      !! and potentially optimalPairs.out
     character(len=300), intent(out) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
-    character(len=300), intent(out) :: SjInput
-      !! Path to Sj.out file
 
 
     iSpin = 1
@@ -246,12 +259,13 @@ contains
 
     diffOmega = .false.
     newEnergyTable = .false.
+    reSortMEs = .false.
 
     energyTableDir = ''
     matrixElementDir = ''
     MjBaseDir = ''
-    SjInput = ''
     outputDir = './'
+    PhononPPDir = ''
     prefix = 'disp-'
 
     return 
@@ -260,7 +274,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
-        temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, prefix, SjInput)
+        reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, PhononPPDir, prefix)
 
     implicit none
 
@@ -286,6 +300,8 @@ contains
     logical, intent(in) :: newEnergyTable
       !! If this code and TME are being run with a different
       !! energy table
+    logical, intent(in) :: reSortMEs
+      !! If matrix elements should be resorted
 
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
@@ -298,11 +314,12 @@ contains
       !! matrix element calculations
     character(len=300), intent(in) :: outputDir
       !! Path to store transition rates
+    character(len=300), intent(in) :: PhononPPDir
+      !! Path to PhononPP output dir to get Sj.out
+      !! and potentially optimalPairs.out
     character(len=300), intent(in) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
-    character(len=300), intent(in) :: SjInput
-      !! Path to Sj.out file
 
     ! Local variables:
     character(len=300) :: fName
@@ -325,7 +342,7 @@ contains
       ! to numbers outside these ranges.
 
     abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(iSpin))//'.1') .or. abortExecution
-    abortExecution = checkFileInitialization('SjInput', SjInput) .or. abortExecution
+    abortExecution = checkDirInitialization('PhononPPDir', PhononPPDir, 'Sj.out') .or. abortExecution
 
     write(*,'("diffOmega = ",L)') diffOmega
     write(*,'("newEnergyTable = ",L)') newEnergyTable
@@ -336,6 +353,9 @@ contains
       fName = getMatrixElementFNameWPath(1,iSpin,matrixElementDir)
 
     else if(order == 1) then
+
+      write(*,'("reSortMEs = ",L)') reSortMEs
+      if(reSortMEs) abortExecution = checkFileInitialization('optimalPairsFile', trim(PhononPPDir)//'/optimalPairs.out') .or. abortExecution
 
       abortExecution = checkIntInitialization('suffixLength', suffixLength, 1, 5) .or. abortExecution 
       abortExecution = checkDirInitialization('MjBaseDir', MjBaseDir, &
@@ -365,6 +385,47 @@ contains
     return 
 
   end subroutine checkInitialization
+
+!----------------------------------------------------------------------------
+  subroutine getjReSort(nModes, PhononPPDir, jReSort)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+
+    character(len=300), intent(in) :: PhononPPDir
+      !! Path to PhononPP output dir to get Sj.out
+      !! and potentially optimalPairs.out
+
+    ! Output variables:
+    integer, intent(out) :: jReSort(nModes)
+      !! Indices to optionally resort matrix elements
+
+    ! Local variables:
+    integer :: j
+      !! Loop index
+    integer :: jCurrent
+      !! Current-ordered index
+    integer :: jNew
+      !! New-ordered index
+
+
+    open(unit=32,file=trim(PhononPPDir)//'/optimalPairs.out')
+
+    read(32,*)
+
+    do j = 1, nModes
+      read(32,*) jCurrent, jNew
+      jReSort(jCurrent) = jNew
+    enddo
+
+    close(32)
+
+    return
+
+  end subroutine
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, order, nModes, dE, gamma0, & 
@@ -601,7 +662,7 @@ contains
 
       if(order == 1) then
 
-        Dj1_t(:) = -(hbar/omega(:))/(2.0_dp*Sj(:))*Dj0OverSinOmegaPrime_t(:)*(sinOmegaPrime(:)*Dj0_t(:)*Aj_t(:)**2 - &
+        Dj1_t(:) = -(hbar/(2.0_dp*omega(:)*Sj(:)))*Dj0OverSinOmegaPrime_t(:)*(sinOmegaPrime(:)*Dj0_t(:)*Aj_t(:)**2 - &
                         0.5_dp*omega(:)/omegaPrime(:)*(Aj_t(:)*cosOmegaPrime(:) - sinOmegaPrime(:)* &
                           (omega(:)*cosOmegaPrime(:) - ii*omegaPrime(:)*Aj_t(:)*sinOmegaPrime(:))/ &
                           (omega(:)*Aj_t(:)*sinOmegaPrime(:) + ii*omegaPrime(:)*cosOmegaPrime(:))))
