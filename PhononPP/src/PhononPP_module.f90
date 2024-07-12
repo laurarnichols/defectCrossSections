@@ -392,28 +392,6 @@ module PhononPPMod
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine standardizeCoordinates(nAtoms, atomPositionsDir)
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nAtoms
-      !! Number of atoms in system
-
-    ! Output variables:
-    real(kind=dp), intent(inout) :: atomPositionsDir(3,nAtoms)
-      !! Atom positions in direct coordinates
-
-
-    where(atomPositionsDir(:,:) < 0)
-      atomPositionsDir(:,:) = 1.0_dp + atomPositionsDir(:,:)
-    end where
-
-    return
-
-  end subroutine standardizeCoordinates
-
-!----------------------------------------------------------------------------
   subroutine readPhonons(freqThresh, phononFName, nAtoms, nModes, coordFromPhon, eigenvector, mass, omega)
 
     use miscUtilities, only: getFirstLineWithKeyword
@@ -965,6 +943,28 @@ module PhononPPMod
     return
 
   end subroutine getCoordsAndDisp
+
+!----------------------------------------------------------------------------
+  subroutine standardizeCoordinates(nAtoms, atomPositionsDir)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nAtoms
+      !! Number of atoms in system
+
+    ! Output variables:
+    real(kind=dp), intent(inout) :: atomPositionsDir(3,nAtoms)
+      !! Atom positions in direct coordinates
+
+
+    where(atomPositionsDir(:,:) < 0)
+      atomPositionsDir(:,:) = 1.0_dp + atomPositionsDir(:,:)
+    end where
+
+    return
+
+  end subroutine standardizeCoordinates
 
 !----------------------------------------------------------------------------
   subroutine getRelaxDispAndCheckCompatibility(nAtoms, atomPositionsDirEnd, atomPositionsDirStart, displacement)
