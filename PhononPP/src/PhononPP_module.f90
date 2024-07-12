@@ -422,15 +422,19 @@ module PhononPPMod
       !! Frequency for each mode
 
     ! Local variables:
-    integer :: j, ia, ix
+    integer :: j, ia, ix, jx
       !! Loop index
     integer :: nUsed
       !! Number of phonon modes used based on frequency threshold
 
+    real(kind=dp), allocatable :: centerOfMassCoords(:,:)
+      !! Coordinates of the center of mass
     real(kind=dp) :: omega_j
       !! Frequency for a single mode
     real(kind=dp) :: qPos(3)
       !! Phonon q position
+    real(kind=dp) :: realLattVec(3,3)
+      !! Real space lattice vectors
 
     character(len=300) :: line
       !! Line read from file
@@ -451,11 +455,20 @@ module PhononPPMod
       line = getFirstLineWithKeyword(57,'natom')
       read(line(7:len(trim(line))),*) nAtoms
 
+      ! Ignore line with "lattice:"
+      read(57,*)
+
+      do ix = 1,3
+        read(57,'(A)') line 
+        read(line(4:len(trim(line))),*) (realLattVec(jx,ix), jx=1,3)
+      enddo
+
     endif
 
 
     call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
     allocate(coordFromPhon(3,nAtoms))
+    allocate(centerOfMassCoords(3,nAtoms))
     allocate(mass(nAtoms))
 
 
@@ -473,6 +486,8 @@ module PhononPPMod
           !! Read mass
 
       enddo
+
+      call standardizeCoordinates(nAtoms, mass, realLattVec, coordFromPhon, centerOfMassCoords)
 
     endif
 
@@ -819,6 +834,7 @@ module PhononPPMod
   subroutine getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, &
             initPOSCARFName, finalPOSCARFName, SjFName)
 
+    use generalComputations, only: direct2cart
     use cell, only: cartDispProjOnPhononEigsNorm
 
     implicit none
@@ -854,6 +870,8 @@ module PhononPPMod
 
     real(kind=dp), allocatable :: atomPositionsDirInit(:,:), atomPositionsDirFinal(:,:)
       !! Atom positions in difference relaxed positions
+    real(kind=dp) :: centerOfMassCoords(3,nAtoms)
+      !! Coordinates of the center of mass
     real(kind=dp) :: displacement(3,nAtoms)
       !! Displacement 
     real(kind=dp) :: volumeInit, volumeFinal
@@ -863,13 +881,17 @@ module PhononPPMod
     real(kind=dp) :: realLattVec(3,3)
       !! Real space lattice vectors
 
-
-    call getCoordsAndDisp(nAtoms, coordFromPhon, initPOSCARFName, atomPositionsDirInit, displacement, realLattVec, volumeInit)
+    
+    call getCoordsAndDisp(nAtoms, coordFromPhon, mass, initPOSCARFName, atomPositionsDirInit, centerOfMassCoords, &
+            displacement, realLattVec, volumeInit)
       ! Don't need displacement here. We only check compatibility with
       ! coordinates from phonons. 
 
-    call getCoordsAndDisp(nAtoms, atomPositionsDirInit, finalPOSCARFName, atomPositionsDirFinal, displacement, realLattVec, volumeFinal)
+    call getCoordsAndDisp(nAtoms, atomPositionsDirInit, mass, finalPOSCARFName, atomPositionsDirFinal, centerOfMassCoords, &
+            displacement, realLattVec, volumeFinal)
       ! It is assumed for now that the lattice vectors are the same
+
+    displacement = direct2cart(nAtoms, displacement, realLattVec)
     
     if(ionode) then
       if(abs(volumeInit - volumeFinal) > 1e-8) call exitError('calculateAndWriteSingleSj', 'volumes don''t match', 1)
@@ -894,7 +916,8 @@ module PhononPPMod
   end subroutine getAndWriteSingleSj
 
 !----------------------------------------------------------------------------
-  subroutine getCoordsAndDisp(nAtoms, atomPositionsDirStart, POSCARFName, atomPositionsDirEnd, displacement, realLattVec, volume)
+  subroutine getCoordsAndDisp(nAtoms, atomPositionsDirStart, mass, POSCARFName, atomPositionsDirEnd, centerOfMassCoords, &
+          displacement, realLattVec, volume)
 
     use cell, only: readPOSCAR
 
@@ -907,6 +930,8 @@ module PhononPPMod
     real(kind=dp), intent(in) :: atomPositionsDirStart(3,nAtoms)
       !! Atom positions in direct coordinates to serve as the
       !! starting point for calculating the displacement (end-start)
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Mass of atoms
 
     character(len=300), intent(in) :: POSCARFName
       !! File name for POSCAR
@@ -915,6 +940,8 @@ module PhononPPMod
     real(kind=dp), allocatable, intent(out) :: atomPositionsDirEnd(:,:)
       !! Atom positions in direct coordinates to serve as the
       !! ending point for calculating the displacement (end-start)
+    real(kind=dp), intent(out) :: centerOfMassCoords(3,nAtoms)
+      !! Coordinates of the center of mass
     real(kind=dp), intent(out) :: displacement(3,nAtoms)
       !! Displacement vector; not used here, only output 
       !! from check compatibility
@@ -928,7 +955,7 @@ module PhononPPMod
     
     if(ionode) then
       call readPOSCAR(POSCARFName, nAtoms, atomPositionsDirEnd, realLattVec, volume)
-      call standardizeCoordinates(nAtoms, atomPositionsDirEnd)
+      call standardizeCoordinates(nAtoms, mass, realLattVec, atomPositionsDirEnd, centerOfMassCoords)
     endif
 
     call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -945,7 +972,9 @@ module PhononPPMod
   end subroutine getCoordsAndDisp
 
 !----------------------------------------------------------------------------
-  subroutine standardizeCoordinates(nAtoms, atomPositionsDir)
+  subroutine standardizeCoordinates(nAtoms, mass, realLattVec, atomPositionsDir, centerOfMassCoords)
+
+    use generalComputations, only: direct2cart, cart2direct
 
     implicit none
 
@@ -953,11 +982,34 @@ module PhononPPMod
     integer, intent(in) :: nAtoms
       !! Number of atoms in system
 
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Mass of atoms
+    real(kind=dp), intent(in) :: realLattVec(3,3)
+      !! Real space lattice vectors
+
     ! Output variables:
     real(kind=dp), intent(inout) :: atomPositionsDir(3,nAtoms)
       !! Atom positions in direct coordinates
+    real(kind=dp), intent(out) :: centerOfMassCoords(3,nAtoms)
+      !! Coordinates of the center of mass
+
+    ! Local variables: 
+    real(kind=dp) :: atomPositionsCart(3,nAtoms)
+      !! Atom positions in Cartesian coordinates
 
 
+    ! Convert to Cartesian coordinates to calculate center of mass
+    atomPositionsCart = direct2cart(nAtoms, atomPositionsDir, realLattVec)
+
+    ! Subtract center of mass
+    centerOfMassCoords = centerOfMass(nAtoms, atomPositionsCart, mass)
+    atomPositionsCart = atomPositionsCart - centerOfMassCoords
+
+    ! Convert back to direct for easy standardization
+    atomPositionsDir = cart2direct(nAtoms, atomPositionsCart, realLattVec)
+
+
+    ! Standardize to make all coordinates positive
     where(atomPositionsDir(:,:) < 0)
       atomPositionsDir(:,:) = 1.0_dp + atomPositionsDir(:,:)
     end where
@@ -965,6 +1017,50 @@ module PhononPPMod
     return
 
   end subroutine standardizeCoordinates
+
+!----------------------------------------------------------------------------
+  function centerOfMass(nAtoms, coords, mass) result(centerOfMassCoords)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nAtoms
+      !! Number of atoms
+
+    real(kind=dp), intent(in) :: coords(3,nAtoms)
+      !! Coordinates of atoms
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Mass of atoms
+
+    ! Output variables:
+    real(kind=dp) :: centerOfMassCoords(3,nAtoms)
+      !! Coordinates of the center of mass
+
+    ! Local variables:
+    integer :: ia
+      !! Loop index
+
+    real(kind=dp) :: totalMass
+      !! Total mass of atoms
+    real(kind=dp) :: totalMassTimesPos(3)
+      !! Total of mass times positions
+
+
+    totalMass = sum(mass(:))
+
+    totalMassTimesPos = 0.0_dp
+
+    do ia = 1, nAtoms
+      totalMassTimesPos = totalMassTimesPos + mass(ia) * coords(:, ia)
+    end do
+
+    centerOfMassCoords(1,:) = totalMassTimesPos(1)/totalMass
+    centerOfMassCoords(2,:) = totalMassTimesPos(2)/totalMass
+    centerOfMassCoords(3,:) = totalMassTimesPos(3)/totalMass
+
+    write(*,*) centerOfMassCoords(:,1)
+
+  end function centerOfMass
 
 !----------------------------------------------------------------------------
   subroutine getRelaxDispAndCheckCompatibility(nAtoms, atomPositionsDirEnd, atomPositionsDirStart, displacement)
@@ -1042,48 +1138,6 @@ module PhononPPMod
     return 
 
   end subroutine getRelaxDispAndCheckCompatibility
-
-!----------------------------------------------------------------------------
-  function centerOfMass(nAtoms, coords, mass) result(centerOfMassCoords)
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nAtoms
-      !! Number of atoms
-
-    real(kind=dp), intent(in) :: coords(3,nAtoms)
-      !! Coordinates of atoms
-    real(kind=dp), intent(in) :: mass(nAtoms)
-      !! Mass of atoms
-
-    ! Output variables:
-    real(kind=dp) :: centerOfMassCoords(3,nAtoms)
-      !! Coordinates of the center of mass
-
-    ! Local variables:
-    integer :: ia
-      !! Loop index
-
-    real(kind=dp) :: totalMass
-      !! Total mass of atoms
-    real(kind=dp) :: totalMassTimesPos(3)
-      !! Total of mass times positions
-
-
-    totalMass = sum(mass(:))
-
-    totalMassTimesPos = 0.0_dp
-
-    do ia = 1, nAtoms
-      totalMassTimesPos = totalMassTimesPos + mass(ia) * coords(:, ia)
-    end do
-
-    centerOfMassCoords(1,:) = totalMassTimesPos(1)/totalMass
-    centerOfMassCoords(2,:) = totalMassTimesPos(2)/totalMass
-    centerOfMassCoords(3,:) = totalMassTimesPos(3)/totalMass
-
-  end function centerOfMass
   
 !----------------------------------------------------------------------------
   subroutine calcAndWriteSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName)
@@ -1232,7 +1286,9 @@ module PhononPPMod
 
     real(kind=dp), allocatable :: atomPositionsDirBase(:,:)
       !! Atom positions in initial relaxed positions
-    real(kind=dp), allocatable :: displacement(:,:)
+    real(kind=dp) :: centerOfMassCoords(3,nAtoms)
+      !! Coordinates of the center of mass
+    real(kind=dp) :: displacement(3,nAtoms)
       !! Atom displacements in angstrom
     real(kind=dp) :: volume
       !! Volume of supercell
@@ -1271,21 +1327,8 @@ module PhononPPMod
     endif
 
 
-    if(ionode) then
-
-      call readPOSCAR(basePOSCARFName, nAtoms, atomPositionsDirBase, realLattVec, volume)
-      call standardizeCoordinates(nAtoms, atomPositionsDirBase)
-
-    endif
-
-    call MPI_BCAST(nAtoms, 1, MPI_INTEGER, root, worldComm, ierr)
-    if(.not. ionode) allocate(atomPositionsDirBase(3,nAtoms))
-    call MPI_BCAST(atomPositionsDirBase, size(atomPositionsDirBase), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-
-    allocate(displacement(3,nAtoms))
-
-    call getRelaxDispAndCheckCompatibility(nAtoms, coordFromPhon, atomPositionsDirBase, displacement)
+    call getCoordsAndDisp(nAtoms, coordFromPhon, mass, basePOSCARFName, atomPositionsDirBase, centerOfMassCoords, &
+          displacement, realLattVec, volume)
 
 
     allocate(shiftedPositions(3,nAtoms))
@@ -1319,7 +1362,7 @@ module PhononPPMod
 
       if(generateShiftedPOSCARs) then
 
-        shiftedPositions = direct2cart(nAtoms, atomPositionsDirBase, realLattVec) + displacement
+        shiftedPositions = direct2cart(nAtoms, atomPositionsDirBase, realLattVec) + displacement + centerOfMassCoords
 
         shiftedPOSCARFName = trim(prefix)//"_"//trim(int2strLeadZero(j,suffixLength))
 
@@ -1332,7 +1375,6 @@ module PhononPPMod
 
     deallocate(atomPositionsDirBase)
     deallocate(shiftedPositions)
-    deallocate(displacement)
 
     if(calcMaxDisp) then
       call mpiSumDoubleV(relDispMag, worldComm)

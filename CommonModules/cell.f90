@@ -72,7 +72,7 @@ module cell
     eigDotEig = 0.0_dp
     do ia = 1, nAtoms
 
-      genDisp = matmul(realLattVec,displacement(:,ia)*sqrt(mass(ia)))
+      genDisp = displacement(:,ia)*sqrt(mass(ia))
 
       eig = eigenvector(:,ia)
 
