@@ -772,7 +772,10 @@ contains
     pot%maxAngMom = 2*pot%maxAngMom + 1
 
 
-    if(order == 1) call readDqFile(phononModeJ, dqFName, dq_j)
+    if(order == 1) then
+      call readDqFile(phononModeJ, dqFName, dq_j)
+      call MPI_BCAST(dq_j, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    endif
 
     
     call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
@@ -1318,8 +1321,6 @@ contains
       close(30)
 
     endif
-
-    call MPI_BCAST(dq_j, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
@@ -3120,7 +3121,8 @@ contains
   end function getMatrixElementFName
 
 !----------------------------------------------------------------------------
-  subroutine readMatrixElement(ibL, ibH, nTransitions, order, dE, newEnergy, fName, matrixElement, volumeLine)
+  subroutine readMatrixElement(ibL, ibH, nTransitions, order, dE, newEnergy, oldFormat, fName, matrixElement, volumeLine, &
+        phononModeJ, PhononPPDir)
 
     use constants, only: HartreeToJ
 
@@ -3134,15 +3136,23 @@ contains
       !! Total number of transitions 
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
+    integer, optional :: phononModeJ
+      !! Phonon mode index for rereading dq file
 
     real(kind=dp), intent(in) :: dE(nTransitions)
       !! Optional new energy to use
 
     logical, intent(in) :: newEnergy
       !! If we should use a new input energy in dE
+    logical, intent(in) :: oldFormat
+      !! If the old format of the matrix element files
+      !! should be used
 
     character(len=300), intent(in) :: fName
       !! Path to matrix element file `allElecOverlap.isp.ik`
+    character(len=300), optional :: PhononPPDir
+      !! Path to PhononPP output dir to get Sj.out
+      !! and potentially optimalPairs.out
 
     ! Output variables:
     real(kind=dp), intent(out) :: matrixElement(nTransitions)
@@ -3170,6 +3180,8 @@ contains
     logical :: captured
       !! If matrix elements for capture or scattering
 
+    character(len=300) :: dqFName
+      !! File name for generalized-coordinate norms
     character(len=300) :: line
 
 
@@ -3185,15 +3197,30 @@ contains
 
     read(12,'(a)') volumeLine
 
+
     ! Comment out the three lines below to read old format
-    read(12,*)
-    read(12,'(L4)') captured
-    if(.not. captured) call exitError('readMatrixElement', 'This matrix element was not calculated for capture!', 1)
+    if(.not. oldFormat) then
+      read(12,*)
+      read(12,'(L4)') captured
+      if(.not. captured) call exitError('readMatrixElement', 'This matrix element was not calculated for capture!', 1)
+    endif
+
 
     read(12,*)
     read(12,*) nTransitions_
-    if(order == 1) read(12,'(a78, i7, ES24.15E3)') line, iDum, dq_j
+    if(order == 1 .and. .not. present(PhononPPDir)) then
+      read(12,'(a78, i7, ES24.15E3)') line, iDum, dq_j
+    else
       ! Ignore additional line for phonon mode 
+      read(12,*)
+
+      if(order == 1 .and. present(PhononPPDir)) then
+        dqFName = trim(PhononPPDir)//'/dq.txt'
+        call readDqFile(phononModeJ, dqFName, dq_j)
+      endif
+    endif
+
+    ! Ignore header line
     read(12,*)
 
     if(ibL <= 0 .and. nTransitions /= nTransitions_) &
@@ -3203,10 +3230,12 @@ contains
     iE = 0
     do iE_ = 1, nTransitions_
 
-      ! New format
-      read(12,'(i10,4ES24.15E3)') ibi, rDum, rDum, normSqOverlap, overlapWithFactors
-      ! Old format
-!      read(12,'(2i7,4ES24.15E3)') iDum, ibi, rDum, rDum, normSqOverlap, overlapWithFactors
+      if(oldFormat) then
+        read(12,'(2i7,4ES24.15E3)') iDum, ibi, rDum, rDum, normSqOverlap, overlapWithFactors
+      else
+        read(12,'(i10,4ES24.15E3)') ibi, rDum, rDum, normSqOverlap, overlapWithFactors
+      endif
+
 
       if(ibL > 0) then
         if(ibi >= ibL .and. ibi <= ibH) then

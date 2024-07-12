@@ -29,7 +29,7 @@ program LSFmain
     !! Timers
 
   character(len=300) :: fName
-    !! File name for first-order matrix elements
+    !! File name to read
 
 
   call cpu_time(timerStart)
@@ -48,8 +48,8 @@ program LSFmain
   call cpu_time(timer1)
 
   call readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, &
-        temperature, diffOmega, newEnergyTable, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, &
-        outputDir, PhononPPDir, prefix)
+        temperature, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, &
+        MjBaseDir, outputDir, PhononPPDir, prefix)
 
 
   nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
@@ -83,8 +83,10 @@ program LSFmain
   if(ionode) write(*, '("Pre-k-loop: [X] Get parameters  [ ] Read Sj (",f10.2," secs)")') timer2-timer1
   call cpu_time(timer1)
 
+
+  fName = trim(PhononPPDir)//'/Sj.out' 
   if(diffOmega) then
-    call readSjTwoFreq(trim(PhononPPDir)//'/Sj.out', nModes, omega, omegaPrime, Sj, SjPrime)
+    call readSjTwoFreq(fName, nModes, omega, omegaPrime, Sj, SjPrime)
 
     ! This is the code that I used to test what difference different
     ! frequencies would have. I input the same two frequencies twice
@@ -112,7 +114,7 @@ program LSFmain
       ! Need to allocate to avoid issues with passing variables
       ! and deallocating
 
-    call readSjOneFreq(trim(PhononPPDir)//'/Sj.out', nModes, omega, Sj)
+    call readSjOneFreq(fName, nModes, omega, Sj)
   endif
 
   allocate(nj(nModes))
@@ -192,9 +194,9 @@ program LSFmain
           dENew = dE(2,:,ikLocal)
           ! Call to readMatrixElement includes conversion from Hartree to J
           if(newEnergyTable) then
-            call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, fName, ME_tmp, volumeLine)
+            call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
           else
-            call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, fName, ME_tmp, volumeLine)
+            call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
               ! dENew will be ignored here
           endif
 
@@ -213,10 +215,22 @@ program LSFmain
             ! The volume line will get overwritten each time, but that's
             ! okay because the volume doesn't change between the files. 
             if(newEnergyTable) then
-              call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, fName, ME_tmp, volumeLine)
+              if(rereadDq) then
+                call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
+                      fName, ME_tmp, volumeLine, j, PhononPPDir)
+              else
+                call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
+                      fName, ME_tmp, volumeLine)
+              endif
             else
-              call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, fName, ME_tmp, volumeLine)
-                ! dENew will be ignored here
+              if(rereadDq) then
+                call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine, &
+                  j, PhononPPDir)
+                  ! dENew will be ignored here
+              else
+                call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
+                  ! dENew will be ignored here
+              endif
             endif
 
             if(reSortMEs) then

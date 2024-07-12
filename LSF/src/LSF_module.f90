@@ -58,6 +58,12 @@ module LSFmod
   logical :: newEnergyTable
     !! If this code and TME are being run with a different
     !! energy table
+  logical :: oldFormat
+    !! If the old format of the matrix element files
+    !! should be used
+  logical :: rereadDq
+    !! If dq should be read from matrix element file
+    !! (.false.) or from the dq.txt file (.true.)
   logical :: reSortMEs
     !! If matrix elements should be resorted
 
@@ -83,14 +89,14 @@ module LSFmod
 
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, PhononPPDir, temperature, hbarGamma, dt, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
-                         suffixLength, reSortMEs
+                         suffixLength, reSortMEs, oldFormat, rereadDq
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, &
-        temperature, diffOmega, newEnergyTable, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, outputDir, &
-        PhononPPDir, prefix)
+        temperature, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, &
+        MjBaseDir, outputDir, PhononPPDir, prefix)
 
     implicit none
 
@@ -122,6 +128,12 @@ contains
     logical, intent(out) :: newEnergyTable
       !! If this code and TME are being run with a different
       !! energy table
+    logical, intent(out) :: oldFormat
+      !! If the old format of the matrix element files
+      !! should be used
+    logical, intent(out) :: rereadDq
+      !! If dq should be read from matrix element file
+      !! (.false.) or from the dq.txt file (.true.)
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
 
@@ -145,7 +157,8 @@ contains
 
   
     call initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
-          reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, PhononPPDir, prefix)
+          oldFormat, rereadDq, reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, &
+          PhononPPDir, prefix)
 
     if(ionode) then
 
@@ -158,7 +171,8 @@ contains
         !! * Exit calculation if there's an error
 
       call checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
-            reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, PhononPPDir, prefix)
+            oldFormat, rereadDq, reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, PhononPPDir, &
+            prefix)
 
       dt = dt/THzToHz
 
@@ -186,7 +200,9 @@ contains
 
     call MPI_BCAST(diffOmega, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(newEnergyTable, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(oldFormat, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(reSortMEs, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(rereadDq, 1, MPI_LOGICAL, root, worldComm, ierr)
   
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -201,7 +217,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
-        reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, PhononPPDir, prefix)
+        oldFormat, rereadDq, reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, &
+        PhononPPDir, prefix)
 
     implicit none
 
@@ -227,6 +244,12 @@ contains
     logical, intent(out) :: newEnergyTable
       !! If this code and TME are being run with a different
       !! energy table
+    logical, intent(out) :: oldFormat
+      !! If the old format of the matrix element files
+      !! should be used
+    logical, intent(out) :: rereadDq
+      !! If dq should be read from matrix element file
+      !! (.false.) or from the dq.txt file (.true.)
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
 
@@ -259,7 +282,9 @@ contains
 
     diffOmega = .false.
     newEnergyTable = .false.
+    oldFormat = .false.
     reSortMEs = .false.
+    rereadDq = .false.
 
     energyTableDir = ''
     matrixElementDir = ''
@@ -274,7 +299,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
-        reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, PhononPPDir, prefix)
+        oldFormat, rereadDq, reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, PhononPPDir, &
+        prefix)
 
     implicit none
 
@@ -300,6 +326,12 @@ contains
     logical, intent(in) :: newEnergyTable
       !! If this code and TME are being run with a different
       !! energy table
+    logical, intent(in) :: oldFormat
+      !! If the old format of the matrix element files
+      !! should be used
+    logical, intent(in) :: rereadDq
+      !! If dq should be read from matrix element file
+      !! (.false.) or from the dq.txt file (.true.)
     logical, intent(in) :: reSortMEs
       !! If matrix elements should be resorted
 
@@ -345,6 +377,7 @@ contains
     abortExecution = checkDirInitialization('PhononPPDir', PhononPPDir, 'Sj.out') .or. abortExecution
 
     write(*,'("diffOmega = ",L)') diffOmega
+    write(*,'("oldFormat = ",L)') oldFormat
     write(*,'("newEnergyTable = ",L)') newEnergyTable
 
     if(order == 0) then 
@@ -356,6 +389,9 @@ contains
 
       write(*,'("reSortMEs = ",L)') reSortMEs
       if(reSortMEs) abortExecution = checkFileInitialization('optimalPairsFile', trim(PhononPPDir)//'/optimalPairs.out') .or. abortExecution
+
+      write(*,'("rereadDq = ",L)') rereadDq
+      if(rereadDq) abortExecution = checkFileInitialization('dqFile', trim(PhononPPDir)//'/dq.txt') .or. abortExecution
 
       abortExecution = checkIntInitialization('suffixLength', suffixLength, 1, 5) .or. abortExecution 
       abortExecution = checkDirInitialization('MjBaseDir', MjBaseDir, &
