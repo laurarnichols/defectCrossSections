@@ -3208,13 +3208,15 @@ contains
 
     read(12,*)
     read(12,*) nTransitions_
-    if(order == 1 .and. .not. present(PhononPPDir)) then
-      read(12,'(a78, i7, ES24.15E3)') line, iDum, dq_j
-    else
-      ! Ignore additional line for phonon mode 
-      read(12,*)
+    if(order == 1) then
+      if(newEnergy .and. .not. present(PhononPPDir)) then
+        read(12,'(a78, i7, ES24.15E3)') line, iDum, dq_j
+      else
+        ! Ignore additional line for phonon mode 
+        read(12,*)
+      endif
 
-      if(order == 1 .and. present(PhononPPDir)) then
+      if(present(PhononPPDir)) then
         dqFName = trim(PhononPPDir)//'/dq.txt'
         call readDqFile(phononModeJ, dqFName, dq_j)
       endif
@@ -3234,6 +3236,7 @@ contains
         read(12,'(2i7,4ES24.15E3)') iDum, ibi, rDum, rDum, normSqOverlap, overlapWithFactors
       else
         read(12,'(i10,4ES24.15E3)') ibi, rDum, rDum, normSqOverlap, overlapWithFactors
+        write(*,*) ibi
       endif
 
 
