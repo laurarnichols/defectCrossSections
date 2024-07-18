@@ -3263,7 +3263,7 @@ contains
         
     enddo
 
-    matrixElement(:) = matrixElement(:)*HartreeToJ**2
+    matrixElement(:) = matrixElement(:)
 
     close(12)
 

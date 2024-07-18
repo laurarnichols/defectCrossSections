@@ -1,6 +1,6 @@
 module LSFmod
   
-  use constants, only: dp, HartreeToJ, HartreeToEv, eVToJ, ii, hbar, THzToHz, kB, BohrToMeter, elecMToKg
+  use constants, only: dp, HartreeToEv, ii, kB_atomic, hbar_atomic, time_atomicToSI
   use base, only: nKPoints, order
   use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName, readMatrixElement
   use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, Sj, SjPrime
@@ -174,12 +174,10 @@ contains
             oldFormat, rereadDq, reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, PhononPPDir, &
             prefix)
 
-      dt = dt/THzToHz
-
-      gamma0 = hbarGamma*1e-3*eVToJ/hbar
+      gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
 
-      beta = 1.0d0/(kB*temperature)
+      beta = 1.0d0/(kB_atomic*temperature)
 
       maxTime = -log(smearingExpTolerance)/gamma0
       write(*,'("Max time: ", ES24.15E3)') maxTime
@@ -275,7 +273,7 @@ contains
     iSpin = 1
     order = -1
 
-    dt = 1d-6
+    dt = 1d-4
     hbarGamma = 0.0_dp
     smearingExpTolerance = 0.0_dp
     temperature = 0.0_dp
@@ -365,7 +363,7 @@ contains
     abortExecution = checkIntInitialization('iSpin', iSpin, 1, 2)
     abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution 
 
-    abortExecution = checkDoubleInitialization('dt', dt, 1.0d-10, 1.0d-4) .or. abortExecution
+    abortExecution = checkDoubleInitialization('dt', dt, 1.0d-6, 1.0d-2) .or. abortExecution
     abortExecution = checkDoubleInitialization('hbarGamma', hbarGamma, 0.1_dp, 20.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('smearingExpTolerance', smearingExpTolerance, 0.0_dp, 1.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('temperature', temperature, 0.0_dp, 1500.0_dp) .or. abortExecution
@@ -573,7 +571,7 @@ contains
 
           Eif = dE(1,iE,ikLocal)
 
-          expArg = expArg_base + ii*Eif/hbar*time
+          expArg = expArg_base + ii*Eif/hbar_atomic*time
 
           transitionRate(iE,ikLocal) = transitionRate(iE,ikLocal) + Real(multFact*expPrefactor*exp(expArg))
             ! We are doing multiple sums (integral and sum over final states), 
@@ -599,7 +597,7 @@ contains
 
       ! Multiply by prefactor for Simpson's integration method 
       ! and prefactor for time-domain integral
-      transitionRate(:,:) = transitionRate(:,:)*(dt/3.0_dp)*(2.0_dp/(hbar*hbar))
+      transitionRate(:,:) = transitionRate(:,:)*(dt/3.0_dp)*(2.0_dp/(hbar_atomic*hbar_atomic))/time_atomicToSI
 
       do ikLocal = 1, nkPerPool
 
@@ -698,7 +696,7 @@ contains
 
       if(order == 1) then
 
-        Dj1_t(:) = -(hbar/(2.0_dp*omega(:)*Sj(:)))*Dj0OverSinOmegaPrime_t(:)*(sinOmegaPrime(:)*Dj0_t(:)*Aj_t(:)**2 - &
+        Dj1_t(:) = -(hbar_atomic/(2.0_dp*omega(:)*Sj(:)))*Dj0OverSinOmegaPrime_t(:)*(sinOmegaPrime(:)*Dj0_t(:)*Aj_t(:)**2 - &
                         0.5_dp*omega(:)/omegaPrime(:)*(Aj_t(:)*cosOmegaPrime(:) - sinOmegaPrime(:)* &
                           (omega(:)*cosOmegaPrime(:) - ii*omegaPrime(:)*Aj_t(:)*sinOmegaPrime(:))/ &
                           (omega(:)*Aj_t(:)*sinOmegaPrime(:) + ii*omegaPrime(:)*cosOmegaPrime(:))))
@@ -716,7 +714,7 @@ contains
 
       if(order == 1) then
 
-        Dj1_t(:) = (hbar/omega(:))/2.0_dp*(njOverPosExp_t(:) + expTimesNBarPlus1(:) + &
+        Dj1_t(:) = (hbar_atomic/omega(:))/2.0_dp*(njOverPosExp_t(:) + expTimesNBarPlus1(:) + &
             Sj(:)*(1 + njOverPosExp_t(:) - expTimesNBarPlus1(:))**2)
 
       endif

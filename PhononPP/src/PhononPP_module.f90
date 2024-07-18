@@ -1,6 +1,6 @@
 module PhononPPMod
   
-  use constants, only: dp, angToBohr, angToM, daltonToElecM, elecMToKg, THzToHz, pi, hbar
+  use constants, only: dp, angToBohr, daltonToElecM, THzToHartree, pi, hbar_atomic
   use energyTabulatorMod, only: energyTableDir, readScatterEnergyTable
   use cell, only: nAtoms, volume, realLattVec
   use miscUtilities, only: int2str, int2strLeadZero
@@ -904,7 +904,7 @@ module PhononPPMod
 
     enddo
 
-    projNorm = projNorm*angToM*sqrt(daltonToElecM*elecMToKg)
+    projNorm = projNorm*angToBohr*sqrt(daltonToElecM)
     call calcAndWriteSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName)
 
 
@@ -1186,9 +1186,9 @@ module PhononPPMod
 
         modeIndex(j) = j
 
-        Sj(j) = projNorm(j)**2*omega(j)*THzToHz/(2*hbar) 
+        Sj(j) = projNorm(j)**2*omega(j)*THzToHartree/(2.0_dp*hbar_atomic)
 
-        if(diffOmega) SjPrime(j) = projNorm(j)**2*omegaPrime(j)*THzToHz/(2*hbar) 
+        if(diffOmega) SjPrime(j) = projNorm(j)**2*omegaPrime(j)*THzToHartree/(2.0_dp*hbar_atomic)
           ! The way the algebra works, they are calculated using the same
           ! Delta q_j (projNorm)
 
@@ -1560,7 +1560,7 @@ module PhononPPMod
         omega(jSort) = omega_
       end do
 
-      omega(:) = omega(:)*THzToHz
+      omega(:) = omega(:)*THzToHartree
         ! Convert to Hz*2pi
 
       close(12)
@@ -1636,8 +1636,8 @@ module PhononPPMod
         omegaPrime(jSort) = omegaPrime_
       end do
 
-      omega(:) = omega(:)*THzToHz
-      omegaPrime(:) = omegaPrime(:)*THzToHz
+      omega(:) = omega(:)*THzToHartree
+      omegaPrime(:) = omegaPrime(:)*THzToHartree
         ! Convert to Hz*2pi
 
       close(12)

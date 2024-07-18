@@ -118,7 +118,7 @@ program LSFmain
   endif
 
   allocate(nj(nModes))
-  nj(:) = 1.0_dp/(exp(hbar*omega(:)*beta) - 1.0_dp)
+  nj(:) = 1.0_dp/(exp(hbar_atomic*omega(:)*beta) - 1.0_dp)
 
 
   call cpu_time(timer2)
@@ -247,16 +247,6 @@ program LSFmain
         !endif
       endif
     enddo
-
-    dE = dE*HartreeToJ
-
-    if(order == 1) then
-      matrixElement(:,:,:) = matrixElement(:,:,:)/(BohrToMeter*sqrt(elecMToKg))**2
-        ! PhononPP program outputs dq in Bohr*sqrt(elecM), and that
-        ! dq is directly used by TME to get the matrix element, so
-        ! we need to convert to m*sqrt(kg). In the matrix element,
-        ! dq is in the denominator and squared.
-    endif
 
   endif
 
