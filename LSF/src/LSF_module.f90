@@ -501,10 +501,6 @@ contains
 
     real(kind=dp) :: Eif
       !! Local storage of energy for delta function
-    real(kind=dp) :: expPrefactor
-      !! Prefactor for the exponential inside the integral.
-      !! For zeroth-order, this is just the matrix element,
-      !! but for first-order this is \(\sum_j M_j A_j\).
     real(kind=dp) :: multFact
       !! Multiplication factor for each term per
       !! Simpson's integration method
@@ -525,6 +521,10 @@ contains
       !! Base exponential argument for each time step
     complex(kind=dp) :: expArg
       !! Exponential argument for each time step
+    complex(kind=dp) :: expPrefactor
+      !! Prefactor for the exponential inside the integral.
+      !! For zeroth-order, this is just the matrix element,
+      !! but for first-order this is \(\sum_j M_j A_j\).
 
       
     updateFrequency = ceiling(nStepsLocal/10.0)
