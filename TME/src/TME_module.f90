@@ -3236,7 +3236,6 @@ contains
         read(12,'(2i7,4ES24.15E3)') iDum, ibi, rDum, rDum, normSqOverlap, overlapWithFactors
       else
         read(12,'(i10,4ES24.15E3)') ibi, rDum, rDum, normSqOverlap, overlapWithFactors
-        write(*,*) ibi
       endif
 
 
@@ -3263,7 +3262,6 @@ contains
         
     enddo
 
-    matrixElement(:) = matrixElement(:)
 
     close(12)
 
