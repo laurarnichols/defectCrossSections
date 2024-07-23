@@ -214,10 +214,21 @@ program LSFmain
             ! Call to readMatrixElement includes conversion from Hartree to J
             ! The volume line will get overwritten each time, but that's
             ! okay because the volume doesn't change between the files. 
+
+
+            ! If resorting the matrix element files based on a different PhononPP output
+            ! order, make sure to pass the resorted mode index if re-reading dq's
+            if(reSortMEs) then
+              jStore = jReSort(j)
+            else 
+              jStore = j
+            endif
+
+
             if(newEnergyTable) then
               if(rereadDq) then
                 call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
-                      fName, ME_tmp, volumeLine, j, PhononPPDir)
+                      fName, ME_tmp, volumeLine, jStore, PhononPPDir)
               else
                 call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
                       fName, ME_tmp, volumeLine)
@@ -225,19 +236,12 @@ program LSFmain
             else
               if(rereadDq) then
                 call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine, &
-                  j, PhononPPDir)
+                  jStore, PhononPPDir)
                   ! dENew will be ignored here
               else
                 call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
                   ! dENew will be ignored here
               endif
-            endif
-
-            if(reSortMEs) then
-              jStore = jReSort(j)
-              if(j <= 5) write(*,*) j, jStore
-            else 
-              jStore = j
             endif
 
             matrixElement(jStore,:,ikLocal) = ME_tmp
