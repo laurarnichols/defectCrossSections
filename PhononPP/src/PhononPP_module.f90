@@ -1058,8 +1058,6 @@ module PhononPPMod
     centerOfMassCoords(2,:) = totalMassTimesPos(2)/totalMass
     centerOfMassCoords(3,:) = totalMassTimesPos(3)/totalMass
 
-    write(*,*) centerOfMassCoords(:,1)
-
   end function centerOfMass
 
 !----------------------------------------------------------------------------
