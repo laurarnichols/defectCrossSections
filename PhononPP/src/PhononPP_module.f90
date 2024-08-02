@@ -493,6 +493,7 @@ module PhononPPMod
 
     call MPI_BCAST(coordFromPhon, size(coordFromPhon), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(mass, size(mass), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(centerOfMassCoords, size(centerOfMassCoords), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
 
     nModes = 3*nAtoms - 3
@@ -964,6 +965,7 @@ module PhononPPMod
     call MPI_BCAST(atomPositionsDirEnd, size(atomPositionsDirEnd), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(volume, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(realLattVec, size(realLattVec), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(centerOfMassCoords, size(centerOfMassCoords), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call getRelaxDispAndCheckCompatibility(nAtoms, atomPositionsDirEnd, atomPositionsDirStart, displacement)
 
@@ -998,6 +1000,12 @@ module PhononPPMod
       !! Atom positions in Cartesian coordinates
 
 
+    ! Standardize to make all coordinates positive
+    where(atomPositionsDir(:,:) < 0)
+      atomPositionsDir(:,:) = 1.0_dp + atomPositionsDir(:,:)
+    end where
+
+
     ! Convert to Cartesian coordinates to calculate center of mass
     atomPositionsCart = direct2cart(nAtoms, atomPositionsDir, realLattVec)
 
@@ -1007,12 +1015,6 @@ module PhononPPMod
 
     ! Convert back to direct for easy standardization
     atomPositionsDir = cart2direct(nAtoms, atomPositionsCart, realLattVec)
-
-
-    ! Standardize to make all coordinates positive
-    where(atomPositionsDir(:,:) < 0)
-      atomPositionsDir(:,:) = 1.0_dp + atomPositionsDir(:,:)
-    end where
 
     return
 
