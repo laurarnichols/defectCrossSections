@@ -23,6 +23,11 @@ within a file (e.g., `PhononPP.in`) that is passed into the code like `mpirun Ph
 
 All calculations require reading the `mesh.yaml` Phonopy output file. The path to the file (`phononFName`) and a threshold for the absolute value of the frequencies (`freqThresh`) are required. By default, `freqThresh = 0.5`. This threshold is needed to determine which modes to skip (translational modes) and which modes to consider. We use the absolute value in case there are negative-frequency modes that would indicate that the structure used for the calculation of phonons is unstable and at a saddle point relative to displacement along the eigenvector of those negative-frequency modes. 
 
+The code also always calculates the thermal occupation numbers $n_j$ based on an input `temperature`. The default temperature used is 300 K.
+
+For all calculations that require projection onto the phonon eigenvectors, when `diffOmega = .true.` the user has the option to set `dqEigvecsFinal` to `.true.` or `.false.` to determine if the final (prime) mode eigenvectors will be used for the projections (`dqEigvecsFinal = .true.`) or the initial-mode eigenvectors (`.false.`). The default is `.true.`. 
+
+
 ### `calcSj`
 
 The Huang-Rhys factor, $S_j$, is needed for the line-shape-function integration. It is related to the probability of energy getting transferred into the phonon mode $j$. For scattering, we use $S_j$ directly as a weight to distribute the total energy transfer across the modes. $S_j$ is output in descending order so that the modes that participate the most are at the top of the output file. 
@@ -36,6 +41,8 @@ For multiple displacements (`singleDisp = .false.`), the path to the energy tabl
 _Note: It is also currently assumed that the allowed states are not dependent on the spin channel and that `energyTable.1` exisits._
 
 When calculating $S_j$, there is an option to calculate using a single frequency from a single phonon file or two frequencies using two phonon files. Both $S_j$ and $S_j'$ are calculated using the same $\Delta q_j$ projection of the displacement onto the initial-phonon eigenvectors, and both are output in the same file. Currently, the only option for this output file is for the modes to be sorted in order of descending $S_j$. This mode is controlled by the logical `diffOmega`, which is by default `.false.`.
+
+There is also a file `Sj.analysis.out` created. For capture, this will just be one row of data indicating the max $S_j$/$S_j'$ and the number above a threshold `SjThresh` given by the user. The default value of `SjThresh` is `0.1`. For scattering, there are independent $S_j$'s for each transition, so there will be a row with the relevant data points for each transition, with the indices of the involved states given in the first column. 
 
 ### First-order items
 

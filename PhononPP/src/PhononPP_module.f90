@@ -1,6 +1,6 @@
 module PhononPPMod
   
-  use constants, only: dp, angToBohr, daltonToElecM, THzToHartree, pi, hbar_atomic
+  use constants, only: dp, angToBohr, daltonToElecM, THzToHartree, pi, hbar_atomic, kB_atomic
   use energyTabulatorMod, only: energyTableDir, readScatterEnergyTable
   use cell, only: nAtoms, volume, realLattVec
   use miscUtilities, only: int2str, int2strLeadZero
@@ -29,6 +29,8 @@ module PhononPPMod
     !! Local number of phonon modes
 
 
+  real(kind=dp) :: beta
+    !! 1/kB*T
   real(kind=dp), allocatable :: coordFromPhon(:,:), coordFromPhonPrime(:,:)
     !! Coordinates from phonon file
   real(kind=dp), allocatable :: eigenvector(:,:,:), eigenvectorPrime(:,:,:), dqEigenvectors(:,:,:)
@@ -48,6 +50,9 @@ module PhononPPMod
     !! Huang-Rhys factor for each mode with omega_j'
   real(kind=dp) :: shift
     !! Magnitude of shift along phonon eigenvectors
+  real(kind=dp) :: temperature    
+  real(kind=dp) :: SjThresh
+    !! Threshold to count modes above
 
   character(len=300) :: basePOSCARFName
     !! File name for intial POSCAR to calculate shift from
@@ -83,9 +88,9 @@ module PhononPPMod
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputs(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
-        phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, diffOmega, &
-        dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+  subroutine readInputs(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, dqFName, &
+        energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, &
+        calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -99,6 +104,9 @@ module PhononPPMod
       !! should be skipped or not
     real(kind=dp), intent(out) :: shift
       !! Magnitude of shift along phonon eigenvectors
+    real(kind=dp), intent(out) :: SjThresh
+      !! Threshold to count modes above
+    real(kind=dp), intent(out) :: temperature
 
     character(len=300), intent(out) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
@@ -135,14 +143,15 @@ module PhononPPMod
 
     namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, &
                            singleDisp, CONTCARsBaseDir, basePOSCARFName, freqThresh, calcSj, calcDq, calcMaxDisp, & 
-                           disp2AtomInd, energyTableDir, diffOmega, phononPrimeFName, dqEigvecsFinal
+                           disp2AtomInd, energyTableDir, diffOmega, phononPrimeFName, dqEigvecsFinal, SjThresh, &
+                           temperature
 
 
     if(ionode) then
 
-      call initialize(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
-          phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, &
-          diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+      call initialize(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, &
+          dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, &
+          calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
         ! Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -151,9 +160,9 @@ module PhononPPMod
       if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
-          phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, diffOmega, &
-          dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+      call checkInitialization(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, &
+        dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, &
+        calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     endif
 
@@ -162,6 +171,8 @@ module PhononPPMod
 
     call MPI_BCAST(freqThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(shift, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(SjThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call MPI_BCAST(basePOSCARFName, len(basePOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(CONTCARsBaseDir, len(CONTCARsBaseDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -183,9 +194,9 @@ module PhononPPMod
   end subroutine readInputs
 
 !----------------------------------------------------------------------------
-  subroutine initialize(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
-      phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, &
-      diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+  subroutine initialize(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, &
+      dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, &
+      calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -204,6 +215,9 @@ module PhononPPMod
       !! should be skipped or not
     real(kind=dp), intent(out) :: shift
       !! Magnitude of shift along phonon eigenvectors
+    real(kind=dp), intent(out) :: SjThresh
+      !! Threshold to count modes above
+    real(kind=dp), intent(out) :: temperature
 
     character(len=300), intent(out) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
@@ -252,6 +266,8 @@ module PhononPPMod
 
     freqThresh = 0.5_dp
     shift = 0.01_dp
+    SjThresh = 1e-1_dp
+    temperature = 300_dp
 
     calcDq = .true.
     calcSj = .true.
@@ -266,9 +282,9 @@ module PhononPPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
-      phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, diffOmega, &
-      dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+  subroutine checkInitialization(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, &
+      dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, &
+      calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -282,6 +298,9 @@ module PhononPPMod
       !! should be skipped or not
     real(kind=dp), intent(in) :: shift
       !! Magnitude of shift along phonon eigenvectors
+    real(kind=dp), intent(in) :: SjThresh
+      !! Threshold to count modes above
+    real(kind=dp), intent(in) :: temperature
 
     character(len=300), intent(inout) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
@@ -324,14 +343,17 @@ module PhononPPMod
       call exitError('checkInitialization','You must choose at least one option to run this program!',1)
 
 
-    ! Must-haves for reading phonons:
+    ! Must-haves for reading phonons and calculating nj:
     abortExecution = checkFileInitialization('phononFName', phononFName)
     abortExecution = checkDoubleInitialization('freqThres', freqThresh, 0.0_dp, 1.0_dp) .or. abortExecution
+    abortExecution = checkDoubleInitialization('temperature', temperature, 0.0_dp, 1500.0_dp) .or. abortExecution
 
 
     ! Need for calculating Sj:
     write(*,'("calcSj = ''",L1,"''")') calcSj
     if(calcSj) then
+
+      abortExecution = checkDoubleInitialization('SjThresh', SjThresh, 0.0_dp, 1.0_dp) .or. abortExecution
 
       write(*,'("singleDisp = ''",L1,"''")') singleDisp
       if(singleDisp) then
@@ -729,7 +751,55 @@ module PhononPPMod
   end subroutine getAllDotProds
 
 !----------------------------------------------------------------------------
-  subroutine calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, singleDisp, &
+  subroutine calcAndWriteNj(nModes, omega, temperature)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(in) :: temperature
+
+    ! Local variables:
+    integer :: j
+      !! Loop index
+
+    real(kind=dp) :: beta
+      !! 1/kb*T
+    real(kind=dp) :: nj(nModes)
+      !! \(n_j\) occupation number
+
+    
+    if(ionode) then
+
+      beta = 1.0_dp/(kB_atomic*temperature)
+
+      nj(:) = 1.0_dp/(exp(hbar_atomic*omega(:)*THzToHartree*beta) - 1.0_dp)
+
+      open(17,file='njThermal.out')
+
+      write(17,'("# Mode index, nj from thermal Bose-Einstein")')
+
+      write(17,'("# Temperature (K): ")')
+      write(17,'(f7.1)') temperature
+
+      do j = 1, nModes
+        write(17,'(1i7, 1ES24.15E3)') j, nj(j)
+      enddo
+
+      close(17)
+
+    endif
+
+    return
+
+  end subroutine
+
+!----------------------------------------------------------------------------
+  subroutine calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, diffOmega, singleDisp, &
           CONTCARsBaseDir, energyTableDir, initPOSCARFName, finalPOSCARFName)
 
     implicit none
@@ -749,6 +819,8 @@ module PhononPPMod
       !! Mass of atoms
     real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
       !! Frequency for each mode
+    real(kind=dp), intent(in) :: SjThresh
+      !! Threshold to count modes above
 
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
@@ -770,9 +842,14 @@ module PhononPPMod
       !! Allowed state indices
     integer :: nTransitions
       !! Total number of transitions 
+    integer :: modeIndex(nModes)
+      !! Track mode indices after sorting
 
     real(kind=dp), allocatable :: dE(:,:)
       !! All energy differences from energy table
+    real(kind=dp) :: Sj(nModes), SjPrime(nModes)
+      !! Sj and Sj' Huang-Rhys factors using omega
+      !! and omega'
 
     logical :: fileExists
       !! If a file exists
@@ -781,11 +858,27 @@ module PhononPPMod
       !! File name for the Sj output
 
 
+    if(ionode) then
+      open(43,file='Sj.analysis.out')
+      write(43,'("# SjThresh = ",ES11.3E2)') SjThresh
+    endif
+
     if(singleDisp) then
   
       SjFName = 'Sj.out'
       call getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, &
-                initPOSCARFName, finalPOSCARFName, SjFName)
+                initPOSCARFName, finalPOSCARFName, SjFName, modeIndex, Sj, SjPrime)
+
+      if(ionode) then
+        if(.not. diffOmega) then
+          write(43,'("# Max Sj (mode index, maxval), Num. Sj >= SjThresh")')
+          write(43,'(i10,ES24.15E3,i10)') modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh)
+        else
+          write(43,'("# Max Sj (mode index, maxval), Num. Sj >= SjThresh, Max Sj'' (maxval), Num. Sj'' >= SjThresh")')
+          write(43,'(i10,ES24.15E3,i10,ES24.15E3,i10)') modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh), &
+                                                         maxval(SjPrime), count(SjPrime >= SjThresh) 
+        endif
+      endif
 
     else
 
@@ -793,6 +886,13 @@ module PhononPPMod
         ! Assume that the transitions allowed is the same for both
         ! spin channels
 
+      if(ionode) then
+        if(.not. diffOmega) then
+          write(43,'("# iki, ibi, ikf, ibf, Max Sj (mode index, maxval), Num. Sj >= SjThresh")')
+        else
+          write(43,'("# iki, ibi, ikf, ibf, Max Sj (mode index, maxval), Num. Sj >= SjThresh, Max Sj'' (maxval), Num. Sj'' >= SjThresh")')
+        endif
+      endif
 
       do iE = 1, nTransitions
 
@@ -814,7 +914,18 @@ module PhononPPMod
                         //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
 
         call getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, &
-                  initPOSCARFName, finalPOSCARFName, SjFName)
+                  initPOSCARFName, finalPOSCARFName, SjFName, modeIndex, Sj, SjPrime)
+
+        if(ionode) then
+          if(.not. diffOmega) then
+            write(43,'(5i10,ES24.15E3,i10)') iki(iE), ibi(iE), ikf(iE), ibf(iE), &
+                                             modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh)
+          else
+            write(43,'(5i10,ES24.15E3,i10,ES24.15E3,i10)') iki(iE), ibi(iE), ikf(iE), ibf(iE), &
+                                                            modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh), &
+                                                            maxval(SjPrime), count(SjPrime >= SjThresh) 
+          endif
+        endif
 
       enddo
 
@@ -826,6 +937,7 @@ module PhononPPMod
 
     endif
 
+    if(ionode) close(43)
 
     return
 
@@ -833,7 +945,7 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, &
-            initPOSCARFName, finalPOSCARFName, SjFName)
+            initPOSCARFName, finalPOSCARFName, SjFName, modeIndex, Sj, SjPrime)
 
     use generalComputations, only: direct2cart
     use cell, only: cartDispProjOnPhononEigsNorm
@@ -864,6 +976,14 @@ module PhononPPMod
       !! File names for CONTCARs for different states
     character(len=300), intent(in) :: SjFName
       !! File name for the Sj output
+
+    ! Output variables:
+    integer, intent(out) :: modeIndex(nModes)
+      !! Track mode indices after sorting
+
+    real(kind=dp), intent(out) :: Sj(nModes), SjPrime(nModes)
+      !! Sj and Sj' Huang-Rhys factors using omega
+      !! and omega'
 
     ! Local variables:
     integer :: j
@@ -906,7 +1026,7 @@ module PhononPPMod
     enddo
 
     projNorm = projNorm*angToBohr*sqrt(daltonToElecM)
-    call calcAndWriteSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName)
+    call calcAndWriteSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName, modeIndex, Sj, SjPrime)
 
 
     deallocate(atomPositionsDirInit)
@@ -1140,7 +1260,7 @@ module PhononPPMod
   end subroutine getRelaxDispAndCheckCompatibility
   
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName)
+  subroutine calcAndWriteSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName, modeIndex, Sj, SjPrime)
 
     use miscUtilities, only: hpsort_eps
 
@@ -1162,15 +1282,17 @@ module PhononPPMod
     character(len=300), intent(in) :: SjFName
       !! File name for the Sj output
 
+    ! Output variables:
+    integer, intent(out) :: modeIndex(nModes)
+      !! Track mode indices after sorting
+
+    real(kind=dp), intent(out) :: Sj(nModes), SjPrime(nModes)
+      !! Sj and Sj' Huang-Rhys factors using omega
+      !! and omega'
+
     ! Local variables:
     integer :: j, jSort
       !! Loop index
-    integer :: modeIndex(nModes)
-      !! Track mode indices after sorting
-
-    real(kind=dp) :: Sj(nModes), SjPrime(nModes)
-      !! Sj and Sj' Huang-Rhys factors using omega
-      !! and omega'
 
 
     call mpiSumDoubleV(projNorm, worldComm)
@@ -1652,5 +1774,50 @@ module PhononPPMod
     return 
 
   end subroutine readSjTwoFreq
+
+!----------------------------------------------------------------------------
+  subroutine readNj(nModes, njInput, nj)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    character(len=300), intent(in) :: njInput
+      !! Path to nj file
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: nj(nModes)
+      !! \(n_j\) occupation number
+
+    ! Local variables:
+    integer :: iDum
+      !! Dummy integer to ignore input
+    integer :: j
+      !! Loop index
+
+    
+    if(ionode) then
+
+      open(17,file=trim(njInput))
+
+      read(17,*)
+      read(17,*)
+      read(17,*)
+
+      do j = 1, nModes
+        read(17,'(1i7, 1ES24.15E3)') iDum, nj(j)
+      enddo
+
+      close(17)
+
+    endif
+
+    call MPI_BCAST(nj, size(nj), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return
+
+  end subroutine
 
 end module PhononPPMod

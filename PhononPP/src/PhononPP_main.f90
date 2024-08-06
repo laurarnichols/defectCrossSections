@@ -11,14 +11,16 @@ program PhononPPMain
 
   call mpiInitialization('PhononPP')
 
-  call readInputs(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
-        phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, diffOmega, &
-        dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+  call readInputs(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, dqFName, &
+        energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, &
+        calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
 
   call readPhonons(freqThresh, phononFName, nAtoms, nModes, coordFromPhon, eigenvector, mass, omega)
 
   call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
+
+  call calcAndWriteNj(nModes, omega, temperature)
 
 
   if(diffOmega) then
@@ -62,7 +64,7 @@ program PhononPPMain
 
 
   if(calcSj) &
-    call calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, singleDisp, &
+    call calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, diffOmega, singleDisp, &
             CONTCARsBaseDir, energyTableDir, initPOSCARFName, finalPOSCARFName)
 
 
