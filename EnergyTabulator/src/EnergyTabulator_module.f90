@@ -866,15 +866,10 @@ module energyTabulatorMod
                 ! For scattering, we do separate calculations for each band state, so we only need
                 ! to use the total energy difference
                 !
-                ! Switch the order for hole vs electron capture to represent that the actual energy 
-                ! we need is that of the electron. This is needed because it is expected that the
-                ! user will index initial/final bands based on the carrier (electron/hole) and not
-                ! just the actual electron that is transitioning.
-                if(elecCarrier) then
-                  dEDelta = eTot(ibf,ikf) - eTot(ibi,iki)
-                else
-                  dEDelta = eTot(ibi,iki) - eTot(ibf,ikf)
-                endif
+                ! The order of the total energy difference is the same for both cases because we
+                ! use total energy differences labeled by each state, rather than eigenvalue
+                ! differences.
+                dEDelta = eTot(ibf,ikf) - eTot(ibi,iki)
 
                 if(dEDelta >= 0.0_dp) then
                   ! If this delta-function energy is positive, the phonon energy will have to be
@@ -890,8 +885,9 @@ module energyTabulatorMod
 
                 ! The zeroth-order matrix element contains the electronic-only energy difference.
                 ! For scattering, this is just an eigenvalue difference. The eigenvalues must be
-                ! read from the same system to make the difference meaningful. Switch the order
-                ! for different carriers
+                ! read from the same system to make the difference meaningful. 
+                ! Because we use eigenvalues here, we must switch the order for different carriers
+                ! since it is assumed that the user will index the states based on the type of carrier.
                 if(elecCarrier) then
                   dEZeroth = eigv(ibf+ibShift_eig,ikf) - eigv(ibi+ibShift_eig,iki)
                 else
