@@ -11,7 +11,7 @@ program PhononPPMain
 
   call mpiInitialization('PhononPP')
 
-  call readInputs(disp2AtomInd, freqThresh, shift, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
+  call readInputs(disp2AtomInd, freqThresh, shift, SjThresh, basePOSCARFName, CONTCARsBaseDir, dqFName, energyTableDir, &
         phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, calcSj, diffOmega, &
         dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
@@ -62,7 +62,7 @@ program PhononPPMain
 
 
   if(calcSj) &
-    call calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, singleDisp, &
+    call calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, diffOmega, singleDisp, &
             CONTCARsBaseDir, energyTableDir, initPOSCARFName, finalPOSCARFName)
 
 
