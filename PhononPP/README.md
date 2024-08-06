@@ -23,7 +23,10 @@ within a file (e.g., `PhononPP.in`) that is passed into the code like `mpirun Ph
 
 All calculations require reading the `mesh.yaml` Phonopy output file. The path to the file (`phononFName`) and a threshold for the absolute value of the frequencies (`freqThresh`) are required. By default, `freqThresh = 0.5`. This threshold is needed to determine which modes to skip (translational modes) and which modes to consider. We use the absolute value in case there are negative-frequency modes that would indicate that the structure used for the calculation of phonons is unstable and at a saddle point relative to displacement along the eigenvector of those negative-frequency modes. 
 
+The code also always calculates the thermal occupation numbers $n_j$ based on an input `temperature`. The default temperature used is 300 K.
+
 For all calculations that require projection onto the phonon eigenvectors, when `diffOmega = .true.` the user has the option to set `dqEigvecsFinal` to `.true.` or `.false.` to determine if the final (prime) mode eigenvectors will be used for the projections (`dqEigvecsFinal = .true.`) or the initial-mode eigenvectors (`.false.`). The default is `.true.`. 
+
 
 ### `calcSj`
 
