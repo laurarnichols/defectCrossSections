@@ -630,6 +630,7 @@ contains
                               .or. abortExecution
 
       if(.not. abortExecution) then
+
         allocate(ikBra(1), ikKet(1))
 
         call readCaptureEnergyTable(1, isp, energyTableDir, ibKet, ibBra1, nPairs, rDum)

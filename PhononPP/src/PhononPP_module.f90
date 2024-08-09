@@ -1316,7 +1316,7 @@ module PhononPPMod
 
       enddo
 
-      call hpsort_eps(nModes, omegaSj, modeIndex, 1e-14_dp)
+      call hpsort_eps(nModes, Sj, modeIndex, 1e-14_dp)
         ! Sort in ascending order
 
       open(60, file=trim(SjFName))
@@ -1331,9 +1331,9 @@ module PhononPPMod
 
       ! Currently always sort by initial Sj
       if(diffOmega) then
-        write(60,'("# Mode index, Sj, omega_j, omega_j*Sj (highest to lowest), Sj'', omega_j'', omega_j''*Sj''")')
+        write(60,'("# Mode index, Sj (highest to lowest), omega_j, Sj'', omega_j''")')
       else
-        write(60,'("# Mode index, Sj, omega_j, omega_j*Sj (highest to lowest)")')
+        write(60,'("# Mode index, Sj, (highest to lowest), omega_j")')
       endif
 
 
@@ -1342,10 +1342,10 @@ module PhononPPMod
         jSort = modeIndex(nModes-(j-1))
 
         if(diffOmega) then
-          write(60,'(1i7, 6ES24.15E3)') jSort, Sj(jSort), omega(jSort), omegaSj(nModes-(j-1)), &
-                                               SjPrime(jSort), omegaPrime(jSort), omegaPrimeSjPrime(jSort)
+          write(60,'(1i7, 4ES24.15E3)') jSort, Sj(nModes-(j-1)), omega(jSort), &
+                                               SjPrime(jSort), omegaPrime(jSort)
         else
-          write(60,'(1i7, 3ES24.15E3)') jSort, Sj(jSort), omega(jSort), omegaSj(nModes-(j-1))
+          write(60,'(1i7, 2ES24.15E3)') jSort, Sj(jSort), omega(jSort)
         endif
 
       enddo

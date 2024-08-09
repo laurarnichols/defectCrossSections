@@ -1,9 +1,9 @@
 module LSFmod
   
-  use constants, only: dp, HartreeToEv, ii, kB_atomic, hbar_atomic, time_atomicToSI
+  use constants, only: dp, HartreeToEv, ii, hbar_atomic, time_atomicToSI
   use base, only: nKPoints, order
   use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName, readMatrixElement
-  use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, Sj, SjPrime
+  use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, Sj, SjPrime, readNj
   use miscUtilities, only: int2strLeadZero, int2str
   use errorsAndMPI
 
@@ -33,8 +33,6 @@ module LSFmod
   integer :: suffixLength
     !! Length of shifted POSCAR file suffix
 
-  real(kind=dp) :: beta
-    !! 1/kb*T
   real(kind=dp), allocatable :: dE(:,:,:)
     !! All energy differences from energy table
   real(kind=dp) :: dt
@@ -53,7 +51,6 @@ module LSFmod
   real(kind=dp) :: smearingExpTolerance
     !! Tolerance for the Lorentzian-smearing
     !! exponential used to calculate max time
-  real(kind=dp) :: temperature
 
   logical :: newEnergyTable
     !! If this code and TME are being run with a different
@@ -74,6 +71,8 @@ module LSFmod
   character(len=300) :: MjBaseDir
     !! Path to the base directory for the first-order
     !! matrix element calculations
+  character(len=300) :: njInput
+    !! Path to nj file
   character(len=300) :: outputDir
     !! Path to output transition rates
   character(len=300) :: PhononPPDir
@@ -87,16 +86,15 @@ module LSFmod
     !! output exactly in transition rate file
 
 
-  namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, PhononPPDir, temperature, hbarGamma, dt, &
+  namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, PhononPPDir, njInput, hbarGamma, dt, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, &
-        temperature, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, &
-        MjBaseDir, outputDir, PhononPPDir, prefix)
+  subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, diffOmega, newEnergyTable, &
+        oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, PhononPPDir, prefix)
 
     implicit none
 
@@ -106,8 +104,6 @@ contains
     integer, intent(out) :: order
       !! Order to calculate (0 or 1)
 
-    real(kind=dp), intent(out) :: beta
-      !! 1/kb*T
     real(kind=dp), intent(out) :: dt
       !! Time step size
     real(kind=dp), intent(out) :: gamma0
@@ -120,7 +116,6 @@ contains
     real(kind=dp), intent(out) :: smearingExpTolerance
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
-    real(kind=dp), intent(out) :: temperature
     
     logical, intent(out) :: diffOmega
       !! If initial- and final-state frequencies 
@@ -146,6 +141,8 @@ contains
     character(len=300), intent(out) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
+    character(len=300), intent(out) :: njInput
+      !! Path to nj file
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
     character(len=300), intent(out) :: PhononPPDir
@@ -157,7 +154,7 @@ contains
 
   
     call initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
-          oldFormat, rereadDq, reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, &
+          oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
           PhononPPDir, prefix)
 
     if(ionode) then
@@ -171,13 +168,11 @@ contains
         !! * Exit calculation if there's an error
 
       call checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
-            oldFormat, rereadDq, reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, PhononPPDir, &
-            prefix)
+            oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
+            PhononPPDir, prefix)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
-
-      beta = 1.0d0/(kB_atomic*temperature)
 
       maxTime = -log(smearingExpTolerance)/gamma0
       write(*,'("Max time: ", ES24.15E3)') maxTime
@@ -188,12 +183,10 @@ contains
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
   
-    call MPI_BCAST(beta, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(dt, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(hbarGamma, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(gamma0, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(smearingExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call MPI_BCAST(diffOmega, 1, MPI_LOGICAL, root, worldComm, ierr)
@@ -205,6 +198,7 @@ contains
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(MjBaseDir, len(MjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(njInput, len(njInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(PhononPPDir, len(PhononPPDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
@@ -215,7 +209,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
-        oldFormat, rereadDq, reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, &
+        oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
         PhononPPDir, prefix)
 
     implicit none
@@ -234,7 +228,6 @@ contains
     real(kind=dp), intent(out) :: smearingExpTolerance
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
-    real(kind=dp), intent(out) :: temperature
     
     logical, intent(out) :: diffOmega
       !! If initial- and final-state frequencies 
@@ -260,6 +253,8 @@ contains
     character(len=300), intent(out) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
+    character(len=300), intent(out) :: njInput
+      !! Path to nj file
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
     character(len=300), intent(out) :: PhononPPDir
@@ -276,7 +271,6 @@ contains
     dt = 1d-4
     hbarGamma = 0.0_dp
     smearingExpTolerance = 0.0_dp
-    temperature = 0.0_dp
 
     diffOmega = .false.
     newEnergyTable = .false.
@@ -287,6 +281,7 @@ contains
     energyTableDir = ''
     matrixElementDir = ''
     MjBaseDir = ''
+    njInput = ''
     outputDir = './'
     PhononPPDir = ''
     prefix = 'disp-'
@@ -297,8 +292,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
-        oldFormat, rereadDq, reSortMEs, temperature, energyTableDir, matrixElementDir, MjBaseDir, outputDir, PhononPPDir, &
-        prefix)
+        oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
+        PhononPPDir, prefix)
 
     implicit none
 
@@ -316,7 +311,6 @@ contains
     real(kind=dp), intent(in) :: smearingExpTolerance
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
-    real(kind=dp), intent(in) :: temperature
     
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
@@ -342,6 +336,8 @@ contains
     character(len=300), intent(in) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
+    character(len=300), intent(in) :: njInput
+      !! Path to nj file
     character(len=300), intent(in) :: outputDir
       !! Path to store transition rates
     character(len=300), intent(in) :: PhononPPDir
@@ -366,13 +362,13 @@ contains
     abortExecution = checkDoubleInitialization('dt', dt, 1.0d-6, 1.0d-2) .or. abortExecution
     abortExecution = checkDoubleInitialization('hbarGamma', hbarGamma, 0.1_dp, 20.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('smearingExpTolerance', smearingExpTolerance, 0.0_dp, 1.0_dp) .or. abortExecution
-    abortExecution = checkDoubleInitialization('temperature', temperature, 0.0_dp, 1500.0_dp) .or. abortExecution
       ! These limits are my best guess as to what is reasonable; they are not
       ! hard and fast, but you should think about the application of the theory
       ! to numbers outside these ranges.
 
     abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(iSpin))//'.1') .or. abortExecution
     abortExecution = checkDirInitialization('PhononPPDir', PhononPPDir, 'Sj.out') .or. abortExecution
+    abortExecution = checkFileInitialization('njInput', njInput) .or. abortExecution
 
     write(*,'("diffOmega = ",L)') diffOmega
     write(*,'("oldFormat = ",L)') oldFormat
@@ -463,7 +459,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, order, nModes, dE, gamma0, & 
-          matrixElement, temperature, volumeLine)
+          matrixElement, volumeLine)
     
     implicit none
 
@@ -487,7 +483,6 @@ contains
       !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(in) :: matrixElement(mDim,nTransitions,nkPerPool)
       !! Electronic matrix element
-    real(kind=dp), intent(in) :: temperature
 
     character(len=300), intent(in) :: volumeLine
       !! Volume line from overlap file to be
@@ -609,8 +604,6 @@ contains
 
         write(37,'("# Total number of transitions, Initial states (bandI, bandF) Format : ''(3i10)''")')
         write(37,'(3i10)') nTransitions, ibi(1), ibi(nTransitions)
-
-        write(37,'("# Temperature (K): ", f7.1)') temperature
 
         write(37,'("# Initial state, Transition rate Format : ''(i10, f10.5, ES24.15E3)''")')
 
