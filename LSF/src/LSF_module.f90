@@ -48,6 +48,8 @@ module LSFmod
     !! Max time for integration
   real(kind=dp), allocatable :: nj(:)
     !! \(n_j\) occupation number
+  real(kind=dp) :: SjThresh
+    !! Threshold for Sj to determine which modes to calculate
   real(kind=dp) :: smearingExpTolerance
     !! Tolerance for the Lorentzian-smearing
     !! exponential used to calculate max time
@@ -88,13 +90,14 @@ module LSFmod
 
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, PhononPPDir, njInput, hbarGamma, dt, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
-                         suffixLength, reSortMEs, oldFormat, rereadDq
+                         suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, diffOmega, newEnergyTable, &
-        oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, PhononPPDir, prefix)
+  subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, diffOmega, &
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
+        PhononPPDir, prefix)
 
     implicit none
 
@@ -113,6 +116,8 @@ contains
       !! to guarantee convergence
     real(kind=dp), intent(out) :: maxTime
       !! Max time for integration
+    real(kind=dp), intent(out) :: SjThresh
+      !! Threshold for Sj to determine which modes to calculate
     real(kind=dp), intent(out) :: smearingExpTolerance
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
@@ -153,7 +158,7 @@ contains
       !! elements
 
   
-    call initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
+    call initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, diffOmega, newEnergyTable, &
           oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
           PhononPPDir, prefix)
 
@@ -161,13 +166,12 @@ contains
 
       read(5, inputParams, iostat=ierr)
         !! * Read input variables
-      write(*,*) order
 
     
       if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
+      call checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, diffOmega, newEnergyTable, &
             oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
             PhononPPDir, prefix)
 
@@ -186,6 +190,7 @@ contains
     call MPI_BCAST(dt, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(hbarGamma, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(gamma0, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(SjThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(smearingExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
@@ -208,7 +213,7 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
+  subroutine initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, diffOmega, newEnergyTable, &
         oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
         PhononPPDir, prefix)
 
@@ -225,6 +230,8 @@ contains
     real(kind=dp), intent(out) :: hbarGamma
       !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
+    real(kind=dp), intent(out) :: SjThresh
+      !! Threshold for Sj to determine which modes to calculate
     real(kind=dp), intent(out) :: smearingExpTolerance
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
@@ -270,6 +277,7 @@ contains
 
     dt = 1d-4
     hbarGamma = 0.0_dp
+    SjThresh = 0.0_dp
     smearingExpTolerance = 0.0_dp
 
     diffOmega = .false.
@@ -291,7 +299,7 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iSpin, order, dt, hbarGamma, smearingExpTolerance, diffOmega, newEnergyTable, &
+  subroutine checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, diffOmega, newEnergyTable, &
         oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
         PhononPPDir, prefix)
 
@@ -308,6 +316,8 @@ contains
     real(kind=dp), intent(in) :: hbarGamma
       !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
+    real(kind=dp), intent(in) :: SjThresh
+      !! Threshold for Sj to determine which modes to calculate
     real(kind=dp), intent(in) :: smearingExpTolerance
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
@@ -361,6 +371,7 @@ contains
 
     abortExecution = checkDoubleInitialization('dt', dt, 1.0d-6, 1.0d-2) .or. abortExecution
     abortExecution = checkDoubleInitialization('hbarGamma', hbarGamma, 0.1_dp, 20.0_dp) .or. abortExecution
+    abortExecution = checkDoubleInitialization('SjThresh', SjThresh, 0.0_dp, 1.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('smearingExpTolerance', smearingExpTolerance, 0.0_dp, 1.0_dp) .or. abortExecution
       ! These limits are my best guess as to what is reasonable; they are not
       ! hard and fast, but you should think about the application of the theory
@@ -459,7 +470,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, order, nModes, dE, gamma0, & 
-          matrixElement, volumeLine)
+          matrixElement, SjThresh, volumeLine)
     
     implicit none
 
@@ -483,14 +494,20 @@ contains
       !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(in) :: matrixElement(mDim,nTransitions,nkPerPool)
       !! Electronic matrix element
+    real(kind=dp), intent(in) :: SjThresh
+      !! Threshold for Sj to determine which modes to calculate
 
     character(len=300), intent(in) :: volumeLine
       !! Volume line from overlap file to be
       !! output exactly in transition rate file
 
     ! Local variables:
+    integer :: countTrue
+      !! Number of modes where Sj > SjThresh
     integer :: iTime, iE, ikLocal, ikGlobal
       !! Loop indices
+    integer, allocatable :: jTrue(:)
+      !! Mode indices where Sj > SjThresh
     integer :: updateFrequency
       !! Frequency of steps to write status update
 
@@ -521,9 +538,18 @@ contains
       !! For zeroth-order, this is just the matrix element,
       !! but for first-order this is \(\sum_j M_j A_j\).
 
+    logical :: mask(nModes)
+      !! Select the modes to calculate
+
       
     updateFrequency = ceiling(nStepsLocal/10.0)
     call cpu_time(timer1)
+
+
+    ! Create a mask to determine which modes to calculate
+    ! based on an optional threshold given (default 0.0).
+    mask = Sj(:) >= SjThresh
+    call getTrueIndices(nModes, mask, countTrue, jTrue)
 
 
     t0 = indexInPool*float(nStepsLocal-1)*dt
@@ -542,9 +568,9 @@ contains
         ! Must do this arithmetic with floats to avoid
         ! integer overflow
 
-      call setupTimeTables(time, Dj0_t, Dj1_t)
+      call setupTimeTables(countTrue, jTrue, time, Dj0_t, Dj1_t)
 
-      expArg_base = ii*sum(Dj0_t(:)) - gamma0*time
+      expArg_base = ii*sum(Dj0_t(jTrue)) - gamma0*time
 
       if(iTime == 0 .or. iTime == nStepsLocal-1) then
         multFact = 1.0_dp
@@ -561,7 +587,7 @@ contains
           if(order == 0) then
             expPrefactor = matrixElement(1,iE,ikLocal)
           else if(order == 1) then
-            expPrefactor = sum(matrixElement(:,iE,ikLocal)*Dj1_t(:))
+            expPrefactor = sum(matrixElement(jTrue,iE,ikLocal)*Dj1_t(jTrue))
           endif
 
           Eif = dE(1,iE,ikLocal)
@@ -623,13 +649,56 @@ contains
   end subroutine getAndWriteTransitionRate
 
 !----------------------------------------------------------------------------
-  subroutine setupTimeTables(time, Dj0_t, Dj1_t)
+  subroutine getTrueIndices(arrSize, mask, countTrue, trueIndices)
+    ! Get an array of only the indices where the input mask is true
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: arrSize
+      !! Size of the mask array
+
+    logical, intent(in) :: mask(arrSize)
+      !! Mask used to determine which indices to use
+
+    ! Output variables:
+    integer, intent(out) :: countTrue
+      !! Number of true values in mask
+    integer, allocatable, intent(out) :: trueIndices(:)
+      !! Indices where mask is true
+
+    ! Local variables:
+    integer :: j, jTrue
+      !! Loop indices
+
+    countTrue = count(mask)
+
+    allocate(trueIndices(countTrue))
+
+    jTrue = 0
+    do j = 1, arrSize
+      if(mask(j)) then
+        jTrue = jTrue + 1
+        trueIndices(jTrue) = j
+      endif
+    enddo
+
+    return
+
+  end subroutine
+
+!----------------------------------------------------------------------------
+  subroutine setupTimeTables(countTrue, jTrue, time, Dj0_t, Dj1_t)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: countTrue
+      !! Number of indices where Sj > SjThresh
     !integer, intent(in) :: nModes
       ! Number of phonon modes
+    integer, intent(in) :: jTrue(countTrue)
+      !! Mode indices where Sj > SjThresh
 
     !real(kind=dp), intent(in) :: nj(nModes)
       ! \(n_j\) occupation number
@@ -641,6 +710,8 @@ contains
       ! Huang-Rhys factor for each mode with omega_j
     !real(kind=dp), intent(in) :: SjPrime(nModes)
       ! Huang-Rhys factor for each mode with omega_j'
+    !real(kind=dp), intent(in) :: SjThresh
+      ! Threshold for Sj to determine which modes to calculate
     real(kind=dp), intent(in) :: time
       !! Time at which to calculate the \(G_0(t)\) argument
 
@@ -672,27 +743,30 @@ contains
       !! Local storage of \(e^{i\omega_j t}\) for speed
 
 
-    posExp_t(:) = exp(ii*omega(:)*time)
+    posExp_t(jTrue) = exp(ii*omega(jTrue)*time)
 
-    expTimesNBarPlus1(:) = posExp_t(:)*(nj(:)+1.0_dp)
+
+    expTimesNBarPlus1(jTrue) = posExp_t(jTrue)*(nj(jTrue)+1.0_dp)
 
     if(diffOmega) then
-      Aj_t(:) = (expTimesNBarPlus1(:) + nj(:))/(expTimesNBarPlus1(:) - nj(:))
+      Aj_t(jTrue) = (expTimesNBarPlus1(jTrue) + nj(jTrue))/(expTimesNBarPlus1(jTrue) - nj(jTrue))
 
-      sinOmegaPrime(:) = sin(omegaPrime(:)*time/2.0_dp)
-      cosOmegaPrime(:) = cos(omegaPrime(:)*time/2.0_dp)
+      sinOmegaPrime(jTrue) = sin(omegaPrime(jTrue)*time/2.0_dp)
+      cosOmegaPrime(jTrue) = cos(omegaPrime(jTrue)*time/2.0_dp)
 
-      Dj0OverSinOmegaPrime_t(:) = -2.0_dp/(ii*Aj_t*sinOmegaPrime(:)/Sj(:) - cosOmegaPrime(:)/SjPrime(:))
-      Dj0_t(:) = sinOmegaPrime(:)*Dj0OverSinOmegaPrime_t(:)
+      Dj0OverSinOmegaPrime_t(jTrue) = -2.0_dp/(ii*Aj_t*sinOmegaPrime(jTrue)/Sj(jTrue) - cosOmegaPrime(jTrue)/SjPrime(jTrue))
+
+      Dj0_t(jTrue) = sinOmegaPrime(jTrue)*Dj0OverSinOmegaPrime_t(jTrue)
         ! Need to factor out the sin() to avoid getting NaNs
         ! when calculating cot() here and in Dj1_t
 
       if(order == 1) then
 
-        Dj1_t(:) = -(hbar_atomic/(2.0_dp*omega(:)*Sj(:)))*Dj0OverSinOmegaPrime_t(:)*(sinOmegaPrime(:)*Dj0_t(:)*Aj_t(:)**2 - &
-                        0.5_dp*omega(:)/omegaPrime(:)*(Aj_t(:)*cosOmegaPrime(:) - sinOmegaPrime(:)* &
-                          (omega(:)*cosOmegaPrime(:) - ii*omegaPrime(:)*Aj_t(:)*sinOmegaPrime(:))/ &
-                          (omega(:)*Aj_t(:)*sinOmegaPrime(:) + ii*omegaPrime(:)*cosOmegaPrime(:))))
+        Dj1_t(jTrue) = -(hbar_atomic/(2.0_dp*omega(jTrue)*Sj(jTrue)))* &
+                        Dj0OverSinOmegaPrime_t(jTrue)*(sinOmegaPrime(jTrue)*Dj0_t(jTrue)*Aj_t(jTrue)**2 - &
+                        0.5_dp*omega(jTrue)/omegaPrime(jTrue)*(Aj_t(jTrue)*cosOmegaPrime(jTrue) - sinOmegaPrime(jTrue)* &
+                          (omega(jTrue)*cosOmegaPrime(jTrue) - ii*omegaPrime(jTrue)*Aj_t(jTrue)*sinOmegaPrime(jTrue))/ &
+                          (omega(jTrue)*Aj_t(jTrue)*sinOmegaPrime(jTrue) + ii*omegaPrime(jTrue)*cosOmegaPrime(jTrue))))
           ! I don't have access to (Delta q_j) here, and I don't want to 
           ! get another variable to deal with. Instead, I rearranged this
           ! to not be in terms of (Delta q_j). Also have to rearrange to 
@@ -701,14 +775,14 @@ contains
       endif
 
     else
-      njOverPosExp_t(:) = nj(:)/posExp_t(:)
+      njOverPosExp_t(jTrue) = nj(jTrue)/posExp_t(jTrue)
 
-      Dj0_t(:) = Sj(:)/ii*(expTimesNBarPlus1(:) + njOverPosExp_t(:) - (2.0_dp*nj(:) + 1.0_dp))
+      Dj0_t(jTrue) = Sj(jTrue)/ii*(expTimesNBarPlus1(jTrue) + njOverPosExp_t(jTrue) - (2.0_dp*nj(jTrue) + 1.0_dp))
 
       if(order == 1) then
 
-        Dj1_t(:) = (hbar_atomic/omega(:))/2.0_dp*(njOverPosExp_t(:) + expTimesNBarPlus1(:) + &
-            Sj(:)*(1 + njOverPosExp_t(:) - expTimesNBarPlus1(:))**2)
+        Dj1_t(jTrue) = (hbar_atomic/omega(jTrue))/2.0_dp*(njOverPosExp_t(jTrue) + expTimesNBarPlus1(jTrue) + &
+            Sj(jTrue)*(1 + njOverPosExp_t(jTrue) - expTimesNBarPlus1(jTrue))**2)
 
       endif
     endif

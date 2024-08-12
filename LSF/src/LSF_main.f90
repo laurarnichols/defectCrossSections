@@ -47,8 +47,9 @@ program LSFmain
   if(ionode) write(*, '("Pre-k-loop: [ ] Get parameters  [ ] Read Sj")')
   call cpu_time(timer1)
 
-  call readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, diffOmega, newEnergyTable, &
-        oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, PhononPPDir, prefix)
+  call readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, diffOmega, &
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
+        PhononPPDir, prefix)
 
 
   nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
@@ -256,6 +257,12 @@ program LSFmain
 
   deallocate(jReSort)
 
+  if(ionode) then
+    do j = 1, nModes
+      write(47,'(i10,3ES24.14E3)') j, (matrixElement(j,iDum1,1),iDum1=1,3)
+    enddo
+  endif
+
 
   call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
   call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
@@ -265,7 +272,7 @@ program LSFmain
    
 
   call getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, order, nModes, dE, gamma0, & 
-          matrixElement, volumeLine)
+          matrixElement, SjThresh, volumeLine)
 
   
   deallocate(dE)
