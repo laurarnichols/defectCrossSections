@@ -3657,7 +3657,7 @@ contains
     real(kind=dp) :: normSqOverlap, overlapWithFactors
       !! Store the values from the input file
 
-    logical :: captured
+    logical :: capture
       !! If matrix elements for capture or scattering
 
     character(len=300) :: dqFName
@@ -3670,6 +3670,7 @@ contains
       if(ibH - ibL + 1 /= nTransitions) call exitError('readMatrixElement', 'Number of transitions input does not match band bounds!', 1)
     endif
 
+
     open(12,file=trim(fName))
 
     read(12,*)
@@ -3680,8 +3681,8 @@ contains
 
     if(.not. oldFormat) then
       read(12,*)
-      read(12,'(L4)') captured
-      if(.not. captured) call exitError('readMatrixElement', 'This matrix element was not calculated for capture!', 1)
+      read(12,'(L4)') capture
+      if(.not. capture) call exitError('readMatrixElement', 'This matrix element was not calculated for capture!', 1)
     endif
 
 
