@@ -269,12 +269,12 @@ module PhononPPMod
     SjThresh = 1e-1_dp
     temperature = 300_dp
 
-    calcDq = .true.
-    calcSj = .true.
+    calcDq = .false.
+    calcSj = .false.
     calcMaxDisp = .false.
     diffOmega = .false.
     dqEigvecsFinal = .true.
-    generateShiftedPOSCARs = .true.
+    generateShiftedPOSCARs = .false.
     singleDisp = .true.
 
     return
@@ -337,10 +337,6 @@ module PhononPPMod
     ! Local variables:
     logical :: abortExecution
       !! Whether or not to abort the execution
-
-
-    if(.not. (calcDq .or. calcMaxDisp .or. calcSj .or. generateShiftedPOSCARs)) &
-      call exitError('checkInitialization','You must choose at least one option to run this program!',1)
 
 
     ! Must-haves for reading phonons and calculating nj:
@@ -785,6 +781,8 @@ module PhononPPMod
 
       write(17,'("# Temperature (K): ")')
       write(17,'(f7.1)') temperature
+
+      write(17,'("# Mode index, nj")')
 
       do j = 1, nModes
         write(17,'(1i7, 1ES24.15E3)') j, nj(j)
@@ -1754,7 +1752,7 @@ module PhononPPMod
     if(ionode) then
 
       do j = 1, nModes
-        read(12,*) jSort, Sj_, omega_, rDum, SjPrime_, omegaPrime_! freq read from Sj.out is f(in Thz)*2pi
+        read(12,*) jSort, Sj_, omega_, SjPrime_, omegaPrime_! freq read from Sj.out is f(in Thz)*2pi
         Sj(jSort) = Sj_
         omega(jSort) = omega_
         SjPrime(jSort) = SjPrime_
@@ -1805,6 +1803,7 @@ module PhononPPMod
 
       open(17,file=trim(njInput))
 
+      read(17,*)
       read(17,*)
       read(17,*)
       read(17,*)
