@@ -499,6 +499,87 @@ contains
   end subroutine readSj
 
 !----------------------------------------------------------------------------
+  subroutine readEnergyTable(iSpin, energyTableDir, nTransitions, ibi, ibf, dE)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iSpin
+      !! Spin channel to use
+
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy table to read
+
+    ! Output variables:
+    integer, intent(out) :: nTransitions
+      !! Total number of transitions 
+    integer, allocatable, intent(out) :: ibi(:)
+      !! Initial-state indices
+    integer, intent(out) :: ibf
+      !! Final-state index
+
+    real(kind=dp), allocatable, intent(out) :: dE(:,:,:)
+      !! All energy differences from energy table
+
+    ! Local variables:
+    integer, allocatable :: iDum1D(:)
+      !! Integer to ignore input
+    integer :: iDum1, iDum2
+      !! Integers to ignore input
+    integer :: ikLocal, ikGlobal
+      !! Loop indices
+
+    real(kind=dp), allocatable :: dE2D(:,:)
+      !! 2D array to read energy at single k-point
+
+
+    ! Get the number of transitions and the state indices
+    if(ionode) then
+      call readCaptureEnergyTable(1, iSpin, energyTableDir, ibi, ibf, nTransitions, dE2D)
+       ! Assume that band bounds and number of transitions do not depend on k-points or spin
+       ! We ignore the energy here because we are only reading ibi, ibf, and nTransitions
+
+      deallocate(dE2D)
+    endif
+
+    call MPI_BCAST(nTransitions, 1, MPI_INTEGER, root, worldComm, ierr)
+    if(.not. ionode) allocate(ibi(nTransitions))
+    call MPI_BCAST(ibi, nTransitions, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(ibf, 1, MPI_INTEGER, root, worldComm, ierr)
+
+
+    allocate(dE(3,nTransitions,nkPerPool))
+
+
+    if(indexInPool == 0) then
+
+      dE = 0.0_dp
+
+      do ikLocal = 1, nkPerPool
+    
+        ! Get the global `ik` index from the local one
+        ikGlobal = ikLocal+ikStart_pool-1
+
+
+        call readCaptureEnergyTable(ikGlobal, iSpin, energyTableDir, iDum1D, iDum1, iDum2, dE2D)
+          ! Assume that band bounds and number of transitions do not depend on k-points or spin
+
+        dE(:,:,ikLocal) = dE2D
+        deallocate(dE2D)
+
+      enddo
+
+    endif
+
+
+    call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
+
+
+    return
+
+  end subroutine readEnergyTable
+
+!----------------------------------------------------------------------------
   subroutine getjReSort(nModes, PhononPPDir, jReSort)
 
     implicit none

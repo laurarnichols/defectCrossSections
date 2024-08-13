@@ -98,27 +98,18 @@ program LSFmain
   call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
     !! * Distribute k-points in pools
 
+  call readEnergyTable(iSpin, energyTableDir, nTransitions, ibi, ibf, dE)
+
 
   allocate(jReSort(nModes))
 
   if(ionode) then
-    call readCaptureEnergyTable(1, iSpin, energyTableDir, ibi, ibf, nTransitions, rDum2D)
-     ! Assume that band bounds and number of transitions do not depend on k-points or spin
-     ! We ignore the energy here because we are only reading ibi, ibf, and nTransitions
-
-    deallocate(rDum2D)
-
     if(order == 1 .and. reSortMEs) call getjReSort(nModes, PhononPPDir, jReSort)
   endif
 
-  call MPI_BCAST(nTransitions, 1, MPI_INTEGER, root, worldComm, ierr)
-  if(.not. ionode) allocate(ibi(nTransitions))
-  call MPI_BCAST(ibi, nTransitions, MPI_INTEGER, root, worldComm, ierr)
-  call MPI_BCAST(ibf, 1, MPI_INTEGER, root, worldComm, ierr)
   call MPI_BCAST(jReSort, nModes, MPI_INTEGER, root, worldComm, ierr)
 
 
-  allocate(dE(3,nTransitions,nkPerPool))
   allocate(dENew(nTransitions))
 
   if(order == 0) then
@@ -132,7 +123,6 @@ program LSFmain
 
   if(indexInPool == 0) then
 
-    dE = 0.0_dp
     matrixElement = 0.0_dp
 
     do ikLocal = 1, nkPerPool
@@ -148,12 +138,6 @@ program LSFmain
         ! rate calculation yet, so we need to read all of the files.
         ! In the future, can just skip the ones that have already been 
         ! calculated.
-
-        call readCaptureEnergyTable(ikGlobal, iSpin, energyTableDir, iDum1D, iDum1, iDum2, rDum2D)
-          ! Assume that band bounds and number of transitions do not depend on k-points or spin
-
-        dE(:,:,ikLocal) = rDum2D
-        deallocate(rDum2D)
 
         if(order == 0) then
           ! Read zeroth-order matrix element
@@ -226,7 +210,6 @@ program LSFmain
   deallocate(jReSort)
 
 
-  call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
   call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
 
 
