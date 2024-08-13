@@ -84,39 +84,7 @@ program LSFmain
   call cpu_time(timer1)
 
 
-  fName = trim(PhononPPDir)//'/Sj.out' 
-  if(diffOmega) then
-    call readSjTwoFreq(fName, nModes, omega, omegaPrime, Sj, SjPrime)
-
-    ! This is the code that I used to test what difference different
-    ! frequencies would have. I input the same two frequencies twice
-    ! and randomly adjusted the omegaPrime. 
-    !
-    ! If doing a random adjustment, must do with a single process then
-    ! broadcast, otherwise the random variables will be different across
-    ! processes.
-    !allocate(randVal(nModes))
-    !if(ionode) then
-      !call random_seed()
-      !call random_number(randVal)
-      !randVal = (randVal*2.0_dp - 1.0_dp)*0.50_dp  ! the number multiplied here is the % adjustment
-      !SjPrime(:) = SjPrime(:)/omegaPrime(:)
-      !omegaPrime(:) = omegaPrime(:)*(1.0_dp + randVal) ! this applies the random adjustment
-      !omegaPrime(:) = omegaPrime(:)*(1.0_dp + 0.5_dp) ! this applies a uniform adjustment
-      !SjPrime(:) = SjPrime(:)*omegaPrime(:)
-    !endif
-    !deallocate(randVal)
-
-    ! Need to rebroadcast omegaPrime if we adjust it
-    !call MPI_BCAST(omegaPrime, size(omegaPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    !call MPI_BCAST(SjPrime, size(SjPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-  else
-    allocate(omegaPrime(nModes), SjPrime(nModes))
-      ! Need to allocate to avoid issues with passing variables
-      ! and deallocating
-
-    call readSjOneFreq(fName, nModes, omega, Sj)
-  endif
+  call readSj(diffOmega, PhononPPDir, nModes, omega, omegaPrime, Sj, SjPrime)
 
   allocate(nj(nModes))
   call readNj(nModes, njInput, nj)
@@ -256,12 +224,6 @@ program LSFmain
   endif
 
   deallocate(jReSort)
-
-  if(ionode) then
-    do j = 1, nModes
-      write(47,'(i10,3ES24.14E3)') j, (matrixElement(j,iDum1,1),iDum1=1,3)
-    enddo
-  endif
 
 
   call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
