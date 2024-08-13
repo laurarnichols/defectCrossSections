@@ -621,6 +621,103 @@ contains
   end subroutine
 
 !----------------------------------------------------------------------------
+  subroutine readAllMatrixElements()
+
+    implicit none
+
+    allocate(dENew(nTransitions))
+
+    if(order == 0) then
+      mDim = 1
+    else if(order == 1) then
+      mDim = nModes
+    endif
+
+    allocate(matrixElement(mDim,nTransitions,nkPerPool))
+    allocate(ME_tmp(nTransitions))
+
+    if(indexInPool == 0) then
+
+      matrixElement = 0.0_dp
+
+      do ikLocal = 1, nkPerPool
+    
+        ikGlobal = ikLocal+ikStart_pool-1
+          !! Get the global `ik` index from the local one
+
+        if(order == 0) then
+          ! Read zeroth-order matrix element
+
+          fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
+
+          dENew = dE(2,:,ikLocal)
+          ! Call to readMatrixElement includes conversion from Hartree to J
+          if(newEnergyTable) then
+            call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
+          else
+            call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
+              ! dENew will be ignored here
+          endif
+
+          matrixElement(1,:,ikLocal) = ME_tmp
+
+        else if(order == 1) then
+          ! Read matrix elements for all modes
+    
+          do j = 1, nModes
+
+            fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,suffixLength))//'/'&
+                    //trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
+
+            dENew = dE(3,:,ikLocal)
+            ! Call to readMatrixElement includes conversion from Hartree to J
+            ! The volume line will get overwritten each time, but that's
+            ! okay because the volume doesn't change between the files. 
+
+
+            ! If resorting the matrix element files based on a different PhononPP output
+            ! order, make sure to pass the resorted mode index if re-reading dq's
+            if(reSortMEs) then
+              jStore = jReSort(j)
+            else 
+              jStore = j
+            endif
+
+
+            if(newEnergyTable) then
+              if(rereadDq) then
+                call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
+                      fName, ME_tmp, volumeLine, jStore, PhononPPDir)
+              else
+                call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
+                      fName, ME_tmp, volumeLine)
+              endif
+            else
+              if(rereadDq) then
+                call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine, &
+                  jStore, PhononPPDir)
+                  ! dENew will be ignored here
+              else
+                call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
+                  ! dENew will be ignored here
+              endif
+            endif
+
+            matrixElement(jStore,:,ikLocal) = ME_tmp
+
+          enddo
+        endif
+      enddo
+    endif
+
+
+    call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
+
+    return
+
+  end subroutine readAllMatrixElements
+
+!----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, order, nModes, dE, gamma0, & 
           matrixElement, SjThresh, volumeLine)
     
