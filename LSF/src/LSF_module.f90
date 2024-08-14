@@ -26,6 +26,8 @@ module LSFmod
     !! Spin channel to use
   integer, allocatable :: jReSort(:)
     !! Indices to optionally resort matrix elements
+  integer :: mDim
+    !! Size of first dimension for matrix element
   integer :: nModes
     !! Number of phonon modes
   integer :: nTransitions
@@ -621,9 +623,81 @@ contains
   end subroutine
 
 !----------------------------------------------------------------------------
-  subroutine readAllMatrixElements()
+  subroutine readAllMatrixElements(iSpin, nTransitions, ibi, nModes, jReSort, order, suffixLength, dE, newEnergyTable, &
+          oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, PhononPPDir, prefix, mDim, matrixElement, volumeLine)
 
     implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iSpin
+      !! Spin channel to use
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions)
+      !! Initial-state indices
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: jReSort(nModes)
+      !! Indices to optionally resort matrix elements
+    integer, intent(in) :: order
+      !! Order to calculate (0 or 1)
+    integer, intent(in) :: suffixLength
+      !! Length of shifted POSCAR file suffix
+
+    real(kind=dp), intent(in) :: dE(3,nTransitions,nkPerPool)
+      !! All energy differences from energy table
+
+    logical, intent(in) :: newEnergyTable
+      !! If this code and TME are being run with a different
+      !! energy table
+    logical, intent(in) :: oldFormat
+      !! If the old format of the matrix element files
+      !! should be used
+    logical, intent(in) :: rereadDq
+      !! If dq should be read from matrix element file
+      !! (.false.) or from the dq.txt file (.true.)
+    logical, intent(in) :: reSortMEs
+      !! If matrix elements should be resorted
+
+    character(len=300), intent(in) :: matrixElementDir
+      !! Path to matrix element file `allElecOverlap.isp.ik`. 
+      !! For first-order term, the path is just within each 
+      !! subdirectory.
+    character(len=300), intent(in) :: MjBaseDir
+      !! Path to the base directory for the first-order
+      !! matrix element calculations
+    character(len=300), intent(in) :: PhononPPDir
+      !! Path to PhononPP output dir to get Sj.out
+      !! and potentially optimalPairs.out
+    character(len=300), intent(in) :: prefix
+      !! Prefix of directories for first-order matrix
+      !! elements
+
+    ! Output variables:
+    integer, intent(out) :: mDim
+      !! Size of first dimension for matrix element
+
+    real(kind=dp), allocatable, intent(out) :: matrixElement(:,:,:)
+      !! Electronic matrix element
+
+    character(len=300), intent(out) :: volumeLine
+      !! Volume line from overlap file to be
+      !! output exactly in transition rate file
+
+    ! Local variables:
+    integer :: ikLocal, ikGlobal, j, jStore
+      !! Loop indices
+
+    real(kind=dp), allocatable :: dENew(:)
+      !! New energy to update matrix element; needed
+      !! not to create a temporary array when passing
+      !! a slice of dE
+    real(kind=dp), allocatable :: ME_tmp(:)
+      !! Temporary storage of matrix element
+
+    character(len=300) :: fName
+      !! File name to read
+
 
     allocate(dENew(nTransitions))
 
@@ -636,6 +710,7 @@ contains
     allocate(matrixElement(mDim,nTransitions,nkPerPool))
     allocate(ME_tmp(nTransitions))
 
+
     if(indexInPool == 0) then
 
       matrixElement = 0.0_dp
@@ -645,13 +720,30 @@ contains
         ikGlobal = ikLocal+ikStart_pool-1
           !! Get the global `ik` index from the local one
 
+        ! For both the zeroth-order and first-order matrix elements, there
+        ! is the option to specify `newEnergyTable`. If this variable is true,
+        ! that means that the matrix elements (TME) and LSF code were not run
+        ! with the same energy table as input. This might be beneficial if tweaks
+        ! were made to the energies used or you only want to use a subset of 
+        ! the transitions for the LSF code. 
+        !
+        ! With `newEnergyTable = .true.`, the states to be read from the matrix
+        ! element file(s) come from the energy table input to the LSF code. All
+        ! of the states in the energy table input to the LSF code must be present
+        ! in the matrix element file. 
+        !
+        ! Both terms also allow you to specify the old format where both the
+        ! initial and final band indices were given for capture and the headers
+        ! were different. I needed this for the Si calculations and left it here
+        ! just in case.
+        !..........................................................................
+        ! The zeroth-order term reads only one matrix element, with or without the
+        ! new energy table
         if(order == 0) then
-          ! Read zeroth-order matrix element
-
           fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
 
           dENew = dE(2,:,ikLocal)
-          ! Call to readMatrixElement includes conversion from Hartree to J
+            ! The second index holds the zeroth-order energy
           if(newEnergyTable) then
             call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
           else
@@ -661,19 +753,34 @@ contains
 
           matrixElement(1,:,ikLocal) = ME_tmp
 
+        !..........................................................................
+        ! The first-order term reads a matrix element for each mode. In addition to
+        ! the options `newEnergyTable` and `oldFormat` in the zeroth-order term, 
+        ! the first-order term also has options `reSortMEs` and `rereadDq`.
+        !
+        ! `reSortMEs` assumes that the modes were labeled differently when the
+        ! matrix elements were calculated vs what is to be used for the LSF run.
+        ! This can be the case if you want to compare the difference between
+        ! allowing the frequencies to change for different states (e.g., before and
+        ! after capture). 
+        !
+        ! `rereadDq` allows you to read a new delta q for each mode than was used
+        ! in the calculation of the matrix elements. You shouldn't need this in 
+        ! general, but there was a bug in the code that only messed up the dq.txt
+        ! file previously, so it was useful for me to be able to fix the dq here 
+        ! rather than having to redo all of the matrix element calculations. 
+        !
+        ! The volume line will get overwritten each time through the loop, but 
+        ! that's okay because the volume doesn't change between the files. 
         else if(order == 1) then
-          ! Read matrix elements for all modes
+
+          dENew = dE(3,:,ikLocal)
+            ! The third index holds the first-order energy
     
           do j = 1, nModes
 
             fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,suffixLength))//'/'&
                     //trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
-
-            dENew = dE(3,:,ikLocal)
-            ! Call to readMatrixElement includes conversion from Hartree to J
-            ! The volume line will get overwritten each time, but that's
-            ! okay because the volume doesn't change between the files. 
-
 
             ! If resorting the matrix element files based on a different PhononPP output
             ! order, make sure to pass the resorted mode index if re-reading dq's
@@ -684,25 +791,30 @@ contains
             endif
 
 
-            if(newEnergyTable) then
-              if(rereadDq) then
-                call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
-                      fName, ME_tmp, volumeLine, jStore, PhononPPDir)
-              else
-                call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
-                      fName, ME_tmp, volumeLine)
-              endif
-            else
-              if(rereadDq) then
-                call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine, &
-                  jStore, PhononPPDir)
+            ! For new energy table and new dqs, must pass the band bounds, mode index
+            ! to read (jStore) and PhononPPDir
+            if(newEnergyTable .and. rereadDq) then
+              call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
+                    fName, ME_tmp, volumeLine, jStore, PhononPPDir)
+
+            ! For just new energy table, only pass band bounds
+            else if(newEnergyTable .and. (.not. rereadDq)) then
+              call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
+                    fName, ME_tmp, volumeLine)
+
+            ! For just new dq, only pass jStore and PhononPPDir
+            else if((.not. newEnergyTable) .and. rereadDq) then
+              call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine, &
+                jStore, PhononPPDir)
                   ! dENew will be ignored here
-              else
-                call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
-                  ! dENew will be ignored here
-              endif
+
+            ! For neither, don't pass anything and just read matrix elements as-is
+            else if((.not. newEnergyTable) .and. (.not. rereadDq)) then
+              call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
+                ! dENew will be ignored here
             endif
 
+            ! Store the matrix element for this mode
             matrixElement(jStore,:,ikLocal) = ME_tmp
 
           enddo
@@ -710,6 +822,8 @@ contains
       enddo
     endif
 
+    deallocate(dENew)
+    deallocate(ME_tmp)
 
     call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
 
@@ -718,8 +832,8 @@ contains
   end subroutine readAllMatrixElements
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, order, nModes, dE, gamma0, & 
-          matrixElement, SjThresh, volumeLine)
+  subroutine getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, nModes, order, dE, dt, gamma0, & 
+          matrixElement, nj, omega, omegaPrime, Sj, SjPrime, SjThresh, diffOmega, volumeLine)
     
     implicit none
 
@@ -739,12 +853,24 @@ contains
 
     real(kind=dp), intent(in) :: dE(3,nTransitions,nkPerPool)
       !! All energy differences from energy table
+    real(kind=dp), intent(in) :: dt
+      !! Time step size
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(in) :: matrixElement(mDim,nTransitions,nkPerPool)
       !! Electronic matrix element
+    real(kind=dp), intent(in) :: nj(nModes)
+      !! \(n_j\) occupation number
+    real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(in) :: Sj(nModes), SjPrime(nModes)
+      !! Huang-Rhys factor for each mode
     real(kind=dp), intent(in) :: SjThresh
       !! Threshold for Sj to determine which modes to calculate
+
+    logical, intent(in) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
 
     character(len=300), intent(in) :: volumeLine
       !! Volume line from overlap file to be
@@ -817,7 +943,7 @@ contains
         ! Must do this arithmetic with floats to avoid
         ! integer overflow
 
-      call setupTimeTables(countTrue, jTrue, time, Dj0_t, Dj1_t)
+      call setupTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, Sj, SjPrime, time, diffOmega, Dj0_t, Dj1_t)
 
       expArg_base = ii*sum(Dj0_t(jTrue)) - gamma0*time
 
@@ -937,36 +1063,30 @@ contains
   end subroutine
 
 !----------------------------------------------------------------------------
-  subroutine setupTimeTables(countTrue, jTrue, time, Dj0_t, Dj1_t)
+  subroutine setupTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, Sj, SjPrime, time, diffOmega, Dj0_t, Dj1_t)
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: countTrue
       !! Number of indices where Sj > SjThresh
-    !integer, intent(in) :: nModes
-      ! Number of phonon modes
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
     integer, intent(in) :: jTrue(countTrue)
       !! Mode indices where Sj > SjThresh
 
-    !real(kind=dp), intent(in) :: nj(nModes)
-      ! \(n_j\) occupation number
-    !real(kind=dp), intent(in) :: omega(nModes)
-      ! Initial-state frequency for each mode
-    !real(kind=dp), intent(in) :: omegaPrime(nModes)
-      ! Optional final-state frequency for each mode
-    !real(kind=dp), intent(in) :: Sj(nModes)
-      ! Huang-Rhys factor for each mode with omega_j
-    !real(kind=dp), intent(in) :: SjPrime(nModes)
-      ! Huang-Rhys factor for each mode with omega_j'
-    !real(kind=dp), intent(in) :: SjThresh
-      ! Threshold for Sj to determine which modes to calculate
+    real(kind=dp), intent(in) :: nj(nModes)
+      !! \(n_j\) occupation number
+    real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(in) :: Sj(nModes), SjPrime(nModes)
+      !! Huang-Rhys factor for each mode
     real(kind=dp), intent(in) :: time
       !! Time at which to calculate the \(G_0(t)\) argument
 
-    !logical, intent(in) :: diffOmega
-      ! If initial- and final-state frequencies 
-      ! should be treated as different
+    logical, intent(in) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
 
     ! Output variables:
     complex(kind=dp), intent(out) :: Dj0_t(nModes)

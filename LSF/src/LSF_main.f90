@@ -5,31 +5,8 @@ program LSFmain
   implicit none
 
   ! Local variables:
-  integer, allocatable :: iDum1D(:)
-    !! Integer to ignore input
-  integer :: iDum1, iDum2
-    !! Integers to ignore input
-  integer :: j, ikLocal, ikGlobal, jStore
-    !! Loop index
-  integer :: mDim
-    !! Size of first dimension for matrix element
-
-  real(kind=dp), allocatable :: dENew(:)
-    !! New energy to update matrix element; needed
-    !! not to create a temporary array when passing
-    !! a slice of dE
-  real(kind=dp), allocatable :: ME_tmp(:)
-    !! Temporary storage of matrix element
-  !real(kind=dp), allocatable :: randVal(:)
-    !! Random adjustment to be made to frequencies
-    !! to test sensitivity
-  real(kind=dp), allocatable :: rDum2D(:,:)
-    !! Dummy real to ignore input
   real(kind=dp) :: timerStart, timerEnd, timer1, timer2
     !! Timers
-
-  character(len=300) :: fName
-    !! File name to read
 
 
   call cpu_time(timerStart)
@@ -44,7 +21,7 @@ program LSFmain
     !!   communicators for pools
 
 
-  if(ionode) write(*, '("Pre-k-loop: [ ] Get parameters  [ ] Read Sj")')
+  if(ionode) write(*, '("Getting input parameters and reading necessary input files.")')
   call cpu_time(timer1)
 
   call readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, diffOmega, &
@@ -79,27 +56,17 @@ program LSFmain
   if(ionode) write(*,'("  Each process is completing ", i15, " time steps.")') nStepsLocal
 
 
-  call cpu_time(timer2)
-  if(ionode) write(*, '("Pre-k-loop: [X] Get parameters  [ ] Read Sj (",f10.2," secs)")') timer2-timer1
-  call cpu_time(timer1)
-
-
   call readSj(diffOmega, PhononPPDir, nModes, omega, omegaPrime, Sj, SjPrime)
 
   allocate(nj(nModes))
   call readNj(nModes, njInput, nj)
 
 
-  call cpu_time(timer2)
-  if(ionode) write(*, '("Pre-k-loop: [X] Get parameters  [X] Read Sj (",f10.2," secs)")') timer2-timer1
-  call cpu_time(timer1)
-
-
+  ! Distribute k-points in pools
   call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
-    !! * Distribute k-points in pools
+
 
   call readEnergyTable(iSpin, energyTableDir, nTransitions, ibi, ibf, dE)
-
 
   allocate(jReSort(nModes))
 
@@ -110,14 +77,21 @@ program LSFmain
   call MPI_BCAST(jReSort, nModes, MPI_INTEGER, root, worldComm, ierr)
 
 
+  call readAllMatrixElements(iSpin, nTransitions, ibi, nModes, jReSort, order, suffixLength, dE, newEnergyTable, &
+          oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, PhononPPDir, prefix, mDim, matrixElement, volumeLine)
+
   deallocate(jReSort)
 
 
-  if(ionode) write(*, '("  Beginning transition-rate calculation")')
+  call cpu_time(timer2)
+  if(ionode) write(*, '("Reading input parameters and files complete! (",f10.2," secs)")') timer2-timer1
+  call cpu_time(timer1)
+
+  if(ionode) write(*, '("Beginning transition-rate calculation")')
    
 
-  call getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, order, nModes, dE, gamma0, & 
-          matrixElement, SjThresh, volumeLine)
+  call getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, nModes, order, dE, dt, gamma0, & 
+          matrixElement, nj, omega, omegaPrime, Sj, SjPrime, SjThresh, diffOmega, volumeLine)
 
   
   deallocate(dE)
