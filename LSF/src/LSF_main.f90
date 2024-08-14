@@ -56,17 +56,17 @@ program LSFmain
   if(ionode) write(*,'("  Each process is completing ", i15, " time steps.")') nStepsLocal
 
 
-  call readSj(diffOmega, PhononPPDir, nModes, omega, omegaPrime, Sj, SjPrime)
-
-  allocate(nj(nModes))
-  call readNj(nModes, njInput, nj)
-
-
   ! Distribute k-points in pools
   call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
 
 
   call readEnergyTable(iSpin, energyTableDir, nTransitions, ibi, ibf, dE)
+
+  call readSj(diffOmega, PhononPPDir, nModes, omega, omegaPrime, Sj, SjPrime)
+
+  allocate(nj(nModes))
+  call readNj(nModes, njInput, nj)
+
 
   allocate(jReSort(nModes))
 
