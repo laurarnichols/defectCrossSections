@@ -4,10 +4,10 @@ module LSFmod
   use base, only: nKPoints, order
   use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName, readMatrixElement
   use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, Sj, SjPrime, readNj
+  use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable, readScatterEnergyTable
   use miscUtilities, only: int2strLeadZero, int2str
   use errorsAndMPI
 
-  use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable
 
   implicit none 
 
@@ -56,6 +56,8 @@ module LSFmod
     !! Tolerance for the Lorentzian-smearing
     !! exponential used to calculate max time
 
+  logical :: captured
+    !! If carrier is captured as opposed to scattered
   logical :: newEnergyTable
     !! If this code and TME are being run with a different
     !! energy table
@@ -92,12 +94,12 @@ module LSFmod
 
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, PhononPPDir, njInput, hbarGamma, dt, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
-                         suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh
+                         suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, diffOmega, &
+  subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, captured, diffOmega, &
         newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
         PhononPPDir, prefix)
 
@@ -124,6 +126,8 @@ contains
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
     
+    logical, intent(out) :: captured
+      !! If carrier is captured as opposed to scattered
     logical, intent(out) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
@@ -160,9 +164,9 @@ contains
       !! elements
 
   
-    call initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, diffOmega, newEnergyTable, &
-          oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
-          PhononPPDir, prefix)
+    call initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
+          newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, &
+          outputDir, PhononPPDir, prefix)
 
     if(ionode) then
 
@@ -173,8 +177,8 @@ contains
       if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, diffOmega, newEnergyTable, &
-            oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
+      call checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
+            newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
             PhononPPDir, prefix)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
@@ -196,6 +200,7 @@ contains
     call MPI_BCAST(smearingExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
+    call MPI_BCAST(captured, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(diffOmega, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(newEnergyTable, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(oldFormat, 1, MPI_LOGICAL, root, worldComm, ierr)
@@ -215,9 +220,9 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, diffOmega, newEnergyTable, &
-        oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
-        PhononPPDir, prefix)
+  subroutine initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, &
+        outputDir, PhononPPDir, prefix)
 
     implicit none
 
@@ -238,6 +243,8 @@ contains
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
     
+    logical, intent(out) :: captured
+      !! If carrier is captured as opposed to scattered
     logical, intent(out) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
@@ -282,6 +289,7 @@ contains
     SjThresh = 0.0_dp
     smearingExpTolerance = 0.0_dp
 
+    captured = .true.
     diffOmega = .false.
     newEnergyTable = .false.
     oldFormat = .false.
@@ -301,8 +309,8 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, diffOmega, newEnergyTable, &
-        oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
+  subroutine checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
         PhononPPDir, prefix)
 
     implicit none
@@ -324,6 +332,8 @@ contains
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
     
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
@@ -383,6 +393,7 @@ contains
     abortExecution = checkDirInitialization('PhononPPDir', PhononPPDir, 'Sj.out') .or. abortExecution
     abortExecution = checkFileInitialization('njInput', njInput) .or. abortExecution
 
+    write(*,'("captured = ",L)') captured
     write(*,'("diffOmega = ",L)') diffOmega
     write(*,'("oldFormat = ",L)') oldFormat
     write(*,'("newEnergyTable = ",L)') newEnergyTable
