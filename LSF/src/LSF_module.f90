@@ -430,77 +430,6 @@ contains
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine readSj(diffOmega, PhononPPDir, nModes, omega, omegaPrime, Sj, SjPrime)
-
-    implicit none
-
-    ! Input variables:
-    logical, intent(in) :: diffOmega
-      !! If initial- and final-state frequencies 
-      !! should be treated as different
-
-    character(len=300), intent(in) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
-
-    ! Output variables:
-    integer, intent(out) :: nModes
-      !! Number of phonon modes
-
-    real(kind=dp),allocatable, intent(out) :: omega(:), omegaPrime(:)
-      !! Frequency for each mode
-    real(kind=dp), allocatable, intent(out) :: Sj(:), SjPrime(:)
-      !! Huang-Rhys factor for each mode
-
-    ! Local variables:
-    !real(kind=dp), allocatable :: randVal(:)
-      ! Random adjustment to be made to frequencies
-      ! to test sensitivity
-
-    character(len=300) :: fName
-      !! File name to read
-
-
-    fName = trim(PhononPPDir)//'/Sj.out' 
-    if(diffOmega) then
-      call readSjTwoFreq(fName, nModes, omega, omegaPrime, Sj, SjPrime)
-
-      ! This is the code that I used to test what difference different
-      ! frequencies would have. I input the same two frequencies twice
-      ! and randomly adjusted the omegaPrime. 
-      !
-      ! If doing a random adjustment, must do with a single process then
-      ! broadcast, otherwise the random variables will be different across
-      ! processes.
-      !allocate(randVal(nModes))
-      !if(ionode) then
-        !call random_seed()
-        !call random_number(randVal)
-        !randVal = (randVal*2.0_dp - 1.0_dp)*0.50_dp  ! the number multiplied here is the % adjustment
-        !SjPrime(:) = SjPrime(:)/omegaPrime(:)
-        !omegaPrime(:) = omegaPrime(:)*(1.0_dp + randVal) ! this applies the random adjustment
-        !omegaPrime(:) = omegaPrime(:)*(1.0_dp + 0.5_dp) ! this applies a uniform adjustment
-        !SjPrime(:) = SjPrime(:)*omegaPrime(:)
-      !endif
-      !deallocate(randVal)
-
-      ! Need to rebroadcast omegaPrime if we adjust it
-      !call MPI_BCAST(omegaPrime, size(omegaPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-      !call MPI_BCAST(SjPrime, size(SjPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    else
-      allocate(omegaPrime(nModes), SjPrime(nModes))
-        ! Need to allocate to avoid issues with passing variables
-        ! and deallocating
-
-      call readSjOneFreq(fName, nModes, omega, Sj)
-    endif
-
-
-    return
-
-  end subroutine readSj
-
-!----------------------------------------------------------------------------
   subroutine readEnergyTable(iSpin, energyTableDir, nTransitions, ibi, ibf, dE)
 
     implicit none
@@ -580,6 +509,77 @@ contains
     return
 
   end subroutine readEnergyTable
+
+!----------------------------------------------------------------------------
+  subroutine readSj(diffOmega, PhononPPDir, nModes, omega, omegaPrime, Sj, SjPrime)
+
+    implicit none
+
+    ! Input variables:
+    logical, intent(in) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
+
+    character(len=300), intent(in) :: PhononPPDir
+      !! Path to PhononPP output dir to get Sj.out
+      !! and potentially optimalPairs.out
+
+    ! Output variables:
+    integer, intent(out) :: nModes
+      !! Number of phonon modes
+
+    real(kind=dp),allocatable, intent(out) :: omega(:), omegaPrime(:)
+      !! Frequency for each mode
+    real(kind=dp), allocatable, intent(out) :: Sj(:), SjPrime(:)
+      !! Huang-Rhys factor for each mode
+
+    ! Local variables:
+    !real(kind=dp), allocatable :: randVal(:)
+      ! Random adjustment to be made to frequencies
+      ! to test sensitivity
+
+    character(len=300) :: fName
+      !! File name to read
+
+
+    fName = trim(PhononPPDir)//'/Sj.out' 
+    if(diffOmega) then
+      call readSjTwoFreq(fName, nModes, omega, omegaPrime, Sj, SjPrime)
+
+      ! This is the code that I used to test what difference different
+      ! frequencies would have. I input the same two frequencies twice
+      ! and randomly adjusted the omegaPrime. 
+      !
+      ! If doing a random adjustment, must do with a single process then
+      ! broadcast, otherwise the random variables will be different across
+      ! processes.
+      !allocate(randVal(nModes))
+      !if(ionode) then
+        !call random_seed()
+        !call random_number(randVal)
+        !randVal = (randVal*2.0_dp - 1.0_dp)*0.50_dp  ! the number multiplied here is the % adjustment
+        !SjPrime(:) = SjPrime(:)/omegaPrime(:)
+        !omegaPrime(:) = omegaPrime(:)*(1.0_dp + randVal) ! this applies the random adjustment
+        !omegaPrime(:) = omegaPrime(:)*(1.0_dp + 0.5_dp) ! this applies a uniform adjustment
+        !SjPrime(:) = SjPrime(:)*omegaPrime(:)
+      !endif
+      !deallocate(randVal)
+
+      ! Need to rebroadcast omegaPrime if we adjust it
+      !call MPI_BCAST(omegaPrime, size(omegaPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      !call MPI_BCAST(SjPrime, size(SjPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    else
+      allocate(omegaPrime(nModes), SjPrime(nModes))
+        ! Need to allocate to avoid issues with passing variables
+        ! and deallocating
+
+      call readSjOneFreq(fName, nModes, omega, Sj)
+    endif
+
+
+    return
+
+  end subroutine readSj
 
 !----------------------------------------------------------------------------
   subroutine getjReSort(nModes, PhononPPDir, jReSort)
