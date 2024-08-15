@@ -18,10 +18,8 @@ module LSFmod
     !! process to complete
 
 
-  integer, allocatable :: ibi(:)
-    !! Initial-state indices
-  integer :: ibf
-    !! Final-state index
+  integer, allocatable :: ibi(:), ibf(:), iki(:), ikf(:)
+    !! State indices
   integer :: iSpin
     !! Spin channel to use
   integer, allocatable :: jReSort(:)
@@ -191,6 +189,7 @@ contains
 
     call MPI_BCAST(iSpin, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
+      ! nKPoints is not meaningful for scattering
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
   
     call MPI_BCAST(dt, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -370,6 +369,8 @@ contains
       !! elements
 
     ! Local variables:
+    integer :: ikTest
+      !! Index to pass to getMatrixElementFName
     character(len=300) :: fName
       !! File name for matrix element file to get
       !! nKPoints from 
@@ -389,19 +390,50 @@ contains
       ! hard and fast, but you should think about the application of the theory
       ! to numbers outside these ranges.
 
-    abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(iSpin))//'.1') .or. abortExecution
-    abortExecution = checkDirInitialization('PhononPPDir', PhononPPDir, 'Sj.out') .or. abortExecution
     abortExecution = checkFileInitialization('njInput', njInput) .or. abortExecution
 
+    
     write(*,'("captured = ",L)') captured
+
+    ! We don't know the band indices here to check for the Sj files for
+    ! scattering, but we can check for Sj.analysis.out that should always 
+    ! be there when calculating Sj's as well.
+    if(captured) then
+      abortExecution = checkDirInitialization('PhononPPDir', PhononPPDir, 'Sj.out') .or. abortExecution
+    else
+      abortExecution = checkDirInitialization('PhononPPDir', PhononPPDir, 'Sj.analysis.out') .or. abortExecution
+    endif
+
+
+    ! Check for the energy table file for the first k-point for
+    ! capture and without the k-point index for scattering
+    if(captured) then
+      abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(iSpin))//'.1') .or. abortExecution
+    else
+      abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(iSpin))) .or. abortExecution
+    endif
+
+
     write(*,'("diffOmega = ",L)') diffOmega
     write(*,'("oldFormat = ",L)') oldFormat
     write(*,'("newEnergyTable = ",L)') newEnergyTable
 
-    if(order == 0) then 
-      abortExecution = checkDirInitialization('matrixElementDir', matrixElementDir, getMatrixElementFName(1,iSpin)) .or. abortExecution
 
-      fName = getMatrixElementFNameWPath(1,iSpin,matrixElementDir)
+    ! Below, we want to test the presence of the required matrix
+    ! element files. The only difference between the capture and
+    ! scattering case is that the capture case has a k-point index.
+    ! For capture, we look for the presence of the k-point 1 file,
+    ! and for scattering we pass -1 to getMatrixElementFName to 
+    ! remove the k-point index from the file name.
+    if(captured) then
+      ikTest = 1
+    else
+      ikTest = -1
+    endif
+
+
+    if(order == 0) then 
+      abortExecution = checkDirInitialization('matrixElementDir', matrixElementDir, getMatrixElementFName(ikTest,iSpin)) .or. abortExecution
 
     else if(order == 1) then
 
@@ -413,20 +445,31 @@ contains
 
       abortExecution = checkIntInitialization('suffixLength', suffixLength, 1, 5) .or. abortExecution 
       abortExecution = checkDirInitialization('MjBaseDir', MjBaseDir, &
-            '/'//trim(prefix)//trim(int2strLeadZero(1,suffixLength))//'/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))) .or. abortExecution
+            '/'//trim(prefix)//trim(int2strLeadZero(1,suffixLength))//'/'//trim(getMatrixElementFNameWPath(ikTest,iSpin,matrixElementDir))) .or. abortExecution
       write(*,'("prefix = ''",a,"''")') trim(prefix)
       write(*,'("matrixElementDir = ''",a,"''")') trim(matrixElementDir)
 
-      fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(1,suffixLength))//'/'//trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))
-
     endif
 
-    open(unit=12,file=trim(fName))
-    read(12,*)
-    read(12,*) nKPoints
-    close(12)
 
-    write(*,'("nKPoints = ", i10)') nKPoints
+    ! For capture, we need to know nKPoints, so read this from the
+    ! matrix element file
+    if(captured) then
+      if(order == 0) then
+        fName = getMatrixElementFNameWPath(1,iSpin,matrixElementDir)
+      else if(order == 1) then
+        fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(1,suffixLength))//'/'//&
+                trim(getMatrixElementFNameWPath(1,iSpin,matrixElementDir))
+      endif
+
+      open(unit=12,file=trim(fName))
+      read(12,*)
+      read(12,*) nKPoints
+      close(12)
+
+      write(*,'("nKPoints = ", i10)') nKPoints
+    endif
+
 
     call system('mkdir -p '//trim(outputDir))
 
@@ -441,7 +484,7 @@ contains
   end subroutine checkInitialization
 
 !----------------------------------------------------------------------------
-  subroutine readEnergyTable(iSpin, energyTableDir, nTransitions, ibi, ibf, dE)
+  subroutine readEnergyTable(iSpin, captured, energyTableDir, nTransitions, ibi, ibf, iki, ikf, dE)
 
     implicit none
 
@@ -449,21 +492,25 @@ contains
     integer, intent(in) :: iSpin
       !! Spin channel to use
 
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
+
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
 
     ! Output variables:
     integer, intent(out) :: nTransitions
       !! Total number of transitions 
-    integer, allocatable, intent(out) :: ibi(:)
-      !! Initial-state indices
-    integer, intent(out) :: ibf
-      !! Final-state index
+    integer, allocatable, intent(out) :: ibi(:), ibf(:), iki(:), ikf(:)
+      !! State indices
 
     real(kind=dp), allocatable, intent(out) :: dE(:,:,:)
       !! All energy differences from energy table
 
     ! Local variables:
+    integer :: ibf1
+      !! Scalar integer for reading single final state
+      !! from capture energy table
     integer, allocatable :: iDum1D(:)
       !! Integer to ignore input
     integer :: iDum1, iDum2
@@ -475,47 +522,85 @@ contains
       !! 2D array to read energy at single k-point
 
 
-    ! Get the number of transitions and the state indices
-    if(ionode) then
-      call readCaptureEnergyTable(1, iSpin, energyTableDir, ibi, ibf, nTransitions, dE2D)
-       ! Assume that band bounds and number of transitions do not depend on k-points or spin
-       ! We ignore the energy here because we are only reading ibi, ibf, and nTransitions
+    ! For capture, assume that the band bounds and number of transitions do not depend
+    ! on k-points or spin, so read those from the first k-point and ignore those inputs
+    ! from different files.
+    if(captured) then
 
-      deallocate(dE2D)
-    endif
+      allocate(ibf(1),iki(1),ikf(1))
 
-    call MPI_BCAST(nTransitions, 1, MPI_INTEGER, root, worldComm, ierr)
-    if(.not. ionode) allocate(ibi(nTransitions))
-    call MPI_BCAST(ibi, nTransitions, MPI_INTEGER, root, worldComm, ierr)
-    call MPI_BCAST(ibf, 1, MPI_INTEGER, root, worldComm, ierr)
+      ! Get the number of transitions and the state indices
+      if(ionode) then
+        call readCaptureEnergyTable(1, iSpin, energyTableDir, ibi, ibf1, nTransitions, dE2D)
+         ! Assume that band bounds and number of transitions do not depend on k-points or spin
+         ! We ignore the energy here because we are only reading ibi, ibf, and nTransitions
 
-
-    allocate(dE(3,nTransitions,nkPerPool))
-
-
-    if(indexInPool == 0) then
-
-      dE = 0.0_dp
-
-      do ikLocal = 1, nkPerPool
-    
-        ! Get the global `ik` index from the local one
-        ikGlobal = ikLocal+ikStart_pool-1
-
-
-        call readCaptureEnergyTable(ikGlobal, iSpin, energyTableDir, iDum1D, iDum1, iDum2, dE2D)
-          ! Assume that band bounds and number of transitions do not depend on k-points or spin
-
-        dE(:,:,ikLocal) = dE2D
         deallocate(dE2D)
 
-      enddo
+        ibf(1) = ibf1
+      endif
+
+      call MPI_BCAST(nTransitions, 1, MPI_INTEGER, root, worldComm, ierr)
+      if(.not. ionode) allocate(ibi(nTransitions))
+      call MPI_BCAST(ibi, nTransitions, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(ibf, 1, MPI_INTEGER, root, worldComm, ierr)
+
+
+      allocate(dE(3,nTransitions,nkPerPool))
+
+      if(indexInPool == 0) then
+        dE = 0.0_dp
+
+        do ikLocal = 1, nkPerPool
+    
+          ! Get the global `ik` index from the local one
+          ikGlobal = ikLocal+ikStart_pool-1
+
+
+          call readCaptureEnergyTable(ikGlobal, iSpin, energyTableDir, iDum1D, iDum1, iDum2, dE2D)
+            ! Assume that band bounds and number of transitions do not depend on k-points or spin
+
+          dE(:,:,ikLocal) = dE2D
+          deallocate(dE2D)
+
+        enddo
+      endif
+
+      call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
+
+    ! Scattering should only have one input file because the file does not depend on 
+    ! the k-point and the user selects a single spin, so read from the scatter energy
+    ! table and get all of the information (nTransitions, state indices, energy) in a
+    ! single shot.
+    else
+      if(ionode) &
+        call readScatterEnergyTable(iSpin, energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE2D)
+          ! dE2D will get allocated here with (3,nTransitions)
+
+
+      call MPI_BCAST(nTransitions, 1, MPI_INTEGER, root, worldComm, ierr)
+
+      ! For scattering, all state indices are indexed with nTransitions
+      if(.not. ionode) allocate(ibi(nTransitions), ibf(nTransitions),iki(nTransitions),ikf(nTransitions))
+      call MPI_BCAST(ibi, nTransitions, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(ibf, nTransitions, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(iki, nTransitions, MPI_INTEGER, root, worldComm, ierr)
+      call MPI_BCAST(ikf, nTransitions, MPI_INTEGER, root, worldComm, ierr)
+
+
+      allocate(dE(3,nTransitions,1))
+        ! dE is expected to be 3D here and in later subroutines to 
+        ! be consistent with capture. The last index is the number
+        ! of pools, but scattering currently assumes nPools = 1.
+
+      if(ionode) then
+        dE(:,:,1) = dE2D
+        deallocate(dE2D)
+      endif
+
+      call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     endif
-
-
-    call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
-
 
     return
 

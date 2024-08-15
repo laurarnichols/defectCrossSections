@@ -5,6 +5,8 @@ program LSFmain
   implicit none
 
   ! Local variables:
+  integer :: iE
+    !! testing
   real(kind=dp) :: timerStart, timerEnd, timer1, timer2
     !! Timers
 
@@ -19,6 +21,10 @@ program LSFmain
   call setUpPools()
     !! * Split up processors between pools and generate MPI
     !!   communicators for pools
+
+  if(ionode) then
+    if(.not. captured .and. nPools /= 1) call exitError('LSFmain', 'Scattering only currently set up for nPools = 1 (-nk 1)!',1)
+  endif
 
 
   if(ionode) write(*, '("Getting input parameters and reading necessary input files.")')
@@ -56,11 +62,20 @@ program LSFmain
   if(ionode) write(*,'("  Each process is completing ", i15, " time steps.")') nStepsLocal
 
 
-  ! Distribute k-points in pools
+  ! Distribute k-points in pools (k-point parallelization only currently
+  ! used for capture.)
   call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
 
 
-  call readEnergyTable(iSpin, energyTableDir, nTransitions, ibi, ibf, dE)
+  call readEnergyTable(iSpin, captured, energyTableDir, nTransitions, ibi, ibf, iki, ikf, dE)
+
+  if(.not. captured .and. myid == 1) then
+    do iE = 1, nTransitions
+      write(*,'(4i7,3ES24.15E3)') iki(iE), ibi(iE), ikf(iE), ibf(iE), dE(:,iE,1)
+    enddo
+
+    call exitError('LSFmain','testing',1)
+  endif
 
   call readSj(diffOmega, PhononPPDir, nModes, omega, omegaPrime, Sj, SjPrime)
 
@@ -94,6 +109,7 @@ program LSFmain
           matrixElement, nj, omega, omegaPrime, Sj, SjPrime, SjThresh, diffOmega, volumeLine)
 
   
+  deallocate(ibi,ibf,iki,ikf)
   deallocate(dE)
   deallocate(matrixElement)
   deallocate(nj)
