@@ -3,7 +3,7 @@ module LSFmod
   use constants, only: dp, HartreeToEv, ii, hbar_atomic, time_atomicToSI
   use base, only: nKPoints, order
   use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName, readMatrixElement
-  use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, Sj, SjPrime, readNj
+  use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, readNj
   use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable, readScatterEnergyTable
   use miscUtilities, only: int2strLeadZero, int2str
   use errorsAndMPI
@@ -48,6 +48,9 @@ module LSFmod
     !! Max time for integration
   real(kind=dp), allocatable :: nj(:)
     !! \(n_j\) occupation number
+  real(kind=dp), allocatable :: Sj(:,:), SjPrime(:,:)
+    !! Huang-Rhys factor for each mode (and transition
+    !! for scattering)
   real(kind=dp) :: SjThresh
     !! Threshold for Sj to determine which modes to calculate
   real(kind=dp) :: smearingExpTolerance
@@ -607,11 +610,19 @@ contains
   end subroutine readEnergyTable
 
 !----------------------------------------------------------------------------
-  subroutine readSj(diffOmega, PhononPPDir, nModes, omega, omegaPrime, Sj, SjPrime)
+  subroutine readSj(ibi, ibf, iki, ikf, nTransitions, captured, diffOmega, PhononPPDir, nModes, omega, &
+          omegaPrime, Sj, SjPrime)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ibi(:), ibf(:), iki(:), ikf(:)
+      !! State indices
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
@@ -626,21 +637,48 @@ contains
 
     real(kind=dp),allocatable, intent(out) :: omega(:), omegaPrime(:)
       !! Frequency for each mode
-    real(kind=dp), allocatable, intent(out) :: Sj(:), SjPrime(:)
-      !! Huang-Rhys factor for each mode
+    real(kind=dp), allocatable, intent(out) :: Sj(:,:), SjPrime(:,:)
+      !! Huang-Rhys factor for each mode (and transition
+      !! for scattering)
 
     ! Local variables:
+    integer :: iDum
+      !! Dummy integer to ignore input
+    integer :: iE
+      !! Loop index
+
     !real(kind=dp), allocatable :: randVal(:)
       ! Random adjustment to be made to frequencies
       ! to test sensitivity
+    real(kind=dp), allocatable :: rDum1D_1(:), rDum1D_2(:)
+      !! Dummy variables to ignore input
+    real(kind=dp), allocatable :: Sj1D(:), SjPrime1D(:)
+      !! 1D arrays to pass to readSjOneFreq and readSjTwoFreq
 
     character(len=300) :: fName
       !! File name to read
 
 
-    fName = trim(PhononPPDir)//'/Sj.out' 
+    ! Check that the arrays have the expected size
+    if(captured) then
+      if(.not. (size(iki) == 1 .and. size(ibf) == 1 .and. size(ikf) == 1)) &
+          call exitError('readSj','For capture, the iki, ibf, and ikf arrays should have length 1!', 1)
+    endif
+
+    ! Go through reading one file for capture and scattering in the
+    ! same way but with different file names. This will get the
+    ! Sj/Sj' and omega/omega'. For scattering, we only save the 
+    ! frequencies and number of modes from the first file because 
+    ! they do not depend on the transition
+    if(captured) then
+      fName = trim(PhononPPDir)//'/Sj.out' 
+    else
+      fName = trim(PhononPPDir)//'/Sj.k'//trim(int2str(iki(1)))//'_b'//trim(int2str(ibi(1)))//'.k'&
+                               //trim(int2str(ikf(1)))//'_b'//trim(int2str(ibf(1)))//'.out'
+    endif
+
     if(diffOmega) then
-      call readSjTwoFreq(fName, nModes, omega, omegaPrime, Sj, SjPrime)
+      call readSjTwoFreq(fName, nModes, omega, omegaPrime, Sj1D, SjPrime1D)
 
       ! This is the code that I used to test what difference different
       ! frequencies would have. I input the same two frequencies twice
@@ -665,13 +703,48 @@ contains
       !call MPI_BCAST(omegaPrime, size(omegaPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       !call MPI_BCAST(SjPrime, size(SjPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     else
-      allocate(omegaPrime(nModes), SjPrime(nModes))
+      allocate(omegaPrime(nModes),SjPrime1D(nModes))
         ! Need to allocate to avoid issues with passing variables
         ! and deallocating
 
-      call readSjOneFreq(fName, nModes, omega, Sj)
+      call readSjOneFreq(fName, nModes, omega, Sj1D)
     endif
 
+
+    ! Store in full Sj/Sj' arrays with second index for optional
+    ! transitions
+    if(captured) then
+      allocate(Sj(nModes,1),SjPrime(nModes,1))
+    else
+      allocate(Sj(nModes,nTransitions),SjPrime(nModes,nTransitions))
+    endif
+
+    Sj(:,1) = Sj1D
+    if(diffOmega) SjPrime(:,1) = SjPrime1D
+    deallocate(Sj1D,SjPrime1D)
+
+
+    ! For scattering, read the Sj for the rest of the transitions
+    if(.not. captured) then
+      do iE = 2, nTransitions
+        fName = trim(PhononPPDir)//'/Sj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
+                                 //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
+
+        if(diffOmega) then
+          call readSjTwoFreq(fName, iDum, rDum1D_1, rDum1D_2, Sj1D, SjPrime1D)
+          deallocate(rDum1D_1,rDum1D_2)
+        else
+          allocate(SjPrime1D(nModes))
+          call readSjOneFreq(fName, iDum, rDum1D_1, Sj1D)
+          deallocate(rDum1D_1)
+        endif
+
+        Sj(:,iE) = Sj1D
+        if(diffOmega) SjPrime(:,iE) = SjPrime1D
+        deallocate(Sj1D,SjPrime1D)
+
+      enddo
+    endif
 
     return
 
@@ -959,8 +1032,9 @@ contains
       !! \(n_j\) occupation number
     real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
       !! Frequency for each mode
-    real(kind=dp), intent(in) :: Sj(nModes), SjPrime(nModes)
-      !! Huang-Rhys factor for each mode
+    real(kind=dp), intent(in) :: Sj(:,:), SjPrime(:,:)
+      !! Huang-Rhys factor for each mode (and 
+      !! transition for scattering)
     real(kind=dp), intent(in) :: SjThresh
       !! Threshold for Sj to determine which modes to calculate
 
@@ -987,6 +1061,8 @@ contains
     real(kind=dp) :: multFact
       !! Multiplication factor for each term per
       !! Simpson's integration method
+    real(kind=dp) :: Sj1D(nModes), SjPrime1D(nModes)
+      !! 1D arrays to pass to setUpTimeTables
     real(kind=dp) :: t0
       !! Initial time for this process
     real(kind=dp) :: time
@@ -1019,7 +1095,7 @@ contains
 
     ! Create a mask to determine which modes to calculate
     ! based on an optional threshold given (default 0.0).
-    mask = Sj(:) >= SjThresh
+    mask = Sj(:,1) >= SjThresh
     call getTrueIndices(nModes, mask, countTrue, jTrue)
 
 
@@ -1039,7 +1115,9 @@ contains
         ! Must do this arithmetic with floats to avoid
         ! integer overflow
 
-      call setupTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, Sj, SjPrime, time, diffOmega, Dj0_t, Dj1_t)
+      Sj1D = Sj(:,1)
+      SjPrime1D = SjPrime(:,1)
+      call setupTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, Sj1D, SjPrime1D, time, diffOmega, Dj0_t, Dj1_t)
 
       expArg_base = ii*sum(Dj0_t(jTrue)) - gamma0*time
 

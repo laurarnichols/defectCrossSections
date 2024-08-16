@@ -5,7 +5,7 @@ program LSFmain
   implicit none
 
   ! Local variables:
-  integer :: iE
+  integer :: j
     !! testing
   real(kind=dp) :: timerStart, timerEnd, timer1, timer2
     !! Timers
@@ -69,15 +69,16 @@ program LSFmain
 
   call readEnergyTable(iSpin, captured, energyTableDir, nTransitions, ibi, ibf, iki, ikf, dE)
 
-  if(.not. captured .and. myid == 1) then
-    do iE = 1, nTransitions
-      write(*,'(4i7,3ES24.15E3)') iki(iE), ibi(iE), ikf(iE), ibf(iE), dE(:,iE,1)
+  call readSj(ibi, ibf, iki, ikf, nTransitions, captured, diffOmega, PhononPPDir, nModes, omega, &
+          omegaPrime, Sj, SjPrime)
+
+  if((.not. captured) .and. myid == 1) then
+    do j = 1, nModes
+      write(*,'(i7,2ES24.15E3)') j, Sj(j,nTransitions), omega(j)
     enddo
 
     call exitError('LSFmain','testing',1)
   endif
-
-  call readSj(diffOmega, PhononPPDir, nModes, omega, omegaPrime, Sj, SjPrime)
 
   allocate(nj(nModes))
   call readNj(nModes, njInput, nj)
