@@ -3722,25 +3722,15 @@ contains
       endif
 
 
+      ! If using band bounds from a new energy table, check the band
+      ! bounds for each state to make sure they line up
       if(ibL > 0) then
         if(ibi >= ibL .and. ibi <= ibH) then
           iE = iE + 1
-          if(newEnergy) then
-            matrixElement(iE) = normSqOverlap*dE(iE)**2
-
-            if(order == 1) matrixElement(iE) = matrixElement(iE)/(dq_j**2)
-          else
-            matrixElement(iE) = overlapWithFactors
-          endif
+          call storeSingleElement(iE, order, dE, dq_j, normSqOverlap, overlapWithFactors, newEnergy, matrixElement)
         endif
       else
-        if(newEnergy) then
-          matrixElement(iE_) = normSqOverlap*dE(iE_)**2
-
-          if(order == 1) matrixElement(iE_) = matrixElement(iE_)/(dq_j**2)
-        else
-          matrixElement(iE_) = overlapWithFactors
-        endif
+        call storeSingleElement(iE_, order, dE, dq_j, normSqOverlap, overlapWithFactors, newEnergy, matrixElement)
       endif
         
     enddo
@@ -3751,5 +3741,43 @@ contains
     return
 
   end subroutine readMatrixElement
+
+!----------------------------------------------------------------------------
+  subroutine storeSingleElement(iE, order, dE, dq_j, normSqOverlap, overlapWithFactors, newEnergy, matrixElement)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iE
+      !! Index to store the element in
+    integer, intent(in) :: order
+      !! Order to calculate (0 or 1)
+
+    real(kind=dp), intent(in) :: dE(nTransitions)
+      !! Optional new energy to use
+    real(kind=dp), intent(in) :: dq_j
+      !! dq if order = 1
+    real(kind=dp), intent(in) :: normSqOverlap, overlapWithFactors
+      !! Stores the values from the input file
+
+    logical, intent(in) :: newEnergy
+      !! If we should use a new input energy in dE
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: matrixElement(nTransitions)
+      !! Electronic matrix element
+
+
+    if(newEnergy) then
+      matrixElement(iE) = normSqOverlap*dE(iE)**2
+
+      if(order == 1) matrixElement(iE) = matrixElement(iE)/(dq_j**2)
+    else
+      matrixElement(iE) = overlapWithFactors
+    endif
+
+    return
+
+  end subroutine storeSingleElement
   
 end module TMEmod
