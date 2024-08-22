@@ -3898,6 +3898,8 @@ contains
     if(ibL > 0) then
       if(ibH < ibL) call exitError('readSingleMatrixElementFile', 'High band bound is lower than low band bound!', 1)
       if(ibH - ibL + 1 /= nTransitions) call exitError('readSingleMatrixElementFile', 'Number of transitions input does not match band bounds!', 1)
+      if(.not. capture) call exitError('readSingleMatrixElementFile','New state indices not currently implemented for scattering', 1)
+        ! This would involve testing iki, ikf, ibi, and ibf. I don't want to do that right now.
     endif
 
 
