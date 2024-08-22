@@ -3601,7 +3601,234 @@ contains
   end function getMatrixElementFName
 
 !----------------------------------------------------------------------------
-  subroutine readMatrixElement(ibL, ibH, nTransitions, order, dE, capture, newEnergy, oldFormat, fName, matrixElement, volumeLine, &
+  subroutine readSingleKMatrixElements(ikGlobal, iSpin, nTransitions, ibi, nModes, jReSort, mDim, order, suffixLength, &
+            dE, captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, PhononPPDir, prefix, &
+            matrixElement, volumeLine)
+    ! For zeroth-order, this will read a single file. For first-order,
+    ! this will read all of the modes. Scattering and capture are
+    ! handled outside this subroutine by what is passed in ikGlobal. If
+    ! ikGlobal < 0, the scattering file-name pattern will be used without
+    ! the k-point index.
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ikGlobal
+      !! Global k-point index for capture and -1 for scattering
+    integer, intent(in) :: iSpin
+      !! Spin channel to use
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions)
+      !! Initial-state indices
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: jReSort(nModes)
+      !! Indices to optionally resort matrix elements
+    integer, intent(in) :: mDim
+      !! Size of first dimension for matrix element
+    integer, intent(in) :: order
+      !! Order to calculate (0 or 1)
+    integer, intent(in) :: suffixLength
+      !! Length of shifted POSCAR file suffix
+
+    real(kind=dp), intent(in) :: dE(3,nTransitions)
+      !! All energy differences from energy table
+
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
+    logical, intent(in) :: newEnergyTable
+      !! If this code and TME are being run with a different
+      !! energy table
+    logical, intent(in) :: oldFormat
+      !! If the old format of the matrix element files
+      !! should be used
+    logical, intent(in) :: rereadDq
+      !! If dq should be read from matrix element file
+      !! (.false.) or from the dq.txt file (.true.)
+    logical, intent(in) :: reSortMEs
+      !! If matrix elements should be resorted
+
+    character(len=300), intent(in) :: matrixElementDir
+      !! Path to matrix element file `allElecOverlap.isp.ik`. 
+      !! For first-order term, the path is just within each 
+      !! subdirectory.
+    character(len=300), intent(in) :: MjBaseDir
+      !! Path to the base directory for the first-order
+      !! matrix element calculations
+    character(len=300), intent(in) :: PhononPPDir
+      !! Path to PhononPP output dir to get Sj.out
+      !! and potentially optimalPairs.out
+    character(len=300), intent(in) :: prefix
+      !! Prefix of directories for first-order matrix
+      !! elements
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: matrixElement(mDim,nTransitions)
+      !! Electronic matrix element
+
+    character(len=300), intent(out) :: volumeLine
+      !! Volume line from overlap file to be
+      !! output exactly in transition rate file
+
+    ! Local variables:
+    integer :: j, jStore
+      !! Loop indices
+
+    real(kind=dp), allocatable :: dENew(:)
+      !! New energy to update matrix element; needed
+      !! not to create a temporary array when passing
+      !! a slice of dE
+    real(kind=dp), allocatable :: ME_tmp(:)
+      !! Temporary storage of matrix element
+
+    character(len=300) :: fName
+      !! File name to read
+
+
+    allocate(dENew(nTransitions))
+    allocate(ME_tmp(nTransitions))
+
+
+    ! The zeroth-order term reads only one matrix element, with or without the new energy table
+    if(order == 0) then
+      fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
+
+      dENew = dE(2,:)
+        ! The second index holds the zeroth-order energy
+
+      call callSingleMESubroutineWithProperArguments(nTransitions, ibi, -1, order, dENew, captured, newEnergyTable, &
+              oldFormat, rereadDq, fName, PhononPPDir, ME_tmp, volumeLine)
+        ! Pass -1 for jStore as it is not relevant for the zeroth-order
+
+      matrixElement(1,:) = ME_tmp
+
+
+    ! The first-order term reads a matrix element for each mode. 
+    !
+    ! The volume line will get overwritten each time through the loop, but that's okay because
+    ! the volume doesn't change between the files. 
+    else if(order == 1) then
+
+      dENew = dE(3,:)
+        ! The third index holds the first-order energy
+    
+      do j = 1, nModes
+
+        fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,suffixLength))//'/'&
+                //trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
+
+        ! If resorting the matrix element files based on a different PhononPP output
+        ! order, make sure to pass the resorted mode index if re-reading dq's
+        if(reSortMEs) then
+          jStore = jReSort(j)
+        else 
+          jStore = j
+        endif
+
+        call callSingleMESubroutineWithProperArguments(nTransitions, ibi, jStore, order, dENew, captured, newEnergyTable, &
+                oldFormat, rereadDq, fName, PhononPPDir, ME_tmp, volumeLine)
+
+
+        ! Store the matrix element for this mode
+        matrixElement(jStore,:) = ME_tmp
+
+      enddo
+    endif
+
+    deallocate(dENew)
+    deallocate(ME_tmp)
+
+    return
+
+  end subroutine readSingleKMatrixElements
+
+!----------------------------------------------------------------------------
+  subroutine callSingleMESubroutineWithProperArguments(nTransitions, ibi, jStore, order, dENew, captured, newEnergyTable, &
+            oldFormat, rereadDq, fName, PhononPPDir, ME_tmp, volumeLine)
+    ! The format read from the matrix element file and what factors are used
+    ! depends on the arguments passed. Handle that logic here to call the
+    ! subroutine to read a single matrix element file with the correct
+    ! arguments.
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions)
+      !! Initial-state indices
+    integer, intent(in) :: jStore
+      !! Index to read the new delta q from,
+      !! if applicable
+    integer, intent(in) :: order
+      !! Order to calculate (0 or 1)
+
+    real(kind=dp), intent(in) :: dENew(nTransitions)
+      !! New energy to update matrix element; needed
+      !! not to create a temporary array when passing
+      !! a slice of dE
+
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
+    logical, intent(in) :: newEnergyTable
+      !! If this code and TME are being run with a different
+      !! energy table
+    logical, intent(in) :: oldFormat
+      !! If the old format of the matrix element files
+      !! should be used
+    logical, intent(in) :: rereadDq
+      !! If dq should be read from matrix element file
+      !! (.false.) or from the dq.txt file (.true.)
+
+    character(len=300), intent(in) :: fName
+      !! File name to read
+    character(len=300), intent(in) :: PhononPPDir
+      !! Path to PhononPP output dir to get Sj.out
+      !! and potentially optimalPairs.out
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: ME_tmp(nTransitions)
+      !! Temporary storage of matrix element
+
+    character(len=300), intent(out) :: volumeLine
+      !! Volume line from overlap file to be
+      !! output exactly in transition rate file
+
+
+    ! For new energy table and new dqs, must pass the band bounds, mode index
+    ! to read (jStore) and PhononPPDir. This is only an option for the first-order
+    ! term.
+    if(newEnergyTable .and. order == 1 .and. rereadDq) then
+      call readSingleMatrixElementFile(minval(ibi), maxval(ibi), nTransitions, order, dENew, captured, newEnergyTable, oldFormat, &
+            fName, ME_tmp, volumeLine, jStore, PhononPPDir)
+
+    ! For just new energy table, only pass band bounds. For order = 0 ignore
+    ! the value in rereadDq.
+    else if(newEnergyTable .and. (order == 0 .or. .not. rereadDq)) then
+      call readSingleMatrixElementFile(minval(ibi), maxval(ibi), nTransitions, order, dENew, captured, newEnergyTable, oldFormat, &
+            fName, ME_tmp, volumeLine)
+
+    ! For just new dq, only pass jStore and PhononPPDir. Again only an option
+    ! for the first-order term.
+    else if((.not. newEnergyTable) .and. order == 1 .and. rereadDq) then
+      call readSingleMatrixElementFile(-1, -1, nTransitions, order, dENew, captured, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine, &
+        jStore, PhononPPDir)
+          ! dENew will be ignored here
+
+    ! For neither, don't pass anything and just read matrix elements as-is. Again
+    ! ignore rereadDq for zeroth-order.
+    else if((.not. newEnergyTable) .and. (order == 0 .or. .not. rereadDq)) then
+      call readSingleMatrixElementFile(-1, -1, nTransitions, order, dENew, captured, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
+        ! dENew will be ignored here
+    endif
+
+    return
+
+  end subroutine callSingleMESubroutineWithProperArguments
+
+!----------------------------------------------------------------------------
+  subroutine readSingleMatrixElementFile(ibL, ibH, nTransitions, order, dE, capture, newEnergy, oldFormat, fName, matrixElement, volumeLine, &
         phononModeJ, PhononPPDir)
 
     use constants, only: HartreeToJ
@@ -3669,8 +3896,8 @@ contains
 
     ! Test the input band bounds and transitions if given.
     if(ibL > 0) then
-      if(ibH < ibL) call exitError('readMatrixElement', 'High band bound is lower than low band bound!', 1)
-      if(ibH - ibL + 1 /= nTransitions) call exitError('readMatrixElement', 'Number of transitions input does not match band bounds!', 1)
+      if(ibH < ibL) call exitError('readSingleMatrixElementFile', 'High band bound is lower than low band bound!', 1)
+      if(ibH - ibL + 1 /= nTransitions) call exitError('readSingleMatrixElementFile', 'Number of transitions input does not match band bounds!', 1)
     endif
 
 
@@ -3692,9 +3919,9 @@ contains
       read(12,'(L4)') capture_
       if(capture_ /= capture) then
         if(capture) then
-          call exitError('readMatrixElement', 'This matrix element was not calculated for capture!', 1)
+          call exitError('readSingleMatrixElementFile', 'This matrix element was not calculated for capture!', 1)
         else
-          call exitError('readMatrixElement', 'This matrix element was calculated for capture!', 1)
+          call exitError('readSingleMatrixElementFile', 'This matrix element was calculated for capture!', 1)
         endif
       endif
     endif
@@ -3729,7 +3956,7 @@ contains
     read(12,*)
 
     if(ibL <= 0 .and. nTransitions /= nTransitions_) &
-      call exitError('readMatrixElement', 'Number of transitions to read and from file do not match, but no bounds given!', 1)
+      call exitError('readSingleMatrixElementFile', 'Number of transitions to read and from file do not match, but no bounds given!', 1)
 
 
     ! iE is the index to store if new bounds given. iE_ is the index from 
@@ -3770,7 +3997,7 @@ contains
 
     return
 
-  end subroutine readMatrixElement
+  end subroutine readSingleMatrixElementFile
 
 !----------------------------------------------------------------------------
   subroutine storeSingleElement(iE, nTransitions, order, dE, dq_j, normSqOverlap, overlapWithFactors, newEnergy, matrixElement)
