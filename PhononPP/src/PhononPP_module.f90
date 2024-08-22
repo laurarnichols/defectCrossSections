@@ -777,12 +777,10 @@ module PhononPPMod
 
       open(17,file='njThermal.out')
 
+      write(17,'("# Temperature (K): ",f7.1)') temperature
+      write(17,'("# Number of modes: ",i10)') nModes
+
       write(17,'("# Mode index, nj from thermal Bose-Einstein")')
-
-      write(17,'("# Temperature (K): ")')
-      write(17,'(f7.1)') temperature
-
-      write(17,'("# Mode index, nj")')
 
       do j = 1, nModes
         write(17,'(1i7, 1ES24.15E3)') j, nj(j)
@@ -794,7 +792,7 @@ module PhononPPMod
 
     return
 
-  end subroutine
+  end subroutine calcAndWriteNj
 
 !----------------------------------------------------------------------------
   subroutine calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, diffOmega, singleDisp, &
@@ -1797,6 +1795,11 @@ module PhononPPMod
       !! Dummy integer to ignore input
     integer :: j
       !! Loop index
+    integer :: nModes_
+      !! Number of modes in nj file
+
+    character(len=300) :: textDum
+      !! Dummy text to ignore input
 
     
     if(ionode) then
@@ -1804,8 +1807,10 @@ module PhononPPMod
       open(17,file=trim(njInput))
 
       read(17,*)
-      read(17,*)
-      read(17,*)
+
+      read(17,'(a19,i10)') textDum, nModes_
+      if(nModes_ /= nModes) call exitError('readNj','Input number of modes does not match nj file!',1)
+
       read(17,*)
 
       do j = 1, nModes
@@ -1820,6 +1825,6 @@ module PhononPPMod
 
     return
 
-  end subroutine
+  end subroutine readNj
 
 end module PhononPPMod
