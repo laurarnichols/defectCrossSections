@@ -594,7 +594,8 @@ contains
       allocate(dE(3,nTransitions,1))
         ! dE is expected to be 3D here and in later subroutines to 
         ! be consistent with capture. The last index is the number
-        ! of pools, but scattering currently assumes nPools = 1.
+        ! of k-points per pool, but scattering currently assumes
+        ! nkPerPool = 1.
 
       if(ionode) then
         dE(:,:,1) = dE2D
@@ -902,23 +903,40 @@ contains
     allocate(matrixElement(mDim,nTransitions,nkPerPool))
 
 
-    if(indexInPool == 0) then
+    if(captured) then
 
-      matrixElement = 0.0_dp
+      if(indexInPool == 0) then
 
-      do ikLocal = 1, nkPerPool
+        matrixElement = 0.0_dp
+
+        do ikLocal = 1, nkPerPool
     
-        ikGlobal = ikLocal+ikStart_pool-1
-          !! Get the global `ik` index from the local one
+          ikGlobal = ikLocal+ikStart_pool-1
+            !! Get the global `ik` index from the local one
 
-         call readSingleKMatrixElements(ikGlobal, iSpin, nTransitions, ibi, nModes, jReSort, mDim, order, suffixLength, &
-              dE(:,:,ikLocal), captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, &
-              PhononPPDir, prefix, matrixElement(:,:,ikLocal), volumeLine)
+           call readSingleKMatrixElements(ikGlobal, iSpin, nTransitions, ibi, nModes, jReSort, mDim, order, suffixLength, &
+                dE(:,:,ikLocal), captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, &
+                PhononPPDir, prefix, matrixElement(:,:,ikLocal), volumeLine)
 
-      enddo
+        enddo
+      endif
+
+      call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
+
+    else
+      if(ionode) then
+        matrixElement = 0.0_dp
+
+        call readSingleKMatrixElements(-1, iSpin, nTransitions, ibi, nModes, jReSort, mDim, order, suffixLength, &
+              dE(:,:,1), captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, &
+              PhononPPDir, prefix, matrixElement(:,:,1), volumeLine)
+
+      endif
+
+      call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
     endif
 
-    call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
 
     return
 

@@ -65,6 +65,9 @@ program LSFmain
   ! Distribute k-points in pools (k-point parallelization only currently
   ! used for capture.)
   call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
+  if(.not. captured) nkPerPool = 1
+    ! Other parameters ignored for scattering. Set nkPerPool manually
+    ! because it is used for array dimensions.
 
 
   call readEnergyTable(iSpin, captured, energyTableDir, nTransitions, ibi, ibf, iki, ikf, dE)
@@ -79,7 +82,11 @@ program LSFmain
   allocate(jReSort(nModes))
 
   if(ionode) then
-    if(order == 1 .and. reSortMEs) call getjReSort(nModes, PhononPPDir, jReSort)
+    if(order == 1 .and. reSortMEs) then
+      call getjReSort(nModes, PhononPPDir, jReSort)
+    else
+      jReSort = 0
+    endif
   endif
 
   call MPI_BCAST(jReSort, nModes, MPI_INTEGER, root, worldComm, ierr)
@@ -90,7 +97,7 @@ program LSFmain
 
   if((.not. captured) .and. myid == 1) then
     do iE = 1, nTransitions
-      write(*,'(i7,2ES24.15E3)') iE, matrixElement(1,iE,1)
+      write(*,'(i7,ES24.15E3)') iE, matrixElement(1,iE,1)
     enddo
 
     call exitError('LSFmain','testing',1)

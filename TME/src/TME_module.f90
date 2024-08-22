@@ -3974,7 +3974,7 @@ contains
           read(12,'(i10,4ES24.15E3)') ibi, rDum, rDum, normSqOverlap, overlapWithFactors
         endif
       else
-        read(12,'(4i10,4ES24.15E3)') iDum, iDum, iDum, iDum, rDum, rDum, rDum, matrixElement(iE) ! in Hartree^2
+        read(12,'(4i10,4ES24.15E3)') iDum, iDum, iDum, iDum, rDum, rDum, normSqOverlap, overlapWithFactors ! in Hartree^2
       endif
 
 
