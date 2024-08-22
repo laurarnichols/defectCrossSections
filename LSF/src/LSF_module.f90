@@ -792,8 +792,35 @@ contains
   end subroutine
 
 !----------------------------------------------------------------------------
-  subroutine readAllMatrixElements(iSpin, nTransitions, ibi, nModes, jReSort, order, suffixLength, dE, newEnergyTable, &
+  subroutine readAllMatrixElements(iSpin, nTransitions, ibi, nModes, jReSort, order, suffixLength, dE, captured, newEnergyTable, &
           oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, PhononPPDir, prefix, mDim, matrixElement, volumeLine)
+    ! For both the zeroth-order and first-order matrix elements, there is the option 
+    ! to specify `newEnergyTable`. If this variable is true, that means that the 
+    ! matrix elements (TME) and LSF code were not run with the same energy table as 
+    ! input. This might be beneficial if tweaks were made to the energies used or 
+    ! you only want to use a subset of the transitions for the LSF code. 
+    !
+    ! With `newEnergyTable = .true.`, the states to be read from the matrix element 
+    ! file(s) come from the energy table input to the LSF code. All of the states in 
+    ! the energy table input to the LSF code must be present in the matrix element file. 
+    !
+    ! Both terms also allow you to specify the old format where both the initial and 
+    ! final band indices were given for capture and the headers were different. I 
+    ! needed this for the Si calculations and left it here just in case.
+    !
+    ! In addition to the options `newEnergyTable` and `oldFormat` in the zeroth-order 
+    ! term, the first-order term also has options `reSortMEs` and `rereadDq`.
+    !
+    ! `reSortMEs` assumes that the modes were labeled differently when the matrix 
+    ! elements were calculated vs what is to be used for the LSF run. This can be the 
+    ! case if you want to compare the difference between allowing the frequencies to 
+    ! change for different states (e.g., before and after capture) vs not. 
+    !
+    ! `rereadDq` allows you to read a new delta q for each mode than was used in the 
+    ! calculation of the matrix elements. You shouldn't need this in general, but 
+    ! there was a bug in the code that only messed up the dq.txt file previously, so 
+    ! it was useful for me to be able to fix the dq here rather than having to redo 
+    ! all of the matrix element calculations. 
 
     implicit none
 
@@ -816,6 +843,8 @@ contains
     real(kind=dp), intent(in) :: dE(3,nTransitions,nkPerPool)
       !! All energy differences from energy table
 
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
     logical, intent(in) :: newEnergyTable
       !! If this code and TME are being run with a different
       !! energy table
@@ -889,58 +918,23 @@ contains
         ikGlobal = ikLocal+ikStart_pool-1
           !! Get the global `ik` index from the local one
 
-        ! For both the zeroth-order and first-order matrix elements, there
-        ! is the option to specify `newEnergyTable`. If this variable is true,
-        ! that means that the matrix elements (TME) and LSF code were not run
-        ! with the same energy table as input. This might be beneficial if tweaks
-        ! were made to the energies used or you only want to use a subset of 
-        ! the transitions for the LSF code. 
-        !
-        ! With `newEnergyTable = .true.`, the states to be read from the matrix
-        ! element file(s) come from the energy table input to the LSF code. All
-        ! of the states in the energy table input to the LSF code must be present
-        ! in the matrix element file. 
-        !
-        ! Both terms also allow you to specify the old format where both the
-        ! initial and final band indices were given for capture and the headers
-        ! were different. I needed this for the Si calculations and left it here
-        ! just in case.
-        !..........................................................................
-        ! The zeroth-order term reads only one matrix element, with or without the
-        ! new energy table
+        ! The zeroth-order term reads only one matrix element, with or without the new energy table
         if(order == 0) then
           fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
 
           dENew = dE(2,:,ikLocal)
             ! The second index holds the zeroth-order energy
-          if(newEnergyTable) then
-            call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
-          else
-            call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
-              ! dENew will be ignored here
-          endif
+
+          call callMESubroutineWithProperArguments(nTransitions, ibi, -1, order, dENew, captured, newEnergyTable, &
+                  oldFormat, rereadDq, fName, PhononPPDir, ME_tmp, volumeLine)
+            ! Pass -1 for jStore as it is not relevant for the zeroth-order
 
           matrixElement(1,:,ikLocal) = ME_tmp
 
-        !..........................................................................
-        ! The first-order term reads a matrix element for each mode. In addition to
-        ! the options `newEnergyTable` and `oldFormat` in the zeroth-order term, 
-        ! the first-order term also has options `reSortMEs` and `rereadDq`.
+        ! The first-order term reads a matrix element for each mode. 
         !
-        ! `reSortMEs` assumes that the modes were labeled differently when the
-        ! matrix elements were calculated vs what is to be used for the LSF run.
-        ! This can be the case if you want to compare the difference between
-        ! allowing the frequencies to change for different states (e.g., before and
-        ! after capture). 
-        !
-        ! `rereadDq` allows you to read a new delta q for each mode than was used
-        ! in the calculation of the matrix elements. You shouldn't need this in 
-        ! general, but there was a bug in the code that only messed up the dq.txt
-        ! file previously, so it was useful for me to be able to fix the dq here 
-        ! rather than having to redo all of the matrix element calculations. 
-        !
-        ! The volume line will get overwritten each time through the loop, but 
-        ! that's okay because the volume doesn't change between the files. 
+        ! The volume line will get overwritten each time through the loop, but that's okay because
+        ! the volume doesn't change between the files. 
         else if(order == 1) then
 
           dENew = dE(3,:,ikLocal)
@@ -959,29 +953,9 @@ contains
               jStore = j
             endif
 
+            call callMESubroutineWithProperArguments(nTransitions, ibi, jStore, order, dENew, captured, newEnergyTable, &
+                    oldFormat, rereadDq, fName, PhononPPDir, ME_tmp, volumeLine)
 
-            ! For new energy table and new dqs, must pass the band bounds, mode index
-            ! to read (jStore) and PhononPPDir
-            if(newEnergyTable .and. rereadDq) then
-              call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
-                    fName, ME_tmp, volumeLine, jStore, PhononPPDir)
-
-            ! For just new energy table, only pass band bounds
-            else if(newEnergyTable .and. (.not. rereadDq)) then
-              call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
-                    fName, ME_tmp, volumeLine)
-
-            ! For just new dq, only pass jStore and PhononPPDir
-            else if((.not. newEnergyTable) .and. rereadDq) then
-              call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine, &
-                jStore, PhononPPDir)
-                  ! dENew will be ignored here
-
-            ! For neither, don't pass anything and just read matrix elements as-is
-            else if((.not. newEnergyTable) .and. (.not. rereadDq)) then
-              call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
-                ! dENew will be ignored here
-            endif
 
             ! Store the matrix element for this mode
             matrixElement(jStore,:,ikLocal) = ME_tmp
@@ -999,6 +973,86 @@ contains
     return
 
   end subroutine readAllMatrixElements
+
+!----------------------------------------------------------------------------
+  subroutine callMESubroutineWithProperArguments(nTransitions, ibi, jStore, order, dENew, captured, newEnergyTable, &
+            oldFormat, rereadDq, fName, PhononPPDir, ME_tmp, volumeLine)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions)
+      !! Initial-state indices
+    integer, intent(in) :: jStore
+      !! Index to read the new delta q from,
+      !! if applicable
+    integer, intent(in) :: order
+      !! Order to calculate (0 or 1)
+
+    real(kind=dp), intent(in) :: dENew(nTransitions)
+      !! New energy to update matrix element; needed
+      !! not to create a temporary array when passing
+      !! a slice of dE
+
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
+    logical, intent(in) :: newEnergyTable
+      !! If this code and TME are being run with a different
+      !! energy table
+    logical, intent(in) :: oldFormat
+      !! If the old format of the matrix element files
+      !! should be used
+    logical, intent(in) :: rereadDq
+      !! If dq should be read from matrix element file
+      !! (.false.) or from the dq.txt file (.true.)
+
+    character(len=300), intent(in) :: fName
+      !! File name to read
+    character(len=300), intent(in) :: PhononPPDir
+      !! Path to PhononPP output dir to get Sj.out
+      !! and potentially optimalPairs.out
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: ME_tmp(nTransitions)
+      !! Temporary storage of matrix element
+
+    character(len=300), intent(out) :: volumeLine
+      !! Volume line from overlap file to be
+      !! output exactly in transition rate file
+
+
+    ! For new energy table and new dqs, must pass the band bounds, mode index
+    ! to read (jStore) and PhononPPDir. This is only an option for the first-order
+    ! term.
+    if(newEnergyTable .and. order == 1 .and. rereadDq) then
+      call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, captured, newEnergyTable, oldFormat, &
+            fName, ME_tmp, volumeLine, jStore, PhononPPDir)
+
+    ! For just new energy table, only pass band bounds. For order = 0 ignore
+    ! the value in rereadDq.
+    else if(newEnergyTable .and. (order == 0 .or. .not. rereadDq)) then
+      call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, captured, newEnergyTable, oldFormat, &
+            fName, ME_tmp, volumeLine)
+
+    ! For just new dq, only pass jStore and PhononPPDir. Again only an option
+    ! for the first-order term.
+    else if((.not. newEnergyTable) .and. order == 1 .and. rereadDq) then
+      call readMatrixElement(-1, -1, nTransitions, order, dENew, captured, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine, &
+        jStore, PhononPPDir)
+          ! dENew will be ignored here
+
+    ! For neither, don't pass anything and just read matrix elements as-is. Again
+    ! ignore rereadDq for zeroth-order.
+    else if((.not. newEnergyTable) .and. (order == 0 .or. .not. rereadDq)) then
+      call readMatrixElement(-1, -1, nTransitions, order, dENew, captured, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
+        ! dENew will be ignored here
+    endif
+
+    return
+
+  end subroutine callMESubroutineWithProperArguments
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, nModes, order, dE, dt, gamma0, & 

@@ -3601,7 +3601,7 @@ contains
   end function getMatrixElementFName
 
 !----------------------------------------------------------------------------
-  subroutine readMatrixElement(ibL, ibH, nTransitions, order, dE, newEnergy, oldFormat, fName, matrixElement, volumeLine, &
+  subroutine readMatrixElement(ibL, ibH, nTransitions, order, dE, capture, newEnergy, oldFormat, fName, matrixElement, volumeLine, &
         phononModeJ, PhononPPDir)
 
     use constants, only: HartreeToJ
@@ -3622,6 +3622,8 @@ contains
     real(kind=dp), intent(in) :: dE(nTransitions)
       !! Optional new energy to use
 
+    logical, intent(in) :: capture
+      !! If matrix elements expected for capture or scattering
     logical, intent(in) :: newEnergy
       !! If we should use a new input energy in dE
     logical, intent(in) :: oldFormat
@@ -3657,14 +3659,15 @@ contains
     real(kind=dp) :: normSqOverlap, overlapWithFactors
       !! Store the values from the input file
 
-    logical :: capture
-      !! If matrix elements for capture or scattering
+    logical :: capture_
+      !! If matrix elements were written for capture or scattering
 
     character(len=300) :: dqFName
       !! File name for generalized-coordinate norms
     character(len=300) :: line
 
 
+    ! Test the input band bounds and transitions if given.
     if(ibL > 0) then
       if(ibH < ibL) call exitError('readMatrixElement', 'High band bound is lower than low band bound!', 1)
       if(ibH - ibL + 1 /= nTransitions) call exitError('readMatrixElement', 'Number of transitions input does not match band bounds!', 1)
@@ -3679,15 +3682,35 @@ contains
     read(12,'(a)') volumeLine
 
 
+    ! There was an old format that I used with the Si files, so I put this
+    ! here to be able to read those files. This test and the oldFormat 
+    ! specifier could really be removed.
     if(.not. oldFormat) then
+      ! Test if the matrix element file comes from capture so that 
+      ! we know what format to read the file in.
       read(12,*)
-      read(12,'(L4)') capture
-      if(.not. capture) call exitError('readMatrixElement', 'This matrix element was not calculated for capture!', 1)
+      read(12,'(L4)') capture_
+      if(capture_ /= capture) then
+        if(capture) then
+          call exitError('readMatrixElement', 'This matrix element was not calculated for capture!', 1)
+        else
+          call exitError('readMatrixElement', 'This matrix element was calculated for capture!', 1)
+        endif
+      endif
     endif
 
 
     read(12,*)
     read(12,*) nTransitions_
+
+
+    ! For the first-order matrix elements, there is an additional line
+    ! for the mode index j and delta q_j. The user can either read the
+    ! matrix element file as-is, where the dq line will be ignored, or
+    ! they can use new energies and/or delta q_j. If reading a new energy
+    ! but not a new delta q_j, read the dq_j originally output in the 
+    ! matrix element file. If reading a new delta q_j (i.e., PhononPPDir
+    ! is given), ignore this line and instead read from the dq.txt file.
     if(order == 1) then
       if(newEnergy .and. .not. present(PhononPPDir)) then
         read(12,'(a78, i7, ES24.15E3)') line, iDum, dq_j
@@ -3709,8 +3732,14 @@ contains
       call exitError('readMatrixElement', 'Number of transitions to read and from file do not match, but no bounds given!', 1)
 
 
+    ! iE is the index to store if new bounds given. iE_ is the index from 
+    ! the matrix element file and is used for storing if new bounds not given.
     iE = 0
     do iE_ = 1, nTransitions_
+
+      ! For capture, we only need to read ibi, the norm square of the overlap (in
+      ! case the user wants to use new energy or dq_j) and the overlap with the
+      ! original energy and dq_j factors included. 
       if(capture) then
         if(oldFormat) then
           read(12,'(2i7,4ES24.15E3)') iDum, ibi, rDum, rDum, normSqOverlap, overlapWithFactors
@@ -3723,14 +3752,15 @@ contains
 
 
       ! If using band bounds from a new energy table, check the band
-      ! bounds for each state to make sure they line up
+      ! bounds for each state to make sure they line up.
+      ! This option is not currently implemented for scattering.
       if(ibL > 0) then
         if(ibi >= ibL .and. ibi <= ibH) then
           iE = iE + 1
-          call storeSingleElement(iE, order, dE, dq_j, normSqOverlap, overlapWithFactors, newEnergy, matrixElement)
+          call storeSingleElement(iE, nTransitions, order, dE, dq_j, normSqOverlap, overlapWithFactors, newEnergy, matrixElement)
         endif
       else
-        call storeSingleElement(iE_, order, dE, dq_j, normSqOverlap, overlapWithFactors, newEnergy, matrixElement)
+        call storeSingleElement(iE_, nTransitions, order, dE, dq_j, normSqOverlap, overlapWithFactors, newEnergy, matrixElement)
       endif
         
     enddo
@@ -3743,13 +3773,15 @@ contains
   end subroutine readMatrixElement
 
 !----------------------------------------------------------------------------
-  subroutine storeSingleElement(iE, order, dE, dq_j, normSqOverlap, overlapWithFactors, newEnergy, matrixElement)
+  subroutine storeSingleElement(iE, nTransitions, order, dE, dq_j, normSqOverlap, overlapWithFactors, newEnergy, matrixElement)
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: iE
       !! Index to store the element in
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
