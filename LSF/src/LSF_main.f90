@@ -5,8 +5,6 @@ program LSFmain
   implicit none
 
   ! Local variables:
-  integer :: iE
-    !! testing
   real(kind=dp) :: timerStart, timerEnd, timer1, timer2
     !! Timers
 
@@ -95,14 +93,6 @@ program LSFmain
   call readAllMatrixElements(iSpin, nTransitions, ibi, nModes, jReSort, order, suffixLength, dE, captured, newEnergyTable, &
           oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, PhononPPDir, prefix, mDim, matrixElement, volumeLine)
 
-  if((.not. captured) .and. myid == 1) then
-    do iE = 1, nTransitions
-      write(*,'(i7,ES24.15E3)') iE, matrixElement(1,iE,1)
-    enddo
-
-    call exitError('LSFmain','testing',1)
-  endif
-
   deallocate(jReSort)
 
 
@@ -113,8 +103,8 @@ program LSFmain
   if(ionode) write(*, '("Beginning transition-rate calculation")')
    
 
-  call getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, nModes, order, dE, dt, gamma0, & 
-          matrixElement, nj, omega, omegaPrime, Sj, SjPrime, SjThresh, diffOmega, volumeLine)
+  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dt, &
+          gamma0, matrixElement, nj, omega, omegaPrime, Sj, SjPrime, SjThresh, captured, diffOmega, volumeLine)
 
   
   deallocate(ibi,ibf,iki,ikf)

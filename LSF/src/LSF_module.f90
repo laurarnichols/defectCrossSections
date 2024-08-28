@@ -943,16 +943,16 @@ contains
   end subroutine readAllMatrixElements
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, nModes, order, dE, dt, gamma0, & 
-          matrixElement, nj, omega, omegaPrime, Sj, SjPrime, SjThresh, diffOmega, volumeLine)
+  subroutine getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dt, &
+          gamma0, matrixElement, nj, omega, omegaPrime, Sj, SjPrime, SjThresh, captured, diffOmega, volumeLine)
     
     implicit none
 
     ! Input variables:
     integer, intent(in) :: nTransitions
       !! Total number of transitions 
-    integer, intent(in) :: ibi(nTransitions)
-      !! Initial-state indices
+    integer, intent(in) :: ibi(nTransitions), ibf(:), iki(:), ikf(:)
+      !! State indices
     integer, intent(in) :: iSpin
       !! Spin index
     integer, intent(in) :: mDim
@@ -980,6 +980,8 @@ contains
     real(kind=dp), intent(in) :: SjThresh
       !! Threshold for Sj to determine which modes to calculate
 
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
@@ -998,11 +1000,15 @@ contains
     integer :: updateFrequency
       !! Frequency of steps to write status update
 
+    real(kind=dp) :: cosOmegaPrime(nModes)
+      !! cos(omega' t/2)
     real(kind=dp) :: Eif
       !! Local storage of energy for delta function
     real(kind=dp) :: multFact
       !! Multiplication factor for each term per
       !! Simpson's integration method
+    real(kind=dp) :: sinOmegaPrime(nModes)
+      !! sin(omega' t/2)
     real(kind=dp) :: Sj1D(nModes), SjPrime1D(nModes)
       !! 1D arrays to pass to setUpTimeTables
     real(kind=dp) :: t0
@@ -1014,10 +1020,19 @@ contains
     real(kind=dp) :: transitionRate(nTransitions,nkPerPool)
       !! \(Gamma_i\) transition rate
 
+    complex(kind=dp) :: Aj_t(nModes)
+      !! Aj from text. See equation below.
+    complex(kind=dp) :: Dj0_tOverSj(nModes)
+      !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
+      !! divided by Sj
     complex(kind=dp) :: Dj0_t(nModes)
       !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
     complex(kind=dp) :: Dj1_t(nModes)
       !! Factor multiplying |M_j|^2*G_j^0(t) in G_j^1(t)
+    complex(kind=dp) :: Dj1_termsOneAndTwo(nModes)
+      !! First and second terms in the parentheses of D_j^1(t)
+    complex(kind=dp) :: Dj1_termThree(nModes)
+      !! Third term in the parentheses of D_j^1(t) (without Sj)
     complex(kind=dp) :: expArg_base
       !! Base exponential argument for each time step
     complex(kind=dp) :: expArg
@@ -1029,6 +1044,9 @@ contains
 
     logical :: mask(nModes)
       !! Select the modes to calculate
+
+    character(len=300) :: text
+      !! Text for long header
 
       
     updateFrequency = ceiling(nStepsLocal/10.0)
@@ -1057,12 +1075,6 @@ contains
         ! Must do this arithmetic with floats to avoid
         ! integer overflow
 
-      Sj1D = Sj(:,1)
-      SjPrime1D = SjPrime(:,1)
-      call setupTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, Sj1D, SjPrime1D, time, diffOmega, Dj0_t, Dj1_t)
-
-      expArg_base = ii*sum(Dj0_t(jTrue)) - gamma0*time
-
       if(iTime == 0 .or. iTime == nStepsLocal-1) then
         multFact = 1.0_dp
       else if(mod(iTime,2) == 0) then
@@ -1071,9 +1083,34 @@ contains
         multFact = 4.0_dp
       endif
 
+      if(captured) then
+        Sj1D = Sj(:,1)
+        SjPrime1D = SjPrime(:,1)
+        call setupAllTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, Sj1D, SjPrime1D, time, diffOmega, Dj0_t, Dj1_t)
 
+        expArg_base = ii*sum(Dj0_t(jTrue)) - gamma0*time
+      else 
+        call setupStateIndTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, time, diffOmega, cosOmegaPrime, &
+                  sinOmegaPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree)
+      endif
+
+
+
+      ! For scattering, this loop is basically non-functional because the number
+      ! of pools is 1 and nkPerPool is also set to 1. That means that anywhere
+      ! ikLocal is seen below, it can be replaced with 1 for scattering.
       do ikLocal = 1, nkPerPool
+
         do iE = 1, nTransitions
+
+          if(.not. captured) then
+            Sj1D = Sj(:,iE)
+            SjPrime1D = SjPrime(:,iE)
+            call setupStateDepTimeTables(countTrue, nModes, jTrue, cosOmegaPrime, omega, omegaPrime, sinOmegaPrime, Sj, &
+                  SjPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree, diffOmega, Dj0_t, Dj1_t)
+
+            expArg_base = ii*sum(Dj0_t(jTrue)) - gamma0*time
+          endif
 
           if(order == 0) then
             expPrefactor = matrixElement(1,iE,ikLocal)
@@ -1113,24 +1150,44 @@ contains
 
       do ikLocal = 1, nkPerPool
 
-        ikGlobal = ikLocal+ikStart_pool-1
-
-        open(unit=37, file=trim(outputDir)//'transitionRate.'//trim(int2str(iSpin))//"."//trim(int2str(ikGlobal)))
+        if(captured) then
+          ikGlobal = ikLocal+ikStart_pool-1
+          open(unit=37, file=trim(outputDir)//'transitionRate.'//trim(int2str(iSpin))//"."//trim(int2str(ikGlobal)))
+        else
+          open(unit=37, file=trim(outputDir)//'transitionRate.'//trim(int2str(iSpin)))
+        endif
 
         write(37,'(a)') trim(volumeLine)
 
-        write(37,'("# Total number of transitions, Initial states (bandI, bandF) Format : ''(3i10)''")')
-        write(37,'(3i10)') nTransitions, ibi(1), ibi(nTransitions)
+        if(captured) then
+          write(37,'("# Total number of transitions, Initial states (bandI, bandF) Format : ''(3i10)''")')
+          write(37,'(3i10)') nTransitions, ibi(1), ibi(nTransitions)
 
-        write(37,'("# Initial state, Transition rate Format : ''(i10, f10.5, ES24.15E3)''")')
+          write(37,'("# Initial state, Transition rate Format : ''(i10, ES24.15E3)''")')
+        else
+          text = "# Total number of transitions, Initial States (kI, kF, bandI, bandF), Final States (kI, kF, bandI, bandF)"
+          write(37,'(a, " Format : ''(9i10)''")') trim(text)   
+  
+          write(37,'(9i10)') nTransitions, iki(1), iki(nTransitions), ibi(1), ibi(nTransitions), &
+                                           ikf(1), ikf(nTransitions), ibf(1), ibf(nTransitions)
+
+          write(37,'("# iki, ibi, ikf, ibf, Transition rate Format : ''(4i10, ES24.15E3)''")')
+        endif 
+
 
         do iE = 1, nTransitions
-          write(37,'(i10, ES24.14E3)') ibi(iE), transitionRate(iE,ikLocal)
-            ! Plotting energy doesn't depend on final band, so
-            ! just pick one
+          if(captured) then
+            write(37,'(i10, ES24.14E3)') ibi(iE), transitionRate(iE,ikLocal)
+          else
+            write(37,'(4i10, ES24.14E3)') iki(iE), ibi(iE), ikf(iE), ibf(iE), transitionRate(iE,ikLocal)
+          endif
         enddo
 
-        write(*, '("  Transition rate of k-point ", i4, " and spin ", i1, " written.")') ikGlobal, iSpin
+        if(captured) then
+          write(*, '("  Transition rate of k-point ", i4, " and spin ", i1, " written.")') ikGlobal, iSpin
+        else
+          write(*, '("  Transition rate written.")')
+        endif
 
       enddo
     endif
@@ -1179,7 +1236,7 @@ contains
   end subroutine
 
 !----------------------------------------------------------------------------
-  subroutine setupTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, Sj, SjPrime, time, diffOmega, Dj0_t, Dj1_t)
+  subroutine setupAllTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, Sj, SjPrime, time, diffOmega, Dj0_t, Dj1_t)
 
     implicit none
 
@@ -1274,7 +1331,171 @@ contains
 
     return
 
-  end subroutine
+  end subroutine setupAllTimeTables
+
+!----------------------------------------------------------------------------
+  subroutine setupStateIndTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, time, diffOmega, cosOmegaPrime, &
+            sinOmegaPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: countTrue
+      !! Number of indices where Sj > SjThresh
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: jTrue(countTrue)
+      !! Mode indices where Sj > SjThresh
+
+    real(kind=dp), intent(in) :: nj(nModes)
+      !! \(n_j\) occupation number
+    real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(in) :: time
+      !! Time at which to calculate the \(G_0(t)\) argument
+
+    logical, intent(in) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: cosOmegaPrime(nModes)
+      !! cos(omega' t/2)
+    real(kind=dp), intent(out) :: sinOmegaPrime(nModes)
+      !! sin(omega' t/2)
+
+    complex(kind=dp), intent(out) :: Aj_t(nModes)
+      !! Aj from text. See equation below.
+    complex(kind=dp), intent(out) :: Dj0_tOverSj(nModes)
+      !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
+      !! divided by Sj
+    complex(kind=dp), intent(out) :: Dj1_termsOneAndTwo(nModes)
+      !! First and second terms in the parentheses of D_j^1(t)
+    complex(kind=dp), intent(out) :: Dj1_termThree(nModes)
+      !! Third term in the parentheses of D_j^1(t) (without Sj)
+
+    ! Local variables:
+    complex(kind=dp) :: expTimesNBarPlus1(nModes)
+      !! Local storage of \(e^{i\omega_j t}(\bar{n}_j + 1)\) 
+    complex(kind=dp) :: njOverPosExp_t(nModes)
+      !! n_j*e^{-i\omega_j t}
+    complex(kind=dp) :: posExp_t(nModes)
+      !! Local storage of \(e^{i\omega_j t}\) for speed
+
+
+    posExp_t(jTrue) = exp(ii*omega(jTrue)*time)
+
+
+    expTimesNBarPlus1(jTrue) = posExp_t(jTrue)*(nj(jTrue)+1.0_dp)
+
+    if(diffOmega) then
+      Aj_t(jTrue) = (expTimesNBarPlus1(jTrue) + nj(jTrue))/(expTimesNBarPlus1(jTrue) - nj(jTrue))
+
+      sinOmegaPrime(jTrue) = sin(omegaPrime(jTrue)*time/2.0_dp)
+      cosOmegaPrime(jTrue) = cos(omegaPrime(jTrue)*time/2.0_dp)
+
+    else
+      njOverPosExp_t(jTrue) = nj(jTrue)/posExp_t(jTrue)
+
+      Dj0_tOverSj(jTrue) = 1.0_dp/ii*(expTimesNBarPlus1(jTrue) + njOverPosExp_t(jTrue) - (2.0_dp*nj(jTrue) + 1.0_dp))
+
+      if(order == 1) then
+
+        Dj1_termsOneAndTwo(jTrue) = njOverPosExp_t(jTrue) + expTimesNBarPlus1(jTrue)
+        Dj1_termThree(jTrue) = (1 + njOverPosExp_t(jTrue) - expTimesNBarPlus1(jTrue))**2
+
+      endif
+    endif
+
+    return
+
+  end subroutine setupStateIndTimeTables
+
+!----------------------------------------------------------------------------
+  subroutine setupStateDepTimeTables(countTrue, nModes, jTrue, cosOmegaPrime, omega, omegaPrime, sinOmegaPrime, Sj, &
+            SjPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree, diffOmega, Dj0_t, Dj1_t)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: countTrue
+      !! Number of indices where Sj > SjThresh
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: jTrue(countTrue)
+      !! Mode indices where Sj > SjThresh
+
+    real(kind=dp), intent(in) :: cosOmegaPrime(nModes)
+      !! cos(omega' t/2)
+    real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(in) :: sinOmegaPrime(nModes)
+      !! sin(omega' t/2)
+    real(kind=dp), intent(in) :: Sj(nModes), SjPrime(nModes)
+      !! Huang-Rhys factor for each mode
+
+    complex(kind=dp), intent(in) :: Aj_t(nModes)
+      !! Aj from text. See equation below.
+    complex(kind=dp), intent(in) :: Dj0_tOverSj(nModes)
+      !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
+      !! divided by Sj
+    complex(kind=dp), intent(in) :: Dj1_termsOneAndTwo(nModes)
+      !! First and second terms in the parentheses of D_j^1(t)
+    complex(kind=dp), intent(in) :: Dj1_termThree(nModes)
+      !! Third term in the parentheses of D_j^1(t) (without Sj)
+
+    logical, intent(in) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
+
+    ! Output variables:
+    complex(kind=dp), intent(out) :: Dj0_t(nModes)
+      !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
+    complex(kind=dp), intent(out) :: Dj1_t(nModes)
+      !! Factor multiplying |M_j|^2*G_j^0(t) in G_j^1(t)
+
+    ! Local variables:
+    complex(kind=dp) :: Dj0OverSinOmegaPrime_t(nModes)
+      !! Needed to keep from getting NaNs from cot()
+
+
+    if(diffOmega) then
+
+      Dj0OverSinOmegaPrime_t(jTrue) = -2.0_dp/(ii*Aj_t*sinOmegaPrime(jTrue)/Sj(jTrue) - cosOmegaPrime(jTrue)/SjPrime(jTrue))
+
+      Dj0_t(jTrue) = sinOmegaPrime(jTrue)*Dj0OverSinOmegaPrime_t(jTrue)
+        ! Need to factor out the sin() to avoid getting NaNs
+        ! when calculating cot() here and in Dj1_t
+
+      if(order == 1) then
+
+        Dj1_t(jTrue) = -(hbar_atomic/(2.0_dp*omega(jTrue)*Sj(jTrue)))* &
+                        Dj0OverSinOmegaPrime_t(jTrue)*(sinOmegaPrime(jTrue)*Dj0_t(jTrue)*Aj_t(jTrue)**2 - &
+                        0.5_dp*omega(jTrue)/omegaPrime(jTrue)*(Aj_t(jTrue)*cosOmegaPrime(jTrue) - sinOmegaPrime(jTrue)* &
+                          (omega(jTrue)*cosOmegaPrime(jTrue) - ii*omegaPrime(jTrue)*Aj_t(jTrue)*sinOmegaPrime(jTrue))/ &
+                          (omega(jTrue)*Aj_t(jTrue)*sinOmegaPrime(jTrue) + ii*omegaPrime(jTrue)*cosOmegaPrime(jTrue))))
+          ! I don't have access to (Delta q_j) here, and I don't want to 
+          ! get another variable to deal with. Instead, I rearranged this
+          ! to not be in terms of (Delta q_j). Also have to rearrange to 
+          ! get rid of cot()
+
+      endif
+
+    else
+
+      Dj0_t(jTrue) = Sj(jTrue)*Dj0_tOverSj(jTrue)
+
+      if(order == 1) then
+
+        Dj1_t(jTrue) = (hbar_atomic/omega(jTrue))/2.0_dp*(Dj1_termsOneAndTwo(jTrue) + &
+            Sj(jTrue)*Dj1_termThree(jTrue))
+
+      endif
+    endif
+
+    return
+
+  end subroutine setupStateDepTimeTables
   
 !----------------------------------------------------------------------------
   function transitionRateFileExists(ikGlobal, isp) result(fileExists)
