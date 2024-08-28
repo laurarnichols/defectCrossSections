@@ -3071,7 +3071,7 @@ contains
     write(17,'(L4)') .false.
 
     text = "# Total number of transitions, Initial States (kI, kF, bandI, bandF), Final States (kI, kF, bandI, bandF)"
-    write(17,'(a, " Format : ''(4i10)''")') trim(text)   
+    write(17,'(a, " Format : ''(9i10)''")') trim(text)   
   
     write(17,'(9i10)') nTransitions, iki(1), iki(nTransitions), ibi(1), ibi(nTransitions), &
                                      ikf(1), ikf(nTransitions), ibf(1), ibf(nTransitions)
