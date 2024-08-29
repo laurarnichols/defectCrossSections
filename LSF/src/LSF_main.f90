@@ -5,31 +5,8 @@ program LSFmain
   implicit none
 
   ! Local variables:
-  integer, allocatable :: iDum1D(:)
-    !! Integer to ignore input
-  integer :: iDum1, iDum2
-    !! Integers to ignore input
-  integer :: j, ikLocal, ikGlobal, jStore
-    !! Loop index
-  integer :: mDim
-    !! Size of first dimension for matrix element
-
-  real(kind=dp), allocatable :: dENew(:)
-    !! New energy to update matrix element; needed
-    !! not to create a temporary array when passing
-    !! a slice of dE
-  real(kind=dp), allocatable :: ME_tmp(:)
-    !! Temporary storage of matrix element
-  !real(kind=dp), allocatable :: randVal(:)
-    !! Random adjustment to be made to frequencies
-    !! to test sensitivity
-  real(kind=dp), allocatable :: rDum2D(:,:)
-    !! Dummy real to ignore input
   real(kind=dp) :: timerStart, timerEnd, timer1, timer2
     !! Timers
-
-  character(len=300) :: fName
-    !! File name to read
 
 
   call cpu_time(timerStart)
@@ -43,13 +20,17 @@ program LSFmain
     !! * Split up processors between pools and generate MPI
     !!   communicators for pools
 
+  if(ionode) then
+    if(.not. captured .and. nPools /= 1) call exitError('LSFmain', 'Scattering only currently set up for nPools = 1 (-nk 1)!',1)
+  endif
 
-  if(ionode) write(*, '("Pre-k-loop: [ ] Get parameters  [ ] Read Sj")')
+
+  if(ionode) write(*, '("Getting input parameters and reading necessary input files.")')
   call cpu_time(timer1)
 
-  call readInputParams(iSpin, order, beta, dt, gamma0, hbarGamma, maxTime, smearingExpTolerance, &
-        temperature, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, &
-        MjBaseDir, outputDir, PhononPPDir, prefix)
+  call readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, captured, diffOmega, &
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
+        PhononPPDir, prefix)
 
 
   nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
@@ -79,196 +60,54 @@ program LSFmain
   if(ionode) write(*,'("  Each process is completing ", i15, " time steps.")') nStepsLocal
 
 
-  call cpu_time(timer2)
-  if(ionode) write(*, '("Pre-k-loop: [X] Get parameters  [ ] Read Sj (",f10.2," secs)")') timer2-timer1
-  call cpu_time(timer1)
+  ! Distribute k-points in pools (k-point parallelization only currently
+  ! used for capture.)
+  call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
+  if(.not. captured) nkPerPool = 1
+    ! Other parameters ignored for scattering. Set nkPerPool manually
+    ! because it is used for array dimensions.
 
 
-  fName = trim(PhononPPDir)//'/Sj.out' 
-  if(diffOmega) then
-    call readSjTwoFreq(fName, nModes, omega, omegaPrime, Sj, SjPrime)
+  call readEnergyTable(iSpin, captured, energyTableDir, nTransitions, ibi, ibf, iki, ikf, dE)
 
-    ! This is the code that I used to test what difference different
-    ! frequencies would have. I input the same two frequencies twice
-    ! and randomly adjusted the omegaPrime. 
-    !
-    ! If doing a random adjustment, must do with a single process then
-    ! broadcast, otherwise the random variables will be different across
-    ! processes.
-    !allocate(randVal(nModes))
-    !if(ionode) then
-      !call random_seed()
-      !call random_number(randVal)
-      !randVal = (randVal*2.0_dp - 1.0_dp)*0.50_dp  ! the number multiplied here is the % adjustment
-      !SjPrime(:) = SjPrime(:)/omegaPrime(:)
-      !omegaPrime(:) = omegaPrime(:)*(1.0_dp + randVal) ! this applies the random adjustment
-      !omegaPrime(:) = omegaPrime(:)*(1.0_dp + 0.5_dp) ! this applies a uniform adjustment
-      !SjPrime(:) = SjPrime(:)*omegaPrime(:)
-    !endif
-    !deallocate(randVal)
-
-    ! Need to rebroadcast omegaPrime if we adjust it
-    !call MPI_BCAST(omegaPrime, size(omegaPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    !call MPI_BCAST(SjPrime, size(SjPrime), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-  else
-    allocate(omegaPrime(nModes), SjPrime(nModes))
-      ! Need to allocate to avoid issues with passing variables
-      ! and deallocating
-
-    call readSjOneFreq(fName, nModes, omega, Sj)
-  endif
+  call readSj(ibi, ibf, iki, ikf, nTransitions, captured, diffOmega, PhononPPDir, nModes, omega, &
+          omegaPrime, Sj, SjPrime)
 
   allocate(nj(nModes))
-  nj(:) = 1.0_dp/(exp(hbar_atomic*omega(:)*beta) - 1.0_dp)
-
-
-  call cpu_time(timer2)
-  if(ionode) write(*, '("Pre-k-loop: [X] Get parameters  [X] Read Sj (",f10.2," secs)")') timer2-timer1
-  call cpu_time(timer1)
-
-
-  call distributeItemsInSubgroups(myPoolId, nKPoints, nProcs, nProcPerPool, nPools, ikStart_pool, ikEnd_pool, nkPerPool)
-    !! * Distribute k-points in pools
+  call readNj(nModes, njInput, nj)
 
 
   allocate(jReSort(nModes))
 
   if(ionode) then
-    call readCaptureEnergyTable(1, iSpin, energyTableDir, ibi, ibf, nTransitions, rDum2D)
-     ! Assume that band bounds and number of transitions do not depend on k-points or spin
-     ! We ignore the energy here because we are only reading ibi, ibf, and nTransitions
-
-    deallocate(rDum2D)
-
-    if(order == 1 .and. reSortMEs) call getjReSort(nModes, PhononPPDir, jReSort)
+    if(order == 1 .and. reSortMEs) then
+      call getjReSort(nModes, PhononPPDir, jReSort)
+    else
+      jReSort = 0
+    endif
   endif
 
-  call MPI_BCAST(nTransitions, 1, MPI_INTEGER, root, worldComm, ierr)
-  if(.not. ionode) allocate(ibi(nTransitions))
-  call MPI_BCAST(ibi, nTransitions, MPI_INTEGER, root, worldComm, ierr)
-  call MPI_BCAST(ibf, 1, MPI_INTEGER, root, worldComm, ierr)
   call MPI_BCAST(jReSort, nModes, MPI_INTEGER, root, worldComm, ierr)
 
 
-  allocate(dE(3,nTransitions,nkPerPool))
-  allocate(dENew(nTransitions))
-
-  if(order == 0) then
-    mDim = 1
-  else if(order == 1) then
-    mDim = nModes
-  endif
-
-  allocate(matrixElement(mDim,nTransitions,nkPerPool))
-  allocate(ME_tmp(nTransitions))
-
-  if(indexInPool == 0) then
-
-    dE = 0.0_dp
-    matrixElement = 0.0_dp
-
-    do ikLocal = 1, nkPerPool
-    
-      ikGlobal = ikLocal+ikStart_pool-1
-        !! Get the global `ik` index from the local one
-
-      if(transitionRateFileExists(ikGlobal, iSpin)) then
-        write(*, '("Transition rate of k-point ", i4, " and spin ", i1, " already exists.")') ikGlobal, iSpin
-      endif
-      !else
-        ! Skipping files that exist isn't implemented in the transition
-        ! rate calculation yet, so we need to read all of the files.
-        ! In the future, can just skip the ones that have already been 
-        ! calculated.
-
-        call readCaptureEnergyTable(ikGlobal, iSpin, energyTableDir, iDum1D, iDum1, iDum2, rDum2D)
-          ! Assume that band bounds and number of transitions do not depend on k-points or spin
-
-        dE(:,:,ikLocal) = rDum2D
-        deallocate(rDum2D)
-
-        if(order == 0) then
-          ! Read zeroth-order matrix element
-
-          fName = getMatrixElementFNameWPath(ikGlobal, iSpin, matrixElementDir)
-
-          dENew = dE(2,:,ikLocal)
-          ! Call to readMatrixElement includes conversion from Hartree to J
-          if(newEnergyTable) then
-            call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
-          else
-            call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
-              ! dENew will be ignored here
-          endif
-
-          matrixElement(1,:,ikLocal) = ME_tmp
-
-        else if(order == 1) then
-          ! Read matrix elements for all modes
-    
-          do j = 1, nModes
-
-            fName = trim(MjBaseDir)//'/'//trim(prefix)//trim(int2strLeadZero(j,suffixLength))//'/'&
-                    //trim(getMatrixElementFNameWPath(ikGlobal,iSpin,matrixElementDir))
-
-            dENew = dE(3,:,ikLocal)
-            ! Call to readMatrixElement includes conversion from Hartree to J
-            ! The volume line will get overwritten each time, but that's
-            ! okay because the volume doesn't change between the files. 
-
-
-            ! If resorting the matrix element files based on a different PhononPP output
-            ! order, make sure to pass the resorted mode index if re-reading dq's
-            if(reSortMEs) then
-              jStore = jReSort(j)
-            else 
-              jStore = j
-            endif
-
-
-            if(newEnergyTable) then
-              if(rereadDq) then
-                call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
-                      fName, ME_tmp, volumeLine, jStore, PhononPPDir)
-              else
-                call readMatrixElement(minval(ibi), maxval(ibi), nTransitions, order, dENew, newEnergyTable, oldFormat, &
-                      fName, ME_tmp, volumeLine)
-              endif
-            else
-              if(rereadDq) then
-                call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine, &
-                  jStore, PhononPPDir)
-                  ! dENew will be ignored here
-              else
-                call readMatrixElement(-1, -1, nTransitions, order, dENew, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine)
-                  ! dENew will be ignored here
-              endif
-            endif
-
-            matrixElement(jStore,:,ikLocal) = ME_tmp
-
-          enddo
-  
-        !endif
-      endif
-    enddo
-
-  endif
+  call readAllMatrixElements(iSpin, nTransitions, ibi, nModes, jReSort, order, suffixLength, dE, captured, newEnergyTable, &
+          oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, PhononPPDir, prefix, mDim, matrixElement, volumeLine)
 
   deallocate(jReSort)
 
 
-  call MPI_BCAST(dE, size(dE), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
-  call MPI_BCAST(matrixElement, size(matrixElement), MPI_DOUBLE_PRECISION, root, intraPoolComm, ierr)
+  call cpu_time(timer2)
+  if(ionode) write(*, '("Reading input parameters and files complete! (",f10.2," secs)")') timer2-timer1
+  call cpu_time(timer1)
 
-
-  if(ionode) write(*, '("  Beginning transition-rate calculation")')
+  if(ionode) write(*, '("Beginning transition-rate calculation")')
    
 
-  call getAndWriteTransitionRate(nTransitions, ibi, iSpin, mDim, order, nModes, dE, gamma0, & 
-          matrixElement, temperature, volumeLine)
+  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dt, &
+          gamma0, matrixElement, nj, omega, omegaPrime, Sj, SjPrime, SjThresh, captured, diffOmega, volumeLine)
 
   
+  deallocate(ibi,ibf,iki,ikf)
   deallocate(dE)
   deallocate(matrixElement)
   deallocate(nj)

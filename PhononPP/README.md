@@ -42,7 +42,7 @@ _Note: It is also currently assumed that the allowed states are not dependent on
 
 When calculating $S_j$, there is an option to calculate using a single frequency from a single phonon file or two frequencies using two phonon files. Both $S_j$ and $S_j'$ are calculated using the same $\Delta q_j$ projection of the displacement onto the initial-phonon eigenvectors, and both are output in the same file. Currently, the only option for this output file is for the modes to be sorted in order of descending $S_j$. This mode is controlled by the logical `diffOmega`, which is by default `.false.`.
 
-There is also a file `Sj.analysis.out` created. For capture, this will just be one row of data indicating the max $S_j$/$S_j'$ and the number above a threshold `SjThresh` given by the user. The default value of `SjThresh` is `0.1`. For scattering, there are independent $S_j$'s for each transition, so there will be a row with the relevant data points for each transition, with the indices of the involved states given in the first column. 
+There is also a file `Sj.analysis.out` created. For capture, this will just be one row of data indicating the max $S_j/S_j'$ and the number above a threshold `SjThresh` given by the user. The default value of `SjThresh` is `0.1`. For scattering, there are independent $S_j$'s for each transition, so there will be a row with the relevant data points for each transition, with the indices of the involved states given in the first column. 
 
 ### First-order items
 
