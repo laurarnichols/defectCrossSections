@@ -900,7 +900,9 @@ module energyTabulatorMod
                 dEFirst = -dEZeroth
 
 
-                write(17,'(4i7,3ES24.15E3)') iki, ibi, ikf, ibf, dEDelta, dEZeroth, dEFirst
+                write(17,'(4i7,5ES24.15E3)') iki, ibi, ikf, ibf, dEDelta, dEZeroth, dEFirst, &
+                                             eTotStartPos(ibi,iki)-eTotRelax(ibi,iki), &
+                                             eTotRelax(ibf,ikf)-eTotStartPos(ibf,ikf)
         
               enddo ! Loop over final bands 
             enddo ! Loop over final k-points
@@ -928,8 +930,8 @@ module energyTabulatorMod
     
 
         ! Output header for main data and loop over bands
-        text = "# iki, ibi, ikf, ibf, Delta Function (Hartree), Zeroth-order (Hartree), First-order (Hartree)" 
-        write(17, '(a, " Format : ''(2i10,3ES24.15E3)''")') trim(text)
+        text = "# iki, ibi, ikf, ibf, Delta Function, Zeroth-order, First-order," 
+        write(17, '(a, " Start to Initial, Final to Start, (All in Hartree)Format : ''(4i10,5ES24.15E3)''")') trim(text)
 
         close(17)
 
