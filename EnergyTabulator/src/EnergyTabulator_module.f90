@@ -729,17 +729,13 @@ module energyTabulatorMod
     real(kind=dp) :: refEig
       !! Eigenvalue of WZP reference carrier
 
-    logical :: fileExists
-      !! If the input file exists in the given exportDir
-    logical :: inInitkRange, inFinalkRange, inInitBandRange, inFinalBandRange
-      !! If in k-point or band range
+    logical :: inInitkRange, inFinalkRange
+      !! If in k-point range
     logical, allocatable :: skipState(:,:)
       !! If a state should be skipped
     
     character(len=300) :: baseFName
       !! Base file name for energy table
-    character(len=300) :: path
-      !! Path to the export for each band state
     character(len=300) :: text
       !! Text for header
 
@@ -758,51 +754,8 @@ module energyTabulatorMod
       ! so give the user the option to shift the bands so
       ! that they line up.
 
-
-    ! Get total energies from exports of all different structures
-    eTot = 0.0_dp
-    minETot = 0.0_dp
-    skipState = .true.
-    do ik = ikMin, ikMax
-
-      ! Test if in range of either k bounds
-      inInitkRange = ik >= ikIinit .or. ik <= ikIfinal
-      inFinalkRange = ik >= ikFinit .or. ik <= ikFfinal
-
-      if(inInitkRange .or. inFinalkRange) then
-        do ib = ibMin, ibMax
-
-          ! Test if in range of either band bounds
-          inInitBandRange = ib >= iBandIinit .or. ib <= iBandIfinal
-          inFinalBandRange = ib >= iBandFinit .or. ib <= iBandFfinal
-
-          ! Only consider if band and k bounds line up for initial/final states
-          if((inInitkRange .and. inInitBandRange) .or. (inFinalkRange .and. inFinalBandRange)) then
-
-            ! Assume subfolders have pattern <allStatesBaseDir>/k<ik>_b<ib>/<singleStateExportDir>
-            ! e.g., ../VASP/k1_b1616/export/
-            path = trim(allStatesBaseDir)//'/k'//trim(int2str(ik))//'_b'//trim(int2str(ib))//'/'//trim(singleStateExportDir)
-            call getTotalEnergy(path, eTot(ib,ik), fileExists)
-
-            ! Skip the consideration of this state if the necessary file
-            ! doesn't exist. Otherwise, track the minimum total energy to 
-            ! be output.
-            if(fileExists) then
-              skipState(ib,ik) = .false.
-
-              if(eTot(ib,ik) < minETot) then
-                minETot = eTot(ib,ik)
-                ib_minETot = ib
-                ik_minETot = ik
-              endif
-            else
-              write(*,'("Skipping state ik,ib = ",2i7,"! Input file does not exist in path ",a)') ik, ib, trim(path)
-            endif
-
-          endif
-        enddo
-      endif
-    enddo
+    call searchForStatesAndGetEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFInit, ikFfinal, &
+            ikMin, ikMax, ibMin, ibMax, allStatesBaseDir, singleStateExportDir, ib_minETot, ik_minETot, eTot, minETot, skipState)
 
 
     do isp = 1, nSpins
@@ -965,6 +918,103 @@ module energyTabulatorMod
     return
 
   end subroutine calcAndWriteScatterEnergies
+
+!----------------------------------------------------------------------------
+  subroutine searchForStatesAndGetEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFInit, ikFfinal, &
+            ikMin, ikMax, ibMin, ibMax, allStatesBaseDir, singleStateExportDir, ib_minETot, ik_minETot, eTot, minETot, skipState)
+    ! This subroutine searches for energy files for all states 
+    ! within the given bounds. If the Export files are found, read
+    ! the energies. If not, set the state to be skipped. 
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iBandIinit, iBandIfinal, iBandFinit, iBandFfinal
+      !! Energy band bounds for initial and final state
+    integer, intent(in) :: ikIinit, ikIfinal, ikFinit, ikFfinal
+      !! K-point bounds for initial and final state
+    integer, intent(in) :: ikMin, ikMax, ibMin, ibMax
+      !! Overall bounds on k-points and bands for initial 
+      !! and final states
+
+    character(len=300), intent(in) :: allStatesBaseDir
+      !! Base dir for sets of relaxed files if not captured
+    character(len=300), intent(in) :: singleStateExportDir
+      !! Export dir name within each subfolder
+
+    ! Output variables:
+    integer, intent(out) :: ib_minETot, ik_minETot
+      !! Indices of state with minimum total energy
+
+    real(kind=dp), intent(out) :: eTot(ibMin:ibMax,ikMin:ikMax)
+      !! Total energies for all states
+    real(kind=dp), intent(out) :: minETot
+      !! Minimum total energy (total potential)
+
+    logical, intent(out) :: skipState(ibMin:ibMax,ikMin:ikMax)
+      !! If a state should be skipped
+
+    ! Local variables:
+    integer :: ik, ib
+      !! Loop index
+
+    logical :: fileExists
+      !! If the input file exists in the given exportDir
+    logical :: inInitkRange, inFinalkRange, inInitBandRange, inFinalBandRange
+      !! If in k-point or band range
+
+    character(len=300) :: path
+      !! Path to the export for each band state
+
+
+    ! Get total energies from exports of all different structures
+    eTot = 0.0_dp
+    minETot = 0.0_dp
+    skipState = .true.
+    do ik = ikMin, ikMax
+
+      ! Test if in range of either k bounds
+      inInitkRange = ik >= ikIinit .or. ik <= ikIfinal
+      inFinalkRange = ik >= ikFinit .or. ik <= ikFfinal
+
+      if(inInitkRange .or. inFinalkRange) then
+        do ib = ibMin, ibMax
+
+          ! Test if in range of either band bounds
+          inInitBandRange = ib >= iBandIinit .or. ib <= iBandIfinal
+          inFinalBandRange = ib >= iBandFinit .or. ib <= iBandFfinal
+
+          ! Only consider if band and k bounds line up for initial/final states
+          if((inInitkRange .and. inInitBandRange) .or. (inFinalkRange .and. inFinalBandRange)) then
+
+            ! Assume subfolders have pattern <allStatesBaseDir>/k<ik>_b<ib>/<singleStateExportDir>
+            ! e.g., ../VASP/k1_b1616/export/
+            path = trim(allStatesBaseDir)//'/k'//trim(int2str(ik))//'_b'//trim(int2str(ib))//'/'//trim(singleStateExportDir)
+            call getTotalEnergy(path, eTot(ib,ik), fileExists)
+
+            ! Skip the consideration of this state if the necessary file
+            ! doesn't exist. Otherwise, track the minimum total energy to 
+            ! be output.
+            if(fileExists) then
+              skipState(ib,ik) = .false.
+
+              if(eTot(ib,ik) < minETot) then
+                minETot = eTot(ib,ik)
+                ib_minETot = ib
+                ik_minETot = ik
+              endif
+            else
+              write(*,'("Skipping state ik,ib = ",2i7,"! Input file does not exist in path ",a)') ik, ib, trim(path)
+            endif
+
+          endif
+        enddo
+      endif
+    enddo
+
+    return
+
+  end subroutine searchForStatesAndGetEnergies     
 
 !----------------------------------------------------------------------------
   subroutine getTotalEnergy(exportDir, eTot, fileExists)
