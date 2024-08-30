@@ -1,9 +1,11 @@
 # Energy Tabulator
 
-There are 3 different energy differences that need to be tabulated to calculate the transition rates:
+There are 3 different energy differences that need to be tabulated to calculate the transition rates for scattering and capture:
 * Delta function: total potential energy difference (electronic + ion-ion)
 * Zeroth-order matrix element: total (many-body) electronic-only energy difference
 * First-order matrix element: eigenvalue difference
+
+For scattering, we also need to tabulate the change in potential energy between the starting positions (*e.g.*, the ground-state positions) and the different possible initial and final states. 
 
 It is also convenient to go ahead and calculate various energies for each state that could be used for plotting. Capture into a state within the gap and scattering between various band states require the energies to be calculated differently, so the energies are tabulated independently for each case.
 
@@ -29,8 +31,9 @@ For scattering, the energies needed for the transition rate are calculated as be
 * Delta function: total energy difference between each of the different relaxations corresponding to a carrier being in each of the different k-points/bands allowed
 * Zeroth-order matrix element: eigenvalue difference between final and initial state
 * First-order matrix element: eigenvalue difference between initial and final state
+* Total energy difference between the total energy of each state in the starting positions and individually-relaxed positions
 
-This setup assumes that the defect system has been relaxed with a carrier in each of the possible band states (half in each channel so as to not consider spin coupling to the defect levels). Each of the calculations should be stored in subdirectories with the pattern `k<ik>_b<ib>`, where `ik` is the k-point index and `ib` is the band index. The k-point indices should match those of the system that the eigenvalues comes from.
+This setup assumes that the defect system has been relaxed with a carrier in each of the possible band states (half in each channel so as to not consider spin coupling to the defect levels). A calculation should also be done to get the total energy for each electronic state in the starting positions (*e.g.*, the ground-state positions). These energies are used to calculate the change in equilibrium energy that results in a change in the phonon occupations as the carrier approaches the defect. Each of the calculations should be stored in subdirectories with the pattern `k<ik>_b<ib>`, where `ik` is the k-point index and `ib` is the band index. The k-point indices should match those of the system that the eigenvalues comes from. 
 
 For scattering, the eigenvalues should come from the perfect crystal system. The bands for the perfect crystal and defect systems will not necessarily line up. It is assumed that the band bounds and labels correspond to the defect system, while the eigenvalues are read and indexed with an optional integer shift `ibShift_eig`. 
 
@@ -87,11 +90,16 @@ within a file (e.g., `EnergyTabulator.in`) that is passed into the code like `mp
   * There are no bounds on this variable, so make sure to set a reasonable value.
 
 ### Variables for scattering only
-* `allStatesBaseDir`
-  * Path to the directory that holds the various subdirectories for each of the different states
+* `allStatesBaseDir_relaxed`
+  * Path to the directory that holds the various subdirectories for the *relaxation* each of the different states
   * It is assumed that the subdirectories have the form `k<ik>_b<ib>` and that there is a separate relaxation/total energy and export for each possible state
+* `allStatesBaseDir_startPos`
+  * Path to the directory that holds the various subdirectories for each of the different states *in the starting positions*
+  * It is assumed that the subdirectories have the form `k<ik>_b<ib>` and that there is a separate relaxation/total energy and export for each possible state
+  * **Important**: Make sure that the electronic configuration in the the relaxation and starting-position calculations for each state is exactly the same so that the only energy difference picked up is the change in equilibrium potential energy.
 * `singleStateExportDir`
-  * Name of the export directory within each subfolder (e.g., `'export'`)
+  * Name of the export directory within each subfolder (*e.g.*, `'export'`)
+  * It is assumed that the same subfolder is used for the relaxed states and the states in the starting positions
 * `ikIinit`, `ikIfinal`, `ikFinit`, and `ikFfinal`
   * Bounds for k-points considered for states
   * Indexed to match the subdirectory names within the `allStatesBaseDir` folder and the k-points as indexed in the export of the system used for eigenvalues (should be the perfect crystal for scattering)
