@@ -884,9 +884,10 @@ module PhononPPMod
 
       if(ionode) then
         if(.not. diffOmega) then
-          write(43,'("# iki, ibi, ikf, ibf, Max Sj (mode index, maxval), Num. Sj >= SjThresh")')
+          write(43,'("# iki, ibi, ikf, ibf, sum(omega*Sj), Max Sj (mode index, maxval), Num. Sj >= SjThresh")')
         else
-          write(43,'("# iki, ibi, ikf, ibf, Max Sj (mode index, maxval), Num. Sj >= SjThresh, Max Sj'' (maxval), Num. Sj'' >= SjThresh")')
+          write(43,'(a,a)') "# iki, ibi, ikf, ibf, sum(omega*Sj), Max Sj (mode index, maxval),", &
+                            " Num. Sj >= SjThresh, Max Sj'' (maxval), Num. Sj'' >= SjThresh"
         endif
       endif
 
@@ -914,12 +915,14 @@ module PhononPPMod
 
         if(ionode) then
           if(.not. diffOmega) then
-            write(43,'(5i10,ES24.15E3,i10)') iki(iE), ibi(iE), ikf(iE), ibf(iE), &
-                                             modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh)
+            write(43,'(4i7,ES24.15E3,i7,ES24.15E3,i7)') &
+                iki(iE), ibi(iE), ikf(iE), ibf(iE), sum(omega*Sj), &
+                modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh)
           else
-            write(43,'(5i10,ES24.15E3,i10,ES24.15E3,i10)') iki(iE), ibi(iE), ikf(iE), ibf(iE), &
-                                                            modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh), &
-                                                            maxval(SjPrime), count(SjPrime >= SjThresh) 
+            write(43,'(4i7,ES24.15E3,i7,ES24.15E3,i7,ES24.15E3,i7)') &
+                iki(iE), ibi(iE), ikf(iE), ibf(iE), sum(omega*Sj), &
+                modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh), &
+                maxval(SjPrime), count(SjPrime >= SjThresh) 
           endif
         endif
 
