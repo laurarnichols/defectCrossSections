@@ -843,6 +843,8 @@ module PhononPPMod
 
     real(kind=dp), allocatable :: dE(:,:)
       !! All energy differences from energy table
+    real(kind=dp) :: projNorm(nModes)
+      !! Generalized norms after displacement
     real(kind=dp) :: Sj(nModes), SjPrime(nModes)
       !! Sj and Sj' Huang-Rhys factors using omega
       !! and omega'
@@ -862,8 +864,9 @@ module PhononPPMod
     if(singleDisp) then
   
       SjFName = 'Sj.out'
-      call getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, &
-                initPOSCARFName, finalPOSCARFName, SjFName, modeIndex, Sj, SjPrime)
+      call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, initPOSCARFName, finalPOSCARFName, projNorm)
+
+      call calcAndWriteSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName, modeIndex, Sj, SjPrime)
 
       if(ionode) then
         if(.not. diffOmega) then
@@ -910,8 +913,9 @@ module PhononPPMod
         SjFName = 'Sj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
                         //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
 
-        call getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, &
-                  initPOSCARFName, finalPOSCARFName, SjFName, modeIndex, Sj, SjPrime)
+        call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, initPOSCARFName, finalPOSCARFName, projNorm)
+
+        call calcAndWriteSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName, modeIndex, Sj, SjPrime)
 
         if(ionode) then
           if(.not. diffOmega) then
@@ -943,8 +947,7 @@ module PhononPPMod
   end subroutine calculateSj
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, &
-            initPOSCARFName, finalPOSCARFName, SjFName, modeIndex, Sj, SjPrime)
+  subroutine getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, initPOSCARFName, finalPOSCARFName, projNorm)
 
     use generalComputations, only: direct2cart
     use cell, only: cartDispProjOnPhononEigsNorm
@@ -964,25 +967,13 @@ module PhononPPMod
       !! used to calculate Delta q_j and displacements
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Mass of atoms
-    real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
-      !! Frequency for each mode
-
-    logical, intent(in) :: diffOmega
-      !! If initial- and final-state frequencies 
-      !! should be treated as different
 
     character(len=300), intent(in) :: initPOSCARFName, finalPOSCARFName
       !! File names for CONTCARs for different states
-    character(len=300), intent(in) :: SjFName
-      !! File name for the Sj output
 
     ! Output variables:
-    integer, intent(out) :: modeIndex(nModes)
-      !! Track mode indices after sorting
-
-    real(kind=dp), intent(out) :: Sj(nModes), SjPrime(nModes)
-      !! Sj and Sj' Huang-Rhys factors using omega
-      !! and omega'
+    real(kind=dp), intent(out) :: projNorm(nModes)
+      !! Generalized norms after displacement
 
     ! Local variables:
     integer :: j
@@ -996,27 +987,29 @@ module PhononPPMod
       !! Displacement 
     real(kind=dp) :: volumeInit, volumeFinal
       !! Volume of supercell
-    real(kind=dp) :: projNorm(nModes)
-      !! Generalized norms after displacement
     real(kind=dp) :: realLattVec(3,3)
       !! Real space lattice vectors
 
     
+    ! Check compatibility of initial positions with those from phonon file
     call getCoordsAndDisp(nAtoms, coordFromPhon, mass, initPOSCARFName, atomPositionsDirInit, centerOfMassCoords, &
             displacement, realLattVec, volumeInit)
-      ! Don't need displacement here. We only check compatibility with
-      ! coordinates from phonons. 
 
+    ! Check compatibility of final positions with initial positions and get
+    ! displacement between them
     call getCoordsAndDisp(nAtoms, atomPositionsDirInit, mass, finalPOSCARFName, atomPositionsDirFinal, centerOfMassCoords, &
             displacement, realLattVec, volumeFinal)
-      ! It is assumed for now that the lattice vectors are the same
-
-    displacement = direct2cart(nAtoms, displacement, realLattVec)
     
+    ! Make sure initial and final supercells have the same volume
     if(ionode) then
       if(abs(volumeInit - volumeFinal) > 1e-8) call exitError('calculateAndWriteSingleSj', 'volumes don''t match', 1)
     endif
+
+
+    ! Convert the displacement to Cartesian coordinates
+    displacement = direct2cart(nAtoms, displacement, realLattVec)
   
+    ! Project displacement on each of the modes
     projNorm = 0.0_dp
     do j = iModeStart, iModeEnd
 
@@ -1025,7 +1018,6 @@ module PhononPPMod
     enddo
 
     projNorm = projNorm*angToBohr*sqrt(daltonToElecM)
-    call calcAndWriteSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName, modeIndex, Sj, SjPrime)
 
 
     deallocate(atomPositionsDirInit)
@@ -1033,7 +1025,7 @@ module PhononPPMod
 
     return
 
-  end subroutine getAndWriteSingleSj
+  end subroutine getSingleDispProjNormAllModes
 
 !----------------------------------------------------------------------------
   subroutine getCoordsAndDisp(nAtoms, atomPositionsDirStart, mass, POSCARFName, atomPositionsDirEnd, centerOfMassCoords, &
@@ -1259,7 +1251,7 @@ module PhononPPMod
   end subroutine getRelaxDispAndCheckCompatibility
   
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName, modeIndex, Sj, SjPrime)
+  subroutine calcAndWriteSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName, modeIndex, Sj, SjPrime)
 
     use miscUtilities, only: hpsort_eps
 
@@ -1356,7 +1348,7 @@ module PhononPPMod
 
     return
 
-  end subroutine calcAndWriteSj
+  end subroutine calcAndWriteSingleDispSj
 
 !----------------------------------------------------------------------------
   subroutine calculateShiftAndDq(disp2AtomInd, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, shift, calcDq, calcMaxDisp, &
@@ -1472,7 +1464,7 @@ module PhononPPMod
     ! norms.
     do j = iModeStart, iModeEnd
 
-      displacement = getShiftDisplacement(nAtoms, dqEigenvectors(:,:,j), realLattVec, mass, shift)
+      displacement = getShiftDisplacement(nAtoms, dqEigenvectors(:,:,j), mass, shift)
 
       if(calcMaxDisp) then
         relDisp = displacement(:,disp2AtomInd(1)) - displacement(:,disp2AtomInd(2))
@@ -1521,7 +1513,7 @@ module PhononPPMod
   end subroutine calculateShiftAndDq
 
 !----------------------------------------------------------------------------
-  function getShiftDisplacement(nAtoms, dqEigenvectors, realLattVec, mass, shift) result(displacement)
+  function getShiftDisplacement(nAtoms, dqEigenvectors, mass, shift) result(displacement)
 
     implicit none
 
@@ -1534,8 +1526,6 @@ module PhononPPMod
       !! used to calculate Delta q_j and displacements
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Masses of atoms
-    real(kind=dp), intent(in) :: realLattVec(3,3)
-      !! Real space lattice vectors
     real(kind=dp), intent(in) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -1718,8 +1708,6 @@ module PhononPPMod
     integer :: j, jSort
       !! Loop index
 
-    real(kind=dp) :: rDum
-      !! Dummy variable to ignore input
     real(kind=dp) :: Sj_, SjPrime_, omega_, omegaPrime_
       !! Input variables
 
