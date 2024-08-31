@@ -855,12 +855,6 @@ module PhononPPMod
     character(len=300) :: SjFName
       !! File name for the Sj output
 
-
-    if(ionode) then
-      open(43,file='Sj.analysis.out')
-      write(43,'("# SjThresh = ",ES11.3E2)') SjThresh
-    endif
-
     if(singleDisp) then
   
       SjFName = 'Sj.out'
@@ -869,6 +863,9 @@ module PhononPPMod
       call calcAndWriteSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName, modeIndex, Sj, SjPrime)
 
       if(ionode) then
+        open(43,file='Sj.analysis.out')
+        write(43,'("# SjThresh = ",ES11.3E2)') SjThresh
+
         if(.not. diffOmega) then
           write(43,'("# Max Sj (mode index, maxval), Num. Sj >= SjThresh")')
           write(43,'(i10,ES24.15E3,i10)') modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh)
@@ -886,6 +883,12 @@ module PhononPPMod
         ! spin channels
 
       if(ionode) then
+
+        ! Create output file for transition-related files
+        call system('mkdir -p transitions')
+        open(43,file='transitions/Sj.analysis.out')
+        write(43,'("# SjThresh = ",ES11.3E2)') SjThresh
+
         if(.not. diffOmega) then
           write(43,'("# iki, ibi, ikf, ibf, sum(omega*Sj), Max Sj (mode index, maxval), Num. Sj >= SjThresh")')
         else
@@ -910,8 +913,8 @@ module PhononPPMod
 
 
         ! Set Sj output file name
-        SjFName = 'Sj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
-                        //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
+        SjFName = 'transitions/Sj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
+                                    //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
 
         call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, initPOSCARFName, finalPOSCARFName, projNorm)
 
