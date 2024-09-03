@@ -11,9 +11,10 @@ program PhononPPMain
 
   call mpiInitialization('PhononPP')
 
-  call readInputs(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, &  
-        basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, & 
-        calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+  call readInputs(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
+        allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
+        finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, &
+        dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
 
   call readPhonons(freqThresh, phononFName, nAtoms, nModes, coordFromPhon, eigenvector, mass, omega)

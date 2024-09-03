@@ -21,6 +21,8 @@ module PhononPPMod
   integer :: disp2AtomInd(2)
     !! Index of atoms to check displacement
     !! between if calcMaxDisp
+  integer :: ispSelect
+    !! Spin channel to use
   integer :: nAtomsPrime
     !! Number of atoms in optional final phonon file 
   integer :: nModes, nModesPrime
@@ -95,9 +97,10 @@ module PhononPPMod
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputs(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, &
-        basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, &  
-        calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+  subroutine readInputs(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
+        allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
+        finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, &
+        dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -105,6 +108,8 @@ module PhononPPMod
     integer, intent(out) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
+    integer, intent(out) :: ispSelect
+      !! Spin channel to use
 
     real(kind=dp), intent(out) :: freqThresh
       !! Threshold for frequency to determine if the mode 
@@ -158,14 +163,15 @@ module PhononPPMod
     namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, &
                            singleDisp, allStatesBaseDir_relaxed, basePOSCARFName, freqThresh, calcSj, calcDq, calcMaxDisp, & 
                            disp2AtomInd, energyTableDir, diffOmega, phononPrimeFName, dqEigvecsFinal, SjThresh, &
-                           temperature, calcDeltaNjEqAdjust, allStatesBaseDir_startPos
+                           temperature, calcDeltaNjEqAdjust, allStatesBaseDir_startPos, ispSelect
 
 
     if(ionode) then
 
-      call initialize(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, &
-          basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, &
-          calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+      call initialize(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
+          allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
+          finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, &
+          dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
         ! Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -174,7 +180,7 @@ module PhononPPMod
       if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
+      call checkInitialization(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
         allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, &
         initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
         generateShiftedPOSCARs, singleDisp)
@@ -183,6 +189,7 @@ module PhononPPMod
 
     ! Send to other processes only what they need to know
     call MPI_BCAST(disp2AtomInd, 2, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(ispSelect, 1, MPI_INTEGER, root, worldComm, ierr)
 
     call MPI_BCAST(freqThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(shift, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -211,9 +218,10 @@ module PhononPPMod
   end subroutine readInputs
 
 !----------------------------------------------------------------------------
-  subroutine initialize(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, &
-      basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, &
-      calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+  subroutine initialize(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
+      allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
+      finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, &
+      dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -226,6 +234,8 @@ module PhononPPMod
     integer, intent(out) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
+    integer, intent(out) :: ispSelect
+      !! Spin channel to use
 
     real(kind=dp), intent(out) :: freqThresh
       !! Threshold for frequency to determine if the mode 
@@ -277,6 +287,7 @@ module PhononPPMod
 
 
     disp2AtomInd = -1
+    ispSelect = -1
 
     allStatesBaseDir_relaxed = ''
     allStatesBaseDir_startPos = ''
@@ -308,7 +319,7 @@ module PhononPPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
+  subroutine checkInitialization(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
       allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, &
       initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
       generateShiftedPOSCARs, singleDisp)
@@ -319,6 +330,8 @@ module PhononPPMod
     integer, intent(in) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
+    integer, intent(in) :: ispSelect
+      !! Spin channel to use
 
     real(kind=dp), intent(in) :: freqThresh
       !! Threshold for frequency to determine if the mode 
@@ -397,7 +410,9 @@ module PhononPPMod
         write(*,'("calcDeltaNjEqAdjust = ''",L1,"''")') calcDeltaNjEqAdjust
         if(calcDeltaNjEqAdjust) write(*,'("allStatesBaseDir_startPos = ''",a,"''")') trim(allStatesBaseDir_startPos)
 
-        abortExecution = checkFileInitialization('energyTableDir', trim(energyTableDir)//'/energyTable.1') .or. abortExecution
+        abortExecution = checkIntInitialization('ispSelect', ispSelect, 1, 2) .or. abortExecution
+        abortExecution = checkFileInitialization('energyTableDir', trim(energyTableDir)//'/energyTable.'&
+                                                                 //trim(int2str(ispSelect))) .or. abortExecution
 
       endif
 
@@ -918,12 +933,11 @@ module PhononPPMod
 
     else
 
-      call readScatterEnergyTable(1, .false., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
-        ! Assume that the transitions allowed is the same for both
-        ! spin channels. The energy is ignored here, so it doesn't 
-        ! matter which one we read. I pass false here because it means
-        ! only two energies will be passed back, which is smaller 
-        ! than the three passed back from the true option. 
+      call readScatterEnergyTable(ispSelect, .false., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
+        ! I pass false here because it means only two energies will be 
+        ! passed back, which is smaller than the three passed back from 
+        ! the true option. We ignore the energies here, so it doesn't 
+        ! matter.
 
       if(ionode) then
 
