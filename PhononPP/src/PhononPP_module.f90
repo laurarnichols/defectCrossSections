@@ -67,6 +67,10 @@ module PhononPPMod
   character(len=300) :: prefix
     !! Prefix for shifted POSCARs
 
+  logical :: calcDeltaNjEqAdjust
+    !! If calculating the adjustment to the mode occupations
+    !! nj due to the adjustment in equilibrium positions as
+    !! the carrier approaches/leaves the defect
   logical :: calcDq
     !! If dq output file should be generated
   logical :: calcMaxDisp
@@ -89,8 +93,8 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine readInputs(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, basePOSCARFName, dqFName, &
-        energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, &
-        calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+        energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, &
+        calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -123,6 +127,10 @@ module PhononPPMod
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(out) :: calcDeltaNjEqAdjust
+      !! If calculating the adjustment to the mode occupations
+      !! nj due to the adjustment in equilibrium positions as
+      !! the carrier approaches/leaves the defect
     logical, intent(out) :: calcDq
       !! If dq output file should be generated
     logical, intent(out) :: calcMaxDisp
@@ -144,14 +152,14 @@ module PhononPPMod
     namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, &
                            singleDisp, allStatesBaseDir_relaxed, basePOSCARFName, freqThresh, calcSj, calcDq, calcMaxDisp, & 
                            disp2AtomInd, energyTableDir, diffOmega, phononPrimeFName, dqEigvecsFinal, SjThresh, &
-                           temperature
+                           temperature, calcDeltaNjEqAdjust
 
 
     if(ionode) then
 
       call initialize(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, basePOSCARFName, &
-          dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, &
-          calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+          dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNjEqAdjust, &
+          calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
         ! Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -161,7 +169,7 @@ module PhononPPMod
         !! * Exit calculation if there's an error
 
       call checkInitialization(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, basePOSCARFName, &
-        dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, &
+        dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, &
         calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     endif
@@ -181,6 +189,7 @@ module PhononPPMod
     call MPI_BCAST(initPOSCARFName, len(initPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
 
+    call MPI_BCAST(calcDeltaNjEqAdjust, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(calcDq, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(calcSj, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(calcMaxDisp, 1, MPI_LOGICAL, root, worldComm, ierr)
@@ -195,8 +204,8 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine initialize(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, basePOSCARFName, &
-      dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, &
-      calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+      dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNjEqAdjust, &
+      calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -234,6 +243,10 @@ module PhononPPMod
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(out) :: calcDeltaNjEqAdjust
+      !! If calculating the adjustment to the mode occupations
+      !! nj due to the adjustment in equilibrium positions as
+      !! the carrier approaches/leaves the defect
     logical, intent(out) :: calcDq
       !! If dq output file should be generated
     logical, intent(out) :: calcMaxDisp
@@ -269,6 +282,7 @@ module PhononPPMod
     SjThresh = 1e-1_dp
     temperature = 300_dp
 
+    calcDeltaNjEqAdjust = .false.
     calcDq = .false.
     calcSj = .false.
     calcMaxDisp = .false.
@@ -283,8 +297,8 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, basePOSCARFName, &
-      dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, &
-      calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+      dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNjEqAdjust, &
+      calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -317,6 +331,10 @@ module PhononPPMod
     character(len=300), intent(in) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(in) :: calcDeltaNjEqAdjust
+      !! If calculating the adjustment to the mode occupations
+      !! nj due to the adjustment in equilibrium positions as
+      !! the carrier approaches/leaves the defect
     logical, intent(in) :: calcDq
       !! If dq output file should be generated
     logical, intent(in) :: calcMaxDisp
@@ -360,6 +378,9 @@ module PhononPPMod
       else
 
         write(*,'("allStatesBaseDir_relaxed = ''",a,"''")') trim(allStatesBaseDir_relaxed)
+        write(*,'("calcDeltaNjEqAdjust = ''",L1,"''")') calcDeltaNjEqAdjust
+        if(calcDeltaNjEqAdjust) write(*,'("allStatesBaseDir_relaxed = ''",a,"''")') trim(allStatesBaseDir_relaxed)
+
         abortExecution = checkFileInitialization('energyTableDir', trim(energyTableDir)//'/energyTable.1') .or. abortExecution
 
       endif
@@ -747,7 +768,7 @@ module PhononPPMod
   end subroutine getAllDotProds
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteNj(nModes, omega, temperature)
+  subroutine calcAndWriteThermalNj(nModes, omega, temperature)
 
     implicit none
 
@@ -792,7 +813,7 @@ module PhononPPMod
 
     return
 
-  end subroutine calcAndWriteNj
+  end subroutine calcAndWriteThermalNj
 
 !----------------------------------------------------------------------------
   subroutine calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, diffOmega, singleDisp, &
