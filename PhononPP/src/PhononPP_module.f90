@@ -48,6 +48,9 @@ module PhononPPMod
     !! Optional final-state frequency for each mode
   real(kind=dp), allocatable :: Sj(:)
     !! Huang-Rhys factor for each mode with omega_j
+  real(kind=dp), allocatable :: Sj_if(:,:)
+    !! Store Sjs for scattering if calculating changes in 
+    !! occupation numbers
   real(kind=dp), allocatable :: SjPrime(:)
     !! Huang-Rhys factor for each mode with omega_j'
   real(kind=dp) :: shift
@@ -849,7 +852,8 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateSj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, &
-          diffOmega, singleDisp, allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, finalPOSCARFName)
+          calcDeltaNjEqAdjust, diffOmega, singleDisp, allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, & 
+          finalPOSCARFName, Sj_if)
 
     implicit none
 
@@ -873,6 +877,10 @@ module PhononPPMod
     real(kind=dp), intent(in) :: SjThresh
       !! Threshold to count modes above
 
+    logical, intent(in) :: calcDeltaNjEqAdjust
+      !! If calculating the adjustment to the mode occupations
+      !! nj due to the adjustment in equilibrium positions as
+      !! the carrier approaches/leaves the defect
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
@@ -885,6 +893,11 @@ module PhononPPMod
       !! Path to energy table
     character(len=300), intent(inout) :: initPOSCARFName, finalPOSCARFName
       !! File name for POSCAR for relaxed initial and final charge states
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: Sj_if(:,:)
+      !! Store Sjs for scattering if calculating changes in 
+      !! occupation numbers
 
     ! Local variables:
     integer :: iE
@@ -909,6 +922,12 @@ module PhononPPMod
 
     character(len=300) :: SjFName
       !! File name for the Sj output
+
+    if(singleDisp .or. .not. calcDeltaNjEqAdjust .or. .not. ionode) then
+      ! Allcoate space for this to avoid the warning and errors
+      ! later with deallocation.
+      allocate(Sj_if(1,1))
+    endif
 
     if(singleDisp) then
   
@@ -944,6 +963,8 @@ module PhononPPMod
 
       if(ionode) then
 
+        if(calcDeltaNjEqAdjust) allocate(Sj_if(nModes,nTransitions))
+
         ! Create output file for transition-related files and write header
         call system('mkdir -p transitions')
         open(43,file='transitions/Sj.analysis.out')
@@ -975,6 +996,8 @@ module PhononPPMod
 
         if(ionode) then
           call calcSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, modeIndex, Sj, SjPrime)
+
+          if(calcDeltaNjEqAdjust) Sj_if(:,iE) = Sj(:)
 
           call sortAndWriteSingleDispSj(nModes, omega, omegaPrime, diffOmega, SjFName, modeIndex, Sj, SjPrime)
 
