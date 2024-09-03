@@ -54,10 +54,10 @@ module PhononPPMod
   real(kind=dp) :: SjThresh
     !! Threshold to count modes above
 
+  character(len=300) :: allStatesBaseDir_relaxed
+    !! Base dir for sets of relaxed files if not captured
   character(len=300) :: basePOSCARFName
     !! File name for intial POSCAR to calculate shift from
-  character(len=300) :: CONTCARsBaseDir
-    !! Base dir for sets of relaxed files if not captured
   character(len=300) :: dqFName
     !! File name for generalized-coordinate norms
   character(len=300) :: initPOSCARFName, finalPOSCARFName
@@ -88,7 +88,7 @@ module PhononPPMod
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputs(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, dqFName, &
+  subroutine readInputs(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, basePOSCARFName, dqFName, &
         energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, &
         calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
@@ -108,10 +108,10 @@ module PhononPPMod
       !! Threshold to count modes above
     real(kind=dp), intent(out) :: temperature
 
+    character(len=300), intent(out) :: allStatesBaseDir_relaxed
+      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(out) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
-    character(len=300), intent(out) :: CONTCARsBaseDir
-      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(out) :: dqFName
       !! File name for generalized-coordinate norms
     character(len=300), intent(out) :: energyTableDir
@@ -142,14 +142,14 @@ module PhononPPMod
 
 
     namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, &
-                           singleDisp, CONTCARsBaseDir, basePOSCARFName, freqThresh, calcSj, calcDq, calcMaxDisp, & 
+                           singleDisp, allStatesBaseDir_relaxed, basePOSCARFName, freqThresh, calcSj, calcDq, calcMaxDisp, & 
                            disp2AtomInd, energyTableDir, diffOmega, phononPrimeFName, dqEigvecsFinal, SjThresh, &
                            temperature
 
 
     if(ionode) then
 
-      call initialize(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, &
+      call initialize(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, basePOSCARFName, &
           dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, &
           calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
         ! Set default values for input variables and start timers
@@ -160,7 +160,7 @@ module PhononPPMod
       if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, &
+      call checkInitialization(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, basePOSCARFName, &
         dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, &
         calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
@@ -175,7 +175,7 @@ module PhononPPMod
     call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call MPI_BCAST(basePOSCARFName, len(basePOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(CONTCARsBaseDir, len(CONTCARsBaseDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(allStatesBaseDir_relaxed, len(allStatesBaseDir_relaxed), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(finalPOSCARFName, len(finalPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(initPOSCARFName, len(initPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
@@ -194,7 +194,7 @@ module PhononPPMod
   end subroutine readInputs
 
 !----------------------------------------------------------------------------
-  subroutine initialize(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, &
+  subroutine initialize(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, basePOSCARFName, &
       dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, &
       calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
     !! Set the default values for input variables, open output files,
@@ -219,10 +219,10 @@ module PhononPPMod
       !! Threshold to count modes above
     real(kind=dp), intent(out) :: temperature
 
+    character(len=300), intent(out) :: allStatesBaseDir_relaxed
+      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(out) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
-    character(len=300), intent(out) :: CONTCARsBaseDir
-      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(out) :: dqFName
       !! File name for generalized-coordinate norms
     character(len=300), intent(out) :: energyTableDir
@@ -254,7 +254,7 @@ module PhononPPMod
 
     disp2AtomInd = -1
 
-    CONTCARsBaseDir = ''
+    allStatesBaseDir_relaxed = ''
     dqFName = 'dq.txt'
     energyTableDir = ''
     basePOSCARFName = ''
@@ -282,7 +282,7 @@ module PhononPPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, &
+  subroutine checkInitialization(disp2AtomInd, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, basePOSCARFName, &
       dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, &
       calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
@@ -302,10 +302,10 @@ module PhononPPMod
       !! Threshold to count modes above
     real(kind=dp), intent(in) :: temperature
 
+    character(len=300), intent(in) :: allStatesBaseDir_relaxed
+      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(inout) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
-    character(len=300), intent(in) :: CONTCARsBaseDir
-      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(in) :: dqFName
       !! File name for generalized-coordinate norms
     character(len=300), intent(in) :: energyTableDir
@@ -359,7 +359,7 @@ module PhononPPMod
 
       else
 
-        write(*,'("CONTCARsBaseDir = ''",a,"''")') trim(CONTCARsBaseDir)
+        write(*,'("allStatesBaseDir_relaxed = ''",a,"''")') trim(allStatesBaseDir_relaxed)
         abortExecution = checkFileInitialization('energyTableDir', trim(energyTableDir)//'/energyTable.1') .or. abortExecution
 
       endif
@@ -796,7 +796,7 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, diffOmega, singleDisp, &
-          CONTCARsBaseDir, energyTableDir, initPOSCARFName, finalPOSCARFName)
+          allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, finalPOSCARFName)
 
     implicit none
 
@@ -824,7 +824,7 @@ module PhononPPMod
     logical, intent(in) :: singleDisp
       !! If there is just a single displacement to consider
 
-    character(len=300), intent(in) :: CONTCARsBaseDir
+    character(len=300), intent(in) :: allStatesBaseDir_relaxed
       !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table
@@ -905,11 +905,11 @@ module PhononPPMod
         ! Set initial and final file names based on state indices read
         ! from energy table. Make sure both files exist.
         if(ionode) then
-          initPOSCARFName = trim(CONTCARsBaseDir)//'/k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'/CONTCAR'
+          initPOSCARFName = trim(allStatesBaseDir_relaxed)//'/k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'/CONTCAR'
           inquire(file=trim(initPOSCARFName), exist=fileExists)
           if(.not. fileExists) call exitError('calculateSj', 'File does not exist!! '//trim(initPOSCARFName), 1)
 
-          finalPOSCARFName = trim(CONTCARsBaseDir)//'/k'//trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'/CONTCAR'
+          finalPOSCARFName = trim(allStatesBaseDir_relaxed)//'/k'//trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'/CONTCAR'
           inquire(file=trim(finalPOSCARFName), exist=fileExists)
           if(.not. fileExists) call exitError('calculateSj', 'File does not exist!! '//trim(finalPOSCARFName), 1)
         endif
