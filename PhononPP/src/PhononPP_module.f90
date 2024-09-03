@@ -860,9 +860,12 @@ module PhononPPMod
       SjFName = 'Sj.out'
       call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, initPOSCARFName, finalPOSCARFName, projNorm)
 
-      call calcAndWriteSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName, modeIndex, Sj, SjPrime)
-
       if(ionode) then
+        call calcSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, modeIndex, Sj, SjPrime)
+
+        call sortAndWriteSingleDispSj(nModes, omega, omegaPrime, diffOmega, SjFName, modeIndex, Sj, SjPrime)
+
+
         open(43,file='Sj.analysis.out')
         write(43,'("# SjThresh = ",ES11.3E2)') SjThresh
 
@@ -921,9 +924,12 @@ module PhononPPMod
 
         call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, initPOSCARFName, finalPOSCARFName, projNorm)
 
-        call calcAndWriteSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName, modeIndex, Sj, SjPrime)
-
         if(ionode) then
+          call calcSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, modeIndex, Sj, SjPrime)
+
+          call sortAndWriteSingleDispSj(nModes, omega, omegaPrime, diffOmega, SjFName, modeIndex, Sj, SjPrime)
+
+
           if(.not. diffOmega) then
             write(43,'(4i7,ES24.15E3,i7,ES24.15E3,i7)') &
                 iki(iE), ibi(iE), ikf(iE), ibf(iE), sum(omega*Sj), &
@@ -1024,6 +1030,10 @@ module PhononPPMod
     enddo
 
     projNorm = projNorm*angToBohr*sqrt(daltonToElecM)
+
+    call mpiSumDoubleV(projNorm, worldComm)
+      !! * Get the generalized-displacement norms
+      !!   from all processes
 
 
     deallocate(atomPositionsDirInit)
@@ -1257,7 +1267,7 @@ module PhononPPMod
   end subroutine getRelaxDispAndCheckCompatibility
   
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName, modeIndex, Sj, SjPrime)
+  subroutine calcSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, modeIndex, Sj, SjPrime)
 
     use miscUtilities, only: hpsort_eps
 
@@ -1276,9 +1286,6 @@ module PhononPPMod
       !! If initial- and final-state frequencies 
       !! should be treated as different
 
-    character(len=300), intent(in) :: SjFName
-      !! File name for the Sj output
-
     ! Output variables:
     integer, intent(out) :: modeIndex(nModes)
       !! Track mode indices after sorting
@@ -1288,73 +1295,102 @@ module PhononPPMod
       !! and omega'
 
     ! Local variables:
+    integer :: j
+      !! Loop index
+
+
+    Sj = 0.0_dp
+    SjPrime = 0.0_dp
+
+    do j = 1, nModes
+
+      modeIndex(j) = j
+
+      Sj(j) = projNorm(j)**2*omega(j)*THzToHartree/(2.0_dp*hbar_atomic)
+
+      if(diffOmega) SjPrime(j) = projNorm(j)**2*omegaPrime(j)*THzToHartree/(2.0_dp*hbar_atomic)
+        ! The way the algebra works, they are calculated using the same
+        ! Delta q_j (projNorm)
+
+    enddo
+
+    return
+
+  end subroutine calcSingleDispSj
+  
+!----------------------------------------------------------------------------
+  subroutine sortAndWriteSingleDispSj(nModes, omega, omegaPrime, diffOmega, SjFName, modeIndex, Sj, SjPrime)
+
+    use miscUtilities, only: hpsort_eps
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
+      !! Frequency for each mode
+
+    logical, intent(in) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
+
+    character(len=300), intent(in) :: SjFName
+      !! File name for the Sj output
+
+    ! Output variables:
+    integer, intent(inout) :: modeIndex(nModes)
+      !! Track mode indices after sorting
+
+    real(kind=dp), intent(inout) :: Sj(nModes), SjPrime(nModes)
+      !! Sj and Sj' Huang-Rhys factors using omega
+      !! and omega'
+
+    ! Local variables:
     integer :: j, jSort
       !! Loop index
 
 
-    call mpiSumDoubleV(projNorm, worldComm)
-      !! * Get the generalized-displacement norms
-      !!   from all processes
+    call hpsort_eps(nModes, Sj, modeIndex, 1e-14_dp)
+      ! Sort in ascending order
 
-    if(ionode) then
+    open(60, file=trim(SjFName))
 
-      Sj = 0.0_dp
-      SjPrime = 0.0_dp
+    write(60,'("# Number of modes")')
 
-      do j = 1, nModes
+    write(60,'(1i7)') nModes
 
-        modeIndex(j) = j
-
-        Sj(j) = projNorm(j)**2*omega(j)*THzToHartree/(2.0_dp*hbar_atomic)
-
-        if(diffOmega) SjPrime(j) = projNorm(j)**2*omegaPrime(j)*THzToHartree/(2.0_dp*hbar_atomic)
-          ! The way the algebra works, they are calculated using the same
-          ! Delta q_j (projNorm)
-
-      enddo
-
-      call hpsort_eps(nModes, Sj, modeIndex, 1e-14_dp)
-        ! Sort in ascending order
-
-      open(60, file=trim(SjFName))
-
-      write(60,'("# Number of modes")')
-
-      write(60,'(1i7)') nModes
-
-      write(60,'("# Tabulated for different initial and final frequencies?")')
-      write(60,'(L5)') diffOmega
+    write(60,'("# Tabulated for different initial and final frequencies?")')
+    write(60,'(L5)') diffOmega
 
 
-      ! Currently always sort by initial Sj
-      if(diffOmega) then
-        write(60,'("# Mode index, Sj (highest to lowest), omega_j, Sj'', omega_j''")')
-      else
-        write(60,'("# Mode index, Sj, (highest to lowest), omega_j")')
-      endif
-
-
-      do j = 1, nModes
-
-        jSort = modeIndex(nModes-(j-1))
-
-        if(diffOmega) then
-          write(60,'(1i7, 4ES24.15E3)') jSort, Sj(nModes-(j-1)), omega(jSort), &
-                                               SjPrime(jSort), omegaPrime(jSort)
-        else
-          write(60,'(1i7, 2ES24.15E3)') jSort, Sj(jSort), omega(jSort)
-        endif
-
-      enddo
-
-      close(60)
-
+    ! Currently always sort by initial Sj
+    if(diffOmega) then
+      write(60,'("# Mode index, Sj (highest to lowest), omega_j, Sj'', omega_j''")')
+    else
+      write(60,'("# Mode index, Sj, (highest to lowest), omega_j")')
     endif
 
 
+    do j = 1, nModes
+
+      jSort = modeIndex(nModes-(j-1))
+
+      if(diffOmega) then
+        write(60,'(1i7, 4ES24.15E3)') jSort, Sj(nModes-(j-1)), omega(jSort), &
+                                             SjPrime(jSort), omegaPrime(jSort)
+      else
+        write(60,'(1i7, 2ES24.15E3)') jSort, Sj(jSort), omega(jSort)
+      endif
+
+    enddo
+
+    close(60)
+
     return
 
-  end subroutine calcAndWriteSingleDispSj
+  end subroutine sortAndWriteSingleDispSj
 
 !----------------------------------------------------------------------------
   subroutine calculateShiftAndDq(disp2AtomInd, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, shift, calcDq, calcMaxDisp, &
