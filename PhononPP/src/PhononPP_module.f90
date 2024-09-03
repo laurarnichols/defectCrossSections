@@ -419,6 +419,7 @@ module PhononPPMod
 
       write(*,'("diffOmega = ''",L1,"''")') diffOmega
       if(diffOmega) then
+        if(.not. singleDisp) call exitError('checkInitialization','diffOmega not fully implemented for different displacements!',1)
         abortExecution = checkFileInitialization('phononPrimeFName', phononPrimeFName)
       endif
     endif
@@ -896,7 +897,7 @@ module PhononPPMod
       !! Track mode indices after sorting
 
     real(kind=dp), allocatable :: dE(:,:)
-      !! All energy differences from energy table
+      !! Ignore all energies from table here
     real(kind=dp) :: projNorm(nModes)
       !! Generalized norms after displacement
     real(kind=dp) :: Sj(nModes), SjPrime(nModes)
@@ -946,14 +947,9 @@ module PhononPPMod
         ! Create output file for transition-related files and write header
         call system('mkdir -p transitions')
         open(43,file='transitions/Sj.analysis.out')
-        write(43,'("# SjThresh = ",ES11.3E2)') SjThresh
 
-        if(.not. diffOmega) then
-          write(43,'("# iki, ibi, ikf, ibf, sum(omega*Sj), Max Sj (mode index, maxval), Num. Sj >= SjThresh")')
-        else
-          write(43,'(a,a)') "# iki, ibi, ikf, ibf, sum(omega*Sj), Max Sj (mode index, maxval),", &
-                            " Num. Sj >= SjThresh, Max Sj'' (maxval), Num. Sj'' >= SjThresh"
-        endif
+        write(43,'("# SjThresh = ",ES11.3E2)') SjThresh
+        write(43,'("# iki, ibi, ikf, ibf, Max Sj (mode index, maxval), Num. Sj >= SjThresh")')
       endif
 
       do iE = 1, nTransitions
@@ -983,16 +979,7 @@ module PhononPPMod
           call sortAndWriteSingleDispSj(nModes, omega, omegaPrime, diffOmega, SjFName, modeIndex, Sj, SjPrime)
 
 
-          if(.not. diffOmega) then
-            write(43,'(4i7,ES24.15E3,i7,ES24.15E3,i7)') &
-                iki(iE), ibi(iE), ikf(iE), ibf(iE), sum(omega*Sj), &
-                modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh)
-          else
-            write(43,'(4i7,ES24.15E3,i7,ES24.15E3,i7,ES24.15E3,i7)') &
-                iki(iE), ibi(iE), ikf(iE), ibf(iE), sum(omega*Sj), &
-                modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh), &
-                maxval(SjPrime), count(SjPrime >= SjThresh) 
-          endif
+          write(43,'(5i7,ES24.15E3,i7)') iki(iE), ibi(iE), ikf(iE), ibf(iE), modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh)
         endif
 
       enddo
