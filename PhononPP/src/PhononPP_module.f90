@@ -847,12 +847,14 @@ module PhononPPMod
   end subroutine calcAndWriteThermalNj
 
 !----------------------------------------------------------------------------
-  subroutine calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, diffOmega, singleDisp, &
-          allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, finalPOSCARFName)
+  subroutine calculateSj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, &
+          diffOmega, singleDisp, allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, finalPOSCARFName)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Spin channel to use
     integer, intent(inout) :: nAtoms
       !! Number of atoms in intial system
     integer, intent(in) :: nModes
