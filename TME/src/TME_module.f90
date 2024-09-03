@@ -649,8 +649,9 @@ contains
       abortExecution = checkDirInitialization('energyTableDir', energyTableDir, 'energyTable.'//trim(int2str(isp))) &
                               .or. abortExecution
 
-      if(.not. abortExecution) call readScatterEnergyTable(isp, energyTableDir, ibKet, ibBra, ikKet, ikBra, nPairs, rDum)
-        ! nPairs is read from the energy table
+      if(.not. abortExecution) call readScatterEnergyTable(isp, .true., energyTableDir, ibKet, ibBra, ikKet, ikBra, nPairs, rDum)
+        ! nPairs is read from the energy table. 
+        ! Pass true to get matrix-element and delta-function energies.
     endif
 
     return
@@ -1957,6 +1958,8 @@ contains
       !! Unique initial and final k-points
     integer :: nUnique_iki, nUnique_ikf
       !! Number of unique initial and final k-points
+    integer :: updateFrequency
+      !! Number of transitions to update after
 
     real(kind = dp) :: t1, t2
       !! For timing different processes
@@ -1975,6 +1978,7 @@ contains
       
     if(.not. (spin1Skipped .and. spin2Skipped)) then
 
+      updateFrequency = ceiling(nTransitions/10.0)
 
       ! First, get the unique k-points for each system
       if(ionode) call getUniqueInts(nTransitions, ikf, nUnique_ikf, ikfUnique)
@@ -2019,19 +2023,23 @@ contains
           if(ionode) write(*,'("  Spin independent setup for bra sys, iki =",i5," complete! (",f10.2," secs)")') ikfUnique(iU_ikf), t2-t1
 
 
+          if(ionode) write(*,'("    Beginning transitions iki ", i5," -> ",i5)') ikiUnique(iU_iki), ikfUnique(iU_ikf) 
+          call cpu_time(t1)
           do iE = 1, nTransitions
+
+            if(ionode .and. mod(iE,updateFrequency) == 0) then
+              call cpu_time(t2)
+              write(*,'("    ", i2,"% complete with loop over transitions. Time in loop: ",f10.2," secs")') &
+                      int((iE*100.0)/nTransitions), t2-t1
+            endif
+
             if((iki(iE) == ikiUnique(iU_iki)) .and. (ikf(iE) == ikfUnique(iU_ikf))) then
 
-              if(ionode) write(*,'("    Beginning transition ", i5,", ",i5," -> ",i5,", ",i5)') iki(iE), ibi(iE), ikf(iE), ibf(iE)
-              call cpu_time(t1)
 
               call calculateBandPairOverlap(ibf(iE), ibi(iE), ikf(iE), iki(iE), nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, & 
                     braSys, ketSys, pot, Ufi_iE)
 
               Ufi(iE,:) = Ufi_iE
-
-              call cpu_time(t2)
-              if(ionode) write(*, '("  Transition ",i5," -> ",i5," complete! (",f10.2," secs)")') ibi(iE), ibf(iE), t2-t1
 
             endif
           enddo ! Loop over all transitions
@@ -2046,7 +2054,7 @@ contains
 
 
       ! Subtract baseline if applicable and write out results
-      if(ionode == 0) then 
+      if(ionode) then 
         do isp = 1, nSpins
           if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
             if(order == 1 .and. subtractBaseline) &
@@ -2387,9 +2395,6 @@ contains
     integer :: isp
       !! Loop index
 
-    real(kind = dp) :: t1, t2
-      !! For timing different processes
-
     logical :: calcSpinDepBra, calcSpinDepKet
       !! If spin-dependent subroutines should be called
 
@@ -2406,15 +2411,9 @@ contains
           ! existed or only the second spin channel was selected).
 
 
-        if(ionode) write(*,'("    Spin-dependent calculations started")')
-        call cpu_time(t1)
-
         if(calcSpinDepBra) call calcSpinDep(ibBra, ikBra, isp, nGVecsLocal, braSys, ketSys)
       
         if(calcSpinDepKet) call calcSpinDep(ibKet, ikKet, isp, nGVecsLocal, ketSys, braSys)
-
-        call cpu_time(t2)
-        if(ionode) write(*, '("    Spin-dependent calculations complete! (",f10.2," secs)")') t2-t1
 
 
         Ufi(isp) = dot_product(braSys%wfc(:),ketSys%wfc(:))
@@ -3054,7 +3053,8 @@ contains
 
 
     if(.not. overlapOnly) &
-      call readScatterEnergyTable(isp, energyTableDir, iDum1D_1, iDum1D_2, iDum1D_3, iDum1D_4, iDum0D, dE)
+      call readScatterEnergyTable(isp, .true., energyTableDir, iDum1D_1, iDum1D_2, iDum1D_3, iDum1D_4, iDum0D, dE)
+        ! Pass true to get matrix-element and delta-function energies.
     
 
     open(17, file=trim(getMatrixElementFNameWPath(-1, isp, outputDir)), status='unknown')

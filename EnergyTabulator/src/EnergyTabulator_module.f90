@@ -1334,7 +1334,7 @@ module energyTabulatorMod
   end subroutine readCaptureEnergyTable
   
 !----------------------------------------------------------------------------
-  subroutine readScatterEnergyTable(isp, energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
+  subroutine readScatterEnergyTable(isp, readMEAndDeltaFdE, energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
     !! Read all energies from energy table and store in dE
     
     use miscUtilities, only: ignoreNextNLinesFromFile, int2str
@@ -1344,6 +1344,10 @@ module energyTabulatorMod
     ! Input variables:
     integer, intent(in) :: isp
       !! Current spin channel
+
+    logical, intent(in) :: readMEAndDeltaFdE
+      !! If reading matrix-element and delta-function energies;
+      !! Alternative is equilibrium adjustment energies
 
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table
@@ -1355,7 +1359,7 @@ module energyTabulatorMod
       !! Total number of transitions 
 
     real(kind=dp), allocatable, intent(out) :: dE(:,:)
-      !! All energy differences from energy table
+      !! Energy differences to return 
 
     ! Local variables:
     integer :: iE
@@ -1363,6 +1367,9 @@ module energyTabulatorMod
 
     logical :: captured
       !! If energy table was tabulated for capture
+      
+    real(kind=dp), allocatable :: dEAll(:,:)
+      !! All energy differences from energy table
 
     character(len=300) :: fName
       !! Energy table file name
@@ -1383,17 +1390,28 @@ module energyTabulatorMod
     read(27,*) nTransitions
 
     allocate(ibi(nTransitions), ibf(nTransitions), iki(nTransitions), ikf(nTransitions))
-    allocate(dE(3,nTransitions))
+    allocate(dEAll(5,nTransitions))
     
     read(27,*)
     
+    ! First read all of the energies
     do iE = 1, nTransitions
       
-      read(27,'(4i7,3ES24.15E3)') iki(iE), ibi(iE), ikf(iE), ibf(iE), dE(:,iE)
+      read(27,'(4i7,5ES24.15E3)') iki(iE), ibi(iE), ikf(iE), ibf(iE), dEAll(:,iE)
 
     enddo
     
     close(27)
+
+    if(readMEAndDeltaFdE) then
+      allocate(dE(3,nTransitions))
+
+      dE(:,:) = dEAll(1:3,:)
+    else
+      allocate(dE(2,nTransitions))
+
+      dE(:,:) = dEAll(4:5,:)
+    endif
     
     return
     

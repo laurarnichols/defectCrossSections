@@ -577,7 +577,7 @@ contains
     ! single shot.
     else
       if(ionode) &
-        call readScatterEnergyTable(iSpin, energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE2D)
+        call readScatterEnergyTable(iSpin, .true., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE2D)
           ! dE2D will get allocated here with (3,nTransitions)
 
 

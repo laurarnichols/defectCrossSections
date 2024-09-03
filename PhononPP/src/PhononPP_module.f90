@@ -878,13 +878,16 @@ module PhononPPMod
 
     else
 
-      call readScatterEnergyTable(1, energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
+      call readScatterEnergyTable(1, .false., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
         ! Assume that the transitions allowed is the same for both
-        ! spin channels
+        ! spin channels. The energy is ignored here, so it doesn't 
+        ! matter which one we read. I pass false here because it means
+        ! only two energies will be passed back, which is smaller 
+        ! than the three passed back from the true option. 
 
       if(ionode) then
 
-        ! Create output file for transition-related files
+        ! Create output file for transition-related files and write header
         call system('mkdir -p transitions')
         open(43,file='transitions/Sj.analysis.out')
         write(43,'("# SjThresh = ",ES11.3E2)') SjThresh
