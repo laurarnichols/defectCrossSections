@@ -75,10 +75,8 @@ module PhononPPMod
   character(len=300) :: prefix
     !! Prefix for shifted POSCARs
 
-  logical :: calcDeltaNjEqAdjust
+  logical :: calcDeltaNj
     !! If calculating the adjustment to the mode occupations
-    !! nj due to the adjustment in equilibrium positions as
-    !! the carrier approaches/leaves the defect
   logical :: calcDq
     !! If dq output file should be generated
   logical :: calcMaxDisp
@@ -102,7 +100,7 @@ module PhononPPMod
 !----------------------------------------------------------------------------
   subroutine readInputs(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
         allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
-        finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, &
+        finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
         dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     implicit none
@@ -141,10 +139,8 @@ module PhononPPMod
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
-    logical, intent(out) :: calcDeltaNjEqAdjust
+    logical, intent(out) :: calcDeltaNj
       !! If calculating the adjustment to the mode occupations
-      !! nj due to the adjustment in equilibrium positions as
-      !! the carrier approaches/leaves the defect
     logical, intent(out) :: calcDq
       !! If dq output file should be generated
     logical, intent(out) :: calcMaxDisp
@@ -166,14 +162,14 @@ module PhononPPMod
     namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, &
                            singleDisp, allStatesBaseDir_relaxed, basePOSCARFName, freqThresh, calcSj, calcDq, calcMaxDisp, & 
                            disp2AtomInd, energyTableDir, diffOmega, phononPrimeFName, dqEigvecsFinal, SjThresh, &
-                           temperature, calcDeltaNjEqAdjust, allStatesBaseDir_startPos, ispSelect
+                           temperature, calcDeltaNj, allStatesBaseDir_startPos, ispSelect
 
 
     if(ionode) then
 
       call initialize(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
           allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
-          finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, &
+          finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
           dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
         ! Set default values for input variables and start timers
     
@@ -185,7 +181,7 @@ module PhononPPMod
 
       call checkInitialization(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
         allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, &
-        initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
+        initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
         generateShiftedPOSCARs, singleDisp)
 
     endif
@@ -207,7 +203,7 @@ module PhononPPMod
     call MPI_BCAST(initPOSCARFName, len(initPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
 
-    call MPI_BCAST(calcDeltaNjEqAdjust, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(calcDeltaNj, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(calcDq, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(calcSj, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(calcMaxDisp, 1, MPI_LOGICAL, root, worldComm, ierr)
@@ -223,7 +219,7 @@ module PhononPPMod
 !----------------------------------------------------------------------------
   subroutine initialize(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
       allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
-      finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, &
+      finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
       dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
@@ -267,10 +263,8 @@ module PhononPPMod
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
-    logical, intent(out) :: calcDeltaNjEqAdjust
+    logical, intent(out) :: calcDeltaNj
       !! If calculating the adjustment to the mode occupations
-      !! nj due to the adjustment in equilibrium positions as
-      !! the carrier approaches/leaves the defect
     logical, intent(out) :: calcDq
       !! If dq output file should be generated
     logical, intent(out) :: calcMaxDisp
@@ -308,7 +302,7 @@ module PhononPPMod
     SjThresh = 1e-1_dp
     temperature = 300_dp
 
-    calcDeltaNjEqAdjust = .false.
+    calcDeltaNj = .false.
     calcDq = .false.
     calcSj = .false.
     calcMaxDisp = .false.
@@ -324,7 +318,7 @@ module PhononPPMod
 !----------------------------------------------------------------------------
   subroutine checkInitialization(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
       allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, &
-      initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
+      initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
       generateShiftedPOSCARs, singleDisp)
 
     implicit none
@@ -363,10 +357,8 @@ module PhononPPMod
     character(len=300), intent(in) :: prefix
       !! Prefix for shifted POSCARs
 
-    logical, intent(in) :: calcDeltaNjEqAdjust
+    logical, intent(in) :: calcDeltaNj
       !! If calculating the adjustment to the mode occupations
-      !! nj due to the adjustment in equilibrium positions as
-      !! the carrier approaches/leaves the defect
     logical, intent(in) :: calcDq
       !! If dq output file should be generated
     logical, intent(in) :: calcMaxDisp
@@ -410,8 +402,8 @@ module PhononPPMod
       else
 
         write(*,'("allStatesBaseDir_relaxed = ''",a,"''")') trim(allStatesBaseDir_relaxed)
-        write(*,'("calcDeltaNjEqAdjust = ''",L1,"''")') calcDeltaNjEqAdjust
-        if(calcDeltaNjEqAdjust) write(*,'("allStatesBaseDir_startPos = ''",a,"''")') trim(allStatesBaseDir_startPos)
+        write(*,'("calcDeltaNj = ''",L1,"''")') calcDeltaNj
+        if(calcDeltaNj) write(*,'("allStatesBaseDir_startPos = ''",a,"''")') trim(allStatesBaseDir_startPos)
 
         abortExecution = checkIntInitialization('ispSelect', ispSelect, 1, 2) .or. abortExecution
         abortExecution = checkFileInitialization('energyTableDir', trim(energyTableDir)//'/energyTable.'&
@@ -852,7 +844,7 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine calculateSj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, &
-          calcDeltaNjEqAdjust, diffOmega, singleDisp, allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, & 
+          calcDeltaNj, diffOmega, singleDisp, allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, & 
           finalPOSCARFName, Sj_if)
 
     implicit none
@@ -877,10 +869,8 @@ module PhononPPMod
     real(kind=dp), intent(in) :: SjThresh
       !! Threshold to count modes above
 
-    logical, intent(in) :: calcDeltaNjEqAdjust
+    logical, intent(in) :: calcDeltaNj
       !! If calculating the adjustment to the mode occupations
-      !! nj due to the adjustment in equilibrium positions as
-      !! the carrier approaches/leaves the defect
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
@@ -923,7 +913,7 @@ module PhononPPMod
     character(len=300) :: SjFName
       !! File name for the Sj output
 
-    if(singleDisp .or. .not. calcDeltaNjEqAdjust .or. .not. ionode) then
+    if(singleDisp .or. .not. calcDeltaNj .or. .not. ionode) then
       ! Allcoate space for this to avoid the warning and errors
       ! later with deallocation.
       allocate(Sj_if(1,1))
@@ -955,15 +945,15 @@ module PhononPPMod
 
     else
 
-      call readScatterEnergyTable(ispSelect, .false., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
-        ! I pass false here because it means only two energies will be 
-        ! passed back, which is smaller than the three passed back from 
+      call readScatterEnergyTable(ispSelect, .true., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
+        ! I pass false here because it means only three energies will be 
+        ! passed back, which is smaller than the five  passed back from 
         ! the true option. We ignore the energies here, so it doesn't 
         ! matter.
 
       if(ionode) then
 
-        if(calcDeltaNjEqAdjust) allocate(Sj_if(nModes,nTransitions))
+        if(calcDeltaNj) allocate(Sj_if(nModes,nTransitions))
 
         ! Create output file for transition-related files and write header
         call system('mkdir -p transitions')
@@ -997,12 +987,14 @@ module PhononPPMod
         if(ionode) then
           call calcSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, modeIndex, Sj, SjPrime)
 
-          if(calcDeltaNjEqAdjust) Sj_if(:,iE) = Sj(:)
+          if(calcDeltaNj) Sj_if(:,iE) = Sj(:)
 
           call sortAndWriteSingleDispSj(nModes, omega, omegaPrime, diffOmega, SjFName, modeIndex, Sj, SjPrime)
 
 
           write(43,'(5i7,ES24.15E3,i7)') iki(iE), ibi(iE), ikf(iE), ibf(iE), modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh)
+            ! When I run with debug flags on, I get a warning from modeIndex(maxloc(Sj))
+            ! saying that an array temporary was created, but I am okay with that.
         endif
 
       enddo
@@ -1454,6 +1446,200 @@ module PhononPPMod
     return
 
   end subroutine sortAndWriteSingleDispSj
+
+!----------------------------------------------------------------------------
+  subroutine calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, Sj_if, &
+            allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Spin channel to use
+    integer, intent(inout) :: nAtoms
+      !! Number of atoms in intial system
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: coordFromPhon(3,nAtoms)
+      !! Coordinates from phonon file
+    real(kind=dp), intent(in) :: dqEigenvectors(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each mode to be
+      !! used to calculate Delta q_j and displacements
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Mass of atoms
+    real(kind=dp), intent(in) :: Sj_if(:,:)
+      !! Store Sjs for scattering if calculating changes in 
+      !! occupation numbers
+
+    character(len=300), intent(in) :: allStatesBaseDir_relaxed
+      !! Base dir for sets of relaxed files if not captured
+    character(len=300), intent(in) :: allStatesBaseDir_startPos
+      !! Base dir for total energies of each electronic state
+      !! in the starting positions if not captured
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy table
+
+    ! Local variables:
+    integer :: iE, j
+      !! Loop index
+    integer, allocatable :: iki(:), ikf(:), ibi(:), ibf(:)
+      !! Allowed state indices
+    integer :: nTransitions
+      !! Total number of transitions 
+
+    real(kind=dp), allocatable :: dE(:,:)
+      !! Equilibrium-adjustment energy differences from 
+      !! energy table
+    real(kind=dp) :: Sj_gi(nModes), Sj_fg(nModes)
+      !! Sj and Sj' Huang-Rhys factors using omega
+      !! and omega'
+
+    character(len=300) :: deltaNjFName
+      !! Output file for delta nj's
+
+
+    call readScatterEnergyTable(ispSelect, .false., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
+      ! Pass false here to get all of the energies
+
+    if(ionode) then
+      call system('mkdir -p deltaNjEqAdjust')
+    endif
+
+    do iE = 1, nTransitions
+
+      ! Pass true to indicate that this adjustment is ground/start positions to initial-state
+      call getEqAdjustSj(iki(iE), ibi(iE), nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, .true., &
+              allStatesBaseDir_relaxed, allStatesBaseDir_startPos, Sj_gi)
+
+
+      ! Pass false to indicate that this adjustment is final-state positions to ground/start
+      call getEqAdjustSj(ikf(iE), ibf(iE), nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, .false., &
+              allStatesBaseDir_relaxed, allStatesBaseDir_startPos, Sj_fg)
+
+      if(ionode) then
+        ! Set output file name
+        deltaNjFName = 'deltaNjEqAdjust/deltaNjEqAdjust.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
+                                                          //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
+
+        open(64,file=trim(deltaNjFName))
+
+        write(64,'("# iki, ibi, ikf, ibf")')
+        write(64,'(4i7)') iki(iE), ibi(iE), ikf(iE), ibf(iE)
+        write(64,'("# Mode index j, Delta nj_gi, Delta nj_if, Delta nj_fg")')
+
+        do j = 1, nModes
+          write(64,'(i7,3ES24.15E3)') j, &
+                  (dE(4,iE)/hbar_atomic)*Sj_gi(j)/sum(omega(:)*Sj_gi(:)), &       ! Ground/start to initial relaxed
+                  (dE(1,iE)/hbar_atomic)*Sj_if(j,iE)/sum(omega(:)*Sj_if(:,iE)), & ! Initial relaxed to final relaxed
+                  (dE(5,iE)/hbar_atomic)*Sj_fg(j)/sum(omega(:)*Sj_fg(:))          ! Final relaxed back to ground/start
+
+        enddo
+
+        close(64)
+
+      endif
+
+
+    enddo
+
+    deallocate(iki)
+    deallocate(ikf)
+    deallocate(ibi)
+    deallocate(ibf)
+    deallocate(dE)
+
+    return
+
+  end subroutine calcAndWriteDeltaNj
+
+!----------------------------------------------------------------------------
+  subroutine getEqAdjustSj(ik, ib, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, startToRelaxed, &
+          allStatesBaseDir_relaxed, allStatesBaseDir_startPos, Sj)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ik, ib
+      !! State indices
+    integer, intent(inout) :: nAtoms
+      !! Number of atoms in intial system
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: coordFromPhon(3,nAtoms)
+      !! Coordinates from phonon file
+    real(kind=dp), intent(in) :: dqEigenvectors(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each mode to be
+      !! used to calculate Delta q_j and displacements
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Mass of atoms
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
+
+    logical, intent(in) :: startToRelaxed
+      !! If the system is going from the start positions to
+      !! the relaxed (or relaxed to start)
+
+    character(len=300), intent(in) :: allStatesBaseDir_relaxed
+      !! Base dir for sets of relaxed files if not captured
+    character(len=300), intent(in) :: allStatesBaseDir_startPos
+      !! Base dir for total energies of each electronic state
+      !! in the starting positions if not captured
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: Sj(nModes)
+      !! Huang-Rhys factor
+
+    ! Local variables
+    integer :: iDum1D(nModes)
+      !! Dummy integer to ignore modeIndex
+
+    real(kind=dp) :: projNorm(nModes)
+      !! Generalized norms after displacement
+    real(kind=dp) :: rDum1D_1(nModes), rDum1D_2(nModes)
+      !! Dummy real to ignore omegaPrime and SjPrime
+
+    logical :: fileExists
+      !! If a file exists
+
+    character(len=300) :: startPOSCARFName
+      !! File name for POSCAR for this state ik, ib
+      !! in the starting positions
+    character(len=300) :: relaxedPOSCARFName
+      !! File name for POSCAR for this state ik, ib
+      !! in its relaxed positions
+
+
+
+    if(ionode) then
+      startPOSCARFName = trim(allStatesBaseDir_startPos)//'/k'//trim(int2str(ik))//'_b'//trim(int2str(ib))//'/CONTCAR'
+      inquire(file=trim(startPOSCARFName), exist=fileExists)
+      if(.not. fileExists) call exitError('calcSingleDispDeltaNjEqAdjust', 'File does not exist!! '//trim(startPOSCARFName), 1)
+
+      relaxedPOSCARFName = trim(allStatesBaseDir_relaxed)//'/k'//trim(int2str(ik))//'_b'//trim(int2str(ib))//'/CONTCAR'
+      inquire(file=trim(relaxedPOSCARFName), exist=fileExists)
+      if(.not. fileExists) call exitError('calcSingleDispDeltaNjEqAdjust', 'File does not exist!! '//trim(relaxedPOSCARFName), 1)
+    endif
+
+
+    ! If going from the starting positions to the relaxed positions
+    ! (initial carrier approach), then pass the start positions first.
+    ! Otherwise (carrier leaving), pass the relaxed positions first.
+    if(startToRelaxed) then
+      call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, startPOSCARFName, relaxedPOSCARFName, projNorm)
+    else
+      call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, relaxedPOSCARFName, startPOSCARFName, projNorm)
+    endif
+
+
+    if(ionode) then
+      call calcSingleDispSj(nModes, omega, rDum1D_1, projNorm, .false., iDum1D, Sj, rDum1D_2)
+    endif
+
+    return
+
+  end subroutine getEqAdjustSj
 
 !----------------------------------------------------------------------------
   subroutine calculateShiftAndDq(disp2AtomInd, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, shift, calcDq, calcMaxDisp, &

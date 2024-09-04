@@ -13,7 +13,7 @@ program PhononPPMain
 
   call readInputs(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
         allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
-        finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNjEqAdjust, calcDq, calcMaxDisp, calcSj, diffOmega, &
+        finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
         dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
 
@@ -66,10 +66,15 @@ program PhononPPMain
 
   if(calcSj) &
     call calculateSj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, &
-            calcDeltaNjEqAdjust, diffOmega, singleDisp, allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, &
+            calcDeltaNj, diffOmega, singleDisp, allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, &
             finalPOSCARFName, Sj_if)
 
 
+  if(calcDeltaNj) call calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, Sj_if, &
+            allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir)
+
+
+  deallocate(Sj_if)
   deallocate(omega)
   deallocate(omegaPrime)
 
@@ -79,7 +84,6 @@ program PhononPPMain
           generateShiftedPOSCARs, basePOSCARFName, dqFName, prefix)
 
 
-  deallocate(Sj_if)
   deallocate(coordFromPhon)
   deallocate(dqEigenvectors)
   deallocate(mass)
