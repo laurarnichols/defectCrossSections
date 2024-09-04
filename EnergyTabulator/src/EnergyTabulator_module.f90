@@ -1334,7 +1334,7 @@ module energyTabulatorMod
   end subroutine readCaptureEnergyTable
   
 !----------------------------------------------------------------------------
-  subroutine readScatterEnergyTable(isp, readMEAndDeltaFdE, energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
+  subroutine readScatterEnergyTable(isp, deltaAndMEOnly, energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
     !! Read all energies from energy table and store in dE
     
     use miscUtilities, only: ignoreNextNLinesFromFile, int2str
@@ -1345,9 +1345,9 @@ module energyTabulatorMod
     integer, intent(in) :: isp
       !! Current spin channel
 
-    logical, intent(in) :: readMEAndDeltaFdE
-      !! If reading matrix-element and delta-function energies;
-      !! Alternative is equilibrium adjustment energies
+    logical, intent(in) :: deltaAndMEOnly
+      !! If reading matrix-element and delta-function energies
+      !! only; otherwise read all
 
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table
@@ -1403,14 +1403,14 @@ module energyTabulatorMod
     
     close(27)
 
-    if(readMEAndDeltaFdE) then
+    if(deltaAndMEOnly) then
       allocate(dE(3,nTransitions))
 
       dE(:,:) = dEAll(1:3,:)
     else
-      allocate(dE(2,nTransitions))
+      allocate(dE(5,nTransitions))
 
-      dE(:,:) = dEAll(4:5,:)
+      dE(:,:) = dEAll(:,:)
     endif
     
     return
