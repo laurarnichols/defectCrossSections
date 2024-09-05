@@ -1436,7 +1436,7 @@ module PhononPPMod
         write(60,'(1i7, 4ES24.15E3)') jSort, Sj(nModes-(j-1)), omega(jSort), &
                                              SjPrime(jSort), omegaPrime(jSort)
       else
-        write(60,'(1i7, 2ES24.15E3)') jSort, Sj(jSort), omega(jSort)
+        write(60,'(1i7, 2ES24.15E3)') jSort, Sj(nModes-(j-1)), omega(jSort)
       endif
 
     enddo
