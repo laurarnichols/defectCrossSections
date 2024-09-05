@@ -78,8 +78,8 @@ module LSFmod
   character(len=300) :: MjBaseDir
     !! Path to the base directory for the first-order
     !! matrix element calculations
-  character(len=300) :: njInput
-    !! Path to nj file
+  character(len=300) :: njBaseInput
+    !! Path to base nj file
   character(len=300) :: outputDir
     !! Path to output transition rates
   character(len=300) :: PhononPPDir
@@ -93,7 +93,7 @@ module LSFmod
     !! output exactly in transition rate file
 
 
-  namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, PhononPPDir, njInput, hbarGamma, dt, &
+  namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, PhononPPDir, njBaseInput, hbarGamma, dt, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured
 
@@ -101,7 +101,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, outputDir, &
         PhononPPDir, prefix)
 
     implicit none
@@ -153,8 +153,8 @@ contains
     character(len=300), intent(out) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
-    character(len=300), intent(out) :: njInput
-      !! Path to nj file
+    character(len=300), intent(out) :: njBaseInput
+      !! Path to base nj file
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
     character(len=300), intent(out) :: PhononPPDir
@@ -166,7 +166,7 @@ contains
 
   
     call initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
-          newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, &
+          newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
           outputDir, PhononPPDir, prefix)
 
     if(ionode) then
@@ -179,7 +179,7 @@ contains
         !! * Exit calculation if there's an error
 
       call checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
-            newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
+            newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, outputDir, &
             PhononPPDir, prefix)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
@@ -212,7 +212,7 @@ contains
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(MjBaseDir, len(MjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(njInput, len(njInput), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(njBaseInput, len(njBaseInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(PhononPPDir, len(PhononPPDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
@@ -223,7 +223,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, &
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
         outputDir, PhononPPDir, prefix)
 
     implicit none
@@ -271,8 +271,8 @@ contains
     character(len=300), intent(out) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
-    character(len=300), intent(out) :: njInput
-      !! Path to nj file
+    character(len=300), intent(out) :: njBaseInput
+      !! Path to base nj file
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
     character(len=300), intent(out) :: PhononPPDir
@@ -301,7 +301,7 @@ contains
     energyTableDir = ''
     matrixElementDir = ''
     MjBaseDir = ''
-    njInput = ''
+    njBaseInput = ''
     outputDir = './'
     PhononPPDir = ''
     prefix = 'disp-'
@@ -312,7 +312,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, outputDir, &
         PhononPPDir, prefix)
 
     implicit none
@@ -360,8 +360,8 @@ contains
     character(len=300), intent(in) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
-    character(len=300), intent(in) :: njInput
-      !! Path to nj file
+    character(len=300), intent(in) :: njBaseInput
+      !! Path to base nj file
     character(len=300), intent(in) :: outputDir
       !! Path to store transition rates
     character(len=300), intent(in) :: PhononPPDir
@@ -393,7 +393,7 @@ contains
       ! hard and fast, but you should think about the application of the theory
       ! to numbers outside these ranges.
 
-    abortExecution = checkFileInitialization('njInput', njInput) .or. abortExecution
+    abortExecution = checkFileInitialization('njBaseInput', njBaseInput) .or. abortExecution
 
     
     write(*,'("captured = ",L)') captured

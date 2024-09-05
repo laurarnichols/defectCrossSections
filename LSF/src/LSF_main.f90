@@ -29,7 +29,7 @@ program LSFmain
   call cpu_time(timer1)
 
   call readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, outputDir, &
         PhononPPDir, prefix)
 
 
@@ -74,7 +74,7 @@ program LSFmain
           omegaPrime, Sj, SjPrime)
 
   allocate(njBase(nModes))
-  call readNj(nModes, njInput, njBase)
+  call readNj(nModes, njBaseInput, njBase)
 
 
   allocate(jReSort(nModes))

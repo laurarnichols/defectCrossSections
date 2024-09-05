@@ -2057,7 +2057,7 @@ module PhononPPMod
   end subroutine readSjTwoFreq
 
 !----------------------------------------------------------------------------
-  subroutine readNj(nModes, njInput, njBase)
+  subroutine readNj(nModes, njBaseInput, njBase)
 
     implicit none
 
@@ -2065,7 +2065,7 @@ module PhononPPMod
     integer, intent(in) :: nModes
       !! Number of modes
 
-    character(len=300), intent(in) :: njInput
+    character(len=300), intent(in) :: njBaseInput
       !! Path to nj file
 
     ! Output variables:
@@ -2086,7 +2086,7 @@ module PhononPPMod
     
     if(ionode) then
 
-      open(17,file=trim(njInput))
+      open(17,file=trim(njBaseInput))
 
       read(17,*)
 
