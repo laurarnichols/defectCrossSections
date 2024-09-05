@@ -1503,7 +1503,7 @@ module PhononPPMod
       ! Pass false here to get all of the energies
 
     if(ionode) then
-      call system('mkdir -p deltaNjEqAdjust')
+      call system('mkdir -p deltaNjs')
     endif
 
     do iE = 1, nTransitions
@@ -1519,7 +1519,7 @@ module PhononPPMod
 
       if(ionode) then
         ! Set output file name
-        deltaNjFName = 'deltaNjEqAdjust/deltaNjEqAdjust.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
+        deltaNjFName = 'deltaNjs/deltaNj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
                                                           //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
 
         open(64,file=trim(deltaNjFName))
