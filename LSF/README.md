@@ -14,12 +14,17 @@ Every calculation must have the following inputs (don't have to be explicitly se
 * `smearingExpTolerance` -- default `0.0`; max time for integration is determined by this threshold set on the smearing exponential
 * `captured` -- default `.true.`; if the carrier is captured or not; affects how inputs are read and states are treated
 * `diffOmega` -- default `.false.`; if there is a different frequency before and after transition; only currently tested for capture; should be consistent with `PhononPP` output
+* `reSortMEs` -- default `.false.`; if matrix elements should be resorted to match a different phonon input (*e.g.*, you want to run with only the final phonons, but the matrix elements were calculated using the initial-phonon order); must have `optimalPairs.out` file in `PhononPPDir` to determine how to re-sort
 * `newEnergyTable` -- default `.false.`; if an energy table other than the one input to `TME` should be used for matrix elements; only currently implemented for capture
+* `rereadDq` -- default `.false.`; if new `dq_j` factor should be read for first-order matrix elements
 * `oldFormat` -- default `.false.`; if old format of capture matrix elements should be used; this option should not be needed in most cases
 * `energyTableDir` -- path to `EnergyTabulator` output directory; needed for $\delta$-function energy and if using new energy table for matrix elements
 * `njInput` -- path to single `nj` file to be used for mode occupations
 * `outputDir` -- default `'./'`; where to output transition-rate files
 * `PhononPPDir` -- path to `PhononPP` output directory with `Sj.out`
+* Path to matrix-element files (different for zeroth- and first-order, so given below)
+
+*There is also an option to input `SjThresh`, but that input is not fully tested, so don't use it!*
 
 The `LSF` input file should look like
 ```f90
