@@ -57,6 +57,8 @@ module LSFmod
     !! Tolerance for the Lorentzian-smearing
     !! exponential used to calculate max time
 
+  logical :: addDeltaNj
+    !! Add change in occupations for different scattering states
   logical :: captured
     !! If carrier is captured as opposed to scattered
   logical :: newEnergyTable
@@ -95,14 +97,14 @@ module LSFmod
 
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, PhononPPDir, njBaseInput, hbarGamma, dt, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
-                         suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured
+                         suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, outputDir, &
-        PhononPPDir, prefix)
+  subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
+        captured, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, &
+        njBaseInput, outputDir, PhononPPDir, prefix)
 
     implicit none
 
@@ -127,6 +129,8 @@ contains
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
     
+    logical, intent(out) :: addDeltaNj
+      !! Add change in occupations for different scattering states
     logical, intent(out) :: captured
       !! If carrier is captured as opposed to scattered
     logical, intent(out) :: diffOmega
@@ -165,7 +169,7 @@ contains
       !! elements
 
   
-    call initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
+    call initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
           newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
           outputDir, PhononPPDir, prefix)
 
@@ -178,7 +182,7 @@ contains
       if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
+      call checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
             newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, outputDir, &
             PhononPPDir, prefix)
 
@@ -202,6 +206,7 @@ contains
     call MPI_BCAST(smearingExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
+    call MPI_BCAST(addDeltaNj, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(captured, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(diffOmega, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(newEnergyTable, 1, MPI_LOGICAL, root, worldComm, ierr)
@@ -222,7 +227,7 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
+  subroutine initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
         newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
         outputDir, PhononPPDir, prefix)
 
@@ -245,6 +250,8 @@ contains
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
     
+    logical, intent(out) :: addDeltaNj
+      !! Add change in occupations for different scattering states
     logical, intent(out) :: captured
       !! If carrier is captured as opposed to scattered
     logical, intent(out) :: diffOmega
@@ -291,6 +298,7 @@ contains
     SjThresh = 0.0_dp
     smearingExpTolerance = 0.0_dp
 
+    addDeltaNj = .false.
     captured = .true.
     diffOmega = .false.
     newEnergyTable = .false.
@@ -311,7 +319,7 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
+  subroutine checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
         newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, outputDir, &
         PhononPPDir, prefix)
 
@@ -334,6 +342,8 @@ contains
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
     
+    logical, intent(in) :: addDeltaNj
+      !! Add change in occupations for different scattering states
     logical, intent(in) :: captured
       !! If carrier is captured as opposed to scattered
     logical, intent(in) :: diffOmega
@@ -397,6 +407,10 @@ contains
 
     
     write(*,'("captured = ",L)') captured
+    write(*,'("addDeltaNj = ",L)') addDeltaNj
+
+    if(captured .and. addDeltaNj) &
+      call exitError('checkInitialization','Can only add change in occupations for different states with scattering!',1)
 
     ! We don't know the band indices here to check for the Sj files for
     ! scattering, but we can check for Sj.analysis.out that should always 
