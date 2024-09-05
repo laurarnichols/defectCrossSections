@@ -73,8 +73,8 @@ program LSFmain
   call readSj(ibi, ibf, iki, ikf, nTransitions, captured, diffOmega, PhononPPDir, nModes, omega, &
           omegaPrime, Sj, SjPrime)
 
-  allocate(nj(nModes))
-  call readNj(nModes, njInput, nj)
+  allocate(njBase(nModes))
+  call readNj(nModes, njInput, njBase)
 
 
   allocate(jReSort(nModes))
@@ -104,13 +104,13 @@ program LSFmain
    
 
   call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dt, &
-          gamma0, matrixElement, nj, omega, omegaPrime, Sj, SjPrime, SjThresh, captured, diffOmega, volumeLine)
+          gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, SjThresh, captured, diffOmega, volumeLine)
 
   
   deallocate(ibi,ibf,iki,ikf)
   deallocate(dE)
   deallocate(matrixElement)
-  deallocate(nj)
+  deallocate(njBase)
   deallocate(omega)
   deallocate(omegaPrime)
   deallocate(Sj)

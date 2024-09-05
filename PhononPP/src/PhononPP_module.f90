@@ -2057,7 +2057,7 @@ module PhononPPMod
   end subroutine readSjTwoFreq
 
 !----------------------------------------------------------------------------
-  subroutine readNj(nModes, njInput, nj)
+  subroutine readNj(nModes, njInput, njBase)
 
     implicit none
 
@@ -2069,7 +2069,7 @@ module PhononPPMod
       !! Path to nj file
 
     ! Output variables:
-    real(kind=dp), intent(out) :: nj(nModes)
+    real(kind=dp), intent(out) :: njBase(nModes)
       !! \(n_j\) occupation number
 
     ! Local variables:
@@ -2096,14 +2096,14 @@ module PhononPPMod
       read(17,*)
 
       do j = 1, nModes
-        read(17,'(1i7, 1ES24.15E3)') iDum, nj(j)
+        read(17,'(1i7, 1ES24.15E3)') iDum, njBase(j)
       enddo
 
       close(17)
 
     endif
 
-    call MPI_BCAST(nj, size(nj), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(njBase, size(njBase), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 

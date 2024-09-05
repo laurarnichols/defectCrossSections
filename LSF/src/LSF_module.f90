@@ -46,8 +46,8 @@ module LSFmod
     !! Electronic matrix element
   real(kind=dp) :: maxTime
     !! Max time for integration
-  real(kind=dp), allocatable :: nj(:)
-    !! \(n_j\) occupation number
+  real(kind=dp), allocatable :: njBase(:)
+    !! Base \(n_j\) occupation number for all states
   real(kind=dp), allocatable :: Sj(:,:), SjPrime(:,:)
     !! Huang-Rhys factor for each mode (and transition
     !! for scattering)
@@ -944,7 +944,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dt, &
-          gamma0, matrixElement, nj, omega, omegaPrime, Sj, SjPrime, SjThresh, captured, diffOmega, volumeLine)
+          gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, SjThresh, captured, diffOmega, volumeLine)
     
     implicit none
 
@@ -970,8 +970,8 @@ contains
       !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(in) :: matrixElement(mDim,nTransitions,nkPerPool)
       !! Electronic matrix element
-    real(kind=dp), intent(in) :: nj(nModes)
-      !! \(n_j\) occupation number
+    real(kind=dp), intent(in) :: njBase(nModes)
+      !! Base \(n_j\) occupation number for all states
     real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
       !! Frequency for each mode
     real(kind=dp), intent(in) :: Sj(:,:), SjPrime(:,:)
@@ -1086,11 +1086,11 @@ contains
       if(captured) then
         Sj1D = Sj(:,1)
         SjPrime1D = SjPrime(:,1)
-        call setupAllTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, Sj1D, SjPrime1D, time, diffOmega, Dj0_t, Dj1_t)
+        call setupAllTimeTables(countTrue, nModes, jTrue, njBase, omega, omegaPrime, Sj1D, SjPrime1D, time, diffOmega, Dj0_t, Dj1_t)
 
         expArg_base = ii*sum(Dj0_t(jTrue)) - gamma0*time
       else 
-        call setupStateIndTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, time, diffOmega, cosOmegaPrime, &
+        call setupStateIndTimeTables(countTrue, nModes, jTrue, njBase, omega, omegaPrime, time, diffOmega, cosOmegaPrime, &
                   sinOmegaPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree)
       endif
 
@@ -1249,7 +1249,7 @@ contains
       !! Mode indices where Sj > SjThresh
 
     real(kind=dp), intent(in) :: nj(nModes)
-      !! \(n_j\) occupation number
+      !! Base \(n_j\) occupation number for all states
     real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
       !! Frequency for each mode
     real(kind=dp), intent(in) :: Sj(nModes), SjPrime(nModes)
@@ -1348,7 +1348,7 @@ contains
       !! Mode indices where Sj > SjThresh
 
     real(kind=dp), intent(in) :: nj(nModes)
-      !! \(n_j\) occupation number
+      !! Base \(n_j\) occupation number for all states
     real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
       !! Frequency for each mode
     real(kind=dp), intent(in) :: time
