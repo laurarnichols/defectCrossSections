@@ -70,7 +70,8 @@ program PhononPPMain
             finalPOSCARFName, Sj_if)
 
 
-  if(calcDeltaNj) call calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, Sj_if, &
+  if(calcSj .and. (.not. singleDisp) .and. calcDeltaNj) &
+    call calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, Sj_if, &
             allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir)
 
 
