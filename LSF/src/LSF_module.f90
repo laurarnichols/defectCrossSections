@@ -88,18 +88,17 @@ module LSFmod
     !! Path to get optimalPairs.out
   character(len=300) :: outputDir
     !! Path to output transition rates
-  character(len=300) :: PhononPPDir
-    !! Path to PhononPP output dir to get Sj.out
-    !! and potentially optimalPairs.out
   character(len=300) :: prefix
     !! Prefix of directories for first-order matrix
     !! elements
+  character(len=300) :: SjBaseDir
+    !! Path to directory holding Sj.out file(s)
   character(len=300) :: volumeLine
     !! Volume line from overlap file to be
     !! output exactly in transition rate file
 
 
-  namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, PhononPPDir, njBaseInput, hbarGamma, dt, &
+  namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjBaseDir, njBaseInput, hbarGamma, dt, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
                          optimalPairsInput, dqInput
@@ -109,7 +108,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
         captured, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, &
-        MjBaseDir, njBaseInput, optimalPairsInput, outputDir, PhononPPDir, prefix)
+        MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -170,17 +169,16 @@ contains
       !! Path to get optimalPairs.out
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
-    character(len=300), intent(out) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
     character(len=300), intent(out) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
+    character(len=300), intent(out) :: SjBaseDir
+      !! Path to directory holding Sj.out file(s)
 
   
     call initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
           newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
-          njBaseInput, optimalPairsInput, outputDir, PhononPPDir, prefix)
+          njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     if(ionode) then
 
@@ -193,7 +191,7 @@ contains
 
       call checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
             newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-            optimalPairsInput, outputDir, PhononPPDir, prefix)
+            optimalPairsInput, outputDir, prefix, SjBaseDir)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
@@ -230,8 +228,8 @@ contains
     call MPI_BCAST(njBaseInput, len(njBaseInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(optimalPairsInput, len(optimalPairsInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(PhononPPDir, len(PhononPPDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(SjBaseDir, len(SjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     
     return
 
@@ -240,7 +238,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
         newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
-        njBaseInput, optimalPairsInput, outputDir, PhononPPDir, prefix)
+        njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -297,12 +295,11 @@ contains
       !! Path to get optimalPairs.out
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
-    character(len=300), intent(out) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
     character(len=300), intent(out) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
+    character(len=300), intent(out) :: SjBaseDir
+      !! Path to directory holding Sj.out file(s)
 
 
     iSpin = 1
@@ -328,8 +325,8 @@ contains
     njBaseInput = ''
     optimalPairsInput = ''
     outputDir = './'
-    PhononPPDir = ''
     prefix = 'disp-'
+    SjBaseDir = ''
 
     return 
 
@@ -338,7 +335,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
         newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-        optimalPairsInput, outputDir, PhononPPDir, prefix)
+        optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -395,12 +392,11 @@ contains
       !! Path to get optimalPairs.out
     character(len=300), intent(in) :: outputDir
       !! Path to store transition rates
-    character(len=300), intent(in) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
     character(len=300), intent(in) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
+    character(len=300), intent(in) :: SjBaseDir
+      !! Path to directory holding Sj.out file(s)
 
     ! Local variables:
     integer :: ikTest
@@ -437,9 +433,9 @@ contains
     ! scattering, but we can check for Sj.analysis.out that should always 
     ! be there when calculating Sj's as well.
     if(captured) then
-      abortExecution = checkDirInitialization('PhononPPDir', PhononPPDir, 'Sj.out') .or. abortExecution
+      abortExecution = checkDirInitialization('SjBaseDir', SjBaseDir, 'Sj.out') .or. abortExecution
     else
-      abortExecution = checkDirInitialization('PhononPPDir', PhononPPDir, 'Sj.analysis.out') .or. abortExecution
+      abortExecution = checkDirInitialization('SjBaseDir', SjBaseDir, 'Sj.analysis.out') .or. abortExecution
     endif
 
 
@@ -646,7 +642,7 @@ contains
   end subroutine readEnergyTable
 
 !----------------------------------------------------------------------------
-  subroutine readSj(ibi, ibf, iki, ikf, nTransitions, captured, diffOmega, PhononPPDir, nModes, omega, &
+  subroutine readSj(ibi, ibf, iki, ikf, nTransitions, captured, diffOmega, SjBaseDir, nModes, omega, &
           omegaPrime, Sj, SjPrime)
 
     implicit none
@@ -663,9 +659,8 @@ contains
       !! If initial- and final-state frequencies 
       !! should be treated as different
 
-    character(len=300), intent(in) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
+    character(len=300), intent(in) :: SjBaseDir
+      !! Path to directory holding Sj.out file(s)
 
     ! Output variables:
     integer, intent(out) :: nModes
@@ -707,9 +702,9 @@ contains
     ! frequencies and number of modes from the first file because 
     ! they do not depend on the transition
     if(captured) then
-      fName = trim(PhononPPDir)//'/Sj.out' 
+      fName = trim(SjBaseDir)//'/Sj.out' 
     else
-      fName = trim(PhononPPDir)//'/Sj.k'//trim(int2str(iki(1)))//'_b'//trim(int2str(ibi(1)))//'.k'&
+      fName = trim(SjBaseDir)//'/Sj.k'//trim(int2str(iki(1)))//'_b'//trim(int2str(ibi(1)))//'.k'&
                                //trim(int2str(ikf(1)))//'_b'//trim(int2str(ibf(1)))//'.out'
     endif
 
@@ -763,7 +758,7 @@ contains
     ! For scattering, read the Sj for the rest of the transitions
     if(.not. captured) then
       do iE = 2, nTransitions
-        fName = trim(PhononPPDir)//'/Sj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
+        fName = trim(SjBaseDir)//'/Sj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
                                  //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
 
         if(diffOmega) then

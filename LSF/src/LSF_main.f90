@@ -30,7 +30,7 @@ program LSFmain
 
   call readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
         captured, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, &
-        MjBaseDir, njBaseInput, optimalPairsInput, outputDir, PhononPPDir, prefix)
+        MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
 
   nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
@@ -70,8 +70,7 @@ program LSFmain
 
   call readEnergyTable(iSpin, captured, energyTableDir, nTransitions, ibi, ibf, iki, ikf, dE)
 
-  call readSj(ibi, ibf, iki, ikf, nTransitions, captured, diffOmega, PhononPPDir, nModes, omega, &
-          omegaPrime, Sj, SjPrime)
+  call readSj(ibi, ibf, iki, ikf, nTransitions, captured, diffOmega, SjBaseDir, nModes, omega, omegaPrime, Sj, SjPrime)
 
   allocate(njBase(nModes))
   call readNj(nModes, njBaseInput, njBase)
