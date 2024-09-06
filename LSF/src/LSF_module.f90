@@ -82,6 +82,8 @@ module LSFmod
     !! matrix element calculations
   character(len=300) :: njBaseInput
     !! Path to base nj file
+  character(len=300) :: optimalPairsInput
+    !! Path to get optimalPairs.out
   character(len=300) :: outputDir
     !! Path to output transition rates
   character(len=300) :: PhononPPDir
@@ -97,14 +99,15 @@ module LSFmod
 
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, PhononPPDir, njBaseInput, hbarGamma, dt, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
-                         suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj
+                         suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
+                         optimalPairsInput
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
         captured, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, &
-        njBaseInput, outputDir, PhononPPDir, prefix)
+        njBaseInput, optimalPairsInput, outputDir, PhononPPDir, prefix)
 
     implicit none
 
@@ -159,6 +162,8 @@ contains
       !! matrix element calculations
     character(len=300), intent(out) :: njBaseInput
       !! Path to base nj file
+    character(len=300), intent(out) :: optimalPairsInput
+      !! Path to get optimalPairs.out
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
     character(len=300), intent(out) :: PhononPPDir
@@ -171,7 +176,7 @@ contains
   
     call initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
           newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-          outputDir, PhononPPDir, prefix)
+          optimalPairsInput, outputDir, PhononPPDir, prefix)
 
     if(ionode) then
 
@@ -183,8 +188,8 @@ contains
         !! * Exit calculation if there's an error
 
       call checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-            newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, outputDir, &
-            PhononPPDir, prefix)
+            newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
+            optimalPairsInput, outputDir, PhononPPDir, prefix)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
@@ -218,6 +223,7 @@ contains
     call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(MjBaseDir, len(MjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(njBaseInput, len(njBaseInput), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(optimalPairsInput, len(optimalPairsInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(PhononPPDir, len(PhononPPDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
@@ -229,7 +235,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
         newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-        outputDir, PhononPPDir, prefix)
+        optimalPairsInput, outputDir, PhononPPDir, prefix)
 
     implicit none
 
@@ -280,6 +286,8 @@ contains
       !! matrix element calculations
     character(len=300), intent(out) :: njBaseInput
       !! Path to base nj file
+    character(len=300), intent(out) :: optimalPairsInput
+      !! Path to get optimalPairs.out
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
     character(len=300), intent(out) :: PhononPPDir
@@ -310,6 +318,7 @@ contains
     matrixElementDir = ''
     MjBaseDir = ''
     njBaseInput = ''
+    optimalPairsInput = ''
     outputDir = './'
     PhononPPDir = ''
     prefix = 'disp-'
@@ -320,8 +329,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, outputDir, &
-        PhononPPDir, prefix)
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
+        optimalPairsInput, outputDir, PhononPPDir, prefix)
 
     implicit none
 
@@ -372,6 +381,8 @@ contains
       !! matrix element calculations
     character(len=300), intent(in) :: njBaseInput
       !! Path to base nj file
+    character(len=300), intent(in) :: optimalPairsInput
+      !! Path to get optimalPairs.out
     character(len=300), intent(in) :: outputDir
       !! Path to store transition rates
     character(len=300), intent(in) :: PhononPPDir
@@ -455,7 +466,7 @@ contains
     else if(order == 1) then
 
       write(*,'("reSortMEs = ",L)') reSortMEs
-      if(reSortMEs) abortExecution = checkFileInitialization('optimalPairsFile', trim(PhononPPDir)//'/optimalPairs.out') .or. abortExecution
+      if(reSortMEs) abortExecution = checkFileInitialization('optimalPairsInput', optimalPairsInput) .or. abortExecution
 
       write(*,'("rereadDq = ",L)') rereadDq
       if(rereadDq) abortExecution = checkFileInitialization('dqFile', trim(PhononPPDir)//'/dq.txt') .or. abortExecution
@@ -766,7 +777,7 @@ contains
   end subroutine readSj
 
 !----------------------------------------------------------------------------
-  subroutine getjReSort(nModes, PhononPPDir, jReSort)
+  subroutine getjReSort(nModes, optimalPairsInput, jReSort)
 
     implicit none
 
@@ -774,9 +785,8 @@ contains
     integer, intent(in) :: nModes
       !! Number of phonon modes
 
-    character(len=300), intent(in) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
+    character(len=300), intent(in) :: optimalPairsInput
+      !! Path to get optimalPairs.out
 
     ! Output variables:
     integer, intent(out) :: jReSort(nModes)
@@ -791,7 +801,7 @@ contains
       !! New-ordered index
 
 
-    open(unit=32,file=trim(PhononPPDir)//'/optimalPairs.out')
+    open(unit=32,file=trim(optimalPairsInput))
 
     read(32,*)
 

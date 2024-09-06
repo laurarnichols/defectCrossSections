@@ -30,7 +30,7 @@ program LSFmain
 
   call readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
         captured, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, &
-        njBaseInput, outputDir, PhononPPDir, prefix)
+        njBaseInput, optimalPairsInput, outputDir, PhononPPDir, prefix)
 
 
   nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
@@ -81,7 +81,7 @@ program LSFmain
 
   if(ionode) then
     if(order == 1 .and. reSortMEs) then
-      call getjReSort(nModes, PhononPPDir, jReSort)
+      call getjReSort(nModes, optimalPairsInput, jReSort)
     else
       jReSort = 0
     endif
