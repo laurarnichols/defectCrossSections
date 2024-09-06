@@ -80,7 +80,7 @@ program LSFmain
     allocate(njPlusDelta(1,1))
   endif
 
-  call readNj(nModes, addDeltaNj, njBaseInput, njBase, njPlusDelta)
+  call readNj(ibi, ibf, iki, ikf, nModes, addDeltaNj, njBaseInput, njBase, njPlusDelta)
 
 
   allocate(jReSort(nModes))

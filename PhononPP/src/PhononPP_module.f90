@@ -2057,11 +2057,13 @@ module PhononPPMod
   end subroutine readSjTwoFreq
 
 !----------------------------------------------------------------------------
-  subroutine readNj(nModes, addDeltaNj, njBaseInput, njBase, njPlusDelta)
+  subroutine readNj(ibi, ibf, iki, ikf, nModes, addDeltaNj, njBaseInput, njBase, njPlusDelta)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ibi(:), ibf(:), iki(:), ikf(:)
+      !! State indices
     integer, intent(in) :: nModes
       !! Number of modes
 
