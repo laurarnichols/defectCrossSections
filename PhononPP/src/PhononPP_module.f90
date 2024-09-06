@@ -2057,7 +2057,7 @@ module PhononPPMod
   end subroutine readSjTwoFreq
 
 !----------------------------------------------------------------------------
-  subroutine readNj(ibi, ibf, iki, ikf, nModes, addDeltaNj, njBaseInput, njBase, njPlusDelta)
+  subroutine readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, deltaNjBaseDir, njBaseInput, njBase, njPlusDelta)
 
     implicit none
 
@@ -2066,10 +2066,14 @@ module PhononPPMod
       !! State indices
     integer, intent(in) :: nModes
       !! Number of modes
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
 
     logical, intent(in) :: addDeltaNj
       !! Add change in occupations for different scattering states
 
+    character(len=300), intent(in) :: deltaNjBaseDir
+      !! Path to base directory for deltaNj files
     character(len=300), intent(in) :: njBaseInput
       !! Path to nj file
 
@@ -2083,11 +2087,23 @@ module PhononPPMod
     ! Local variables:
     integer :: iDum
       !! Dummy integer to ignore input
-    integer :: j
+    integer :: j, iE
       !! Loop index
     integer :: nModes_
       !! Number of modes in nj file
 
+    real(kind=dp) :: deltaNj_gi
+      !! Change in occupations from ground-state to
+      !! initial-relaxed positions
+    real(kind=dp) :: deltaNj_if
+      !! Change in occupations from electronic transition
+      !! from state i to f
+    real(kind=dp) :: deltaNj_fg
+      !! Change in occupations from final-relaxed 
+      !! positions to ground-state positions
+
+    character(len=300) :: deltaNjFName
+      !! Input file for delta nj's
     character(len=300) :: textDum
       !! Dummy text to ignore input
 
@@ -2111,12 +2127,34 @@ module PhononPPMod
 
 
       if(addDeltaNj) then
-        write(*,*) "This is where I would update with deltaNj!"
-      endif
 
-    endif
+        do iE = 1, nTransitions
+
+          ! Set input file name
+          deltaNjFName = trim(deltaNjBaseDir)//'/deltaNj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
+                                                           //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
+
+          open(64,file=trim(deltaNjFName))
+
+          ! Ignore header lines
+          read(64,*)
+          read(64,*)
+          read(64,*)
+
+          do j = 1, nModes
+            read(64,'(i7,3ES24.15E3)') iDum, deltaNj_gi, deltaNj_if, deltaNj_fg
+
+            njPlusDelta(j,iE) = njBase(j) + deltaNj_gi
+          enddo
+
+          close(64)
+
+        enddo ! End loop over transitions
+      endif ! End if addDeltaNj
+    endif ! End if ionode
 
     call MPI_BCAST(njBase, size(njBase), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(njPlusDelta, size(njPlusDelta), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
