@@ -2057,7 +2057,7 @@ module PhononPPMod
   end subroutine readSjTwoFreq
 
 !----------------------------------------------------------------------------
-  subroutine readNj(nModes, njBaseInput, njBase)
+  subroutine readNj(nModes, addDeltaNj, njBaseInput, njBase, njPlusDelta)
 
     implicit none
 
@@ -2065,12 +2065,18 @@ module PhononPPMod
     integer, intent(in) :: nModes
       !! Number of modes
 
+    logical, intent(in) :: addDeltaNj
+      !! Add change in occupations for different scattering states
+
     character(len=300), intent(in) :: njBaseInput
       !! Path to nj file
 
     ! Output variables:
     real(kind=dp), intent(out) :: njBase(nModes)
       !! \(n_j\) occupation number
+    real(kind=dp), intent(out) :: njPlusDelta(:,:)
+      !! Optional nj plus delta nj from adjustment to 
+      !! carrier approach in initial state
 
     ! Local variables:
     integer :: iDum
@@ -2100,6 +2106,11 @@ module PhononPPMod
       enddo
 
       close(17)
+
+
+      if(addDeltaNj) then
+        write(*,*) "This is where I would update with deltaNj!"
+      endif
 
     endif
 

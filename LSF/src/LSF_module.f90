@@ -48,6 +48,9 @@ module LSFmod
     !! Max time for integration
   real(kind=dp), allocatable :: njBase(:)
     !! Base \(n_j\) occupation number for all states
+  real(kind=dp), allocatable :: njPlusDelta(:,:)
+    !! Optional nj plus delta nj from adjustment to 
+    !! carrier approach in initial state
   real(kind=dp), allocatable :: Sj(:,:), SjPrime(:,:)
     !! Huang-Rhys factor for each mode (and transition
     !! for scattering)

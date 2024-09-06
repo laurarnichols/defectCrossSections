@@ -72,8 +72,15 @@ program LSFmain
 
   call readSj(ibi, ibf, iki, ikf, nTransitions, captured, diffOmega, SjBaseDir, nModes, omega, omegaPrime, Sj, SjPrime)
 
+
   allocate(njBase(nModes))
-  call readNj(nModes, njBaseInput, njBase)
+  if(addDeltaNj) then
+    allocate(njPlusDelta(nModes,nTransitions))
+  else
+    allocate(njPlusDelta(1,1))
+  endif
+
+  call readNj(nModes, addDeltaNj, njBaseInput, njBase, njPlusDelta)
 
 
   allocate(jReSort(nModes))
