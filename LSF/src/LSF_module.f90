@@ -73,6 +73,8 @@ module LSFmod
   logical :: reSortMEs
     !! If matrix elements should be resorted
 
+  character(len=300) :: dqInput
+    !! Input file for dq.txt if rereading
   character(len=300) :: matrixElementDir
     !! Path to matrix element file `allElecOverlap.isp.ik`. 
     !! For first-order term, the path is just within each 
@@ -100,14 +102,14 @@ module LSFmod
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, PhononPPDir, njBaseInput, hbarGamma, dt, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
-                         optimalPairsInput
+                         optimalPairsInput, dqInput
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
-        captured, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, &
-        njBaseInput, optimalPairsInput, outputDir, PhononPPDir, prefix)
+        captured, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, &
+        MjBaseDir, njBaseInput, optimalPairsInput, outputDir, PhononPPDir, prefix)
 
     implicit none
 
@@ -151,6 +153,8 @@ contains
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(out) :: dqInput
+      !! Input file for dq.txt if rereading
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
     character(len=300), intent(out) :: matrixElementDir
@@ -175,8 +179,8 @@ contains
 
   
     call initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-          newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-          optimalPairsInput, outputDir, PhononPPDir, prefix)
+          newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
+          njBaseInput, optimalPairsInput, outputDir, PhononPPDir, prefix)
 
     if(ionode) then
 
@@ -188,7 +192,7 @@ contains
         !! * Exit calculation if there's an error
 
       call checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-            newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
+            newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
             optimalPairsInput, outputDir, PhononPPDir, prefix)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
@@ -219,6 +223,7 @@ contains
     call MPI_BCAST(reSortMEs, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(rereadDq, 1, MPI_LOGICAL, root, worldComm, ierr)
   
+    call MPI_BCAST(dqInput, len(dqInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(MjBaseDir, len(MjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -234,8 +239,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-        optimalPairsInput, outputDir, PhononPPDir, prefix)
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
+        njBaseInput, optimalPairsInput, outputDir, PhononPPDir, prefix)
 
     implicit none
 
@@ -275,6 +280,8 @@ contains
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(out) :: dqInput
+      !! Input file for dq.txt if rereading
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
     character(len=300), intent(out) :: matrixElementDir
@@ -314,6 +321,7 @@ contains
     reSortMEs = .false.
     rereadDq = .false.
 
+    dqInput = ''
     energyTableDir = ''
     matrixElementDir = ''
     MjBaseDir = ''
@@ -329,7 +337,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
         optimalPairsInput, outputDir, PhononPPDir, prefix)
 
     implicit none
@@ -370,6 +378,8 @@ contains
     logical, intent(in) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(in) :: dqInput
+      !! Input file for dq.txt if rereading
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
     character(len=300), intent(in) :: matrixElementDir
@@ -469,7 +479,7 @@ contains
       if(reSortMEs) abortExecution = checkFileInitialization('optimalPairsInput', optimalPairsInput) .or. abortExecution
 
       write(*,'("rereadDq = ",L)') rereadDq
-      if(rereadDq) abortExecution = checkFileInitialization('dqFile', trim(PhononPPDir)//'/dq.txt') .or. abortExecution
+      if(rereadDq) abortExecution = checkFileInitialization('dqInput', dqInput) .or. abortExecution
 
       abortExecution = checkIntInitialization('suffixLength', suffixLength, 1, 5) .or. abortExecution 
       abortExecution = checkDirInitialization('MjBaseDir', MjBaseDir, &
@@ -818,7 +828,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine readAllMatrixElements(iSpin, nTransitions, ibi, nModes, jReSort, order, suffixLength, dE, captured, newEnergyTable, &
-          oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, PhononPPDir, prefix, mDim, matrixElement, volumeLine)
+          oldFormat, rereadDq, reSortMEs, dqInput, matrixElementDir, MjBaseDir, prefix, mDim, matrixElement, volumeLine)
     ! For both the zeroth-order and first-order matrix elements, there is the option 
     ! to specify `newEnergyTable`. If this variable is true, that means that the 
     ! matrix elements (TME) and LSF code were not run with the same energy table as 
@@ -888,6 +898,8 @@ contains
     logical, intent(in) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(in) :: dqInput
+      !! Input file for dq.txt if rereading
     character(len=300), intent(in) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
@@ -895,9 +907,6 @@ contains
     character(len=300), intent(in) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
-    character(len=300), intent(in) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
     character(len=300), intent(in) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
@@ -939,8 +948,8 @@ contains
             !! Get the global `ik` index from the local one
 
            call readSingleKMatrixElements(ikGlobal, iSpin, nTransitions, ibi, nModes, jReSort, mDim, order, suffixLength, &
-                dE(:,:,ikLocal), captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, &
-                PhononPPDir, prefix, matrixElement(:,:,ikLocal), volumeLine)
+                dE(:,:,ikLocal), captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, matrixElementDir, &
+                MjBaseDir, prefix, matrixElement(:,:,ikLocal), volumeLine)
 
         enddo
       endif
@@ -952,8 +961,8 @@ contains
         matrixElement = 0.0_dp
 
         call readSingleKMatrixElements(-1, iSpin, nTransitions, ibi, nModes, jReSort, mDim, order, suffixLength, &
-              dE(:,:,1), captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, &
-              PhononPPDir, prefix, matrixElement(:,:,1), volumeLine)
+              dE(:,:,1), captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, matrixElementDir, MjBaseDir, &
+              prefix, matrixElement(:,:,1), volumeLine)
 
       endif
 

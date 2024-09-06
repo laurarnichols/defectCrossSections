@@ -3602,7 +3602,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine readSingleKMatrixElements(ikGlobal, iSpin, nTransitions, ibi, nModes, jReSort, mDim, order, suffixLength, &
-            dE, captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, PhononPPDir, prefix, &
+            dE, captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, matrixElementDir, MjBaseDir, prefix, &
             matrixElement, volumeLine)
     ! For zeroth-order, this will read a single file. For first-order,
     ! this will read all of the modes. Scattering and capture are
@@ -3649,6 +3649,8 @@ contains
     logical, intent(in) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(in) :: dqInput
+      !! Input file for dq.txt if rereading
     character(len=300), intent(in) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
@@ -3656,9 +3658,6 @@ contains
     character(len=300), intent(in) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
-    character(len=300), intent(in) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
     character(len=300), intent(in) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
@@ -3698,7 +3697,7 @@ contains
         ! The second index holds the zeroth-order energy
 
       call callSingleMESubroutineWithProperArguments(nTransitions, ibi, -1, order, dENew, captured, newEnergyTable, &
-              oldFormat, rereadDq, fName, PhononPPDir, ME_tmp, volumeLine)
+              oldFormat, rereadDq, dqInput, fName, ME_tmp, volumeLine)
         ! Pass -1 for jStore as it is not relevant for the zeroth-order
 
       matrixElement(1,:) = ME_tmp
@@ -3727,7 +3726,7 @@ contains
         endif
 
         call callSingleMESubroutineWithProperArguments(nTransitions, ibi, jStore, order, dENew, captured, newEnergyTable, &
-                oldFormat, rereadDq, fName, PhononPPDir, ME_tmp, volumeLine)
+                oldFormat, rereadDq, dqInput, fName, ME_tmp, volumeLine)
 
 
         ! Store the matrix element for this mode
@@ -3745,7 +3744,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine callSingleMESubroutineWithProperArguments(nTransitions, ibi, jStore, order, dENew, captured, newEnergyTable, &
-            oldFormat, rereadDq, fName, PhononPPDir, ME_tmp, volumeLine)
+            oldFormat, rereadDq, dqInput, fName, ME_tmp, volumeLine)
     ! The format read from the matrix element file and what factors are used
     ! depends on the arguments passed. Handle that logic here to call the
     ! subroutine to read a single matrix element file with the correct
@@ -3781,11 +3780,10 @@ contains
       !! If dq should be read from matrix element file
       !! (.false.) or from the dq.txt file (.true.)
 
+    character(len=300), intent(in) :: dqInput
+      !! Input file for dq.txt if rereading
     character(len=300), intent(in) :: fName
       !! File name to read
-    character(len=300), intent(in) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
 
     ! Output variables:
     real(kind=dp), intent(out) :: ME_tmp(nTransitions)
@@ -3797,11 +3795,11 @@ contains
 
 
     ! For new energy table and new dqs, must pass the band bounds, mode index
-    ! to read (jStore) and PhononPPDir. This is only an option for the first-order
+    ! to read (jStore) and dqInput. This is only an option for the first-order
     ! term.
     if(newEnergyTable .and. order == 1 .and. rereadDq) then
       call readSingleMatrixElementFile(minval(ibi), maxval(ibi), nTransitions, order, dENew, captured, newEnergyTable, oldFormat, &
-            fName, ME_tmp, volumeLine, jStore, PhononPPDir)
+            fName, ME_tmp, volumeLine, jStore, dqInput)
 
     ! For just new energy table, only pass band bounds. For order = 0 ignore
     ! the value in rereadDq.
@@ -3809,11 +3807,11 @@ contains
       call readSingleMatrixElementFile(minval(ibi), maxval(ibi), nTransitions, order, dENew, captured, newEnergyTable, oldFormat, &
             fName, ME_tmp, volumeLine)
 
-    ! For just new dq, only pass jStore and PhononPPDir. Again only an option
+    ! For just new dq, only pass jStore and dqInput. Again only an option
     ! for the first-order term.
     else if((.not. newEnergyTable) .and. order == 1 .and. rereadDq) then
       call readSingleMatrixElementFile(-1, -1, nTransitions, order, dENew, captured, newEnergyTable, oldFormat, fName, ME_tmp, volumeLine, &
-        jStore, PhononPPDir)
+        jStore, dqInput)
           ! dENew will be ignored here
 
     ! For neither, don't pass anything and just read matrix elements as-is. Again
@@ -3829,7 +3827,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine readSingleMatrixElementFile(ibL, ibH, nTransitions, order, dE, capture, newEnergy, oldFormat, fName, matrixElement, volumeLine, &
-        phononModeJ, PhononPPDir)
+        phononModeJ, dqInput)
 
     use constants, only: HartreeToJ
 
@@ -3857,11 +3855,10 @@ contains
       !! If the old format of the matrix element files
       !! should be used
 
+    character(len=300), optional :: dqInput
+      !! Input file for dq.txt if rereading
     character(len=300), intent(in) :: fName
       !! Path to matrix element file `allElecOverlap.isp.ik`
-    character(len=300), optional :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
 
     ! Output variables:
     real(kind=dp), intent(out) :: matrixElement(nTransitions)
@@ -3889,8 +3886,6 @@ contains
     logical :: capture_
       !! If matrix elements were written for capture or scattering
 
-    character(len=300) :: dqFName
-      !! File name for generalized-coordinate norms
     character(len=300) :: line
 
 
@@ -3938,19 +3933,18 @@ contains
     ! matrix element file as-is, where the dq line will be ignored, or
     ! they can use new energies and/or delta q_j. If reading a new energy
     ! but not a new delta q_j, read the dq_j originally output in the 
-    ! matrix element file. If reading a new delta q_j (i.e., PhononPPDir
+    ! matrix element file. If reading a new delta q_j (i.e., dqInput
     ! is given), ignore this line and instead read from the dq.txt file.
     if(order == 1) then
-      if(newEnergy .and. .not. present(PhononPPDir)) then
+      if(newEnergy .and. .not. present(dqInput)) then
         read(12,'(a78, i7, ES24.15E3)') line, iDum, dq_j
       else
         ! Ignore additional line for phonon mode 
         read(12,*)
       endif
 
-      if(present(PhononPPDir)) then
-        dqFName = trim(PhononPPDir)//'/dq.txt'
-        call readDqFile(phononModeJ, dqFName, dq_j)
+      if(present(dqInput)) then
+        call readDqFile(phononModeJ, dqInput, dq_j)
       endif
     endif
 
