@@ -73,6 +73,8 @@ module LSFmod
   logical :: reSortMEs
     !! If matrix elements should be resorted
 
+  character(len=300) :: deltaNjBaseDir
+    !! Path to base directory for deltaNj files
   character(len=300) :: dqInput
     !! Input file for dq.txt if rereading
   character(len=300) :: matrixElementDir
@@ -101,14 +103,14 @@ module LSFmod
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjBaseDir, njBaseInput, hbarGamma, dt, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
-                         optimalPairsInput, dqInput
+                         optimalPairsInput, dqInput, deltaNjBaseDir
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
-        captured, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, &
-        MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        captured, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
+        matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -152,6 +154,8 @@ contains
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(out) :: deltaNjBaseDir
+      !! Path to base directory for deltaNj files
     character(len=300), intent(out) :: dqInput
       !! Input file for dq.txt if rereading
     character(len=300), intent(out) :: energyTableDir
@@ -177,8 +181,8 @@ contains
 
   
     call initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-          newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
-          njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+          newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, &
+          MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     if(ionode) then
 
@@ -190,8 +194,8 @@ contains
         !! * Exit calculation if there's an error
 
       call checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-            newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-            optimalPairsInput, outputDir, prefix, SjBaseDir)
+            newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
+            njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
@@ -221,6 +225,7 @@ contains
     call MPI_BCAST(reSortMEs, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(rereadDq, 1, MPI_LOGICAL, root, worldComm, ierr)
   
+    call MPI_BCAST(deltaNjBaseDir, len(deltaNjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(dqInput, len(dqInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -237,8 +242,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
-        njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, &
+        MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -278,6 +283,8 @@ contains
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(out) :: deltaNjBaseDir
+      !! Path to base directory for deltaNj files
     character(len=300), intent(out) :: dqInput
       !! Input file for dq.txt if rereading
     character(len=300), intent(out) :: energyTableDir
@@ -318,6 +325,7 @@ contains
     reSortMEs = .false.
     rereadDq = .false.
 
+    deltaNjBaseDir = ''
     dqInput = ''
     energyTableDir = ''
     matrixElementDir = ''
@@ -334,8 +342,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-        optimalPairsInput, outputDir, prefix, SjBaseDir)
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
+        njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -375,6 +383,8 @@ contains
     logical, intent(in) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(in) :: deltaNjBaseDir
+      !! Path to base directory for deltaNj files
     character(len=300), intent(in) :: dqInput
       !! Input file for dq.txt if rereading
     character(len=300), intent(in) :: energyTableDir
@@ -426,8 +436,18 @@ contains
     write(*,'("captured = ",L)') captured
     write(*,'("addDeltaNj = ",L)') addDeltaNj
 
-    if(captured .and. addDeltaNj) &
-      call exitError('checkInitialization','Can only add change in occupations for different states with scattering!',1)
+    if(addDeltaNj) then
+      if(captured) &
+        call exitError('checkInitialization','Can only add change in occupations for different states with scattering!',1)
+
+      write(*,'("deltaNjBaseDir = ''",a,"''")') trim(deltaNjBaseDir)
+      if(trim(deltaNjBaseDir) == '') then
+        abortExecution = .true.
+        write(*,'("Must have deltaNjBaseDir for addDeltaNj = .true.!!")')
+      endif
+
+    endif
+
 
     ! We don't know the band indices here to check for the Sj files for
     ! scattering, but we can check for Sj.analysis.out that should always 
