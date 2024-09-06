@@ -114,7 +114,8 @@ program LSFmain
    
 
   call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dt, &
-          gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, SjThresh, captured, diffOmega, volumeLine)
+          gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+          captured, diffOmega, volumeLine)
 
   
   deallocate(ibi,ibf,iki,ikf)

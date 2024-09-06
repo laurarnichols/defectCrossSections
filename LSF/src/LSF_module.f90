@@ -995,7 +995,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dt, &
-          gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, SjThresh, captured, diffOmega, volumeLine)
+          gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+          captured, diffOmega, volumeLine)
     
     implicit none
 
@@ -1023,6 +1024,9 @@ contains
       !! Electronic matrix element
     real(kind=dp), intent(in) :: njBase(nModes)
       !! Base \(n_j\) occupation number for all states
+    real(kind=dp), intent(in) :: njPlusDelta(:,:)
+      !! Optional nj plus delta nj from adjustment to 
+      !! carrier approach in initial state
     real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
       !! Frequency for each mode
     real(kind=dp), intent(in) :: Sj(:,:), SjPrime(:,:)
@@ -1031,6 +1035,8 @@ contains
     real(kind=dp), intent(in) :: SjThresh
       !! Threshold for Sj to determine which modes to calculate
 
+    logical, intent(in) :: addDeltaNj
+      !! Add change in occupations for different scattering states
     logical, intent(in) :: captured
       !! If carrier is captured as opposed to scattered
     logical, intent(in) :: diffOmega
