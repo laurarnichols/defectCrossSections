@@ -82,10 +82,6 @@ program LSFmain
 
   call readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, deltaNjBaseDir, njBaseInput, njBase, njPlusDelta)
 
-  if(myid == 1) then
-    write(*,*) njBase(547), njPlusDelta(547,1), njPlusDelta(547,1)-njBase(547)
-  endif
-
 
   allocate(jReSort(nModes))
 

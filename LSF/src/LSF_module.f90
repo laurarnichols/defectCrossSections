@@ -1098,6 +1098,8 @@ contains
       !! Prefactor for the exponential inside the integral.
       !! For zeroth-order, this is just the matrix element,
       !! but for first-order this is \(\sum_j M_j A_j\).
+    complex(kind=dp) :: posExp_t(nModes)
+      !! Local storage of \(e^{i\omega_j t}\) for speed
 
     logical :: mask(nModes)
       !! Select the modes to calculate
@@ -1147,8 +1149,19 @@ contains
 
         expArg_base = ii*sum(Dj0_t(jTrue)) - gamma0*time
       else 
-        call setupStateIndTimeTables(countTrue, nModes, jTrue, njBase, omega, omegaPrime, time, diffOmega, cosOmegaPrime, &
-                  sinOmegaPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree)
+        ! I had a choice here to have one subroutine called and pass addDeltaNj to 
+        ! switch what is calculated, but that would significantly affect the input
+        ! and output variables. I don't, in general, like to have different copies
+        ! of subroutines, but I felt having two separate subroutines would be
+        ! clearer and safer. Same below for setupStateDepTimeTables
+        if(addDeltaNj) then
+          call setupStateIndTimeTablesNoDeltaNj(countTrue, nModes, jTrue, njBase, omega, omegaPrime, time, diffOmega, &
+                    cosOmegaPrime, sinOmegaPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree)
+        else
+          call setupStateIndTimeTablesDeltaNj(countTrue, nModes, jTrue, omega, omegaPrime, time, diffOmega, cosOmegaPrime, &
+                    sinOmegaPrime, posExp_t)
+        endif
+
       endif
 
 
@@ -1163,8 +1176,14 @@ contains
           if(.not. captured) then
             Sj1D = Sj(:,iE)
             SjPrime1D = SjPrime(:,iE)
-            call setupStateDepTimeTables(countTrue, nModes, jTrue, cosOmegaPrime, omega, omegaPrime, sinOmegaPrime, Sj, &
-                  SjPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree, diffOmega, Dj0_t, Dj1_t)
+
+            if(addDeltaNj) then
+              call setupStateDepTimeTablesNoDeltaNj(countTrue, nModes, jTrue, cosOmegaPrime, omega, omegaPrime, sinOmegaPrime, Sj, &
+                    SjPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree, diffOmega, Dj0_t, Dj1_t)
+            else
+              call setupStateDepTimeTablesDeltaNj(countTrue, nModes, jTrue, cosOmegaPrime, njPlusDelta(:,iE), omega, omegaPrime, &
+                    sinOmegaPrime, Sj, SjPrime, posExp_t, diffOmega, Dj0_t, Dj1_t)
+            endif
 
             expArg_base = ii*sum(Dj0_t(jTrue)) - gamma0*time
           endif
@@ -1391,8 +1410,8 @@ contains
   end subroutine setupAllTimeTables
 
 !----------------------------------------------------------------------------
-  subroutine setupStateIndTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, time, diffOmega, cosOmegaPrime, &
-            sinOmegaPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree)
+  subroutine setupStateIndTimeTablesNoDeltaNj(countTrue, nModes, jTrue, nj, omega, omegaPrime, time, diffOmega, &
+            cosOmegaPrime, sinOmegaPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree)
 
     implicit none
 
@@ -1466,10 +1485,10 @@ contains
 
     return
 
-  end subroutine setupStateIndTimeTables
+  end subroutine setupStateIndTimeTablesNoDeltaNj
 
 !----------------------------------------------------------------------------
-  subroutine setupStateDepTimeTables(countTrue, nModes, jTrue, cosOmegaPrime, omega, omegaPrime, sinOmegaPrime, Sj, &
+  subroutine setupStateDepTimeTablesNoDeltaNj(countTrue, nModes, jTrue, cosOmegaPrime, omega, omegaPrime, sinOmegaPrime, Sj, &
             SjPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree, diffOmega, Dj0_t, Dj1_t)
 
     implicit none
@@ -1552,7 +1571,158 @@ contains
 
     return
 
-  end subroutine setupStateDepTimeTables
+  end subroutine setupStateDepTimeTablesNoDeltaNj
+
+!----------------------------------------------------------------------------
+  subroutine setupStateIndTimeTablesDeltaNj(countTrue, nModes, jTrue, omega, omegaPrime, time, diffOmega, cosOmegaPrime, &
+            sinOmegaPrime, posExp_t)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: countTrue
+      !! Number of indices where Sj > SjThresh
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: jTrue(countTrue)
+      !! Mode indices where Sj > SjThresh
+
+    real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(in) :: time
+      !! Time at which to calculate the \(G_0(t)\) argument
+
+    logical, intent(in) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: cosOmegaPrime(nModes)
+      !! cos(omega' t/2)
+    real(kind=dp), intent(out) :: sinOmegaPrime(nModes)
+      !! sin(omega' t/2)
+
+    complex(kind=dp), intent(out) :: posExp_t(nModes)
+      !! Local storage of \(e^{i\omega_j t}\) for speed
+
+
+    posExp_t(jTrue) = exp(ii*omega(jTrue)*time)
+
+    if(diffOmega) then
+      sinOmegaPrime(jTrue) = sin(omegaPrime(jTrue)*time/2.0_dp)
+      cosOmegaPrime(jTrue) = cos(omegaPrime(jTrue)*time/2.0_dp)
+    endif
+
+    return
+
+  end subroutine setupStateIndTimeTablesDeltaNj
+
+!----------------------------------------------------------------------------
+  subroutine setupStateDepTimeTablesDeltaNj(countTrue, nModes, jTrue, cosOmegaPrime, nj, omega, omegaPrime, sinOmegaPrime, Sj, &
+            SjPrime, posExp_t, diffOmega, Dj0_t, Dj1_t)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: countTrue
+      !! Number of indices where Sj > SjThresh
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: jTrue(countTrue)
+      !! Mode indices where Sj > SjThresh
+
+    real(kind=dp), intent(in) :: cosOmegaPrime(nModes)
+      !! cos(omega' t/2)
+    real(kind=dp), intent(in) :: nj(nModes)
+      !! Base \(n_j\) occupation number for all states
+    real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(in) :: sinOmegaPrime(nModes)
+      !! sin(omega' t/2)
+    real(kind=dp), intent(in) :: Sj(nModes), SjPrime(nModes)
+      !! Huang-Rhys factor for each mode
+
+    complex(kind=dp), intent(in) :: posExp_t(nModes)
+      !! Local storage of \(e^{i\omega_j t}\) for speed
+
+    logical, intent(in) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
+
+    ! Output variables:
+    complex(kind=dp), intent(out) :: Dj0_t(nModes)
+      !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
+    complex(kind=dp), intent(out) :: Dj1_t(nModes)
+      !! Factor multiplying |M_j|^2*G_j^0(t) in G_j^1(t)
+
+    ! Local variables:
+    complex(kind=dp) :: Aj_t(nModes)
+      !! Aj from text. See equation below.
+    complex(kind=dp) :: Dj0_tOverSj(nModes)
+      !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
+      !! divided by Sj
+    complex(kind=dp) :: Dj0OverSinOmegaPrime_t(nModes)
+      !! Needed to keep from getting NaNs from cot()
+    complex(kind=dp) :: Dj1_termsOneAndTwo(nModes)
+      !! First and second terms in the parentheses of D_j^1(t)
+    complex(kind=dp) :: Dj1_termThree(nModes)
+      !! Third term in the parentheses of D_j^1(t) (without Sj)
+    complex(kind=dp) :: expTimesNBarPlus1(nModes)
+      !! Local storage of \(e^{i\omega_j t}(\bar{n}_j + 1)\) 
+    complex(kind=dp) :: njOverPosExp_t(nModes)
+      !! n_j*e^{-i\omega_j t}
+
+
+    expTimesNBarPlus1(jTrue) = posExp_t(jTrue)*(nj(jTrue)+1.0_dp)
+
+    if(diffOmega) then
+      Aj_t(jTrue) = (expTimesNBarPlus1(jTrue) + nj(jTrue))/(expTimesNBarPlus1(jTrue) - nj(jTrue))
+
+      Dj0OverSinOmegaPrime_t(jTrue) = -2.0_dp/(ii*Aj_t*sinOmegaPrime(jTrue)/Sj(jTrue) - cosOmegaPrime(jTrue)/SjPrime(jTrue))
+
+      Dj0_t(jTrue) = sinOmegaPrime(jTrue)*Dj0OverSinOmegaPrime_t(jTrue)
+        ! Need to factor out the sin() to avoid getting NaNs
+        ! when calculating cot() here and in Dj1_t
+
+      if(order == 1) then
+
+        Dj1_t(jTrue) = -(hbar_atomic/(2.0_dp*omega(jTrue)*Sj(jTrue)))* &
+                        Dj0OverSinOmegaPrime_t(jTrue)*(sinOmegaPrime(jTrue)*Dj0_t(jTrue)*Aj_t(jTrue)**2 - &
+                        0.5_dp*omega(jTrue)/omegaPrime(jTrue)*(Aj_t(jTrue)*cosOmegaPrime(jTrue) - sinOmegaPrime(jTrue)* &
+                          (omega(jTrue)*cosOmegaPrime(jTrue) - ii*omegaPrime(jTrue)*Aj_t(jTrue)*sinOmegaPrime(jTrue))/ &
+                          (omega(jTrue)*Aj_t(jTrue)*sinOmegaPrime(jTrue) + ii*omegaPrime(jTrue)*cosOmegaPrime(jTrue))))
+          ! I don't have access to (Delta q_j) here, and I don't want to 
+          ! get another variable to deal with. Instead, I rearranged this
+          ! to not be in terms of (Delta q_j). Also have to rearrange to 
+          ! get rid of cot()
+
+      endif
+
+    else
+      njOverPosExp_t(jTrue) = nj(jTrue)/posExp_t(jTrue)
+
+      Dj0_tOverSj(jTrue) = 1.0_dp/ii*(expTimesNBarPlus1(jTrue) + njOverPosExp_t(jTrue) - (2.0_dp*nj(jTrue) + 1.0_dp))
+
+      if(order == 1) then
+
+        Dj1_termsOneAndTwo(jTrue) = njOverPosExp_t(jTrue) + expTimesNBarPlus1(jTrue)
+        Dj1_termThree(jTrue) = (1 + njOverPosExp_t(jTrue) - expTimesNBarPlus1(jTrue))**2
+
+      endif
+
+      Dj0_t(jTrue) = Sj(jTrue)*Dj0_tOverSj(jTrue)
+
+      if(order == 1) then
+
+        Dj1_t(jTrue) = (hbar_atomic/omega(jTrue))/2.0_dp*(Dj1_termsOneAndTwo(jTrue) + &
+            Sj(jTrue)*Dj1_termThree(jTrue))
+
+      endif
+    endif
+
+    return
+
+  end subroutine setupStateDepTimeTablesDeltaNj
   
 !----------------------------------------------------------------------------
   function transitionRateFileExists(ikGlobal, isp) result(fileExists)
