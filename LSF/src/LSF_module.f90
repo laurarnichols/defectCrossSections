@@ -59,6 +59,9 @@ module LSFmod
   real(kind=dp) :: smearingExpTolerance
     !! Tolerance for the Lorentzian-smearing
     !! exponential used to calculate max time
+  real(kind=dp), allocatable :: totalDeltaNj(:,:)
+      !! Optional total change in occupation numbers
+      !! for each mode and transition
 
   logical :: addDeltaNj
     !! Add change in occupations for different scattering states

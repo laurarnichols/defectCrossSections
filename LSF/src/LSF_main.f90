@@ -76,11 +76,13 @@ program LSFmain
   allocate(njBase(nModes))
   if(addDeltaNj) then
     allocate(njPlusDelta(nModes,nTransitions))
+    allocate(totalDeltaNj(nModes,nTransitions))
   else
     allocate(njPlusDelta(1,1))
+    allocate(totalDeltaNj(1,1))
   endif
 
-  call readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, deltaNjBaseDir, njBaseInput, njBase, njPlusDelta)
+  call readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, deltaNjBaseDir, njBaseInput, njBase, njPlusDelta, totalDeltaNj)
 
 
   allocate(jReSort(nModes))

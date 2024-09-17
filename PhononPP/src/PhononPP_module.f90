@@ -2057,7 +2057,8 @@ module PhononPPMod
   end subroutine readSjTwoFreq
 
 !----------------------------------------------------------------------------
-  subroutine readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, deltaNjBaseDir, njBaseInput, njBase, njPlusDelta)
+  subroutine readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, deltaNjBaseDir, njBaseInput, njBase, njPlusDelta, &
+          totalDeltaNj)
 
     implicit none
 
@@ -2083,6 +2084,9 @@ module PhononPPMod
     real(kind=dp), intent(out) :: njPlusDelta(:,:)
       !! Optional nj plus delta nj from adjustment to 
       !! carrier approach in initial state
+    real(kind=dp), intent(out) :: totalDeltaNj(:,:)
+      !! Optional total change in occupation numbers
+      !! for each mode and transition
 
     ! Local variables:
     integer :: iDum
@@ -2145,6 +2149,7 @@ module PhononPPMod
             read(64,'(i7,3ES24.15E3)') iDum, deltaNj_gi, deltaNj_if, deltaNj_fg
 
             njPlusDelta(j,iE) = njBase(j) + deltaNj_gi
+            totalDeltaNj(j,iE) = deltaNj_gi + deltaNj_if + deltaNj_fg
           enddo
 
           close(64)
@@ -2155,6 +2160,7 @@ module PhononPPMod
 
     call MPI_BCAST(njBase, size(njBase), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(njPlusDelta, size(njPlusDelta), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(totalDeltaNj, size(njPlusDelta), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
