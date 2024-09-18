@@ -2057,8 +2057,8 @@ module PhononPPMod
   end subroutine readSjTwoFreq
 
 !----------------------------------------------------------------------------
-  subroutine readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, deltaNjBaseDir, njBaseInput, njBase, njPlusDelta, &
-          totalDeltaNj)
+  subroutine readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, generateNewOccupations, deltaNjBaseDir, njBaseInput, &
+          njBase, njPlusDelta, totalDeltaNj)
 
     implicit none
 
@@ -2072,6 +2072,9 @@ module PhononPPMod
 
     logical, intent(in) :: addDeltaNj
       !! Add change in occupations for different scattering states
+    logical, intent(in) :: generateNewOccupations
+      !! If new occupation numbers should be calculated based on
+      !! summing over initial and final scattering states
 
     character(len=300), intent(in) :: deltaNjBaseDir
       !! Path to base directory for deltaNj files
@@ -2130,7 +2133,7 @@ module PhononPPMod
       close(17)
 
 
-      if(addDeltaNj) then
+      if(addDeltaNj .or. generateNewOccupations) then
 
         do iE = 1, nTransitions
 
@@ -2148,8 +2151,8 @@ module PhononPPMod
           do j = 1, nModes
             read(64,'(i7,3ES24.15E3)') iDum, deltaNj_gi, deltaNj_if, deltaNj_fg
 
-            njPlusDelta(j,iE) = njBase(j) + deltaNj_gi
-            totalDeltaNj(j,iE) = deltaNj_gi + deltaNj_if + deltaNj_fg
+            if(addDeltaNj) njPlusDelta(j,iE) = njBase(j) + deltaNj_gi
+            if(generateNewOccupations) totalDeltaNj(j,iE) = deltaNj_gi + deltaNj_if + deltaNj_fg
           enddo
 
           close(64)
