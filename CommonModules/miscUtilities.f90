@@ -113,6 +113,65 @@ module miscUtilities
 
   end subroutine ignoreNextNLinesFromFile
 
+!-----------------------------------------------------------------------------------------------
+  subroutine getUniqueInts(arrSize, arr, nUnique, uniqueVals)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: arrSize
+      !! Size of array to get unique values from
+    integer, intent(in) :: arr(arrSize)
+      !! Array to get unique values from
+
+    ! Output variables:
+    integer, intent(out) :: nUnique
+      !! Count of unique values in the array
+    integer, allocatable, intent(out) :: uniqueVals(:)
+      !! Unique values the size of nUnique
+
+    ! Local variables:
+    integer :: maxValOverall
+      !! Maximum value in the array
+    integer :: minValRemain
+      !! Min value remaining after removing the values
+      !! already found to be unique from consideration
+    integer :: uniqueValsOrigSize(arrSize)
+      !! Unique values stored in an array the size of
+      !! the input array
+
+
+    if(arrSize > 0) then
+      nUnique = 1
+      ! If there is at least one value in the array,
+      ! there is always at least one unique value
+
+      minValRemain = minval(arr)
+      maxValOverall = maxval(arr)
+
+      uniqueValsOrigSize(1) = minValRemain
+      
+      do while (minValRemain < maxValOverall)
+          minValRemain = minval(arr, mask=arr>minValRemain)
+            ! Get the minimum value remaining among numbers greater
+            ! than the previous minimum value remaining. This will
+            ! automatically exclude numbers equal to the previous
+            ! minimum value.
+
+          nUnique = nUnique + 1
+          uniqueValsOrigSize(nUnique) = minValRemain
+            ! Store the new unique value in the next slot of the 
+            ! unique-values array
+      enddo
+
+      allocate(uniqueVals(nUnique), source=uniqueValsOrigSize(1:nUnique))
+
+    endif
+
+    return
+
+  end subroutine
+
 !----------------------------------------------------------------------------
   subroutine hpsort_eps(n, ra, ind, eps)
     !! Sort an array ra(1:n) into ascending order using heapsort algorithm,
