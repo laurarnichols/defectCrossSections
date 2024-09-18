@@ -67,6 +67,9 @@ module LSFmod
     !! Add change in occupations for different scattering states
   logical :: captured
     !! If carrier is captured as opposed to scattered
+  logical :: generateNewOccupations
+    !! If new occupation numbers should be calculated based on
+    !! summing over initial and final scattering states
   logical :: newEnergyTable
     !! If this code and TME are being run with a different
     !! energy table
@@ -109,14 +112,14 @@ module LSFmod
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjBaseDir, njBaseInput, hbarGamma, dt, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
-                         optimalPairsInput, dqInput, deltaNjBaseDir
+                         optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
-        captured, diffOmega, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
-        matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, &
+        energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -148,6 +151,9 @@ contains
     logical, intent(out) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(out) :: generateNewOccupations
+      !! If new occupation numbers should be calculated based on
+      !! summing over initial and final scattering states
     logical, intent(out) :: newEnergyTable
       !! If this code and TME are being run with a different
       !! energy table
@@ -187,8 +193,8 @@ contains
 
   
     call initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-          newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, &
-          MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+          generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
+          matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     if(ionode) then
 
@@ -200,8 +206,8 @@ contains
         !! * Exit calculation if there's an error
 
       call checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-            newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
-            njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+            generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
+            matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
@@ -226,6 +232,7 @@ contains
     call MPI_BCAST(addDeltaNj, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(captured, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(diffOmega, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(generateNewOccupations, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(newEnergyTable, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(oldFormat, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(reSortMEs, 1, MPI_LOGICAL, root, worldComm, ierr)
@@ -248,8 +255,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, &
-        MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
+        matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -277,6 +284,9 @@ contains
     logical, intent(out) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(out) :: generateNewOccupations
+      !! If new occupation numbers should be calculated based on
+      !! summing over initial and final scattering states
     logical, intent(out) :: newEnergyTable
       !! If this code and TME are being run with a different
       !! energy table
@@ -326,6 +336,7 @@ contains
     addDeltaNj = .false.
     captured = .true.
     diffOmega = .false.
+    generateNewOccupations = .false.
     newEnergyTable = .false.
     oldFormat = .false.
     reSortMEs = .false.
@@ -348,8 +359,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
-        njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
+        matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -377,6 +388,9 @@ contains
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(in) :: generateNewOccupations
+      !! If new occupation numbers should be calculated based on
+      !! summing over initial and final scattering states
     logical, intent(in) :: newEnergyTable
       !! If this code and TME are being run with a different
       !! energy table
@@ -441,15 +455,16 @@ contains
     
     write(*,'("captured = ",L)') captured
     write(*,'("addDeltaNj = ",L)') addDeltaNj
+    write(*,'("generateNewOccupations = ",L)') generateNewOccupations
 
-    if(addDeltaNj) then
+    if(addDeltaNj .or. generateNewOccupations) then
       if(captured) &
-        call exitError('checkInitialization','Can only add change in occupations for different states with scattering!',1)
+        call exitError('checkInitialization','Can only treat change in occupations for different states with scattering!',1)
 
       write(*,'("deltaNjBaseDir = ''",a,"''")') trim(deltaNjBaseDir)
       if(trim(deltaNjBaseDir) == '') then
         abortExecution = .true.
-        write(*,'("Must have deltaNjBaseDir for addDeltaNj = .true.!!")')
+        write(*,'("Must have deltaNjBaseDir for addDeltaNj or generateNewOccupations!!")')
       endif
 
     endif
