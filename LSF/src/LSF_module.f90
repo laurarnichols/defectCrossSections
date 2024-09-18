@@ -1741,6 +1741,74 @@ contains
     return
 
   end subroutine setupStateDepTimeTablesDeltaNj
+
+!----------------------------------------------------------------------------
+  subroutine calcAndWriteNewOccupations(nTransitions, ibi, iki)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
+      !! Initial-state indices
+
+    call sumOverFinalStates(nTransitions, ibi, iki)
+
+    return
+
+  end subroutine calcAndWriteNewOccupations
+
+!----------------------------------------------------------------------------
+  subroutine sumOverFinalStates(nTransitions, ibi, iki)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
+      !! Initial-state indices
+
+    call getUniqueInitialStates(nTransitions, ibi, iki)
+
+    return
+
+  end subroutine sumOverFinalStates
+
+!----------------------------------------------------------------------------
+  subroutine getUniqueInitialStates(nTransitions, ibi, iki)
+
+    use miscUtilities, only: getUniqueInts
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
+      !! Initial-state indices
+
+    ! Local variables:
+    integer, allocatable :: ibiUnique(:)
+      !! Unique initial bands for each unique k-point
+    integer, allocatable :: ikiUnique(:)
+      !! Unique initial k-points
+    integer :: nUnique_iki, nUnique_ibi
+      !! Number of unique initial k-points and bands 
+
+
+    ! First, get the unique initial k-points for each system
+    if(ionode) call getUniqueInts(nTransitions, iki, nUnique_iki, ikiUnique)
+    call MPI_BCAST(nUnique_iki, 1, MPI_INTEGER, root, worldComm, ierr)
+    if(.not. ionode) allocate(ikiUnique(nUnique_iki))
+    call MPI_BCAST(ikiUnique, nUnique_iki, MPI_INTEGER, root, worldComm, ierr)
+
+    if(ionode) write(*,*) nUnique_iki, ikiUnique(:)
+
+    return
+
+  end subroutine getUniqueInitialStates
   
 !----------------------------------------------------------------------------
   function transitionRateFileExists(ikGlobal, isp) result(fileExists)

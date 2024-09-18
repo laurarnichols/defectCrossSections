@@ -122,7 +122,6 @@ program LSFmain
           captured, diffOmega, volumeLine)
 
   
-  deallocate(ibi,ibf,iki,ikf)
   deallocate(dE)
   deallocate(matrixElement)
   deallocate(njBase)
@@ -130,6 +129,12 @@ program LSFmain
   deallocate(omegaPrime)
   deallocate(Sj)
   deallocate(SjPrime)
+
+
+  if(generateNewOccupations) call calcAndWriteNewOccupations(nTransitions, ibi, iki)
+
+
+  deallocate(ibi,ibf,iki,ikf)
 
 
   call MPI_Barrier(worldComm, ierr)
