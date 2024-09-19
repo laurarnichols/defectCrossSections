@@ -35,6 +35,9 @@ module LSFmod
 
   real(kind=dp), allocatable :: dE(:,:,:)
     !! All energy differences from energy table
+  real(kind=dp) :: dt
+    !! Optional real time step for generating 
+    !! new phonon occupations
   real(kind=dp) :: dtau
     !! Time step size for time-domain integration
   real(kind=dp) :: gamma0
@@ -114,12 +117,12 @@ module LSFmod
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjBaseDir, njBaseInput, hbarGamma, dtau, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
-                         optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations
+                         optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations, dt
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iSpin, order, dtau, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
+  subroutine readInputParams(iSpin, order, dt, dtau, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
         captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, &
         energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
@@ -131,6 +134,9 @@ contains
     integer, intent(out) :: order
       !! Order to calculate (0 or 1)
 
+    real(kind=dp), intent(out) :: dt
+      !! Optional real time step for generating 
+      !! new phonon occupations
     real(kind=dp), intent(out) :: dtau
       !! Time step size for time-domain integration
     real(kind=dp), intent(out) :: gamma0
@@ -194,7 +200,7 @@ contains
       !! Path to directory holding Sj.out file(s)
 
   
-    call initialize(iSpin, order, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
+    call initialize(iSpin, order, dt, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
           generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
           matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
@@ -207,7 +213,7 @@ contains
       if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iSpin, order, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
+      call checkInitialization(iSpin, order, dt, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
             generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
             matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
@@ -224,6 +230,7 @@ contains
       ! nKPoints is not meaningful for scattering
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
   
+    call MPI_BCAST(dt, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(dtau, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(hbarGamma, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(gamma0, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -256,7 +263,7 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iSpin, order, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
+  subroutine initialize(iSpin, order, dt, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
         generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
         matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
@@ -268,6 +275,9 @@ contains
     integer, intent(out) :: order
       !! Order to calculate (0 or 1)
 
+    real(kind=dp), intent(out) :: dt
+      !! Optional real time step for generating 
+      !! new phonon occupations
     real(kind=dp), intent(out) :: dtau
       !! Time step size for time-domain integration
     real(kind=dp), intent(out) :: hbarGamma
@@ -330,6 +340,7 @@ contains
     iSpin = 1
     order = -1
 
+    dt = 1d-4
     dtau = 1d-4
     hbarGamma = 0.0_dp
     SjThresh = 0.0_dp
@@ -360,7 +371,7 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iSpin, order, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
+  subroutine checkInitialization(iSpin, order, dt, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
         generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
         matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
@@ -372,6 +383,9 @@ contains
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
+    real(kind=dp), intent(in) :: dt
+      !! Optional real time step for generating 
+      !! new phonon occupations
     real(kind=dp), intent(in) :: dtau
       !! Time step size for time-domain integration
     real(kind=dp), intent(in) :: hbarGamma
@@ -468,6 +482,9 @@ contains
         abortExecution = .true.
         write(*,'("Must have deltaNjBaseDir for addDeltaNj or generateNewOccupations!!")')
       endif
+
+      if(generateNewOccupations) &
+        abortExecution = checkDoubleInitialization('dt', dt, 0.0_dp, 10.0_dp) .or. abortExecution
 
     endif
 
