@@ -60,8 +60,10 @@ module LSFmod
     !! Tolerance for the Lorentzian-smearing
     !! exponential used to calculate max time
   real(kind=dp), allocatable :: totalDeltaNj(:,:)
-      !! Optional total change in occupation numbers
-      !! for each mode and transition
+    !! Optional total change in occupation numbers
+    !! for each mode and transition
+  real(kind=dp), allocatable :: transitionRate(:,:)
+    !! \(Gamma_i\) transition rate
 
   logical :: addDeltaNj
     !! Add change in occupations for different scattering states
@@ -1014,7 +1016,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dt, &
           gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-          captured, diffOmega, volumeLine)
+          captured, diffOmega, volumeLine, transitionRate)
     
     implicit none
 
@@ -1065,6 +1067,10 @@ contains
       !! Volume line from overlap file to be
       !! output exactly in transition rate file
 
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: transitionRate(:,:)
+      !! \(Gamma_i\) transition rate
+
     ! Local variables:
     integer :: countTrue
       !! Number of modes where Sj > SjThresh
@@ -1092,8 +1098,6 @@ contains
       !! Time for each time step
     real(kind=dp) :: timer1, timer2
       !! Timers
-    real(kind=dp) :: transitionRate(nTransitions,nkPerPool)
-      !! \(Gamma_i\) transition rate
 
     complex(kind=dp) :: Aj_t(nModes)
       !! Aj from text. See equation below.
@@ -1138,7 +1142,9 @@ contains
 
     t0 = indexInPool*float(nStepsLocal-1)*dt
 
+    allocate(transitionRate(nTransitions,nkPerPool))
     transitionRate(:,:) = 0.0_dp
+
     do iTime = 0, nStepsLocal-1
 
       if(ionode .and. mod(iTime,updateFrequency) == 0) then
@@ -1743,37 +1749,66 @@ contains
   end subroutine setupStateDepTimeTablesDeltaNj
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteNewOccupations(nTransitions, ibi, iki)
+  subroutine calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
     integer, intent(in) :: nTransitions
       !! Total number of transitions 
     integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
       !! Initial-state indices
 
+    real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
+      !! Optional total change in occupation numbers
+      !! for each mode and transition
+    real(kind=dp), intent(in) :: transitionRate(nTransitions)
+      !! \(Gamma_i\) transition rate
 
-    call sumOverFinalStates(nTransitions, ibi, iki)
+    ! Local variables:
+    real(kind=dp), allocatable :: njRateOfChange_i(:,:)
+      !! Rate of change of occupations due to transitions
+      !! from each initial state, i
+
+
+    call sumOverFinalStates(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate, njRateOfChange_i)
+
+    if(ionode) write(*,*) maxval(njRateOfChange_i)
+
 
     return
 
   end subroutine calcAndWriteNewOccupations
 
 !----------------------------------------------------------------------------
-  subroutine sumOverFinalStates(nTransitions, ibi, iki)
+  subroutine sumOverFinalStates(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate, njRateOfChange_i)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
     integer, intent(in) :: nTransitions
       !! Total number of transitions 
     integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
       !! Initial-state indices
 
+    real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
+      !! Optional total change in occupation numbers
+      !! for each mode and transition
+    real(kind=dp), intent(in) :: transitionRate(nTransitions)
+      !! \(Gamma_i\) transition rate
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: njRateOfChange_i(:,:)
+      !! Rate of change of occupations due to transitions
+      !! from each initial state, i
+
     ! Local variables:
-    integer :: iUinit
-      !! Loop index
+    integer :: iUInit, iE
+      !! Loop indices
     integer :: nUniqueInitStates
       !! Number of unique initial states, defined by
       !! iki and ibi pairs
@@ -1785,10 +1820,23 @@ contains
 
     call getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
 
-    if(myid == 1) then
-      write(*,*) nUniqueInitStates
+    allocate(njRateOfChange_i(nModes,nUniqueInitStates))
+    njRateOfChange_i = 0.0_dp
+
+    if(ionode) then
       do iUInit = 1, nUniqueInitStates
-        write(*,*) uniqueInitStates_ik(iUInit), uniqueInitStates_ib(iUInit)
+        do iE = 1, nTransitions
+        
+          ! Pick out the elements where the initial state (iki,ibi) corresponds to
+          ! a given unique initial state
+          if(iki(iE) == uniqueInitStates_ik(iUInit) .and. ibi(iE) == uniqueInitStates_ib(iUInit)) then
+
+            ! Then sum over all of the final states for each unique initial state.
+            ! The (:) here indcates the phonon modes. They are all independent.
+            njRateOfChange_i(:,iUInit) = njRateOfChange_i(:,iUInit) + totalDeltaNj(:,iE)*transitionRate(iE)
+
+          endif
+        enddo
       enddo
     endif
 
