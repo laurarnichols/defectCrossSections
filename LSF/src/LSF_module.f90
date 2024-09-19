@@ -35,8 +35,8 @@ module LSFmod
 
   real(kind=dp), allocatable :: dE(:,:,:)
     !! All energy differences from energy table
-  real(kind=dp) :: dt
-    !! Time step size
+  real(kind=dp) :: dtau
+    !! Time step size for time-domain integration
   real(kind=dp) :: gamma0
     !! \(\gamma\) for Lorentzian smearing
   real(kind=dp) :: hbarGamma
@@ -111,7 +111,7 @@ module LSFmod
     !! output exactly in transition rate file
 
 
-  namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjBaseDir, njBaseInput, hbarGamma, dt, &
+  namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjBaseDir, njBaseInput, hbarGamma, dtau, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
                          optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations
@@ -119,7 +119,7 @@ module LSFmod
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
+  subroutine readInputParams(iSpin, order, dtau, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
         captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, &
         energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
@@ -131,8 +131,8 @@ contains
     integer, intent(out) :: order
       !! Order to calculate (0 or 1)
 
-    real(kind=dp), intent(out) :: dt
-      !! Time step size
+    real(kind=dp), intent(out) :: dtau
+      !! Time step size for time-domain integration
     real(kind=dp), intent(out) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(out) :: hbarGamma
@@ -194,7 +194,7 @@ contains
       !! Path to directory holding Sj.out file(s)
 
   
-    call initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
+    call initialize(iSpin, order, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
           generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
           matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
@@ -207,7 +207,7 @@ contains
       if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
+      call checkInitialization(iSpin, order, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
             generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
             matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
@@ -224,7 +224,7 @@ contains
       ! nKPoints is not meaningful for scattering
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
   
-    call MPI_BCAST(dt, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(dtau, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(hbarGamma, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(gamma0, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(SjThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -256,7 +256,7 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
+  subroutine initialize(iSpin, order, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
         generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
         matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
@@ -268,8 +268,8 @@ contains
     integer, intent(out) :: order
       !! Order to calculate (0 or 1)
 
-    real(kind=dp), intent(out) :: dt
-      !! Time step size
+    real(kind=dp), intent(out) :: dtau
+      !! Time step size for time-domain integration
     real(kind=dp), intent(out) :: hbarGamma
       !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
@@ -330,7 +330,7 @@ contains
     iSpin = 1
     order = -1
 
-    dt = 1d-4
+    dtau = 1d-4
     hbarGamma = 0.0_dp
     SjThresh = 0.0_dp
     smearingExpTolerance = 0.0_dp
@@ -360,7 +360,7 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
+  subroutine checkInitialization(iSpin, order, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
         generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
         matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
@@ -372,8 +372,8 @@ contains
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
-    real(kind=dp), intent(in) :: dt
-      !! Time step size
+    real(kind=dp), intent(in) :: dtau
+      !! Time step size for time-domain integration
     real(kind=dp), intent(in) :: hbarGamma
       !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
@@ -444,7 +444,7 @@ contains
     abortExecution = checkIntInitialization('iSpin', iSpin, 1, 2)
     abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution 
 
-    abortExecution = checkDoubleInitialization('dt', dt, 1.0d-6, 1.0d-2) .or. abortExecution
+    abortExecution = checkDoubleInitialization('dtau', dtau, 1.0d-6, 1.0d-2) .or. abortExecution
     abortExecution = checkDoubleInitialization('hbarGamma', hbarGamma, 0.1_dp, 20.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('SjThresh', SjThresh, 0.0_dp, 1.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('smearingExpTolerance', smearingExpTolerance, 0.0_dp, 1.0_dp) .or. abortExecution
@@ -1014,7 +1014,7 @@ contains
   end subroutine readAllMatrixElements
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dt, &
+  subroutine getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
           gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
           captured, diffOmega, volumeLine, transitionRate)
     
@@ -1036,8 +1036,8 @@ contains
 
     real(kind=dp), intent(in) :: dE(3,nTransitions,nkPerPool)
       !! All energy differences from energy table
-    real(kind=dp), intent(in) :: dt
-      !! Time step size
+    real(kind=dp), intent(in) :: dtau
+      !! Time step size for time-domain integration
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(in) :: matrixElement(mDim,nTransitions,nkPerPool)
@@ -1140,7 +1140,7 @@ contains
     call getTrueIndices(nModes, mask, countTrue, jTrue)
 
 
-    t0 = indexInPool*float(nStepsLocal-1)*dt
+    t0 = indexInPool*float(nStepsLocal-1)*dtau
 
     allocate(transitionRate(nTransitions,nkPerPool))
     transitionRate(:,:) = 0.0_dp
@@ -1154,7 +1154,7 @@ contains
 
       endif
 
-      time = t0 + float(iTime)*dt
+      time = t0 + float(iTime)*dtau
         ! Must do this arithmetic with floats to avoid
         ! integer overflow
 
@@ -1246,7 +1246,7 @@ contains
 
       ! Multiply by prefactor for Simpson's integration method 
       ! and prefactor for time-domain integral
-      transitionRate(:,:) = transitionRate(:,:)*(dt/3.0_dp)*(2.0_dp/(hbar_atomic*hbar_atomic))/time_atomicToSI
+      transitionRate(:,:) = transitionRate(:,:)*(dtau/3.0_dp)*(2.0_dp/(hbar_atomic*hbar_atomic))/time_atomicToSI
 
       do ikLocal = 1, nkPerPool
 

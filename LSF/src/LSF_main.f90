@@ -28,14 +28,14 @@ program LSFmain
   if(ionode) write(*, '("Getting input parameters and reading necessary input files.")')
   call cpu_time(timer1)
 
-  call readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
+  call readInputParams(iSpin, order, dtau, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
         captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, &
         dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
 
-  nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
+  nStepsLocal = ceiling((maxTime/dtau)/nProcPerPool)
     ! Would normally calculate the total number of steps as
-    !         nSteps = ceiling(maxTime/dt)
+    !         nSteps = ceiling(maxTime/dtau)
     ! then divide the steps across all of the processes in 
     ! the pool. However, the number of steps could be a very 
     ! large integer that could cause overflow. Instead, directly
@@ -117,7 +117,7 @@ program LSFmain
   if(ionode) write(*, '("Beginning transition-rate calculation")')
    
 
-  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dt, &
+  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
           gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
           captured, diffOmega, volumeLine, transitionRate)
 
