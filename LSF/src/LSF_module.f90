@@ -1753,6 +1753,7 @@ contains
     integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
       !! Initial-state indices
 
+
     call sumOverFinalStates(nTransitions, ibi, iki)
 
     return
@@ -1770,14 +1771,33 @@ contains
     integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
       !! Initial-state indices
 
-    call getUniqueInitialStates(nTransitions, ibi, iki)
+    ! Local variables:
+    integer :: iUinit
+      !! Loop index
+    integer :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+    integer, allocatable :: uniqueInitStates_ib(:)
+      !! Band indices for unique initial states
+    integer, allocatable :: uniqueInitStates_ik(:)
+      !! k-point indices for unique initial states
+
+
+    call getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
+
+    if(myid == 1) then
+      write(*,*) nUniqueInitStates
+      do iUInit = 1, nUniqueInitStates
+        write(*,*) uniqueInitStates_ik(iUInit), uniqueInitStates_ib(iUInit)
+      enddo
+    endif
 
     return
 
   end subroutine sumOverFinalStates
 
 !----------------------------------------------------------------------------
-  subroutine getUniqueInitialStates(nTransitions, ibi, iki)
+  subroutine getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
 
     use miscUtilities, only: getUniqueInts
 
@@ -1789,22 +1809,75 @@ contains
     integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
       !! Initial-state indices
 
+    ! Output variables:
+    integer, intent(out) :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+    integer, allocatable, intent(out) :: uniqueInitStates_ib(:)
+      !! Band indices for unique initial states
+    integer, allocatable, intent(out) :: uniqueInitStates_ik(:)
+      !! k-point indices for unique initial states
+
     ! Local variables:
+    integer, allocatable :: ibi_thisUniqueK(:)
+      !! All values in ibi corresponding to the indices
+      !! in iki that equal the current unique k index
     integer, allocatable :: ibiUnique(:)
       !! Unique initial bands for each unique k-point
     integer, allocatable :: ikiUnique(:)
       !! Unique initial k-points
+    integer :: iU_iki, iU_ibi
+      !! Loop indices
     integer :: nUnique_iki, nUnique_ibi
       !! Number of unique initial k-points and bands 
+    integer :: uniqueInitStates_ik_large(nTransitions), uniqueInitStates_ib_large(nTransitions)
+      !! Arrays of max possible size. Will only pass out
+      !! arrays of size nUniqueInitStates
 
 
     ! First, get the unique initial k-points for each system
-    if(ionode) call getUniqueInts(nTransitions, iki, nUnique_iki, ikiUnique)
-    call MPI_BCAST(nUnique_iki, 1, MPI_INTEGER, root, worldComm, ierr)
-    if(.not. ionode) allocate(ikiUnique(nUnique_iki))
-    call MPI_BCAST(ikiUnique, nUnique_iki, MPI_INTEGER, root, worldComm, ierr)
+    if(ionode) then
+      call getUniqueInts(nTransitions, iki, nUnique_iki, ikiUnique)
 
-    if(ionode) write(*,*) nUnique_iki, ikiUnique(:)
+      nUniqueInitStates = 0
+      do iU_iki = 1, nUnique_iki
+
+        ibi_thisUniqueK = PACK(ibi, iki == ikiUnique(iU_iki))
+          ! Includes allocate(ibi_thisUniqueK)
+
+        call getUniqueInts(SIZE(ibi_thisUniqueK), ibi_thisUniqueK, nUnique_ibi, ibiUnique)
+          ! Includes allocate(ibiUnique)
+
+        do iU_ibi = 1, nUnique_ibi
+
+          nUniqueInitStates = nUniqueInitStates + 1
+
+          ! Store unique state-index pairs in an array with the maximum
+          ! possible size of 
+          uniqueInitStates_ik_large(nUniqueInitStates) = ikiUnique(iU_iki)
+          uniqueInitStates_ib_large(nUniqueInitStates) = ibiUnique(iU_ibi)
+
+        enddo
+
+
+        ! Make sure to deallocate these variables allocated withing
+        ! the loop before repeating the loop
+        deallocate(ibi_thisUniqueK)
+        deallocate(ibiUnique)
+      enddo
+
+      ! Copy larger arrays into arrays of size nUniqueInitStates to return
+      allocate(uniqueInitStates_ik(nUniqueInitStates), uniqueInitStates_ib(nUniqueInitStates))
+      uniqueInitStates_ik(:) = uniqueInitStates_ik_large(1:nUniqueInitStates)
+      uniqueInitStates_ib(:) = uniqueInitStates_ib_large(1:nUniqueInitStates)
+    endif
+
+    call MPI_BCAST(nUniqueInitStates, 1, MPI_INTEGER, root, worldComm, ierr)
+    if(.not. ionode) &
+      allocate(uniqueInitStates_ik(nUniqueInitStates), uniqueInitStates_ib(nUniqueInitStates))
+    call MPI_BCAST(uniqueInitStates_ik, nUniqueInitStates, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(uniqueInitStates_ib, nUniqueInitStates, MPI_INTEGER, root, worldComm, ierr)
+
 
     return
 
