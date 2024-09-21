@@ -1107,7 +1107,7 @@ contains
       !! Simpson's integration method
     real(kind=dp) :: sinOmegaPrime(nModes)
       !! sin(omega' t/2)
-    real(kind=dp) :: Sj1D(nModes), SjPrime1D(nModes)
+    real(kind=dp) :: Sj1D(nModes), SjPrime1D(nModes), njPlusDelta1D(nModes)
       !! 1D arrays to pass to setUpTimeTables
     real(kind=dp) :: t0
       !! Initial time for this process
@@ -1196,11 +1196,11 @@ contains
         ! of subroutines, but I felt having two separate subroutines would be
         ! clearer and safer. Same below for setupStateDepTimeTables
         if(addDeltaNj) then
-          call setupStateIndTimeTablesNoDeltaNj(countTrue, nModes, jTrue, njBase, omega, omegaPrime, time, diffOmega, &
-                    cosOmegaPrime, sinOmegaPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree)
-        else
           call setupStateIndTimeTablesDeltaNj(countTrue, nModes, jTrue, omega, omegaPrime, time, diffOmega, cosOmegaPrime, &
                     sinOmegaPrime, posExp_t)
+        else
+          call setupStateIndTimeTablesNoDeltaNj(countTrue, nModes, jTrue, njBase, omega, omegaPrime, time, diffOmega, &
+                    cosOmegaPrime, sinOmegaPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree)
         endif
 
       endif
@@ -1219,11 +1219,12 @@ contains
             SjPrime1D = SjPrime(:,iE)
 
             if(addDeltaNj) then
-              call setupStateDepTimeTablesNoDeltaNj(countTrue, nModes, jTrue, cosOmegaPrime, omega, omegaPrime, sinOmegaPrime, Sj, &
-                    SjPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree, diffOmega, Dj0_t, Dj1_t)
+              njPlusDelta1D = njPlusDelta(:,iE)
+              call setupStateDepTimeTablesDeltaNj(countTrue, nModes, jTrue, cosOmegaPrime, njPlusDelta1D, omega, omegaPrime, &
+                    sinOmegaPrime, Sj1D, SjPrime1D, posExp_t, diffOmega, Dj0_t, Dj1_t)
             else
-              call setupStateDepTimeTablesDeltaNj(countTrue, nModes, jTrue, cosOmegaPrime, njPlusDelta(:,iE), omega, omegaPrime, &
-                    sinOmegaPrime, Sj, SjPrime, posExp_t, diffOmega, Dj0_t, Dj1_t)
+              call setupStateDepTimeTablesNoDeltaNj(countTrue, nModes, jTrue, cosOmegaPrime, omega, omegaPrime, sinOmegaPrime, Sj1D, &
+                    SjPrime1D, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree, diffOmega, Dj0_t, Dj1_t)
             endif
 
             expArg_base = ii*sum(Dj0_t(jTrue)) - gamma0*time

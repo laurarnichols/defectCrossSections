@@ -2163,7 +2163,7 @@ module PhononPPMod
 
     call MPI_BCAST(njBase, size(njBase), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(njPlusDelta, size(njPlusDelta), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(totalDeltaNj, size(njPlusDelta), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(totalDeltaNj, size(totalDeltaNj), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
