@@ -87,6 +87,9 @@ module LSFmod
   logical :: reSortMEs
     !! If matrix elements should be resorted
 
+  character(len=300) :: carrierDensityInput
+    !! Path to carrier density if generating 
+    !! new phonon occupations
   character(len=300) :: deltaNjBaseDir
     !! Path to base directory for deltaNj files
   character(len=300) :: dqInput
@@ -117,14 +120,15 @@ module LSFmod
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjBaseDir, njBaseInput, hbarGamma, dtau, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
-                         optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations, dt
+                         optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations, dt, carrierDensityInput
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iSpin, order, dt, dtau, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
-        captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, &
-        energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, carrierDensityInput, &
+        deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, &
+        prefix, SjBaseDir)
 
     implicit none
 
@@ -174,6 +178,9 @@ contains
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(out) :: carrierDensityInput
+      !! Path to carrier density if generating 
+      !! new phonon occupations
     character(len=300), intent(out) :: deltaNjBaseDir
       !! Path to base directory for deltaNj files
     character(len=300), intent(out) :: dqInput
@@ -201,8 +208,8 @@ contains
 
   
     call initialize(iSpin, order, dt, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-          generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
-          matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+          generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, &
+          dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     if(ionode) then
 
@@ -214,8 +221,8 @@ contains
         !! * Exit calculation if there's an error
 
       call checkInitialization(iSpin, order, dt, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-            generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
-            matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+            generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, &
+            energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
@@ -247,6 +254,7 @@ contains
     call MPI_BCAST(reSortMEs, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(rereadDq, 1, MPI_LOGICAL, root, worldComm, ierr)
   
+    call MPI_BCAST(carrierDensityInput, len(carrierDensityInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(deltaNjBaseDir, len(deltaNjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(dqInput, len(dqInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -264,8 +272,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine initialize(iSpin, order, dt, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-        generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
-        matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, &
+        dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -311,6 +319,9 @@ contains
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(out) :: carrierDensityInput
+      !! Path to carrier density if generating 
+      !! new phonon occupations
     character(len=300), intent(out) :: deltaNjBaseDir
       !! Path to base directory for deltaNj files
     character(len=300), intent(out) :: dqInput
@@ -355,6 +366,7 @@ contains
     reSortMEs = .false.
     rereadDq = .false.
 
+    carrierDensityInput = ''
     deltaNjBaseDir = ''
     dqInput = ''
     energyTableDir = ''
@@ -372,8 +384,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iSpin, order, dt, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-        generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, dqInput, energyTableDir, &
-        matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, &
+        energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -419,6 +431,9 @@ contains
     logical, intent(in) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(in) :: carrierDensityInput
+      !! Path to carrier density if generating 
+      !! new phonon occupations
     character(len=300), intent(in) :: deltaNjBaseDir
       !! Path to base directory for deltaNj files
     character(len=300), intent(in) :: dqInput
@@ -483,8 +498,10 @@ contains
         write(*,'("Must have deltaNjBaseDir for addDeltaNj or generateNewOccupations!!")')
       endif
 
-      if(generateNewOccupations) &
+      if(generateNewOccupations) then
         abortExecution = checkDoubleInitialization('dt', dt, 0.0_dp, 10.0_dp) .or. abortExecution
+        abortExecution = checkFileInitialization('carrierDensityInput', carrierDensityInput) .or. abortExecution
+      endif
 
     endif
 

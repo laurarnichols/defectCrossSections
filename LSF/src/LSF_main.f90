@@ -29,8 +29,9 @@ program LSFmain
   call cpu_time(timer1)
 
   call readInputParams(iSpin, order, dt, dtau, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
-        captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, deltaNjBaseDir, &
-        dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, carrierDensityInput, &
+        deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, &
+        prefix, SjBaseDir)
 
 
   nStepsLocal = ceiling((maxTime/dtau)/nProcPerPool)
