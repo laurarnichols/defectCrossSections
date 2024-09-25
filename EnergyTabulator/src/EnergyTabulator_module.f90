@@ -1466,6 +1466,8 @@ module energyTabulatorMod
         read(27,'(2i7,2f12.4)') iDum, iDum, dEEigInit(iUInit), rDum
           ! Energy is in eV here
       enddo
+
+      close(27)
     endif
 
 
