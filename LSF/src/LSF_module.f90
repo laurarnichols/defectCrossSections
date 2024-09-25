@@ -1,6 +1,6 @@
 module LSFmod
   
-  use constants, only: dp, HartreeToEv, ii, hbar_atomic, time_atomicToSI
+  use constants, only: dp, HartreeToEv, ii, hbar_atomic, time_atomicToSI, BohrToMeter
   use base, only: nKPoints, order
   use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName, readSingleKMatrixElements
   use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, readNj
@@ -367,7 +367,7 @@ contains
 
     dt = 1d-4
     dtau = 1d-4
-    energyAvgWindow = 0.1_dp
+    energyAvgWindow = 1e-2
     hbarGamma = 0.0_dp
     SjThresh = 0.0_dp
     smearingExpTolerance = 0.0_dp
@@ -1804,7 +1804,8 @@ contains
   end subroutine setupStateDepTimeTablesDeltaNj
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, totalDeltaNj, transitionRate, energyTableDir)
+  subroutine calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, energyAvgWindow, totalDeltaNj, &
+          transitionRate, carrierDensityInput, energyTableDir, volumeLine)
 
     implicit none
 
@@ -1818,14 +1819,23 @@ contains
     integer, intent(in) :: iSpin
       !! Spin channel to use
 
+    real(kind=dp), intent(in) :: energyAvgWindow
+      !! Size of window to average over for carrier 
+      !! density evaluation
     real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
       !! Optional total change in occupation numbers
       !! for each mode and transition
     real(kind=dp), intent(in) :: transitionRate(nTransitions)
       !! \(Gamma_i\) transition rate
 
+    character(len=300), intent(in) :: carrierDensityInput
+      !! Path to carrier density if generating 
+      !! new phonon occupations
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
+    character(len=300), intent(in) :: volumeLine
+      !! Volume line from overlap file to be
+      !! output exactly in transition rate file
 
     ! Local variables:
     integer :: iUInit
@@ -1833,6 +1843,9 @@ contains
       !! Number of unique initial states, defined by
       !! iki and ibi pairs
 
+    real(kind=dp), allocatable :: carrierDensity(:)
+      !! Carrier density for each of the initial states, averaged
+      !! over a given window
     real(kind=dp), allocatable :: dEEigInit(:)
       !! Eigenvalue difference of initial states
       !! relative to band edge
@@ -1843,18 +1856,21 @@ contains
 
     call sumOverFinalStates(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate, nUniqueInitStates, njRateOfChange_i)
 
-    allocate(dEEigInit(nUniqueInitStates))
+    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates))
 
     call readDEPlot(iSpin, nUniqueInitStates, energyTableDir, dEEigInit)
 
+    call readCarrierDensity(nUniqueInitStates, dEEigInit, energyAvgWindow, carrierDensityInput, volumeLine, carrierDensity)
+
     if(ionode) then
       do iUInit = 1, nUniqueInitStates
-        write(*,*) iUInit, dEEigInit(iUInit)
+        write(*,*) -dEEigInit(iUInit), carrierDensity(iUInit)
       enddo
     endif
 
 
     deallocate(dEEigInit)
+    deallocate(carrierDensity)
 
     return
 
@@ -2010,6 +2026,116 @@ contains
     return
 
   end subroutine getUniqueInitialStates
+
+!----------------------------------------------------------------------------
+  subroutine readCarrierDensity(nUniqueInitStates, dEEigInit, energyAvgWindow, carrierDensityInput, volumeLine, carrierDensity)
+
+    use cell, only: volume
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+
+    real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
+      !! Eigenvalue difference of initial states
+      !! relative to band edge
+    real(kind=dp), intent(in) :: energyAvgWindow
+      !! Size of window to average over for carrier 
+      !! density evaluation
+
+    character(len=300), intent(in) :: carrierDensityInput
+      !! Path to carrier density if generating 
+      !! new phonon occupations
+    character(len=300), intent(in) :: volumeLine
+      !! Volume line from overlap file to be
+      !! output exactly in transition rate file
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: carrierDensity(nUniqueInitStates)
+      !! Carrier density for each of the initial states, averaged
+      !! over a given window
+
+    ! Local variables:
+    integer :: iS, iUInit
+      !! Loop index
+    integer :: nSamplesEachInitState(nUniqueInitStates)
+      !! Number of energy samples within the averaging window
+      !! for each initial state
+    integer :: nSampleEnergies
+      !! Number of energy samples in carrier density file
+
+    real(kind=dp) :: carrierDensity_iS
+      !! Carrier density of this energy sample
+    real(kind=dp) :: dEEigInit_iS
+      !! Eigenvalue difference of this energy sample
+      !! relative to band edge
+    real(kind=dp) :: rDum
+      !! Dummy real to ignore input
+
+    character(len=300) :: textDum
+      !! Dummy text to ignore input
+
+
+    if(ionode) then
+      open(unit=37, file=trim(carrierDensityInput))
+
+      ! Ignore 3 header lines
+      read(37,*)
+      read(37,*)
+      read(37,*)
+
+      ! Read in the number of points in the carrier density file
+      read(37,*) nSampleEnergies
+
+      ! Ignore final header line
+      read(37,*)
+
+
+      ! Initialize the carrier density for each initial state to zero
+      carrierDensity = 0.0_dp
+      nSamplesEachInitState = 0
+
+      ! Note that the arrays in our system are index in order of increasing
+      ! energy (i.e., band index), but the carrier-density file is in order
+      ! of increasing energy from the band edge, so for holes they will be
+      ! in the opposite order.
+      do iS = 1, nSampleEnergies
+        read(37,*) dEEigInit_iS, rDum, carrierDensity_iS
+
+        do iUInit = 1, nUniqueInitStates
+          ! Have to use the negative sign because energies are positive in carrier
+          ! density file
+          if(abs(-dEEigInit_iS - dEEigInit(iUInit)) <= energyAvgWindow/2.0_dp) then
+            nSamplesEachInitState(iUInit) = nSamplesEachInitState(iUInit) + 1
+            carrierDensity(iUInit) = carrierDensity(iUInit) + carrierDensity_iS
+          endif
+
+          !write(*,'(2i5,4ES12.3E3, L5, i5, ES12.3E3)') iS, iUInit, -dEEigInit_iS, dEEigInit(iUInit), &
+          !                           abs(-dEEigInit_iS - dEEigInit(iUInit)), energyAvgWindow, &
+          !                           abs(-dEEigInit_iS - dEEigInit(iUInit)) <= energyAvgWindow/2.0_dp, &
+          !                           nSamplesEachInitState(iUInit), carrierDensity(iUInit) 
+
+        enddo
+
+      enddo
+
+      close(37)
+
+
+      read(volumeLine,'(a51, ES24.15E3)') textDum, volume
+
+      where(nSamplesEachInitState /= 0) carrierDensity = carrierDensity/nSamplesEachInitState!*volume*(BohrToMeter*1.0d2)**3
+
+    endif
+
+    call MPI_BCAST(carrierDensity, nUniqueInitStates, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return
+
+  end subroutine readCarrierDensity
   
 !----------------------------------------------------------------------------
   function transitionRateFileExists(ikGlobal, isp) result(fileExists)
