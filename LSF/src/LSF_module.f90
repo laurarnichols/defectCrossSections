@@ -4,7 +4,7 @@ module LSFmod
   use base, only: nKPoints, order
   use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName, readSingleKMatrixElements
   use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, readNj
-  use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable, readScatterEnergyTable
+  use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable, readScatterEnergyTable, readDEPlot
   use miscUtilities, only: int2strLeadZero, int2str
   use errorsAndMPI
 
@@ -40,6 +40,9 @@ module LSFmod
     !! new phonon occupations
   real(kind=dp) :: dtau
     !! Time step size for time-domain integration
+  real(kind=dp) :: energyAvgWindow
+    !! Size of window to average over for carrier 
+    !! density evaluation
   real(kind=dp) :: gamma0
     !! \(\gamma\) for Lorentzian smearing
   real(kind=dp) :: hbarGamma
@@ -120,15 +123,16 @@ module LSFmod
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjBaseDir, njBaseInput, hbarGamma, dtau, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
-                         optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations, dt, carrierDensityInput
+                         optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations, dt, carrierDensityInput, &
+                         energyAvgWindow
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iSpin, order, dt, dtau, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
-        captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, carrierDensityInput, &
-        deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, &
-        prefix, SjBaseDir)
+  subroutine readInputParams(iSpin, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime, SjThresh, &
+        smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
+        rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, & 
+        MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -143,6 +147,9 @@ contains
       !! new phonon occupations
     real(kind=dp), intent(out) :: dtau
       !! Time step size for time-domain integration
+    real(kind=dp), intent(out) :: energyAvgWindow
+      !! Size of window to average over for carrier 
+      !! density evaluation
     real(kind=dp), intent(out) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(out) :: hbarGamma
@@ -207,9 +214,10 @@ contains
       !! Path to directory holding Sj.out file(s)
 
   
-    call initialize(iSpin, order, dt, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-          generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, &
-          dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+    call initialize(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, &
+          captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
+          carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
+          optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     if(ionode) then
 
@@ -220,9 +228,10 @@ contains
       if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iSpin, order, dt, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-            generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, &
-            energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+      call checkInitialization(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
+            addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
+            carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
+            optimalPairsInput, outputDir, prefix, SjBaseDir)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
@@ -239,6 +248,7 @@ contains
   
     call MPI_BCAST(dt, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(dtau, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(energyAvgWindow, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(hbarGamma, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(gamma0, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(SjThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -271,9 +281,10 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iSpin, order, dt, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-        generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, &
-        dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+  subroutine initialize(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
+        addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
+        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
+        optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -288,6 +299,9 @@ contains
       !! new phonon occupations
     real(kind=dp), intent(out) :: dtau
       !! Time step size for time-domain integration
+    real(kind=dp), intent(out) :: energyAvgWindow
+      !! Size of window to average over for carrier 
+      !! density evaluation
     real(kind=dp), intent(out) :: hbarGamma
       !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
@@ -353,6 +367,7 @@ contains
 
     dt = 1d-4
     dtau = 1d-4
+    energyAvgWindow = 0.1_dp
     hbarGamma = 0.0_dp
     SjThresh = 0.0_dp
     smearingExpTolerance = 0.0_dp
@@ -383,9 +398,10 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iSpin, order, dt, dtau, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, &
-        generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, &
-        energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+  subroutine checkInitialization(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
+        addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
+        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
+        optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -400,6 +416,9 @@ contains
       !! new phonon occupations
     real(kind=dp), intent(in) :: dtau
       !! Time step size for time-domain integration
+    real(kind=dp), intent(in) :: energyAvgWindow
+      !! Size of window to average over for carrier 
+      !! density evaluation
     real(kind=dp), intent(in) :: hbarGamma
       !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
@@ -501,6 +520,7 @@ contains
       if(generateNewOccupations) then
         abortExecution = checkDoubleInitialization('dt', dt, 0.0_dp, 10.0_dp) .or. abortExecution
         abortExecution = checkFileInitialization('carrierDensityInput', carrierDensityInput) .or. abortExecution
+        abortExecution = checkDoubleInitialization('energyAvgWindow', energyAvgWindow, 0.0_dp, 1.0_dp) .or. abortExecution
       endif
 
     endif
@@ -1784,7 +1804,7 @@ contains
   end subroutine setupStateDepTimeTablesDeltaNj
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate)
+  subroutine calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, totalDeltaNj, transitionRate, energyTableDir)
 
     implicit none
 
@@ -1795,6 +1815,8 @@ contains
       !! Total number of transitions 
     integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
       !! Initial-state indices
+    integer, intent(in) :: iSpin
+      !! Spin channel to use
 
     real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
       !! Optional total change in occupation numbers
@@ -1802,23 +1824,45 @@ contains
     real(kind=dp), intent(in) :: transitionRate(nTransitions)
       !! \(Gamma_i\) transition rate
 
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy table to read
+
     ! Local variables:
+    integer :: iUInit
+    integer :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+
+    real(kind=dp), allocatable :: dEEigInit(:)
+      !! Eigenvalue difference of initial states
+      !! relative to band edge
     real(kind=dp), allocatable :: njRateOfChange_i(:,:)
       !! Rate of change of occupations due to transitions
       !! from each initial state, i
 
 
-    call sumOverFinalStates(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate, njRateOfChange_i)
+    call sumOverFinalStates(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate, nUniqueInitStates, njRateOfChange_i)
 
-    if(ionode) write(*,*) maxval(njRateOfChange_i)
+    allocate(dEEigInit(nUniqueInitStates))
 
+    call readDEPlot(iSpin, nUniqueInitStates, energyTableDir, dEEigInit)
+
+    if(ionode) then
+      do iUInit = 1, nUniqueInitStates
+        write(*,*) iUInit, dEEigInit(iUInit)
+      enddo
+    endif
+
+
+    deallocate(dEEigInit)
 
     return
 
   end subroutine calcAndWriteNewOccupations
 
 !----------------------------------------------------------------------------
-  subroutine sumOverFinalStates(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate, njRateOfChange_i)
+  subroutine sumOverFinalStates(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate, nUniqueInitStates, &
+        njRateOfChange_i)
 
     implicit none
 
@@ -1837,6 +1881,10 @@ contains
       !! \(Gamma_i\) transition rate
 
     ! Output variables:
+    integer, intent(out) :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+
     real(kind=dp), allocatable, intent(out) :: njRateOfChange_i(:,:)
       !! Rate of change of occupations due to transitions
       !! from each initial state, i
@@ -1844,9 +1892,6 @@ contains
     ! Local variables:
     integer :: iUInit, iE
       !! Loop indices
-    integer :: nUniqueInitStates
-      !! Number of unique initial states, defined by
-      !! iki and ibi pairs
     integer, allocatable :: uniqueInitStates_ib(:)
       !! Band indices for unique initial states
     integer, allocatable :: uniqueInitStates_ik(:)

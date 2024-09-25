@@ -28,10 +28,10 @@ program LSFmain
   if(ionode) write(*, '("Getting input parameters and reading necessary input files.")')
   call cpu_time(timer1)
 
-  call readInputParams(iSpin, order, dt, dtau, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, addDeltaNj, &
-        captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, carrierDensityInput, &
-        deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, &
-        prefix, SjBaseDir)
+  call readInputParams(iSpin, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime, SjThresh, &
+        smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, &
+        oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
+        matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
 
   nStepsLocal = ceiling((maxTime/dtau)/nProcPerPool)
@@ -131,10 +131,10 @@ program LSFmain
   deallocate(Sj)
   deallocate(SjPrime)
 
-
   ! Only pass a slice over transitions  here because we know for scattering
   ! there is no parallelization over k-points.
-  if(generateNewOccupations) call calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate(:,1))
+  if(generateNewOccupations) &
+    call calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, totalDeltaNj, transitionRate, energyTableDir)
 
 
   deallocate(ibi,ibf,iki,ikf)

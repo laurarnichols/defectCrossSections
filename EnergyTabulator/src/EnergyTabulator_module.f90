@@ -1417,4 +1417,63 @@ module energyTabulatorMod
     
   end subroutine readScatterEnergyTable
 
+!----------------------------------------------------------------------------
+  subroutine readDEPlot(isp, nUniqueInitStates, energyTableDir, dEEigInit)
+    ! Uses the scattering file naming convention because that is
+    ! the only use case for reading this file right now
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: isp
+      !! Current spin channel
+    integer, intent(in) :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy table
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: dEEigInit(nUniqueInitStates)
+      !! Eigenvalue difference of initial states
+      !! relative to band edge
+
+    ! Local variables:
+    integer :: iDum
+      !! Dummy integer to ignore input
+    integer :: iUInit
+      !! Loop index
+
+    real(kind=dp) :: rDum
+      !! Dummy real to ignore input
+
+    character(len=300) :: fName
+      !! Energy table file name
+
+
+    if(ionode) then
+      fName = trim(energyTableDir)//"/dEPlot."//trim(int2str(isp))
+
+      open(27, file=trim(fName), status='unknown')
+
+
+      ! Ignore header lines
+      read(27,*)
+      read(27,*)
+
+      do iUInit = 1, nUniqueInitStates
+        read(27,'(2i7,2f12.4)') iDum, iDum, dEEigInit(iUInit), rDum
+          ! Energy is in eV here
+      enddo
+    endif
+
+
+    call MPI_BCAST(dEEigInit, nUniqueInitStates, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+
+    return
+
+  end subroutine readDEPlot
+
 end module energyTabulatorMod
