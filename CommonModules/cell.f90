@@ -24,7 +24,7 @@ module cell
   contains
 
 !----------------------------------------------------------------------------
-  function cartDispProjOnPhononEigsNorm(nAtoms, displacement, eigenvector, mass, realLattVec) result(projNorm)
+  function cartDispProjOnPhononEigsNorm(nAtoms, displacement, eigenvector, mass) result(projNorm)
     !! Project the displacement onto the phonon eigenvectors
     !! and return the norm of that projection across all atoms
 
@@ -40,8 +40,6 @@ module cell
       !! Eigenvectors for each atom for a single mode
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Masses of atoms
-    real(kind=dp), intent(in) :: realLattVec(3,3)
-      !! Real space lattice vectors
 
     ! Output variables:
     real(kind=dp) :: projNorm
@@ -226,8 +224,6 @@ module cell
     integer :: ix, jx, ia
       !! Loop indices
 
-    real(kind=dp) :: invLattVec(3,3)
-      !! Inverse of real space lattice vectors
     real(kind=dp) :: pos(3,7000)
       !! Positions as read from file
     real(kind=dp) :: scaleParam
@@ -386,15 +382,9 @@ module cell
     real(kind=dp), intent(in) :: volume
       !! Volume of unit cell
 
-
     ! Output variables:
     real(kind=dp), intent(out) :: recipLattVec(3,3)
       !! Reciprocal lattice vectors
-
-
-    ! Local variables:
-    integer :: i
-      !! Loop index
     
 
     call vcross(2.0d0*pi*realLattVec(:,2)/volume, realLattVec(:,3), recipLattVec(:,1))

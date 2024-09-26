@@ -731,7 +731,6 @@ module errorsAndMPI
       !! Length of message to be sent
     integer :: nbuf
       !! Number of buffers
-    integer :: commSize
 
     complex(kind=dp) :: buff(maxb)
       !! Buffer
