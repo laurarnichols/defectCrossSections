@@ -72,6 +72,38 @@ module generalComputations
   end function cart2direct
 
 !----------------------------------------------------------------------------
+  subroutine trapezoidIntegrationVariableDx(nx, integrand, x, integral)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nx
+      !! Number of x points to integrate over
+
+    real(kind=dp), intent(in) :: integrand(nx)
+      !! Integrand to evaluate integral for
+    real(kind=dp), intent(in)  :: x(nx)
+      !! x points (not assumed to be uniformly spaced)
+
+    ! Output variables:
+    real(kind=dp) :: integral
+      !! Result of the integration
+
+    ! Local variables:
+    integer :: ix
+      !! Loop index
+
+    integral = 0.0_dp
+    do ix = 2, nx
+      integral = integral + 0.5_dp*abs(x(ix) - x(ix-1))*(integrand(ix) + integrand(ix-1))
+        ! Take absolute value in case energies not in increasing order
+    enddo
+
+    return
+
+  end subroutine trapezoidIntegrationVariableDx
+
+!----------------------------------------------------------------------------
   pure function matinv3(A) result(B)
     !! Performs a direct calculation of the inverse of a 3×3 matrix.
     real(kind=dp), intent(in) :: A(3,3)   !! Matrix

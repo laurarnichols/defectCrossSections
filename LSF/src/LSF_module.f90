@@ -1301,7 +1301,7 @@ contains
 
       ! Multiply by prefactor for Simpson's integration method 
       ! and prefactor for time-domain integral
-      transitionRate(:,:) = transitionRate(:,:)*(dtau/3.0_dp)*(2.0_dp/(hbar_atomic*hbar_atomic))/time_atomicToSI
+      transitionRate(:,:) = transitionRate(:,:)*(dtau/3.0_dp)*(2.0_dp/(hbar_atomic*hbar_atomic))
 
       do ikLocal = 1, nkPerPool
 
@@ -1332,9 +1332,9 @@ contains
 
         do iE = 1, nTransitions
           if(captured) then
-            write(37,'(i10, ES24.14E3)') ibi(iE), transitionRate(iE,ikLocal)
+            write(37,'(i10, ES24.14E3)') ibi(iE), transitionRate(iE,ikLocal)/time_atomicToSI
           else
-            write(37,'(4i10, ES24.14E3)') iki(iE), ibi(iE), ikf(iE), ibf(iE), transitionRate(iE,ikLocal)
+            write(37,'(4i10, ES24.14E3)') iki(iE), ibi(iE), ikf(iE), ibf(iE), transitionRate(iE,ikLocal)/time_atomicToSI
           endif
         enddo
 
@@ -1807,6 +1807,8 @@ contains
   subroutine calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, energyAvgWindow, totalDeltaNj, &
           transitionRate, carrierDensityInput, energyTableDir, volumeLine)
 
+    use generalComputations, only: trapezoidIntegrationVariableDx 
+
     implicit none
 
     ! Input variables:
@@ -1838,7 +1840,8 @@ contains
       !! output exactly in transition rate file
 
     ! Local variables:
-    integer :: iUInit
+    integer :: j
+      !! Loop index
     integer :: nUniqueInitStates
       !! Number of unique initial states, defined by
       !! iki and ibi pairs
@@ -1849,6 +1852,13 @@ contains
     real(kind=dp), allocatable :: dEEigInit(:)
       !! Eigenvalue difference of initial states
       !! relative to band edge
+    real(kind=dp) :: integral
+      !! Result of integration for each mode
+    real(kind=dp), allocatable :: integrand(:)
+      !! Integrand to pass to integration subroutine
+    real(kind=dp) :: njRateOfChange(nModes)
+      !! Rate of change of occupations due to average
+      !! effect of all transitions
     real(kind=dp), allocatable :: njRateOfChange_i(:,:)
       !! Rate of change of occupations due to transitions
       !! from each initial state, i
@@ -1856,21 +1866,25 @@ contains
 
     call sumOverFinalStates(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate, nUniqueInitStates, njRateOfChange_i)
 
-    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates))
+    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates), integrand(nUniqueInitStates))
 
     call readDEPlot(iSpin, nUniqueInitStates, energyTableDir, dEEigInit)
 
     call readCarrierDensity(nUniqueInitStates, dEEigInit, energyAvgWindow, carrierDensityInput, volumeLine, carrierDensity)
 
+
     if(ionode) then
-      do iUInit = 1, nUniqueInitStates
-        write(*,*) -dEEigInit(iUInit), carrierDensity(iUInit)
+      do j = 1, nModes
+        integrand(:) = carrierDensity(:)*njRateOfChange_i(j,:)
+        call trapezoidIntegrationVariableDx(nUniqueInitStates, integrand, dEEigInit, integral)
+        njRateOfChange(j) = integral
+        write(*,*) njRateOfChange(j)
       enddo
     endif
 
-
     deallocate(dEEigInit)
     deallocate(carrierDensity)
+    deallocate(integrand)
 
     return
 
@@ -2113,6 +2127,7 @@ contains
             carrierDensity(iUInit) = carrierDensity(iUInit) + carrierDensity_iS
           endif
 
+          ! Use this to investigate your energyAvgWindow
           !write(*,'(2i5,4ES12.3E3, L5, i5, ES12.3E3)') iS, iUInit, -dEEigInit_iS, dEEigInit(iUInit), &
           !                           abs(-dEEigInit_iS - dEEigInit(iUInit)), energyAvgWindow, &
           !                           abs(-dEEigInit_iS - dEEigInit(iUInit)) <= energyAvgWindow/2.0_dp, &
@@ -2127,7 +2142,7 @@ contains
 
       read(volumeLine,'(a51, ES24.15E3)') textDum, volume
 
-      where(nSamplesEachInitState /= 0) carrierDensity = carrierDensity/nSamplesEachInitState!*volume*(BohrToMeter*1.0d2)**3
+      where(nSamplesEachInitState /= 0) carrierDensity = carrierDensity/nSamplesEachInitState*volume*(BohrToMeter*1.0d2)**3
 
     endif
 

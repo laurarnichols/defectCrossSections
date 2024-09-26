@@ -1080,7 +1080,7 @@ module PhononPPMod
     projNorm = 0.0_dp
     do j = iModeStart, iModeEnd
 
-      projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, dqEigenvectors(:,:,j), mass, realLattVec)
+      projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, dqEigenvectors(:,:,j), mass)
 
     enddo
 
@@ -1763,7 +1763,7 @@ module PhononPPMod
         relDispMag(j) = sqrt(dot_product(relDisp,relDisp))
       endif
 
-      if(calcDq) projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, dqEigenvectors(:,:,j), mass, realLattVec)
+      if(calcDq) projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, dqEigenvectors(:,:,j), mass)
 
       if(generateShiftedPOSCARs) then
 
