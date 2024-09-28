@@ -1301,7 +1301,7 @@ contains
 
       ! Multiply by prefactor for Simpson's integration method 
       ! and prefactor for time-domain integral
-      transitionRate(:,:) = transitionRate(:,:)*(dtau/3.0_dp)*(2.0_dp/(hbar_atomic*hbar_atomic))
+      transitionRate(:,:) = transitionRate(:,:)*(dtau/3.0_dp)*(2.0_dp/(hbar_atomic*hbar_atomic))/time_atomicToSI
 
       do ikLocal = 1, nkPerPool
 
@@ -1332,9 +1332,9 @@ contains
 
         do iE = 1, nTransitions
           if(captured) then
-            write(37,'(i10, ES24.14E3)') ibi(iE), transitionRate(iE,ikLocal)/time_atomicToSI
+            write(37,'(i10, ES24.14E3)') ibi(iE), transitionRate(iE,ikLocal)
           else
-            write(37,'(4i10, ES24.14E3)') iki(iE), ibi(iE), ikf(iE), ibf(iE), transitionRate(iE,ikLocal)/time_atomicToSI
+            write(37,'(4i10, ES24.14E3)') iki(iE), ibi(iE), ikf(iE), ibf(iE), transitionRate(iE,ikLocal)
           endif
         enddo
 
@@ -1804,10 +1804,8 @@ contains
   end subroutine setupStateDepTimeTablesDeltaNj
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, energyAvgWindow, totalDeltaNj, &
-          transitionRate, carrierDensityInput, energyTableDir, volumeLine)
-
-    use generalComputations, only: trapezoidIntegrationVariableDx 
+  subroutine calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
+          transitionRate, carrierDensityInput, energyTableDir, volumeLine, njBase)
 
     implicit none
 
@@ -1821,6 +1819,9 @@ contains
     integer, intent(in) :: iSpin
       !! Spin channel to use
 
+    real(kind=dp), intent(in) :: dt
+      !! Optional real time step for generating 
+      !! new phonon occupations
     real(kind=dp), intent(in) :: energyAvgWindow
       !! Size of window to average over for carrier 
       !! density evaluation
@@ -1839,9 +1840,11 @@ contains
       !! Volume line from overlap file to be
       !! output exactly in transition rate file
 
+    ! Output variables:
+    real(kind=dp), intent(inout) :: njBase(nModes)
+      !! Base \(n_j\) occupation number for all states
+
     ! Local variables:
-    integer :: j
-      !! Loop index
     integer :: nUniqueInitStates
       !! Number of unique initial states, defined by
       !! iki and ibi pairs
@@ -1852,13 +1855,6 @@ contains
     real(kind=dp), allocatable :: dEEigInit(:)
       !! Eigenvalue difference of initial states
       !! relative to band edge
-    real(kind=dp) :: integral
-      !! Result of integration for each mode
-    real(kind=dp), allocatable :: integrand(:)
-      !! Integrand to pass to integration subroutine
-    real(kind=dp) :: njRateOfChange(nModes)
-      !! Rate of change of occupations due to average
-      !! effect of all transitions
     real(kind=dp), allocatable :: njRateOfChange_i(:,:)
       !! Rate of change of occupations due to transitions
       !! from each initial state, i
@@ -1866,25 +1862,17 @@ contains
 
     call sumOverFinalStates(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate, nUniqueInitStates, njRateOfChange_i)
 
-    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates), integrand(nUniqueInitStates))
+    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates))
 
     call readDEPlot(iSpin, nUniqueInitStates, energyTableDir, dEEigInit)
 
     call readCarrierDensity(nUniqueInitStates, dEEigInit, energyAvgWindow, carrierDensityInput, volumeLine, carrierDensity)
 
-
-    if(ionode) then
-      do j = 1, nModes
-        integrand(:) = carrierDensity(:)*njRateOfChange_i(j,:)
-        call trapezoidIntegrationVariableDx(nUniqueInitStates, integrand, dEEigInit, integral)
-        njRateOfChange(j) = integral
-        write(*,*) njRateOfChange(j)
-      enddo
-    endif
+    call integrateUpdateAndWriteOccupations(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, njRateOfChange_i, njBase)
 
     deallocate(dEEigInit)
     deallocate(carrierDensity)
-    deallocate(integrand)
+    deallocate(njRateOfChange_i)
 
     return
 
@@ -2151,6 +2139,75 @@ contains
     return
 
   end subroutine readCarrierDensity
+
+!----------------------------------------------------------------------------
+  subroutine integrateUpdateAndWriteOccupations(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, &
+          njRateOfChange_i, njBase)
+
+    use generalComputations, only: trapezoidIntegrationVariableDx 
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+
+    real(kind=dp), intent(in) :: carrierDensity(nUniqueInitStates)
+      !! Carrier density for each of the initial states, averaged
+      !! over a given window
+    real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
+      !! Eigenvalue difference of initial states
+      !! relative to band edge
+    real(kind=dp), intent(in) :: dt
+      !! Optional real time step for generating 
+      !! new phonon occupations
+    real(kind=dp), intent(in) :: njRateOfChange_i(nModes,nUniqueInitStates)
+      !! Rate of change of occupations due to transitions
+      !! from each initial state, i
+
+    ! Output variables:
+    real(kind=dp), intent(inout) :: njBase(nModes)
+      !! Base \(n_j\) occupation number for all states
+
+    ! Local variables:
+    integer :: j
+      !! Loop index
+
+    real(kind=dp) :: integral
+      !! Result of integration for each mode
+    real(kind=dp) :: integrand(nUniqueInitStates)
+      !! Integrand to pass to integration subroutine
+    real(kind=dp) :: njRateOfChange(nModes)
+      !! Rate of change of occupations due to average
+      !! effect of all transitions
+
+
+    if(ionode) then
+      open(unit=37, file='nj.new.out')
+      write(37,'("# dt = ",ES24.15E3)') dt
+      write(37,'("# j, New nj, Delta nj, Rate of change (1/s)")')
+
+      do j = 1, nModes
+        integrand(:) = carrierDensity(:)*njRateOfChange_i(j,:)
+        call trapezoidIntegrationVariableDx(nUniqueInitStates, integrand, dEEigInit, integral)
+        njRateOfChange(j) = integral
+
+        njBase(j) = njBase(j) + njRateOfChange(j)*dt
+
+        write(37,'(i7,3ES24.15E3)') j, njBase(j), njRateOfChange(j)*dt, njRateOfChange(j)
+      enddo
+
+      close(37)
+    endif
+
+    call MPI_BCAST(njBase, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return
+
+  end subroutine integrateUpdateAndWriteOccupations
   
 !----------------------------------------------------------------------------
   function transitionRateFileExists(ikGlobal, isp) result(fileExists)

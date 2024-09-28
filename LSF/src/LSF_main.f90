@@ -125,7 +125,6 @@ program LSFmain
   
   deallocate(dE)
   deallocate(matrixElement)
-  deallocate(njBase)
   deallocate(omega)
   deallocate(omegaPrime)
   deallocate(Sj)
@@ -134,12 +133,13 @@ program LSFmain
   ! Only pass a slice over transitions  here because we know for scattering
   ! there is no parallelization over k-points.
   if(generateNewOccupations) &
-    call calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, energyAvgWindow, totalDeltaNj, &
-          transitionRate, carrierDensityInput, energyTableDir, volumeLine)
+    call calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
+          transitionRate, carrierDensityInput, energyTableDir, volumeLine, njBase)
 
 
   deallocate(ibi,ibf,iki,ikf)
   deallocate(transitionRate)
+  deallocate(njBase)
 
 
   call MPI_Barrier(worldComm, ierr)
