@@ -21,6 +21,8 @@ module PhononPPMod
   integer :: disp2AtomInd(2)
     !! Index of atoms to check displacement
     !! between if calcMaxDisp
+  integer :: ispSelect
+    !! Spin channel to use
   integer :: nAtomsPrime
     !! Number of atoms in optional final phonon file 
   integer :: nModes, nModesPrime
@@ -46,6 +48,9 @@ module PhononPPMod
     !! Optional final-state frequency for each mode
   real(kind=dp), allocatable :: Sj(:)
     !! Huang-Rhys factor for each mode with omega_j
+  real(kind=dp), allocatable :: Sj_if(:,:)
+    !! Store Sjs for scattering if calculating changes in 
+    !! occupation numbers
   real(kind=dp), allocatable :: SjPrime(:)
     !! Huang-Rhys factor for each mode with omega_j'
   real(kind=dp) :: shift
@@ -54,10 +59,13 @@ module PhononPPMod
   real(kind=dp) :: SjThresh
     !! Threshold to count modes above
 
+  character(len=300) :: allStatesBaseDir_relaxed
+    !! Base dir for sets of relaxed files if not captured
+  character(len=300) :: allStatesBaseDir_startPos
+    !! Base dir for total energies of each electronic state
+    !! in the starting positions if not captured
   character(len=300) :: basePOSCARFName
     !! File name for intial POSCAR to calculate shift from
-  character(len=300) :: CONTCARsBaseDir
-    !! Base dir for sets of relaxed files if not captured
   character(len=300) :: dqFName
     !! File name for generalized-coordinate norms
   character(len=300) :: initPOSCARFName, finalPOSCARFName
@@ -67,6 +75,8 @@ module PhononPPMod
   character(len=300) :: prefix
     !! Prefix for shifted POSCARs
 
+  logical :: calcDeltaNj
+    !! If calculating the adjustment to the mode occupations
   logical :: calcDq
     !! If dq output file should be generated
   logical :: calcMaxDisp
@@ -88,9 +98,10 @@ module PhononPPMod
   contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputs(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, dqFName, &
-        energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, &
-        calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+  subroutine readInputs(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
+        allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
+        finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
+        dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -98,6 +109,8 @@ module PhononPPMod
     integer, intent(out) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
+    integer, intent(out) :: ispSelect
+      !! Spin channel to use
 
     real(kind=dp), intent(out) :: freqThresh
       !! Threshold for frequency to determine if the mode 
@@ -108,10 +121,13 @@ module PhononPPMod
       !! Threshold to count modes above
     real(kind=dp), intent(out) :: temperature
 
+    character(len=300), intent(out) :: allStatesBaseDir_relaxed
+      !! Base dir for sets of relaxed files if not captured
+    character(len=300), intent(out) :: allStatesBaseDir_startPos
+      !! Base dir for total energies of each electronic state
+      !! in the starting positions if not captured
     character(len=300), intent(out) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
-    character(len=300), intent(out) :: CONTCARsBaseDir
-      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(out) :: dqFName
       !! File name for generalized-coordinate norms
     character(len=300), intent(out) :: energyTableDir
@@ -123,6 +139,8 @@ module PhononPPMod
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(out) :: calcDeltaNj
+      !! If calculating the adjustment to the mode occupations
     logical, intent(out) :: calcDq
       !! If dq output file should be generated
     logical, intent(out) :: calcMaxDisp
@@ -142,16 +160,17 @@ module PhononPPMod
 
 
     namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, &
-                           singleDisp, CONTCARsBaseDir, basePOSCARFName, freqThresh, calcSj, calcDq, calcMaxDisp, & 
+                           singleDisp, allStatesBaseDir_relaxed, basePOSCARFName, freqThresh, calcSj, calcDq, calcMaxDisp, & 
                            disp2AtomInd, energyTableDir, diffOmega, phononPrimeFName, dqEigvecsFinal, SjThresh, &
-                           temperature
+                           temperature, calcDeltaNj, allStatesBaseDir_startPos, ispSelect
 
 
     if(ionode) then
 
-      call initialize(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, &
-          dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, &
-          calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+      call initialize(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
+          allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
+          finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
+          dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
         ! Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -160,14 +179,16 @@ module PhononPPMod
       if(ierr /= 0) call exitError('readInputs', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, &
-        dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, &
-        calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+      call checkInitialization(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
+        allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, &
+        initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
+        generateShiftedPOSCARs, singleDisp)
 
     endif
 
     ! Send to other processes only what they need to know
     call MPI_BCAST(disp2AtomInd, 2, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(ispSelect, 1, MPI_INTEGER, root, worldComm, ierr)
 
     call MPI_BCAST(freqThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(shift, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -175,12 +196,14 @@ module PhononPPMod
     call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call MPI_BCAST(basePOSCARFName, len(basePOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(CONTCARsBaseDir, len(CONTCARsBaseDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(allStatesBaseDir_relaxed, len(allStatesBaseDir_relaxed), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(allStatesBaseDir_startPos, len(allStatesBaseDir_startPos), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(finalPOSCARFName, len(finalPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(initPOSCARFName, len(initPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
 
+    call MPI_BCAST(calcDeltaNj, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(calcDq, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(calcSj, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(calcMaxDisp, 1, MPI_LOGICAL, root, worldComm, ierr)
@@ -194,9 +217,10 @@ module PhononPPMod
   end subroutine readInputs
 
 !----------------------------------------------------------------------------
-  subroutine initialize(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, &
-      dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, &
-      calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+  subroutine initialize(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
+      allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
+      finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
+      dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -209,6 +233,8 @@ module PhononPPMod
     integer, intent(out) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
+    integer, intent(out) :: ispSelect
+      !! Spin channel to use
 
     real(kind=dp), intent(out) :: freqThresh
       !! Threshold for frequency to determine if the mode 
@@ -219,10 +245,13 @@ module PhononPPMod
       !! Threshold to count modes above
     real(kind=dp), intent(out) :: temperature
 
+    character(len=300), intent(out) :: allStatesBaseDir_relaxed
+      !! Base dir for sets of relaxed files if not captured
+    character(len=300), intent(out) :: allStatesBaseDir_startPos
+      !! Base dir for total energies of each electronic state
+      !! in the starting positions if not captured
     character(len=300), intent(out) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
-    character(len=300), intent(out) :: CONTCARsBaseDir
-      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(out) :: dqFName
       !! File name for generalized-coordinate norms
     character(len=300), intent(out) :: energyTableDir
@@ -234,6 +263,8 @@ module PhononPPMod
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(out) :: calcDeltaNj
+      !! If calculating the adjustment to the mode occupations
     logical, intent(out) :: calcDq
       !! If dq output file should be generated
     logical, intent(out) :: calcMaxDisp
@@ -253,8 +284,10 @@ module PhononPPMod
 
 
     disp2AtomInd = -1
+    ispSelect = -1
 
-    CONTCARsBaseDir = ''
+    allStatesBaseDir_relaxed = ''
+    allStatesBaseDir_startPos = ''
     dqFName = 'dq.txt'
     energyTableDir = ''
     basePOSCARFName = ''
@@ -269,6 +302,7 @@ module PhononPPMod
     SjThresh = 1e-1_dp
     temperature = 300_dp
 
+    calcDeltaNj = .false.
     calcDq = .false.
     calcSj = .false.
     calcMaxDisp = .false.
@@ -282,9 +316,10 @@ module PhononPPMod
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, &
-      dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, &
-      calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+  subroutine checkInitialization(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
+      allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, &
+      initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
+      generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -292,6 +327,8 @@ module PhononPPMod
     integer, intent(in) :: disp2AtomInd(2)
       !! Index of atoms to check displacement
       !! between if calcMaxDisp
+    integer, intent(in) :: ispSelect
+      !! Spin channel to use
 
     real(kind=dp), intent(in) :: freqThresh
       !! Threshold for frequency to determine if the mode 
@@ -302,10 +339,13 @@ module PhononPPMod
       !! Threshold to count modes above
     real(kind=dp), intent(in) :: temperature
 
+    character(len=300), intent(in) :: allStatesBaseDir_relaxed
+      !! Base dir for sets of relaxed files if not captured
+    character(len=300), intent(in) :: allStatesBaseDir_startPos
+      !! Base dir for total energies of each electronic state
+      !! in the starting positions if not captured
     character(len=300), intent(inout) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
-    character(len=300), intent(in) :: CONTCARsBaseDir
-      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(in) :: dqFName
       !! File name for generalized-coordinate norms
     character(len=300), intent(in) :: energyTableDir
@@ -317,6 +357,8 @@ module PhononPPMod
     character(len=300), intent(in) :: prefix
       !! Prefix for shifted POSCARs
 
+    logical, intent(in) :: calcDeltaNj
+      !! If calculating the adjustment to the mode occupations
     logical, intent(in) :: calcDq
       !! If dq output file should be generated
     logical, intent(in) :: calcMaxDisp
@@ -359,14 +401,20 @@ module PhononPPMod
 
       else
 
-        write(*,'("CONTCARsBaseDir = ''",a,"''")') trim(CONTCARsBaseDir)
-        abortExecution = checkFileInitialization('energyTableDir', trim(energyTableDir)//'/energyTable.1') .or. abortExecution
+        write(*,'("allStatesBaseDir_relaxed = ''",a,"''")') trim(allStatesBaseDir_relaxed)
+        write(*,'("calcDeltaNj = ''",L1,"''")') calcDeltaNj
+        if(calcDeltaNj) write(*,'("allStatesBaseDir_startPos = ''",a,"''")') trim(allStatesBaseDir_startPos)
+
+        abortExecution = checkIntInitialization('ispSelect', ispSelect, 1, 2) .or. abortExecution
+        abortExecution = checkFileInitialization('energyTableDir', trim(energyTableDir)//'/energyTable.'&
+                                                                 //trim(int2str(ispSelect))) .or. abortExecution
 
       endif
 
 
       write(*,'("diffOmega = ''",L1,"''")') diffOmega
       if(diffOmega) then
+        if(.not. singleDisp) call exitError('checkInitialization','diffOmega not fully implemented for different displacements!',1)
         abortExecution = checkFileInitialization('phononPrimeFName', phononPrimeFName)
       endif
     endif
@@ -747,7 +795,7 @@ module PhononPPMod
   end subroutine getAllDotProds
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteNj(nModes, omega, temperature)
+  subroutine calcAndWriteThermalNj(nModes, omega, temperature)
 
     implicit none
 
@@ -792,15 +840,18 @@ module PhononPPMod
 
     return
 
-  end subroutine calcAndWriteNj
+  end subroutine calcAndWriteThermalNj
 
 !----------------------------------------------------------------------------
-  subroutine calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, diffOmega, singleDisp, &
-          CONTCARsBaseDir, energyTableDir, initPOSCARFName, finalPOSCARFName)
+  subroutine calculateSj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, &
+          calcDeltaNj, diffOmega, singleDisp, allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, & 
+          finalPOSCARFName, Sj_if)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Spin channel to use
     integer, intent(inout) :: nAtoms
       !! Number of atoms in intial system
     integer, intent(in) :: nModes
@@ -818,18 +869,25 @@ module PhononPPMod
     real(kind=dp), intent(in) :: SjThresh
       !! Threshold to count modes above
 
+    logical, intent(in) :: calcDeltaNj
+      !! If calculating the adjustment to the mode occupations
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
     logical, intent(in) :: singleDisp
       !! If there is just a single displacement to consider
 
-    character(len=300), intent(in) :: CONTCARsBaseDir
+    character(len=300), intent(in) :: allStatesBaseDir_relaxed
       !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table
     character(len=300), intent(inout) :: initPOSCARFName, finalPOSCARFName
       !! File name for POSCAR for relaxed initial and final charge states
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: Sj_if(:,:)
+      !! Store Sjs for scattering if calculating changes in 
+      !! occupation numbers
 
     ! Local variables:
     integer :: iE
@@ -842,7 +900,9 @@ module PhononPPMod
       !! Track mode indices after sorting
 
     real(kind=dp), allocatable :: dE(:,:)
-      !! All energy differences from energy table
+      !! Ignore all energies from table here
+    real(kind=dp) :: projNorm(nModes)
+      !! Generalized norms after displacement
     real(kind=dp) :: Sj(nModes), SjPrime(nModes)
       !! Sj and Sj' Huang-Rhys factors using omega
       !! and omega'
@@ -853,19 +913,26 @@ module PhononPPMod
     character(len=300) :: SjFName
       !! File name for the Sj output
 
-
-    if(ionode) then
-      open(43,file='Sj.analysis.out')
-      write(43,'("# SjThresh = ",ES11.3E2)') SjThresh
+    if(singleDisp .or. .not. calcDeltaNj .or. .not. ionode) then
+      ! Allcoate space for this to avoid the warning and errors
+      ! later with deallocation.
+      allocate(Sj_if(1,1))
     endif
 
     if(singleDisp) then
   
       SjFName = 'Sj.out'
-      call getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, &
-                initPOSCARFName, finalPOSCARFName, SjFName, modeIndex, Sj, SjPrime)
+      call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, initPOSCARFName, finalPOSCARFName, projNorm)
 
       if(ionode) then
+        call calcSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, modeIndex, Sj, SjPrime)
+
+        call sortAndWriteSingleDispSj(nModes, omega, omegaPrime, diffOmega, SjFName, modeIndex, Sj, SjPrime)
+
+
+        open(43,file='Sj.analysis.out')
+        write(43,'("# SjThresh = ",ES11.3E2)') SjThresh
+
         if(.not. diffOmega) then
           write(43,'("# Max Sj (mode index, maxval), Num. Sj >= SjThresh")')
           write(43,'(i10,ES24.15E3,i10)') modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh)
@@ -878,16 +945,22 @@ module PhononPPMod
 
     else
 
-      call readScatterEnergyTable(1, energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
-        ! Assume that the transitions allowed is the same for both
-        ! spin channels
+      call readScatterEnergyTable(ispSelect, .true., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
+        ! I pass false here because it means only three energies will be 
+        ! passed back, which is smaller than the five  passed back from 
+        ! the true option. We ignore the energies here, so it doesn't 
+        ! matter.
 
       if(ionode) then
-        if(.not. diffOmega) then
-          write(43,'("# iki, ibi, ikf, ibf, Max Sj (mode index, maxval), Num. Sj >= SjThresh")')
-        else
-          write(43,'("# iki, ibi, ikf, ibf, Max Sj (mode index, maxval), Num. Sj >= SjThresh, Max Sj'' (maxval), Num. Sj'' >= SjThresh")')
-        endif
+
+        if(calcDeltaNj) allocate(Sj_if(nModes,nTransitions))
+
+        ! Create output file for transition-related files and write header
+        call system('mkdir -p transitions')
+        open(43,file='transitions/Sj.analysis.out')
+
+        write(43,'("# SjThresh = ",ES11.3E2)') SjThresh
+        write(43,'("# iki, ibi, ikf, ibf, Max Sj (mode index, maxval), Num. Sj >= SjThresh")')
       endif
 
       do iE = 1, nTransitions
@@ -895,32 +968,33 @@ module PhononPPMod
         ! Set initial and final file names based on state indices read
         ! from energy table. Make sure both files exist.
         if(ionode) then
-          initPOSCARFName = trim(CONTCARsBaseDir)//'/k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'/CONTCAR'
+          initPOSCARFName = trim(allStatesBaseDir_relaxed)//'/k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'/CONTCAR'
           inquire(file=trim(initPOSCARFName), exist=fileExists)
           if(.not. fileExists) call exitError('calculateSj', 'File does not exist!! '//trim(initPOSCARFName), 1)
 
-          finalPOSCARFName = trim(CONTCARsBaseDir)//'/k'//trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'/CONTCAR'
+          finalPOSCARFName = trim(allStatesBaseDir_relaxed)//'/k'//trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'/CONTCAR'
           inquire(file=trim(finalPOSCARFName), exist=fileExists)
           if(.not. fileExists) call exitError('calculateSj', 'File does not exist!! '//trim(finalPOSCARFName), 1)
         endif
 
 
         ! Set Sj output file name
-        SjFName = 'Sj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
-                        //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
+        SjFName = 'transitions/Sj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
+                                    //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
 
-        call getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, &
-                  initPOSCARFName, finalPOSCARFName, SjFName, modeIndex, Sj, SjPrime)
+        call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, initPOSCARFName, finalPOSCARFName, projNorm)
 
         if(ionode) then
-          if(.not. diffOmega) then
-            write(43,'(5i10,ES24.15E3,i10)') iki(iE), ibi(iE), ikf(iE), ibf(iE), &
-                                             modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh)
-          else
-            write(43,'(5i10,ES24.15E3,i10,ES24.15E3,i10)') iki(iE), ibi(iE), ikf(iE), ibf(iE), &
-                                                            modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh), &
-                                                            maxval(SjPrime), count(SjPrime >= SjThresh) 
-          endif
+          call calcSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, modeIndex, Sj, SjPrime)
+
+          if(calcDeltaNj) Sj_if(:,iE) = Sj(:)
+
+          call sortAndWriteSingleDispSj(nModes, omega, omegaPrime, diffOmega, SjFName, modeIndex, Sj, SjPrime)
+
+
+          write(43,'(5i7,ES24.15E3,i7)') iki(iE), ibi(iE), ikf(iE), ibf(iE), modeIndex(maxloc(Sj)), maxval(Sj), count(Sj >= SjThresh)
+            ! When I run with debug flags on, I get a warning from modeIndex(maxloc(Sj))
+            ! saying that an array temporary was created, but I am okay with that.
         endif
 
       enddo
@@ -940,8 +1014,7 @@ module PhononPPMod
   end subroutine calculateSj
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteSingleSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, diffOmega, &
-            initPOSCARFName, finalPOSCARFName, SjFName, modeIndex, Sj, SjPrime)
+  subroutine getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, initPOSCARFName, finalPOSCARFName, projNorm)
 
     use generalComputations, only: direct2cart
     use cell, only: cartDispProjOnPhononEigsNorm
@@ -961,25 +1034,13 @@ module PhononPPMod
       !! used to calculate Delta q_j and displacements
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Mass of atoms
-    real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
-      !! Frequency for each mode
-
-    logical, intent(in) :: diffOmega
-      !! If initial- and final-state frequencies 
-      !! should be treated as different
 
     character(len=300), intent(in) :: initPOSCARFName, finalPOSCARFName
       !! File names for CONTCARs for different states
-    character(len=300), intent(in) :: SjFName
-      !! File name for the Sj output
 
     ! Output variables:
-    integer, intent(out) :: modeIndex(nModes)
-      !! Track mode indices after sorting
-
-    real(kind=dp), intent(out) :: Sj(nModes), SjPrime(nModes)
-      !! Sj and Sj' Huang-Rhys factors using omega
-      !! and omega'
+    real(kind=dp), intent(out) :: projNorm(nModes)
+      !! Generalized norms after displacement
 
     ! Local variables:
     integer :: j
@@ -993,36 +1054,41 @@ module PhononPPMod
       !! Displacement 
     real(kind=dp) :: volumeInit, volumeFinal
       !! Volume of supercell
-    real(kind=dp) :: projNorm(nModes)
-      !! Generalized norms after displacement
     real(kind=dp) :: realLattVec(3,3)
       !! Real space lattice vectors
 
     
+    ! Check compatibility of initial positions with those from phonon file
     call getCoordsAndDisp(nAtoms, coordFromPhon, mass, initPOSCARFName, atomPositionsDirInit, centerOfMassCoords, &
             displacement, realLattVec, volumeInit)
-      ! Don't need displacement here. We only check compatibility with
-      ! coordinates from phonons. 
 
+    ! Check compatibility of final positions with initial positions and get
+    ! displacement between them
     call getCoordsAndDisp(nAtoms, atomPositionsDirInit, mass, finalPOSCARFName, atomPositionsDirFinal, centerOfMassCoords, &
             displacement, realLattVec, volumeFinal)
-      ! It is assumed for now that the lattice vectors are the same
-
-    displacement = direct2cart(nAtoms, displacement, realLattVec)
     
+    ! Make sure initial and final supercells have the same volume
     if(ionode) then
       if(abs(volumeInit - volumeFinal) > 1e-8) call exitError('calculateAndWriteSingleSj', 'volumes don''t match', 1)
     endif
+
+
+    ! Convert the displacement to Cartesian coordinates
+    displacement = direct2cart(nAtoms, displacement, realLattVec)
   
+    ! Project displacement on each of the modes
     projNorm = 0.0_dp
     do j = iModeStart, iModeEnd
 
-      projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, dqEigenvectors(:,:,j), mass, realLattVec)
+      projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, dqEigenvectors(:,:,j), mass)
 
     enddo
 
     projNorm = projNorm*angToBohr*sqrt(daltonToElecM)
-    call calcAndWriteSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName, modeIndex, Sj, SjPrime)
+
+    call mpiSumDoubleV(projNorm, worldComm)
+      !! * Get the generalized-displacement norms
+      !!   from all processes
 
 
     deallocate(atomPositionsDirInit)
@@ -1030,7 +1096,7 @@ module PhononPPMod
 
     return
 
-  end subroutine getAndWriteSingleSj
+  end subroutine getSingleDispProjNormAllModes
 
 !----------------------------------------------------------------------------
   subroutine getCoordsAndDisp(nAtoms, atomPositionsDirStart, mass, POSCARFName, atomPositionsDirEnd, centerOfMassCoords, &
@@ -1256,7 +1322,7 @@ module PhononPPMod
   end subroutine getRelaxDispAndCheckCompatibility
   
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteSj(nModes, omega, omegaPrime, projNorm, diffOmega, SjFName, modeIndex, Sj, SjPrime)
+  subroutine calcSingleDispSj(nModes, omega, omegaPrime, projNorm, diffOmega, modeIndex, Sj, SjPrime)
 
     use miscUtilities, only: hpsort_eps
 
@@ -1275,9 +1341,6 @@ module PhononPPMod
       !! If initial- and final-state frequencies 
       !! should be treated as different
 
-    character(len=300), intent(in) :: SjFName
-      !! File name for the Sj output
-
     ! Output variables:
     integer, intent(out) :: modeIndex(nModes)
       !! Track mode indices after sorting
@@ -1287,73 +1350,296 @@ module PhononPPMod
       !! and omega'
 
     ! Local variables:
+    integer :: j
+      !! Loop index
+
+
+    Sj = 0.0_dp
+    SjPrime = 0.0_dp
+
+    do j = 1, nModes
+
+      modeIndex(j) = j
+
+      Sj(j) = projNorm(j)**2*omega(j)*THzToHartree/(2.0_dp*hbar_atomic)
+
+      if(diffOmega) SjPrime(j) = projNorm(j)**2*omegaPrime(j)*THzToHartree/(2.0_dp*hbar_atomic)
+        ! The way the algebra works, they are calculated using the same
+        ! Delta q_j (projNorm)
+
+    enddo
+
+    return
+
+  end subroutine calcSingleDispSj
+  
+!----------------------------------------------------------------------------
+  subroutine sortAndWriteSingleDispSj(nModes, omega, omegaPrime, diffOmega, SjFName, modeIndex, Sj, SjPrime)
+
+    use miscUtilities, only: hpsort_eps
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
+      !! Frequency for each mode
+
+    logical, intent(in) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
+
+    character(len=300), intent(in) :: SjFName
+      !! File name for the Sj output
+
+    ! Output variables:
+    integer, intent(inout) :: modeIndex(nModes)
+      !! Track mode indices after sorting
+
+    real(kind=dp), intent(inout) :: Sj(nModes), SjPrime(nModes)
+      !! Sj and Sj' Huang-Rhys factors using omega
+      !! and omega'
+
+    ! Local variables:
     integer :: j, jSort
       !! Loop index
 
 
-    call mpiSumDoubleV(projNorm, worldComm)
-      !! * Get the generalized-displacement norms
-      !!   from all processes
+    call hpsort_eps(nModes, Sj, modeIndex, 1e-14_dp)
+      ! Sort in ascending order
 
-    if(ionode) then
+    open(60, file=trim(SjFName))
 
-      Sj = 0.0_dp
-      SjPrime = 0.0_dp
+    write(60,'("# Number of modes")')
 
-      do j = 1, nModes
+    write(60,'(1i7)') nModes
 
-        modeIndex(j) = j
-
-        Sj(j) = projNorm(j)**2*omega(j)*THzToHartree/(2.0_dp*hbar_atomic)
-
-        if(diffOmega) SjPrime(j) = projNorm(j)**2*omegaPrime(j)*THzToHartree/(2.0_dp*hbar_atomic)
-          ! The way the algebra works, they are calculated using the same
-          ! Delta q_j (projNorm)
-
-      enddo
-
-      call hpsort_eps(nModes, Sj, modeIndex, 1e-14_dp)
-        ! Sort in ascending order
-
-      open(60, file=trim(SjFName))
-
-      write(60,'("# Number of modes")')
-
-      write(60,'(1i7)') nModes
-
-      write(60,'("# Tabulated for different initial and final frequencies?")')
-      write(60,'(L5)') diffOmega
+    write(60,'("# Tabulated for different initial and final frequencies?")')
+    write(60,'(L5)') diffOmega
 
 
-      ! Currently always sort by initial Sj
-      if(diffOmega) then
-        write(60,'("# Mode index, Sj (highest to lowest), omega_j, Sj'', omega_j''")')
-      else
-        write(60,'("# Mode index, Sj, (highest to lowest), omega_j")')
-      endif
-
-
-      do j = 1, nModes
-
-        jSort = modeIndex(nModes-(j-1))
-
-        if(diffOmega) then
-          write(60,'(1i7, 4ES24.15E3)') jSort, Sj(nModes-(j-1)), omega(jSort), &
-                                               SjPrime(jSort), omegaPrime(jSort)
-        else
-          write(60,'(1i7, 2ES24.15E3)') jSort, Sj(jSort), omega(jSort)
-        endif
-
-      enddo
-
-      close(60)
-
+    ! Currently always sort by initial Sj
+    if(diffOmega) then
+      write(60,'("# Mode index, Sj (highest to lowest), omega_j, Sj'', omega_j''")')
+    else
+      write(60,'("# Mode index, Sj, (highest to lowest), omega_j")')
     endif
 
 
+    do j = 1, nModes
+
+      jSort = modeIndex(nModes-(j-1))
+
+      if(diffOmega) then
+        write(60,'(1i7, 4ES24.15E3)') jSort, Sj(nModes-(j-1)), omega(jSort), &
+                                             SjPrime(jSort), omegaPrime(jSort)
+      else
+        write(60,'(1i7, 2ES24.15E3)') jSort, Sj(nModes-(j-1)), omega(jSort)
+      endif
+
+    enddo
+
+    close(60)
+
     return
 
-  end subroutine calcAndWriteSj
+  end subroutine sortAndWriteSingleDispSj
+
+!----------------------------------------------------------------------------
+  subroutine calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, Sj_if, &
+            allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ispSelect
+      !! Spin channel to use
+    integer, intent(inout) :: nAtoms
+      !! Number of atoms in intial system
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: coordFromPhon(3,nAtoms)
+      !! Coordinates from phonon file
+    real(kind=dp), intent(in) :: dqEigenvectors(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each mode to be
+      !! used to calculate Delta q_j and displacements
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Mass of atoms
+    real(kind=dp), intent(in) :: Sj_if(:,:)
+      !! Store Sjs for scattering if calculating changes in 
+      !! occupation numbers
+
+    character(len=300), intent(in) :: allStatesBaseDir_relaxed
+      !! Base dir for sets of relaxed files if not captured
+    character(len=300), intent(in) :: allStatesBaseDir_startPos
+      !! Base dir for total energies of each electronic state
+      !! in the starting positions if not captured
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy table
+
+    ! Local variables:
+    integer :: iE, j
+      !! Loop index
+    integer, allocatable :: iki(:), ikf(:), ibi(:), ibf(:)
+      !! Allowed state indices
+    integer :: nTransitions
+      !! Total number of transitions 
+
+    real(kind=dp), allocatable :: dE(:,:)
+      !! Equilibrium-adjustment energy differences from 
+      !! energy table
+    real(kind=dp) :: Sj_gi(nModes), Sj_fg(nModes)
+      !! Sj and Sj' Huang-Rhys factors using omega
+      !! and omega'
+
+    character(len=300) :: deltaNjFName
+      !! Output file for delta nj's
+
+
+    call readScatterEnergyTable(ispSelect, .false., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
+      ! Pass false here to get all of the energies
+
+    if(ionode) then
+      call system('mkdir -p deltaNjs')
+    endif
+
+    do iE = 1, nTransitions
+
+      ! Pass true to indicate that this adjustment is ground/start positions to initial-state
+      call getEqAdjustSj(iki(iE), ibi(iE), nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, .true., &
+              allStatesBaseDir_relaxed, allStatesBaseDir_startPos, Sj_gi)
+
+
+      ! Pass false to indicate that this adjustment is final-state positions to ground/start
+      call getEqAdjustSj(ikf(iE), ibf(iE), nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, .false., &
+              allStatesBaseDir_relaxed, allStatesBaseDir_startPos, Sj_fg)
+
+      if(ionode) then
+        ! Set output file name
+        deltaNjFName = 'deltaNjs/deltaNj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
+                                                          //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
+
+        open(64,file=trim(deltaNjFName))
+
+        write(64,'("# iki, ibi, ikf, ibf")')
+        write(64,'(4i7)') iki(iE), ibi(iE), ikf(iE), ibf(iE)
+        write(64,'("# Mode index j, Delta nj_gi, Delta nj_if, Delta nj_fg")')
+
+        do j = 1, nModes
+          write(64,'(i7,3ES24.15E3)') j, &
+                  (dE(4,iE)/hbar_atomic)*Sj_gi(j)/sum(omega(:)*Sj_gi(:)), &       ! Ground/start to initial relaxed
+                  (dE(1,iE)/hbar_atomic)*Sj_if(j,iE)/sum(omega(:)*Sj_if(:,iE)), & ! Initial relaxed to final relaxed
+                  (dE(5,iE)/hbar_atomic)*Sj_fg(j)/sum(omega(:)*Sj_fg(:))          ! Final relaxed back to ground/start
+
+        enddo
+
+        close(64)
+
+      endif
+
+
+    enddo
+
+    deallocate(iki)
+    deallocate(ikf)
+    deallocate(ibi)
+    deallocate(ibf)
+    deallocate(dE)
+
+    return
+
+  end subroutine calcAndWriteDeltaNj
+
+!----------------------------------------------------------------------------
+  subroutine getEqAdjustSj(ik, ib, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, startToRelaxed, &
+          allStatesBaseDir_relaxed, allStatesBaseDir_startPos, Sj)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: ik, ib
+      !! State indices
+    integer, intent(inout) :: nAtoms
+      !! Number of atoms in intial system
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: coordFromPhon(3,nAtoms)
+      !! Coordinates from phonon file
+    real(kind=dp), intent(in) :: dqEigenvectors(3,nAtoms,nModes)
+      !! Eigenvectors for each atom for each mode to be
+      !! used to calculate Delta q_j and displacements
+    real(kind=dp), intent(in) :: mass(nAtoms)
+      !! Mass of atoms
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
+
+    logical, intent(in) :: startToRelaxed
+      !! If the system is going from the start positions to
+      !! the relaxed (or relaxed to start)
+
+    character(len=300), intent(in) :: allStatesBaseDir_relaxed
+      !! Base dir for sets of relaxed files if not captured
+    character(len=300), intent(in) :: allStatesBaseDir_startPos
+      !! Base dir for total energies of each electronic state
+      !! in the starting positions if not captured
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: Sj(nModes)
+      !! Huang-Rhys factor
+
+    ! Local variables
+    integer :: iDum1D(nModes)
+      !! Dummy integer to ignore modeIndex
+
+    real(kind=dp) :: projNorm(nModes)
+      !! Generalized norms after displacement
+    real(kind=dp) :: rDum1D_1(nModes), rDum1D_2(nModes)
+      !! Dummy real to ignore omegaPrime and SjPrime
+
+    logical :: fileExists
+      !! If a file exists
+
+    character(len=300) :: startPOSCARFName
+      !! File name for POSCAR for this state ik, ib
+      !! in the starting positions
+    character(len=300) :: relaxedPOSCARFName
+      !! File name for POSCAR for this state ik, ib
+      !! in its relaxed positions
+
+
+
+    if(ionode) then
+      startPOSCARFName = trim(allStatesBaseDir_startPos)//'/k'//trim(int2str(ik))//'_b'//trim(int2str(ib))//'/CONTCAR'
+      inquire(file=trim(startPOSCARFName), exist=fileExists)
+      if(.not. fileExists) call exitError('calcSingleDispDeltaNjEqAdjust', 'File does not exist!! '//trim(startPOSCARFName), 1)
+
+      relaxedPOSCARFName = trim(allStatesBaseDir_relaxed)//'/k'//trim(int2str(ik))//'_b'//trim(int2str(ib))//'/CONTCAR'
+      inquire(file=trim(relaxedPOSCARFName), exist=fileExists)
+      if(.not. fileExists) call exitError('calcSingleDispDeltaNjEqAdjust', 'File does not exist!! '//trim(relaxedPOSCARFName), 1)
+    endif
+
+
+    ! If going from the starting positions to the relaxed positions
+    ! (initial carrier approach), then pass the start positions first.
+    ! Otherwise (carrier leaving), pass the relaxed positions first.
+    if(startToRelaxed) then
+      call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, startPOSCARFName, relaxedPOSCARFName, projNorm)
+    else
+      call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, relaxedPOSCARFName, startPOSCARFName, projNorm)
+    endif
+
+
+    if(ionode) then
+      call calcSingleDispSj(nModes, omega, rDum1D_1, projNorm, .false., iDum1D, Sj, rDum1D_2)
+    endif
+
+    return
+
+  end subroutine getEqAdjustSj
 
 !----------------------------------------------------------------------------
   subroutine calculateShiftAndDq(disp2AtomInd, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, shift, calcDq, calcMaxDisp, &
@@ -1469,7 +1755,7 @@ module PhononPPMod
     ! norms.
     do j = iModeStart, iModeEnd
 
-      displacement = getShiftDisplacement(nAtoms, dqEigenvectors(:,:,j), realLattVec, mass, shift)
+      displacement = getShiftDisplacement(nAtoms, dqEigenvectors(:,:,j), mass, shift)
 
       if(calcMaxDisp) then
         relDisp = displacement(:,disp2AtomInd(1)) - displacement(:,disp2AtomInd(2))
@@ -1477,7 +1763,7 @@ module PhononPPMod
         relDispMag(j) = sqrt(dot_product(relDisp,relDisp))
       endif
 
-      if(calcDq) projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, dqEigenvectors(:,:,j), mass, realLattVec)
+      if(calcDq) projNorm(j) = cartDispProjOnPhononEigsNorm(nAtoms, displacement, dqEigenvectors(:,:,j), mass)
 
       if(generateShiftedPOSCARs) then
 
@@ -1518,7 +1804,7 @@ module PhononPPMod
   end subroutine calculateShiftAndDq
 
 !----------------------------------------------------------------------------
-  function getShiftDisplacement(nAtoms, dqEigenvectors, realLattVec, mass, shift) result(displacement)
+  function getShiftDisplacement(nAtoms, dqEigenvectors, mass, shift) result(displacement)
 
     implicit none
 
@@ -1531,8 +1817,6 @@ module PhononPPMod
       !! used to calculate Delta q_j and displacements
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Masses of atoms
-    real(kind=dp), intent(in) :: realLattVec(3,3)
-      !! Real space lattice vectors
     real(kind=dp), intent(in) :: shift
       !! Magnitude of shift along phonon eigenvectors
 
@@ -1715,8 +1999,6 @@ module PhononPPMod
     integer :: j, jSort
       !! Loop index
 
-    real(kind=dp) :: rDum
-      !! Dummy variable to ignore input
     real(kind=dp) :: Sj_, SjPrime_, omega_, omegaPrime_
       !! Input variables
 
@@ -1775,36 +2057,67 @@ module PhononPPMod
   end subroutine readSjTwoFreq
 
 !----------------------------------------------------------------------------
-  subroutine readNj(nModes, njInput, nj)
+  subroutine readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, generateNewOccupations, deltaNjBaseDir, njBaseInput, &
+          njBase, njPlusDelta, totalDeltaNj)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ibi(:), ibf(:), iki(:), ikf(:)
+      !! State indices
     integer, intent(in) :: nModes
       !! Number of modes
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
 
-    character(len=300), intent(in) :: njInput
+    logical, intent(in) :: addDeltaNj
+      !! Add change in occupations for different scattering states
+    logical, intent(in) :: generateNewOccupations
+      !! If new occupation numbers should be calculated based on
+      !! summing over initial and final scattering states
+
+    character(len=300), intent(in) :: deltaNjBaseDir
+      !! Path to base directory for deltaNj files
+    character(len=300), intent(in) :: njBaseInput
       !! Path to nj file
 
     ! Output variables:
-    real(kind=dp), intent(out) :: nj(nModes)
+    real(kind=dp), intent(out) :: njBase(nModes)
       !! \(n_j\) occupation number
+    real(kind=dp), intent(out) :: njPlusDelta(:,:)
+      !! Optional nj plus delta nj from adjustment to 
+      !! carrier approach in initial state
+    real(kind=dp), intent(out) :: totalDeltaNj(:,:)
+      !! Optional total change in occupation numbers
+      !! for each mode and transition
 
     ! Local variables:
     integer :: iDum
       !! Dummy integer to ignore input
-    integer :: j
+    integer :: j, iE
       !! Loop index
     integer :: nModes_
       !! Number of modes in nj file
 
+    real(kind=dp) :: deltaNj_gi
+      !! Change in occupations from ground-state to
+      !! initial-relaxed positions
+    real(kind=dp) :: deltaNj_if
+      !! Change in occupations from electronic transition
+      !! from state i to f
+    real(kind=dp) :: deltaNj_fg
+      !! Change in occupations from final-relaxed 
+      !! positions to ground-state positions
+
+    character(len=300) :: deltaNjFName
+      !! Input file for delta nj's
     character(len=300) :: textDum
       !! Dummy text to ignore input
 
     
     if(ionode) then
 
-      open(17,file=trim(njInput))
+      open(17,file=trim(njBaseInput))
 
       read(17,*)
 
@@ -1814,14 +2127,43 @@ module PhononPPMod
       read(17,*)
 
       do j = 1, nModes
-        read(17,'(1i7, 1ES24.15E3)') iDum, nj(j)
+        read(17,'(1i7, 1ES24.15E3)') iDum, njBase(j)
       enddo
 
       close(17)
 
-    endif
 
-    call MPI_BCAST(nj, size(nj), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      if(addDeltaNj .or. generateNewOccupations) then
+
+        do iE = 1, nTransitions
+
+          ! Set input file name
+          deltaNjFName = trim(deltaNjBaseDir)//'/deltaNj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
+                                                           //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
+
+          open(64,file=trim(deltaNjFName))
+
+          ! Ignore header lines
+          read(64,*)
+          read(64,*)
+          read(64,*)
+
+          do j = 1, nModes
+            read(64,'(i7,3ES24.15E3)') iDum, deltaNj_gi, deltaNj_if, deltaNj_fg
+
+            if(addDeltaNj) njPlusDelta(j,iE) = njBase(j) + deltaNj_gi
+            if(generateNewOccupations) totalDeltaNj(j,iE) = deltaNj_gi + deltaNj_if + deltaNj_fg
+          enddo
+
+          close(64)
+
+        enddo ! End loop over transitions
+      endif ! End if addDeltaNj
+    endif ! End if ionode
+
+    call MPI_BCAST(njBase, size(njBase), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(njPlusDelta, size(njPlusDelta), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(totalDeltaNj, size(totalDeltaNj), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 

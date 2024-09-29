@@ -14,8 +14,9 @@ program energyTabulatorMain
 
   ! Get inputs from user
   call readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-        ispSelect, refBand, eCorrectTot, eCorrectEigRef, allStatesBaseDir, energyTableDir, exportDirEigs, &
-        exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, singleStateExportDir, captured, elecCarrier, loopSpins)
+        ispSelect, refBand, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir, &
+        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, singleStateExportDir, captured, elecCarrier, &
+        loopSpins)
 
 
   call getnSpinsAndnKPoints(exportDirEigs, nKPoints, nSpins)
@@ -31,8 +32,8 @@ program energyTabulatorMain
         eCorrectEigRef, elecCarrier, loopSpins, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal)
   else
     if(ionode) call calcAndWriteScatterEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, &
-        ikFinit, ikFfinal, ispSelect, nSpins, refBand, eCorrectEigRef, elecCarrier, loopSpins, allStatesBaseDir, energyTableDir, &
-        exportDirEigs, singleStateExportDir)
+        ikFinit, ikFfinal, ispSelect, nSpins, refBand, eCorrectEigRef, elecCarrier, loopSpins, allStatesBaseDir_relaxed, &
+        allStatesBaseDir_startPos, energyTableDir, exportDirEigs, singleStateExportDir)
   endif
 
 

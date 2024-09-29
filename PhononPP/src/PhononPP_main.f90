@@ -11,16 +11,17 @@ program PhononPPMain
 
   call mpiInitialization('PhononPP')
 
-  call readInputs(disp2AtomInd, freqThresh, shift, SjThresh, temperature, basePOSCARFName, CONTCARsBaseDir, dqFName, &
-        energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, calcDq, calcMaxDisp, &
-        calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+  call readInputs(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
+        allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
+        finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
+        dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
 
   call readPhonons(freqThresh, phononFName, nAtoms, nModes, coordFromPhon, eigenvector, mass, omega)
 
   call distributeItemsInSubgroups(myid, nModes, nProcs, nProcs, nProcs, iModeStart, iModeEnd, nModesLocal)
 
-  call calcAndWriteNj(nModes, omega, temperature)
+  call calcAndWriteThermalNj(nModes, omega, temperature)
 
 
   if(diffOmega) then
@@ -64,10 +65,17 @@ program PhononPPMain
 
 
   if(calcSj) &
-    call calculateSj(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, diffOmega, singleDisp, &
-            CONTCARsBaseDir, energyTableDir, initPOSCARFName, finalPOSCARFName)
+    call calculateSj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, &
+            calcDeltaNj, diffOmega, singleDisp, allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, &
+            finalPOSCARFName, Sj_if)
 
 
+  if(calcSj .and. (.not. singleDisp) .and. calcDeltaNj) &
+    call calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, Sj_if, &
+            allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir)
+
+
+  deallocate(Sj_if)
   deallocate(omega)
   deallocate(omegaPrime)
 

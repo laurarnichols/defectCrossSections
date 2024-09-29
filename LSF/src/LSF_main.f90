@@ -28,14 +28,15 @@ program LSFmain
   if(ionode) write(*, '("Getting input parameters and reading necessary input files.")')
   call cpu_time(timer1)
 
-  call readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
-        PhononPPDir, prefix)
+  call readInputParams(iSpin, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime, SjThresh, &
+        smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, &
+        oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
+        matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
 
-  nStepsLocal = ceiling((maxTime/dt)/nProcPerPool)
+  nStepsLocal = ceiling((maxTime/dtau)/nProcPerPool)
     ! Would normally calculate the total number of steps as
-    !         nSteps = ceiling(maxTime/dt)
+    !         nSteps = ceiling(maxTime/dtau)
     ! then divide the steps across all of the processes in 
     ! the pool. However, the number of steps could be a very 
     ! large integer that could cause overflow. Instead, directly
@@ -70,18 +71,32 @@ program LSFmain
 
   call readEnergyTable(iSpin, captured, energyTableDir, nTransitions, ibi, ibf, iki, ikf, dE)
 
-  call readSj(ibi, ibf, iki, ikf, nTransitions, captured, diffOmega, PhononPPDir, nModes, omega, &
-          omegaPrime, Sj, SjPrime)
+  call readSj(ibi, ibf, iki, ikf, nTransitions, captured, diffOmega, SjBaseDir, nModes, omega, omegaPrime, Sj, SjPrime)
 
-  allocate(nj(nModes))
-  call readNj(nModes, njInput, nj)
+
+  allocate(njBase(nModes))
+
+  if(addDeltaNj) then
+    allocate(njPlusDelta(nModes,nTransitions))
+  else
+    allocate(njPlusDelta(1,1))
+  endif
+
+  if(generateNewOccupations) then
+    allocate(totalDeltaNj(nModes,nTransitions))
+  else
+    allocate(totalDeltaNj(1,1))
+  endif
+
+  call readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, generateNewOccupations, deltaNjBaseDir, njBaseInput, &
+          njBase, njPlusDelta, totalDeltaNj)
 
 
   allocate(jReSort(nModes))
 
   if(ionode) then
     if(order == 1 .and. reSortMEs) then
-      call getjReSort(nModes, PhononPPDir, jReSort)
+      call getjReSort(nModes, optimalPairsInput, jReSort)
     else
       jReSort = 0
     endif
@@ -91,7 +106,7 @@ program LSFmain
 
 
   call readAllMatrixElements(iSpin, nTransitions, ibi, nModes, jReSort, order, suffixLength, dE, captured, newEnergyTable, &
-          oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, PhononPPDir, prefix, mDim, matrixElement, volumeLine)
+          oldFormat, rereadDq, reSortMEs, dqInput, matrixElementDir, MjBaseDir, prefix, mDim, matrixElement, volumeLine)
 
   deallocate(jReSort)
 
@@ -103,18 +118,28 @@ program LSFmain
   if(ionode) write(*, '("Beginning transition-rate calculation")')
    
 
-  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dt, &
-          gamma0, matrixElement, nj, omega, omegaPrime, Sj, SjPrime, SjThresh, captured, diffOmega, volumeLine)
+  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
+          gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+          captured, diffOmega, volumeLine, transitionRate)
 
   
-  deallocate(ibi,ibf,iki,ikf)
   deallocate(dE)
   deallocate(matrixElement)
-  deallocate(nj)
   deallocate(omega)
   deallocate(omegaPrime)
   deallocate(Sj)
   deallocate(SjPrime)
+
+  ! Only pass a slice over transitions  here because we know for scattering
+  ! there is no parallelization over k-points.
+  if(generateNewOccupations) &
+    call calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
+          transitionRate, carrierDensityInput, energyTableDir, volumeLine, njBase)
+
+
+  deallocate(ibi,ibf,iki,ikf)
+  deallocate(transitionRate)
+  deallocate(njBase)
 
 
   call MPI_Barrier(worldComm, ierr)

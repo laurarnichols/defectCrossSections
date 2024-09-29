@@ -1,10 +1,10 @@
 module LSFmod
   
-  use constants, only: dp, HartreeToEv, ii, hbar_atomic, time_atomicToSI
+  use constants, only: dp, HartreeToEv, ii, hbar_atomic, time_atomicToSI, BohrToMeter
   use base, only: nKPoints, order
   use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName, readSingleKMatrixElements
   use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, readNj
-  use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable, readScatterEnergyTable
+  use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable, readScatterEnergyTable, readDEPlot
   use miscUtilities, only: int2strLeadZero, int2str
   use errorsAndMPI
 
@@ -36,7 +36,13 @@ module LSFmod
   real(kind=dp), allocatable :: dE(:,:,:)
     !! All energy differences from energy table
   real(kind=dp) :: dt
-    !! Time step size
+    !! Optional real time step for generating 
+    !! new phonon occupations
+  real(kind=dp) :: dtau
+    !! Time step size for time-domain integration
+  real(kind=dp) :: energyAvgWindow
+    !! Size of window to average over for carrier 
+    !! density evaluation
   real(kind=dp) :: gamma0
     !! \(\gamma\) for Lorentzian smearing
   real(kind=dp) :: hbarGamma
@@ -46,8 +52,11 @@ module LSFmod
     !! Electronic matrix element
   real(kind=dp) :: maxTime
     !! Max time for integration
-  real(kind=dp), allocatable :: nj(:)
-    !! \(n_j\) occupation number
+  real(kind=dp), allocatable :: njBase(:)
+    !! Base \(n_j\) occupation number for all states
+  real(kind=dp), allocatable :: njPlusDelta(:,:)
+    !! Optional nj plus delta nj from adjustment to 
+    !! carrier approach in initial state
   real(kind=dp), allocatable :: Sj(:,:), SjPrime(:,:)
     !! Huang-Rhys factor for each mode (and transition
     !! for scattering)
@@ -56,9 +65,19 @@ module LSFmod
   real(kind=dp) :: smearingExpTolerance
     !! Tolerance for the Lorentzian-smearing
     !! exponential used to calculate max time
+  real(kind=dp), allocatable :: totalDeltaNj(:,:)
+    !! Optional total change in occupation numbers
+    !! for each mode and transition
+  real(kind=dp), allocatable :: transitionRate(:,:)
+    !! \(Gamma_i\) transition rate
 
+  logical :: addDeltaNj
+    !! Add change in occupations for different scattering states
   logical :: captured
     !! If carrier is captured as opposed to scattered
+  logical :: generateNewOccupations
+    !! If new occupation numbers should be calculated based on
+    !! summing over initial and final scattering states
   logical :: newEnergyTable
     !! If this code and TME are being run with a different
     !! energy table
@@ -71,6 +90,13 @@ module LSFmod
   logical :: reSortMEs
     !! If matrix elements should be resorted
 
+  character(len=300) :: carrierDensityInput
+    !! Path to carrier density if generating 
+    !! new phonon occupations
+  character(len=300) :: deltaNjBaseDir
+    !! Path to base directory for deltaNj files
+  character(len=300) :: dqInput
+    !! Input file for dq.txt if rereading
   character(len=300) :: matrixElementDir
     !! Path to matrix element file `allElecOverlap.isp.ik`. 
     !! For first-order term, the path is just within each 
@@ -78,31 +104,35 @@ module LSFmod
   character(len=300) :: MjBaseDir
     !! Path to the base directory for the first-order
     !! matrix element calculations
-  character(len=300) :: njInput
-    !! Path to nj file
+  character(len=300) :: njBaseInput
+    !! Path to base nj file
+  character(len=300) :: optimalPairsInput
+    !! Path to get optimalPairs.out
   character(len=300) :: outputDir
     !! Path to output transition rates
-  character(len=300) :: PhononPPDir
-    !! Path to PhononPP output dir to get Sj.out
-    !! and potentially optimalPairs.out
   character(len=300) :: prefix
     !! Prefix of directories for first-order matrix
     !! elements
+  character(len=300) :: SjBaseDir
+    !! Path to directory holding Sj.out file(s)
   character(len=300) :: volumeLine
     !! Volume line from overlap file to be
     !! output exactly in transition rate file
 
 
-  namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, PhononPPDir, njInput, hbarGamma, dt, &
+  namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjBaseDir, njBaseInput, hbarGamma, dtau, &
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
-                         suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured
+                         suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
+                         optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations, dt, carrierDensityInput, &
+                         energyAvgWindow
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iSpin, order, dt, gamma0, hbarGamma, maxTime, SjThresh, smearingExpTolerance, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
-        PhononPPDir, prefix)
+  subroutine readInputParams(iSpin, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime, SjThresh, &
+        smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
+        rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, & 
+        MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -113,7 +143,13 @@ contains
       !! Order to calculate (0 or 1)
 
     real(kind=dp), intent(out) :: dt
-      !! Time step size
+      !! Optional real time step for generating 
+      !! new phonon occupations
+    real(kind=dp), intent(out) :: dtau
+      !! Time step size for time-domain integration
+    real(kind=dp), intent(out) :: energyAvgWindow
+      !! Size of window to average over for carrier 
+      !! density evaluation
     real(kind=dp), intent(out) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(out) :: hbarGamma
@@ -127,11 +163,16 @@ contains
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
     
+    logical, intent(out) :: addDeltaNj
+      !! Add change in occupations for different scattering states
     logical, intent(out) :: captured
       !! If carrier is captured as opposed to scattered
     logical, intent(out) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(out) :: generateNewOccupations
+      !! If new occupation numbers should be calculated based on
+      !! summing over initial and final scattering states
     logical, intent(out) :: newEnergyTable
       !! If this code and TME are being run with a different
       !! energy table
@@ -144,6 +185,13 @@ contains
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(out) :: carrierDensityInput
+      !! Path to carrier density if generating 
+      !! new phonon occupations
+    character(len=300), intent(out) :: deltaNjBaseDir
+      !! Path to base directory for deltaNj files
+    character(len=300), intent(out) :: dqInput
+      !! Input file for dq.txt if rereading
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
     character(len=300), intent(out) :: matrixElementDir
@@ -153,21 +201,23 @@ contains
     character(len=300), intent(out) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
-    character(len=300), intent(out) :: njInput
-      !! Path to nj file
+    character(len=300), intent(out) :: njBaseInput
+      !! Path to base nj file
+    character(len=300), intent(out) :: optimalPairsInput
+      !! Path to get optimalPairs.out
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
-    character(len=300), intent(out) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
     character(len=300), intent(out) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
+    character(len=300), intent(out) :: SjBaseDir
+      !! Path to directory holding Sj.out file(s)
 
   
-    call initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
-          newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, &
-          outputDir, PhononPPDir, prefix)
+    call initialize(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, &
+          captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
+          carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
+          optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     if(ionode) then
 
@@ -178,9 +228,10 @@ contains
       if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
-            newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
-            PhononPPDir, prefix)
+      call checkInitialization(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
+            addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
+            carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
+            optimalPairsInput, outputDir, prefix, SjBaseDir)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
@@ -196,35 +247,44 @@ contains
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
   
     call MPI_BCAST(dt, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(dtau, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(energyAvgWindow, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(hbarGamma, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(gamma0, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(SjThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(smearingExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
+    call MPI_BCAST(addDeltaNj, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(captured, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(diffOmega, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(generateNewOccupations, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(newEnergyTable, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(oldFormat, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(reSortMEs, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(rereadDq, 1, MPI_LOGICAL, root, worldComm, ierr)
   
+    call MPI_BCAST(carrierDensityInput, len(carrierDensityInput), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(deltaNjBaseDir, len(deltaNjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(dqInput, len(dqInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(MjBaseDir, len(MjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(njInput, len(njInput), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(njBaseInput, len(njBaseInput), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(optimalPairsInput, len(optimalPairsInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(PhononPPDir, len(PhononPPDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(SjBaseDir, len(SjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     
     return
 
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, &
-        outputDir, PhononPPDir, prefix)
+  subroutine initialize(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
+        addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
+        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
+        optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -235,7 +295,13 @@ contains
       !! Order to calculate (0 or 1)
 
     real(kind=dp), intent(out) :: dt
-      !! Time step size
+      !! Optional real time step for generating 
+      !! new phonon occupations
+    real(kind=dp), intent(out) :: dtau
+      !! Time step size for time-domain integration
+    real(kind=dp), intent(out) :: energyAvgWindow
+      !! Size of window to average over for carrier 
+      !! density evaluation
     real(kind=dp), intent(out) :: hbarGamma
       !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
@@ -245,11 +311,16 @@ contains
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
     
+    logical, intent(out) :: addDeltaNj
+      !! Add change in occupations for different scattering states
     logical, intent(out) :: captured
       !! If carrier is captured as opposed to scattered
     logical, intent(out) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(out) :: generateNewOccupations
+      !! If new occupation numbers should be calculated based on
+      !! summing over initial and final scattering states
     logical, intent(out) :: newEnergyTable
       !! If this code and TME are being run with a different
       !! energy table
@@ -262,6 +333,13 @@ contains
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(out) :: carrierDensityInput
+      !! Path to carrier density if generating 
+      !! new phonon occupations
+    character(len=300), intent(out) :: deltaNjBaseDir
+      !! Path to base directory for deltaNj files
+    character(len=300), intent(out) :: dqInput
+      !! Input file for dq.txt if rereading
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
     character(len=300), intent(out) :: matrixElementDir
@@ -271,49 +349,59 @@ contains
     character(len=300), intent(out) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
-    character(len=300), intent(out) :: njInput
-      !! Path to nj file
+    character(len=300), intent(out) :: njBaseInput
+      !! Path to base nj file
+    character(len=300), intent(out) :: optimalPairsInput
+      !! Path to get optimalPairs.out
     character(len=300), intent(out) :: outputDir
       !! Path to store transition rates
-    character(len=300), intent(out) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
     character(len=300), intent(out) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
+    character(len=300), intent(out) :: SjBaseDir
+      !! Path to directory holding Sj.out file(s)
 
 
     iSpin = 1
     order = -1
 
     dt = 1d-4
+    dtau = 1d-4
+    energyAvgWindow = 1e-2
     hbarGamma = 0.0_dp
     SjThresh = 0.0_dp
     smearingExpTolerance = 0.0_dp
 
+    addDeltaNj = .false.
     captured = .true.
     diffOmega = .false.
+    generateNewOccupations = .false.
     newEnergyTable = .false.
     oldFormat = .false.
     reSortMEs = .false.
     rereadDq = .false.
 
+    carrierDensityInput = ''
+    deltaNjBaseDir = ''
+    dqInput = ''
     energyTableDir = ''
     matrixElementDir = ''
     MjBaseDir = ''
-    njInput = ''
+    njBaseInput = ''
+    optimalPairsInput = ''
     outputDir = './'
-    PhononPPDir = ''
     prefix = 'disp-'
+    SjBaseDir = ''
 
     return 
 
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iSpin, order, dt, hbarGamma, SjThresh, smearingExpTolerance, captured, diffOmega, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, energyTableDir, matrixElementDir, MjBaseDir, njInput, outputDir, &
-        PhononPPDir, prefix)
+  subroutine checkInitialization(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
+        addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
+        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
+        optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -324,7 +412,13 @@ contains
       !! Order to calculate (0 or 1)
 
     real(kind=dp), intent(in) :: dt
-      !! Time step size
+      !! Optional real time step for generating 
+      !! new phonon occupations
+    real(kind=dp), intent(in) :: dtau
+      !! Time step size for time-domain integration
+    real(kind=dp), intent(in) :: energyAvgWindow
+      !! Size of window to average over for carrier 
+      !! density evaluation
     real(kind=dp), intent(in) :: hbarGamma
       !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
@@ -334,11 +428,16 @@ contains
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
     
+    logical, intent(in) :: addDeltaNj
+      !! Add change in occupations for different scattering states
     logical, intent(in) :: captured
       !! If carrier is captured as opposed to scattered
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(in) :: generateNewOccupations
+      !! If new occupation numbers should be calculated based on
+      !! summing over initial and final scattering states
     logical, intent(in) :: newEnergyTable
       !! If this code and TME are being run with a different
       !! energy table
@@ -351,6 +450,13 @@ contains
     logical, intent(in) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(in) :: carrierDensityInput
+      !! Path to carrier density if generating 
+      !! new phonon occupations
+    character(len=300), intent(in) :: deltaNjBaseDir
+      !! Path to base directory for deltaNj files
+    character(len=300), intent(in) :: dqInput
+      !! Input file for dq.txt if rereading
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
     character(len=300), intent(in) :: matrixElementDir
@@ -360,16 +466,17 @@ contains
     character(len=300), intent(in) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
-    character(len=300), intent(in) :: njInput
-      !! Path to nj file
+    character(len=300), intent(in) :: njBaseInput
+      !! Path to base nj file
+    character(len=300), intent(in) :: optimalPairsInput
+      !! Path to get optimalPairs.out
     character(len=300), intent(in) :: outputDir
       !! Path to store transition rates
-    character(len=300), intent(in) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
     character(len=300), intent(in) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
+    character(len=300), intent(in) :: SjBaseDir
+      !! Path to directory holding Sj.out file(s)
 
     ! Local variables:
     integer :: ikTest
@@ -385,7 +492,7 @@ contains
     abortExecution = checkIntInitialization('iSpin', iSpin, 1, 2)
     abortExecution = checkIntInitialization('order', order, 0, 1) .or. abortExecution 
 
-    abortExecution = checkDoubleInitialization('dt', dt, 1.0d-6, 1.0d-2) .or. abortExecution
+    abortExecution = checkDoubleInitialization('dtau', dtau, 1.0d-6, 1.0d-2) .or. abortExecution
     abortExecution = checkDoubleInitialization('hbarGamma', hbarGamma, 0.1_dp, 20.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('SjThresh', SjThresh, 0.0_dp, 1.0_dp) .or. abortExecution
     abortExecution = checkDoubleInitialization('smearingExpTolerance', smearingExpTolerance, 0.0_dp, 1.0_dp) .or. abortExecution
@@ -393,18 +500,39 @@ contains
       ! hard and fast, but you should think about the application of the theory
       ! to numbers outside these ranges.
 
-    abortExecution = checkFileInitialization('njInput', njInput) .or. abortExecution
+    abortExecution = checkFileInitialization('njBaseInput', njBaseInput) .or. abortExecution
 
     
     write(*,'("captured = ",L)') captured
+    write(*,'("addDeltaNj = ",L)') addDeltaNj
+    write(*,'("generateNewOccupations = ",L)') generateNewOccupations
+
+    if(addDeltaNj .or. generateNewOccupations) then
+      if(captured) &
+        call exitError('checkInitialization','Can only treat change in occupations for different states with scattering!',1)
+
+      write(*,'("deltaNjBaseDir = ''",a,"''")') trim(deltaNjBaseDir)
+      if(trim(deltaNjBaseDir) == '') then
+        abortExecution = .true.
+        write(*,'("Must have deltaNjBaseDir for addDeltaNj or generateNewOccupations!!")')
+      endif
+
+      if(generateNewOccupations) then
+        abortExecution = checkDoubleInitialization('dt', dt, 0.0_dp, 10.0_dp) .or. abortExecution
+        abortExecution = checkFileInitialization('carrierDensityInput', carrierDensityInput) .or. abortExecution
+        abortExecution = checkDoubleInitialization('energyAvgWindow', energyAvgWindow, 0.0_dp, 1.0_dp) .or. abortExecution
+      endif
+
+    endif
+
 
     ! We don't know the band indices here to check for the Sj files for
     ! scattering, but we can check for Sj.analysis.out that should always 
     ! be there when calculating Sj's as well.
     if(captured) then
-      abortExecution = checkDirInitialization('PhononPPDir', PhononPPDir, 'Sj.out') .or. abortExecution
+      abortExecution = checkDirInitialization('SjBaseDir', SjBaseDir, 'Sj.out') .or. abortExecution
     else
-      abortExecution = checkDirInitialization('PhononPPDir', PhononPPDir, 'Sj.analysis.out') .or. abortExecution
+      abortExecution = checkDirInitialization('SjBaseDir', SjBaseDir, 'Sj.analysis.out') .or. abortExecution
     endif
 
 
@@ -441,10 +569,10 @@ contains
     else if(order == 1) then
 
       write(*,'("reSortMEs = ",L)') reSortMEs
-      if(reSortMEs) abortExecution = checkFileInitialization('optimalPairsFile', trim(PhononPPDir)//'/optimalPairs.out') .or. abortExecution
+      if(reSortMEs) abortExecution = checkFileInitialization('optimalPairsInput', optimalPairsInput) .or. abortExecution
 
       write(*,'("rereadDq = ",L)') rereadDq
-      if(rereadDq) abortExecution = checkFileInitialization('dqFile', trim(PhononPPDir)//'/dq.txt') .or. abortExecution
+      if(rereadDq) abortExecution = checkFileInitialization('dqInput', dqInput) .or. abortExecution
 
       abortExecution = checkIntInitialization('suffixLength', suffixLength, 1, 5) .or. abortExecution 
       abortExecution = checkDirInitialization('MjBaseDir', MjBaseDir, &
@@ -577,7 +705,7 @@ contains
     ! single shot.
     else
       if(ionode) &
-        call readScatterEnergyTable(iSpin, energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE2D)
+        call readScatterEnergyTable(iSpin, .true., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE2D)
           ! dE2D will get allocated here with (3,nTransitions)
 
 
@@ -611,7 +739,7 @@ contains
   end subroutine readEnergyTable
 
 !----------------------------------------------------------------------------
-  subroutine readSj(ibi, ibf, iki, ikf, nTransitions, captured, diffOmega, PhononPPDir, nModes, omega, &
+  subroutine readSj(ibi, ibf, iki, ikf, nTransitions, captured, diffOmega, SjBaseDir, nModes, omega, &
           omegaPrime, Sj, SjPrime)
 
     implicit none
@@ -628,9 +756,8 @@ contains
       !! If initial- and final-state frequencies 
       !! should be treated as different
 
-    character(len=300), intent(in) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
+    character(len=300), intent(in) :: SjBaseDir
+      !! Path to directory holding Sj.out file(s)
 
     ! Output variables:
     integer, intent(out) :: nModes
@@ -672,9 +799,9 @@ contains
     ! frequencies and number of modes from the first file because 
     ! they do not depend on the transition
     if(captured) then
-      fName = trim(PhononPPDir)//'/Sj.out' 
+      fName = trim(SjBaseDir)//'/Sj.out' 
     else
-      fName = trim(PhononPPDir)//'/Sj.k'//trim(int2str(iki(1)))//'_b'//trim(int2str(ibi(1)))//'.k'&
+      fName = trim(SjBaseDir)//'/Sj.k'//trim(int2str(iki(1)))//'_b'//trim(int2str(ibi(1)))//'.k'&
                                //trim(int2str(ikf(1)))//'_b'//trim(int2str(ibf(1)))//'.out'
     endif
 
@@ -728,7 +855,7 @@ contains
     ! For scattering, read the Sj for the rest of the transitions
     if(.not. captured) then
       do iE = 2, nTransitions
-        fName = trim(PhononPPDir)//'/Sj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
+        fName = trim(SjBaseDir)//'/Sj.k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'.k'&
                                  //trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'.out'
 
         if(diffOmega) then
@@ -752,7 +879,7 @@ contains
   end subroutine readSj
 
 !----------------------------------------------------------------------------
-  subroutine getjReSort(nModes, PhononPPDir, jReSort)
+  subroutine getjReSort(nModes, optimalPairsInput, jReSort)
 
     implicit none
 
@@ -760,9 +887,8 @@ contains
     integer, intent(in) :: nModes
       !! Number of phonon modes
 
-    character(len=300), intent(in) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
+    character(len=300), intent(in) :: optimalPairsInput
+      !! Path to get optimalPairs.out
 
     ! Output variables:
     integer, intent(out) :: jReSort(nModes)
@@ -777,7 +903,7 @@ contains
       !! New-ordered index
 
 
-    open(unit=32,file=trim(PhononPPDir)//'/optimalPairs.out')
+    open(unit=32,file=trim(optimalPairsInput))
 
     read(32,*)
 
@@ -794,7 +920,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine readAllMatrixElements(iSpin, nTransitions, ibi, nModes, jReSort, order, suffixLength, dE, captured, newEnergyTable, &
-          oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, PhononPPDir, prefix, mDim, matrixElement, volumeLine)
+          oldFormat, rereadDq, reSortMEs, dqInput, matrixElementDir, MjBaseDir, prefix, mDim, matrixElement, volumeLine)
     ! For both the zeroth-order and first-order matrix elements, there is the option 
     ! to specify `newEnergyTable`. If this variable is true, that means that the 
     ! matrix elements (TME) and LSF code were not run with the same energy table as 
@@ -864,6 +990,8 @@ contains
     logical, intent(in) :: reSortMEs
       !! If matrix elements should be resorted
 
+    character(len=300), intent(in) :: dqInput
+      !! Input file for dq.txt if rereading
     character(len=300), intent(in) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
@@ -871,9 +999,6 @@ contains
     character(len=300), intent(in) :: MjBaseDir
       !! Path to the base directory for the first-order
       !! matrix element calculations
-    character(len=300), intent(in) :: PhononPPDir
-      !! Path to PhononPP output dir to get Sj.out
-      !! and potentially optimalPairs.out
     character(len=300), intent(in) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
@@ -915,8 +1040,8 @@ contains
             !! Get the global `ik` index from the local one
 
            call readSingleKMatrixElements(ikGlobal, iSpin, nTransitions, ibi, nModes, jReSort, mDim, order, suffixLength, &
-                dE(:,:,ikLocal), captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, &
-                PhononPPDir, prefix, matrixElement(:,:,ikLocal), volumeLine)
+                dE(:,:,ikLocal), captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, matrixElementDir, &
+                MjBaseDir, prefix, matrixElement(:,:,ikLocal), volumeLine)
 
         enddo
       endif
@@ -928,8 +1053,8 @@ contains
         matrixElement = 0.0_dp
 
         call readSingleKMatrixElements(-1, iSpin, nTransitions, ibi, nModes, jReSort, mDim, order, suffixLength, &
-              dE(:,:,1), captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, matrixElementDir, MjBaseDir, &
-              PhononPPDir, prefix, matrixElement(:,:,1), volumeLine)
+              dE(:,:,1), captured, newEnergyTable, oldFormat, rereadDq, reSortMEs, dqInput, matrixElementDir, MjBaseDir, &
+              prefix, matrixElement(:,:,1), volumeLine)
 
       endif
 
@@ -943,8 +1068,9 @@ contains
   end subroutine readAllMatrixElements
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dt, &
-          gamma0, matrixElement, nj, omega, omegaPrime, Sj, SjPrime, SjThresh, captured, diffOmega, volumeLine)
+  subroutine getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
+          gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+          captured, diffOmega, volumeLine, transitionRate)
     
     implicit none
 
@@ -964,14 +1090,17 @@ contains
 
     real(kind=dp), intent(in) :: dE(3,nTransitions,nkPerPool)
       !! All energy differences from energy table
-    real(kind=dp), intent(in) :: dt
-      !! Time step size
+    real(kind=dp), intent(in) :: dtau
+      !! Time step size for time-domain integration
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
     real(kind=dp), intent(in) :: matrixElement(mDim,nTransitions,nkPerPool)
       !! Electronic matrix element
-    real(kind=dp), intent(in) :: nj(nModes)
-      !! \(n_j\) occupation number
+    real(kind=dp), intent(in) :: njBase(nModes)
+      !! Base \(n_j\) occupation number for all states
+    real(kind=dp), intent(in) :: njPlusDelta(:,:)
+      !! Optional nj plus delta nj from adjustment to 
+      !! carrier approach in initial state
     real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
       !! Frequency for each mode
     real(kind=dp), intent(in) :: Sj(:,:), SjPrime(:,:)
@@ -980,6 +1109,8 @@ contains
     real(kind=dp), intent(in) :: SjThresh
       !! Threshold for Sj to determine which modes to calculate
 
+    logical, intent(in) :: addDeltaNj
+      !! Add change in occupations for different scattering states
     logical, intent(in) :: captured
       !! If carrier is captured as opposed to scattered
     logical, intent(in) :: diffOmega
@@ -989,6 +1120,10 @@ contains
     character(len=300), intent(in) :: volumeLine
       !! Volume line from overlap file to be
       !! output exactly in transition rate file
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: transitionRate(:,:)
+      !! \(Gamma_i\) transition rate
 
     ! Local variables:
     integer :: countTrue
@@ -1009,7 +1144,7 @@ contains
       !! Simpson's integration method
     real(kind=dp) :: sinOmegaPrime(nModes)
       !! sin(omega' t/2)
-    real(kind=dp) :: Sj1D(nModes), SjPrime1D(nModes)
+    real(kind=dp) :: Sj1D(nModes), SjPrime1D(nModes), njPlusDelta1D(nModes)
       !! 1D arrays to pass to setUpTimeTables
     real(kind=dp) :: t0
       !! Initial time for this process
@@ -1017,8 +1152,6 @@ contains
       !! Time for each time step
     real(kind=dp) :: timer1, timer2
       !! Timers
-    real(kind=dp) :: transitionRate(nTransitions,nkPerPool)
-      !! \(Gamma_i\) transition rate
 
     complex(kind=dp) :: Aj_t(nModes)
       !! Aj from text. See equation below.
@@ -1041,6 +1174,8 @@ contains
       !! Prefactor for the exponential inside the integral.
       !! For zeroth-order, this is just the matrix element,
       !! but for first-order this is \(\sum_j M_j A_j\).
+    complex(kind=dp) :: posExp_t(nModes)
+      !! Local storage of \(e^{i\omega_j t}\) for speed
 
     logical :: mask(nModes)
       !! Select the modes to calculate
@@ -1059,9 +1194,11 @@ contains
     call getTrueIndices(nModes, mask, countTrue, jTrue)
 
 
-    t0 = indexInPool*float(nStepsLocal-1)*dt
+    t0 = indexInPool*float(nStepsLocal-1)*dtau
 
+    allocate(transitionRate(nTransitions,nkPerPool))
     transitionRate(:,:) = 0.0_dp
+
     do iTime = 0, nStepsLocal-1
 
       if(ionode .and. mod(iTime,updateFrequency) == 0) then
@@ -1071,7 +1208,7 @@ contains
 
       endif
 
-      time = t0 + float(iTime)*dt
+      time = t0 + float(iTime)*dtau
         ! Must do this arithmetic with floats to avoid
         ! integer overflow
 
@@ -1086,12 +1223,23 @@ contains
       if(captured) then
         Sj1D = Sj(:,1)
         SjPrime1D = SjPrime(:,1)
-        call setupAllTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, Sj1D, SjPrime1D, time, diffOmega, Dj0_t, Dj1_t)
+        call setupAllTimeTables(countTrue, nModes, jTrue, njBase, omega, omegaPrime, Sj1D, SjPrime1D, time, diffOmega, Dj0_t, Dj1_t)
 
         expArg_base = ii*sum(Dj0_t(jTrue)) - gamma0*time
       else 
-        call setupStateIndTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, time, diffOmega, cosOmegaPrime, &
-                  sinOmegaPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree)
+        ! I had a choice here to have one subroutine called and pass addDeltaNj to 
+        ! switch what is calculated, but that would significantly affect the input
+        ! and output variables. I don't, in general, like to have different copies
+        ! of subroutines, but I felt having two separate subroutines would be
+        ! clearer and safer. Same below for setupStateDepTimeTables
+        if(addDeltaNj) then
+          call setupStateIndTimeTablesDeltaNj(countTrue, nModes, jTrue, omega, omegaPrime, time, diffOmega, cosOmegaPrime, &
+                    sinOmegaPrime, posExp_t)
+        else
+          call setupStateIndTimeTablesNoDeltaNj(countTrue, nModes, jTrue, njBase, omega, omegaPrime, time, diffOmega, &
+                    cosOmegaPrime, sinOmegaPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree)
+        endif
+
       endif
 
 
@@ -1106,8 +1254,15 @@ contains
           if(.not. captured) then
             Sj1D = Sj(:,iE)
             SjPrime1D = SjPrime(:,iE)
-            call setupStateDepTimeTables(countTrue, nModes, jTrue, cosOmegaPrime, omega, omegaPrime, sinOmegaPrime, Sj, &
-                  SjPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree, diffOmega, Dj0_t, Dj1_t)
+
+            if(addDeltaNj) then
+              njPlusDelta1D = njPlusDelta(:,iE)
+              call setupStateDepTimeTablesDeltaNj(countTrue, nModes, jTrue, cosOmegaPrime, njPlusDelta1D, omega, omegaPrime, &
+                    sinOmegaPrime, Sj1D, SjPrime1D, posExp_t, diffOmega, Dj0_t, Dj1_t)
+            else
+              call setupStateDepTimeTablesNoDeltaNj(countTrue, nModes, jTrue, cosOmegaPrime, omega, omegaPrime, sinOmegaPrime, Sj1D, &
+                    SjPrime1D, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree, diffOmega, Dj0_t, Dj1_t)
+            endif
 
             expArg_base = ii*sum(Dj0_t(jTrue)) - gamma0*time
           endif
@@ -1146,7 +1301,7 @@ contains
 
       ! Multiply by prefactor for Simpson's integration method 
       ! and prefactor for time-domain integral
-      transitionRate(:,:) = transitionRate(:,:)*(dt/3.0_dp)*(2.0_dp/(hbar_atomic*hbar_atomic))/time_atomicToSI
+      transitionRate(:,:) = transitionRate(:,:)*(dtau/3.0_dp)*(2.0_dp/(hbar_atomic*hbar_atomic))/time_atomicToSI
 
       do ikLocal = 1, nkPerPool
 
@@ -1249,7 +1404,7 @@ contains
       !! Mode indices where Sj > SjThresh
 
     real(kind=dp), intent(in) :: nj(nModes)
-      !! \(n_j\) occupation number
+      !! Base \(n_j\) occupation number for all states
     real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
       !! Frequency for each mode
     real(kind=dp), intent(in) :: Sj(nModes), SjPrime(nModes)
@@ -1334,8 +1489,8 @@ contains
   end subroutine setupAllTimeTables
 
 !----------------------------------------------------------------------------
-  subroutine setupStateIndTimeTables(countTrue, nModes, jTrue, nj, omega, omegaPrime, time, diffOmega, cosOmegaPrime, &
-            sinOmegaPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree)
+  subroutine setupStateIndTimeTablesNoDeltaNj(countTrue, nModes, jTrue, nj, omega, omegaPrime, time, diffOmega, &
+            cosOmegaPrime, sinOmegaPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree)
 
     implicit none
 
@@ -1348,7 +1503,7 @@ contains
       !! Mode indices where Sj > SjThresh
 
     real(kind=dp), intent(in) :: nj(nModes)
-      !! \(n_j\) occupation number
+      !! Base \(n_j\) occupation number for all states
     real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
       !! Frequency for each mode
     real(kind=dp), intent(in) :: time
@@ -1409,10 +1564,10 @@ contains
 
     return
 
-  end subroutine setupStateIndTimeTables
+  end subroutine setupStateIndTimeTablesNoDeltaNj
 
 !----------------------------------------------------------------------------
-  subroutine setupStateDepTimeTables(countTrue, nModes, jTrue, cosOmegaPrime, omega, omegaPrime, sinOmegaPrime, Sj, &
+  subroutine setupStateDepTimeTablesNoDeltaNj(countTrue, nModes, jTrue, cosOmegaPrime, omega, omegaPrime, sinOmegaPrime, Sj, &
             SjPrime, Aj_t, Dj0_tOverSj, Dj1_termsOneAndTwo, Dj1_termThree, diffOmega, Dj0_t, Dj1_t)
 
     implicit none
@@ -1495,7 +1650,564 @@ contains
 
     return
 
-  end subroutine setupStateDepTimeTables
+  end subroutine setupStateDepTimeTablesNoDeltaNj
+
+!----------------------------------------------------------------------------
+  subroutine setupStateIndTimeTablesDeltaNj(countTrue, nModes, jTrue, omega, omegaPrime, time, diffOmega, cosOmegaPrime, &
+            sinOmegaPrime, posExp_t)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: countTrue
+      !! Number of indices where Sj > SjThresh
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: jTrue(countTrue)
+      !! Mode indices where Sj > SjThresh
+
+    real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(in) :: time
+      !! Time at which to calculate the \(G_0(t)\) argument
+
+    logical, intent(in) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: cosOmegaPrime(nModes)
+      !! cos(omega' t/2)
+    real(kind=dp), intent(out) :: sinOmegaPrime(nModes)
+      !! sin(omega' t/2)
+
+    complex(kind=dp), intent(out) :: posExp_t(nModes)
+      !! Local storage of \(e^{i\omega_j t}\) for speed
+
+
+    posExp_t(jTrue) = exp(ii*omega(jTrue)*time)
+
+    if(diffOmega) then
+      sinOmegaPrime(jTrue) = sin(omegaPrime(jTrue)*time/2.0_dp)
+      cosOmegaPrime(jTrue) = cos(omegaPrime(jTrue)*time/2.0_dp)
+    endif
+
+    return
+
+  end subroutine setupStateIndTimeTablesDeltaNj
+
+!----------------------------------------------------------------------------
+  subroutine setupStateDepTimeTablesDeltaNj(countTrue, nModes, jTrue, cosOmegaPrime, nj, omega, omegaPrime, sinOmegaPrime, Sj, &
+            SjPrime, posExp_t, diffOmega, Dj0_t, Dj1_t)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: countTrue
+      !! Number of indices where Sj > SjThresh
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: jTrue(countTrue)
+      !! Mode indices where Sj > SjThresh
+
+    real(kind=dp), intent(in) :: cosOmegaPrime(nModes)
+      !! cos(omega' t/2)
+    real(kind=dp), intent(in) :: nj(nModes)
+      !! Base \(n_j\) occupation number for all states
+    real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(in) :: sinOmegaPrime(nModes)
+      !! sin(omega' t/2)
+    real(kind=dp), intent(in) :: Sj(nModes), SjPrime(nModes)
+      !! Huang-Rhys factor for each mode
+
+    complex(kind=dp), intent(in) :: posExp_t(nModes)
+      !! Local storage of \(e^{i\omega_j t}\) for speed
+
+    logical, intent(in) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
+
+    ! Output variables:
+    complex(kind=dp), intent(out) :: Dj0_t(nModes)
+      !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
+    complex(kind=dp), intent(out) :: Dj1_t(nModes)
+      !! Factor multiplying |M_j|^2*G_j^0(t) in G_j^1(t)
+
+    ! Local variables:
+    complex(kind=dp) :: Aj_t(nModes)
+      !! Aj from text. See equation below.
+    complex(kind=dp) :: Dj0_tOverSj(nModes)
+      !! Argument of exponential in G_j^0(t) = e^{i*D_j^0(t)}
+      !! divided by Sj
+    complex(kind=dp) :: Dj0OverSinOmegaPrime_t(nModes)
+      !! Needed to keep from getting NaNs from cot()
+    complex(kind=dp) :: Dj1_termsOneAndTwo(nModes)
+      !! First and second terms in the parentheses of D_j^1(t)
+    complex(kind=dp) :: Dj1_termThree(nModes)
+      !! Third term in the parentheses of D_j^1(t) (without Sj)
+    complex(kind=dp) :: expTimesNBarPlus1(nModes)
+      !! Local storage of \(e^{i\omega_j t}(\bar{n}_j + 1)\) 
+    complex(kind=dp) :: njOverPosExp_t(nModes)
+      !! n_j*e^{-i\omega_j t}
+
+
+    expTimesNBarPlus1(jTrue) = posExp_t(jTrue)*(nj(jTrue)+1.0_dp)
+
+    if(diffOmega) then
+      Aj_t(jTrue) = (expTimesNBarPlus1(jTrue) + nj(jTrue))/(expTimesNBarPlus1(jTrue) - nj(jTrue))
+
+      Dj0OverSinOmegaPrime_t(jTrue) = -2.0_dp/(ii*Aj_t*sinOmegaPrime(jTrue)/Sj(jTrue) - cosOmegaPrime(jTrue)/SjPrime(jTrue))
+
+      Dj0_t(jTrue) = sinOmegaPrime(jTrue)*Dj0OverSinOmegaPrime_t(jTrue)
+        ! Need to factor out the sin() to avoid getting NaNs
+        ! when calculating cot() here and in Dj1_t
+
+      if(order == 1) then
+
+        Dj1_t(jTrue) = -(hbar_atomic/(2.0_dp*omega(jTrue)*Sj(jTrue)))* &
+                        Dj0OverSinOmegaPrime_t(jTrue)*(sinOmegaPrime(jTrue)*Dj0_t(jTrue)*Aj_t(jTrue)**2 - &
+                        0.5_dp*omega(jTrue)/omegaPrime(jTrue)*(Aj_t(jTrue)*cosOmegaPrime(jTrue) - sinOmegaPrime(jTrue)* &
+                          (omega(jTrue)*cosOmegaPrime(jTrue) - ii*omegaPrime(jTrue)*Aj_t(jTrue)*sinOmegaPrime(jTrue))/ &
+                          (omega(jTrue)*Aj_t(jTrue)*sinOmegaPrime(jTrue) + ii*omegaPrime(jTrue)*cosOmegaPrime(jTrue))))
+          ! I don't have access to (Delta q_j) here, and I don't want to 
+          ! get another variable to deal with. Instead, I rearranged this
+          ! to not be in terms of (Delta q_j). Also have to rearrange to 
+          ! get rid of cot()
+
+      endif
+
+    else
+      njOverPosExp_t(jTrue) = nj(jTrue)/posExp_t(jTrue)
+
+      Dj0_tOverSj(jTrue) = 1.0_dp/ii*(expTimesNBarPlus1(jTrue) + njOverPosExp_t(jTrue) - (2.0_dp*nj(jTrue) + 1.0_dp))
+
+      if(order == 1) then
+
+        Dj1_termsOneAndTwo(jTrue) = njOverPosExp_t(jTrue) + expTimesNBarPlus1(jTrue)
+        Dj1_termThree(jTrue) = (1 + njOverPosExp_t(jTrue) - expTimesNBarPlus1(jTrue))**2
+
+      endif
+
+      Dj0_t(jTrue) = Sj(jTrue)*Dj0_tOverSj(jTrue)
+
+      if(order == 1) then
+
+        Dj1_t(jTrue) = (hbar_atomic/omega(jTrue))/2.0_dp*(Dj1_termsOneAndTwo(jTrue) + &
+            Sj(jTrue)*Dj1_termThree(jTrue))
+
+      endif
+    endif
+
+    return
+
+  end subroutine setupStateDepTimeTablesDeltaNj
+
+!----------------------------------------------------------------------------
+  subroutine calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
+          transitionRate, carrierDensityInput, energyTableDir, volumeLine, njBase)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
+      !! Initial-state indices
+    integer, intent(in) :: iSpin
+      !! Spin channel to use
+
+    real(kind=dp), intent(in) :: dt
+      !! Optional real time step for generating 
+      !! new phonon occupations
+    real(kind=dp), intent(in) :: energyAvgWindow
+      !! Size of window to average over for carrier 
+      !! density evaluation
+    real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
+      !! Optional total change in occupation numbers
+      !! for each mode and transition
+    real(kind=dp), intent(in) :: transitionRate(nTransitions)
+      !! \(Gamma_i\) transition rate
+
+    character(len=300), intent(in) :: carrierDensityInput
+      !! Path to carrier density if generating 
+      !! new phonon occupations
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy table to read
+    character(len=300), intent(in) :: volumeLine
+      !! Volume line from overlap file to be
+      !! output exactly in transition rate file
+
+    ! Output variables:
+    real(kind=dp), intent(inout) :: njBase(nModes)
+      !! Base \(n_j\) occupation number for all states
+
+    ! Local variables:
+    integer :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+
+    real(kind=dp), allocatable :: carrierDensity(:)
+      !! Carrier density for each of the initial states, averaged
+      !! over a given window
+    real(kind=dp), allocatable :: dEEigInit(:)
+      !! Eigenvalue difference of initial states
+      !! relative to band edge
+    real(kind=dp), allocatable :: njRateOfChange_i(:,:)
+      !! Rate of change of occupations due to transitions
+      !! from each initial state, i
+
+
+    call sumOverFinalStates(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate, nUniqueInitStates, njRateOfChange_i)
+
+    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates))
+
+    call readDEPlot(iSpin, nUniqueInitStates, energyTableDir, dEEigInit)
+
+    call readCarrierDensity(nUniqueInitStates, dEEigInit, energyAvgWindow, carrierDensityInput, volumeLine, carrierDensity)
+
+    call integrateUpdateAndWriteOccupations(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, njRateOfChange_i, njBase)
+
+    deallocate(dEEigInit)
+    deallocate(carrierDensity)
+    deallocate(njRateOfChange_i)
+
+    return
+
+  end subroutine calcAndWriteNewOccupations
+
+!----------------------------------------------------------------------------
+  subroutine sumOverFinalStates(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate, nUniqueInitStates, &
+        njRateOfChange_i)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
+      !! Initial-state indices
+
+    real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
+      !! Optional total change in occupation numbers
+      !! for each mode and transition
+    real(kind=dp), intent(in) :: transitionRate(nTransitions)
+      !! \(Gamma_i\) transition rate
+
+    ! Output variables:
+    integer, intent(out) :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+
+    real(kind=dp), allocatable, intent(out) :: njRateOfChange_i(:,:)
+      !! Rate of change of occupations due to transitions
+      !! from each initial state, i
+
+    ! Local variables:
+    integer :: iUInit, iE
+      !! Loop indices
+    integer, allocatable :: uniqueInitStates_ib(:)
+      !! Band indices for unique initial states
+    integer, allocatable :: uniqueInitStates_ik(:)
+      !! k-point indices for unique initial states
+
+
+    call getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
+
+    allocate(njRateOfChange_i(nModes,nUniqueInitStates))
+    njRateOfChange_i = 0.0_dp
+
+    if(ionode) then
+      do iUInit = 1, nUniqueInitStates
+        do iE = 1, nTransitions
+        
+          ! Pick out the elements where the initial state (iki,ibi) corresponds to
+          ! a given unique initial state
+          if(iki(iE) == uniqueInitStates_ik(iUInit) .and. ibi(iE) == uniqueInitStates_ib(iUInit)) then
+
+            ! Then sum over all of the final states for each unique initial state.
+            ! The (:) here indcates the phonon modes. They are all independent.
+            njRateOfChange_i(:,iUInit) = njRateOfChange_i(:,iUInit) + totalDeltaNj(:,iE)*transitionRate(iE)
+
+          endif
+        enddo
+      enddo
+    endif
+
+    return
+
+  end subroutine sumOverFinalStates
+
+!----------------------------------------------------------------------------
+  subroutine getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
+
+    use miscUtilities, only: getUniqueInts
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
+      !! Initial-state indices
+
+    ! Output variables:
+    integer, intent(out) :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+    integer, allocatable, intent(out) :: uniqueInitStates_ib(:)
+      !! Band indices for unique initial states
+    integer, allocatable, intent(out) :: uniqueInitStates_ik(:)
+      !! k-point indices for unique initial states
+
+    ! Local variables:
+    integer, allocatable :: ibi_thisUniqueK(:)
+      !! All values in ibi corresponding to the indices
+      !! in iki that equal the current unique k index
+    integer, allocatable :: ibiUnique(:)
+      !! Unique initial bands for each unique k-point
+    integer, allocatable :: ikiUnique(:)
+      !! Unique initial k-points
+    integer :: iU_iki, iU_ibi
+      !! Loop indices
+    integer :: nUnique_iki, nUnique_ibi
+      !! Number of unique initial k-points and bands 
+    integer :: uniqueInitStates_ik_large(nTransitions), uniqueInitStates_ib_large(nTransitions)
+      !! Arrays of max possible size. Will only pass out
+      !! arrays of size nUniqueInitStates
+
+
+    ! First, get the unique initial k-points for each system
+    if(ionode) then
+      call getUniqueInts(nTransitions, iki, nUnique_iki, ikiUnique)
+
+      nUniqueInitStates = 0
+      do iU_iki = 1, nUnique_iki
+
+        ibi_thisUniqueK = PACK(ibi, iki == ikiUnique(iU_iki))
+          ! Includes allocate(ibi_thisUniqueK)
+
+        call getUniqueInts(SIZE(ibi_thisUniqueK), ibi_thisUniqueK, nUnique_ibi, ibiUnique)
+          ! Includes allocate(ibiUnique)
+
+        do iU_ibi = 1, nUnique_ibi
+
+          nUniqueInitStates = nUniqueInitStates + 1
+
+          ! Store unique state-index pairs in an array with the maximum
+          ! possible size of 
+          uniqueInitStates_ik_large(nUniqueInitStates) = ikiUnique(iU_iki)
+          uniqueInitStates_ib_large(nUniqueInitStates) = ibiUnique(iU_ibi)
+
+        enddo
+
+
+        ! Make sure to deallocate these variables allocated withing
+        ! the loop before repeating the loop
+        deallocate(ibi_thisUniqueK)
+        deallocate(ibiUnique)
+      enddo
+
+      ! Copy larger arrays into arrays of size nUniqueInitStates to return
+      allocate(uniqueInitStates_ik(nUniqueInitStates), uniqueInitStates_ib(nUniqueInitStates))
+      uniqueInitStates_ik(:) = uniqueInitStates_ik_large(1:nUniqueInitStates)
+      uniqueInitStates_ib(:) = uniqueInitStates_ib_large(1:nUniqueInitStates)
+    endif
+
+    call MPI_BCAST(nUniqueInitStates, 1, MPI_INTEGER, root, worldComm, ierr)
+    if(.not. ionode) &
+      allocate(uniqueInitStates_ik(nUniqueInitStates), uniqueInitStates_ib(nUniqueInitStates))
+    call MPI_BCAST(uniqueInitStates_ik, nUniqueInitStates, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(uniqueInitStates_ib, nUniqueInitStates, MPI_INTEGER, root, worldComm, ierr)
+
+
+    return
+
+  end subroutine getUniqueInitialStates
+
+!----------------------------------------------------------------------------
+  subroutine readCarrierDensity(nUniqueInitStates, dEEigInit, energyAvgWindow, carrierDensityInput, volumeLine, carrierDensity)
+
+    use cell, only: volume
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+
+    real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
+      !! Eigenvalue difference of initial states
+      !! relative to band edge
+    real(kind=dp), intent(in) :: energyAvgWindow
+      !! Size of window to average over for carrier 
+      !! density evaluation
+
+    character(len=300), intent(in) :: carrierDensityInput
+      !! Path to carrier density if generating 
+      !! new phonon occupations
+    character(len=300), intent(in) :: volumeLine
+      !! Volume line from overlap file to be
+      !! output exactly in transition rate file
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: carrierDensity(nUniqueInitStates)
+      !! Carrier density for each of the initial states, averaged
+      !! over a given window
+
+    ! Local variables:
+    integer :: iS, iUInit
+      !! Loop index
+    integer :: nSamplesEachInitState(nUniqueInitStates)
+      !! Number of energy samples within the averaging window
+      !! for each initial state
+    integer :: nSampleEnergies
+      !! Number of energy samples in carrier density file
+
+    real(kind=dp) :: carrierDensity_iS
+      !! Carrier density of this energy sample
+    real(kind=dp) :: dEEigInit_iS
+      !! Eigenvalue difference of this energy sample
+      !! relative to band edge
+    real(kind=dp) :: rDum
+      !! Dummy real to ignore input
+
+    character(len=300) :: textDum
+      !! Dummy text to ignore input
+
+
+    if(ionode) then
+      open(unit=37, file=trim(carrierDensityInput))
+
+      ! Ignore 3 header lines
+      read(37,*)
+      read(37,*)
+      read(37,*)
+
+      ! Read in the number of points in the carrier density file
+      read(37,*) nSampleEnergies
+
+      ! Ignore final header line
+      read(37,*)
+
+
+      ! Initialize the carrier density for each initial state to zero
+      carrierDensity = 0.0_dp
+      nSamplesEachInitState = 0
+
+      ! Note that the arrays in our system are index in order of increasing
+      ! energy (i.e., band index), but the carrier-density file is in order
+      ! of increasing energy from the band edge, so for holes they will be
+      ! in the opposite order.
+      do iS = 1, nSampleEnergies
+        read(37,*) dEEigInit_iS, rDum, carrierDensity_iS
+
+        do iUInit = 1, nUniqueInitStates
+          ! Have to use the negative sign because energies are positive in carrier
+          ! density file
+          if(abs(-dEEigInit_iS - dEEigInit(iUInit)) <= energyAvgWindow/2.0_dp) then
+            nSamplesEachInitState(iUInit) = nSamplesEachInitState(iUInit) + 1
+            carrierDensity(iUInit) = carrierDensity(iUInit) + carrierDensity_iS
+          endif
+
+          ! Use this to investigate your energyAvgWindow
+          !write(*,'(2i5,4ES12.3E3, L5, i5, ES12.3E3)') iS, iUInit, -dEEigInit_iS, dEEigInit(iUInit), &
+          !                           abs(-dEEigInit_iS - dEEigInit(iUInit)), energyAvgWindow, &
+          !                           abs(-dEEigInit_iS - dEEigInit(iUInit)) <= energyAvgWindow/2.0_dp, &
+          !                           nSamplesEachInitState(iUInit), carrierDensity(iUInit) 
+
+        enddo
+
+      enddo
+
+      close(37)
+
+
+      read(volumeLine,'(a51, ES24.15E3)') textDum, volume
+
+      where(nSamplesEachInitState /= 0) carrierDensity = carrierDensity/nSamplesEachInitState*volume*(BohrToMeter*1.0d2)**3
+
+    endif
+
+    call MPI_BCAST(carrierDensity, nUniqueInitStates, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return
+
+  end subroutine readCarrierDensity
+
+!----------------------------------------------------------------------------
+  subroutine integrateUpdateAndWriteOccupations(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, &
+          njRateOfChange_i, njBase)
+
+    use generalComputations, only: trapezoidIntegrationVariableDx 
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+
+    real(kind=dp), intent(in) :: carrierDensity(nUniqueInitStates)
+      !! Carrier density for each of the initial states, averaged
+      !! over a given window
+    real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
+      !! Eigenvalue difference of initial states
+      !! relative to band edge
+    real(kind=dp), intent(in) :: dt
+      !! Optional real time step for generating 
+      !! new phonon occupations
+    real(kind=dp), intent(in) :: njRateOfChange_i(nModes,nUniqueInitStates)
+      !! Rate of change of occupations due to transitions
+      !! from each initial state, i
+
+    ! Output variables:
+    real(kind=dp), intent(inout) :: njBase(nModes)
+      !! Base \(n_j\) occupation number for all states
+
+    ! Local variables:
+    integer :: j
+      !! Loop index
+
+    real(kind=dp) :: integral
+      !! Result of integration for each mode
+    real(kind=dp) :: integrand(nUniqueInitStates)
+      !! Integrand to pass to integration subroutine
+    real(kind=dp) :: njRateOfChange(nModes)
+      !! Rate of change of occupations due to average
+      !! effect of all transitions
+
+
+    if(ionode) then
+      open(unit=37, file='nj.new.out')
+      write(37,'("# dt = ",ES24.15E3)') dt
+      write(37,'("# j, New nj, Delta nj, Rate of change (1/s)")')
+
+      do j = 1, nModes
+        integrand(:) = carrierDensity(:)*njRateOfChange_i(j,:)
+        call trapezoidIntegrationVariableDx(nUniqueInitStates, integrand, dEEigInit, integral)
+        njRateOfChange(j) = integral
+
+        njBase(j) = njBase(j) + njRateOfChange(j)*dt
+
+        write(37,'(i7,3ES24.15E3)') j, njBase(j), njRateOfChange(j)*dt, njRateOfChange(j)
+      enddo
+
+      close(37)
+    endif
+
+    call MPI_BCAST(njBase, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    return
+
+  end subroutine integrateUpdateAndWriteOccupations
   
 !----------------------------------------------------------------------------
   function transitionRateFileExists(ikGlobal, isp) result(fileExists)
