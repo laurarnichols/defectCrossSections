@@ -31,7 +31,7 @@ program LSFmain
   call readInputParams(iSpin, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime, SjThresh, &
         smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, &
         oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
-        matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
 
   nStepsLocal = ceiling((maxTime/dtau)/nProcPerPool)

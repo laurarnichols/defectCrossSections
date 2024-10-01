@@ -106,6 +106,8 @@ module LSFmod
     !! matrix element calculations
   character(len=300) :: njBaseInput
     !! Path to base nj file
+  character(len=300) :: njNewOutDir
+    !! Path to output new occupations if applicable
   character(len=300) :: optimalPairsInput
     !! Path to get optimalPairs.out
   character(len=300) :: outputDir
@@ -124,7 +126,7 @@ module LSFmod
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
                          optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations, dt, carrierDensityInput, &
-                         energyAvgWindow
+                         energyAvgWindow, njNewOutDir
 
 contains
 
@@ -132,7 +134,7 @@ contains
   subroutine readInputParams(iSpin, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime, SjThresh, &
         smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
         rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, & 
-        MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -203,6 +205,8 @@ contains
       !! matrix element calculations
     character(len=300), intent(out) :: njBaseInput
       !! Path to base nj file
+    character(len=300), intent(out) :: njNewOutDir
+      !! Path to output new occupations if applicable
     character(len=300), intent(out) :: optimalPairsInput
       !! Path to get optimalPairs.out
     character(len=300), intent(out) :: outputDir
@@ -217,7 +221,7 @@ contains
     call initialize(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, &
           captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
           carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-          optimalPairsInput, outputDir, prefix, SjBaseDir)
+          njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     if(ionode) then
 
@@ -231,7 +235,7 @@ contains
       call checkInitialization(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
             addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
             carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-            optimalPairsInput, outputDir, prefix, SjBaseDir)
+            njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
@@ -271,6 +275,7 @@ contains
     call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(MjBaseDir, len(MjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(njBaseInput, len(njBaseInput), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(njNewOutDir, len(njNewOutDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(optimalPairsInput, len(optimalPairsInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
@@ -284,7 +289,7 @@ contains
   subroutine initialize(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
         addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
         carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-        optimalPairsInput, outputDir, prefix, SjBaseDir)
+        njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -351,6 +356,8 @@ contains
       !! matrix element calculations
     character(len=300), intent(out) :: njBaseInput
       !! Path to base nj file
+    character(len=300), intent(out) :: njNewOutDir
+      !! Path to output new occupations if applicable
     character(len=300), intent(out) :: optimalPairsInput
       !! Path to get optimalPairs.out
     character(len=300), intent(out) :: outputDir
@@ -388,6 +395,7 @@ contains
     matrixElementDir = ''
     MjBaseDir = ''
     njBaseInput = ''
+    njNewOutDir = './njNew'
     optimalPairsInput = ''
     outputDir = './'
     prefix = 'disp-'
@@ -401,7 +409,7 @@ contains
   subroutine checkInitialization(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
         addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
         carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-        optimalPairsInput, outputDir, prefix, SjBaseDir)
+        njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
@@ -468,6 +476,8 @@ contains
       !! matrix element calculations
     character(len=300), intent(in) :: njBaseInput
       !! Path to base nj file
+    character(len=300), intent(in) :: njNewOutDir
+      !! Path to output new occupations if applicable
     character(len=300), intent(in) :: optimalPairsInput
       !! Path to get optimalPairs.out
     character(len=300), intent(in) :: outputDir
@@ -521,6 +531,10 @@ contains
         abortExecution = checkDoubleInitialization('dt', dt, 0.0_dp, 10.0_dp) .or. abortExecution
         abortExecution = checkFileInitialization('carrierDensityInput', carrierDensityInput) .or. abortExecution
         abortExecution = checkDoubleInitialization('energyAvgWindow', energyAvgWindow, 0.0_dp, 1.0_dp) .or. abortExecution
+        abortExecution = checkFileInitialization('njBaseInput', njBaseInput) .or. abortExecution
+
+        write(*,'("njNewOutDir = ''",a,"''")') trim(njNewOutDir)
+        call system('mkdir -p '//trim(njNewOutDir))
       endif
 
     endif
