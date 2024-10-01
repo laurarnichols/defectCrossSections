@@ -13,7 +13,8 @@ module LSFmod
 
   integer :: iTime_start, iTime_end
     !! Start and end time steps for this process
-  integer :: nStepsLocal
+    !! for the transition-rate integration
+  integer :: nStepsLocal_transRate
     !! Number of time steps for each
     !! process to complete
 
@@ -50,7 +51,7 @@ module LSFmod
     !! to guarantee convergence
   real(kind=dp), allocatable :: matrixElement(:,:,:)
     !! Electronic matrix element
-  real(kind=dp) :: maxTime
+  real(kind=dp) :: maxTime_transRate
     !! Max time for integration
   real(kind=dp), allocatable :: njBase(:)
     !! Base \(n_j\) occupation number for all states
@@ -131,7 +132,7 @@ module LSFmod
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iSpin, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime, SjThresh, &
+  subroutine readInputParams(iSpin, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime_transRate, SjThresh, &
         smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
         rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, & 
         MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
@@ -157,7 +158,7 @@ contains
     real(kind=dp), intent(out) :: hbarGamma
       !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
-    real(kind=dp), intent(out) :: maxTime
+    real(kind=dp), intent(out) :: maxTime_transRate
       !! Max time for integration
     real(kind=dp), intent(out) :: SjThresh
       !! Threshold for Sj to determine which modes to calculate
@@ -240,8 +241,8 @@ contains
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
 
-      maxTime = -log(smearingExpTolerance)/gamma0
-      write(*,'("Max time: ", ES24.15E3)') maxTime
+      maxTime_transRate = -log(smearingExpTolerance)/gamma0
+      write(*,'("Max time for transition-rate integration: ", ES24.15E3)') maxTime_transRate
 
     endif
 
@@ -257,7 +258,7 @@ contains
     call MPI_BCAST(gamma0, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(SjThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(smearingExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(maxTime, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(maxTime_transRate, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call MPI_BCAST(addDeltaNj, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(captured, 1, MPI_LOGICAL, root, worldComm, ierr)
@@ -1198,7 +1199,7 @@ contains
       !! Text for long header
 
       
-    updateFrequency = ceiling(nStepsLocal/10.0)
+    updateFrequency = ceiling(nStepsLocal_transRate/10.0)
     call cpu_time(timer1)
 
 
@@ -1208,17 +1209,18 @@ contains
     call getTrueIndices(nModes, mask, countTrue, jTrue)
 
 
-    t0 = indexInPool*float(nStepsLocal-1)*dtau
+    t0 = indexInPool*float(nStepsLocal_transRate-1)*dtau
 
     allocate(transitionRate(nTransitions,nkPerPool))
     transitionRate(:,:) = 0.0_dp
 
-    do iTime = 0, nStepsLocal-1
+    do iTime = 0, nStepsLocal_transRate-1
 
       if(ionode .and. mod(iTime,updateFrequency) == 0) then
 
         call cpu_time(timer2)
-        write(*,'("    ", i2,"% complete with transition-rate loop. Time in loop: ",f10.2," secs")') int((iTime*100.0)/nStepsLocal), timer2-timer1
+        write(*,'("    ", i2,"% complete with transition-rate loop. Time in loop: ",f10.2," secs")') &
+              int((iTime*100.0)/nStepsLocal_transRate), timer2-timer1
 
       endif
 
@@ -1226,7 +1228,7 @@ contains
         ! Must do this arithmetic with floats to avoid
         ! integer overflow
 
-      if(iTime == 0 .or. iTime == nStepsLocal-1) then
+      if(iTime == 0 .or. iTime == nStepsLocal_transRate-1) then
         multFact = 1.0_dp
       else if(mod(iTime,2) == 0) then
         multFact = 2.0_dp
