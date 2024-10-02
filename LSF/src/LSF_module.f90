@@ -29,6 +29,9 @@ module LSFmod
     !! Size of first dimension for matrix element
   integer :: nModes
     !! Number of phonon modes
+  integer :: nRealTimeSteps
+    !! Number of real-time steps for updating occupations
+    !! if applicable
   integer :: nTransitions
     !! Total number of transitions 
   integer :: suffixLength
@@ -127,13 +130,13 @@ module LSFmod
                          smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
                          optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations, dt, carrierDensityInput, &
-                         energyAvgWindow, njNewOutDir
+                         energyAvgWindow, njNewOutDir, nRealTimeSteps
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iSpin, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime_transRate, SjThresh, &
-        smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
+  subroutine readInputParams(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime_transRate, &
+        SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
         rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, & 
         MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
@@ -142,6 +145,9 @@ contains
     ! Output variables
     integer, intent(out) :: iSpin
       !! Spin channel to use
+    integer, intent(out) :: nRealTimeSteps
+      !! Number of real-time steps for updating occupations
+      !! if applicable
     integer, intent(out) :: order
       !! Order to calculate (0 or 1)
 
@@ -219,8 +225,8 @@ contains
       !! Path to directory holding Sj.out file(s)
 
   
-    call initialize(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, addDeltaNj, &
-          captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
+    call initialize(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
+          addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
           carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
           njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
@@ -233,7 +239,7 @@ contains
       if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
+      call checkInitialization(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
             addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
             carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
             njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
@@ -249,6 +255,7 @@ contains
     call MPI_BCAST(iSpin, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
       ! nKPoints is not meaningful for scattering
+    call MPI_BCAST(nRealTimeSteps, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
   
     call MPI_BCAST(dt, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -287,7 +294,7 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
+  subroutine initialize(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
         addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
         carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
         njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
@@ -297,6 +304,9 @@ contains
     ! Output variables
     integer, intent(out) :: iSpin
       !! Spin channel to use
+    integer, intent(out) :: nRealTimeSteps
+      !! Number of real-time steps for updating occupations
+      !! if applicable
     integer, intent(out) :: order
       !! Order to calculate (0 or 1)
 
@@ -371,6 +381,7 @@ contains
 
 
     iSpin = 1
+    nRealTimeSteps = 1
     order = -1
 
     dt = 1d-4
@@ -407,16 +418,19 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iSpin, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
-        addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
-        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-        njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
+  subroutine checkInitialization(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, &
+        smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
+        rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
+        njBaseInput, njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
 
     implicit none
 
     ! Input variables
     integer, intent(in) :: iSpin
       !! Spin channel to use
+    integer, intent(inout) :: nRealTimeSteps
+      !! Number of real-time steps for updating occupations
+      !! if applicable
     integer, intent(in) :: order
       !! Order to calculate (0 or 1)
 
@@ -530,6 +544,7 @@ contains
 
       if(generateNewOccupations) then
         abortExecution = checkDoubleInitialization('dt', dt, 0.0_dp, 10.0_dp) .or. abortExecution
+        abortExecution = checkIntInitialization('nRealTimeSteps', nRealTimeSteps, 1, int(1e9))
         abortExecution = checkFileInitialization('carrierDensityInput', carrierDensityInput) .or. abortExecution
         abortExecution = checkDoubleInitialization('energyAvgWindow', energyAvgWindow, 0.0_dp, 1.0_dp) .or. abortExecution
         abortExecution = checkFileInitialization('njBaseInput', njBaseInput) .or. abortExecution
@@ -539,6 +554,10 @@ contains
       endif
 
     endif
+
+    if(captured) nRealTimeSteps = 1
+      ! Ignore input and manually set to a single "time step" for capture
+      ! because the real-time integration is not applicable to capture
 
 
     ! We don't know the band indices here to check for the Sj files for
