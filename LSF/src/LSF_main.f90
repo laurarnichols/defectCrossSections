@@ -117,26 +117,23 @@ program LSFmain
 
   if(ionode) write(*, '("Beginning transition-rate calculation")')
    
-
   call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
           gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
           captured, diffOmega, volumeLine, transitionRate)
 
-  
+  ! Only pass a slice over transitions  here because we know for scattering
+  ! there is no parallelization over k-points.
+  if(generateNewOccupations) &
+    call calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
+          transitionRate, carrierDensityInput, energyTableDir, njNewOutDir, volumeLine, njBase)
+
+
   deallocate(dE)
   deallocate(matrixElement)
   deallocate(omega)
   deallocate(omegaPrime)
   deallocate(Sj)
   deallocate(SjPrime)
-
-  ! Only pass a slice over transitions  here because we know for scattering
-  ! there is no parallelization over k-points.
-  if(generateNewOccupations) &
-    call calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
-          transitionRate, carrierDensityInput, energyTableDir, volumeLine, njBase)
-
-
   deallocate(ibi,ibf,iki,ikf)
   deallocate(transitionRate)
   deallocate(njBase)

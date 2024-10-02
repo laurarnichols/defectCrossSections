@@ -1840,7 +1840,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
-          transitionRate, carrierDensityInput, energyTableDir, volumeLine, njBase)
+          transitionRate, carrierDensityInput, energyTableDir, njNewOutDir, volumeLine, njBase)
 
     implicit none
 
@@ -1871,6 +1871,8 @@ contains
       !! new phonon occupations
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
+    character(len=300), intent(in) :: njNewOutDir
+      !! Path to output new occupations if applicable
     character(len=300), intent(in) :: volumeLine
       !! Volume line from overlap file to be
       !! output exactly in transition rate file
@@ -1903,7 +1905,7 @@ contains
 
     call readCarrierDensity(nUniqueInitStates, dEEigInit, energyAvgWindow, carrierDensityInput, volumeLine, carrierDensity)
 
-    call integrateUpdateAndWriteOccupations(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, njRateOfChange_i, njBase)
+    call integrateUpdateAndWriteOccupations(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, njRateOfChange_i, njNewOutDir, njBase)
 
     deallocate(dEEigInit)
     deallocate(carrierDensity)
@@ -2177,7 +2179,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine integrateUpdateAndWriteOccupations(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, &
-          njRateOfChange_i, njBase)
+          njRateOfChange_i, njNewOutDir, njBase)
 
     use generalComputations, only: trapezoidIntegrationVariableDx 
 
@@ -2203,6 +2205,9 @@ contains
       !! Rate of change of occupations due to transitions
       !! from each initial state, i
 
+    character(len=300), intent(in) :: njNewOutDir
+      !! Path to output new occupations if applicable
+
     ! Output variables:
     real(kind=dp), intent(inout) :: njBase(nModes)
       !! Base \(n_j\) occupation number for all states
@@ -2221,28 +2226,63 @@ contains
 
 
     if(ionode) then
-      open(unit=37, file='nj.new.out')
-      write(37,'("# dt = ",ES24.15E3)') dt
-      write(37,'("# j, New nj, Delta nj, Rate of change (1/s)")')
-
       do j = 1, nModes
         integrand(:) = carrierDensity(:)*njRateOfChange_i(j,:)
         call trapezoidIntegrationVariableDx(nUniqueInitStates, integrand, dEEigInit, integral)
         njRateOfChange(j) = integral
 
         njBase(j) = njBase(j) + njRateOfChange(j)*dt
+      enddo
+    endif
 
-        write(37,'(i7,3ES24.15E3)') j, njBase(j), njRateOfChange(j)*dt, njRateOfChange(j)
+    call MPI_BCAST(njBase, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+    call writeNewOccupations(nModes, njBase, njRateOfChange, dt, njNewOutDir)
+
+    return
+
+  end subroutine integrateUpdateAndWriteOccupations
+  
+!----------------------------------------------------------------------------
+  subroutine writeNewOccupations(nModes, njBase, njRateOfChange, dt, njNewOutDir)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+
+    real(kind=dp), intent(in) :: njBase(nModes)
+      !! Base \(n_j\) occupation number for all states
+    real(kind=dp), intent(in) :: njRateOfChange(nModes)
+      !! Rate of change of occupations due to average
+      !! effect of all transitions
+    real(kind=dp), intent(in) :: dt
+      !! Optional real time step for generating 
+      !! new phonon occupations
+
+    character(len=300), intent(in) :: njNewOutDir
+      !! Path to output new occupations if applicable
+
+    ! Local variables:
+    integer :: j
+      !! Loop index
+
+    if(ionode) then
+      open(unit=37, file=trim(njNewOutDir)//'/nj.new.out')
+      write(37,'("# dt = ",ES24.15E3)') dt
+      write(37,'("# j, New nj, Rate of change (1/s)")')
+
+      do j = 1, nModes
+        write(37,'(i7,3ES24.15E3)') j, njBase(j), njRateOfChange(j)
       enddo
 
       close(37)
     endif
 
-    call MPI_BCAST(njBase, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-
     return
 
-  end subroutine integrateUpdateAndWriteOccupations
+  end subroutine writeNewOccupations
   
 !----------------------------------------------------------------------------
   function transitionRateFileExists(ikGlobal, isp) result(fileExists)
