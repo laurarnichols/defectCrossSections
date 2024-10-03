@@ -1912,7 +1912,11 @@ contains
 
     ! Get initial rate of change of occupations
     call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dEEigInit, dt, totalDeltaNj, transitionRate, njBase, njRateOfChange)
+            uniqueInitStates_ik, carrierDensity, dEEigInit, dt, totalDeltaNj, transitionRate, njRateOfChange)
+
+
+    if(ionode) njBase(:) = njBase(:) + njRateOfChange(:)*dt
+    call MPI_BCAST(njBase, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call writeNewOccupations(nModes, njBase, njRateOfChange, dt, njNewOutDir)
 
@@ -2123,7 +2127,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-          uniqueInitStates_ik, carrierDensity, dEEigInit, dt, totalDeltaNj, transitionRate, njBase, njRateOfChange)
+          uniqueInitStates_ik, carrierDensity, dEEigInit, dt, totalDeltaNj, transitionRate, njRateOfChange)
 
     implicit none
 
@@ -2158,8 +2162,6 @@ contains
       !! \(Gamma_i\) transition rate
 
     ! Output variables:
-    real(kind=dp), intent(inout) :: njBase(nModes)
-      !! Base \(n_j\) occupation number for all states
     real(kind=dp), intent(out) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
@@ -2174,7 +2176,7 @@ contains
           totalDeltaNj, transitionRate, njRateOfChange_i)
 
     call integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, njRateOfChange_i, &
-          njBase, njRateOfChange)
+          njRateOfChange)
 
     deallocate(njRateOfChange_i)
 
@@ -2245,7 +2247,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, &
-          njRateOfChange_i, njBase, njRateOfChange)
+          njRateOfChange_i, njRateOfChange)
 
     use generalComputations, only: trapezoidIntegrationVariableDx 
 
@@ -2272,8 +2274,6 @@ contains
       !! from each initial state, i
 
     ! Output variables:
-    real(kind=dp), intent(inout) :: njBase(nModes)
-      !! Base \(n_j\) occupation number for all states
     real(kind=dp), intent(out) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
@@ -2293,12 +2293,9 @@ contains
         integrand(:) = carrierDensity(:)*njRateOfChange_i(j,:)
         call trapezoidIntegrationVariableDx(nUniqueInitStates, integrand, dEEigInit, integral)
         njRateOfChange(j) = integral
-
-        njBase(j) = njBase(j) + njRateOfChange(j)*dt
       enddo
     endif
 
-    call MPI_BCAST(njBase, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(njRateOfChange, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
