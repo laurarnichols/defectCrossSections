@@ -1882,163 +1882,31 @@ contains
       !! Base \(n_j\) occupation number for all states
 
     ! Local variables:
+    integer :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+    integer, allocatable :: uniqueInitStates_ib(:)
+      !! Band indices for unique initial states
+    integer, allocatable :: uniqueInitStates_ik(:)
+      !! k-point indices for unique initial states
+
     real(kind=dp) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
 
 
+    call getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
+
     ! Get initial rate of change of occupations
-    call getOccRateOfChange(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
-          transitionRate, carrierDensityInput, energyTableDir, volumeLine, njBase, njRateOfChange)
+    call getOccRateOfChange(nModes, nTransitions, ibi, iki, iSpin, nUniqueInitStates, uniqueInitStates_ib, &
+            uniqueInitStates_ik, dt, energyAvgWindow, totalDeltaNj, transitionRate, carrierDensityInput, &
+            energyTableDir, volumeLine, njBase, njRateOfChange)
 
     call writeNewOccupations(nModes, njBase, njRateOfChange, dt, njNewOutDir)
 
     return
 
   end subroutine realTimeIntegration
-
-!----------------------------------------------------------------------------
-  subroutine getOccRateOfChange(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
-          transitionRate, carrierDensityInput, energyTableDir, volumeLine, njBase, njRateOfChange)
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nModes
-      !! Number of phonon modes
-    integer, intent(in) :: nTransitions
-      !! Total number of transitions 
-    integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
-      !! Initial-state indices
-    integer, intent(in) :: iSpin
-      !! Spin channel to use
-
-    real(kind=dp), intent(in) :: dt
-      !! Optional real time step for generating 
-      !! new phonon occupations
-    real(kind=dp), intent(in) :: energyAvgWindow
-      !! Size of window to average over for carrier 
-      !! density evaluation
-    real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
-      !! Optional total change in occupation numbers
-      !! for each mode and transition
-    real(kind=dp), intent(in) :: transitionRate(nTransitions)
-      !! \(Gamma_i\) transition rate
-
-    character(len=300), intent(in) :: carrierDensityInput
-      !! Path to carrier density if generating 
-      !! new phonon occupations
-    character(len=300), intent(in) :: energyTableDir
-      !! Path to energy table to read
-    character(len=300), intent(in) :: volumeLine
-      !! Volume line from overlap file to be
-      !! output exactly in transition rate file
-
-    ! Output variables:
-    real(kind=dp), intent(inout) :: njBase(nModes)
-      !! Base \(n_j\) occupation number for all states
-    real(kind=dp), intent(out) :: njRateOfChange(nModes)
-      !! Rate of change of occupations due to average
-      !! effect of all transitions
-
-    ! Local variables:
-    integer :: nUniqueInitStates
-      !! Number of unique initial states, defined by
-      !! iki and ibi pairs
-
-    real(kind=dp), allocatable :: carrierDensity(:)
-      !! Carrier density for each of the initial states, averaged
-      !! over a given window
-    real(kind=dp), allocatable :: dEEigInit(:)
-      !! Eigenvalue difference of initial states
-      !! relative to band edge
-    real(kind=dp), allocatable :: njRateOfChange_i(:,:)
-      !! Rate of change of occupations due to transitions
-      !! from each initial state, i
-
-
-    call sumOverFinalStates(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate, nUniqueInitStates, njRateOfChange_i)
-
-    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates))
-
-    call readDEPlot(iSpin, nUniqueInitStates, energyTableDir, dEEigInit)
-
-    call readCarrierDensity(nUniqueInitStates, dEEigInit, energyAvgWindow, carrierDensityInput, volumeLine, carrierDensity)
-
-    call integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, njRateOfChange_i, &
-          njBase, njRateOfChange)
-
-    deallocate(dEEigInit)
-    deallocate(carrierDensity)
-    deallocate(njRateOfChange_i)
-
-    return
-
-  end subroutine getOccRateOfChange
-
-!----------------------------------------------------------------------------
-  subroutine sumOverFinalStates(nModes, nTransitions, ibi, iki, totalDeltaNj, transitionRate, nUniqueInitStates, &
-        njRateOfChange_i)
-
-    implicit none
-
-    ! Input variables:
-    integer, intent(in) :: nModes
-      !! Number of phonon modes
-    integer, intent(in) :: nTransitions
-      !! Total number of transitions 
-    integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
-      !! Initial-state indices
-
-    real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
-      !! Optional total change in occupation numbers
-      !! for each mode and transition
-    real(kind=dp), intent(in) :: transitionRate(nTransitions)
-      !! \(Gamma_i\) transition rate
-
-    ! Output variables:
-    integer, intent(out) :: nUniqueInitStates
-      !! Number of unique initial states, defined by
-      !! iki and ibi pairs
-
-    real(kind=dp), allocatable, intent(out) :: njRateOfChange_i(:,:)
-      !! Rate of change of occupations due to transitions
-      !! from each initial state, i
-
-    ! Local variables:
-    integer :: iUInit, iE
-      !! Loop indices
-    integer, allocatable :: uniqueInitStates_ib(:)
-      !! Band indices for unique initial states
-    integer, allocatable :: uniqueInitStates_ik(:)
-      !! k-point indices for unique initial states
-
-
-    call getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
-
-    allocate(njRateOfChange_i(nModes,nUniqueInitStates))
-    njRateOfChange_i = 0.0_dp
-
-    if(ionode) then
-      do iUInit = 1, nUniqueInitStates
-        do iE = 1, nTransitions
-        
-          ! Pick out the elements where the initial state (iki,ibi) corresponds to
-          ! a given unique initial state
-          if(iki(iE) == uniqueInitStates_ik(iUInit) .and. ibi(iE) == uniqueInitStates_ib(iUInit)) then
-
-            ! Then sum over all of the final states for each unique initial state.
-            ! The (:) here indcates the phonon modes. They are all independent.
-            njRateOfChange_i(:,iUInit) = njRateOfChange_i(:,iUInit) + totalDeltaNj(:,iE)*transitionRate(iE)
-
-          endif
-        enddo
-      enddo
-    endif
-
-    return
-
-  end subroutine sumOverFinalStates
 
 !----------------------------------------------------------------------------
   subroutine getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
@@ -2126,6 +1994,152 @@ contains
     return
 
   end subroutine getUniqueInitialStates
+
+!----------------------------------------------------------------------------
+  subroutine getOccRateOfChange(nModes, nTransitions, ibi, iki, iSpin, nUniqueInitStates, uniqueInitStates_ib, &
+          uniqueInitStates_ik, dt, energyAvgWindow, totalDeltaNj, transitionRate, carrierDensityInput, &
+          energyTableDir, volumeLine, njBase, njRateOfChange)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
+      !! Initial-state indices
+    integer, intent(in) :: iSpin
+      !! Spin channel to use
+    integer, intent(in) :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+    integer, intent(in) :: uniqueInitStates_ib(nUniqueInitStates)
+      !! Band indices for unique initial states
+    integer, intent(in) :: uniqueInitStates_ik(nUniqueInitStates)
+      !! k-point indices for unique initial states
+
+    real(kind=dp), intent(in) :: dt
+      !! Optional real time step for generating 
+      !! new phonon occupations
+    real(kind=dp), intent(in) :: energyAvgWindow
+      !! Size of window to average over for carrier 
+      !! density evaluation
+    real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
+      !! Optional total change in occupation numbers
+      !! for each mode and transition
+    real(kind=dp), intent(in) :: transitionRate(nTransitions)
+      !! \(Gamma_i\) transition rate
+
+    character(len=300), intent(in) :: carrierDensityInput
+      !! Path to carrier density if generating 
+      !! new phonon occupations
+    character(len=300), intent(in) :: energyTableDir
+      !! Path to energy table to read
+    character(len=300), intent(in) :: volumeLine
+      !! Volume line from overlap file to be
+      !! output exactly in transition rate file
+
+    ! Output variables:
+    real(kind=dp), intent(inout) :: njBase(nModes)
+      !! Base \(n_j\) occupation number for all states
+    real(kind=dp), intent(out) :: njRateOfChange(nModes)
+      !! Rate of change of occupations due to average
+      !! effect of all transitions
+
+    ! Local variables:
+
+    real(kind=dp), allocatable :: carrierDensity(:)
+      !! Carrier density for each of the initial states, averaged
+      !! over a given window
+    real(kind=dp), allocatable :: dEEigInit(:)
+      !! Eigenvalue difference of initial states
+      !! relative to band edge
+    real(kind=dp), allocatable :: njRateOfChange_i(:,:)
+      !! Rate of change of occupations due to transitions
+      !! from each initial state, i
+
+
+    call sumOverFinalStates(nModes, nTransitions, nUniqueInitStates, ibi, iki, uniqueInitStates_ib, uniqueInitStates_ik, &
+          totalDeltaNj, transitionRate, njRateOfChange_i)
+
+    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates))
+
+    call readDEPlot(iSpin, nUniqueInitStates, energyTableDir, dEEigInit)
+
+    call readCarrierDensity(nUniqueInitStates, dEEigInit, energyAvgWindow, carrierDensityInput, volumeLine, carrierDensity)
+
+    call integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, njRateOfChange_i, &
+          njBase, njRateOfChange)
+
+    deallocate(dEEigInit)
+    deallocate(carrierDensity)
+    deallocate(njRateOfChange_i)
+
+    return
+
+  end subroutine getOccRateOfChange
+
+!----------------------------------------------------------------------------
+  subroutine sumOverFinalStates(nModes, nTransitions, nUniqueInitStates, ibi, iki, uniqueInitStates_ib, uniqueInitStates_ik, &
+        totalDeltaNj, transitionRate, njRateOfChange_i)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+    integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
+      !! Initial-state indices
+    integer, intent(in) :: uniqueInitStates_ib(nUniqueInitStates)
+      !! Band indices for unique initial states
+    integer, intent(in) :: uniqueInitStates_ik(nUniqueInitStates)
+      !! k-point indices for unique initial states
+
+    real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
+      !! Optional total change in occupation numbers
+      !! for each mode and transition
+    real(kind=dp), intent(in) :: transitionRate(nTransitions)
+      !! \(Gamma_i\) transition rate
+
+    ! Output variables:
+    real(kind=dp), allocatable, intent(out) :: njRateOfChange_i(:,:)
+      !! Rate of change of occupations due to transitions
+      !! from each initial state, i
+
+    ! Local variables:
+    integer :: iUInit, iE
+      !! Loop indices
+
+
+    allocate(njRateOfChange_i(nModes,nUniqueInitStates))
+    njRateOfChange_i = 0.0_dp
+
+    if(ionode) then
+      do iUInit = 1, nUniqueInitStates
+        do iE = 1, nTransitions
+        
+          ! Pick out the elements where the initial state (iki,ibi) corresponds to
+          ! a given unique initial state
+          if(iki(iE) == uniqueInitStates_ik(iUInit) .and. ibi(iE) == uniqueInitStates_ib(iUInit)) then
+
+            ! Then sum over all of the final states for each unique initial state.
+            ! The (:) here indcates the phonon modes. They are all independent.
+            njRateOfChange_i(:,iUInit) = njRateOfChange_i(:,iUInit) + totalDeltaNj(:,iE)*transitionRate(iE)
+
+          endif
+        enddo
+      enddo
+    endif
+
+    return
+
+  end subroutine sumOverFinalStates
 
 !----------------------------------------------------------------------------
   subroutine readCarrierDensity(nUniqueInitStates, dEEigInit, energyAvgWindow, carrierDensityInput, volumeLine, carrierDensity)
