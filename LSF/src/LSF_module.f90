@@ -2032,7 +2032,7 @@ contains
 
       if(ionode) write(*, '("Writing occupations for time-integration step ",i5)') iRt
 
-      call writeNewOccupations(nModes, njBase, njRateOfChange, dt, njNewOutDir)
+      call writeNewOccupations(iRt, nModes, njBase, njRateOfChange, dt, njNewOutDir)
 
     enddo
 
@@ -2412,11 +2412,13 @@ contains
   end subroutine integrateOverInitialStates
   
 !----------------------------------------------------------------------------
-  subroutine writeNewOccupations(nModes, njBase, njRateOfChange, dt, njNewOutDir)
+  subroutine writeNewOccupations(iRt, nModes, njBase, njRateOfChange, dt, njNewOutDir)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: iRt
+      !! Real-time integration step index
     integer, intent(in) :: nModes
       !! Number of phonon modes
 
@@ -2437,7 +2439,7 @@ contains
       !! Loop index
 
     if(ionode) then
-      open(unit=37, file=trim(njNewOutDir)//'/nj.new.out')
+      open(unit=37, file=trim(njNewOutDir)//'/nj.'//trim(int2str(iRt))//'.out')
       write(37,'("# dt = ",ES24.15E3)') dt
       write(37,'("# j, New nj, Rate of change (1/s)")')
 
