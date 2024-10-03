@@ -1890,6 +1890,12 @@ contains
     integer, allocatable :: uniqueInitStates_ik(:)
       !! k-point indices for unique initial states
 
+    real(kind=dp), allocatable :: carrierDensity(:)
+      !! Carrier density for each of the initial states, averaged
+      !! over a given window
+    real(kind=dp), allocatable :: dEEigInit(:)
+      !! Eigenvalue difference of initial states
+      !! relative to band edge
     real(kind=dp) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
@@ -1897,12 +1903,21 @@ contains
 
     call getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
 
+    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates))
+
+    call readDEPlot(iSpin, nUniqueInitStates, energyTableDir, dEEigInit)
+
+    call readCarrierDensity(nUniqueInitStates, dEEigInit, energyAvgWindow, carrierDensityInput, volumeLine, carrierDensity)
+
+
     ! Get initial rate of change of occupations
-    call getOccRateOfChange(nModes, nTransitions, ibi, iki, iSpin, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, dt, energyAvgWindow, totalDeltaNj, transitionRate, carrierDensityInput, &
-            energyTableDir, volumeLine, njBase, njRateOfChange)
+    call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+            uniqueInitStates_ik, carrierDensity, dEEigInit, dt, totalDeltaNj, transitionRate, njBase, njRateOfChange)
 
     call writeNewOccupations(nModes, njBase, njRateOfChange, dt, njNewOutDir)
+
+    deallocate(dEEigInit)
+    deallocate(carrierDensity)
 
     return
 
@@ -1996,9 +2011,8 @@ contains
   end subroutine getUniqueInitialStates
 
 !----------------------------------------------------------------------------
-  subroutine getOccRateOfChange(nModes, nTransitions, ibi, iki, iSpin, nUniqueInitStates, uniqueInitStates_ib, &
-          uniqueInitStates_ik, dt, energyAvgWindow, totalDeltaNj, transitionRate, carrierDensityInput, &
-          energyTableDir, volumeLine, njBase, njRateOfChange)
+  subroutine getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+          uniqueInitStates_ik, carrierDensity, dEEigInit, dt, totalDeltaNj, transitionRate, njBase, njRateOfChange)
 
     implicit none
 
@@ -2009,8 +2023,6 @@ contains
       !! Total number of transitions 
     integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
       !! Initial-state indices
-    integer, intent(in) :: iSpin
-      !! Spin channel to use
     integer, intent(in) :: nUniqueInitStates
       !! Number of unique initial states, defined by
       !! iki and ibi pairs
@@ -2019,26 +2031,20 @@ contains
     integer, intent(in) :: uniqueInitStates_ik(nUniqueInitStates)
       !! k-point indices for unique initial states
 
+    real(kind=dp), intent(in) :: carrierDensity(nUniqueInitStates)
+      !! Carrier density for each of the initial states, averaged
+      !! over a given window
+    real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
+      !! Eigenvalue difference of initial states
+      !! relative to band edge
     real(kind=dp), intent(in) :: dt
       !! Optional real time step for generating 
       !! new phonon occupations
-    real(kind=dp), intent(in) :: energyAvgWindow
-      !! Size of window to average over for carrier 
-      !! density evaluation
     real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
       !! Optional total change in occupation numbers
       !! for each mode and transition
     real(kind=dp), intent(in) :: transitionRate(nTransitions)
       !! \(Gamma_i\) transition rate
-
-    character(len=300), intent(in) :: carrierDensityInput
-      !! Path to carrier density if generating 
-      !! new phonon occupations
-    character(len=300), intent(in) :: energyTableDir
-      !! Path to energy table to read
-    character(len=300), intent(in) :: volumeLine
-      !! Volume line from overlap file to be
-      !! output exactly in transition rate file
 
     ! Output variables:
     real(kind=dp), intent(inout) :: njBase(nModes)
@@ -2048,13 +2054,6 @@ contains
       !! effect of all transitions
 
     ! Local variables:
-
-    real(kind=dp), allocatable :: carrierDensity(:)
-      !! Carrier density for each of the initial states, averaged
-      !! over a given window
-    real(kind=dp), allocatable :: dEEigInit(:)
-      !! Eigenvalue difference of initial states
-      !! relative to band edge
     real(kind=dp), allocatable :: njRateOfChange_i(:,:)
       !! Rate of change of occupations due to transitions
       !! from each initial state, i
@@ -2063,17 +2062,9 @@ contains
     call sumOverFinalStates(nModes, nTransitions, nUniqueInitStates, ibi, iki, uniqueInitStates_ib, uniqueInitStates_ik, &
           totalDeltaNj, transitionRate, njRateOfChange_i)
 
-    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates))
-
-    call readDEPlot(iSpin, nUniqueInitStates, energyTableDir, dEEigInit)
-
-    call readCarrierDensity(nUniqueInitStates, dEEigInit, energyAvgWindow, carrierDensityInput, volumeLine, carrierDensity)
-
     call integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, njRateOfChange_i, &
           njBase, njRateOfChange)
 
-    deallocate(dEEigInit)
-    deallocate(carrierDensity)
     deallocate(njRateOfChange_i)
 
     return
