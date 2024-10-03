@@ -428,7 +428,7 @@ contains
     ! Input variables
     integer, intent(in) :: iSpin
       !! Spin channel to use
-    integer, intent(inout) :: nRealTimeSteps
+    integer, intent(in) :: nRealTimeSteps
       !! Number of real-time steps for updating occupations
       !! if applicable
     integer, intent(in) :: order
@@ -554,10 +554,6 @@ contains
       endif
 
     endif
-
-    if(captured) nRealTimeSteps = 1
-      ! Ignore input and manually set to a single "time step" for capture
-      ! because the real-time integration is not applicable to capture
 
 
     ! We don't know the band indices here to check for the Sj files for
@@ -1156,7 +1152,7 @@ contains
       !! output exactly in transition rate file
 
     ! Output variables:
-    real(kind=dp), allocatable, intent(out) :: transitionRate(:,:)
+    real(kind=dp), intent(out) :: transitionRate(nTransitions,nkPerPool)
       !! \(Gamma_i\) transition rate
 
     ! Local variables:
@@ -1230,9 +1226,8 @@ contains
 
     t0 = indexInPool*float(nStepsLocal_transRate-1)*dtau
 
-    allocate(transitionRate(nTransitions,nkPerPool))
+    
     transitionRate(:,:) = 0.0_dp
-
     do iTime = 0, nStepsLocal_transRate-1
 
       if(ionode .and. mod(iTime,updateFrequency) == 0) then
@@ -1839,32 +1834,69 @@ contains
   end subroutine setupStateDepTimeTablesDeltaNj
 
 !----------------------------------------------------------------------------
-  subroutine realTimeIntegration(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
-          transitionRate, carrierDensityInput, energyTableDir, njNewOutDir, volumeLine, njBase)
+  subroutine realTimeIntegration(mDim, nModes, nRealTimeSteps, nTransitions, order, ibi, ibf, iki, ikf, iSpin, &
+          dE, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, &
+          SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, carrierDensityInput, energyTableDir, &
+          njNewOutDir, volumeLine)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: mDim
+      !! Size of first dimension for matrix element
     integer, intent(in) :: nModes
       !! Number of phonon modes
+    integer, intent(in) :: nRealTimeSteps
+      !! Number of real-time steps for updating occupations
+      !! if applicable
     integer, intent(in) :: nTransitions
       !! Total number of transitions 
-    integer, intent(in) :: ibi(nTransitions), iki(nTransitions)
-      !! Initial-state indices
+    integer, intent(in) :: order
+      !! Order to calculate (0 or 1)
+    integer, intent(in) :: ibi(nTransitions), ibf(nTransitions), iki(nTransitions), ikf(nTransitions)
+      !! State indices
     integer, intent(in) :: iSpin
       !! Spin channel to use
 
+    real(kind=dp), intent(in) :: dE(3,nTransitions,nkPerPool)
+      !! All energy differences from energy table
     real(kind=dp), intent(in) :: dt
       !! Optional real time step for generating 
       !! new phonon occupations
+    real(kind=dp), intent(in) :: dtau
+      !! Time step size for time-domain integration
     real(kind=dp), intent(in) :: energyAvgWindow
       !! Size of window to average over for carrier 
       !! density evaluation
+    real(kind=dp), intent(in) :: gamma0
+      !! \(\gamma\) for Lorentzian smearing
+    real(kind=dp), intent(in) :: matrixElement(mDim,nTransitions,nkPerPool)
+      !! Electronic matrix element
+    real(kind=dp), intent(inout) :: njBase(nModes)
+      !! Base \(n_j\) occupation number for all states
+    real(kind=dp), intent(in) :: njPlusDelta(:,:)
+      !! Optional nj plus delta nj from adjustment to 
+      !! carrier approach in initial state
+    real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(in) :: Sj(:,:), SjPrime(:,:)
+      !! Huang-Rhys factor for each mode (and 
+      !! transition for scattering)
+    real(kind=dp), intent(in) :: SjThresh
+      !! Threshold for Sj to determine which modes to calculate
     real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
       !! Optional total change in occupation numbers
       !! for each mode and transition
-    real(kind=dp), intent(in) :: transitionRate(nTransitions)
+    real(kind=dp), intent(inout) :: transitionRate(nTransitions)
       !! \(Gamma_i\) transition rate
+
+    logical, intent(in) :: addDeltaNj
+      !! Add change in occupations for different scattering states
+    logical, intent(in) :: captured
+      !! If carrier is captured as opposed to scattered
+    logical, intent(in) :: diffOmega
+      !! If initial- and final-state frequencies 
+      !! should be treated as different
 
     character(len=300), intent(in) :: carrierDensityInput
       !! Path to carrier density if generating 
@@ -1877,11 +1909,9 @@ contains
       !! Volume line from overlap file to be
       !! output exactly in transition rate file
 
-    ! Output variables:
-    real(kind=dp), intent(inout) :: njBase(nModes)
-      !! Base \(n_j\) occupation number for all states
-
     ! Local variables:
+    integer :: iRt
+      !! Loop index
     integer :: nUniqueInitStates
       !! Number of unique initial states, defined by
       !! iki and ibi pairs
@@ -1896,6 +1926,10 @@ contains
     real(kind=dp), allocatable :: dEEigInit(:)
       !! Eigenvalue difference of initial states
       !! relative to band edge
+    real(kind=dp) :: k1(nModes), k2(nModes), k3(nModes), k4(nModes)
+      !! Intermediate slopes for RK4 integration
+    real(kind=dp) :: njNextEst(nModes)
+      !! Next estimate for njBase
     real(kind=dp) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
@@ -1912,13 +1946,96 @@ contains
 
     ! Get initial rate of change of occupations
     call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dEEigInit, dt, totalDeltaNj, transitionRate, njRateOfChange)
+            uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
 
 
-    if(ionode) njBase(:) = njBase(:) + njRateOfChange(:)*dt
-    call MPI_BCAST(njBase, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    if(ionode) write(*, '("--------------------Beginning real-time integration ")')
 
-    call writeNewOccupations(nModes, njBase, njRateOfChange, dt, njNewOutDir)
+    do iRt = 1, nRealTimeSteps
+      !-----------------------------------------------------------
+      ! Based on initial derivative estimate
+      if(ionode) then
+        ! First estimated slope is at the current point
+        k1(:) = njRateOfChange(:)
+        ! Update estimate of njBase after half time step
+        njNextEst(:) = njBase(:) + k1(:)*dt/2.0d0
+      endif
+
+      ! Broadcast to all processes and get new transition rate and nj rate of change
+      call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+      if(ionode) write(*, '("Beginning transition-rate calculation for part 1 of RK4 time-integration step ",i5)') iRt
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
+            gamma0, matrixElement, njNextEst, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+            captured, diffOmega, volumeLine, transitionRate)
+
+      call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+            uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
+
+      !-----------------------------------------------------------
+      ! Based on first midpoint estimate
+      if(ionode) then
+        ! Second estimated slope is from the midpoint
+        k2(:) = njRateOfChange(:)
+        ! Update estimate of njBase after half time step
+        njNextEst(:) = njBase(:) + k2(:)*dt/2.0d0
+      endif
+
+      ! Broadcast to all processes and get new transition rate
+      call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+      if(ionode) write(*, '("Beginning transition-rate calculation for part 2 of RK4 time-integration step ",i5)') iRt
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
+            gamma0, matrixElement, njNextEst, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+            captured, diffOmega, volumeLine, transitionRate)
+
+      call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+            uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
+
+      !-----------------------------------------------------------
+      ! Based on second midpoint estimate
+      if(ionode) then
+        ! Third estimated slope is from the midpoint
+        k3(:) = njRateOfChange(:)
+        ! Update estimate of njBase after full step
+        njNextEst(:) = njBase(:) + k3(:)*dt
+      endif
+
+      ! Broadcast to all processes and get new transition rate
+      call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+      if(ionode) write(*, '("Beginning transition-rate calculation for part 3 of RK4 time-integration step ",i5)') iRt
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
+            gamma0, matrixElement, njNextEst, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+            captured, diffOmega, volumeLine, transitionRate)
+
+      call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+            uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
+
+      !-----------------------------------------------------------
+      ! Based on endpoint estimate
+      if(ionode) then
+        ! Fourth  estimated slope is at the next time point
+        k4(:) = njRateOfChange(:)
+
+        ! Calculate the total estimated rate of change based on a weighted
+        ! average of the four estimated slopes
+        njRateOfChange(:) = (k1(:) + 2.0d0*k2(:) + 2.0d0*k3(:) + k4(:))/6.0d0 
+
+        ! Update estimate of njBase with final estimated rate of change
+        njBase(:) = njBase(:) + njRateOfChange(:)*dt
+      endif
+
+      ! Broadcast to all processes and write
+      call MPI_BCAST(njBase, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+      call MPI_BCAST(njRateOfChange, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+
+      if(ionode) write(*, '("Writing occupations for time-integration step ",i5)') iRt
+
+      call writeNewOccupations(nModes, njBase, njRateOfChange, dt, njNewOutDir)
+
+    enddo
+
 
     deallocate(dEEigInit)
     deallocate(carrierDensity)
@@ -2127,7 +2244,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-          uniqueInitStates_ik, carrierDensity, dEEigInit, dt, totalDeltaNj, transitionRate, njRateOfChange)
+          uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
 
     implicit none
 
@@ -2152,9 +2269,6 @@ contains
     real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
       !! Eigenvalue difference of initial states
       !! relative to band edge
-    real(kind=dp), intent(in) :: dt
-      !! Optional real time step for generating 
-      !! new phonon occupations
     real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
       !! Optional total change in occupation numbers
       !! for each mode and transition
@@ -2175,8 +2289,7 @@ contains
     call sumOverFinalStates(nModes, nTransitions, nUniqueInitStates, ibi, iki, uniqueInitStates_ib, uniqueInitStates_ik, &
           totalDeltaNj, transitionRate, njRateOfChange_i)
 
-    call integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, njRateOfChange_i, &
-          njRateOfChange)
+    call integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, njRateOfChange_i, njRateOfChange)
 
     deallocate(njRateOfChange_i)
 
@@ -2246,8 +2359,7 @@ contains
   end subroutine sumOverFinalStates
 
 !----------------------------------------------------------------------------
-  subroutine integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, dt, &
-          njRateOfChange_i, njRateOfChange)
+  subroutine integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, njRateOfChange_i, njRateOfChange)
 
     use generalComputations, only: trapezoidIntegrationVariableDx 
 
@@ -2266,9 +2378,6 @@ contains
     real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
       !! Eigenvalue difference of initial states
       !! relative to band edge
-    real(kind=dp), intent(in) :: dt
-      !! Optional real time step for generating 
-      !! new phonon occupations
     real(kind=dp), intent(in) :: njRateOfChange_i(nModes,nUniqueInitStates)
       !! Rate of change of occupations due to transitions
       !! from each initial state, i

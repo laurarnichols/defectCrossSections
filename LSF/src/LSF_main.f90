@@ -116,6 +116,8 @@ program LSFmain
   call cpu_time(timer1)
 
   if(ionode) write(*, '("Beginning transition-rate calculation")')
+
+  allocate(transitionRate(nTransitions,nkPerPool))
    
   call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
           gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
@@ -124,8 +126,10 @@ program LSFmain
   ! Only pass a slice over transitions  here because we know for scattering
   ! there is no parallelization over k-points.
   if(generateNewOccupations) &
-    call realTimeIntegration(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
-          transitionRate, carrierDensityInput, energyTableDir, njNewOutDir, volumeLine, njBase)
+    call realTimeIntegration(mDim, nModes, nRealTimeSteps, nTransitions, order, ibi, ibf, iki, ikf, iSpin, &
+            dE, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, &
+            SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, carrierDensityInput, energyTableDir, &
+            njNewOutDir, volumeLine)
 
 
   deallocate(dE)
