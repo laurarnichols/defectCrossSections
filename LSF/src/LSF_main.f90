@@ -124,7 +124,7 @@ program LSFmain
   ! Only pass a slice over transitions  here because we know for scattering
   ! there is no parallelization over k-points.
   if(generateNewOccupations) &
-    call calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
+    call realTimeIntegration(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
           transitionRate, carrierDensityInput, energyTableDir, njNewOutDir, volumeLine, njBase)
 
 
