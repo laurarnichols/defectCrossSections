@@ -31,7 +31,7 @@ program LSFmain
   call readInputParams(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime_transRate, &
         SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, &
         oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
-        matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
 
   nStepsLocal_transRate = ceiling((maxTime_transRate/dtau)/nProcPerPool)
@@ -121,7 +121,7 @@ program LSFmain
    
   call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
           gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-          captured, diffOmega, volumeLine, transitionRate)
+          captured, diffOmega, transRateOutDir, volumeLine, transitionRate)
 
   ! Only pass a slice over transitions  here because we know for scattering
   ! there is no parallelization over k-points.
@@ -129,7 +129,7 @@ program LSFmain
     call realTimeIntegration(mDim, nModes, nRealTimeSteps, nTransitions, order, ibi, ibf, iki, ikf, iSpin, &
             dE, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, &
             SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, carrierDensityInput, energyTableDir, &
-            njNewOutDir, volumeLine)
+            njNewOutDir, transRateOutDir, volumeLine)
 
 
   deallocate(dE)

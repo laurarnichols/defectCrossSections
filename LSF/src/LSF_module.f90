@@ -114,20 +114,20 @@ module LSFmod
     !! Path to output new occupations if applicable
   character(len=300) :: optimalPairsInput
     !! Path to get optimalPairs.out
-  character(len=300) :: outputDir
-    !! Path to output transition rates
   character(len=300) :: prefix
     !! Prefix of directories for first-order matrix
     !! elements
   character(len=300) :: SjBaseDir
     !! Path to directory holding Sj.out file(s)
+  character(len=300) :: transRateOutDir
+    !! Path to output transition rates
   character(len=300) :: volumeLine
     !! Volume line from overlap file to be
     !! output exactly in transition rate file
 
 
   namelist /inputParams/ energyTableDir, matrixElementDir, MjBaseDir, SjBaseDir, njBaseInput, hbarGamma, dtau, &
-                         smearingExpTolerance, outputDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
+                         smearingExpTolerance, transRateOutDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
                          optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations, dt, carrierDensityInput, &
                          energyAvgWindow, njNewOutDir, nRealTimeSteps
@@ -138,7 +138,7 @@ contains
   subroutine readInputParams(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime_transRate, &
         SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
         rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, & 
-        MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     implicit none
 
@@ -216,19 +216,19 @@ contains
       !! Path to output new occupations if applicable
     character(len=300), intent(out) :: optimalPairsInput
       !! Path to get optimalPairs.out
-    character(len=300), intent(out) :: outputDir
-      !! Path to store transition rates
     character(len=300), intent(out) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
     character(len=300), intent(out) :: SjBaseDir
       !! Path to directory holding Sj.out file(s)
+    character(len=300), intent(out) :: transRateOutDir
+      !! Path to store transition rates
 
   
     call initialize(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
           addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
           carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-          njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
+          njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     if(ionode) then
 
@@ -242,7 +242,7 @@ contains
       call checkInitialization(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
             addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
             carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-            njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
+            njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
@@ -285,9 +285,9 @@ contains
     call MPI_BCAST(njBaseInput, len(njBaseInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(njNewOutDir, len(njNewOutDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(optimalPairsInput, len(optimalPairsInput), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(SjBaseDir, len(SjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(transRateOutDir, len(transRateOutDir), MPI_CHARACTER, root, worldComm, ierr)
     
     return
 
@@ -297,7 +297,7 @@ contains
   subroutine initialize(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
         addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
         carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-        njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     implicit none
 
@@ -371,13 +371,13 @@ contains
       !! Path to output new occupations if applicable
     character(len=300), intent(out) :: optimalPairsInput
       !! Path to get optimalPairs.out
-    character(len=300), intent(out) :: outputDir
-      !! Path to store transition rates
     character(len=300), intent(out) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
     character(len=300), intent(out) :: SjBaseDir
       !! Path to directory holding Sj.out file(s)
+    character(len=300), intent(out) :: transRateOutDir
+      !! Path to store transition rates
 
 
     iSpin = 1
@@ -409,9 +409,9 @@ contains
     njBaseInput = ''
     njNewOutDir = './njNew'
     optimalPairsInput = ''
-    outputDir = './'
     prefix = 'disp-'
     SjBaseDir = ''
+    transRateOutDir = './trasitionRates'
 
     return 
 
@@ -421,7 +421,7 @@ contains
   subroutine checkInitialization(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, &
         smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
         rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
-        njBaseInput, njNewOutDir, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     implicit none
 
@@ -495,13 +495,13 @@ contains
       !! Path to output new occupations if applicable
     character(len=300), intent(in) :: optimalPairsInput
       !! Path to get optimalPairs.out
-    character(len=300), intent(in) :: outputDir
-      !! Path to store transition rates
     character(len=300), intent(in) :: prefix
       !! Prefix of directories for first-order matrix
       !! elements
     character(len=300), intent(in) :: SjBaseDir
       !! Path to directory holding Sj.out file(s)
+    character(len=300), intent(in) :: transRateOutDir
+      !! Path to store transition rates
 
     ! Local variables:
     integer :: ikTest
@@ -632,7 +632,8 @@ contains
     endif
 
 
-    call system('mkdir -p '//trim(outputDir))
+    write(*,'("transRateOutDir = ''",a,"''")') trim(transRateOutDir)
+    call system('mkdir -p '//trim(transRateOutDir))
 
 
     if(abortExecution) then
@@ -1100,7 +1101,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
           gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-          captured, diffOmega, volumeLine, transitionRate)
+          captured, diffOmega, transRateOutDir, volumeLine, transitionRate)
     
     implicit none
 
@@ -1147,6 +1148,8 @@ contains
       !! If initial- and final-state frequencies 
       !! should be treated as different
 
+    character(len=300), intent(in) :: transRateOutDir
+      !! Path to store transition rates
     character(len=300), intent(in) :: volumeLine
       !! Volume line from overlap file to be
       !! output exactly in transition rate file
@@ -1337,9 +1340,9 @@ contains
 
         if(captured) then
           ikGlobal = ikLocal+ikStart_pool-1
-          open(unit=37, file=trim(outputDir)//'transitionRate.'//trim(int2str(iSpin))//"."//trim(int2str(ikGlobal)))
+          open(unit=37, file=trim(transRateOutDir)//'transitionRate.'//trim(int2str(iSpin))//"."//trim(int2str(ikGlobal)))
         else
-          open(unit=37, file=trim(outputDir)//'transitionRate.'//trim(int2str(iSpin)))
+          open(unit=37, file=trim(transRateOutDir)//'transitionRate.'//trim(int2str(iSpin)))
         endif
 
         write(37,'(a)') trim(volumeLine)
@@ -1837,7 +1840,7 @@ contains
   subroutine realTimeIntegration(mDim, nModes, nRealTimeSteps, nTransitions, order, ibi, ibf, iki, ikf, iSpin, &
           dE, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, &
           SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, carrierDensityInput, energyTableDir, &
-          njNewOutDir, volumeLine)
+          njNewOutDir, transRateOutDir, volumeLine)
 
     implicit none
 
@@ -1905,6 +1908,8 @@ contains
       !! Path to energy table to read
     character(len=300), intent(in) :: njNewOutDir
       !! Path to output new occupations if applicable
+    character(len=300), intent(in) :: transRateOutDir
+      !! Path to store transition rates
     character(len=300), intent(in) :: volumeLine
       !! Volume line from overlap file to be
       !! output exactly in transition rate file
@@ -1967,7 +1972,7 @@ contains
       if(ionode) write(*, '("Beginning transition-rate calculation for part 1 of RK4 time-integration step ",i5)') iRt
       call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
             gamma0, matrixElement, njNextEst, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-            captured, diffOmega, volumeLine, transitionRate)
+            captured, diffOmega, transRateOutDir, volumeLine, transitionRate)
 
       call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
             uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
@@ -1987,7 +1992,7 @@ contains
       if(ionode) write(*, '("Beginning transition-rate calculation for part 2 of RK4 time-integration step ",i5)') iRt
       call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
             gamma0, matrixElement, njNextEst, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-            captured, diffOmega, volumeLine, transitionRate)
+            captured, diffOmega, transRateOutDir, volumeLine, transitionRate)
 
       call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
             uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
@@ -2007,7 +2012,7 @@ contains
       if(ionode) write(*, '("Beginning transition-rate calculation for part 3 of RK4 time-integration step ",i5)') iRt
       call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
             gamma0, matrixElement, njNextEst, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-            captured, diffOmega, volumeLine, transitionRate)
+            captured, diffOmega, transRateOutDir, volumeLine, transitionRate)
 
       call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
             uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
@@ -2455,7 +2460,7 @@ contains
   end subroutine writeNewOccupations
   
 !----------------------------------------------------------------------------
-  function transitionRateFileExists(ikGlobal, isp) result(fileExists)
+  function transitionRateFileExists(ikGlobal, isp, transRateOutDir) result(fileExists)
     
     implicit none
     
@@ -2465,13 +2470,16 @@ contains
     integer, intent(in) :: isp
       !! Current spin channel
 
+    character(len=300), intent(in) :: transRateOutDir
+      !! Path to store transition rates
+
     ! Output variables:
     logical :: fileExists
       !! If the overlap file exists for the given 
       !! k-point and spin channel
 
 
-    inquire(file=trim(outputDir)//'transitionRate.'//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), exist=fileExists)
+    inquire(file=trim(transRateOutDir)//'transitionRate.'//trim(int2str(isp))//"."//trim(int2str(ikGlobal)), exist=fileExists)
     
   end function transitionRateFileExists
 
