@@ -1099,9 +1099,9 @@ contains
   end subroutine readAllMatrixElements
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
+  subroutine getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, dtau, &
           gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-          captured, diffOmega, transRateOutDir, volumeLine, transitionRate)
+          captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
     
     implicit none
 
@@ -1110,6 +1110,8 @@ contains
       !! Total number of transitions 
     integer, intent(in) :: ibi(nTransitions), ibf(:), iki(:), ikf(:)
       !! State indices
+    integer, intent(in) :: iRt
+      !! Loop index
     integer, intent(in) :: iSpin
       !! Spin index
     integer, intent(in) :: mDim
@@ -1147,6 +1149,9 @@ contains
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(in) :: generateNewOccupations
+      !! If new occupation numbers should be calculated based on
+      !! summing over initial and final scattering states
 
     character(len=300), intent(in) :: transRateOutDir
       !! Path to store transition rates
@@ -1340,9 +1345,13 @@ contains
 
         if(captured) then
           ikGlobal = ikLocal+ikStart_pool-1
-          open(unit=37, file=trim(transRateOutDir)//'transitionRate.'//trim(int2str(iSpin))//"."//trim(int2str(ikGlobal)))
+          open(unit=37, file=trim(transRateOutDir)//'/transitionRate.'//trim(int2str(iSpin))//"."//trim(int2str(ikGlobal)))
         else
-          open(unit=37, file=trim(transRateOutDir)//'transitionRate.'//trim(int2str(iSpin)))
+          if(generateNewOccupations) then
+            open(unit=37, file=trim(transRateOutDir)//'/transitionRate.'//trim(int2str(iSpin))//'.'//trim(int2str(iRt)))
+          else
+            open(unit=37, file=trim(transRateOutDir)//'/transitionRate.'//trim(int2str(iSpin)))
+          endif
         endif
 
         write(37,'(a)') trim(volumeLine)
@@ -1953,10 +1962,13 @@ contains
     call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
             uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
 
+    ! Write occupations file with rate of change for first point
+    call writeNewOccupations(1, nModes, njBase, njRateOfChange, dt, njNewOutDir)
+
 
     if(ionode) write(*, '("--------------------Beginning real-time integration ")')
 
-    do iRt = 1, nRealTimeSteps
+    do iRt = 2, nRealTimeSteps
       !-----------------------------------------------------------
       ! Based on initial derivative estimate
       if(ionode) then
@@ -1970,9 +1982,9 @@ contains
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 1 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, dtau, &
             gamma0, matrixElement, njNextEst, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-            captured, diffOmega, transRateOutDir, volumeLine, transitionRate)
+            captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
       call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
             uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
@@ -1990,9 +2002,9 @@ contains
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 2 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, dtau, &
             gamma0, matrixElement, njNextEst, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-            captured, diffOmega, transRateOutDir, volumeLine, transitionRate)
+            captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
       call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
             uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
@@ -2010,9 +2022,9 @@ contains
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 3 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, dtau, &
             gamma0, matrixElement, njNextEst, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-            captured, diffOmega, transRateOutDir, volumeLine, transitionRate)
+            captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
       call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
             uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)

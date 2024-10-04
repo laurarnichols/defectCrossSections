@@ -119,9 +119,11 @@ program LSFmain
 
   allocate(transitionRate(nTransitions,nkPerPool))
    
-  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
+  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, 1, iSpin, mDim, nModes, order, dE, dtau, &
           gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-          captured, diffOmega, transRateOutDir, volumeLine, transitionRate)
+          captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
+        ! Pass 1 in explicitly for iRt (the real-time step index). It will be ignored if
+        ! note generating new occupations. It only affects the transition rate file name.
 
   ! Only pass a slice over transitions  here because we know for scattering
   ! there is no parallelization over k-points.
