@@ -77,9 +77,9 @@ program LSFmain
   allocate(njBase(nModes))
 
   if(addDeltaNj) then
-    allocate(njPlusDelta(nModes,nTransitions))
+    allocate(deltaNjInitApproach(nModes,nTransitions))
   else
-    allocate(njPlusDelta(1,1))
+    allocate(deltaNjInitApproach(1,1))
   endif
 
   if(generateNewOccupations) then
@@ -89,7 +89,7 @@ program LSFmain
   endif
 
   call readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, generateNewOccupations, deltaNjBaseDir, njBaseInput, &
-          njBase, njPlusDelta, totalDeltaNj)
+          deltaNjInitApproach, njBase, totalDeltaNj)
 
 
   allocate(jReSort(nModes))
@@ -119,8 +119,8 @@ program LSFmain
 
   allocate(transitionRate(nTransitions,nkPerPool))
    
-  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, 1, iSpin, mDim, nModes, order, dE, dtau, &
-          gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, 1, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+          dtau, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
           captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
         ! Pass 1 in explicitly for iRt (the real-time step index). It will be ignored if
         ! note generating new occupations. It only affects the transition rate file name.
@@ -129,7 +129,7 @@ program LSFmain
   ! there is no parallelization over k-points.
   if(generateNewOccupations) &
     call realTimeIntegration(mDim, nModes, nRealTimeSteps, nTransitions, order, ibi, ibf, iki, ikf, iSpin, &
-            dE, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, &
+            dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, &
             SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, carrierDensityInput, energyTableDir, &
             njNewOutDir, transRateOutDir, volumeLine)
 
@@ -143,6 +143,7 @@ program LSFmain
   deallocate(ibi,ibf,iki,ikf)
   deallocate(transitionRate)
   deallocate(njBase)
+  deallocate(deltaNjInitApproach)
 
 
   call MPI_Barrier(worldComm, ierr)

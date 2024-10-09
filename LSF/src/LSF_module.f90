@@ -39,6 +39,9 @@ module LSFmod
 
   real(kind=dp), allocatable :: dE(:,:,:)
     !! All energy differences from energy table
+  real(kind=dp), allocatable :: deltaNjInitApproach(:,:)
+    !! Optional delta nj from adjustment to 
+    !! carrier approach in initial state
   real(kind=dp) :: dt
     !! Optional real time step for generating 
     !! new phonon occupations
@@ -58,9 +61,6 @@ module LSFmod
     !! Max time for integration
   real(kind=dp), allocatable :: njBase(:)
     !! Base \(n_j\) occupation number for all states
-  real(kind=dp), allocatable :: njPlusDelta(:,:)
-    !! Optional nj plus delta nj from adjustment to 
-    !! carrier approach in initial state
   real(kind=dp), allocatable :: Sj(:,:), SjPrime(:,:)
     !! Huang-Rhys factor for each mode (and transition
     !! for scattering)
@@ -1099,8 +1099,8 @@ contains
   end subroutine readAllMatrixElements
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, dtau, &
-          gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+  subroutine getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+          dtau, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
           captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
     
     implicit none
@@ -1123,6 +1123,9 @@ contains
 
     real(kind=dp), intent(in) :: dE(3,nTransitions,nkPerPool)
       !! All energy differences from energy table
+    real(kind=dp), intent(in) :: deltaNjInitApproach(:,:)
+      !! Optional delta nj from adjustment to 
+      !! carrier approach in initial state
     real(kind=dp), intent(in) :: dtau
       !! Time step size for time-domain integration
     real(kind=dp), intent(in) :: gamma0
@@ -1131,9 +1134,6 @@ contains
       !! Electronic matrix element
     real(kind=dp), intent(in) :: njBase(nModes)
       !! Base \(n_j\) occupation number for all states
-    real(kind=dp), intent(in) :: njPlusDelta(:,:)
-      !! Optional nj plus delta nj from adjustment to 
-      !! carrier approach in initial state
     real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
       !! Frequency for each mode
     real(kind=dp), intent(in) :: Sj(:,:), SjPrime(:,:)
@@ -1180,9 +1180,13 @@ contains
     real(kind=dp) :: multFact
       !! Multiplication factor for each term per
       !! Simpson's integration method
+    real(kind=dp) :: njPlusDelta1D(nModes)
+      !! Optional nj plus delta nj from adjustment to 
+      !! carrier approach in initial state. Indexed only
+      !! over modes and not stored for every transition.
     real(kind=dp) :: sinOmegaPrime(nModes)
       !! sin(omega' t/2)
-    real(kind=dp) :: Sj1D(nModes), SjPrime1D(nModes), njPlusDelta1D(nModes)
+    real(kind=dp) :: Sj1D(nModes), SjPrime1D(nModes)
       !! 1D arrays to pass to setUpTimeTables
     real(kind=dp) :: t0
       !! Initial time for this process
@@ -1294,7 +1298,7 @@ contains
             SjPrime1D = SjPrime(:,iE)
 
             if(addDeltaNj) then
-              njPlusDelta1D = njPlusDelta(:,iE)
+              njPlusDelta1D = njBase(:) + deltaNjInitApproach(:,iE)
               call setupStateDepTimeTablesDeltaNj(countTrue, nModes, jTrue, cosOmegaPrime, njPlusDelta1D, omega, omegaPrime, &
                     sinOmegaPrime, Sj1D, SjPrime1D, posExp_t, diffOmega, Dj0_t, Dj1_t)
             else
@@ -1847,7 +1851,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine realTimeIntegration(mDim, nModes, nRealTimeSteps, nTransitions, order, ibi, ibf, iki, ikf, iSpin, &
-          dE, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, &
+          dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, &
           SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, carrierDensityInput, energyTableDir, &
           njNewOutDir, transRateOutDir, volumeLine)
 
@@ -1872,6 +1876,9 @@ contains
 
     real(kind=dp), intent(in) :: dE(3,nTransitions,nkPerPool)
       !! All energy differences from energy table
+    real(kind=dp), intent(in) :: deltaNjInitApproach(:,:)
+      !! Optional delta nj from adjustment to 
+      !! carrier approach in initial state
     real(kind=dp), intent(in) :: dt
       !! Optional real time step for generating 
       !! new phonon occupations
@@ -1886,9 +1893,6 @@ contains
       !! Electronic matrix element
     real(kind=dp), intent(inout) :: njBase(nModes)
       !! Base \(n_j\) occupation number for all states
-    real(kind=dp), intent(in) :: njPlusDelta(:,:)
-      !! Optional nj plus delta nj from adjustment to 
-      !! carrier approach in initial state
     real(kind=dp), intent(in) :: omega(nModes), omegaPrime(nModes)
       !! Frequency for each mode
     real(kind=dp), intent(in) :: Sj(:,:), SjPrime(:,:)
@@ -1982,8 +1986,8 @@ contains
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 1 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, dtau, &
-            gamma0, matrixElement, njNextEst, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+            dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
       call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
@@ -2002,8 +2006,8 @@ contains
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 2 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, dtau, &
-            gamma0, matrixElement, njNextEst, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+            dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
       call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
@@ -2022,8 +2026,8 @@ contains
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 3 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, dtau, &
-            gamma0, matrixElement, njNextEst, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+            dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
       call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
