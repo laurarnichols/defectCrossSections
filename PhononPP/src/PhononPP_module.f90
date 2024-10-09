@@ -2058,7 +2058,7 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, generateNewOccupations, deltaNjBaseDir, njBaseInput, &
-          njBase, njPlusDelta, totalDeltaNj)
+          deltaNjInitApproach, njBase, totalDeltaNj)
 
     implicit none
 
@@ -2082,11 +2082,11 @@ module PhononPPMod
       !! Path to nj file
 
     ! Output variables:
+    real(kind=dp), intent(out) :: deltaNjInitApproach(:,:)
+      !! Optional delta nj from adjustment to 
+      !! carrier approach in initial state
     real(kind=dp), intent(out) :: njBase(nModes)
       !! \(n_j\) occupation number
-    real(kind=dp), intent(out) :: njPlusDelta(:,:)
-      !! Optional nj plus delta nj from adjustment to 
-      !! carrier approach in initial state
     real(kind=dp), intent(out) :: totalDeltaNj(:,:)
       !! Optional total change in occupation numbers
       !! for each mode and transition
@@ -2151,7 +2151,7 @@ module PhononPPMod
           do j = 1, nModes
             read(64,'(i7,3ES24.15E3)') iDum, deltaNj_gi, deltaNj_if, deltaNj_fg
 
-            if(addDeltaNj) njPlusDelta(j,iE) = njBase(j) + deltaNj_gi
+            if(addDeltaNj) deltaNjInitApproach(j,iE) = deltaNj_gi
             if(generateNewOccupations) totalDeltaNj(j,iE) = deltaNj_gi + deltaNj_if + deltaNj_fg
           enddo
 
@@ -2162,7 +2162,7 @@ module PhononPPMod
     endif ! End if ionode
 
     call MPI_BCAST(njBase, size(njBase), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-    call MPI_BCAST(njPlusDelta, size(njPlusDelta), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(deltaNjInitApproach, size(deltaNjInitApproach), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(totalDeltaNj, size(totalDeltaNj), MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return

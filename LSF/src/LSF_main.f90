@@ -28,15 +28,15 @@ program LSFmain
   if(ionode) write(*, '("Getting input parameters and reading necessary input files.")')
   call cpu_time(timer1)
 
-  call readInputParams(iSpin, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime, SjThresh, &
-        smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, &
+  call readInputParams(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime_transRate, &
+        SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, &
         oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
-        matrixElementDir, MjBaseDir, njBaseInput, optimalPairsInput, outputDir, prefix, SjBaseDir)
+        matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
 
-  nStepsLocal = ceiling((maxTime/dtau)/nProcPerPool)
+  nStepsLocal_transRate = ceiling((maxTime_transRate/dtau)/nProcPerPool)
     ! Would normally calculate the total number of steps as
-    !         nSteps = ceiling(maxTime/dtau)
+    !         nSteps = ceiling(maxTime_transRate/dtau)
     ! then divide the steps across all of the processes in 
     ! the pool. However, the number of steps could be a very 
     ! large integer that could cause overflow. Instead, directly
@@ -48,17 +48,17 @@ program LSFmain
     ! this way will overestimate the number of steps
     ! needed, but that is okay.
 
-  if(nStepsLocal < 0) call exitError('LSF main', 'integer overflow', 1)
+  if(nStepsLocal_transRate < 0) call exitError('LSF main', 'integer overflow', 1)
     ! If there is integer overflow, the number will go to the
     ! most negative integer value available
 
 
-  if(mod(nStepsLocal,2) == 0) nStepsLocal = nStepsLocal + 1
+  if(mod(nStepsLocal_transRate,2) == 0) nStepsLocal_transRate = nStepsLocal_transRate + 1
     ! Simpson's method requires the number of integration
     ! steps to be odd because a 3-point quadratic
     ! interpolation is used
    
-  if(ionode) write(*,'("  Each process is completing ", i15, " time steps.")') nStepsLocal
+  if(ionode) write(*,'("  Each process is completing ", i15, " time steps for the transition-rate integration.")') nStepsLocal_transRate
 
 
   ! Distribute k-points in pools (k-point parallelization only currently
@@ -77,9 +77,9 @@ program LSFmain
   allocate(njBase(nModes))
 
   if(addDeltaNj) then
-    allocate(njPlusDelta(nModes,nTransitions))
+    allocate(deltaNjInitApproach(nModes,nTransitions))
   else
-    allocate(njPlusDelta(1,1))
+    allocate(deltaNjInitApproach(1,1))
   endif
 
   if(generateNewOccupations) then
@@ -89,7 +89,7 @@ program LSFmain
   endif
 
   call readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, generateNewOccupations, deltaNjBaseDir, njBaseInput, &
-          njBase, njPlusDelta, totalDeltaNj)
+          deltaNjInitApproach, njBase, totalDeltaNj)
 
 
   allocate(jReSort(nModes))
@@ -116,30 +116,34 @@ program LSFmain
   call cpu_time(timer1)
 
   if(ionode) write(*, '("Beginning transition-rate calculation")')
+
+  allocate(transitionRate(nTransitions,nkPerPool))
    
+  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, 1, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+          dtau, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+          captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
+        ! Pass 1 in explicitly for iRt (the real-time step index). It will be ignored if
+        ! note generating new occupations. It only affects the transition rate file name.
 
-  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iSpin, mDim, nModes, order, dE, dtau, &
-          gamma0, matrixElement, njBase, njPlusDelta, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-          captured, diffOmega, volumeLine, transitionRate)
+  ! Only pass a slice over transitions  here because we know for scattering
+  ! there is no parallelization over k-points.
+  if(generateNewOccupations) &
+    call realTimeIntegration(mDim, nModes, nRealTimeSteps, nTransitions, order, ibi, ibf, iki, ikf, iSpin, &
+            dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, &
+            SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, carrierDensityInput, energyTableDir, &
+            njNewOutDir, transRateOutDir, volumeLine)
 
-  
+
   deallocate(dE)
   deallocate(matrixElement)
   deallocate(omega)
   deallocate(omegaPrime)
   deallocate(Sj)
   deallocate(SjPrime)
-
-  ! Only pass a slice over transitions  here because we know for scattering
-  ! there is no parallelization over k-points.
-  if(generateNewOccupations) &
-    call calcAndWriteNewOccupations(nModes, nTransitions, ibi, iki, iSpin, dt, energyAvgWindow, totalDeltaNj, &
-          transitionRate, carrierDensityInput, energyTableDir, volumeLine, njBase)
-
-
   deallocate(ibi,ibf,iki,ikf)
   deallocate(transitionRate)
   deallocate(njBase)
+  deallocate(deltaNjInitApproach)
 
 
   call MPI_Barrier(worldComm, ierr)
