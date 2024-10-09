@@ -3,8 +3,13 @@
 The `LSF` program takes in matrix elements, an energy table, the Huang-Rhys factor, and the phonon frequencies and occupation numbers and performs the time-domain integration to get the final transition rate. Before this code can run, you need to run the `TME` program for the proper-order matrix elements, the `EnergyTabulator` program to get the band bounds and table of energies for the delta function, and the `PhononPP` program that post-processes the phonons to get the Huang-Rhys factors and phonon frequencies and occupations. 
 
 The output files are 
-  * `transitionRate.isp.ik`/`transitionRate.isp` -- initial band index and transition rate (1/s) (k-point index not present for scattering)
-  * `nj.new.out` -- new occupations for scattering with the `generateNewOccupations` option
+  * `transitionRate.isp.ik`/`transitionRate.isp`/`transitionRate.isp.iRt`, where `iRt` is the real-time-integration index
+     * initial band index and transition rate (1/s) (k-point index not present for scattering)
+     * stored in `transRateOutDir`, which defaults to `'./transitionRates'`
+  * `nj.iRt.out`, where `iRt` is the real-time-integration index
+     * new occupations and occupation rates of change for scattering with the `generateNewOccupations` option
+     * *Note that the first step is the initial occupations and the rate of change at the first step.*
+     * stored in `njNewOutDir`, which defaults to `'./njNew'`
   * stdout -- timing information and status updates
 
 ## Inputs
@@ -33,7 +38,7 @@ Every calculation must have the following inputs:
 * `hbarGamma` -- default `0.0`; determines smearing of integrand based on $\exp(-\gamma \tau)$ to achieve convergence
 * `smearingExpTolerance` -- default `0.0`; max time for integration is determined by this threshold set on the smearing exponential
 * `diffOmega` -- default `.false.`; if there is a different frequency before and after transition; only currently tested for capture; should be consistent with `PhononPP` output
-* `outputDir` -- default `'./'`; where to output transition-rate files
+* `transRateOutDir` -- default `'./transitionRates'`; where to output transition-rate files
 
 *There is an option to input `SjThresh`, but that input is not fully tested, so don't use it!* There is also an `oldFormat` option that can be useful if you are updating the code and needing to run `LSF` with two different formats. This option will most likely not be used, though.
 
@@ -52,8 +57,10 @@ For scattering (`captured = .false.`), there are several additional options:
 * `deltaNjBaseDir` -- path to the changes in occupations for carrier approach, transition, and departure (output by `PhononPP`)
 * `generateNewOccupations` -- if average over transitions should be performed and new occupations should be calculated
 * `dt` -- default `1e-4` **(s)**; real-time step to be multiplied by average rate of change of occupations to get $\Delta \bar{n}_j$
+* `nRealTimeSteps` -- default `1`; number of real time steps to take if `generateNewOccupations = .true.`
 * `carrierDensityInput` -- path to carrier density file used to perform integration over initial states
 * `energyAvgWindow` -- default `1e-2` eV; energy window over which to average noisy carrier-density input
+* `njNewOutDir` -- default `'./njNew'`; where to store new occupation files
 
 Note that all of our code is in Hartree atomic units until the calculation of the new occupations. The energies from the band edge given in `dEPlot.isp` are in eV and the carrier density is in $\mathrm{cm}^{-3}$ $\mathrm{eV}^{-1}$, so the `energyAvgWindow` for evaluating the carrier density at the energies in `dEPlot.isp` is in eV. After integration over the initial states multiplied by the carrier density as a function of energy, the resulting rate of change of the occupations is in $\mathrm{s}^{-1}$, so the time step `dt` for the real-time integration of the occupations is in s. 
 
