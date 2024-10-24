@@ -93,6 +93,12 @@ module LSFmod
     !! (.false.) or from the dq.txt file (.true.)
   logical :: reSortMEs
     !! If matrix elements should be resorted
+  logical :: thermalize
+    !! If should convert energy transfer to local temp. or
+    !! channel directly into modes
+  logical :: writeEiRate
+    !! If the energy transfer rate should be output as a 
+    !! function of energy
 
   character(len=300) :: carrierDensityInput
     !! Path to carrier density if generating 
@@ -101,6 +107,9 @@ module LSFmod
     !! Path to base directory for deltaNj files
   character(len=300) :: dqInput
     !! Input file for dq.txt if rereading
+  character(len=300) :: EiRateOutDir
+    !! Output directory for energy transfer rate by 
+    !! initial-state energy if writeEiRate == .true.
   character(len=300) :: matrixElementDir
     !! Path to matrix element file `allElecOverlap.isp.ik`. 
     !! For first-order term, the path is just within each 
@@ -130,15 +139,15 @@ module LSFmod
                          smearingExpTolerance, transRateOutDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
                          optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations, dt, carrierDensityInput, &
-                         energyAvgWindow, njNewOutDir, nRealTimeSteps
+                         energyAvgWindow, njNewOutDir, nRealTimeSteps, thermalize, writeEiRate, EiRateOutDir
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime_transRate, &
         SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
-        rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, & 
-        MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+        rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
+        EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     implicit none
 
@@ -193,6 +202,12 @@ contains
       !! (.false.) or from the dq.txt file (.true.)
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
+    logical, intent(out) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
+    logical, intent(out) :: writeEiRate
+      !! If the energy transfer rate should be output as a 
+      !! function of energy
 
     character(len=300), intent(out) :: carrierDensityInput
       !! Path to carrier density if generating 
@@ -203,6 +218,9 @@ contains
       !! Input file for dq.txt if rereading
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
+    character(len=300), intent(out) :: EiRateOutDir
+      !! Output directory for energy transfer rate by 
+      !! initial-state energy if writeEiRate == .true.
     character(len=300), intent(out) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
@@ -227,8 +245,8 @@ contains
   
     call initialize(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
           addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
-          carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-          njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+          thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, &
+          matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     if(ionode) then
 
@@ -241,8 +259,8 @@ contains
 
       call checkInitialization(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
             addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
-            carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-            njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+            thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, &
+            matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
@@ -275,11 +293,14 @@ contains
     call MPI_BCAST(oldFormat, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(reSortMEs, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(rereadDq, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(thermalize, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(writeEiRate, 1, MPI_LOGICAL, root, worldComm, ierr)
   
     call MPI_BCAST(carrierDensityInput, len(carrierDensityInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(deltaNjBaseDir, len(deltaNjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(dqInput, len(dqInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(EiRateOutDir, len(EiRateOutDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(MjBaseDir, len(MjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(njBaseInput, len(njBaseInput), MPI_CHARACTER, root, worldComm, ierr)
@@ -296,8 +317,8 @@ contains
 !----------------------------------------------------------------------------
   subroutine initialize(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
         addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
-        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-        njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+        thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, &
+        matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     implicit none
 
@@ -348,6 +369,12 @@ contains
       !! (.false.) or from the dq.txt file (.true.)
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
+    logical, intent(out) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
+    logical, intent(out) :: writeEiRate
+      !! If the energy transfer rate should be output as a 
+      !! function of energy
 
     character(len=300), intent(out) :: carrierDensityInput
       !! Path to carrier density if generating 
@@ -358,6 +385,9 @@ contains
       !! Input file for dq.txt if rereading
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
+    character(len=300), intent(out) :: EiRateOutDir
+      !! Output directory for energy transfer rate by 
+      !! initial-state energy if writeEiRate == .true.
     character(len=300), intent(out) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
@@ -399,11 +429,14 @@ contains
     oldFormat = .false.
     reSortMEs = .false.
     rereadDq = .false.
+    thermalize = .false.
+    writeEiRate = .false.
 
     carrierDensityInput = ''
     deltaNjBaseDir = ''
     dqInput = ''
     energyTableDir = ''
+    EiRateOutDir = './EiRates'
     matrixElementDir = ''
     MjBaseDir = ''
     njBaseInput = ''
@@ -411,7 +444,7 @@ contains
     optimalPairsInput = ''
     prefix = 'disp-'
     SjBaseDir = ''
-    transRateOutDir = './trasitionRates'
+    transRateOutDir = './transitionRates'
 
     return 
 
@@ -420,8 +453,9 @@ contains
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, &
         smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
-        rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
-        njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+        rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
+        EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, &
+        transRateOutDir)
 
     implicit none
 
@@ -472,6 +506,12 @@ contains
       !! (.false.) or from the dq.txt file (.true.)
     logical, intent(in) :: reSortMEs
       !! If matrix elements should be resorted
+    logical, intent(in) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
+    logical, intent(in) :: writeEiRate
+      !! If the energy transfer rate should be output as a 
+      !! function of energy
 
     character(len=300), intent(in) :: carrierDensityInput
       !! Path to carrier density if generating 
@@ -482,6 +522,9 @@ contains
       !! Input file for dq.txt if rereading
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
+    character(len=300), intent(in) :: EiRateOutDir
+      !! Output directory for energy transfer rate by 
+      !! initial-state energy if writeEiRate == .true.
     character(len=300), intent(in) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
@@ -551,6 +594,11 @@ contains
 
         write(*,'("njNewOutDir = ''",a,"''")') trim(njNewOutDir)
         call system('mkdir -p '//trim(njNewOutDir))
+
+        write(*,'("thermalize = ",L)') thermalize
+
+        write(*,'("EiRateOutDir = ''",a,"''")') trim(EiRateOutDir)
+        call system('mkdir -p '//trim(EiRateOutDir))
       endif
 
     endif
@@ -640,6 +688,10 @@ contains
       write(*, '(" Program stops!")')
       stop
     endif
+    write(*,*) 
+    write(*,*) 
+    write(*,*) 
+    write(*,*) 
 
     return 
 
@@ -1852,8 +1904,8 @@ contains
 !----------------------------------------------------------------------------
   subroutine realTimeIntegration(mDim, nModes, nRealTimeSteps, nTransitions, order, ibi, ibf, iki, ikf, iSpin, &
           dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, &
-          SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, carrierDensityInput, energyTableDir, &
-          njNewOutDir, transRateOutDir, volumeLine)
+          SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, thermalize, writeEiRate, carrierDensityInput, &
+          EiRateOutDir, energyTableDir, njNewOutDir, transRateOutDir, volumeLine)
 
     implicit none
 
@@ -1913,10 +1965,19 @@ contains
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(in) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
+    logical, intent(in) :: writeEiRate
+      !! If the energy transfer rate should be output as a 
+      !! function of energy
 
     character(len=300), intent(in) :: carrierDensityInput
       !! Path to carrier density if generating 
       !! new phonon occupations
+    character(len=300), intent(in) :: EiRateOutDir
+      !! Output directory for energy transfer rate by 
+      !! initial-state energy if writeEiRate == .true.
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
     character(len=300), intent(in) :: njNewOutDir
