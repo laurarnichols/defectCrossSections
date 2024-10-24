@@ -2006,6 +2006,10 @@ contains
     real(kind=dp), allocatable :: dEEigInit(:)
       !! Eigenvalue difference of initial states
       !! relative to band edge
+    real(kind=dp) :: energyTransferRate
+      !! Total energy transfer combining all states
+    real(kind=dp), allocatable :: energyTransferRate_i(:)
+      !! Average energy transfer rate from each initial state
     real(kind=dp) :: k1(nModes), k2(nModes), k3(nModes), k4(nModes)
       !! Intermediate slopes for RK4 integration
     real(kind=dp) :: njNextEst(nModes)
@@ -2017,7 +2021,7 @@ contains
 
     call getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
 
-    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates))
+    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates), energyTransferRate_i(nUniqueInitStates))
 
     call readDEPlot(iSpin, nUniqueInitStates, energyTableDir, dEEigInit)
 
@@ -2027,7 +2031,7 @@ contains
     ! Get initial rate of change of occupations
     call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
             uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
-            writeEiRate, njRateOfChange)
+            writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
     ! Write occupations file with rate of change for first point
     call writeNewOccupations(1, nModes, njBase, njRateOfChange, dt, njNewOutDir)
@@ -2055,7 +2059,7 @@ contains
 
       call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
             uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
-            writeEiRate, njRateOfChange)
+            writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
       !-----------------------------------------------------------
       ! Based on first midpoint estimate
@@ -2076,7 +2080,7 @@ contains
 
       call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
             uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
-            writeEiRate, njRateOfChange)
+            writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
       !-----------------------------------------------------------
       ! Based on second midpoint estimate
@@ -2097,7 +2101,7 @@ contains
 
       call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
             uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
-            writeEiRate, njRateOfChange)
+            writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
       !-----------------------------------------------------------
       ! Based on endpoint estimate
@@ -2126,6 +2130,7 @@ contains
 
     deallocate(dEEigInit)
     deallocate(carrierDensity)
+    deallocate(energyTransferRate_i)
 
     return
 
@@ -2332,7 +2337,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
           uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
-          writeEiRate, njRateOfChange)
+          writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
     implicit none
 
@@ -2376,6 +2381,10 @@ contains
     real(kind=dp), intent(out) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
+    real(kind=dp), intent(out) :: energyTransferRate
+      !! Total energy transfer combining all states
+    real(kind=dp), intent(out) :: energyTransferRate_i(nUniqueInitStates)
+      !! Average energy transfer rate from each initial state
 
     ! Local variables:
     real(kind=dp), allocatable :: njRateOfChange_i(:,:)
@@ -2384,7 +2393,7 @@ contains
 
 
     call sumOverFinalStates(nModes, nTransitions, nUniqueInitStates, ibi, iki, uniqueInitStates_ib, uniqueInitStates_ik, &
-          dE, totalDeltaNj, transitionRate, thermalize, writeEiRate, njRateOfChange_i)
+          dE, energyTransferRate_i, totalDeltaNj, transitionRate, thermalize, writeEiRate, njRateOfChange_i)
 
     call integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, njRateOfChange_i, njRateOfChange)
 
@@ -2396,7 +2405,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine sumOverFinalStates(nModes, nTransitions, nUniqueInitStates, ibi, iki, uniqueInitStates_ib, uniqueInitStates_ik, &
-        dE, totalDeltaNj, transitionRate, thermalize, writeEiRate, njRateOfChange_i)
+        dE, energyTransferRate_i, totalDeltaNj, transitionRate, thermalize, writeEiRate, njRateOfChange_i)
 
     implicit none
 
@@ -2417,6 +2426,8 @@ contains
 
     real(kind=dp), intent(in) :: dE(5,nTransitions,nkPerPool)
       !! All energy differences from energy table
+    real(kind=dp), intent(out) :: energyTransferRate_i(nUniqueInitStates)
+      !! Average energy transfer rate from each initial state
     real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
       !! Optional total change in occupation numbers
       !! for each mode and transition
@@ -2452,8 +2463,14 @@ contains
           if(iki(iE) == uniqueInitStates_ik(iUInit) .and. ibi(iE) == uniqueInitStates_ib(iUInit)) then
 
             ! Then sum over all of the final states for each unique initial state.
-            ! The (:) here indcates the phonon modes. They are all independent.
-            njRateOfChange_i(:,iUInit) = njRateOfChange_i(:,iUInit) + totalDeltaNj(:,iE)*transitionRate(iE)
+            ! For thermalized energy distribution, calculate the energy rate of change.
+            ! Otherwise, channel the energy into the modes.
+            if(thermalize .or. writeEiRate) then
+              energyTransferRate_i(iUInit) = energyTransferRate_i(iUInit) + (dE(1,iE,1) + dE(4,iE,1) + dE(5,iE,1))*transitionRate(iE)
+            else
+              ! The (:) here indcates the phonon modes. They are all independent.
+              njRateOfChange_i(:,iUInit) = njRateOfChange_i(:,iUInit) + totalDeltaNj(:,iE)*transitionRate(iE)
+            endif
 
           endif
         enddo
