@@ -788,8 +788,9 @@ contains
     ! single shot.
     else
       if(ionode) &
-        call readScatterEnergyTable(iSpin, .true., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE2D)
-          ! dE2D will get allocated here with (3,nTransitions)
+        call readScatterEnergyTable(iSpin, .false., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE2D)
+          ! dE2D will get allocated here with (5,nTransitions) and will read all
+          ! energies from the table
 
 
       call MPI_BCAST(nTransitions, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -802,7 +803,7 @@ contains
       call MPI_BCAST(ikf, nTransitions, MPI_INTEGER, root, worldComm, ierr)
 
 
-      allocate(dE(3,nTransitions,1))
+      allocate(dE(5,nTransitions,1))
         ! dE is expected to be 3D here and in later subroutines to 
         ! be consistent with capture. The last index is the number
         ! of k-points per pool, but scattering currently assumes
@@ -1926,7 +1927,7 @@ contains
     integer, intent(in) :: iSpin
       !! Spin channel to use
 
-    real(kind=dp), intent(in) :: dE(3,nTransitions,nkPerPool)
+    real(kind=dp), intent(in) :: dE(5,nTransitions,nkPerPool)
       !! All energy differences from energy table
     real(kind=dp), intent(in) :: deltaNjInitApproach(:,:)
       !! Optional delta nj from adjustment to 
@@ -2047,7 +2048,7 @@ contains
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 1 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE(1:3,:,:), deltaNjInitApproach, &
             dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
@@ -2067,7 +2068,7 @@ contains
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 2 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE(1:3,:,:), deltaNjInitApproach, &
             dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
@@ -2087,7 +2088,7 @@ contains
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 3 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE(1:3,:,:), deltaNjInitApproach, &
             dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 

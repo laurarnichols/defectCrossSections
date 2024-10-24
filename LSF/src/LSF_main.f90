@@ -119,7 +119,7 @@ program LSFmain
 
   allocate(transitionRate(nTransitions,nkPerPool))
    
-  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, 1, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, 1, iSpin, mDim, nModes, order, dE(1:3,:,:), deltaNjInitApproach, &
           dtau, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
           captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
         ! Pass 1 in explicitly for iRt (the real-time step index). It will be ignored if
