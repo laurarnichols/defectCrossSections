@@ -2025,8 +2025,9 @@ contains
 
 
     ! Get initial rate of change of occupations
-    call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
+    call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
+            writeEiRate, njRateOfChange)
 
     ! Write occupations file with rate of change for first point
     call writeNewOccupations(1, nModes, njBase, njRateOfChange, dt, njNewOutDir)
@@ -2052,8 +2053,9 @@ contains
             dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
-      call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
+      call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
+            writeEiRate, njRateOfChange)
 
       !-----------------------------------------------------------
       ! Based on first midpoint estimate
@@ -2072,8 +2074,9 @@ contains
             dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
-      call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
+      call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
+            writeEiRate, njRateOfChange)
 
       !-----------------------------------------------------------
       ! Based on second midpoint estimate
@@ -2092,8 +2095,9 @@ contains
             dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
-      call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
+      call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
+            writeEiRate, njRateOfChange)
 
       !-----------------------------------------------------------
       ! Based on endpoint estimate
@@ -2326,8 +2330,9 @@ contains
   end subroutine readCarrierDensity
 
 !----------------------------------------------------------------------------
-  subroutine getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-          uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
+  subroutine getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+          uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
+          writeEiRate, njRateOfChange)
 
     implicit none
 
@@ -2349,6 +2354,8 @@ contains
     real(kind=dp), intent(in) :: carrierDensity(nUniqueInitStates)
       !! Carrier density for each of the initial states, averaged
       !! over a given window
+    real(kind=dp), intent(in) :: dE(5,nTransitions,nkPerPool)
+      !! All energy differences from energy table
     real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
       !! Eigenvalue difference of initial states
       !! relative to band edge
@@ -2357,6 +2364,13 @@ contains
       !! for each mode and transition
     real(kind=dp), intent(in) :: transitionRate(nTransitions)
       !! \(Gamma_i\) transition rate
+
+    logical, intent(in) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
+    logical, intent(in) :: writeEiRate
+      !! If the energy transfer rate should be output as a 
+      !! function of energy
 
     ! Output variables:
     real(kind=dp), intent(out) :: njRateOfChange(nModes)
@@ -2370,7 +2384,7 @@ contains
 
 
     call sumOverFinalStates(nModes, nTransitions, nUniqueInitStates, ibi, iki, uniqueInitStates_ib, uniqueInitStates_ik, &
-          totalDeltaNj, transitionRate, njRateOfChange_i)
+          dE, totalDeltaNj, transitionRate, thermalize, writeEiRate, njRateOfChange_i)
 
     call integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, njRateOfChange_i, njRateOfChange)
 
@@ -2378,11 +2392,11 @@ contains
 
     return
 
-  end subroutine getOccRateOfChange
+  end subroutine getExcitationRate
 
 !----------------------------------------------------------------------------
   subroutine sumOverFinalStates(nModes, nTransitions, nUniqueInitStates, ibi, iki, uniqueInitStates_ib, uniqueInitStates_ik, &
-        totalDeltaNj, transitionRate, njRateOfChange_i)
+        dE, totalDeltaNj, transitionRate, thermalize, writeEiRate, njRateOfChange_i)
 
     implicit none
 
@@ -2401,11 +2415,20 @@ contains
     integer, intent(in) :: uniqueInitStates_ik(nUniqueInitStates)
       !! k-point indices for unique initial states
 
+    real(kind=dp), intent(in) :: dE(5,nTransitions,nkPerPool)
+      !! All energy differences from energy table
     real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
       !! Optional total change in occupation numbers
       !! for each mode and transition
     real(kind=dp), intent(in) :: transitionRate(nTransitions)
       !! \(Gamma_i\) transition rate
+
+    logical, intent(in) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
+    logical, intent(in) :: writeEiRate
+      !! If the energy transfer rate should be output as a 
+      !! function of energy
 
     ! Output variables:
     real(kind=dp), allocatable, intent(out) :: njRateOfChange_i(:,:)
