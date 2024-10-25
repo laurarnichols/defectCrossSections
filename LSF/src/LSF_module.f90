@@ -2055,6 +2055,13 @@ contains
     if(writeEiRate) &
       call writeAvgETransRateByInitE(1, nUniqueInitStates, dEEigInit, energyTransferRate_i, EiRateOutDir)
 
+    if(ionode .and. thermalize) then
+      open(53,file='localTemp.out')
+
+      write(53,'("# iRt, temperature")')
+      write(53,'(i10, f10.1)') 1, temperature
+    endif
+
 
     if(ionode) write(*, '("--------------------Beginning real-time integration ")')
 
@@ -2157,6 +2164,7 @@ contains
           k4 = localHeatingRate
           localHeatingRate = (k1(1) + 2.0d0*k2(1) + 2.0d0*k3(1) + k4(1))/6.0d0 
           temperature = temperature + localHeatingRate*dt
+          write(53,'(i10, f10.1)') iRt, temperature
           call getNjFromTemp(nModes, omega, temperature, njBase)
         else
           k4(:) = njRateOfChange(:)
@@ -2178,6 +2186,7 @@ contains
 
     enddo
 
+    if(ionode .and. thermalize) close(53)
 
     deallocate(dEEigInit)
     deallocate(carrierDensity)
