@@ -2648,7 +2648,7 @@ contains
       write(37,'("# iUInit, dEEigRef (eV), Energy Rate of change (eV/s)")')
 
       do iUInit = 1, nUniqueInitStates
-        write(37,'(i7,2ES24.15E3)') iUInit, dEEigInit(iUInit), energyTransferRate_i(iUInit)
+        write(37,'(i7,2ES24.15E3)') iUInit, dEEigInit(iUInit), energyTransferRate_i(iUInit)*HartreeToEv
       enddo
 
       close(37)
