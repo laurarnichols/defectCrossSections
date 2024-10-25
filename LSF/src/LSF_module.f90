@@ -2034,7 +2034,7 @@ contains
             writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
     ! Write occupations file with rate of change for first point
-    call writeNewOccupations(1, nModes, njBase, njRateOfChange, dt, njNewOutDir)
+    call writeNewOccupations(1, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, njNewOutDir)
 
 
     if(ionode) write(*, '("--------------------Beginning real-time integration ")')
@@ -2123,7 +2123,7 @@ contains
 
       if(ionode) write(*, '("Writing occupations for time-integration step ",i5)') iRt
 
-      call writeNewOccupations(iRt, nModes, njBase, njRateOfChange, dt, njNewOutDir)
+      call writeNewOccupations(iRt, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, njNewOutDir)
 
     enddo
 
@@ -2467,10 +2467,13 @@ contains
 
             ! Then sum over all of the final states for each unique initial state.
             ! For thermalized energy distribution, calculate the energy rate of change.
-            ! Otherwise, channel the energy into the modes.
+            ! Also calculate this if you just want to visualize the rate and write it out.
             if(thermalize .or. writeEiRate) then
               energyTransferRate_i(iUInit) = energyTransferRate_i(iUInit) + (dE(1,iE,1) + dE(4,iE,1) + dE(5,iE,1))*transitionRate(iE)
-            else
+            endif
+            
+            ! Otherwise, channel the energy into the modes.
+            if(.not. thermalize) then
               ! The (:) here indcates the phonon modes. They are all independent.
               njRateOfChange_i(:,iUInit) = njRateOfChange_i(:,iUInit) + totalDeltaNj(:,iE)*transitionRate(iE)
             endif
@@ -2558,7 +2561,7 @@ contains
   end subroutine integrateOverInitialStates
   
 !----------------------------------------------------------------------------
-  subroutine writeNewOccupations(iRt, nModes, njBase, njRateOfChange, dt, njNewOutDir)
+  subroutine writeNewOccupations(iRt, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, njNewOutDir)
 
     implicit none
 
@@ -2568,11 +2571,15 @@ contains
     integer, intent(in) :: nModes
       !! Number of phonon modes
 
+    real(kind=dp), intent(in) :: energyTransferRate
+      !! Total energy transfer combining all states
     real(kind=dp), intent(in) :: njBase(nModes)
       !! Base \(n_j\) occupation number for all states
     real(kind=dp), intent(in) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
     real(kind=dp), intent(in) :: dt
       !! Optional real time step for generating 
       !! new phonon occupations
@@ -2590,7 +2597,7 @@ contains
       write(37,'("# j, New nj, Rate of change (1/s)")')
 
       do j = 1, nModes
-        write(37,'(i7,3ES24.15E3)') j, njBase(j), njRateOfChange(j)
+        write(37,'(i7,2ES24.15E3,f10.2,"%")') j, njBase(j), njRateOfChange(j), njRateOfChange(j)*omega(j)/energyTransferRate*100d0
       enddo
 
       close(37)
