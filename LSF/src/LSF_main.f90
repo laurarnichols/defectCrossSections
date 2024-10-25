@@ -89,7 +89,7 @@ program LSFmain
   endif
 
   call readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, generateNewOccupations, deltaNjBaseDir, njBaseInput, &
-          deltaNjInitApproach, njBase, totalDeltaNj)
+          deltaNjInitApproach, njBase, temperature, totalDeltaNj)
 
 
   allocate(jReSort(nModes))

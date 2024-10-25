@@ -2086,7 +2086,7 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, generateNewOccupations, deltaNjBaseDir, njBaseInput, &
-          deltaNjInitApproach, njBase, totalDeltaNj)
+          deltaNjInitApproach, njBase, temperature, totalDeltaNj)
 
     implicit none
 
@@ -2115,6 +2115,7 @@ module PhononPPMod
       !! carrier approach in initial state
     real(kind=dp), intent(out) :: njBase(nModes)
       !! \(n_j\) occupation number
+    real(kind=dp), intent(out) :: temperature
     real(kind=dp), intent(out) :: totalDeltaNj(:,:)
       !! Optional total change in occupation numbers
       !! for each mode and transition
@@ -2147,7 +2148,7 @@ module PhononPPMod
 
       open(17,file=trim(njBaseInput))
 
-      read(17,*)
+      read(17,'(a19,f7.1)') textDum, temperature
 
       read(17,'(a19,i10)') textDum, nModes_
       if(nModes_ /= nModes) call exitError('readNj','Input number of modes does not match nj file!',1)

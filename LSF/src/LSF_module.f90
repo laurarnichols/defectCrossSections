@@ -1,9 +1,9 @@
 module LSFmod
   
-  use constants, only: dp, HartreeToEv, ii, hbar_atomic, time_atomicToSI, BohrToMeter
+  use constants, only: dp, HartreeToEv, ii, hbar_atomic, time_atomicToSI, BohrToMeter, kB_atomic
   use base, only: nKPoints, order
   use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName, readSingleKMatrixElements
-  use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, readNj
+  use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, readNj, getNjFromTemp, temperature
   use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable, readScatterEnergyTable, readDEPlot
   use miscUtilities, only: int2strLeadZero, int2str
   use errorsAndMPI
