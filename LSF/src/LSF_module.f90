@@ -597,8 +597,11 @@ contains
 
         write(*,'("thermalize = ",L)') thermalize
 
-        write(*,'("EiRateOutDir = ''",a,"''")') trim(EiRateOutDir)
-        call system('mkdir -p '//trim(EiRateOutDir))
+        write(*,'("writeEiRate = ",L)') writeEiRate
+        if(writeEiRate) then
+          write(*,'("EiRateOutDir = ''",a,"''")') trim(EiRateOutDir)
+          call system('mkdir -p '//trim(EiRateOutDir))
+        endif
       endif
 
     endif
@@ -1905,8 +1908,8 @@ contains
 !----------------------------------------------------------------------------
   subroutine realTimeIntegration(mDim, nModes, nRealTimeSteps, nTransitions, order, ibi, ibf, iki, ikf, iSpin, &
           dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, &
-          SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, thermalize, writeEiRate, carrierDensityInput, &
-          EiRateOutDir, energyTableDir, njNewOutDir, transRateOutDir, volumeLine)
+          temperature, SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, thermalize, writeEiRate, &
+          carrierDensityInput, EiRateOutDir, energyTableDir, njNewOutDir, transRateOutDir, volumeLine)
 
     implicit none
 
@@ -1953,6 +1956,7 @@ contains
       !! transition for scattering)
     real(kind=dp), intent(in) :: SjThresh
       !! Threshold for Sj to determine which modes to calculate
+    real(kind=dp), intent(inout) :: temperature
     real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
       !! Optional total change in occupation numbers
       !! for each mode and transition
@@ -2010,14 +2014,25 @@ contains
       !! Total energy transfer combining all states
     real(kind=dp), allocatable :: energyTransferRate_i(:)
       !! Average energy transfer rate from each initial state
-    real(kind=dp) :: k1(nModes), k2(nModes), k3(nModes), k4(nModes)
+    real(kind=dp), allocatable :: k1(:), k2(:), k3(:), k4(:)
       !! Intermediate slopes for RK4 integration
+    real(kind=dp) :: localHeatingRate
+      !! Energy transfer rate converted to rate of 
+      !! change of local temperature
     real(kind=dp) :: njNextEst(nModes)
       !! Next estimate for njBase
     real(kind=dp) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
+    real(kind=dp) :: tempNextEst
+      !! Next estimate of the local temperature
 
+
+    if(thermalize) then
+      allocate(k1(1), k2(1), k3(1), k4(1))
+    else
+      allocate(k1(nModes), k2(nModes), k3(nModes), k4(nModes))
+    endif
 
     call getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
 
@@ -2033,10 +2048,12 @@ contains
             uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
             writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
+    if(thermalize .and. ionode) call ERateToTRate(nModes, energyTransferRate, njBase, omega, temperature, localHeatingRate)
+
     ! Write occupations file with rate of change for first point
-    call writeNewOccupations(1, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, njNewOutDir)
+    call writeNewOccupations(1, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, thermalize, njNewOutDir)
     if(writeEiRate) &
-      call writeAvgETransRateByInitE(1, nUniqueInitStates, dEEigInit, energyTransferRate, energyTransferRate_i, EiRateOutDir)
+      call writeAvgETransRateByInitE(1, nUniqueInitStates, dEEigInit, energyTransferRate_i, EiRateOutDir)
 
 
     if(ionode) write(*, '("--------------------Beginning real-time integration ")')
@@ -2045,10 +2062,16 @@ contains
       !-----------------------------------------------------------
       ! Based on initial derivative estimate
       if(ionode) then
-        ! First estimated slope is at the current point
-        k1(:) = njRateOfChange(:)
+        ! First estimated slope is at the current point. 
         ! Update estimate of njBase after half time step
-        njNextEst(:) = njBase(:) + k1(:)*dt/2.0d0
+        if(thermalize) then
+          k1 = localHeatingRate
+          tempNextEst = temperature + k1(1)*dt/2.0_dp
+          call getNjFromTemp(nModes, omega, tempNextEst, njNextEst)
+        else
+          k1(:) = njRateOfChange(:)
+          njNextEst(:) = njBase(:) + k1(:)*dt/2.0d0
+        endif
       endif
 
       ! Broadcast to all processes and get new transition rate and nj rate of change
@@ -2063,16 +2086,24 @@ contains
             uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
             writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
+      if(thermalize .and. ionode) call ERateToTRate(nModes, energyTransferRate, njNextEst, omega, tempNextEst, localHeatingRate)
+
       !-----------------------------------------------------------
       ! Based on first midpoint estimate
       if(ionode) then
         ! Second estimated slope is from the midpoint
-        k2(:) = njRateOfChange(:)
         ! Update estimate of njBase after half time step
-        njNextEst(:) = njBase(:) + k2(:)*dt/2.0d0
+        if(thermalize) then
+          k2 = localHeatingRate
+          tempNextEst = temperature + k2(1)*dt/2.0_dp
+          call getNjFromTemp(nModes, omega, tempNextEst, njNextEst)
+        else
+          k2(:) = njRateOfChange(:)
+          njNextEst(:) = njBase(:) + k2(:)*dt/2.0d0
+        endif
       endif
 
-      ! Broadcast to all processes and get new transition rate
+      ! Broadcast to all processes and get new transition rate and nj rate of change
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 2 of RK4 time-integration step ",i5)') iRt
@@ -2084,16 +2115,24 @@ contains
             uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
             writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
+      if(thermalize .and. ionode) call ERateToTRate(nModes, energyTransferRate, njNextEst, omega, tempNextEst, localHeatingRate)
+
       !-----------------------------------------------------------
       ! Based on second midpoint estimate
       if(ionode) then
         ! Third estimated slope is from the midpoint
-        k3(:) = njRateOfChange(:)
         ! Update estimate of njBase after full step
-        njNextEst(:) = njBase(:) + k3(:)*dt
+        if(thermalize) then
+          k3 = localHeatingRate
+          tempNextEst = temperature + k3(1)*dt
+          call getNjFromTemp(nModes, omega, tempNextEst, njNextEst)
+        else
+          k3(:) = njRateOfChange(:)
+          njNextEst(:) = njBase(:) + k3(:)*dt
+        endif
       endif
 
-      ! Broadcast to all processes and get new transition rate
+      ! Broadcast to all processes and get new transition rate and nj rate of change
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 3 of RK4 time-integration step ",i5)') iRt
@@ -2105,29 +2144,37 @@ contains
             uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
             writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
+      if(thermalize .and. ionode) call ERateToTRate(nModes, energyTransferRate, njNextEst, omega, tempNextEst, localHeatingRate)
+
       !-----------------------------------------------------------
       ! Based on endpoint estimate
       if(ionode) then
-        ! Fourth  estimated slope is at the next time point
-        k4(:) = njRateOfChange(:)
-
+        ! Fourth  estimated slope is at the next time point.
         ! Calculate the total estimated rate of change based on a weighted
-        ! average of the four estimated slopes
-        njRateOfChange(:) = (k1(:) + 2.0d0*k2(:) + 2.0d0*k3(:) + k4(:))/6.0d0 
-
-        ! Update estimate of njBase with final estimated rate of change
-        njBase(:) = njBase(:) + njRateOfChange(:)*dt
+        ! average of the four estimated slopes.
+        ! Update estimate of njBase with final estimated rate of change.
+        if(thermalize) then
+          k4 = localHeatingRate
+          localHeatingRate = (k1(1) + 2.0d0*k2(1) + 2.0d0*k3(1) + k4(1))/6.0d0 
+          temperature = temperature + localHeatingRate*dt
+          call getNjFromTemp(nModes, omega, temperature, njBase)
+        else
+          k4(:) = njRateOfChange(:)
+          njRateOfChange(:) = (k1(:) + 2.0d0*k2(:) + 2.0d0*k3(:) + k4(:))/6.0d0 
+          njBase(:) = njBase(:) + njRateOfChange(:)*dt
+        endif
       endif
 
       ! Broadcast to all processes and write
+      call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(njBase, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(njRateOfChange, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Writing occupations for time-integration step ",i5)') iRt
 
-      call writeNewOccupations(iRt, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, njNewOutDir)
+      call writeNewOccupations(iRt, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, thermalize, njNewOutDir)
       if(writeEiRate) &
-        call writeAvgETransRateByInitE(iRt, nUniqueInitStates, dEEigInit, energyTransferRate, energyTransferRate_i, EiRateOutDir)
+        call writeAvgETransRateByInitE(iRt, nUniqueInitStates, dEEigInit, energyTransferRate_i, EiRateOutDir)
 
     enddo
 
@@ -2135,6 +2182,7 @@ contains
     deallocate(dEEigInit)
     deallocate(carrierDensity)
     deallocate(energyTransferRate_i)
+    deallocate(k1, k2, k3, k4)
 
     return
 
@@ -2566,9 +2614,39 @@ contains
     return
 
   end subroutine integrateOverInitialStates
+
+!----------------------------------------------------------------------------
+  subroutine ERateToTRate(nModes, energyTransferRate, njBase, omega, temperature, localHeatingRate)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+
+    real(kind=dp), intent(in) :: energyTransferRate
+      !! Total energy transfer combining all states
+    real(kind=dp), intent(in) :: njBase(nModes)
+      !! Base \(n_j\) occupation number for all states
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(in) :: temperature
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: localHeatingRate
+      !! Energy transfer rate converted to rate of 
+      !! change of local temperature
+
+
+    localHeatingRate = energyTransferRate*kB_atomic*(temperature/hbar_atomic)**2* &
+                                sum(omega(:)*omega(:)*njBase(:)*(njBase(:) + 1.0_dp))
+
+    return
+
+  end subroutine ERateToTRate
   
 !----------------------------------------------------------------------------
-  subroutine writeNewOccupations(iRt, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, njNewOutDir)
+  subroutine writeNewOccupations(iRt, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, thermalize, njNewOutDir)
 
     implicit none
 
@@ -2591,6 +2669,10 @@ contains
       !! Optional real time step for generating 
       !! new phonon occupations
 
+    logical, intent(in) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
+
     character(len=300), intent(in) :: njNewOutDir
       !! Path to output new occupations if applicable
 
@@ -2601,10 +2683,19 @@ contains
     if(ionode) then
       open(unit=37, file=trim(njNewOutDir)//'/nj.'//trim(int2str(iRt))//'.out')
       write(37,'("# dt = ",ES24.15E3)') dt
-      write(37,'("# j, New nj, Rate of change (1/s)")')
+
+      if(thermalize) then
+        write(37,'("# j, New nj")')
+      else
+        write(37,'("# j, New nj, Rate of change (1/s)")')
+      endif
 
       do j = 1, nModes
-        write(37,'(i7,2ES24.15E3,f10.2,"%")') j, njBase(j), njRateOfChange(j), njRateOfChange(j)*omega(j)/energyTransferRate*100d0
+        if(thermalize) then
+          write(37,'(i7,ES24.15E3)') j, njBase(j)
+        else
+          write(37,'(i7,2ES24.15E3,f10.2,"%")') j, njBase(j), njRateOfChange(j), njRateOfChange(j)*omega(j)/energyTransferRate*100d0
+        endif
       enddo
 
       close(37)
@@ -2615,7 +2706,7 @@ contains
   end subroutine writeNewOccupations
 
 !----------------------------------------------------------------------------
-  subroutine writeAvgETransRateByInitE(iRt, nUniqueInitStates, dEEigInit, energyTransferRate, energyTransferRate_i, EiRateOutDir)
+  subroutine writeAvgETransRateByInitE(iRt, nUniqueInitStates, dEEigInit, energyTransferRate_i, EiRateOutDir)
 
     implicit none
 
@@ -2629,8 +2720,6 @@ contains
     real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
       !! Eigenvalue difference of initial states
       !! relative to band edge
-    real(kind=dp), intent(in) :: energyTransferRate
-      !! Total energy transfer combining all states
     real(kind=dp), intent(in) :: energyTransferRate_i(nUniqueInitStates)
       !! Average energy transfer rate from each initial state
 

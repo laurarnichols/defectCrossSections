@@ -815,9 +815,9 @@ module PhononPPMod
       !! \(n_j\) occupation number
 
     
-    call getNjFromTemp(nModes, omega, temperature, nj)
-
     if(ionode) then
+
+      call getNjFromTemp(nModes, omega, temperature, nj)
 
       open(17,file='njThermal.out')
 
@@ -860,15 +860,9 @@ module PhononPPMod
       !! 1/kb*T
 
 
-    if(ionode) then
-
       beta = 1.0_dp/(kB_atomic*temperature)
 
       nj(:) = 1.0_dp/(exp(hbar_atomic*omega(:)*beta) - 1.0_dp)
-
-    endif
-
-    call MPI_BCAST(nj, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
