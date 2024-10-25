@@ -848,7 +848,7 @@ module energyTabulatorMod
                 ! differences.
                 dEDelta = eTotRelax(ibf,ikf) - eTotRelax(ibi,iki)
 
-                !if(dEDelta >= 0.0_dp) then
+                if(dEDelta >= 0.0_dp) then
                   ! If this delta-function energy is positive, the phonon energy will have to be
                   ! negative. You can potentially ignore those processes, but we actually want to
                   ! consider all of the processes because the transition may cause a slight cooling
@@ -856,7 +856,7 @@ module energyTabulatorMod
                   ! energy transfer.
                   ! 
                   ! I am leaving this here in case we wanted to use it in the future.
-                if(abs(dEDelta) <= 1e-4_dp) then
+                !if(abs(dEDelta) <= 1e-4_dp) then
 
                   write(*,'("   ", 4i5, " Zero energy transfer")') iki, ibi, ikf, ibf
 
