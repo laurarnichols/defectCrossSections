@@ -2035,6 +2035,8 @@ contains
 
     ! Write occupations file with rate of change for first point
     call writeNewOccupations(1, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, njNewOutDir)
+    if(writeEiRate) &
+      call writeAvgETransRateByInitE(1, nUniqueInitStates, dEEigInit, energyTransferRate, energyTransferRate_i, EiRateOutDir)
 
 
     if(ionode) write(*, '("--------------------Beginning real-time integration ")')
@@ -2124,6 +2126,8 @@ contains
       if(ionode) write(*, '("Writing occupations for time-integration step ",i5)') iRt
 
       call writeNewOccupations(iRt, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, njNewOutDir)
+      if(writeEiRate) &
+        call writeAvgETransRateByInitE(iRt, nUniqueInitStates, dEEigInit, energyTransferRate, energyTransferRate_i, EiRateOutDir)
 
     enddo
 
@@ -2456,6 +2460,7 @@ contains
 
     allocate(njRateOfChange_i(nModes,nUniqueInitStates))
     njRateOfChange_i = 0.0_dp
+    energyTransferRate_i = 0.0_dp
 
     if(ionode) then
       do iUInit = 1, nUniqueInitStates
@@ -2469,7 +2474,9 @@ contains
             ! For thermalized energy distribution, calculate the energy rate of change.
             ! Also calculate this if you just want to visualize the rate and write it out.
             if(thermalize .or. writeEiRate) then
-              energyTransferRate_i(iUInit) = energyTransferRate_i(iUInit) + (dE(1,iE,1) + dE(4,iE,1) + dE(5,iE,1))*transitionRate(iE)
+              energyTransferRate_i(iUInit) = energyTransferRate_i(iUInit) - (dE(1,iE,1) + dE(4,iE,1) + dE(5,iE,1))*transitionRate(iE)
+                ! Negative sign is needed because tabulated energies are potential energy and
+                ! energy into phonons is opposite that.
             endif
             
             ! Otherwise, channel the energy into the modes.
@@ -2606,6 +2613,50 @@ contains
     return
 
   end subroutine writeNewOccupations
+
+!----------------------------------------------------------------------------
+  subroutine writeAvgETransRateByInitE(iRt, nUniqueInitStates, dEEigInit, energyTransferRate, energyTransferRate_i, EiRateOutDir)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iRt
+      !! Real-time integration step index
+    integer, intent(in) :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+
+    real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
+      !! Eigenvalue difference of initial states
+      !! relative to band edge
+    real(kind=dp), intent(in) :: energyTransferRate
+      !! Total energy transfer combining all states
+    real(kind=dp), intent(in) :: energyTransferRate_i(nUniqueInitStates)
+      !! Average energy transfer rate from each initial state
+
+    character(len=300), intent(in) :: EiRateOutDir
+      !! Output directory for energy transfer rate by 
+      !! initial-state energy if writeEiRate == .true.
+
+    ! Local variables:
+    integer :: iUinit
+      !! Loop index
+
+
+    if(ionode) then
+      open(unit=37, file=trim(EiRateOutDir)//'/EiRate.'//trim(int2str(iRt))//'.out')
+      write(37,'("# iUInit, dEEigRef (eV), Energy Rate of change (eV/s)")')
+
+      do iUInit = 1, nUniqueInitStates
+        write(37,'(i7,2ES24.15E3)') iUInit, dEEigInit(iUInit), energyTransferRate_i(iUInit)
+      enddo
+
+      close(37)
+    endif
+
+    return
+
+  end subroutine writeAvgETransRateByInitE
   
 !----------------------------------------------------------------------------
   function transitionRateFileExists(ikGlobal, isp, transRateOutDir) result(fileExists)
