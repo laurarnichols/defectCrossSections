@@ -2030,7 +2030,7 @@ contains
 
     ! Get initial rate of change of occupations
     call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
+            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
             writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
     ! Write occupations file with rate of change for first point
@@ -2058,7 +2058,7 @@ contains
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
       call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
+            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
             writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
       !-----------------------------------------------------------
@@ -2079,7 +2079,7 @@ contains
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
       call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
+            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
             writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
       !-----------------------------------------------------------
@@ -2100,7 +2100,7 @@ contains
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
       call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
+            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
             writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
       !-----------------------------------------------------------
@@ -2336,7 +2336,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-          uniqueInitStates_ik, carrierDensity, dE, dEEigInit, totalDeltaNj, transitionRate, thermalize, &
+          uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
           writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
     implicit none
@@ -2364,6 +2364,8 @@ contains
     real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
       !! Eigenvalue difference of initial states
       !! relative to band edge
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
     real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
       !! Optional total change in occupation numbers
       !! for each mode and transition
@@ -2395,7 +2397,8 @@ contains
     call sumOverFinalStates(nModes, nTransitions, nUniqueInitStates, ibi, iki, uniqueInitStates_ib, uniqueInitStates_ik, &
           dE, energyTransferRate_i, totalDeltaNj, transitionRate, thermalize, writeEiRate, njRateOfChange_i)
 
-    call integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, njRateOfChange_i, njRateOfChange)
+    call integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, energyTransferRate_i, &
+          njRateOfChange_i, omega, thermalize, energyTransferRate, njRateOfChange)
 
     deallocate(njRateOfChange_i)
 
@@ -2482,7 +2485,8 @@ contains
   end subroutine sumOverFinalStates
 
 !----------------------------------------------------------------------------
-  subroutine integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, njRateOfChange_i, njRateOfChange)
+  subroutine integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, energyTransferRate_i, &
+      njRateOfChange_i, omega, thermalize, energyTransferRate, njRateOfChange)
 
     use generalComputations, only: trapezoidIntegrationVariableDx 
 
@@ -2501,11 +2505,21 @@ contains
     real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
       !! Eigenvalue difference of initial states
       !! relative to band edge
+    real(kind=dp), intent(in) :: energyTransferRate_i(nUniqueInitStates)
+      !! Average energy transfer rate from each initial state
     real(kind=dp), intent(in) :: njRateOfChange_i(nModes,nUniqueInitStates)
       !! Rate of change of occupations due to transitions
       !! from each initial state, i
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
+
+    logical, intent(in) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
 
     ! Output variables:
+    real(kind=dp), intent(out) :: energyTransferRate
+      !! Total energy transfer combining all states
     real(kind=dp), intent(out) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
@@ -2521,14 +2535,23 @@ contains
 
 
     if(ionode) then
-      do j = 1, nModes
-        integrand(:) = carrierDensity(:)*njRateOfChange_i(j,:)
+      if(thermalize) then
+        integrand(:) = carrierDensity(:)*energyTransferRate_i(:)
         call trapezoidIntegrationVariableDx(nUniqueInitStates, integrand, dEEigInit, integral)
-        njRateOfChange(j) = integral
-      enddo
+        energyTransferRate = integral
+      else
+        do j = 1, nModes
+          integrand(:) = carrierDensity(:)*njRateOfChange_i(j,:)
+          call trapezoidIntegrationVariableDx(nUniqueInitStates, integrand, dEEigInit, integral)
+          njRateOfChange(j) = integral
+        enddo
+
+        energyTransferRate = sum(njRateOfChange(:)*omega(:))
+      endif
     endif
 
     call MPI_BCAST(njRateOfChange, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(energyTransferRate, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
