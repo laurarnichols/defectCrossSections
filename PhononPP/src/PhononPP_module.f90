@@ -623,7 +623,7 @@ module PhononPPMod
 
       if(nUsed /= nModes) call exitError('readPhonons', 'Did not skip 3 modes based on threshold set. Check threshold.', 1)
 
-      omega(:) = omega(:)*2*pi
+      omega(:) = omega(:)*2*pi*THzToHartree
 
       close(57)
 
@@ -864,7 +864,7 @@ module PhononPPMod
 
       beta = 1.0_dp/(kB_atomic*temperature)
 
-      nj(:) = 1.0_dp/(exp(hbar_atomic*omega(:)*THzToHartree*beta) - 1.0_dp)
+      nj(:) = 1.0_dp/(exp(hbar_atomic*omega(:)*beta) - 1.0_dp)
 
     endif
 
@@ -1393,9 +1393,9 @@ module PhononPPMod
 
       modeIndex(j) = j
 
-      Sj(j) = projNorm(j)**2*omega(j)*THzToHartree/(2.0_dp*hbar_atomic)
+      Sj(j) = projNorm(j)**2*omega(j)/(2.0_dp*hbar_atomic)
 
-      if(diffOmega) SjPrime(j) = projNorm(j)**2*omegaPrime(j)*THzToHartree/(2.0_dp*hbar_atomic)
+      if(diffOmega) SjPrime(j) = projNorm(j)**2*omegaPrime(j)/(2.0_dp*hbar_atomic)
         ! The way the algebra works, they are calculated using the same
         ! Delta q_j (projNorm)
 
@@ -1480,7 +1480,7 @@ module PhononPPMod
   end subroutine sortAndWriteSingleDispSj
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, Sj_if, &
+  subroutine calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, Sj_if, &
             allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir)
 
     implicit none
@@ -1500,6 +1500,8 @@ module PhononPPMod
       !! used to calculate Delta q_j and displacements
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Mass of atoms
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
     real(kind=dp), intent(in) :: Sj_if(:,:)
       !! Store Sjs for scattering if calculating changes in 
       !! occupation numbers
@@ -1996,9 +1998,6 @@ module PhononPPMod
         omega(jSort) = omega_
       end do
 
-      omega(:) = omega(:)*THzToHartree
-        ! Convert to Hz*2pi
-
       close(12)
 
     endif
@@ -2071,10 +2070,6 @@ module PhononPPMod
         SjPrime(jSort) = SjPrime_
         omegaPrime(jSort) = omegaPrime_
       end do
-
-      omega(:) = omega(:)*THzToHartree
-      omegaPrime(:) = omegaPrime(:)*THzToHartree
-        ! Convert to Hz*2pi
 
       close(12)
 

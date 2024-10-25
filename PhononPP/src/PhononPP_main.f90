@@ -71,7 +71,7 @@ program PhononPPMain
 
 
   if(calcSj .and. (.not. singleDisp) .and. calcDeltaNj) &
-    call calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, Sj_if, &
+    call calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, Sj_if, &
             allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir)
 
 
