@@ -1529,10 +1529,11 @@ module PhononPPMod
         write(64,'("# Mode index j, Delta nj_gi, Delta nj_if, Delta nj_fg")')
 
         do j = 1, nModes
+          ! Take the negative because change in occupations is opposite change of equilibrium potential
           write(64,'(i7,3ES24.15E3)') j, &
-                  (dE(4,iE)/hbar_atomic)*Sj_gi(j)/sum(omega(:)*Sj_gi(:)), &       ! Ground/start to initial relaxed
-                  (dE(1,iE)/hbar_atomic)*Sj_if(j,iE)/sum(omega(:)*Sj_if(:,iE)), & ! Initial relaxed to final relaxed
-                  (dE(5,iE)/hbar_atomic)*Sj_fg(j)/sum(omega(:)*Sj_fg(:))          ! Final relaxed back to ground/start
+                  (-dE(4,iE)/hbar_atomic)*Sj_gi(j)/sum(omega(:)*Sj_gi(:)), &       ! Ground/start to initial relaxed
+                  (-dE(1,iE)/hbar_atomic)*Sj_if(j,iE)/sum(omega(:)*Sj_if(:,iE)), & ! Initial relaxed to final relaxed
+                  (-dE(5,iE)/hbar_atomic)*Sj_fg(j)/sum(omega(:)*Sj_fg(:))          ! Final relaxed back to ground/start
 
         enddo
 
