@@ -30,8 +30,8 @@ program LSFmain
 
   call readInputParams(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime_transRate, &
         SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, &
-        oldFormat, rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
-        matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+        oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
+        EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
 
   nStepsLocal_transRate = ceiling((maxTime_transRate/dtau)/nProcPerPool)
@@ -89,7 +89,7 @@ program LSFmain
   endif
 
   call readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, generateNewOccupations, deltaNjBaseDir, njBaseInput, &
-          deltaNjInitApproach, njBase, totalDeltaNj)
+          deltaNjInitApproach, njBase, temperature, totalDeltaNj)
 
 
   allocate(jReSort(nModes))
@@ -119,7 +119,7 @@ program LSFmain
 
   allocate(transitionRate(nTransitions,nkPerPool))
    
-  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, 1, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+  call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, 1, iSpin, mDim, nModes, order, dE(1:3,:,:), deltaNjInitApproach, &
           dtau, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
           captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
         ! Pass 1 in explicitly for iRt (the real-time step index). It will be ignored if
@@ -129,9 +129,9 @@ program LSFmain
   ! there is no parallelization over k-points.
   if(generateNewOccupations) &
     call realTimeIntegration(mDim, nModes, nRealTimeSteps, nTransitions, order, ibi, ibf, iki, ikf, iSpin, &
-            dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, &
-            SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, carrierDensityInput, energyTableDir, &
-            njNewOutDir, transRateOutDir, volumeLine)
+          dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, &
+          temperature, SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, thermalize, writeEiRate, &
+          carrierDensityInput, EiRateOutDir, energyTableDir, njNewOutDir, transRateOutDir, volumeLine)
 
 
   deallocate(dE)

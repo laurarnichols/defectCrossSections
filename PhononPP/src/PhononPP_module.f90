@@ -623,7 +623,7 @@ module PhononPPMod
 
       if(nUsed /= nModes) call exitError('readPhonons', 'Did not skip 3 modes based on threshold set. Check threshold.', 1)
 
-      omega(:) = omega(:)*2*pi
+      omega(:) = omega(:)*2*pi*THzToHartree
 
       close(57)
 
@@ -811,17 +811,13 @@ module PhononPPMod
     integer :: j
       !! Loop index
 
-    real(kind=dp) :: beta
-      !! 1/kb*T
     real(kind=dp) :: nj(nModes)
       !! \(n_j\) occupation number
 
     
     if(ionode) then
 
-      beta = 1.0_dp/(kB_atomic*temperature)
-
-      nj(:) = 1.0_dp/(exp(hbar_atomic*omega(:)*THzToHartree*beta) - 1.0_dp)
+      call getNjFromTemp(nModes, omega, temperature, nj)
 
       open(17,file='njThermal.out')
 
@@ -841,6 +837,36 @@ module PhononPPMod
     return
 
   end subroutine calcAndWriteThermalNj
+
+!----------------------------------------------------------------------------
+  subroutine getNjFromTemp(nModes, omega, temperature, nj)
+
+    implicit none
+    
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of modes
+
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(in) :: temperature
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: nj(nModes)
+      !! \(n_j\) occupation number
+
+    ! Local variables:
+    real(kind=dp) :: beta
+      !! 1/kb*T
+
+
+      beta = 1.0_dp/(kB_atomic*temperature)
+
+      nj(:) = 1.0_dp/(exp(hbar_atomic*omega(:)*beta) - 1.0_dp)
+
+    return
+
+  end subroutine getNjFromTemp
 
 !----------------------------------------------------------------------------
   subroutine calculateSj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, &
@@ -1361,9 +1387,9 @@ module PhononPPMod
 
       modeIndex(j) = j
 
-      Sj(j) = projNorm(j)**2*omega(j)*THzToHartree/(2.0_dp*hbar_atomic)
+      Sj(j) = projNorm(j)**2*omega(j)/(2.0_dp*hbar_atomic)
 
-      if(diffOmega) SjPrime(j) = projNorm(j)**2*omegaPrime(j)*THzToHartree/(2.0_dp*hbar_atomic)
+      if(diffOmega) SjPrime(j) = projNorm(j)**2*omegaPrime(j)/(2.0_dp*hbar_atomic)
         ! The way the algebra works, they are calculated using the same
         ! Delta q_j (projNorm)
 
@@ -1448,7 +1474,7 @@ module PhononPPMod
   end subroutine sortAndWriteSingleDispSj
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, Sj_if, &
+  subroutine calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, Sj_if, &
             allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir)
 
     implicit none
@@ -1468,6 +1494,8 @@ module PhononPPMod
       !! used to calculate Delta q_j and displacements
     real(kind=dp), intent(in) :: mass(nAtoms)
       !! Mass of atoms
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
     real(kind=dp), intent(in) :: Sj_if(:,:)
       !! Store Sjs for scattering if calculating changes in 
       !! occupation numbers
@@ -1529,10 +1557,11 @@ module PhononPPMod
         write(64,'("# Mode index j, Delta nj_gi, Delta nj_if, Delta nj_fg")')
 
         do j = 1, nModes
+          ! Take the negative because change in occupations is opposite change of equilibrium potential
           write(64,'(i7,3ES24.15E3)') j, &
-                  (dE(4,iE)/hbar_atomic)*Sj_gi(j)/sum(omega(:)*Sj_gi(:)), &       ! Ground/start to initial relaxed
-                  (dE(1,iE)/hbar_atomic)*Sj_if(j,iE)/sum(omega(:)*Sj_if(:,iE)), & ! Initial relaxed to final relaxed
-                  (dE(5,iE)/hbar_atomic)*Sj_fg(j)/sum(omega(:)*Sj_fg(:))          ! Final relaxed back to ground/start
+                  (-dE(4,iE)/hbar_atomic)*Sj_gi(j)/sum(omega(:)*Sj_gi(:)), &       ! Ground/start to initial relaxed
+                  (-dE(1,iE)/hbar_atomic)*Sj_if(j,iE)/sum(omega(:)*Sj_if(:,iE)), & ! Initial relaxed to final relaxed
+                  (-dE(5,iE)/hbar_atomic)*Sj_fg(j)/sum(omega(:)*Sj_fg(:))          ! Final relaxed back to ground/start
 
         enddo
 
@@ -1963,9 +1992,6 @@ module PhononPPMod
         omega(jSort) = omega_
       end do
 
-      omega(:) = omega(:)*THzToHartree
-        ! Convert to Hz*2pi
-
       close(12)
 
     endif
@@ -2039,10 +2065,6 @@ module PhononPPMod
         omegaPrime(jSort) = omegaPrime_
       end do
 
-      omega(:) = omega(:)*THzToHartree
-      omegaPrime(:) = omegaPrime(:)*THzToHartree
-        ! Convert to Hz*2pi
-
       close(12)
 
     endif
@@ -2058,7 +2080,7 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine readNj(ibi, ibf, iki, ikf, nModes, nTransitions, addDeltaNj, generateNewOccupations, deltaNjBaseDir, njBaseInput, &
-          deltaNjInitApproach, njBase, totalDeltaNj)
+          deltaNjInitApproach, njBase, temperature, totalDeltaNj)
 
     implicit none
 
@@ -2087,6 +2109,7 @@ module PhononPPMod
       !! carrier approach in initial state
     real(kind=dp), intent(out) :: njBase(nModes)
       !! \(n_j\) occupation number
+    real(kind=dp), intent(out) :: temperature
     real(kind=dp), intent(out) :: totalDeltaNj(:,:)
       !! Optional total change in occupation numbers
       !! for each mode and transition
@@ -2119,7 +2142,7 @@ module PhononPPMod
 
       open(17,file=trim(njBaseInput))
 
-      read(17,*)
+      read(17,'(a19,f7.1)') textDum, temperature
 
       read(17,'(a19,i10)') textDum, nModes_
       if(nModes_ /= nModes) call exitError('readNj','Input number of modes does not match nj file!',1)

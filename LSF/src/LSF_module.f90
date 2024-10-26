@@ -1,9 +1,9 @@
 module LSFmod
   
-  use constants, only: dp, HartreeToEv, ii, hbar_atomic, time_atomicToSI, BohrToMeter
+  use constants, only: dp, HartreeToEv, ii, hbar_atomic, time_atomicToSI, BohrToMeter, kB_atomic
   use base, only: nKPoints, order
   use TMEmod, only: getMatrixElementFNameWPath, getMatrixElementFName, readSingleKMatrixElements
-  use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, readNj
+  use PhononPPMod, only: diffOmega, readSjOneFreq, readSjTwoFreq, omega, omegaPrime, readNj, getNjFromTemp, temperature
   use energyTabulatorMod, only: energyTableDir, readCaptureEnergyTable, readScatterEnergyTable, readDEPlot
   use miscUtilities, only: int2strLeadZero, int2str
   use errorsAndMPI
@@ -93,6 +93,12 @@ module LSFmod
     !! (.false.) or from the dq.txt file (.true.)
   logical :: reSortMEs
     !! If matrix elements should be resorted
+  logical :: thermalize
+    !! If should convert energy transfer to local temp. or
+    !! channel directly into modes
+  logical :: writeEiRate
+    !! If the energy transfer rate should be output as a 
+    !! function of energy
 
   character(len=300) :: carrierDensityInput
     !! Path to carrier density if generating 
@@ -101,6 +107,9 @@ module LSFmod
     !! Path to base directory for deltaNj files
   character(len=300) :: dqInput
     !! Input file for dq.txt if rereading
+  character(len=300) :: EiRateOutDir
+    !! Output directory for energy transfer rate by 
+    !! initial-state energy if writeEiRate == .true.
   character(len=300) :: matrixElementDir
     !! Path to matrix element file `allElecOverlap.isp.ik`. 
     !! For first-order term, the path is just within each 
@@ -130,15 +139,15 @@ module LSFmod
                          smearingExpTolerance, transRateOutDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
                          optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations, dt, carrierDensityInput, &
-                         energyAvgWindow, njNewOutDir, nRealTimeSteps
+                         energyAvgWindow, njNewOutDir, nRealTimeSteps, thermalize, writeEiRate, EiRateOutDir
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime_transRate, &
         SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
-        rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, & 
-        MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+        rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
+        EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     implicit none
 
@@ -193,6 +202,12 @@ contains
       !! (.false.) or from the dq.txt file (.true.)
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
+    logical, intent(out) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
+    logical, intent(out) :: writeEiRate
+      !! If the energy transfer rate should be output as a 
+      !! function of energy
 
     character(len=300), intent(out) :: carrierDensityInput
       !! Path to carrier density if generating 
@@ -203,6 +218,9 @@ contains
       !! Input file for dq.txt if rereading
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
+    character(len=300), intent(out) :: EiRateOutDir
+      !! Output directory for energy transfer rate by 
+      !! initial-state energy if writeEiRate == .true.
     character(len=300), intent(out) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
@@ -227,8 +245,8 @@ contains
   
     call initialize(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
           addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
-          carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-          njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+          thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, &
+          matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     if(ionode) then
 
@@ -241,8 +259,8 @@ contains
 
       call checkInitialization(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
             addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
-            carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-            njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+            thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, &
+            matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
@@ -275,11 +293,14 @@ contains
     call MPI_BCAST(oldFormat, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(reSortMEs, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(rereadDq, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(thermalize, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(writeEiRate, 1, MPI_LOGICAL, root, worldComm, ierr)
   
     call MPI_BCAST(carrierDensityInput, len(carrierDensityInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(deltaNjBaseDir, len(deltaNjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(dqInput, len(dqInput), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(EiRateOutDir, len(EiRateOutDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(matrixElementDir, len(matrixElementDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(MjBaseDir, len(MjBaseDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(njBaseInput, len(njBaseInput), MPI_CHARACTER, root, worldComm, ierr)
@@ -296,8 +317,8 @@ contains
 !----------------------------------------------------------------------------
   subroutine initialize(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
         addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
-        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, njBaseInput, &
-        njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+        thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, &
+        matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     implicit none
 
@@ -348,6 +369,12 @@ contains
       !! (.false.) or from the dq.txt file (.true.)
     logical, intent(out) :: reSortMEs
       !! If matrix elements should be resorted
+    logical, intent(out) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
+    logical, intent(out) :: writeEiRate
+      !! If the energy transfer rate should be output as a 
+      !! function of energy
 
     character(len=300), intent(out) :: carrierDensityInput
       !! Path to carrier density if generating 
@@ -358,6 +385,9 @@ contains
       !! Input file for dq.txt if rereading
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy table to read
+    character(len=300), intent(out) :: EiRateOutDir
+      !! Output directory for energy transfer rate by 
+      !! initial-state energy if writeEiRate == .true.
     character(len=300), intent(out) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
@@ -399,11 +429,14 @@ contains
     oldFormat = .false.
     reSortMEs = .false.
     rereadDq = .false.
+    thermalize = .false.
+    writeEiRate = .false.
 
     carrierDensityInput = ''
     deltaNjBaseDir = ''
     dqInput = ''
     energyTableDir = ''
+    EiRateOutDir = './EiRates'
     matrixElementDir = ''
     MjBaseDir = ''
     njBaseInput = ''
@@ -411,7 +444,7 @@ contains
     optimalPairsInput = ''
     prefix = 'disp-'
     SjBaseDir = ''
-    transRateOutDir = './trasitionRates'
+    transRateOutDir = './transitionRates'
 
     return 
 
@@ -420,8 +453,9 @@ contains
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, &
         smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
-        rereadDq, reSortMEs, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, matrixElementDir, MjBaseDir, &
-        njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+        rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
+        EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, &
+        transRateOutDir)
 
     implicit none
 
@@ -472,6 +506,12 @@ contains
       !! (.false.) or from the dq.txt file (.true.)
     logical, intent(in) :: reSortMEs
       !! If matrix elements should be resorted
+    logical, intent(in) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
+    logical, intent(in) :: writeEiRate
+      !! If the energy transfer rate should be output as a 
+      !! function of energy
 
     character(len=300), intent(in) :: carrierDensityInput
       !! Path to carrier density if generating 
@@ -482,6 +522,9 @@ contains
       !! Input file for dq.txt if rereading
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
+    character(len=300), intent(in) :: EiRateOutDir
+      !! Output directory for energy transfer rate by 
+      !! initial-state energy if writeEiRate == .true.
     character(len=300), intent(in) :: matrixElementDir
       !! Path to matrix element file `allElecOverlap.isp.ik`. 
       !! For first-order term, the path is just within each 
@@ -551,6 +594,14 @@ contains
 
         write(*,'("njNewOutDir = ''",a,"''")') trim(njNewOutDir)
         call system('mkdir -p '//trim(njNewOutDir))
+
+        write(*,'("thermalize = ",L)') thermalize
+
+        write(*,'("writeEiRate = ",L)') writeEiRate
+        if(writeEiRate) then
+          write(*,'("EiRateOutDir = ''",a,"''")') trim(EiRateOutDir)
+          call system('mkdir -p '//trim(EiRateOutDir))
+        endif
       endif
 
     endif
@@ -640,6 +691,10 @@ contains
       write(*, '(" Program stops!")')
       stop
     endif
+    write(*,*) 
+    write(*,*) 
+    write(*,*) 
+    write(*,*) 
 
     return 
 
@@ -736,8 +791,9 @@ contains
     ! single shot.
     else
       if(ionode) &
-        call readScatterEnergyTable(iSpin, .true., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE2D)
-          ! dE2D will get allocated here with (3,nTransitions)
+        call readScatterEnergyTable(iSpin, .false., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE2D)
+          ! dE2D will get allocated here with (5,nTransitions) and will read all
+          ! energies from the table
 
 
       call MPI_BCAST(nTransitions, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -750,7 +806,7 @@ contains
       call MPI_BCAST(ikf, nTransitions, MPI_INTEGER, root, worldComm, ierr)
 
 
-      allocate(dE(3,nTransitions,1))
+      allocate(dE(5,nTransitions,1))
         ! dE is expected to be 3D here and in later subroutines to 
         ! be consistent with capture. The last index is the number
         ! of k-points per pool, but scattering currently assumes
@@ -1852,8 +1908,8 @@ contains
 !----------------------------------------------------------------------------
   subroutine realTimeIntegration(mDim, nModes, nRealTimeSteps, nTransitions, order, ibi, ibf, iki, ikf, iSpin, &
           dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, &
-          SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, carrierDensityInput, energyTableDir, &
-          njNewOutDir, transRateOutDir, volumeLine)
+          temperature, SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, thermalize, writeEiRate, &
+          carrierDensityInput, EiRateOutDir, energyTableDir, njNewOutDir, transRateOutDir, volumeLine)
 
     implicit none
 
@@ -1874,7 +1930,7 @@ contains
     integer, intent(in) :: iSpin
       !! Spin channel to use
 
-    real(kind=dp), intent(in) :: dE(3,nTransitions,nkPerPool)
+    real(kind=dp), intent(in) :: dE(5,nTransitions,nkPerPool)
       !! All energy differences from energy table
     real(kind=dp), intent(in) :: deltaNjInitApproach(:,:)
       !! Optional delta nj from adjustment to 
@@ -1900,6 +1956,7 @@ contains
       !! transition for scattering)
     real(kind=dp), intent(in) :: SjThresh
       !! Threshold for Sj to determine which modes to calculate
+    real(kind=dp), intent(inout) :: temperature
     real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
       !! Optional total change in occupation numbers
       !! for each mode and transition
@@ -1913,10 +1970,19 @@ contains
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(in) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
+    logical, intent(in) :: writeEiRate
+      !! If the energy transfer rate should be output as a 
+      !! function of energy
 
     character(len=300), intent(in) :: carrierDensityInput
       !! Path to carrier density if generating 
       !! new phonon occupations
+    character(len=300), intent(in) :: EiRateOutDir
+      !! Output directory for energy transfer rate by 
+      !! initial-state energy if writeEiRate == .true.
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table to read
     character(len=300), intent(in) :: njNewOutDir
@@ -1944,18 +2010,33 @@ contains
     real(kind=dp), allocatable :: dEEigInit(:)
       !! Eigenvalue difference of initial states
       !! relative to band edge
-    real(kind=dp) :: k1(nModes), k2(nModes), k3(nModes), k4(nModes)
+    real(kind=dp) :: energyTransferRate
+      !! Total energy transfer combining all states
+    real(kind=dp), allocatable :: energyTransferRate_i(:)
+      !! Average energy transfer rate from each initial state
+    real(kind=dp), allocatable :: k1(:), k2(:), k3(:), k4(:)
       !! Intermediate slopes for RK4 integration
+    real(kind=dp) :: localHeatingRate
+      !! Energy transfer rate converted to rate of 
+      !! change of local temperature
     real(kind=dp) :: njNextEst(nModes)
       !! Next estimate for njBase
     real(kind=dp) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
+    real(kind=dp) :: tempNextEst
+      !! Next estimate of the local temperature
 
+
+    if(thermalize) then
+      allocate(k1(1), k2(1), k3(1), k4(1))
+    else
+      allocate(k1(nModes), k2(nModes), k3(nModes), k4(nModes))
+    endif
 
     call getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
 
-    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates))
+    allocate(dEEigInit(nUniqueInitStates), carrierDensity(nUniqueInitStates), energyTransferRate_i(nUniqueInitStates))
 
     call readDEPlot(iSpin, nUniqueInitStates, energyTableDir, dEEigInit)
 
@@ -1963,11 +2044,23 @@ contains
 
 
     ! Get initial rate of change of occupations
-    call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
+    call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
+            writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
+
+    if(thermalize .and. ionode) call ERateToTRate(nModes, energyTransferRate, njBase, omega, temperature, localHeatingRate)
 
     ! Write occupations file with rate of change for first point
-    call writeNewOccupations(1, nModes, njBase, njRateOfChange, dt, njNewOutDir)
+    call writeNewOccupations(1, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, thermalize, njNewOutDir)
+    if(writeEiRate) &
+      call writeAvgETransRateByInitE(1, nUniqueInitStates, dEEigInit, energyTransferRate_i, EiRateOutDir)
+
+    if(ionode .and. thermalize) then
+      open(53,file='localTemp.out')
+
+      write(53,'("# iRt, temperature")')
+      write(53,'(i10, f10.1)') 1, temperature
+    endif
 
 
     if(ionode) write(*, '("--------------------Beginning real-time integration ")')
@@ -1976,90 +2069,129 @@ contains
       !-----------------------------------------------------------
       ! Based on initial derivative estimate
       if(ionode) then
-        ! First estimated slope is at the current point
-        k1(:) = njRateOfChange(:)
+        ! First estimated slope is at the current point. 
         ! Update estimate of njBase after half time step
-        njNextEst(:) = njBase(:) + k1(:)*dt/2.0d0
+        if(thermalize) then
+          k1 = localHeatingRate
+          tempNextEst = temperature + k1(1)*dt/2.0_dp
+          call getNjFromTemp(nModes, omega, tempNextEst, njNextEst)
+        else
+          k1(:) = njRateOfChange(:)
+          njNextEst(:) = njBase(:) + k1(:)*dt/2.0d0
+        endif
       endif
 
       ! Broadcast to all processes and get new transition rate and nj rate of change
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 1 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE(1:3,:,:), deltaNjInitApproach, &
             dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
-      call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
+      call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
+            writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
+
+      if(thermalize .and. ionode) call ERateToTRate(nModes, energyTransferRate, njNextEst, omega, tempNextEst, localHeatingRate)
 
       !-----------------------------------------------------------
       ! Based on first midpoint estimate
       if(ionode) then
         ! Second estimated slope is from the midpoint
-        k2(:) = njRateOfChange(:)
         ! Update estimate of njBase after half time step
-        njNextEst(:) = njBase(:) + k2(:)*dt/2.0d0
+        if(thermalize) then
+          k2 = localHeatingRate
+          tempNextEst = temperature + k2(1)*dt/2.0_dp
+          call getNjFromTemp(nModes, omega, tempNextEst, njNextEst)
+        else
+          k2(:) = njRateOfChange(:)
+          njNextEst(:) = njBase(:) + k2(:)*dt/2.0d0
+        endif
       endif
 
-      ! Broadcast to all processes and get new transition rate
+      ! Broadcast to all processes and get new transition rate and nj rate of change
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 2 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE(1:3,:,:), deltaNjInitApproach, &
             dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
-      call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
+      call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
+            writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
+
+      if(thermalize .and. ionode) call ERateToTRate(nModes, energyTransferRate, njNextEst, omega, tempNextEst, localHeatingRate)
 
       !-----------------------------------------------------------
       ! Based on second midpoint estimate
       if(ionode) then
         ! Third estimated slope is from the midpoint
-        k3(:) = njRateOfChange(:)
         ! Update estimate of njBase after full step
-        njNextEst(:) = njBase(:) + k3(:)*dt
+        if(thermalize) then
+          k3 = localHeatingRate
+          tempNextEst = temperature + k3(1)*dt
+          call getNjFromTemp(nModes, omega, tempNextEst, njNextEst)
+        else
+          k3(:) = njRateOfChange(:)
+          njNextEst(:) = njBase(:) + k3(:)*dt
+        endif
       endif
 
-      ! Broadcast to all processes and get new transition rate
+      ! Broadcast to all processes and get new transition rate and nj rate of change
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Beginning transition-rate calculation for part 3 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE, deltaNjInitApproach, &
+      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE(1:3,:,:), deltaNjInitApproach, &
             dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
             captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
 
-      call getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
+      call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
+            writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
+
+      if(thermalize .and. ionode) call ERateToTRate(nModes, energyTransferRate, njNextEst, omega, tempNextEst, localHeatingRate)
 
       !-----------------------------------------------------------
       ! Based on endpoint estimate
       if(ionode) then
-        ! Fourth  estimated slope is at the next time point
-        k4(:) = njRateOfChange(:)
-
+        ! Fourth  estimated slope is at the next time point.
         ! Calculate the total estimated rate of change based on a weighted
-        ! average of the four estimated slopes
-        njRateOfChange(:) = (k1(:) + 2.0d0*k2(:) + 2.0d0*k3(:) + k4(:))/6.0d0 
-
-        ! Update estimate of njBase with final estimated rate of change
-        njBase(:) = njBase(:) + njRateOfChange(:)*dt
+        ! average of the four estimated slopes.
+        ! Update estimate of njBase with final estimated rate of change.
+        if(thermalize) then
+          k4 = localHeatingRate
+          localHeatingRate = (k1(1) + 2.0d0*k2(1) + 2.0d0*k3(1) + k4(1))/6.0d0 
+          temperature = temperature + localHeatingRate*dt
+          write(53,'(i10, f10.1)') iRt, temperature
+          call getNjFromTemp(nModes, omega, temperature, njBase)
+        else
+          k4(:) = njRateOfChange(:)
+          njRateOfChange(:) = (k1(:) + 2.0d0*k2(:) + 2.0d0*k3(:) + k4(:))/6.0d0 
+          njBase(:) = njBase(:) + njRateOfChange(:)*dt
+        endif
       endif
 
       ! Broadcast to all processes and write
+      call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(njBase, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(njRateOfChange, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Writing occupations for time-integration step ",i5)') iRt
 
-      call writeNewOccupations(iRt, nModes, njBase, njRateOfChange, dt, njNewOutDir)
+      call writeNewOccupations(iRt, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, thermalize, njNewOutDir)
+      if(writeEiRate) &
+        call writeAvgETransRateByInitE(iRt, nUniqueInitStates, dEEigInit, energyTransferRate_i, EiRateOutDir)
 
     enddo
 
+    if(ionode .and. thermalize) close(53)
 
     deallocate(dEEigInit)
     deallocate(carrierDensity)
+    deallocate(energyTransferRate_i)
+    deallocate(k1, k2, k3, k4)
 
     return
 
@@ -2264,8 +2396,9 @@ contains
   end subroutine readCarrierDensity
 
 !----------------------------------------------------------------------------
-  subroutine getOccRateOfChange(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-          uniqueInitStates_ik, carrierDensity, dEEigInit, totalDeltaNj, transitionRate, njRateOfChange)
+  subroutine getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+          uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
+          writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
 
     implicit none
 
@@ -2287,19 +2420,34 @@ contains
     real(kind=dp), intent(in) :: carrierDensity(nUniqueInitStates)
       !! Carrier density for each of the initial states, averaged
       !! over a given window
+    real(kind=dp), intent(in) :: dE(5,nTransitions,nkPerPool)
+      !! All energy differences from energy table
     real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
       !! Eigenvalue difference of initial states
       !! relative to band edge
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
     real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
       !! Optional total change in occupation numbers
       !! for each mode and transition
     real(kind=dp), intent(in) :: transitionRate(nTransitions)
       !! \(Gamma_i\) transition rate
 
+    logical, intent(in) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
+    logical, intent(in) :: writeEiRate
+      !! If the energy transfer rate should be output as a 
+      !! function of energy
+
     ! Output variables:
     real(kind=dp), intent(out) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
+    real(kind=dp), intent(out) :: energyTransferRate
+      !! Total energy transfer combining all states
+    real(kind=dp), intent(out) :: energyTransferRate_i(nUniqueInitStates)
+      !! Average energy transfer rate from each initial state
 
     ! Local variables:
     real(kind=dp), allocatable :: njRateOfChange_i(:,:)
@@ -2308,19 +2456,20 @@ contains
 
 
     call sumOverFinalStates(nModes, nTransitions, nUniqueInitStates, ibi, iki, uniqueInitStates_ib, uniqueInitStates_ik, &
-          totalDeltaNj, transitionRate, njRateOfChange_i)
+          dE, energyTransferRate_i, totalDeltaNj, transitionRate, thermalize, writeEiRate, njRateOfChange_i)
 
-    call integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, njRateOfChange_i, njRateOfChange)
+    call integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, energyTransferRate_i, &
+          njRateOfChange_i, omega, thermalize, energyTransferRate, njRateOfChange)
 
     deallocate(njRateOfChange_i)
 
     return
 
-  end subroutine getOccRateOfChange
+  end subroutine getExcitationRate
 
 !----------------------------------------------------------------------------
   subroutine sumOverFinalStates(nModes, nTransitions, nUniqueInitStates, ibi, iki, uniqueInitStates_ib, uniqueInitStates_ik, &
-        totalDeltaNj, transitionRate, njRateOfChange_i)
+        dE, energyTransferRate_i, totalDeltaNj, transitionRate, thermalize, writeEiRate, njRateOfChange_i)
 
     implicit none
 
@@ -2339,11 +2488,22 @@ contains
     integer, intent(in) :: uniqueInitStates_ik(nUniqueInitStates)
       !! k-point indices for unique initial states
 
+    real(kind=dp), intent(in) :: dE(5,nTransitions,nkPerPool)
+      !! All energy differences from energy table
+    real(kind=dp), intent(out) :: energyTransferRate_i(nUniqueInitStates)
+      !! Average energy transfer rate from each initial state
     real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
       !! Optional total change in occupation numbers
       !! for each mode and transition
     real(kind=dp), intent(in) :: transitionRate(nTransitions)
       !! \(Gamma_i\) transition rate
+
+    logical, intent(in) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
+    logical, intent(in) :: writeEiRate
+      !! If the energy transfer rate should be output as a 
+      !! function of energy
 
     ! Output variables:
     real(kind=dp), allocatable, intent(out) :: njRateOfChange_i(:,:)
@@ -2357,6 +2517,7 @@ contains
 
     allocate(njRateOfChange_i(nModes,nUniqueInitStates))
     njRateOfChange_i = 0.0_dp
+    energyTransferRate_i = 0.0_dp
 
     if(ionode) then
       do iUInit = 1, nUniqueInitStates
@@ -2367,8 +2528,19 @@ contains
           if(iki(iE) == uniqueInitStates_ik(iUInit) .and. ibi(iE) == uniqueInitStates_ib(iUInit)) then
 
             ! Then sum over all of the final states for each unique initial state.
-            ! The (:) here indcates the phonon modes. They are all independent.
-            njRateOfChange_i(:,iUInit) = njRateOfChange_i(:,iUInit) + totalDeltaNj(:,iE)*transitionRate(iE)
+            ! For thermalized energy distribution, calculate the energy rate of change.
+            ! Also calculate this if you just want to visualize the rate and write it out.
+            if(thermalize .or. writeEiRate) then
+              energyTransferRate_i(iUInit) = energyTransferRate_i(iUInit) - (dE(1,iE,1) + dE(4,iE,1) + dE(5,iE,1))*transitionRate(iE)
+                ! Negative sign is needed because tabulated energies are potential energy and
+                ! energy into phonons is opposite that.
+            endif
+            
+            ! Otherwise, channel the energy into the modes.
+            if(.not. thermalize) then
+              ! The (:) here indcates the phonon modes. They are all independent.
+              njRateOfChange_i(:,iUInit) = njRateOfChange_i(:,iUInit) + totalDeltaNj(:,iE)*transitionRate(iE)
+            endif
 
           endif
         enddo
@@ -2380,7 +2552,8 @@ contains
   end subroutine sumOverFinalStates
 
 !----------------------------------------------------------------------------
-  subroutine integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, njRateOfChange_i, njRateOfChange)
+  subroutine integrateOverInitialStates(nModes, nUniqueInitStates, carrierDensity, dEEigInit, energyTransferRate_i, &
+      njRateOfChange_i, omega, thermalize, energyTransferRate, njRateOfChange)
 
     use generalComputations, only: trapezoidIntegrationVariableDx 
 
@@ -2399,11 +2572,21 @@ contains
     real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
       !! Eigenvalue difference of initial states
       !! relative to band edge
+    real(kind=dp), intent(in) :: energyTransferRate_i(nUniqueInitStates)
+      !! Average energy transfer rate from each initial state
     real(kind=dp), intent(in) :: njRateOfChange_i(nModes,nUniqueInitStates)
       !! Rate of change of occupations due to transitions
       !! from each initial state, i
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
+
+    logical, intent(in) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
 
     ! Output variables:
+    real(kind=dp), intent(out) :: energyTransferRate
+      !! Total energy transfer combining all states
     real(kind=dp), intent(out) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
@@ -2419,21 +2602,60 @@ contains
 
 
     if(ionode) then
-      do j = 1, nModes
-        integrand(:) = carrierDensity(:)*njRateOfChange_i(j,:)
+      if(thermalize) then
+        integrand(:) = carrierDensity(:)*energyTransferRate_i(:)
         call trapezoidIntegrationVariableDx(nUniqueInitStates, integrand, dEEigInit, integral)
-        njRateOfChange(j) = integral
-      enddo
+        energyTransferRate = integral
+      else
+        do j = 1, nModes
+          integrand(:) = carrierDensity(:)*njRateOfChange_i(j,:)
+          call trapezoidIntegrationVariableDx(nUniqueInitStates, integrand, dEEigInit, integral)
+          njRateOfChange(j) = integral
+        enddo
+
+        energyTransferRate = sum(njRateOfChange(:)*omega(:))
+      endif
     endif
 
     call MPI_BCAST(njRateOfChange, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(energyTransferRate, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     return
 
   end subroutine integrateOverInitialStates
+
+!----------------------------------------------------------------------------
+  subroutine ERateToTRate(nModes, energyTransferRate, njBase, omega, temperature, localHeatingRate)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nModes
+      !! Number of phonon modes
+
+    real(kind=dp), intent(in) :: energyTransferRate
+      !! Total energy transfer combining all states
+    real(kind=dp), intent(in) :: njBase(nModes)
+      !! Base \(n_j\) occupation number for all states
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
+    real(kind=dp), intent(in) :: temperature
+
+    ! Output variables:
+    real(kind=dp), intent(out) :: localHeatingRate
+      !! Energy transfer rate converted to rate of 
+      !! change of local temperature
+
+
+    localHeatingRate = energyTransferRate*kB_atomic*(temperature/hbar_atomic)**2* &
+                                sum(omega(:)*omega(:)*njBase(:)*(njBase(:) + 1.0_dp))
+
+    return
+
+  end subroutine ERateToTRate
   
 !----------------------------------------------------------------------------
-  subroutine writeNewOccupations(iRt, nModes, njBase, njRateOfChange, dt, njNewOutDir)
+  subroutine writeNewOccupations(iRt, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, thermalize, njNewOutDir)
 
     implicit none
 
@@ -2443,14 +2665,22 @@ contains
     integer, intent(in) :: nModes
       !! Number of phonon modes
 
+    real(kind=dp), intent(in) :: energyTransferRate
+      !! Total energy transfer combining all states
     real(kind=dp), intent(in) :: njBase(nModes)
       !! Base \(n_j\) occupation number for all states
     real(kind=dp), intent(in) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
+    real(kind=dp), intent(in) :: omega(nModes)
+      !! Frequency for each mode
     real(kind=dp), intent(in) :: dt
       !! Optional real time step for generating 
       !! new phonon occupations
+
+    logical, intent(in) :: thermalize
+      !! If should convert energy transfer to local temp. or
+      !! channel directly into modes
 
     character(len=300), intent(in) :: njNewOutDir
       !! Path to output new occupations if applicable
@@ -2462,10 +2692,19 @@ contains
     if(ionode) then
       open(unit=37, file=trim(njNewOutDir)//'/nj.'//trim(int2str(iRt))//'.out')
       write(37,'("# dt = ",ES24.15E3)') dt
-      write(37,'("# j, New nj, Rate of change (1/s)")')
+
+      if(thermalize) then
+        write(37,'("# j, New nj")')
+      else
+        write(37,'("# j, New nj, Rate of change (1/s)")')
+      endif
 
       do j = 1, nModes
-        write(37,'(i7,3ES24.15E3)') j, njBase(j), njRateOfChange(j)
+        if(thermalize) then
+          write(37,'(i7,ES24.15E3)') j, njBase(j)
+        else
+          write(37,'(i7,2ES24.15E3,f10.2,"%")') j, njBase(j), njRateOfChange(j), njRateOfChange(j)*omega(j)/energyTransferRate*100d0
+        endif
       enddo
 
       close(37)
@@ -2474,6 +2713,48 @@ contains
     return
 
   end subroutine writeNewOccupations
+
+!----------------------------------------------------------------------------
+  subroutine writeAvgETransRateByInitE(iRt, nUniqueInitStates, dEEigInit, energyTransferRate_i, EiRateOutDir)
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iRt
+      !! Real-time integration step index
+    integer, intent(in) :: nUniqueInitStates
+      !! Number of unique initial states, defined by
+      !! iki and ibi pairs
+
+    real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
+      !! Eigenvalue difference of initial states
+      !! relative to band edge
+    real(kind=dp), intent(in) :: energyTransferRate_i(nUniqueInitStates)
+      !! Average energy transfer rate from each initial state
+
+    character(len=300), intent(in) :: EiRateOutDir
+      !! Output directory for energy transfer rate by 
+      !! initial-state energy if writeEiRate == .true.
+
+    ! Local variables:
+    integer :: iUinit
+      !! Loop index
+
+
+    if(ionode) then
+      open(unit=37, file=trim(EiRateOutDir)//'/EiRate.'//trim(int2str(iRt))//'.out')
+      write(37,'("# iUInit, dEEigRef (eV), Energy Rate of change (eV/s)")')
+
+      do iUInit = 1, nUniqueInitStates
+        write(37,'(i7,2ES24.15E3)') iUInit, dEEigInit(iUInit), energyTransferRate_i(iUInit)*HartreeToEv
+      enddo
+
+      close(37)
+    endif
+
+    return
+
+  end subroutine writeAvgETransRateByInitE
   
 !----------------------------------------------------------------------------
   function transitionRateFileExists(ikGlobal, isp, transRateOutDir) result(fileExists)

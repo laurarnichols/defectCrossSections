@@ -1,15 +1,19 @@
 # Line-shape function (`LSF`)
 
-The `LSF` program takes in matrix elements, an energy table, the Huang-Rhys factor, and the phonon frequencies and occupation numbers and performs the time-domain integration to get the final transition rate. Before this code can run, you need to run the `TME` program for the proper-order matrix elements, the `EnergyTabulator` program to get the band bounds and table of energies for the delta function, and the `PhononPP` program that post-processes the phonons to get the Huang-Rhys factors and phonon frequencies and occupations. 
+The `LSF` program takes in matrix elements, an energy table, the Huang-Rhys factor, and the phonon frequencies and occupation numbers and performs the time-domain integration to get the final transition rate. For scattering, you can also iterate over time to transfer energy into the modes. Before this code can run, you need to run the `TME` program for the proper-order matrix elements, the `EnergyTabulator` program to get the band bounds and table of energies for the delta function, and the `PhononPP` program that post-processes the phonons to get the Huang-Rhys factors and phonon frequencies and occupations. 
 
 The output files are 
   * `transitionRate.isp.ik`/`transitionRate.isp`/`transitionRate.isp.iRt`, where `iRt` is the real-time-integration index
-     * initial band index and transition rate (1/s) (k-point index not present for scattering)
-     * stored in `transRateOutDir`, which defaults to `'./transitionRates'`
+     * Initial band index and transition rate (1/s) (k-point index not present for scattering)
+     * Stored in `transRateOutDir`, which defaults to `'./transitionRates'`
   * `nj.iRt.out`, where `iRt` is the real-time-integration index
-     * new occupations and occupation rates of change for scattering with the `generateNewOccupations` option
+     * New occupations scattering with the `generateNewOccupations` option
+     * If you channel energy into the modes rather than `thermalize` it, this file also has the occupation rates of change and the percent of energy picked up by each mode
      * *Note that the first step is the initial occupations and the rate of change at the first step.*
-     * stored in `njNewOutDir`, which defaults to `'./njNew'`
+     * Stored in `njNewOutDir`, which defaults to `'./njNew'`
+  * `EiRate.iRt.out`
+     * Average rate of energy transfer from each initial state if `writeEiRate`
+     * Stored in `EiRateOutDir`, which defaults to `'./EiRates'`
   * stdout -- timing information and status updates
 
 ## Inputs
@@ -61,6 +65,9 @@ For scattering (`captured = .false.`), there are several additional options:
 * `carrierDensityInput` -- path to carrier density file used to perform integration over initial states
 * `energyAvgWindow` -- default `1e-2` eV; energy window over which to average noisy carrier-density input
 * `njNewOutDir` -- default `'./njNew'`; where to store new occupation files
+* `thermalize` -- default `.false.`; if the energy transfer should be converted into a local heating rather than channeled into modes using $\omega_j S_j$ as a weight
+* `writeEiRate` -- default `.false.`; if energy transfer rate by initial state at each time step should be output
+* `EiRateOutDir` -- default `'./EiRates'`; path to store energy transfer rates if `writeEiRate = .true.`
 
 Note that all of our code is in Hartree atomic units until the calculation of the new occupations. The energies from the band edge given in `dEPlot.isp` are in eV and the carrier density is in $\mathrm{cm}^{-3}$ $\mathrm{eV}^{-1}$, so the `energyAvgWindow` for evaluating the carrier density at the energies in `dEPlot.isp` is in eV. After integration over the initial states multiplied by the carrier density as a function of energy, the resulting rate of change of the occupations is in $\mathrm{s}^{-1}$, so the time step `dt` for the real-time integration of the occupations is in s. 
 
