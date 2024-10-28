@@ -24,6 +24,10 @@ module energyTabulatorMod
   integer :: refBand
     !! Band of WZP reference carrier
 
+  real(kind=dp) :: dENegThresh
+    !! Threshold for negative energy transfer
+  real(kind=dp) :: dEZeroThresh
+    !! Threshold for energy difference being considered zero
   real(kind=dp) :: eCorrectTot
     !! Total-energy correction, if any
   real(kind=dp) :: eCorrectEigRef
@@ -60,9 +64,9 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-        ispSelect, refBand, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir, &
-        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, singleStateExportDir, captured, elecCarrier, &
-        loopSpins)
+        ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, &
+        allStatesBaseDir_startPos, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, &
+        singleStateExportDir, captured, elecCarrier, loopSpins)
 
     implicit none
 
@@ -80,6 +84,10 @@ module energyTabulatorMod
     integer, intent(out) :: refBand
       !! Band of WZP reference carrier
 
+    real(kind=dp), intent(out) :: dENegThresh
+      !! Threshold for negative energy transfer
+    real(kind=dp), intent(out) :: dEZeroThresh
+      !! Threshold for energy difference being considered zero
     real(kind=dp), intent(out) :: eCorrectTot
       !! Total-energy correction, if any
     real(kind=dp), intent(out) :: eCorrectEigRef
@@ -117,15 +125,16 @@ module energyTabulatorMod
     namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, energyTableDir, &
                            eCorrectTot, eCorrectEigRef, captured, elecCarrier, ispSelect, allStatesBaseDir_relaxed, singleStateExportDir, &
                            iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-                           ibShift_eig, allStatesBaseDir_startPos
+                           ibShift_eig, allStatesBaseDir_startPos, dENegThresh, dEZeroThresh
 
 
     if(ionode) then
 
       ! Set default values for input variables and start timers
       call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, ispSelect, &
-            refBand, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir, exportDirEigs, &
-            exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, singleStateExportDir, captured, elecCarrier)
+            refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, &
+            energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, singleStateExportDir, &
+            captured, elecCarrier)
     
       ! Read input variables
       read(5, inputParams, iostat=ierr)
@@ -134,9 +143,9 @@ module energyTabulatorMod
 
       ! Check that all variables were properly set
       call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-            ispSelect, refBand, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir, &
-            exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, singleStateExportDir, captured, elecCarrier, &
-            loopSpins)
+            ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, &
+            allStatesBaseDir_startPos, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, &
+            singleStateExportDir, captured, elecCarrier, loopSpins)
 
     endif
 
@@ -156,6 +165,8 @@ module energyTabulatorMod
     call MPI_BCAST(ispSelect, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(loopSpins, 1, MPI_LOGICAL, root, worldComm, ierr)
 
+    call MPI_BCAST(dENegThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(dEZeroThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(eCorrectTot, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(eCorrectEigRef, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
@@ -177,8 +188,9 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-        ispSelect, refBand, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir, &
-        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, singleStateExportDir, captured, elecCarrier)
+        ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, &
+        allStatesBaseDir_startPos, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, &
+        singleStateExportDir, captured, elecCarrier)
     !! Set the default values for input variables and start timer
     !!
     !! <h2>Walkthrough</h2>
@@ -205,6 +217,10 @@ module energyTabulatorMod
     integer, intent(out) :: refBand
       !! Band of WZP reference carrier
 
+    real(kind=dp), intent(out) :: dENegThresh
+      !! Threshold for negative energy transfer
+    real(kind=dp), intent(out) :: dEZeroThresh
+      !! Threshold for energy difference being considered zero
     real(kind=dp), intent(out) :: eCorrectTot
       !! Total-energy correction, if any
     real(kind=dp), intent(out) :: eCorrectEigRef
@@ -250,6 +266,8 @@ module energyTabulatorMod
 
     ispSelect = -1
 
+    dENegThresh = 1d6
+    dEZeroThresh = 1e-6
     eCorrectTot = 0.0_dp
     eCorrectEigRef = 0.0_dp
 
@@ -269,8 +287,9 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-        ispSelect, refBand, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir, &
-        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, singleStateExportDir, captured, elecCarrier, loopSpins)
+        ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, &
+        allStatesBaseDir_startPos, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, &
+        singleStateExportDir, captured, elecCarrier, loopSpins)
 
     implicit none
 
@@ -288,6 +307,10 @@ module energyTabulatorMod
     integer, intent(in) :: refBand
       !! Band of WZP reference carrier
 
+    real(kind=dp), intent(inout) :: dENegThresh
+      !! Threshold for negative energy transfer
+    real(kind=dp), intent(inout) :: dEZeroThresh
+      !! Threshold for energy difference being considered zero
     real(kind=dp), intent(inout) :: eCorrectTot
       !! Total-energy correction, if any
     real(kind=dp), intent(inout) :: eCorrectEigRef
@@ -372,6 +395,11 @@ module energyTabulatorMod
       write(*,'("allStatesBaseDir_relaxed = ",a)') trim(allStatesBaseDir_relaxed)
       write(*,'("allStatesBaseDir_startPos = ",a)') trim(allStatesBaseDir_startPos)
       write(*,'("singleStateExportDir = ",a)') trim(singleStateExportDir)
+      write(*,'("dENegThresh = ", ES12.3E3, " (eV)")') dENegThresh
+      write(*,'("dEZeroThresh = ", ES12.3E3, " (eV)")') dEZeroThresh
+
+      dENegThresh = dENegThresh*eVToHartree
+      dEZeroThresh = dEZeroThresh*eVToHartree
     endif
 
     write(*,'("elecCarrier = ",L)') elecCarrier
@@ -681,8 +709,8 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine calcAndWriteScatterEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, &
-        ikFinit, ikFfinal, ispSelect, nSpins, refBand, eCorrectEigRef, elecCarrier, loopSpins, allStatesBaseDir_relaxed, &
-        allStatesBaseDir_startPos, energyTableDir, exportDirEigs, singleStateExportDir)
+        ikFinit, ikFfinal, ispSelect, nSpins, refBand, dENegThresh, dEZeroThresh, eCorrectEigRef, elecCarrier, loopSpins, &
+        allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir, exportDirEigs, singleStateExportDir)
 
     implicit none
 
@@ -702,6 +730,10 @@ module energyTabulatorMod
     integer, intent(in) :: refBand
       !! Band of WZP reference carrier
 
+    real(kind=dp), intent(in) :: dENegThresh
+      !! Threshold for negative energy transfer
+    real(kind=dp), intent(in) :: dEZeroThresh
+      !! Threshold for energy difference being considered zero
     real(kind=dp), intent(in) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
@@ -848,21 +880,22 @@ module energyTabulatorMod
                 ! differences.
                 dEDelta = eTotRelax(ibf,ikf) - eTotRelax(ibi,iki)
 
-                if(dEDelta >= 0.0_dp) then
-                  ! If this delta-function energy is positive, the phonon energy will have to be
-                  ! negative. You can potentially ignore those processes, but we actually want to
-                  ! consider all of the processes because the transition may cause a slight cooling
-                  ! while the approach and departure of the carrier may together produce a positive 
-                  ! energy transfer.
-                  ! 
-                  ! I am leaving this here in case we wanted to use it in the future.
-                !if(abs(dEDelta) <= 1e-4_dp) then
+                if(dEDelta >= dENegThresh) then
+                  ! If not allowing negative energy transfer to phonons (i.e., vibrational cooling),
+                  ! then skip states where there is a positive delta-function energy (they are opposite).
 
+                  write(*,'("   ", 4i5, " Neg. energy transfer")') iki, ibi, ikf, ibf
+
+                  iE = iE - 1
+
+                  cycle
+                else if(abs(dEDelta) <= dEZeroThresh) then
                   write(*,'("   ", 4i5, " Zero energy transfer")') iki, ibi, ikf, ibf
 
                   iE = iE - 1
 
                   cycle
+
                 endif
 
 
@@ -878,7 +911,7 @@ module energyTabulatorMod
                 endif
 
                 
-                if(abs(dEZeroth) < 1e-6*eVToHartree) then
+                if(abs(dEZeroth) < dEZeroThresh) then
                   ! If there is zero electronic energy difference, the matrix elements will be zero.
 
                   write(*,'("   ", 4i5, " Zero elec. energy diff.")') iki, ibi, ikf, ibf
