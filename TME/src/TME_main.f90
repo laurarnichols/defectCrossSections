@@ -20,7 +20,8 @@ program TMEmain
 
 
   call readInputParams(ibBra, ikBra, ibKet, ikKet, ibShift_braket, ispSelect, nPairs, order, phononModeJ, baselineDir, &
-          braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, intraK, overlapOnly, subtractBaseline)
+          braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, intraK, lineUpBands, &
+          overlapOnly, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     

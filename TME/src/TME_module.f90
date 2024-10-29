@@ -55,6 +55,9 @@ module TMEmod
   logical :: intraK
     !! If overlaps should be calculated across different
     !! k-points (true) or just between single k-points (false)
+  logical :: lineUpBands
+    !! If calculating preliminary overlaps to line up bands
+    !! from different systems
   logical :: overlapOnly
     !! If only the wave function overlap should be
     !! calculated
@@ -189,7 +192,8 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(ibBra, ikBra, ibKet, ikKet, ibShift_braket, ispSelect, nPairs, order, phononModeJ, &
-          baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, intraK, overlapOnly, subtractBaseline)
+          baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, intraK, &
+          lineUpBands, overlapOnly, subtractBaseline)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
@@ -232,6 +236,9 @@ contains
     logical, intent(out) :: intraK
       !! If overlaps should be calculated across different
       !! k-points (true) or just between single k-points (false)
+    logical, intent(out) :: lineUpBands
+      !! If calculating preliminary overlaps to line up bands
+      !! from different systems
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -250,16 +257,16 @@ contains
 
     namelist /TME_Input/ ketExportDir, braExportDir, outputDir, energyTableDir, &
                          order, dqFName, phononModeJ, subtractBaseline, baselineDir, &
-                         ispSelect, nPairs, braBands, ketBands, overlapOnly, dqOnly, &
-                         iBandLBra, iBandHBra, iBandLKet, iBandHKet, capture, intraK, &
-                         ibShift_braket
+                         ispSelect, nPairs, braBands, ketBands, lineUpBands, overlapOnly, &
+                         dqOnly, iBandLBra, iBandHBra, iBandLKet, iBandHKet, capture, &
+                         intraK, ibShift_braket
     
 
     if(ionode) then
     
       call initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
               phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, &
-              outputDir, capture, dqOnly, intraK, overlapOnly, subtractBaseline)
+              outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
     
       read(5, TME_Input, iostat=ierr)
     
@@ -267,7 +274,7 @@ contains
     
       call checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, phononModeJ, &
               baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, &
-              dqOnly, intraK, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
+              dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
 
     endif
 
@@ -281,6 +288,7 @@ contains
     call MPI_BCAST(capture, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(dqOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(intraK, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(lineUpBands, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(overlapOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(subtractBaseline, 1, MPI_LOGICAL, root, worldComm, ierr)
 
@@ -326,7 +334,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
           phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, &
-          outputDir, capture, dqOnly, intraK, overlapOnly, subtractBaseline)
+          outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
     
     implicit none
 
@@ -369,6 +377,9 @@ contains
     logical, intent(out) :: intraK
       !! If overlaps should be calculated across different
       !! k-points (true) or just between single k-points (false)
+    logical, intent(out) :: lineUpBands
+      !! If calculating preliminary overlaps to line up bands
+      !! from different systems
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
@@ -400,6 +411,7 @@ contains
     capture = .true.
     dqOnly = .false.
     intraK = .false.
+    lineUpBands = .false.
     overlapOnly = .false.
     subtractBaseline = .false.
     
@@ -410,7 +422,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
           phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, &
-          capture, dqOnly, intraK, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
+          capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
     
     implicit none
 
@@ -450,10 +462,13 @@ contains
     logical, intent(in) :: dqOnly
       !! If first-order matrix elements should only be
       !! divided by dq
-    logical, intent(in) :: intraK
+    logical, intent(inout) :: intraK
       !! If overlaps should be calculated across different
       !! k-points (true) or just between single k-points (false)
-    logical, intent(in) :: overlapOnly
+    logical, intent(in) :: lineUpBands
+      !! If calculating preliminary overlaps to line up bands
+      !! from different systems
+    logical, intent(inout) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
     logical, intent(in) :: subtractBaseline
@@ -495,6 +510,12 @@ contains
       loopSpins = .false.
     endif
 
+
+    write(*,'("lineUpBands = ",L)') lineUpBands
+    if(lineUpBands .and. .not. overlapOnly) then
+      write(*,'("lineUpBands option selected. Overriding overlapOnly and setting to true!!")')
+      overlapOnly = .true.
+    endif
 
     write(*,'("overlapOnly = ",L)') overlapOnly
     write(*,'("intraK = ",L)') intraK
@@ -540,6 +561,18 @@ contains
       bandBoundsGiven = iBandLBra > 0 .and. iBandHBra > 0 .and. &
                         iBandLKet > 0 .and. iBandHKet > 0
       energyTableGiven = trim(energyTableDir) /= ''
+
+
+      if(lineUpBands) then
+        if(.not. bandBoundsGiven) then
+          write(*,'("Must give a range of bands with lineUpBands option!")')
+          abortExecution = .true.
+        else if(intraK) then
+          write(*,'("intraK options is not compatible with lineUpBands option!")')
+          write(*,'("Overriding and setting intraK = .false.!")')
+          intraK = .false.
+        endif
+      endif
 
 
       if(explicitBandStringsGiven .and. .not. intraK) then
