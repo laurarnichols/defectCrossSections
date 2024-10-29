@@ -13,6 +13,9 @@ module TMEmod
 
   integer, allocatable :: ibBra(:), ikBra(:), ikKet(:), ibKet(:)
     !! State indices for different systems
+  integer :: ibShift_braket
+    !! Shift of band indexing of bra system relative
+    !! to ket system
   integer, allocatable :: mill_local(:,:)
     !! Local Miller indices
   integer :: nGVecsGlobal
@@ -116,6 +119,9 @@ module TMEmod
 
   ! Define a type for each of the crystal inputs
   type :: crystal
+    integer :: ibShift
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer :: iGkStart_pool
       !! Start and end G+k vector for process in pool
     integer, allocatable :: iType(:)
@@ -182,8 +188,8 @@ module TMEmod
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(ibBra, ikBra, ibKet, ikKet, ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, &
-          ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, intraK, overlapOnly, subtractBaseline)
+  subroutine readInputParams(ibBra, ikBra, ibKet, ikKet, ibShift_braket, ispSelect, nPairs, order, phononModeJ, &
+          baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, intraK, overlapOnly, subtractBaseline)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
@@ -192,6 +198,9 @@ contains
     ! Output variables:
     integer, allocatable, intent(out) :: ibBra(:), ikBra(:), ibKet(:), ikKet(:)
       !! State indices for different systems
+    integer, intent(out) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(out) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
@@ -242,20 +251,21 @@ contains
     namelist /TME_Input/ ketExportDir, braExportDir, outputDir, energyTableDir, &
                          order, dqFName, phononModeJ, subtractBaseline, baselineDir, &
                          ispSelect, nPairs, braBands, ketBands, overlapOnly, dqOnly, &
-                         iBandLBra, iBandHBra, iBandLKet, iBandHKet, capture, intraK
+                         iBandLBra, iBandHBra, iBandLKet, iBandHKet, capture, intraK, &
+                         ibShift_braket
     
 
     if(ionode) then
     
-      call initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, baselineDir, &
-              braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, &
-              intraK, overlapOnly, subtractBaseline)
+      call initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
+              phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, &
+              outputDir, capture, dqOnly, intraK, overlapOnly, subtractBaseline)
     
       read(5, TME_Input, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading TME_Input namelist', abs(ierr))
     
-      call checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, &
+      call checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, phononModeJ, &
               baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, &
               dqOnly, intraK, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
 
@@ -263,6 +273,7 @@ contains
 
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
 
+    call MPI_BCAST(ibShift_braket, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(ispSelect, 1, MPI_INTEGER, root, worldComm, ierr)
 
     call MPI_BCAST(phononModeJ, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -313,15 +324,18 @@ contains
   end subroutine readInputParams
   
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, baselineDir, &
-          braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, intraK, &
-          overlapOnly, subtractBaseline)
+  subroutine initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
+          phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, &
+          outputDir, capture, dqOnly, intraK, overlapOnly, subtractBaseline)
     
     implicit none
 
     ! Output variables:
     integer, intent(out) :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
       !! Optional band bounds
+    integer, intent(out) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(out) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
@@ -368,6 +382,7 @@ contains
     iBandHBra = -1
     iBandLKet = -1
     iBandHKet = -1
+    ibShift_braket = 0
     order = -1
     nPairs = -1
     ispSelect = -1
@@ -393,15 +408,18 @@ contains
   end subroutine initialize
   
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, &
-          baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, &
-          dqOnly, intraK, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
+  subroutine checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
+          phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, &
+          capture, dqOnly, intraK, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
     
     implicit none
 
     ! Input variables:
     integer, intent(in) :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
       !! Optional band bounds
+    integer, intent(in) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(in) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
@@ -485,6 +503,8 @@ contains
       capture = .false.
     endif
     write(*,'("capture = ",L)') capture
+
+    write(*,'("ibShift_braket = ",i10)') ibShift_braket
 
     
     write(*,'("overlapOnly = ''",L,"''")') overlapOnly
@@ -752,11 +772,14 @@ contains
   end subroutine getBandBoundsFromRanges
 
 !----------------------------------------------------------------------------
-  subroutine setUpSystemArray(nSys, braExportDir, ketExportDir, crystalSystem)
+  subroutine setUpSystemArray(ibShift_braket, nSys, braExportDir, ketExportDir, crystalSystem)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(in) :: nSys
       !! Number of systems
 
@@ -773,10 +796,12 @@ contains
     crystalSystem(1)%sysType = 'bra'
     crystalSystem(1)%ID = 'bra'
     crystalSystem(1)%exportDir = braExportDir
+    crystalSystem(1)%ibShift = 0
 
     crystalSystem(2)%sysType = 'ket'
     crystalSystem(2)%ID = 'ket'
     crystalSystem(2)%exportDir = ketExportDir
+    crystalSystem(2)%ibShift = ibShift_braket
 
     return
 
@@ -2474,7 +2499,7 @@ contains
     if(indexInPool == 0) then
       open(unit=72, file=trim(fNameExport), access='direct', recl=reclen, iostat=ierr, status='old', SHARED)
 
-      read(72,rec=ib) (wfcAllPWs(igk), igk=1,sys%nPWs1kGlobal(ikGlobal))
+      read(72,rec=ib+sys%ibShift) (wfcAllPWs(igk), igk=1,sys%nPWs1kGlobal(ikGlobal))
     endif
 
     call MPI_SCATTERV(wfcAllPWs(:), sendCount, displacement, MPI_COMPLEX, sys%wfc(1:sys%nGkVecsLocal), sys%nGkVecsLocal, &
@@ -2529,7 +2554,7 @@ contains
     
     
       ! Read the projections
-      read(72,rec=ib) sys%projection(:)
+      read(72,rec=ib+sys%ibShift) sys%projection(:)
     
       close(72)
 

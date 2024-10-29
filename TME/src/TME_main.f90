@@ -19,15 +19,15 @@ program TMEmain
   if(ionode) call cpu_time(t0)
 
 
-  call readInputParams(ibBra, ikBra, ibKet, ikKet, ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, &
-          ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, intraK, overlapOnly, subtractBaseline)
+  call readInputParams(ibBra, ikBra, ibKet, ikKet, ibShift_braket, ispSelect, nPairs, order, phononModeJ, baselineDir, &
+          braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, intraK, overlapOnly, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     
 
   nSys = 2
 
-  call setUpSystemArray(nSys, braExportDir, ketExportDir, crystalSystem)
+  call setUpSystemArray(ibShift_braket, nSys, braExportDir, ketExportDir, crystalSystem)
     ! This is not really needed for only 2 crystal systems. We don't actually
     ! need it right now because for scattering we plan to only read from 2 exports.
     ! However, it is possible that you could read from multiple exports for the
