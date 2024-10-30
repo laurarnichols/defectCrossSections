@@ -11,6 +11,8 @@ module TMEmod
   implicit none
 
 
+  integer :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
+    !! Optional band bounds
   integer, allocatable :: ibBra(:), ikBra(:), ikKet(:), ibKet(:)
     !! State indices for different systems
   integer :: ibShift_braket
@@ -191,15 +193,17 @@ module TMEmod
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(ibBra, ikBra, ibKet, ikKet, ibShift_braket, ispSelect, nPairs, order, phononModeJ, &
-          baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, intraK, &
-          lineUpBands, overlapOnly, subtractBaseline)
+  subroutine readInputParams(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibBra, ikBra, ibKet, ikKet, ibShift_braket, &
+          ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, &
+          outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
+      !! Optional band bounds
     integer, allocatable, intent(out) :: ibBra(:), ikBra(:), ibKet(:), ikKet(:)
       !! State indices for different systems
     integer, intent(out) :: ibShift_braket
@@ -248,9 +252,6 @@ contains
       !! derivative
 
     ! Local variables:
-    integer :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
-      !! Optional band bounds
-
     character(len=300) :: braBands, ketBands
       !! Strings to take input band pairs for overlap-only
 
@@ -567,7 +568,12 @@ contains
         if(.not. bandBoundsGiven) then
           write(*,'("Must give a range of bands with lineUpBands option!")')
           abortExecution = .true.
-        else if(intraK) then
+        else if(iBandHBra - iBandLBra /= iBandHKet - iBandLKet) then
+          write(*,'("Must have an equal number of bra and ket states to lineUpBands!")')
+          abortExecution = .true.
+        endif
+        
+        if(intraK) then
           write(*,'("intraK options is not compatible with lineUpBands option!")')
           write(*,'("Overriding and setting intraK = .false.!")')
           intraK = .false.
@@ -1751,11 +1757,14 @@ contains
   end subroutine getExpiGDotR
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteInterKOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
+  subroutine getAndWriteInterKOnlyOverlaps(iBandLBra, iBandHBra, iBandLKet, iBandHKet, nPairs, ibBra, ibKet, &
+          ispSelect, nGVecsLocal, nSpins, volume, lineUpBands, braSys, ketSys, pot)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
+      !! Optional band bounds
     integer, intent(in) :: nPairs
       !! Number of pairs of bands to get overlaps for
     integer, intent(in) :: ibBra(nPairs), ibKet(nPairs)
@@ -1771,6 +1780,10 @@ contains
 
     real(kind=dp), intent(in) :: volume
       !! Volume of unit cell
+
+    logical, intent(in) :: lineUpBands
+      !! If calculating preliminary overlaps to line up bands
+      !! from different systems
 
     type(crystal) :: braSys, ketSys
        !! The crystal systems to get the
@@ -1839,8 +1852,13 @@ contains
 
         if(indexInPool == 0) then 
           do isp = 1, nSpins
-            if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) &
+            if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
+              if(lineUpBands) then
+                call findOptimalPairsAndOutput(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ikLocal, isp, nPairs, Ufi(:,isp))
+              endif
+
               call writeInterKOverlaps(nPairs, ibBra, ibKet, ikLocal, isp, volume, Ufi(:,isp))
+            endif
           enddo
         endif
 
@@ -3176,6 +3194,87 @@ contains
     return
     
   end subroutine writeInterKOverlaps
+
+!----------------------------------------------------------------------------
+  subroutine findOptimalPairsAndOutput(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ikLocal, isp, nPairs, Ufi)
+
+    use hungarianOptimizationMod, only: hungarianOptimalMatching
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
+      !! Optional band bounds
+    integer, intent(in) :: ikLocal
+      !! Current local k-point
+    integer, intent(in) :: isp
+      !! Current spin channel
+    integer, intent(in) :: nPairs
+      !! Number of pairs of bands to get overlaps for
+
+    complex(kind=dp), intent(in) :: Ufi(nPairs)
+      !! All-electron overlap
+
+    ! Local variables:
+    integer :: ikGlobal
+      !! Current global k-point
+    integer :: ip, ibB, ibK
+      !! Loop indices
+    integer, allocatable :: maxBandPair(:)
+      !! Optimal band pair to maximize overlaps
+    integer :: nBandsEachSys
+      !! Number of bands per system (bra/ket) to line up
+
+    real(kind=dp), allocatable :: norm2Ufi2D(:,:)
+      !! 2D version of overlap array (needed for passing
+      !! into optimization subroutine)
+    real(kind=dp) :: t1, t2
+
+
+    nBandsEachSys = (iBandHBra - iBandLBra + 1)
+      ! Doesn't matter which system you use here because we already
+      ! confirmed that they have the same number
+
+    allocate(norm2Ufi2D(nBandsEachSys,nBandsEachSys))
+
+    ip = 0
+    do ibB = 1, nBandsEachSys
+      do ibK = 1, nBandsEachSys
+        ip = ip + 1
+        norm2Ufi2D(ibB,ibK) = abs(Ufi(ip))**2
+      enddo
+    enddo
+
+
+    allocate(maxBandPair(nBandsEachSys))
+
+    if(ionode) write(*,'("  Beginning optimal matching algorithm to match ",i7," sets of bands.")') nBandsEachSys
+    call cpu_time(t1)
+
+    call hungarianOptimalMatching(nBandsEachSys, norm2Ufi2D, .false., maxBandPair)
+
+    call cpu_time(t2)
+    if(ionode) write(*,'("  Optimal matching complete! (",f10.2," secs)")') t2-t1
+
+
+    ikGlobal = ikLocal+ikStart_pool-1
+
+    open(64,file='optimalPairs.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal))//'.out')
+
+    write(64,'("# Number of bands in each system, iBandLBra, iBandHBra, iBandLKet, iBandHKet")')
+    write(64,'(4i10)') nBandsEachSys, iBandLBra, iBandHBra, iBandLKet, iBandHKet
+
+    write(64,'("# ibBra, ibKet, Overlap")')
+
+    do ibK = 1, nBandsEachSys ! Loop over second (col) index
+      write(64,'(2i10,ES13.4E3)') maxBandPair(ibK)+iBandLBra-1, ibK+iBandLKet-1, norm2Ufi2D(maxBandPair(ibK),ibK) 
+    enddo
+
+    close(64)
+
+    return
+
+  end subroutine findOptimalPairsAndOutput
    
 !----------------------------------------------------------------------------
   subroutine bessel_j (x, lmax, jl)
