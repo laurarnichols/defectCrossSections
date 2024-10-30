@@ -65,6 +65,8 @@ module TMEmod
   logical :: overlapOnly
     !! If only the wave function overlap should be
     !! calculated
+  logical :: readOptimalPairs
+    !! If optimal pairs should be read and states reordered
   logical :: subtractBaseline
     !! If baseline should be subtracted from first-order
     !! overlap for increased numerical accuracy in the 
@@ -197,7 +199,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine readInputParams(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibBra, ikBra, ibKet, ikKet, ibShift_braket, &
           ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, &
-          optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
+          optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, readOptimalPairs, subtractBaseline)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
@@ -250,6 +252,8 @@ contains
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
+    logical, intent(out) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
     logical, intent(out) :: subtractBaseline
       !! If baseline should be subtracted from first-order
       !! overlap for increased numerical accuracy in the 
@@ -264,14 +268,15 @@ contains
                          order, dqFName, phononModeJ, subtractBaseline, baselineDir, &
                          ispSelect, nPairs, braBands, ketBands, lineUpBands, overlapOnly, &
                          dqOnly, iBandLBra, iBandHBra, iBandLKet, iBandHKet, capture, &
-                         intraK, ibShift_braket, optimalPairsDir
+                         intraK, ibShift_braket, optimalPairsDir, readOptimalPairs
     
 
     if(ionode) then
     
       call initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
               phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, &
-              optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
+              optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, readOptimalPairs, &
+              subtractBaseline)
     
       read(5, TME_Input, iostat=ierr)
     
@@ -279,7 +284,7 @@ contains
     
       call checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, phononModeJ, &
               baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, optimalPairsDir, outputDir, &
-              capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
+              capture, dqOnly, intraK, lineUpBands, overlapOnly, readOptimalPairs, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
 
     endif
 
@@ -295,6 +300,7 @@ contains
     call MPI_BCAST(intraK, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(lineUpBands, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(overlapOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(readOptimalPairs, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(subtractBaseline, 1, MPI_LOGICAL, root, worldComm, ierr)
 
     call MPI_BCAST(braExportDir, len(braExportDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -340,7 +346,8 @@ contains
 !----------------------------------------------------------------------------
   subroutine initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
           phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, &
-          optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
+          optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, readOptimalPairs, &
+          subtractBaseline)
     
     implicit none
 
@@ -391,6 +398,8 @@ contains
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
+    logical, intent(out) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
     logical, intent(out) :: subtractBaseline
       !! If baseline should be subtracted from first-order
       !! overlap for increased numerical accuracy in the 
@@ -422,6 +431,7 @@ contains
     intraK = .false.
     lineUpBands = .false.
     overlapOnly = .false.
+    readOptimalPairs = .false.
     subtractBaseline = .false.
     
     return
@@ -431,7 +441,8 @@ contains
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
           phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, optimalPairsDir, &
-          outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
+          outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, readOptimalPairs, subtractBaseline, ibBra, ikBra, &
+          ibKet, ikKet)
     
     implicit none
 
@@ -476,12 +487,14 @@ contains
     logical, intent(inout) :: intraK
       !! If overlaps should be calculated across different
       !! k-points (true) or just between single k-points (false)
-    logical, intent(in) :: lineUpBands
+    logical, intent(inout) :: lineUpBands
       !! If calculating preliminary overlaps to line up bands
       !! from different systems
     logical, intent(inout) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
+    logical, intent(in) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
     logical, intent(in) :: subtractBaseline
       !! If baseline should be subtracted from first-order
       !! overlap for increased numerical accuracy in the 
@@ -522,24 +535,37 @@ contains
     endif
 
 
+    write(*,'("readOptimalPairs = ",L1)') readOptimalPairs
+    if(readOptimalPairs .and. lineUpBands) then
+      write(*,'("readOptimalPairs option selected. Overriding lineUpBands and setting to false!!")')
+      lineUpBands = .false.
+    endif
+
     write(*,'("lineUpBands = ",L)') lineUpBands
+
+
+    if(readOptimalPairs .or. lineUpBands) &
+      abortExecution = checkStringInitialization('optimalPairsDir', optimalPairsDir) .or. abortExecution
+
+
     if(lineUpBands .and. .not. overlapOnly) then
       write(*,'("lineUpBands option selected. Overriding overlapOnly and setting to true!!")')
       overlapOnly = .true.
     endif
 
     write(*,'("overlapOnly = ",L)') overlapOnly
-    write(*,'("intraK = ",L)') intraK
+
+
     if(overlapOnly .and. capture) then
       write(*,'("Both overlapOnly and capture are true. Overlap only takes precedence!")')
       capture = .false.
     endif
     write(*,'("capture = ",L)') capture
 
-    write(*,'("ibShift_braket = ",i10)') ibShift_braket
 
+    write(*,'("ibShift_braket = ",i10)') ibShift_braket
+    write(*,'("intraK = ",L)') intraK
     
-    write(*,'("overlapOnly = ''",L,"''")') overlapOnly
     if(.not. overlapOnly) then
       ! Require that states be read from the energy table for capture and scattering
 
@@ -549,8 +575,8 @@ contains
         abortExecution = checkFileInitialization('dqFName', dqFName) .or. abortExecution
         abortExecution = checkIntInitialization('phononModeJ', phononModeJ, 1, int(1e9)) .or. abortExecution
 
-        write(*,'("dqOnly = ''",L1,"''")') dqOnly
-        write(*,'("subtractBaseline = ''",L1,"''")') subtractBaseline
+        write(*,'("dqOnly = ",L1)') dqOnly
+        write(*,'("subtractBaseline = ",L1)') subtractBaseline
 
         if(subtractBaseline) then
           if(ispSelect == 2) then
@@ -588,8 +614,6 @@ contains
           write(*,'("Overriding and setting intraK = .false.!")')
           intraK = .false.
         endif
-
-        abortExecution = checkStringInitialization('optimalPairsDir', optimalPairsDir) .or. abortExecution
       endif
 
 
@@ -1824,7 +1848,7 @@ contains
 
     Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
 
-    if(ionode) call system('mkdir -p '//trim(optimalPairsDir))
+    if(ionode .and. lineUpBands) call system('mkdir -p '//trim(optimalPairsDir))
 
     do ikLocal = 1, nkPerPool
     
@@ -3283,7 +3307,7 @@ contains
     open(64,file=trim(optimalPairsDir)//'/optimalPairs.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal))//'.out')
 
     write(64,'("# Number of bands in each system, iBandLBra, iBandHBra, iBandLKet, iBandHKet")')
-    write(64,'(4i10)') nBandsEachSys, iBandLBra, iBandHBra, iBandLKet, iBandHKet
+    write(64,'(5i10)') nBandsEachSys, iBandLBra, iBandHBra, iBandLKet, iBandHKet
 
     write(64,'("# ibBra, ibKet, Overlap")')
 

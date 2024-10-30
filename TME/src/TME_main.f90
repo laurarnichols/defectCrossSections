@@ -21,7 +21,7 @@ program TMEmain
 
   call readInputParams(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibBra, ikBra, ibKet, ikKet, ibShift_braket, &
           ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, &
-          optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
+          optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, readOptimalPairs, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     
