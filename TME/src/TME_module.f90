@@ -46,6 +46,8 @@ module TMEmod
     !! Path to export dirs
   character(len=300) :: dqFName
     !! File name for generalized-coordinate norms
+  character(len=300) :: optimalPairsDir
+    !! Path to store or read optimalPairs.out file
   character(len=300) :: outputDir
     !! Path to where matrix elements should be output
 
@@ -195,7 +197,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine readInputParams(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibBra, ikBra, ibKet, ikKet, ibShift_braket, &
           ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, &
-          outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
+          optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
@@ -229,6 +231,8 @@ contains
       !! File name for generalized-coordinate norms
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy tables
+    character(len=300), intent(out) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(out) :: outputDir
       !! Path to where matrix elements should be output
 
@@ -260,22 +264,22 @@ contains
                          order, dqFName, phononModeJ, subtractBaseline, baselineDir, &
                          ispSelect, nPairs, braBands, ketBands, lineUpBands, overlapOnly, &
                          dqOnly, iBandLBra, iBandHBra, iBandLKet, iBandHKet, capture, &
-                         intraK, ibShift_braket
+                         intraK, ibShift_braket, optimalPairsDir
     
 
     if(ionode) then
     
       call initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
               phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, &
-              outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
+              optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
     
       read(5, TME_Input, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading TME_Input namelist', abs(ierr))
     
       call checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, phononModeJ, &
-              baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, &
-              dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
+              baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, optimalPairsDir, outputDir, &
+              capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
 
     endif
 
@@ -298,6 +302,7 @@ contains
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(baselineDir, len(baselineDir), MPI_CHARACTER, root, worldComm, ierr)
 
+    call MPI_BCAST(optimalPairsDir, len(optimalPairsDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
 
     call MPI_BCAST(nPairs, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -335,7 +340,7 @@ contains
 !----------------------------------------------------------------------------
   subroutine initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
           phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, &
-          outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
+          optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
     
     implicit none
 
@@ -367,6 +372,8 @@ contains
       !! File name for generalized-coordinate norms
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy tables
+    character(len=300), intent(out) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(out) :: outputDir
       !! Path to where matrix elements should be output
 
@@ -406,6 +413,7 @@ contains
     ketExportDir = ''
     energyTableDir = ''
     dqFName = ''
+    optimalPairsDir = './optimalPairs'
     outputDir = './TMEs'
     baselineDir = ''
     
@@ -422,8 +430,8 @@ contains
   
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
-          phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, &
-          capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
+          phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, optimalPairsDir, &
+          outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
     
     implicit none
 
@@ -455,6 +463,8 @@ contains
       !! File name for generalized-coordinate norms
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy tables
+    character(len=300), intent(in) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(in) :: outputDir
       !! Path to where matrix elements should be output
 
@@ -578,6 +588,8 @@ contains
           write(*,'("Overriding and setting intraK = .false.!")')
           intraK = .false.
         endif
+
+        abortExecution = checkStringInitialization('optimalPairsDir', optimalPairsDir) .or. abortExecution
       endif
 
 
@@ -1758,7 +1770,7 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine getAndWriteInterKOnlyOverlaps(iBandLBra, iBandHBra, iBandLKet, iBandHKet, nPairs, ibBra, ibKet, &
-          ispSelect, nGVecsLocal, nSpins, volume, lineUpBands, braSys, ketSys, pot)
+          ispSelect, nGVecsLocal, nSpins, volume, lineUpBands, optimalPairsDir, braSys, ketSys, pot)
 
     implicit none
 
@@ -1785,6 +1797,9 @@ contains
       !! If calculating preliminary overlaps to line up bands
       !! from different systems
 
+    character(len=300), intent(in) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
+
     type(crystal) :: braSys, ketSys
        !! The crystal systems to get the
        !! matrix element for
@@ -1808,6 +1823,8 @@ contains
 
 
     Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+
+    if(ionode) call system('mkdir -p '//trim(optimalPairsDir))
 
     do ikLocal = 1, nkPerPool
     
@@ -1854,7 +1871,8 @@ contains
           do isp = 1, nSpins
             if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
               if(lineUpBands) then
-                call findOptimalPairsAndOutput(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ikLocal, isp, nPairs, Ufi(:,isp))
+                call findOptimalPairsAndOutput(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ikLocal, isp, nPairs, Ufi(:,isp), &
+                    optimalPairsDir)
               endif
 
               call writeInterKOverlaps(nPairs, ibBra, ibKet, ikLocal, isp, volume, Ufi(:,isp))
@@ -3196,7 +3214,7 @@ contains
   end subroutine writeInterKOverlaps
 
 !----------------------------------------------------------------------------
-  subroutine findOptimalPairsAndOutput(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ikLocal, isp, nPairs, Ufi)
+  subroutine findOptimalPairsAndOutput(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ikLocal, isp, nPairs, Ufi, optimalPairsDir)
 
     use hungarianOptimizationMod, only: hungarianOptimalMatching
 
@@ -3214,6 +3232,9 @@ contains
 
     complex(kind=dp), intent(in) :: Ufi(nPairs)
       !! All-electron overlap
+
+    character(len=300), intent(in) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
 
     ! Local variables:
     integer :: ikGlobal
@@ -3259,7 +3280,7 @@ contains
 
     ikGlobal = ikLocal+ikStart_pool-1
 
-    open(64,file='optimalPairs.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal))//'.out')
+    open(64,file=trim(optimalPairsDir)//'/optimalPairs.'//trim(int2str(isp))//'.'//trim(int2str(ikGlobal))//'.out')
 
     write(64,'("# Number of bands in each system, iBandLBra, iBandHBra, iBandLKet, iBandHKet")')
     write(64,'(4i10)') nBandsEachSys, iBandLBra, iBandHBra, iBandLKet, iBandHKet

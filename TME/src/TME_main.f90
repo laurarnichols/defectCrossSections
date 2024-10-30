@@ -21,7 +21,7 @@ program TMEmain
 
   call readInputParams(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibBra, ikBra, ibKet, ikKet, ibShift_braket, &
           ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, &
-          outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
+          optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, subtractBaseline)
     !! Read input, initialize, check that required variables were set, and
     !! distribute across processes
     
@@ -44,7 +44,7 @@ program TMEmain
           crystalSystem(2), pot)
   else if(overlapOnly .and. .not. intraK) then
     call getAndWriteInterKOnlyOverlaps(iBandLBra, iBandHBra, iBandLKet, iBandHKet, nPairs, ibBra, ibKet, &
-            ispSelect, nGVecsLocal, nSpins, volume, lineUpBands, crystalSystem(1), crystalSystem(2), pot)
+            ispSelect, nGVecsLocal, nSpins, volume, lineUpBands, optimalPairsDir, crystalSystem(1), crystalSystem(2), pot)
   else
     call getAndWriteScatterMatrixElementsOrOverlaps(nPairs, ibKet, ikKet, ibBra, ikBra, ispSelect, nGVecsLocal, nSpins, &
             volume, overlapOnly, crystalSystem(1), crystalSystem(2), pot)
