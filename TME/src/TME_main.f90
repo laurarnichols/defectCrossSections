@@ -44,10 +44,11 @@ program TMEmain
           dqOnly, crystalSystem(1), crystalSystem(2), pot)
   else if(overlapOnly .and. .not. intraK) then
     call getAndWriteInterKOnlyOverlaps(iBandLBra, iBandHBra, iBandLKet, iBandHKet, nPairs, ibShift_braket, ibBra, ibKet, &
-            ispSelect, nGVecsLocal, nSpins, volume, lineUpBands, optimalPairsDir, crystalSystem(1), crystalSystem(2), pot)
+            ispSelect, nGVecsLocal, nSpins, volume, lineUpBands, readOptimalPairs, optimalPairsDir, crystalSystem(1), &
+            crystalSystem(2), pot)
   else
     call getAndWriteScatterMatrixElementsOrOverlaps(nPairs, ibShift_braket, ibKet, ikKet, ibBra, ikBra, ispSelect, nGVecsLocal, nSpins, &
-            volume, overlapOnly, crystalSystem(1), crystalSystem(2), pot)
+            volume, overlapOnly, readOptimalPairs, optimalPairsDir, crystalSystem(1), crystalSystem(2), pot)
   endif 
 
 
