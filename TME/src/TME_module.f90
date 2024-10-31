@@ -128,9 +128,6 @@ module TMEmod
 
   ! Define a type for each of the crystal inputs
   type :: crystal
-    integer :: ibShift
-      !! Shift of band indexing of bra system relative
-      !! to ket system
     integer :: iGkStart_pool
       !! Start and end G+k vector for process in pool
     integer, allocatable :: iType(:)
@@ -847,14 +844,11 @@ contains
   end subroutine getBandBoundsFromRanges
 
 !----------------------------------------------------------------------------
-  subroutine setUpSystemArray(ibShift_braket, nSys, braExportDir, ketExportDir, crystalSystem)
+  subroutine setUpSystemArray(nSys, braExportDir, ketExportDir, crystalSystem)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ibShift_braket
-      !! Shift of band indexing of bra system relative
-      !! to ket system
     integer, intent(in) :: nSys
       !! Number of systems
 
@@ -871,12 +865,10 @@ contains
     crystalSystem(1)%sysType = 'bra'
     crystalSystem(1)%ID = 'bra'
     crystalSystem(1)%exportDir = braExportDir
-    crystalSystem(1)%ibShift = 0
 
     crystalSystem(2)%sysType = 'ket'
     crystalSystem(2)%ID = 'ket'
     crystalSystem(2)%exportDir = ketExportDir
-    crystalSystem(2)%ibShift = ibShift_braket
 
     return
 
@@ -1793,8 +1785,8 @@ contains
   end subroutine getExpiGDotR
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteInterKOnlyOverlaps(iBandLBra, iBandHBra, iBandLKet, iBandHKet, nPairs, ibBra, ibKet, &
-          ispSelect, nGVecsLocal, nSpins, volume, lineUpBands, optimalPairsDir, braSys, ketSys, pot)
+  subroutine getAndWriteInterKOnlyOverlaps(iBandLBra, iBandHBra, iBandLKet, iBandHKet, nPairs, ibShift_braket, &
+          ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, volume, lineUpBands, optimalPairsDir, braSys, ketSys, pot)
 
     implicit none
 
@@ -1803,6 +1795,9 @@ contains
       !! Optional band bounds
     integer, intent(in) :: nPairs
       !! Number of pairs of bands to get overlaps for
+    integer, intent(in) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(in) :: ibBra(nPairs), ibKet(nPairs)
       !! Band indices for different systems
     integer, intent(in) :: ispSelect
@@ -1881,7 +1876,7 @@ contains
           if(ionode) write(*,'("  Beginning overlap <", i5, "|",i5">")') ibBra(ip), ibKet(ip)
           call cpu_time(t1)
 
-          call calculateBandPairOverlap(ibBra(ip), ibKet(ip), ikGlobal, ikGlobal, nSpins, nGVecsLocal, volume, spin1Skipped, &
+          call calculateBandPairOverlap(ibShift_braket, ibBra(ip), ibKet(ip), ikGlobal, ikGlobal, nSpins, nGVecsLocal, volume, spin1Skipped, &
                 spin2Skipped, braSys, ketSys, pot, Ufi_ip)
 
           Ufi(ip,:) = Ufi_ip
@@ -1916,14 +1911,17 @@ contains
   end subroutine getAndWriteInterKOnlyOverlaps
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteCaptureMatrixElements(nTransitions, ibi, ibf, ispSelect, nGVecsLocal, nSpins, dq_j, volume, dqOnly, &
-          braSys, ketSys, pot)
+  subroutine getAndWriteCaptureMatrixElements(nTransitions, ibShift_braket, ibi, ibf, ispSelect, nGVecsLocal, nSpins, dq_j, &
+          volume, dqOnly, braSys, ketSys, pot)
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: nTransitions
       !! Total number of transitions 
+    integer, intent(in) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(in) :: ibi(nTransitions)
       !! Initial-state indices
     integer, intent(in) :: ibf
@@ -2002,8 +2000,8 @@ contains
           if(ionode) write(*,'("  Beginning transition ", i5, " -> ",i5)') ibi(iE), ibf
           call cpu_time(t1)
 
-          call calculateBandPairOverlap(ibf, ibi(iE), ikGlobal, ikGlobal, nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, & 
-                braSys, ketSys, pot, Ufi_iE)
+          call calculateBandPairOverlap(ibShift_braket, ibf, ibi(iE), ikGlobal, ikGlobal, nSpins, nGVecsLocal, volume, &
+                spin1Skipped, spin2Skipped, braSys, ketSys, pot, Ufi_iE)
 
           Ufi(iE,:) = Ufi_iE
 
@@ -2035,14 +2033,17 @@ contains
   end subroutine getAndWriteCaptureMatrixElements
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteScatterMatrixElementsOrOverlaps(nTransitions, ibi, iki, ibf, ikf, ispSelect, nGVecsLocal, nSpins, &
-            volume, overlapOnly, braSys, ketSys, pot)
+  subroutine getAndWriteScatterMatrixElementsOrOverlaps(nTransitions, ibShift_braket, ibi, iki, ibf, ikf, ispSelect, &
+            nGVecsLocal, nSpins, volume, overlapOnly, braSys, ketSys, pot)
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: nTransitions
       !! Total number of transitions 
+    integer, intent(in) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(in) :: ibi(nTransitions), iki(nTransitions), ibf(nTransitions), ikf(nTransitions)
       !! State indices
     integer, intent(in) :: ispSelect
@@ -2154,8 +2155,8 @@ contains
             if((iki(iE) == ikiUnique(iU_iki)) .and. (ikf(iE) == ikfUnique(iU_ikf))) then
 
 
-              call calculateBandPairOverlap(ibf(iE), ibi(iE), ikf(iE), iki(iE), nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, & 
-                    braSys, ketSys, pot, Ufi_iE)
+              call calculateBandPairOverlap(ibShift_braket, ibf(iE), ibi(iE), ikf(iE), iki(iE), nSpins, nGVecsLocal, &
+                    volume, spin1Skipped, spin2Skipped, braSys, ketSys, pot, Ufi_iE)
 
               Ufi(iE,:) = Ufi_iE
 
@@ -2415,12 +2416,15 @@ contains
   end subroutine readProjectors
   
 !----------------------------------------------------------------------------
-  subroutine calculateBandPairOverlap(ibBra, ibKet, ikBra, ikKet, nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, &
-          braSys, ketSys, pot, Ufi)
+  subroutine calculateBandPairOverlap(ibShift_braket, ibBra, ibKet, ikBra, ikKet, nSpins, nGVecsLocal, volume, &
+          spin1Skipped, spin2Skipped, braSys, ketSys, pot, Ufi)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(in) :: ibBra, ibKet
       !! Band indices for bra and ket systems
     integer, intent(in) :: ikBra, ikKet
@@ -2472,7 +2476,7 @@ contains
 
         if(calcSpinDepBra) call calcSpinDep(ibBra, ikBra, isp, nGVecsLocal, braSys, ketSys)
       
-        if(calcSpinDepKet) call calcSpinDep(ibKet, ikKet, isp, nGVecsLocal, ketSys, braSys)
+        if(calcSpinDepKet) call calcSpinDep(ibKet+ibShift_braket, ikKet, isp, nGVecsLocal, ketSys, braSys)
 
 
         Ufi(isp) = dot_product(braSys%wfc(:),ketSys%wfc(:))
@@ -2592,7 +2596,7 @@ contains
     if(indexInPool == 0) then
       open(unit=72, file=trim(fNameExport), access='direct', recl=reclen, iostat=ierr, status='old', SHARED)
 
-      read(72,rec=ib+sys%ibShift) (wfcAllPWs(igk), igk=1,sys%nPWs1kGlobal(ikGlobal))
+      read(72,rec=ib) (wfcAllPWs(igk), igk=1,sys%nPWs1kGlobal(ikGlobal))
     endif
 
     call MPI_SCATTERV(wfcAllPWs(:), sendCount, displacement, MPI_COMPLEX, sys%wfc(1:sys%nGkVecsLocal), sys%nGkVecsLocal, &
@@ -2647,7 +2651,7 @@ contains
     
     
       ! Read the projections
-      read(72,rec=ib+sys%ibShift) sys%projection(:)
+      read(72,rec=ib) sys%projection(:)
     
       close(72)
 
