@@ -907,6 +907,14 @@ module energyTabulatorMod
 
                 iE = iE + 1
 
+                ! Because we use eigenvalues here, we must switch the order for different carriers
+                ! since it is assumed that the user will index the states based on the type of carrier.
+                if(elecCarrier) then
+                  dEEigElectron = eigv(ibf+ibShift_eig,ikf) - eigv(ibi+ibShift_eig,iki)
+                else
+                  dEEigElectron = eigv(ibi+ibShift_eig,iki) - eigv(ibf+ibShift_eig,ikf)
+                endif
+
     
                 ! For scattering, we do separate calculations for each band state, so we only need
                 ! to use the total energy difference
@@ -914,7 +922,7 @@ module energyTabulatorMod
                 ! The order of the total energy difference is the same for both cases because we
                 ! use total energy differences labeled by each state, rather than eigenvalue
                 ! differences.
-                dEDelta = eTotRelaxPos_ground(isp,ibf,ikf) - eTotRelaxPos_ground(isp,ibi,iki)
+                dEDelta = eTotRelaxPos_ground(isp,ibf,ikf) - eTotRelaxPos_ground(isp,ibi,iki) + dEEigElectron
 
                 if(dEDelta >= dENegThresh) then
                   ! If not allowing negative energy transfer to phonons (i.e., vibrational cooling),
@@ -938,14 +946,6 @@ module energyTabulatorMod
                 ! The zeroth-order matrix element contains the electronic-only energy difference.
                 ! For scattering, this is just an eigenvalue difference. The eigenvalues must be
                 ! read from the same system to make the difference meaningful. 
-                ! Because we use eigenvalues here, we must switch the order for different carriers
-                ! since it is assumed that the user will index the states based on the type of carrier.
-                if(elecCarrier) then
-                  dEEigElectron = eigv(ibf+ibShift_eig,ikf) - eigv(ibi+ibShift_eig,iki)
-                else
-                  dEEigElectron = eigv(ibi+ibShift_eig,iki) - eigv(ibf+ibShift_eig,ikf)
-                endif
-
                 dEZeroth = dEEigElectron
 
                 
