@@ -16,7 +16,7 @@ program energyTabulatorMain
   call readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
         ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxPosGround, &
         energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, exportDirGroundRelax, &
-        singleStateExportDir, captured, elecCarrier, loopSpins)
+        optimalPairsDir, singleStateExportDir, captured, elecCarrier, loopSpins, readOptimalPairs)
 
 
   call getnSpinsAndnKPoints(exportDirEigs, nKPoints, nSpins)

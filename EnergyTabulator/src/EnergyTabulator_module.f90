@@ -51,6 +51,8 @@ module energyTabulatorMod
     !! in the final positions
   character(len=300) :: exportDirGroundRelax
     !! Path to export for relaxed ground state
+  character(len=300) :: optimalPairsDir
+    !! Path to store or read optimalPairs.out file
   character(len=300) :: singleStateExportDir
     !! Export dir name within each subfolder
 
@@ -58,6 +60,8 @@ module energyTabulatorMod
     !! If carrier is captured as opposed to scattered
   logical :: elecCarrier
     !! If carrier is electron as opposed to hole
+  logical :: readOptimalPairs
+    !! If optimal pairs should be read and states reordered
 
 
   contains
@@ -66,7 +70,7 @@ module energyTabulatorMod
   subroutine readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
         ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxPosGround, &
         energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, exportDirGroundRelax, &
-        singleStateExportDir, captured, elecCarrier, loopSpins)
+        optimalPairsDir, singleStateExportDir, captured, elecCarrier, loopSpins, readOptimalPairs)
 
     implicit none
 
@@ -111,6 +115,8 @@ module energyTabulatorMod
       !! in the final positions
     character(len=300), intent(out) :: exportDirGroundRelax
       !! Path to export for relaxed ground state
+    character(len=300), intent(out) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(out) :: singleStateExportDir
       !! Export dir name within each subfolder
 
@@ -121,11 +127,14 @@ module energyTabulatorMod
     logical, intent(out) :: loopSpins
       !! Whether to loop over available spin channels;
       !! otherwise, use selected spin channel
+    logical, intent(out) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
   
     namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, energyTableDir, &
                            eCorrectTot, eCorrectEigRef, captured, elecCarrier, ispSelect, exportDirGroundRelax, singleStateExportDir, &
                            iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-                           ibShift_eig, allStatesBaseDir_relaxPosGround, dENegThresh, dEZeroThresh
+                           ibShift_eig, allStatesBaseDir_relaxPosGround, dENegThresh, dEZeroThresh, readOptimalPairs, &
+                           optimalPairsDir
 
 
     if(ionode) then
@@ -133,8 +142,8 @@ module energyTabulatorMod
       ! Set default values for input variables and start timers
       call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, ispSelect, &
             refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxPosGround, energyTableDir, &
-            exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, exportDirGroundRelax, singleStateExportDir, &
-            captured, elecCarrier)
+            exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, exportDirGroundRelax, optimalPairsDir, &
+            singleStateExportDir, captured, elecCarrier, readOptimalPairs)
     
       ! Read input variables
       read(5, inputParams, iostat=ierr)
@@ -145,7 +154,7 @@ module energyTabulatorMod
       call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
             ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxPosGround, &
             energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, exportDirGroundRelax, &
-            singleStateExportDir, captured, elecCarrier, loopSpins)
+            optimalPairsDir, singleStateExportDir, captured, elecCarrier, readOptimalPairs, loopSpins)
 
     endif
 
@@ -177,10 +186,12 @@ module energyTabulatorMod
     call MPI_BCAST(exportDirFinalInit, len(exportDirFinalInit), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(exportDirFinalFinal, len(exportDirFinalFinal), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(exportDirGroundRelax, len(exportDirGroundRelax), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(optimalPairsDir, len(optimalPairsDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(singleStateExportDir, len(singleStateExportDir), MPI_CHARACTER, root, worldComm, ierr)
 
     call MPI_BCAST(captured, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(elecCarrier, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(readOptimalPairs, 1, MPI_LOGICAL, root, worldComm, ierr)
 
     return
 
@@ -190,7 +201,7 @@ module energyTabulatorMod
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
         ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxPosGround, &
         energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, exportDirGroundRelax, &
-        singleStateExportDir, captured, elecCarrier)
+        optimalPairsDir, singleStateExportDir, captured, elecCarrier, readOptimalPairs)
     !! Set the default values for input variables and start timer
     !!
     !! <h2>Walkthrough</h2>
@@ -244,6 +255,8 @@ module energyTabulatorMod
       !! in the final positions
     character(len=300), intent(out) :: exportDirGroundRelax
       !! Path to export for relaxed ground state
+    character(len=300), intent(out) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(out) :: singleStateExportDir
       !! Export dir name within each subfolder
 
@@ -251,6 +264,8 @@ module energyTabulatorMod
       !! If carrier is captured as opposed to scattered
     logical, intent(out) :: elecCarrier
       !! If carrier is electron as opposed to hole
+    logical, intent(out) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
 
 
     iBandIinit  = -1
@@ -278,18 +293,20 @@ module energyTabulatorMod
     exportDirFinalInit = ''
     exportDirFinalFinal = ''
     exportDirGroundRelax = ''
+    optimalPairsDir = ''
     singleStateExportDir = ''
 
     captured = .true.
     elecCarrier = .true.
+    readOptimalPairs = .false.
 
   end subroutine initialize
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
         ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxPosGround, energyTableDir, &
-        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, exportDirGroundRelax, singleStateExportDir, &
-        captured, elecCarrier, loopSpins)
+        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, exportDirGroundRelax, optimalPairsDir, &
+        singleStateExportDir, captured, elecCarrier, readOptimalPairs, loopSpins)
 
     implicit none
 
@@ -334,6 +351,8 @@ module energyTabulatorMod
       !! in the final positions
     character(len=300), intent(in) :: exportDirGroundRelax
       !! Path to export for relaxed ground state
+    character(len=300), intent(in) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(in) :: singleStateExportDir
       !! Export dir name within each subfolder
 
@@ -341,6 +360,8 @@ module energyTabulatorMod
       !! If carrier is captured as opposed to scattered
     logical, intent(in) :: elecCarrier
       !! If carrier is electron as opposed to hole
+    logical, intent(in) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
 
     ! Output variables:
     logical, intent(out) :: loopSpins
@@ -397,6 +418,10 @@ module energyTabulatorMod
       write(*,'("singleStateExportDir = ",a)') trim(singleStateExportDir)
       write(*,'("dENegThresh = ", ES12.3E3, " (eV)")') dENegThresh
       write(*,'("dEZeroThresh = ", ES12.3E3, " (eV)")') dEZeroThresh
+      write(*,'("readOptimalPairs = ",L1)') readOptimalPairs
+
+      if(readOptimalPairs) &
+        abortExecution = checkStringInitialization('optimalPairsDir', optimalPairsDir) .or. abortExecution
 
       dENegThresh = dENegThresh*eVToHartree
       dEZeroThresh = dEZeroThresh*eVToHartree
