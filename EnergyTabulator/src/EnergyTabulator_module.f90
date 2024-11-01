@@ -735,7 +735,8 @@ module energyTabulatorMod
 !----------------------------------------------------------------------------
   subroutine calcAndWriteScatterEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, &
         ikFinit, ikFfinal, ispSelect, nSpins, refBand, dENegThresh, dEZeroThresh, eCorrectEigRef, elecCarrier, loopSpins, &
-        allStatesBaseDir_relaxPosGround, energyTableDir, exportDirEigs, exportDirGroundRelax, singleStateExportDir)
+        readOptimalPairs, allStatesBaseDir_relaxPosGround, energyTableDir, exportDirEigs, exportDirGroundRelax, &
+        optimalPairsDir, singleStateExportDir)
 
     implicit none
 
@@ -767,6 +768,8 @@ module energyTabulatorMod
     logical, intent(in) :: loopSpins
       !! Whether to loop over available spin channels;
       !! otherwise, use selected spin channel
+    logical, intent(in) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
 
     character(len=300), intent(in) :: allStatesBaseDir_relaxPosGround
       !! Base dir for each of the different relaxed positions
@@ -777,6 +780,8 @@ module energyTabulatorMod
       !! Path to export for system to get eigenvalues
     character(len=300), intent(in) :: exportDirGroundRelax
       !! Path to export for relaxed ground state
+    character(len=300), intent(in) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(in) :: singleStateExportDir
       !! Export dir name within each subfolder
 
@@ -840,7 +845,8 @@ module energyTabulatorMod
       call exitError('calcAndWriteScatterEnergies','Input file does not exist in path '//trim(exportDirGroundRelax),1)
 
     call searchForStatesAndGetEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFInit, ikFfinal, &
-            ikMin, ikMax, ibMin, ibMax, allStatesBaseDir_relaxPosGround, singleStateExportDir, eTotRelaxPos_ground, skipState)
+            ikMin, ikMax, ibMin, ibMax, ispSelect, nSpins, readOptimalPairs, loopSpins, allStatesBaseDir_relaxPosGround, &
+            optimalPairsDir, singleStateExportDir, eTotRelaxPos_ground, skipState)
 
 
     do isp = 1, nSpins
@@ -1010,10 +1016,13 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine searchForStatesAndGetEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFInit, ikFfinal, &
-            ikMin, ikMax, ibMin, ibMax, allStatesBaseDir_relaxPosGround, singleStateExportDir, eTotRelaxPos_ground, skipState)
+            ikMin, ikMax, ibMin, ibMax, ispSelect, nSpins, readOptimalPairs, loopSpins, allStatesBaseDir_relaxPosGround, &
+            optimalPairsDir, singleStateExportDir, eTotRelaxPos_ground, skipState)
     ! This subroutine searches for energy files for all states 
     ! within the given bounds. If the Export files are found, read
     ! the energies. If not, set the state to be skipped. 
+
+    use TMEmod, only: readAllOptimalPairs
 
     implicit none
 
@@ -1025,10 +1034,23 @@ module energyTabulatorMod
     integer, intent(in) :: ikMin, ikMax, ibMin, ibMax
       !! Overall bounds on k-points and bands for initial 
       !! and final states
+    integer, intent(in) :: ispSelect
+      !! Selection of a single spin channel if input
+      !! by the user
+    integer, intent(in) :: nSpins
+      !! Number of spin channels
+
+    logical, intent(in) :: loopSpins
+      !! Whether to loop over available spin channels;
+      !! otherwise, use selected spin channel
+    logical, intent(in) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
 
     character(len=300), intent(in) :: allStatesBaseDir_relaxPosGround
       !! Base dir for each of the different relaxed positions
       !! with ground-state configuration if not captured
+    character(len=300), intent(in) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(in) :: singleStateExportDir
       !! Export dir name within each subfolder
 
@@ -1041,13 +1063,20 @@ module energyTabulatorMod
       !! If a state should be skipped
 
     ! Local variables:
+    integer :: iBandLKet, iBandHKet
+      !! Band bounds from optimalPairs file
     integer :: ik, ib
       !! Loop index
+    integer, allocatable :: ibBra_optimal(:,:)
+      !! Optimal index from the bra (final) system corresponding 
+      !! to the input index from the ket (initial) system
 
     logical :: fileExists
       !! If the input file exists in the given exportDir
     logical :: inInitkRange, inFinalkRange, inInitBandRange, inFinalBandRange
       !! If in k-point or band range
+    logical :: spin1Skipped, spin2Skipped
+      !! If spin channels skipped
 
     character(len=300) :: path
       !! Path to the export for each band state
@@ -1063,6 +1092,13 @@ module energyTabulatorMod
       inFinalkRange = ik >= ikFinit .or. ik <= ikFfinal
 
       if(inInitkRange .or. inFinalkRange) then
+
+        if(readOptimalPairs) then
+          spin1Skipped = (.not. loopSpins) .or. ispSelect == 2
+          spin2Skipped = (.not. loopSpins) .or. ispSelect == 1
+          call readAllOptimalPairs(ik, nSpins, spin1Skipped, spin2Skipped, optimalPairsDir, iBandLKet, iBandHKet, ibBra_optimal)
+        endif
+
         do ib = ibMin, ibMax
 
           ! Test if in range of either band bounds
@@ -1071,6 +1107,14 @@ module energyTabulatorMod
 
           ! Only consider if band and k bounds line up for initial/final states
           if((inInitkRange .and. inInitBandRange) .or. (inFinalkRange .and. inFinalBandRange)) then
+
+            if(readOptimalPairs) then
+              if(ib < iBandLKet .or. ib > iBandHKet) &
+                call exitError('searchForStatesAndGetEnergies',&
+                  'Index '//trim(int2str(ib))//' not included in optimalPairs file for ik = '//trim(int2str(ik)),1)
+
+              write(*,*) ib, ibBra_optimal(1,ib)
+            endif
 
             ! Get total energy for each set of relaxed positions with the ground-state
             ! electronic configuration

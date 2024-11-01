@@ -33,7 +33,8 @@ program energyTabulatorMain
   else
     if(ionode) call calcAndWriteScatterEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, &
         ikFinit, ikFfinal, ispSelect, nSpins, refBand, dENegThresh, dEZeroThresh, eCorrectEigRef, elecCarrier, loopSpins, &
-        allStatesBaseDir_relaxPosGround, energyTableDir, exportDirEigs, exportDirGroundRelax, singleStateExportDir)
+        readOptimalPairs, allStatesBaseDir_relaxPosGround, energyTableDir, exportDirEigs, exportDirGroundRelax, &
+        optimalPairsDir, singleStateExportDir)
   endif
 
 
