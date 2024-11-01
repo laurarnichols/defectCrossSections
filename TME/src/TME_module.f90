@@ -1889,7 +1889,7 @@ contains
         
         if(readOptimalPairs) then
           if(indexInPool == 0) &
-            call readAllOptimalPairs(ikGlobal, spin1Skipped, spin2Skipped, optimalPairsDir, iBandLKet, iBandHKet, &
+            call readAllOptimalPairs(ikGlobal, nSpins, spin1Skipped, spin2Skipped, optimalPairsDir, iBandLKet, iBandHKet, &
                   ibBra_optimal)
 
           call MPI_BCAST(iBandLKet, 1, MPI_INTEGER, root, intraPoolComm, ierr)
@@ -2199,7 +2199,7 @@ contains
         
           if(readOptimalPairs) then
             if(ionode) &
-              call readAllOptimalPairs(ikfUnique(iU_ikf), spin1Skipped, spin2Skipped, optimalPairsDir, iBandLKet, iBandHKet, &
+              call readAllOptimalPairs(ikfUnique(iU_ikf), nSpins, spin1Skipped, spin2Skipped, optimalPairsDir, iBandLKet, iBandHKet, &
                     ibBra_optimal)
 
             call MPI_BCAST(iBandLKet, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -3414,7 +3414,7 @@ contains
   end subroutine findOptimalPairsAndOutput
 
 !----------------------------------------------------------------------------
-  subroutine readAllOptimalPairs(ikGlobal, spin1Skipped, spin2Skipped, optimalPairsDir, iBandLKet, iBandHKet, &
+  subroutine readAllOptimalPairs(ikGlobal, nSpins, spin1Skipped, spin2Skipped, optimalPairsDir, iBandLKet, iBandHKet, &
         ibBra_optimal)
     ! The optimal pairs file contains the best match between the bra-system (defect)
     ! and ket-system (perfect crystal) state indices. Because we take the energies 
@@ -3432,6 +3432,9 @@ contains
     ! Input variables:
     integer, intent(in) :: ikGlobal
       !! Current global k-point
+    integer, intent(in) :: nSpins
+      !! Number of spins (tested to be consistent
+      !! across all systems)
 
     logical, intent(in) :: spin1Skipped, spin2Skipped
       !! If spin channels skipped
