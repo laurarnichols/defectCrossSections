@@ -806,9 +806,11 @@ module energyTabulatorMod
       !! Eigenvalues
     real(kind=dp) :: eTotGroundRelax
       !! Total energy for relaxed ground-state system
-    real(kind=dp), allocatable :: eTotRelaxPos_ground(:,:)
+    real(kind=dp), allocatable :: eTotRelaxPos_ground(:,:,:)
       !! Total energies for all relaxed positions but in
-      !! electronic ground state
+      !! electronic ground state. Needs spin polarization 
+      !! in case lining up bands and states line up different
+      !! for different spins
     real(kind=dp) :: refEig
       !! Eigenvalue of WZP reference carrier
 
@@ -816,7 +818,7 @@ module energyTabulatorMod
       !! If relaxed ground-state exported 'input' file exists
     logical :: inInitkRange, inFinalkRange
       !! If in k-point range
-    logical, allocatable :: skipState(:,:)
+    logical, allocatable :: skipState(:,:,:)
       !! If a state should be skipped
     
     character(len=300) :: baseFName
@@ -831,8 +833,8 @@ module energyTabulatorMod
     ibMin = min(iBandIinit, iBandFinit)
     ibMax = max(iBandIfinal, iBandFfinal)
 
-    allocate(eTotRelaxPos_ground(ibMin:ibMax,ikMin:ikMax))
-    allocate(skipState(ibMin:ibMax,ikMin:ikMax))
+    allocate(eTotRelaxPos_ground(nSpins,ibMin:ibMax,ikMin:ikMax))
+    allocate(skipState(nSpins,ibMin:ibMax,ikMin:ikMax))
     allocate(eigv(ibMin+ibShift_eig:ibMax+ibShift_eig,ikMin:ikMax))
       ! The bands in the eigenvalue system may not line up
       ! with the bands in the total-energy (defect) system,
@@ -874,7 +876,7 @@ module energyTabulatorMod
               ! is simple to include more bands even if they aren't all needed.
 
           do ib = ibMin, ibMax
-            if(.not. skipState(ib,ik)) write(27,'(2i7,f12.4)') &
+            if(.not. skipState(isp, ib,ik)) write(27,'(2i7,f12.4)') &
               ik, ib, (eigv(ib+ibShift_eig,ik)-refEig+eCorrectEigRef)/eVToHartree
           enddo
         enddo
@@ -896,12 +898,12 @@ module energyTabulatorMod
         do iki = ikIinit, ikIfinal
           do ibi = iBandIinit, iBandIfinal
 
-            if(skipState(ibi,iki)) cycle
+            if(skipState(isp,ibi,iki)) cycle
 
             do ikf = ikFinit, ikFfinal
               do ibf = iBandFinit, iBandFfinal
 
-                if(skipState(ibf,ikf) .or. (ikf == iki .and. ibf == ibi)) cycle
+                if(skipState(isp,ibf,ikf) .or. (ikf == iki .and. ibf == ibi)) cycle
 
                 iE = iE + 1
 
@@ -912,7 +914,7 @@ module energyTabulatorMod
                 ! The order of the total energy difference is the same for both cases because we
                 ! use total energy differences labeled by each state, rather than eigenvalue
                 ! differences.
-                dEDelta = eTotRelaxPos_ground(ibf,ikf) - eTotRelaxPos_ground(ibi,iki)
+                dEDelta = eTotRelaxPos_ground(isp,ibf,ikf) - eTotRelaxPos_ground(isp,ibi,iki)
 
                 if(dEDelta >= dENegThresh) then
                   ! If not allowing negative energy transfer to phonons (i.e., vibrational cooling),
@@ -970,8 +972,8 @@ module energyTabulatorMod
 
 
                 write(17,'(4i7,5ES24.15E3)') iki, ibi, ikf, ibf, dEDelta, dEZeroth, dEFirst, &
-                                             eTotRelaxPos_ground(ibi,iki)-eTotGroundRelax, &
-                                             eTotGroundRelax-eTotRelaxPos_ground(ibf,ikf)
+                                             eTotRelaxPos_ground(isp,ibi,iki)-eTotGroundRelax, &
+                                             eTotGroundRelax-eTotRelaxPos_ground(isp,ibf,ikf)
         
               enddo ! Loop over final bands 
             enddo ! Loop over final k-points
@@ -1055,18 +1057,18 @@ module energyTabulatorMod
       !! Export dir name within each subfolder
 
     ! Output variables:
-    real(kind=dp), intent(out) :: eTotRelaxPos_ground(ibMin:ibMax,ikMin:ikMax)
+    real(kind=dp), intent(out) :: eTotRelaxPos_ground(nSpins,ibMin:ibMax,ikMin:ikMax)
       !! Total energies for all relaxed positions but in
       !! electronic ground state
 
-    logical, intent(out) :: skipState(ibMin:ibMax,ikMin:ikMax)
+    logical, intent(out) :: skipState(nSpins,ibMin:ibMax,ikMin:ikMax)
       !! If a state should be skipped
 
     ! Local variables:
     integer :: iBandLKet, iBandHKet
       !! Band bounds from optimalPairs file
-    integer :: ik, ib
-      !! Loop index
+    integer :: ik, ib, isp
+      !! Loop indices
     integer, allocatable :: ibBra_optimal(:,:)
       !! Optimal index from the bra (final) system corresponding 
       !! to the input index from the ket (initial) system
@@ -1107,33 +1109,53 @@ module energyTabulatorMod
 
           ! Only consider if band and k bounds line up for initial/final states
           if((inInitkRange .and. inInitBandRange) .or. (inFinalkRange .and. inFinalBandRange)) then
+            ! Get total energy for each set of relaxed positions with the ground-state
+            ! electronic configuration
+            ! Assume subfolders have pattern <allStatesBaseDir_relaxPosGround>/k<ik>_b<ib>/<singleStateExportDir>
+            ! e.g., ../VASP/k1_b1616/export/
 
             if(readOptimalPairs) then
               if(ib < iBandLKet .or. ib > iBandHKet) &
                 call exitError('searchForStatesAndGetEnergies',&
                   'Index '//trim(int2str(ib))//' not included in optimalPairs file for ik = '//trim(int2str(ik)),1)
+              
 
-              write(*,*) ib, ibBra_optimal(1,ib)
-            endif
+              do isp = 1, nSpins
+                if(loopSpins .or. isp == ispSelect) then
 
-            ! Get total energy for each set of relaxed positions with the ground-state
-            ! electronic configuration
-            ! Assume subfolders have pattern <allStatesBaseDir_relaxPosGround>/k<ik>_b<ib>/<singleStateExportDir>
-            ! e.g., ../VASP/k1_b1616/export/
-            path = trim(allStatesBaseDir_relaxPosGround)//'/k'//trim(int2str(ik))//'_b'//trim(int2str(ib))//'/'//trim(singleStateExportDir)
-            call getTotalEnergy(path, eTotRelaxPos_ground(ib,ik), fileExists)
+                  path = trim(allStatesBaseDir_relaxPosGround)//'/k'//trim(int2str(ik))// &
+                          '_b'//trim(int2str(ibBra_optimal(isp,ib)))//'/'//trim(singleStateExportDir)
+                  call getTotalEnergy(path, eTotRelaxPos_ground(isp,ib,ik), fileExists)
 
-            ! Skip the consideration of this state if the necessary file doesn't exist.
-            if(fileExists) then
-              skipState(ib,ik) = .false.
+                  ! Skip the consideration of this state if the necessary file doesn't exist.
+                  if(fileExists) then
+                    skipState(isp,ib,ik) = .false.
+                  else
+                    write(*,'("Skipping state ik,ib = ",2i7,"! Relax-pos., ground-state input file does not exist in path ",a)') ik, ib, trim(path)
+                  endif
+
+                endif
+              enddo
+
             else
-              write(*,'("Skipping state ik,ib = ",2i7,"! Relax-pos., ground-state input file does not exist in path ",a)') ik, ib, trim(path)
-            endif
 
-          endif
-        enddo
-      endif
-    enddo
+              path = trim(allStatesBaseDir_relaxPosGround)//'/k'//trim(int2str(ik))//'_b'//trim(int2str(ib))//'/'//trim(singleStateExportDir)
+              call getTotalEnergy(path, eTotRelaxPos_ground(1,ib,ik), fileExists)
+              eTotRelaxPos_ground(:,ib,ik) = eTotRelaxPos_ground(1,ib,ik)
+              
+              ! Skip the consideration of this state if the necessary file doesn't exist.
+              if(fileExists) then
+                skipState(:,ib,ik) = .false.
+              else
+                write(*,'("Skipping state ik,ib = ",2i7,"! Relax-pos., ground-state input file does not exist in path ",a)') ik, ib, trim(path)
+              endif
+
+
+            endif ! If readOptimalPairs
+          endif ! If in band and k range
+        enddo ! Loop over bands
+      endif ! If in k range
+    enddo ! Loop over k's
 
     return
 
