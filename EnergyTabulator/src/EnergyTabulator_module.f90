@@ -33,8 +33,6 @@ module energyTabulatorMod
   real(kind=dp) :: eCorrectEigRef
     !! Correction to eigenvalue difference with reference carrier, if any
 
-  character(len=300) :: allStatesBaseDir_relaxed
-    !! Base dir for sets of relaxed files if not captured
   character(len=300) :: allStatesBaseDir_relaxPosGround
     !! Base dir for each of the different relaxed positions
     !! with ground-state configuration if not captured
@@ -51,6 +49,8 @@ module energyTabulatorMod
   character(len=300) :: exportDirFinalFinal
     !! Path to export for final charge state
     !! in the final positions
+  character(len=300) :: exportDirGroundRelax
+    !! Path to export for relaxed ground state
   character(len=300) :: singleStateExportDir
     !! Export dir name within each subfolder
 
@@ -64,8 +64,8 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-        ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, &
-        allStatesBaseDir_relaxPosGround, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, &
+        ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxPosGround, &
+        energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, exportDirGroundRelax, &
         singleStateExportDir, captured, elecCarrier, loopSpins)
 
     implicit none
@@ -93,8 +93,6 @@ module energyTabulatorMod
     real(kind=dp), intent(out) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
-    character(len=300), intent(out) :: allStatesBaseDir_relaxed
-      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(out) :: allStatesBaseDir_relaxPosGround
       !! Base dir for each of the different relaxed positions
       !! with ground-state configuration if not captured
@@ -111,6 +109,8 @@ module energyTabulatorMod
     character(len=300), intent(out) :: exportDirFinalFinal
       !! Path to export for final charge state
       !! in the final positions
+    character(len=300), intent(out) :: exportDirGroundRelax
+      !! Path to export for relaxed ground state
     character(len=300), intent(out) :: singleStateExportDir
       !! Export dir name within each subfolder
 
@@ -123,7 +123,7 @@ module energyTabulatorMod
       !! otherwise, use selected spin channel
   
     namelist /inputParams/ exportDirEigs, exportDirFinalFinal, exportDirFinalInit, exportDirInitInit, energyTableDir, &
-                           eCorrectTot, eCorrectEigRef, captured, elecCarrier, ispSelect, allStatesBaseDir_relaxed, singleStateExportDir, &
+                           eCorrectTot, eCorrectEigRef, captured, elecCarrier, ispSelect, exportDirGroundRelax, singleStateExportDir, &
                            iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, refBand, ikIinit, ikIfinal, ikFinit, ikFfinal, &
                            ibShift_eig, allStatesBaseDir_relaxPosGround, dENegThresh, dEZeroThresh
 
@@ -132,8 +132,8 @@ module energyTabulatorMod
 
       ! Set default values for input variables and start timers
       call initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, ispSelect, &
-            refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, allStatesBaseDir_relaxPosGround, &
-            energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, singleStateExportDir, &
+            refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxPosGround, energyTableDir, &
+            exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, exportDirGroundRelax, singleStateExportDir, &
             captured, elecCarrier)
     
       ! Read input variables
@@ -143,8 +143,8 @@ module energyTabulatorMod
 
       ! Check that all variables were properly set
       call checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-            ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, &
-            allStatesBaseDir_relaxPosGround, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, &
+            ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxPosGround, &
+            energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, exportDirGroundRelax, &
             singleStateExportDir, captured, elecCarrier, loopSpins)
 
     endif
@@ -170,13 +170,13 @@ module energyTabulatorMod
     call MPI_BCAST(eCorrectTot, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(eCorrectEigRef, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
-    call MPI_BCAST(allStatesBaseDir_relaxed, len(allStatesBaseDir_relaxed), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(allStatesBaseDir_relaxPosGround, len(allStatesBaseDir_relaxPosGround), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(exportDirEigs, len(exportDirEigs), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(exportDirInitInit, len(exportDirInitInit), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(exportDirFinalInit, len(exportDirFinalInit), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(exportDirFinalFinal, len(exportDirFinalFinal), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(exportDirGroundRelax, len(exportDirGroundRelax), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(singleStateExportDir, len(singleStateExportDir), MPI_CHARACTER, root, worldComm, ierr)
 
     call MPI_BCAST(captured, 1, MPI_LOGICAL, root, worldComm, ierr)
@@ -188,8 +188,8 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine initialize(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-        ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, &
-        allStatesBaseDir_relaxPosGround, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, &
+        ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxPosGround, &
+        energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, exportDirGroundRelax, &
         singleStateExportDir, captured, elecCarrier)
     !! Set the default values for input variables and start timer
     !!
@@ -226,8 +226,6 @@ module energyTabulatorMod
     real(kind=dp), intent(out) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
-    character(len=300), intent(out) :: allStatesBaseDir_relaxed
-      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(out) :: allStatesBaseDir_relaxPosGround
       !! Base dir for each of the different relaxed positions
       !! with ground-state configuration if not captured
@@ -244,6 +242,8 @@ module energyTabulatorMod
     character(len=300), intent(out) :: exportDirFinalFinal
       !! Path to export for final charge state
       !! in the final positions
+    character(len=300), intent(out) :: exportDirGroundRelax
+      !! Path to export for relaxed ground state
     character(len=300), intent(out) :: singleStateExportDir
       !! Export dir name within each subfolder
 
@@ -271,13 +271,13 @@ module energyTabulatorMod
     eCorrectTot = 0.0_dp
     eCorrectEigRef = 0.0_dp
 
-    allStatesBaseDir_relaxed = ''
     allStatesBaseDir_relaxPosGround = ''
     energyTableDir = './'
     exportDirEigs = ''
     exportDirInitInit = ''
     exportDirFinalInit = ''
     exportDirFinalFinal = ''
+    exportDirGroundRelax = ''
     singleStateExportDir = ''
 
     captured = .true.
@@ -287,9 +287,9 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
-        ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, &
-        allStatesBaseDir_relaxPosGround, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, &
-        singleStateExportDir, captured, elecCarrier, loopSpins)
+        ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxPosGround, energyTableDir, &
+        exportDirEigs, exportDirInitInit, exportDirFinalInit, exportDirFinalFinal, exportDirGroundRelax, singleStateExportDir, &
+        captured, elecCarrier, loopSpins)
 
     implicit none
 
@@ -316,8 +316,6 @@ module energyTabulatorMod
     real(kind=dp), intent(inout) :: eCorrectEigRef
       !! Correction to eigenvalue difference with reference carrier, if any
 
-    character(len=300), intent(in) :: allStatesBaseDir_relaxed
-      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(in) :: allStatesBaseDir_relaxPosGround
       !! Base dir for each of the different relaxed positions
       !! with ground-state configuration if not captured
@@ -334,6 +332,8 @@ module energyTabulatorMod
     character(len=300), intent(in) :: exportDirFinalFinal
       !! Path to export for final charge state
       !! in the final positions
+    character(len=300), intent(in) :: exportDirGroundRelax
+      !! Path to export for relaxed ground state
     character(len=300), intent(in) :: singleStateExportDir
       !! Export dir name within each subfolder
 
@@ -392,7 +392,7 @@ module energyTabulatorMod
       abortExecution = checkIntInitialization('ikFinit', ikFinit, 1, int(1e9)) .or. abortExecution
       abortExecution = checkIntInitialization('ikFfinal', ikFfinal, ikFinit, int(1e9)) .or. abortExecution 
 
-      write(*,'("allStatesBaseDir_relaxed = ",a)') trim(allStatesBaseDir_relaxed)
+      write(*,'("exportDirGroundRelax = ",a)') trim(exportDirGroundRelax)
       write(*,'("allStatesBaseDir_relaxPosGround = ",a)') trim(allStatesBaseDir_relaxPosGround)
       write(*,'("singleStateExportDir = ",a)') trim(singleStateExportDir)
       write(*,'("dENegThresh = ", ES12.3E3, " (eV)")') dENegThresh
@@ -710,7 +710,7 @@ module energyTabulatorMod
 !----------------------------------------------------------------------------
   subroutine calcAndWriteScatterEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, &
         ikFinit, ikFfinal, ispSelect, nSpins, refBand, dENegThresh, dEZeroThresh, eCorrectEigRef, elecCarrier, loopSpins, &
-        allStatesBaseDir_relaxed, allStatesBaseDir_relaxPosGround, energyTableDir, exportDirEigs, singleStateExportDir)
+        allStatesBaseDir_relaxPosGround, energyTableDir, exportDirEigs, exportDirGroundRelax, singleStateExportDir)
 
     implicit none
 
@@ -743,8 +743,6 @@ module energyTabulatorMod
       !! Whether to loop over available spin channels;
       !! otherwise, use selected spin channel
 
-    character(len=300), intent(in) :: allStatesBaseDir_relaxed
-      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(in) :: allStatesBaseDir_relaxPosGround
       !! Base dir for each of the different relaxed positions
       !! with ground-state configuration if not captured
@@ -752,6 +750,8 @@ module energyTabulatorMod
       !! Path to energy tables
     character(len=300), intent(in) :: exportDirEigs
       !! Path to export for system to get eigenvalues
+    character(len=300), intent(in) :: exportDirGroundRelax
+      !! Path to export for relaxed ground state
     character(len=300), intent(in) :: singleStateExportDir
       !! Export dir name within each subfolder
 
@@ -774,13 +774,16 @@ module energyTabulatorMod
       !! Energy to be used in zeroth-order matrix element
     real(kind=dp), allocatable :: eigv(:,:)
       !! Eigenvalues
-    real(kind=dp), allocatable :: eTotRelax(:,:)
-      !! Total energies for all states in relaxed positions
-    real(kind=dp), allocatable :: eTotStartPos(:,:)
-      !! Total energies for all states in start positions
+    real(kind=dp) :: eTotGroundRelax
+      !! Total energy for relaxed ground-state system
+    real(kind=dp), allocatable :: eTotRelaxPos_ground(:,:)
+      !! Total energies for all relaxed positions but in
+      !! electronic ground state
     real(kind=dp) :: refEig
       !! Eigenvalue of WZP reference carrier
 
+    logical :: fileExists
+      !! If relaxed ground-state exported 'input' file exists
     logical :: inInitkRange, inFinalkRange
       !! If in k-point range
     logical, allocatable :: skipState(:,:)
@@ -798,8 +801,7 @@ module energyTabulatorMod
     ibMin = min(iBandIinit, iBandFinit)
     ibMax = max(iBandIfinal, iBandFfinal)
 
-    allocate(eTotRelax(ibMin:ibMax,ikMin:ikMax))
-    allocate(eTotStartPos(ibMin:ibMax,ikMin:ikMax))
+    allocate(eTotRelaxPos_ground(ibMin:ibMax,ikMin:ikMax))
     allocate(skipState(ibMin:ibMax,ikMin:ikMax))
     allocate(eigv(ibMin+ibShift_eig:ibMax+ibShift_eig,ikMin:ikMax))
       ! The bands in the eigenvalue system may not line up
@@ -807,9 +809,13 @@ module energyTabulatorMod
       ! so give the user the option to shift the bands so
       ! that they line up.
 
+    
+    call getTotalEnergy(exportDirGroundRelax, eTotGroundRelax, fileExists)
+    if(.not. fileExists) &
+      call exitError('calcAndWriteScatterEnergies','Input file does not exist in path '//trim(exportDirGroundRelax),1)
+
     call searchForStatesAndGetEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFInit, ikFfinal, &
-            ikMin, ikMax, ibMin, ibMax, allStatesBaseDir_relaxed, allStatesBaseDir_relaxPosGround, singleStateExportDir, eTotRelax, &
-            eTotStartPos, skipState)
+            ikMin, ikMax, ibMin, ibMax, allStatesBaseDir_relaxPosGround, singleStateExportDir, eTotRelaxPos_ground, skipState)
 
 
     do isp = 1, nSpins
@@ -875,7 +881,7 @@ module energyTabulatorMod
                 ! The order of the total energy difference is the same for both cases because we
                 ! use total energy differences labeled by each state, rather than eigenvalue
                 ! differences.
-                dEDelta = eTotRelax(ibf,ikf) - eTotRelax(ibi,iki)
+                dEDelta = eTotRelaxPos_ground(ibf,ikf) - eTotRelaxPos_ground(ibi,iki)
 
                 if(dEDelta >= dENegThresh) then
                   ! If not allowing negative energy transfer to phonons (i.e., vibrational cooling),
@@ -933,8 +939,8 @@ module energyTabulatorMod
 
 
                 write(17,'(4i7,5ES24.15E3)') iki, ibi, ikf, ibf, dEDelta, dEZeroth, dEFirst, &
-                                             eTotStartPos(ibi,iki)-eTotRelax(ibi,iki), &
-                                             eTotRelax(ibf,ikf)-eTotStartPos(ibf,ikf)
+                                             eTotRelaxPos_ground(ibi,iki)-eTotGroundRelax, &
+                                             eTotGroundRelax-eTotRelaxPos_ground(ibf,ikf)
         
               enddo ! Loop over final bands 
             enddo ! Loop over final k-points
@@ -979,8 +985,7 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine searchForStatesAndGetEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFInit, ikFfinal, &
-            ikMin, ikMax, ibMin, ibMax, allStatesBaseDir_relaxed, allStatesBaseDir_relaxPosGround, singleStateExportDir, eTotRelax, &
-            eTotStartPos, skipState)
+            ikMin, ikMax, ibMin, ibMax, allStatesBaseDir_relaxPosGround, singleStateExportDir, eTotRelaxPos_ground, skipState)
     ! This subroutine searches for energy files for all states 
     ! within the given bounds. If the Export files are found, read
     ! the energies. If not, set the state to be skipped. 
@@ -996,8 +1001,6 @@ module energyTabulatorMod
       !! Overall bounds on k-points and bands for initial 
       !! and final states
 
-    character(len=300), intent(in) :: allStatesBaseDir_relaxed
-      !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(in) :: allStatesBaseDir_relaxPosGround
       !! Base dir for each of the different relaxed positions
       !! with ground-state configuration if not captured
@@ -1005,10 +1008,9 @@ module energyTabulatorMod
       !! Export dir name within each subfolder
 
     ! Output variables:
-    real(kind=dp), intent(out) :: eTotRelax(ibMin:ibMax,ikMin:ikMax)
-      !! Total energies for all states in relaxed positions
-    real(kind=dp), intent(out) :: eTotStartPos(ibMin:ibMax,ikMin:ikMax)
-      !! Total energies for all states in start positions
+    real(kind=dp), intent(out) :: eTotRelaxPos_ground(ibMin:ibMax,ikMin:ikMax)
+      !! Total energies for all relaxed positions but in
+      !! electronic ground state
 
     logical, intent(out) :: skipState(ibMin:ibMax,ikMin:ikMax)
       !! If a state should be skipped
@@ -1027,8 +1029,7 @@ module energyTabulatorMod
 
 
     ! Get total energies from exports of all different structures
-    eTotRelax = 0.0_dp
-    eTotStartPos = 0.0_dp
+    eTotRelaxPos_ground = 0.0_dp
     skipState = .true.
     do ik = ikMin, ikMax
 
@@ -1046,30 +1047,18 @@ module energyTabulatorMod
           ! Only consider if band and k bounds line up for initial/final states
           if((inInitkRange .and. inInitBandRange) .or. (inFinalkRange .and. inFinalBandRange)) then
 
-            ! Get relaxed total energy for each state
-            ! Assume subfolders have pattern <allStatesBaseDir_relaxed>/k<ik>_b<ib>/<singleStateExportDir>
+            ! Get total energy for each set of relaxed positions with the ground-state
+            ! electronic configuration
+            ! Assume subfolders have pattern <allStatesBaseDir_relaxPosGround>/k<ik>_b<ib>/<singleStateExportDir>
             ! e.g., ../VASP/k1_b1616/export/
-            path = trim(allStatesBaseDir_relaxed)//'/k'//trim(int2str(ik))//'_b'//trim(int2str(ib))//'/'//trim(singleStateExportDir)
-            call getTotalEnergy(path, eTotRelax(ib,ik), fileExists)
+            path = trim(allStatesBaseDir_relaxPosGround)//'/k'//trim(int2str(ik))//'_b'//trim(int2str(ib))//'/'//trim(singleStateExportDir)
+            call getTotalEnergy(path, eTotRelaxPos_ground(ib,ik), fileExists)
 
-            ! Skip the consideration of this state if the necessary file
-            ! doesn't exist. Otherwise, track the minimum total energy to 
-            ! be output.
+            ! Skip the consideration of this state if the necessary file doesn't exist.
             if(fileExists) then
-
-              ! Get total energy for each state in start positions 
-              ! (e.g., ground-state positions)
-              path = trim(allStatesBaseDir_relaxPosGround)//'/k'//trim(int2str(ik))//'_b'//trim(int2str(ib))//'/'//trim(singleStateExportDir)
-              call getTotalEnergy(path, eTotStartPos(ib,ik), fileExists)
-
-              ! If both files exist, mark this state to not be skipped
-              if(fileExists) then
-                skipState(ib,ik) = .false.
-              else
-                write(*,'("Skipping state ik,ib = ",2i7,"! Start-pos. input file does not exist in path ",a)') ik, ib, trim(path)
-              endif
+              skipState(ib,ik) = .false.
             else
-              write(*,'("Skipping state ik,ib = ",2i7,"! Relaxed input file does not exist in path ",a)') ik, ib, trim(path)
+              write(*,'("Skipping state ik,ib = ",2i7,"! Relax-pos., ground-state input file does not exist in path ",a)') ik, ib, trim(path)
             endif
 
           endif
