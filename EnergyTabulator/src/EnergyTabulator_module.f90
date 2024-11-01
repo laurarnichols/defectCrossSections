@@ -768,6 +768,8 @@ module energyTabulatorMod
 
     real(kind=dp) :: dEDelta
       !! Energy to be used in delta function
+    real(kind=dp) :: dEEigElectron
+      !! Eigenvalue difference f-i for actual electron
     real(kind=dp) :: dEFirst
       !! Energy to be used in first-order matrix element
     real(kind=dp) :: dEZeroth
@@ -905,10 +907,12 @@ module energyTabulatorMod
                 ! Because we use eigenvalues here, we must switch the order for different carriers
                 ! since it is assumed that the user will index the states based on the type of carrier.
                 if(elecCarrier) then
-                  dEZeroth = eigv(ibf+ibShift_eig,ikf) - eigv(ibi+ibShift_eig,iki)
+                  dEEigElectron = eigv(ibf+ibShift_eig,ikf) - eigv(ibi+ibShift_eig,iki)
                 else
-                  dEZeroth = eigv(ibi+ibShift_eig,iki) - eigv(ibf+ibShift_eig,ikf)
+                  dEEigElectron = eigv(ibi+ibShift_eig,iki) - eigv(ibf+ibShift_eig,ikf)
                 endif
+
+                dEZeroth = dEEigElectron
 
                 
                 if(abs(dEZeroth) < dEZeroThresh) then
@@ -930,7 +934,7 @@ module energyTabulatorMod
                 ! Because the zeroth-order term only has an eigenvalue difference, we can just
                 ! take the negative of that value. The sign doesn't actually matter because it
                 ! is squared in the matrix element, but we calculate it correctly for clarity.
-                dEFirst = -dEZeroth
+                dEFirst = -dEEigElectron
 
 
                 write(17,'(4i7,5ES24.15E3)') iki, ibi, ikf, ibf, dEDelta, dEZeroth, dEFirst, &
