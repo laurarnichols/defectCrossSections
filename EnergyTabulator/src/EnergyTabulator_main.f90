@@ -15,7 +15,7 @@ program energyTabulatorMain
   ! Get inputs from user
   call readInputs(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, ikFinit, ikFfinal, &
         ispSelect, refBand, dENegThresh, dEZeroThresh, eCorrectTot, eCorrectEigRef, allStatesBaseDir_relaxed, &
-        allStatesBaseDir_startPos, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, &
+        allStatesBaseDir_relaxPosGround, energyTableDir, exportDirEigs, exportDirInitInit, exportDirFinalInit, &
         exportDirFinalFinal, singleStateExportDir, captured, elecCarrier, loopSpins)
 
 
@@ -33,7 +33,7 @@ program energyTabulatorMain
   else
     if(ionode) call calcAndWriteScatterEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ibShift_eig, ikIinit, ikIfinal, &
         ikFinit, ikFfinal, ispSelect, nSpins, refBand, dENegThresh, dEZeroThresh, eCorrectEigRef, elecCarrier, loopSpins, &
-        allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir, exportDirEigs, singleStateExportDir)
+        allStatesBaseDir_relaxed, allStatesBaseDir_relaxPosGround, energyTableDir, exportDirEigs, singleStateExportDir)
   endif
 
 
