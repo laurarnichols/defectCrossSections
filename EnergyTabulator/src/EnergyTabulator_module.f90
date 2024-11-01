@@ -761,8 +761,6 @@ module energyTabulatorMod
       !! and final states
     integer :: isp, ik, ib, iki, ikf, ibi, ibf, iE
       !! Loop indices
-    integer :: ib_minETot, ik_minETot
-      !! Indices of state with minimum total energy
     integer :: nTransitions
       !! Total number of energies to output
 
@@ -780,8 +778,6 @@ module energyTabulatorMod
       !! Total energies for all states in relaxed positions
     real(kind=dp), allocatable :: eTotStartPos(:,:)
       !! Total energies for all states in start positions
-    real(kind=dp) :: minETot
-      !! Minimum total energy (total potential)
     real(kind=dp) :: refEig
       !! Eigenvalue of WZP reference carrier
 
@@ -812,8 +808,8 @@ module energyTabulatorMod
       ! that they line up.
 
     call searchForStatesAndGetEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFInit, ikFfinal, &
-            ikMin, ikMax, ibMin, ibMax, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, singleStateExportDir, ib_minETot, &
-            ik_minETot, eTotRelax, eTotStartPos, minETot, skipState)
+            ikMin, ikMax, ibMin, ibMax, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, singleStateExportDir, eTotRelax, &
+            eTotStartPos, skipState)
 
 
     do isp = 1, nSpins
@@ -827,8 +823,7 @@ module energyTabulatorMod
     
         ! Read in all eigenvalues needed and output different plotting energies
         open(27,file="dEPlot."//trim(int2str(isp)))
-        write(27,'("# Min. total energy of ",f12.4," eV at ik,ib = ",2i7)') minETot/eVToHartree, ik_minETot, ib_minETot
-        write(27,'("# ik, ib, Eig. diff. from ref. (eV), Total energy diff. from min. (eV)")')
+        write(27,'("# ik, ib, Eig. diff. from ref. (eV)")')
 
         eigv = 0.0_dp
         do ik = ikMin, ikMax
@@ -842,8 +837,8 @@ module energyTabulatorMod
               ! is simple to include more bands even if they aren't all needed.
 
           do ib = ibMin, ibMax
-            if(.not. skipState(ib,ik)) write(27,'(2i7,2f12.4)') &
-              ik, ib, (eigv(ib+ibShift_eig,ik)-refEig+eCorrectEigRef)/eVToHartree, (eTotRelax(ib,ik)-minETot)/eVToHartree
+            if(.not. skipState(ib,ik)) write(27,'(2i7,f12.4)') &
+              ik, ib, (eigv(ib+ibShift_eig,ik)-refEig+eCorrectEigRef)/eVToHartree
           enddo
         enddo
 
@@ -984,8 +979,8 @@ module energyTabulatorMod
 
 !----------------------------------------------------------------------------
   subroutine searchForStatesAndGetEnergies(iBandIinit, iBandIfinal, iBandFinit, iBandFfinal, ikIinit, ikIfinal, ikFInit, ikFfinal, &
-            ikMin, ikMax, ibMin, ibMax, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, singleStateExportDir, ib_minETot, &
-            ik_minETot, eTotRelax, eTotStartPos, minETot, skipState)
+            ikMin, ikMax, ibMin, ibMax, allStatesBaseDir_relaxed, allStatesBaseDir_startPos, singleStateExportDir, eTotRelax, &
+            eTotStartPos, skipState)
     ! This subroutine searches for energy files for all states 
     ! within the given bounds. If the Export files are found, read
     ! the energies. If not, set the state to be skipped. 
@@ -1010,15 +1005,10 @@ module energyTabulatorMod
       !! Export dir name within each subfolder
 
     ! Output variables:
-    integer, intent(out) :: ib_minETot, ik_minETot
-      !! Indices of state with minimum total energy
-
     real(kind=dp), intent(out) :: eTotRelax(ibMin:ibMax,ikMin:ikMax)
       !! Total energies for all states in relaxed positions
     real(kind=dp), intent(out) :: eTotStartPos(ibMin:ibMax,ikMin:ikMax)
       !! Total energies for all states in start positions
-    real(kind=dp), intent(out) :: minETot
-      !! Minimum total energy (total potential)
 
     logical, intent(out) :: skipState(ibMin:ibMax,ikMin:ikMax)
       !! If a state should be skipped
@@ -1039,7 +1029,6 @@ module energyTabulatorMod
     ! Get total energies from exports of all different structures
     eTotRelax = 0.0_dp
     eTotStartPos = 0.0_dp
-    minETot = 0.0_dp
     skipState = .true.
     do ik = ikMin, ikMax
 
@@ -1067,12 +1056,6 @@ module energyTabulatorMod
             ! doesn't exist. Otherwise, track the minimum total energy to 
             ! be output.
             if(fileExists) then
-
-              if(eTotRelax(ib,ik) < minETot) then
-                minETot = eTotRelax(ib,ik)
-                ib_minETot = ib
-                ik_minETot = ik
-              endif
 
               ! Get total energy for each state in start positions 
               ! (e.g., ground-state positions)
