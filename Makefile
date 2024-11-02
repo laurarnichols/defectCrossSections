@@ -51,6 +51,7 @@ EnergyTabulator_srcPath = EnergyTabulator/src
 TME_srcPath             = TME/src
 LSF_srcPath             = LSF/src
 PhononPP_srcPath        = PhononPP/src
+CommonModules_srcPath   = CommonModules
 
 bin = './bin'
 
