@@ -81,15 +81,13 @@ initialize :
 		mkdir $(bin) ; \
 	fi
 
-
 # Define the targets
 TARGETS := Export_VASP EnergyTabulator TME PhononPP LSF
 
 # Define a pattern rule for all targets
 $(TARGETS) : initialize
-
-  @cd $($@_srcPath) ; \
-    make all
+	@cd $($@_srcPath) ; \
+	make all
 
 clean : cleanInitialization cleanExport_VASP cleanEnergyTabulator cleanGVel cleanTME cleanPhononPP cleanMj cleanLSF cleanSigma
 
@@ -105,5 +103,6 @@ cleanInitialization :
 # Define a pattern rule for cleaning targets
 clean% : initialize
 
-  @cd $($@_srcPath) ; \
-    make clean
+$(TARGETS) : initialize
+	@cd $($@_srcPath) ; \
+	make clean
