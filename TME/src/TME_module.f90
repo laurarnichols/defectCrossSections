@@ -1913,8 +1913,9 @@ contains
             call exitError('getAndWriteInterKOnlyOverlaps',&
               'Index '//trim(int2str(ibBra(ip)))//' not included in optimalPairs file for ik = '//trim(int2str(ikGlobal)),1)
 
-          call calculateBandPairOverlap(ibShift_braket, ibBra(ip), ibKet(ip), ikGlobal, ikGlobal, nSpins, ibBra_optimal, &
-                nGVecsLocal, volume, readOptimalPairs, spin1Skipped, spin2Skipped, braSys, ketSys, pot, Ufi_ip)
+          call calculateBandPairOverlap(ibShift_braket, ibBra(ip), ibKet(ip), ikGlobal, ikGlobal, nSpins, &
+                ibBra_optimal(:,ibBra(ip)), nGVecsLocal, volume, readOptimalPairs, spin1Skipped, spin2Skipped, &
+                braSys, ketSys, pot, Ufi_ip)
 
           Ufi(ip,:) = Ufi_ip
 
@@ -2230,8 +2231,9 @@ contains
                 call exitError('getAndWriteScatterMatrixElementsOrOverlaps',&
                   'Index '//trim(int2str(ibf(iE)))//' not included in optimalPairs file for ik = '//trim(int2str(ikf(iE))),1)
 
-              call calculateBandPairOverlap(ibShift_braket, ibf(iE), ibi(iE), ikf(iE), iki(iE), nSpins, ibBra_optimal, nGVecsLocal, &
-                    volume, readOptimalPairs, spin1Skipped, spin2Skipped, braSys, ketSys, pot, Ufi_iE)
+              call calculateBandPairOverlap(ibShift_braket, ibf(iE), ibi(iE), ikf(iE), iki(iE), nSpins, &
+                    ibBra_optimal(:,ibf(iE)), nGVecsLocal, volume, readOptimalPairs, spin1Skipped, &
+                    spin2Skipped, braSys, ketSys, pot, Ufi_iE)
 
               Ufi(iE,:) = Ufi_iE
 
