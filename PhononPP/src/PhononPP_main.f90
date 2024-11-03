@@ -64,15 +64,31 @@ program PhononPPMain
   if(diffOmega) deallocate(eigenvectorPrime)
 
 
-  if(calcSj) &
-    call calculateSj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, &
-            calcDeltaNj, diffOmega, singleDisp, allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, &
+  if(calcSj) then
+
+    if(.not. singleDisp) then
+      call readScatterEnergyTable(ispSelect, .false., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
+        ! Pass false here to get all of the energies
+    endif
+
+    call calculateSj(nAtoms, nModes, nTransitions, iki, ikf, ibi, ibf, coordFromPhon, dqEigenvectors, mass, &
+            omega, omegaPrime, SjThresh, calcDeltaNj, diffOmega, singleDisp, allStatesBaseDir_relaxed, initPOSCARFName, & 
             finalPOSCARFName, Sj_if)
 
 
-  if(calcSj .and. (.not. singleDisp) .and. calcDeltaNj) &
-    call calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, Sj_if, &
-            allStatesBaseDir_relaxed, basePOSCARFName, energyTableDir)
+    if((.not. singleDisp) .and. calcDeltaNj) &
+      call calcAndWriteDeltaNj(nAtoms, nModes, nTransitions, iki, ikf, ibi, ibf, coordFromPhon, dE, &
+              dqEigenvectors, mass, omega, Sj_if, allStatesBaseDir_relaxed, basePOSCARFName)
+
+
+    if(.not. singleDisp) then
+      deallocate(iki)
+      deallocate(ikf)
+      deallocate(ibi)
+      deallocate(ibf)
+      deallocate(dE)
+    endif
+  endif
 
 
   deallocate(Sj_if)

@@ -21,6 +21,10 @@ module PhononPPMod
   integer :: disp2AtomInd(2)
     !! Index of atoms to check displacement
     !! between if calcMaxDisp
+  integer, allocatable :: iki(:), ikf(:), ibi(:), ibf(:)
+    !! Allowed state indices
+  integer :: nTransitions
+    !! Total number of transitions 
   integer :: ispSelect
     !! Spin channel to use
   integer :: nAtomsPrime
@@ -35,6 +39,9 @@ module PhononPPMod
     !! 1/kB*T
   real(kind=dp), allocatable :: coordFromPhon(:,:), coordFromPhonPrime(:,:)
     !! Coordinates from phonon file
+  real(kind=dp), allocatable :: dE(:,:)
+    !! Equilibrium-adjustment energy differences from 
+    !! energy table
   real(kind=dp), allocatable :: eigenvector(:,:,:), eigenvectorPrime(:,:,:), dqEigenvectors(:,:,:)
     !! Eigenvectors for each atom for each mode 
   real(kind=dp) :: freqThresh
@@ -861,19 +868,21 @@ module PhononPPMod
   end subroutine getNjFromTemp
 
 !----------------------------------------------------------------------------
-  subroutine calculateSj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, &
-          calcDeltaNj, diffOmega, singleDisp, allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, & 
+  subroutine calculateSj(nAtoms, nModes, nTransitions, iki, ikf, ibi, ibf, coordFromPhon, dqEigenvectors, mass, &
+          omega, omegaPrime, SjThresh, calcDeltaNj, diffOmega, singleDisp, allStatesBaseDir_relaxed, initPOSCARFName, & 
           finalPOSCARFName, Sj_if)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ispSelect
-      !! Spin channel to use
     integer, intent(inout) :: nAtoms
       !! Number of atoms in intial system
     integer, intent(in) :: nModes
       !! Number of modes
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: iki(:), ikf(:), ibi(:), ibf(:)
+      !! Allowed state indices
 
     real(kind=dp), intent(in) :: coordFromPhon(3,nAtoms)
       !! Coordinates from phonon file
@@ -897,8 +906,6 @@ module PhononPPMod
 
     character(len=300), intent(in) :: allStatesBaseDir_relaxed
       !! Base dir for sets of relaxed files if not captured
-    character(len=300), intent(in) :: energyTableDir
-      !! Path to energy table
     character(len=300), intent(inout) :: initPOSCARFName, finalPOSCARFName
       !! File name for POSCAR for relaxed initial and final charge states
 
@@ -910,15 +917,9 @@ module PhononPPMod
     ! Local variables:
     integer :: iE
       !! Loop index
-    integer, allocatable :: iki(:), ikf(:), ibi(:), ibf(:)
-      !! Allowed state indices
-    integer :: nTransitions
-      !! Total number of transitions 
     integer :: modeIndex(nModes)
       !! Track mode indices after sorting
 
-    real(kind=dp), allocatable :: dE(:,:)
-      !! Ignore all energies from table here
     real(kind=dp) :: projNorm(nModes)
       !! Generalized norms after displacement
     real(kind=dp) :: Sj(nModes), SjPrime(nModes)
@@ -962,12 +963,6 @@ module PhononPPMod
       endif
 
     else
-
-      call readScatterEnergyTable(ispSelect, .true., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
-        ! I pass false here because it means only three energies will be 
-        ! passed back, which is smaller than the five  passed back from 
-        ! the true option. We ignore the energies here, so it doesn't 
-        ! matter. All we need from this call is the state indices.
 
       if(ionode) then
 
@@ -1016,12 +1011,6 @@ module PhononPPMod
         endif
 
       enddo
-
-      deallocate(iki)
-      deallocate(ikf)
-      deallocate(ibi)
-      deallocate(ibf)
-      deallocate(dE)
 
     endif
 
@@ -1466,21 +1455,26 @@ module PhononPPMod
   end subroutine sortAndWriteSingleDispSj
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, Sj_if, &
-            allStatesBaseDir_relaxed, basePOSCARFName, energyTableDir)
+  subroutine calcAndWriteDeltaNj(nAtoms, nModes, nTransitions, iki, ikf, ibi, ibf, coordFromPhon, dE, &
+            dqEigenvectors, mass, omega, Sj_if, allStatesBaseDir_relaxed, basePOSCARFName)
 
     implicit none
 
     ! Input variables:
-    integer, intent(in) :: ispSelect
-      !! Spin channel to use
     integer, intent(inout) :: nAtoms
       !! Number of atoms in intial system
     integer, intent(in) :: nModes
       !! Number of modes
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: iki(nTransitions), ikf(nTransitions), ibi(nTransitions), ibf(nTransitions)
+      !! Allowed state indices
 
     real(kind=dp), intent(in) :: coordFromPhon(3,nAtoms)
       !! Coordinates from phonon file
+    real(kind=dp), intent(in) :: dE(5,nTransitions)
+      !! Equilibrium-adjustment energy differences from 
+      !! energy table
     real(kind=dp), intent(in) :: dqEigenvectors(3,nAtoms,nModes)
       !! Eigenvectors for each atom for each mode to be
       !! used to calculate Delta q_j and displacements
@@ -1496,20 +1490,11 @@ module PhononPPMod
       !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(in) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
-    character(len=300), intent(in) :: energyTableDir
-      !! Path to energy table
 
     ! Local variables:
     integer :: iE, j
       !! Loop index
-    integer, allocatable :: iki(:), ikf(:), ibi(:), ibf(:)
-      !! Allowed state indices
-    integer :: nTransitions
-      !! Total number of transitions 
 
-    real(kind=dp), allocatable :: dE(:,:)
-      !! Equilibrium-adjustment energy differences from 
-      !! energy table
     real(kind=dp) :: Sj_gi(nModes), Sj_fg(nModes)
       !! Sj and Sj' Huang-Rhys factors using omega
       !! and omega'
@@ -1517,9 +1502,6 @@ module PhononPPMod
     character(len=300) :: deltaNjFName
       !! Output file for delta nj's
 
-
-    call readScatterEnergyTable(ispSelect, .false., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
-      ! Pass false here to get all of the energies
 
     if(ionode) then
       call system('mkdir -p deltaNjs')
@@ -1562,12 +1544,6 @@ module PhononPPMod
 
 
     enddo
-
-    deallocate(iki)
-    deallocate(ikf)
-    deallocate(ibi)
-    deallocate(ibf)
-    deallocate(dE)
 
     return
 
