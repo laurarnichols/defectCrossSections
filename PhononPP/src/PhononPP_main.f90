@@ -69,6 +69,8 @@ program PhononPPMain
     if(.not. singleDisp) then
       call readScatterEnergyTable(ispSelect, .false., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
         ! Pass false here to get all of the energies
+
+      if(readOptimalPairs) call readOptimalPairsUniqueK(nTransitions, iki, ikf, optimalPairsDir, ibDefect_optimal)
     endif
 
     call calculateSj(nAtoms, nModes, nTransitions, iki, ikf, ibi, ibf, coordFromPhon, dqEigenvectors, mass, &

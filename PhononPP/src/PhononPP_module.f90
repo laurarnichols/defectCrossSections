@@ -21,6 +21,8 @@ module PhononPPMod
   integer :: disp2AtomInd(2)
     !! Index of atoms to check displacement
     !! between if calcMaxDisp
+  integer, allocatable :: ibDefect_optimal(:,:)
+    !! Optimal band pairs for all unique k-points
   integer, allocatable :: iki(:), ikf(:), ibi(:), ibf(:)
     !! Allowed state indices
   integer :: nTransitions
@@ -421,7 +423,7 @@ module PhononPPMod
         write(*,'("readOptimalPairs = ''",L1,"''")') readOptimalPairs
         if(readOptimalPairs) &
           abortExecution = checkFileInitialization('optimalPairsDir', trim(optimalPairsDir)//'/optimalPairs.'&
-                                 //trim(int2str(ispSelect))//trim(int2str(1))//'.out') .or. abortExecution
+                                 //trim(int2str(ispSelect))//'.'//trim(int2str(1))//'.out') .or. abortExecution
 
         abortExecution = checkIntInitialization('ispSelect', ispSelect, 1, 2) .or. abortExecution
         abortExecution = checkFileInitialization('energyTableDir', trim(energyTableDir)//'/energyTable.'&
@@ -895,6 +897,95 @@ module PhononPPMod
     return
 
   end subroutine getNjFromTemp
+
+!----------------------------------------------------------------------------
+  subroutine readOptimalPairsUniqueK(nTransitions, iki, ikf, optimalPairsDir, ibDefect_optimal)
+
+    use optimalBandMatching, only: readAllOptimalPairs
+    use miscUtilities, only: getUniqueInts
+
+    implicit none
+
+    ! Input variables:
+    integer, intent(in) :: nTransitions
+      !! Total number of transitions 
+    integer, intent(in) :: iki(:), ikf(:)
+      !! Allowed k-point indices
+
+    character(len=300), intent(in) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
+
+    ! Output variables:
+    integer, allocatable, intent(out) :: ibDefect_optimal(:,:)
+      !! Optimal band pairs for all unique k-points
+
+    ! Local variables:
+    integer :: iBandLKet, iBandHKet
+      !! Band bounds from optimalPairs file
+    integer, allocatable :: ibBra_optimal(:,:)
+      !! Optimal index from the bra system corresponding 
+      !! to the input index from the ket system
+    integer, allocatable :: ikiUnique(:), ikfUnique(:)
+      !! Unique initial and final k-points
+    integer :: ikU  
+      !! Loop index
+    integer, allocatable :: ikUniqueFromBoth(:)
+      !! Combination of unique from initial and final
+    integer, allocatable :: ikUnique(:)
+      !! All unique k-points in either initial or final
+    integer :: nUnique_iki, nUnique_ikf
+      !! Number of unique initial and final k-points
+    integer :: nUnique_ik 
+      !! Count of total unique from either initial or final
+    integer :: minUniqueik, maxUniqueik
+      !! Min and max of unique indices to index optimal pairs over
+
+    logical :: spin1Skipped, spin2Skipped
+      !! If spin channels skipped
+
+
+    if(ionode) then
+      call getUniqueInts(nTransitions, iki, nUnique_iki, ikiUnique)
+      call getUniqueInts(nTransitions, ikf, nUnique_ikf, ikfUnique)
+
+      allocate(ikUniqueFromBoth(nUnique_iki+nUnique_ikf))
+  
+      ikUniqueFromBoth(1:nUnique_iki) = ikiUnique(:)
+      ikUniqueFromBoth(nUnique_iki+1:nUnique_iki+nUnique_ikf) = ikfUnique(:)
+      deallocate(ikiUnique,ikfUnique)
+
+      call getUniqueInts(nUnique_iki+nUnique_ikf, ikUniqueFromBoth, nUnique_ik, ikUnique)
+      deallocate(ikUniqueFromBoth)
+
+
+      minUniqueik = minval(ikUnique)
+      maxUniqueik = maxval(ikUnique)
+
+
+      spin1Skipped = ispSelect == 2
+      spin2Skipped = ispSelect == 1
+
+      call readAllOptimalPairs(ikUnique(1), 2, spin1Skipped, spin2Skipped, optimalPairsDir, iBandLKet, iBandHKet, ibBra_optimal)
+
+      allocate(ibDefect_optimal(iBandLKet:iBandHKet,minUniqueik:maxUniqueik))
+        ! Assume the band bounds are the same for all k-points
+
+      ibDefect_optimal(:,ikUnique(1)) = ibBra_optimal(ispSelect,:)
+      deallocate(ibBra_optimal)
+
+      do ikU = 2, nUnique_ik
+        call readAllOptimalPairs(ikUnique(ikU), 2, spin1Skipped, spin2Skipped, optimalPairsDir, iBandLKet, iBandHKet, ibBra_optimal)
+        ibDefect_optimal(:,ikUnique(ikU)) = ibBra_optimal(ispSelect,:)
+        deallocate(ibBra_optimal)
+      enddo
+
+      deallocate(ikUnique)
+
+    endif
+
+    return
+
+  end subroutine readOptimalPairsUniqueK
 
 !----------------------------------------------------------------------------
   subroutine calculateSj(nAtoms, nModes, nTransitions, iki, ikf, ibi, ibf, coordFromPhon, dqEigenvectors, mass, &
