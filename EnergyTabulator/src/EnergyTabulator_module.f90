@@ -1024,7 +1024,7 @@ module energyTabulatorMod
     ! within the given bounds. If the Export files are found, read
     ! the energies. If not, set the state to be skipped. 
 
-    use TMEmod, only: readAllOptimalPairs
+    use optimalBandMatching, only: readAllOptimalPairs
 
     implicit none
 

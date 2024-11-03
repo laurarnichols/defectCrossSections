@@ -21,15 +21,6 @@ TME.x : mods $(COMMONMODS) $(TME_OBJS)
 	echo "" ; \
 	echo "" ; 
 
-TMENoMods : $(COMMONMODS) $(TME_OBJS)
-	$(mpif90) $(MODFLAGS) -o TME.x $(TME_OBJS) $(COMMONMODS)
-
-	@echo "" ; \
-	echo "" ; \
-	echo "Module 'TME' compiled successfully !" ; \
-	echo "" ; \
-	echo "" ; 
-
 mods :
 	cd $(CommonModules_srcPath) ; \
 	make ; \

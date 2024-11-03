@@ -7,7 +7,7 @@ MODFLAGS= -I$(CommonModules_srcPath) -I$(TME_srcPath) -I.
 DEBUGFLAGS = -check all -g -warn all -traceback -gen-interfaces 
 
 ENERGYTAB_OBJS = EnergyTabulator_module.o EnergyTabulator_main.o
-COMMONMODS = $(TME_srcPath)/TME_module.o $(CommonModules_srcPath)/commonmodules.a
+COMMONMODS = $(CommonModules_srcPath)/commonmodules.a
 
 all : EnergyTabulator.x 
 	
@@ -23,9 +23,7 @@ EnergyTabulator.x : mods $(COMMONMODS) $(ENERGYTAB_OBJS)
 
 mods :
 	cd $(CommonModules_srcPath) ; \
-	make ; \
-  cd $(TME_srcPath) ; \
-  make TMENoMods
+	make 
 
 %.o : %.f90
 	$(mpif90) $(MODFLAGS) -O3 -c -assume byterecl -fpp $<
