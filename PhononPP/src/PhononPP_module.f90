@@ -76,6 +76,8 @@ module PhononPPMod
     !! File name for POSCAR for relaxed initial and final charge states
   character(len=300) :: phononFName, phononPrimeFName
     !! File name for mesh.yaml phonon file
+  character(len=300) :: optimalPairsDir
+    !! Path to store or read optimalPairs.out file
   character(len=300) :: prefix
     !! Prefix for shifted POSCARs
 
@@ -93,6 +95,8 @@ module PhononPPMod
   logical :: dqEigvecsFinal
     !! If final phonon eigenvectors should be used for
     !! Delta q, if applicable
+  logical :: readOptimalPairs
+    !! If optimal pairs should be read and states reordered
   logical :: singleDisp
     !! If there is just a single displacement to consider
   logical :: generateShiftedPOSCARs
@@ -104,7 +108,8 @@ module PhononPPMod
 !----------------------------------------------------------------------------
   subroutine readInputs(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
         basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, &
-        prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+        optimalPairsDir, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
+        generateShiftedPOSCARs, readOptimalPairs, singleDisp)
 
     implicit none
 
@@ -136,6 +141,8 @@ module PhononPPMod
       !! File name for mesh.yaml phonon file
     character(len=300), intent(out) :: initPOSCARFName, finalPOSCARFName
       !! File name for POSCAR for relaxed initial and final charge states
+    character(len=300), intent(out) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
@@ -155,6 +162,8 @@ module PhononPPMod
       !! Delta q, if applicable
     logical, intent(out) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
+    logical, intent(out) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
     logical, intent(out) :: singleDisp
       !! If there is just a single displacement to consider
 
@@ -162,14 +171,15 @@ module PhononPPMod
     namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, &
                            singleDisp, allStatesBaseDir_relaxed, basePOSCARFName, freqThresh, calcSj, calcDq, calcMaxDisp, & 
                            disp2AtomInd, energyTableDir, diffOmega, phononPrimeFName, dqEigvecsFinal, SjThresh, &
-                           temperature, calcDeltaNj, ispSelect
+                           temperature, calcDeltaNj, ispSelect, readOptimalPairs, optimalPairsDir
 
 
     if(ionode) then
 
       call initialize(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
           basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, &
-          prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+          optimalPairsDir, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
+          generateShiftedPOSCARs, readOptimalPairs, singleDisp)
         ! Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -179,8 +189,9 @@ module PhononPPMod
         !! * Exit calculation if there's an error
 
       call checkInitialization(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
-        basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, &
-        calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+        basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, &
+        optimalPairsDir, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
+        generateShiftedPOSCARs, readOptimalPairs, singleDisp)
 
     endif
 
@@ -198,6 +209,7 @@ module PhononPPMod
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(finalPOSCARFName, len(finalPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(initPOSCARFName, len(initPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
+    call MPI_BCAST(optimalPairsDir, len(optimalPairsDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(prefix, len(prefix), MPI_CHARACTER, root, worldComm, ierr)
 
     call MPI_BCAST(calcDeltaNj, 1, MPI_LOGICAL, root, worldComm, ierr)
@@ -207,6 +219,7 @@ module PhononPPMod
     call MPI_BCAST(diffOmega, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(dqEigvecsFinal, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(generateShiftedPOSCARs, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(readOptimalPairs, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(singleDisp, 1, MPI_LOGICAL, root, worldComm, ierr)
 
     return
@@ -216,7 +229,8 @@ module PhononPPMod
 !----------------------------------------------------------------------------
   subroutine initialize(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
       basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, &
-      prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+      optimalPairsDir, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
+      generateShiftedPOSCARs, readOptimalPairs, singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -253,6 +267,8 @@ module PhononPPMod
       !! File name for mesh.yaml phonon file
     character(len=300), intent(out) :: initPOSCARFName, finalPOSCARFName
       !! File name for POSCAR for relaxed initial and final charge states
+    character(len=300), intent(out) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(out) :: prefix
       !! Prefix for shifted POSCARs
 
@@ -272,6 +288,8 @@ module PhononPPMod
       !! Delta q, if applicable
     logical, intent(out) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
+    logical, intent(out) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
     logical, intent(out) :: singleDisp
       !! If there is just a single displacement to consider
 
@@ -287,6 +305,7 @@ module PhononPPMod
     finalPOSCARFName = 'POSCAR_final'
     phononFName = 'mesh.yaml'
     phononPrimeFName = ''
+    optimalPairsDir = ''
     prefix = 'ph_POSCAR'
 
     freqThresh = 0.5_dp
@@ -301,6 +320,7 @@ module PhononPPMod
     diffOmega = .false.
     dqEigvecsFinal = .true.
     generateShiftedPOSCARs = .false.
+    readOptimalPairs = .false.
     singleDisp = .true.
 
     return
@@ -309,8 +329,9 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
-      basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, &
-      calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+      basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, &
+      optimalPairsDir, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, &
+      readOptimalPairs, singleDisp)
 
     implicit none
 
@@ -342,6 +363,8 @@ module PhononPPMod
       !! File name for mesh.yaml phonon file
     character(len=300), intent(in) :: initPOSCARFName, finalPOSCARFName
       !! File name for POSCAR for relaxed initial and final charge states
+    character(len=300), intent(in) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(in) :: prefix
       !! Prefix for shifted POSCARs
 
@@ -361,6 +384,8 @@ module PhononPPMod
       !! Delta q, if applicable
     logical, intent(in) :: generateShiftedPOSCARs
       !! If shifted POSCARs should be generated
+    logical, intent(in) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
     logical, intent(in) :: singleDisp
       !! If there is just a single displacement to consider
 
@@ -393,6 +418,10 @@ module PhononPPMod
         write(*,'("calcDeltaNj = ''",L1,"''")') calcDeltaNj
         if(calcDeltaNj) &
           abortExecution = checkFileInitialization('basePOSCARFName', basePOSCARFName) .or. abortExecution
+        write(*,'("readOptimalPairs = ''",L1,"''")') readOptimalPairs
+        if(readOptimalPairs) &
+          abortExecution = checkFileInitialization('optimalPairsDir', trim(optimalPairsDir)//'/optimalPairs.'&
+                                 //trim(int2str(ispSelect))//trim(int2str(1))//'.out') .or. abortExecution
 
         abortExecution = checkIntInitialization('ispSelect', ispSelect, 1, 2) .or. abortExecution
         abortExecution = checkFileInitialization('energyTableDir', trim(energyTableDir)//'/energyTable.'&
