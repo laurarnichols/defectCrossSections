@@ -883,8 +883,8 @@ contains
     ! Go through reading one file for capture and scattering in the
     ! same way but with different file names. This will get the
     ! Sj/Sj' and omega/omega'. For scattering, we only save the 
-    ! frequencies and number of modes from the first file because 
-    ! they do not depend on the transition
+    ! frequencies and number of modes from the first file and ignore
+    ! them in later files because they do not depend on the transition.
     if(captured) then
       fName = trim(SjBaseDir)//'/Sj.out' 
     else
