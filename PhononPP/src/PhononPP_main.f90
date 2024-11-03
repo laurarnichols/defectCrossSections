@@ -12,9 +12,9 @@ program PhononPPMain
   call mpiInitialization('PhononPP')
 
   call readInputs(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
-        allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
-        finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
-        dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+        basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, &
+        initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
+        generateShiftedPOSCARs, singleDisp)
 
 
   call readPhonons(freqThresh, phononFName, nAtoms, nModes, coordFromPhon, eigenvector, mass, omega)
@@ -72,7 +72,7 @@ program PhononPPMain
 
   if(calcSj .and. (.not. singleDisp) .and. calcDeltaNj) &
     call calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, Sj_if, &
-            allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir)
+            allStatesBaseDir_relaxed, basePOSCARFName, energyTableDir)
 
 
   deallocate(Sj_if)

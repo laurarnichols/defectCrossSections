@@ -61,9 +61,6 @@ module PhononPPMod
 
   character(len=300) :: allStatesBaseDir_relaxed
     !! Base dir for sets of relaxed files if not captured
-  character(len=300) :: allStatesBaseDir_startPos
-    !! Base dir for total energies of each electronic state
-    !! in the starting positions if not captured
   character(len=300) :: basePOSCARFName
     !! File name for intial POSCAR to calculate shift from
   character(len=300) :: dqFName
@@ -99,9 +96,8 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine readInputs(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
-        allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
-        finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
-        dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+        basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, &
+        prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -123,9 +119,6 @@ module PhononPPMod
 
     character(len=300), intent(out) :: allStatesBaseDir_relaxed
       !! Base dir for sets of relaxed files if not captured
-    character(len=300), intent(out) :: allStatesBaseDir_startPos
-      !! Base dir for total energies of each electronic state
-      !! in the starting positions if not captured
     character(len=300), intent(out) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
     character(len=300), intent(out) :: dqFName
@@ -162,15 +155,14 @@ module PhononPPMod
     namelist /inputParams/ initPOSCARFName, finalPOSCARFName, phononFName, prefix, shift, dqFName, generateShiftedPOSCARs, &
                            singleDisp, allStatesBaseDir_relaxed, basePOSCARFName, freqThresh, calcSj, calcDq, calcMaxDisp, & 
                            disp2AtomInd, energyTableDir, diffOmega, phononPrimeFName, dqEigvecsFinal, SjThresh, &
-                           temperature, calcDeltaNj, allStatesBaseDir_startPos, ispSelect
+                           temperature, calcDeltaNj, ispSelect
 
 
     if(ionode) then
 
       call initialize(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
-          allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
-          finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
-          dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+          basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, &
+          prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
         ! Set default values for input variables and start timers
     
       read(5, inputParams, iostat=ierr)
@@ -180,9 +172,8 @@ module PhononPPMod
         !! * Exit calculation if there's an error
 
       call checkInitialization(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
-        allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, &
-        initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
-        generateShiftedPOSCARs, singleDisp)
+        basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, &
+        calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     endif
 
@@ -197,7 +188,6 @@ module PhononPPMod
 
     call MPI_BCAST(basePOSCARFName, len(basePOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(allStatesBaseDir_relaxed, len(allStatesBaseDir_relaxed), MPI_CHARACTER, root, worldComm, ierr)
-    call MPI_BCAST(allStatesBaseDir_startPos, len(allStatesBaseDir_startPos), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(finalPOSCARFName, len(finalPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(initPOSCARFName, len(initPOSCARFName), MPI_CHARACTER, root, worldComm, ierr)
@@ -218,9 +208,8 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine initialize(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
-      allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
-      finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
-      dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+      basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, &
+      prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
     !! Set the default values for input variables, open output files,
     !! and start timer
     !!
@@ -247,9 +236,6 @@ module PhononPPMod
 
     character(len=300), intent(out) :: allStatesBaseDir_relaxed
       !! Base dir for sets of relaxed files if not captured
-    character(len=300), intent(out) :: allStatesBaseDir_startPos
-      !! Base dir for total energies of each electronic state
-      !! in the starting positions if not captured
     character(len=300), intent(out) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
     character(len=300), intent(out) :: dqFName
@@ -287,7 +273,6 @@ module PhononPPMod
     ispSelect = -1
 
     allStatesBaseDir_relaxed = ''
-    allStatesBaseDir_startPos = ''
     dqFName = 'dq.txt'
     energyTableDir = ''
     basePOSCARFName = ''
@@ -317,9 +302,8 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
-      allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, &
-      initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, &
-      generateShiftedPOSCARs, singleDisp)
+      basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, initPOSCARFName, prefix, &
+      calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
 
     implicit none
 
@@ -341,9 +325,6 @@ module PhononPPMod
 
     character(len=300), intent(in) :: allStatesBaseDir_relaxed
       !! Base dir for sets of relaxed files if not captured
-    character(len=300), intent(in) :: allStatesBaseDir_startPos
-      !! Base dir for total energies of each electronic state
-      !! in the starting positions if not captured
     character(len=300), intent(inout) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
     character(len=300), intent(in) :: dqFName
@@ -403,7 +384,8 @@ module PhononPPMod
 
         write(*,'("allStatesBaseDir_relaxed = ''",a,"''")') trim(allStatesBaseDir_relaxed)
         write(*,'("calcDeltaNj = ''",L1,"''")') calcDeltaNj
-        if(calcDeltaNj) write(*,'("allStatesBaseDir_startPos = ''",a,"''")') trim(allStatesBaseDir_startPos)
+        if(calcDeltaNj) &
+          abortExecution = checkFileInitialization('basePOSCARFName', basePOSCARFName) .or. abortExecution
 
         abortExecution = checkIntInitialization('ispSelect', ispSelect, 1, 2) .or. abortExecution
         abortExecution = checkFileInitialization('energyTableDir', trim(energyTableDir)//'/energyTable.'&
@@ -434,12 +416,22 @@ module PhononPPMod
 
       abortExecution = checkDoubleInitialization('shift', shift, 0.0_dp, 10.0_dp) .or. abortExecution
       
-      if(trim(basePOSCARFName) == '') then
-        write(*,'("No input detected for basePOSCARFName! Defaulting to input value for initPOSCARFName.")')
-        basePOSCARFName = initPOSCARFName
-      endif
+      ! Only default to the initial relaxed positions for a single displacement
+      ! because otherwise there may not be a single set of "initial positions"
+      if(singleDisp) then
+        if(trim(basePOSCARFName) == '') then
+          write(*,'("No input detected for basePOSCARFName! Defaulting to input value for initPOSCARFName.")')
+          basePOSCARFName = initPOSCARFName
+        endif
 
-      abortExecution = checkFileInitialization('basePOSCARFName', basePOSCARFName) .or. abortExecution
+        abortExecution = checkFileInitialization('basePOSCARFName', basePOSCARFName) .or. abortExecution
+
+      ! calcDeltaNj requires basePOSCAR to know what the base (e.g., ground
+      ! state) positions are, so the file is already checked above, so only 
+      ! check for it here if it hasn't already been checked for.
+      else if(.not. calcDeltaNj) then
+        abortExecution = checkFileInitialization('basePOSCARFName', basePOSCARFName) .or. abortExecution
+      endif
     endif
 
     ! Need for calculating max displacement:
@@ -975,7 +967,7 @@ module PhononPPMod
         ! I pass false here because it means only three energies will be 
         ! passed back, which is smaller than the five  passed back from 
         ! the true option. We ignore the energies here, so it doesn't 
-        ! matter.
+        ! matter. All we need from this call is the state indices.
 
       if(ionode) then
 
@@ -1475,7 +1467,7 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, Sj_if, &
-            allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir)
+            allStatesBaseDir_relaxed, basePOSCARFName, energyTableDir)
 
     implicit none
 
@@ -1502,9 +1494,8 @@ module PhononPPMod
 
     character(len=300), intent(in) :: allStatesBaseDir_relaxed
       !! Base dir for sets of relaxed files if not captured
-    character(len=300), intent(in) :: allStatesBaseDir_startPos
-      !! Base dir for total energies of each electronic state
-      !! in the starting positions if not captured
+    character(len=300), intent(in) :: basePOSCARFName
+      !! File name for intial POSCAR to calculate shift from
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy table
 
@@ -1538,12 +1529,12 @@ module PhononPPMod
 
       ! Pass true to indicate that this adjustment is ground/start positions to initial-state
       call getEqAdjustSj(iki(iE), ibi(iE), nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, .true., &
-              allStatesBaseDir_relaxed, allStatesBaseDir_startPos, Sj_gi)
+              allStatesBaseDir_relaxed, basePOSCARFName, Sj_gi)
 
 
       ! Pass false to indicate that this adjustment is final-state positions to ground/start
       call getEqAdjustSj(ikf(iE), ibf(iE), nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, .false., &
-              allStatesBaseDir_relaxed, allStatesBaseDir_startPos, Sj_fg)
+              allStatesBaseDir_relaxed, basePOSCARFName, Sj_fg)
 
       if(ionode) then
         ! Set output file name
@@ -1584,7 +1575,7 @@ module PhononPPMod
 
 !----------------------------------------------------------------------------
   subroutine getEqAdjustSj(ik, ib, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, startToRelaxed, &
-          allStatesBaseDir_relaxed, allStatesBaseDir_startPos, Sj)
+          allStatesBaseDir_relaxed, basePOSCARFName, Sj)
 
     implicit none
 
@@ -1612,9 +1603,8 @@ module PhononPPMod
 
     character(len=300), intent(in) :: allStatesBaseDir_relaxed
       !! Base dir for sets of relaxed files if not captured
-    character(len=300), intent(in) :: allStatesBaseDir_startPos
-      !! Base dir for total energies of each electronic state
-      !! in the starting positions if not captured
+    character(len=300), intent(in) :: basePOSCARFName
+      !! File name for intial POSCAR to calculate shift from
 
     ! Output variables:
     real(kind=dp), intent(out) :: Sj(nModes)
@@ -1632,9 +1622,6 @@ module PhononPPMod
     logical :: fileExists
       !! If a file exists
 
-    character(len=300) :: startPOSCARFName
-      !! File name for POSCAR for this state ik, ib
-      !! in the starting positions
     character(len=300) :: relaxedPOSCARFName
       !! File name for POSCAR for this state ik, ib
       !! in its relaxed positions
@@ -1642,10 +1629,6 @@ module PhononPPMod
 
 
     if(ionode) then
-      startPOSCARFName = trim(allStatesBaseDir_startPos)//'/k'//trim(int2str(ik))//'_b'//trim(int2str(ib))//'/CONTCAR'
-      inquire(file=trim(startPOSCARFName), exist=fileExists)
-      if(.not. fileExists) call exitError('calcSingleDispDeltaNjEqAdjust', 'File does not exist!! '//trim(startPOSCARFName), 1)
-
       relaxedPOSCARFName = trim(allStatesBaseDir_relaxed)//'/k'//trim(int2str(ik))//'_b'//trim(int2str(ib))//'/CONTCAR'
       inquire(file=trim(relaxedPOSCARFName), exist=fileExists)
       if(.not. fileExists) call exitError('calcSingleDispDeltaNjEqAdjust', 'File does not exist!! '//trim(relaxedPOSCARFName), 1)
@@ -1656,9 +1639,9 @@ module PhononPPMod
     ! (initial carrier approach), then pass the start positions first.
     ! Otherwise (carrier leaving), pass the relaxed positions first.
     if(startToRelaxed) then
-      call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, startPOSCARFName, relaxedPOSCARFName, projNorm)
+      call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, basePOSCARFName, relaxedPOSCARFName, projNorm)
     else
-      call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, relaxedPOSCARFName, startPOSCARFName, projNorm)
+      call getSingleDispProjNormAllModes(nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, relaxedPOSCARFName, basePOSCARFName, projNorm)
     endif
 
 
