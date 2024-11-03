@@ -1558,8 +1558,7 @@ module energyTabulatorMod
       open(27, file=trim(fName), status='unknown')
 
 
-      ! Ignore header lines
-      read(27,*)
+      ! Ignore header line
       read(27,*)
 
       do iUInit = 1, nUniqueInitStates
