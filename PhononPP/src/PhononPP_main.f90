@@ -66,21 +66,37 @@ program PhononPPMain
 
   if(calcSj) then
 
+    iBandLKet = 1
+    iBandHKet = 1
+    minUniqueik = 1
+    maxUniqueik = 1
+
     if(.not. singleDisp) then
       call readScatterEnergyTable(ispSelect, .false., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
         ! Pass false here to get all of the energies
 
-      if(readOptimalPairs) call readOptimalPairsUniqueK(nTransitions, iki, ikf, optimalPairsDir, ibDefect_optimal)
+      if(readOptimalPairs) &
+        call readOptimalPairsUniqueK(nTransitions, iki, ikf, optimalPairsDir, iBandLKet, iBandHKet, ibDefect_optimal, &
+              minUniqueik, maxUniqueik)
     endif
 
-    call calculateSj(nAtoms, nModes, nTransitions, iki, ikf, ibi, ibf, coordFromPhon, dqEigenvectors, mass, &
-            omega, omegaPrime, SjThresh, calcDeltaNj, diffOmega, singleDisp, allStatesBaseDir_relaxed, initPOSCARFName, & 
-            finalPOSCARFName, Sj_if)
+    call MPI_BCAST(iBandLKet, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(iBandHKet, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(minUniqueik, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(maxUniqueik, 1, MPI_INTEGER, root, worldComm, ierr)
+    if(singleDisp .or. (.not. readOptimalPairs) .or. (.not. ionode)) &
+      allocate(ibDefect_optimal(iBandLKet:iBandHKet,minUniqueik:maxUniqueik))
+
+
+    call calculateSj(iBandLKet, iBandHKet, minUniqueik, maxUniqueik, ibDefect_optimal, nAtoms, nModes, nTransitions, &
+            iki, ikf, ibi, ibf, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, calcDeltaNj, diffOmega, &
+            readOptimalPairs, singleDisp, allStatesBaseDir_relaxed, initPOSCARFName, finalPOSCARFName, Sj_if)
 
 
     if((.not. singleDisp) .and. calcDeltaNj) &
-      call calcAndWriteDeltaNj(nAtoms, nModes, nTransitions, iki, ikf, ibi, ibf, coordFromPhon, dE, &
-              dqEigenvectors, mass, omega, Sj_if, allStatesBaseDir_relaxed, basePOSCARFName)
+      call calcAndWriteDeltaNj(iBandLKet, iBandHKet, minUniqueik, maxUniqueik, ibDefect_optimal, nAtoms, nModes, &
+              nTransitions, iki, ikf, ibi, ibf, coordFromPhon, dE, dqEigenvectors, mass, omega, Sj_if, readOptimalPairs, &
+              allStatesBaseDir_relaxed, basePOSCARFName)
 
 
     if(.not. singleDisp) then
@@ -90,6 +106,7 @@ program PhononPPMain
       deallocate(ibf)
       deallocate(dE)
     endif
+    deallocate(ibDefect_optimal)
   endif
 
 

@@ -21,10 +21,14 @@ module PhononPPMod
   integer :: disp2AtomInd(2)
     !! Index of atoms to check displacement
     !! between if calcMaxDisp
+  integer :: iBandLKet, iBandHKet
+    !! Band bounds from optimalPairs file
   integer, allocatable :: ibDefect_optimal(:,:)
     !! Optimal band pairs for all unique k-points
   integer, allocatable :: iki(:), ikf(:), ibi(:), ibf(:)
     !! Allowed state indices
+  integer :: minUniqueik, maxUniqueik
+    !! Min and max of unique indices to index optimal pairs over
   integer :: nTransitions
     !! Total number of transitions 
   integer :: ispSelect
@@ -899,7 +903,8 @@ module PhononPPMod
   end subroutine getNjFromTemp
 
 !----------------------------------------------------------------------------
-  subroutine readOptimalPairsUniqueK(nTransitions, iki, ikf, optimalPairsDir, ibDefect_optimal)
+  subroutine readOptimalPairsUniqueK(nTransitions, iki, ikf, optimalPairsDir, iBandLKet, iBandHKet, ibDefect_optimal, &
+            minUniqueik, maxUniqueik)
 
     use optimalBandMatching, only: readAllOptimalPairs
     use miscUtilities, only: getUniqueInts
@@ -916,12 +921,14 @@ module PhononPPMod
       !! Path to store or read optimalPairs.out file
 
     ! Output variables:
+    integer, intent(out) :: iBandLKet, iBandHKet
+      !! Band bounds from optimalPairs file
     integer, allocatable, intent(out) :: ibDefect_optimal(:,:)
       !! Optimal band pairs for all unique k-points
+    integer, intent(out) :: minUniqueik, maxUniqueik
+      !! Min and max of unique indices to index optimal pairs over
 
     ! Local variables:
-    integer :: iBandLKet, iBandHKet
-      !! Band bounds from optimalPairs file
     integer, allocatable :: ibBra_optimal(:,:)
       !! Optimal index from the bra system corresponding 
       !! to the input index from the ket system
@@ -937,8 +944,6 @@ module PhononPPMod
       !! Number of unique initial and final k-points
     integer :: nUnique_ik 
       !! Count of total unique from either initial or final
-    integer :: minUniqueik, maxUniqueik
-      !! Min and max of unique indices to index optimal pairs over
 
     logical :: spin1Skipped, spin2Skipped
       !! If spin channels skipped
@@ -988,13 +993,19 @@ module PhononPPMod
   end subroutine readOptimalPairsUniqueK
 
 !----------------------------------------------------------------------------
-  subroutine calculateSj(nAtoms, nModes, nTransitions, iki, ikf, ibi, ibf, coordFromPhon, dqEigenvectors, mass, &
-          omega, omegaPrime, SjThresh, calcDeltaNj, diffOmega, singleDisp, allStatesBaseDir_relaxed, initPOSCARFName, & 
-          finalPOSCARFName, Sj_if)
+  subroutine calculateSj(iBandLKet, iBandHKet, minUniqueik, maxUniqueik, ibDefect_optimal, nAtoms, nModes, nTransitions, &
+          iki, ikf, ibi, ibf, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, calcDeltaNj, diffOmega, &
+          readOptimalPairs, singleDisp, allStatesBaseDir_relaxed, initPOSCARFName, finalPOSCARFName, Sj_if)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: iBandLKet, iBandHKet
+      !! Band bounds from optimalPairs file
+    integer, intent(in) :: minUniqueik, maxUniqueik
+      !! Min and max of unique indices to index optimal pairs over
+    integer, intent(in) :: ibDefect_optimal(iBandLKet:iBandHKet,minUniqueik:maxUniqueik)
+      !! Optimal band pairs for all unique k-points
     integer, intent(inout) :: nAtoms
       !! Number of atoms in intial system
     integer, intent(in) :: nModes
@@ -1021,6 +1032,8 @@ module PhononPPMod
     logical, intent(in) :: diffOmega
       !! If initial- and final-state frequencies 
       !! should be treated as different
+    logical, intent(in) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
     logical, intent(in) :: singleDisp
       !! If there is just a single displacement to consider
 
@@ -1035,6 +1048,8 @@ module PhononPPMod
       !! occupation numbers
 
     ! Local variables:
+    integer :: ibi_iE, ibf_iE
+      !! Used to define file names
     integer :: iE
       !! Loop index
     integer :: modeIndex(nModes)
@@ -1101,11 +1116,19 @@ module PhononPPMod
         ! Set initial and final file names based on state indices read
         ! from energy table. Make sure both files exist.
         if(ionode) then
-          initPOSCARFName = trim(allStatesBaseDir_relaxed)//'/k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi(iE)))//'/CONTCAR'
+          if(readOptimalPairs) then
+            ibi_iE = ibDefect_optimal(ibi(iE),iki(iE))
+            ibf_iE = ibDefect_optimal(ibf(iE),ikf(iE))
+          else
+            ibi_iE = ibi(iE)
+            ibf_iE = ibf(iE)
+          endif
+
+          initPOSCARFName = trim(allStatesBaseDir_relaxed)//'/k'//trim(int2str(iki(iE)))//'_b'//trim(int2str(ibi_iE))//'/CONTCAR'
           inquire(file=trim(initPOSCARFName), exist=fileExists)
           if(.not. fileExists) call exitError('calculateSj', 'File does not exist!! '//trim(initPOSCARFName), 1)
 
-          finalPOSCARFName = trim(allStatesBaseDir_relaxed)//'/k'//trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf(iE)))//'/CONTCAR'
+          finalPOSCARFName = trim(allStatesBaseDir_relaxed)//'/k'//trim(int2str(ikf(iE)))//'_b'//trim(int2str(ibf_iE))//'/CONTCAR'
           inquire(file=trim(finalPOSCARFName), exist=fileExists)
           if(.not. fileExists) call exitError('calculateSj', 'File does not exist!! '//trim(finalPOSCARFName), 1)
         endif
@@ -1575,12 +1598,19 @@ module PhononPPMod
   end subroutine sortAndWriteSingleDispSj
 
 !----------------------------------------------------------------------------
-  subroutine calcAndWriteDeltaNj(nAtoms, nModes, nTransitions, iki, ikf, ibi, ibf, coordFromPhon, dE, &
-            dqEigenvectors, mass, omega, Sj_if, allStatesBaseDir_relaxed, basePOSCARFName)
+  subroutine calcAndWriteDeltaNj(iBandLKet, iBandHKet, minUniqueik, maxUniqueik, ibDefect_optimal, nAtoms, nModes, &
+            nTransitions, iki, ikf, ibi, ibf, coordFromPhon, dE, dqEigenvectors, mass, omega, Sj_if, readOptimalPairs, &
+            allStatesBaseDir_relaxed, basePOSCARFName)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: iBandLKet, iBandHKet
+      !! Band bounds from optimalPairs file
+    integer, intent(in) :: minUniqueik, maxUniqueik
+      !! Min and max of unique indices to index optimal pairs over
+    integer, intent(in) :: ibDefect_optimal(iBandLKet:iBandHKet,minUniqueik:maxUniqueik)
+      !! Optimal band pairs for all unique k-points
     integer, intent(inout) :: nAtoms
       !! Number of atoms in intial system
     integer, intent(in) :: nModes
@@ -1606,12 +1636,17 @@ module PhononPPMod
       !! Store Sjs for scattering if calculating changes in 
       !! occupation numbers
 
+    logical, intent(in) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
+
     character(len=300), intent(in) :: allStatesBaseDir_relaxed
       !! Base dir for sets of relaxed files if not captured
     character(len=300), intent(in) :: basePOSCARFName
       !! File name for intial POSCAR to calculate shift from
 
     ! Local variables:
+    integer :: ibi_iE, ibf_iE
+      !! Used to define file names
     integer :: iE, j
       !! Loop index
 
@@ -1628,14 +1663,23 @@ module PhononPPMod
     endif
 
     do iE = 1, nTransitions
+      if(ionode) then
+        if(readOptimalPairs) then
+          ibi_iE = ibDefect_optimal(ibi(iE),iki(iE))
+          ibf_iE = ibDefect_optimal(ibf(iE),ikf(iE))
+        else
+          ibi_iE = ibi(iE)
+          ibf_iE = ibf(iE)
+        endif
+      endif
 
       ! Pass true to indicate that this adjustment is ground/start positions to initial-state
-      call getEqAdjustSj(iki(iE), ibi(iE), nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, .true., &
+      call getEqAdjustSj(iki(iE), ibi_iE, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, .true., &
               allStatesBaseDir_relaxed, basePOSCARFName, Sj_gi)
 
 
       ! Pass false to indicate that this adjustment is final-state positions to ground/start
-      call getEqAdjustSj(ikf(iE), ibf(iE), nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, .false., &
+      call getEqAdjustSj(ikf(iE), ibf_iE, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, .false., &
               allStatesBaseDir_relaxed, basePOSCARFName, Sj_fg)
 
       if(ionode) then
@@ -1721,7 +1765,6 @@ module PhononPPMod
     character(len=300) :: relaxedPOSCARFName
       !! File name for POSCAR for this state ik, ib
       !! in its relaxed positions
-
 
 
     if(ionode) then
