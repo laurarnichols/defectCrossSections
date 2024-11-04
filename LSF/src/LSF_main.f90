@@ -29,10 +29,10 @@ program LSFmain
   call cpu_time(timer1)
 
   call readInputParams(iSpin, maxIterPerTimeStep, nRealTimeSteps, order, dt, dtau, energyAvgWindow, gamma0, &
-        hbarGamma, maxTime_transRate, SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, &
-        diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, &
-        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, matrixElementDir, MjBaseDir, &
-        njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+        hbarGamma, maxDeltaPerTimeStep, maxTime_transRate, SjThresh, smearingExpTolerance, tolForStepConverge, &
+        addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
+        thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, &
+        matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
 
   nStepsLocal_transRate = ceiling((maxTime_transRate/dtau)/nProcPerPool)
@@ -129,10 +129,11 @@ program LSFmain
   ! Only pass a slice over transitions  here because we know for scattering
   ! there is no parallelization over k-points.
   if(generateNewOccupations) &
-    call realTimeIntegration(iSpin, maxIterPerTimeStep, mDim, nModes, nRealTimeSteps, nTransitions, ibi, ibf, iki, ikf, order, &
-          dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, &
-          temperature, tolForStepConverge, SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, thermalize, &
-          writeEiRate, carrierDensityInput, EiRateOutDir, energyTableDir, njNewOutDir, transRateOutDir, volumeLine)
+    call realTimeIntegration(iSpin, maxIterPerTimeStep, mDim, nModes, nRealTimeSteps, nTransitions, ibi, ibf, iki, &
+            ikf, order, dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, maxDeltaPerTimeStep, matrixElement, &
+            njBase, omega, omegaPrime, Sj, SjPrime, temperature, tolForStepConverge, SjThresh, totalDeltaNj, &
+            transitionRate, addDeltaNj, captured, diffOmega, thermalize, writeEiRate, carrierDensityInput, &
+            EiRateOutDir, energyTableDir, njNewOutDir, transRateOutDir, volumeLine)
 
 
   deallocate(dE)

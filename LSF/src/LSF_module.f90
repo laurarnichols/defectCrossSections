@@ -59,6 +59,9 @@ module LSFmod
     !! to guarantee convergence
   real(kind=dp), allocatable :: matrixElement(:,:,:)
     !! Electronic matrix element
+  real(kind=dp) :: maxDeltaPerTimeStep
+    !! Maximum change in temperature or occupations 
+    !! between time steps
   real(kind=dp) :: maxTime_transRate
     !! Max time for integration
   real(kind=dp), allocatable :: njBase(:)
@@ -144,16 +147,16 @@ module LSFmod
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
                          optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations, dt, carrierDensityInput, &
                          energyAvgWindow, njNewOutDir, nRealTimeSteps, thermalize, writeEiRate, EiRateOutDir, &
-                         maxIterPerTimeStep, tolForStepConverge
+                         maxIterPerTimeStep, tolForStepConverge, maxDeltaPerTimeStep
 
 contains
 
 !----------------------------------------------------------------------------
   subroutine readInputParams(iSpin, maxIterPerTimeStep, nRealTimeSteps, order, dt, dtau, energyAvgWindow, gamma0, &
-        hbarGamma, maxTime_transRate, SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, &
-        diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, &
-        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, matrixElementDir, MjBaseDir, &
-        njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+        hbarGamma, maxDeltaPerTimeStep, maxTime_transRate, SjThresh, smearingExpTolerance, tolForStepConverge, &
+        addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
+        thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, &
+        matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     implicit none
 
@@ -181,6 +184,9 @@ contains
     real(kind=dp), intent(out) :: hbarGamma
       !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
+    real(kind=dp), intent(out) :: maxDeltaPerTimeStep
+      !! Maximum change in temperature or occupations 
+      !! between time steps
     real(kind=dp), intent(out) :: maxTime_transRate
       !! Max time for integration
     real(kind=dp), intent(out) :: SjThresh
@@ -253,11 +259,12 @@ contains
       !! Path to store transition rates
 
   
-    call initialize(iSpin, maxIterPerTimeStep, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, &
-          smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, diffOmega, generateNewOccupations, &
-          newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, &
-          dqInput, energyTableDir, EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, &
-          optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+    call initialize(iSpin, maxIterPerTimeStep, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, &
+          maxDeltaPerTimeStep, SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, &
+          diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, &
+          writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, &
+          matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, &
+          transRateOutDir)
 
     if(ionode) then
 
@@ -269,10 +276,10 @@ contains
         !! * Exit calculation if there's an error
 
       call checkInitialization(iSpin, maxIterPerTimeStep, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, &
-            SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, diffOmega, generateNewOccupations, &
-            newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, &
-            dqInput, energyTableDir, EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, &
-            prefix, SjBaseDir, transRateOutDir)
+            maxDeltaPerTimeStep, SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, diffOmega, &
+            generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, &
+            carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, matrixElementDir, MjBaseDir, &
+            njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
@@ -294,6 +301,7 @@ contains
     call MPI_BCAST(energyAvgWindow, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(hbarGamma, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(gamma0, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(maxDeltaPerTimeStep, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(SjThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(smearingExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(tolForStepConverge, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
@@ -330,10 +338,10 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine initialize(iSpin, maxIterPerTimeStep, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, &
-        SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, diffOmega, generateNewOccupations, &
-        newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, &
-        deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, &
-        optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+        maxDeltaPerTimeStep, SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, diffOmega, &
+        generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, &
+        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, matrixElementDir, &
+        MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     implicit none
 
@@ -359,6 +367,9 @@ contains
     real(kind=dp), intent(out) :: hbarGamma
       !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
+    real(kind=dp), intent(out) :: maxDeltaPerTimeStep
+      !! Maximum change in temperature or occupations 
+      !! between time steps
     real(kind=dp), intent(out) :: SjThresh
       !! Threshold for Sj to determine which modes to calculate
     real(kind=dp), intent(out) :: smearingExpTolerance
@@ -438,9 +449,10 @@ contains
     dtau = 1d-4
     energyAvgWindow = 1e-2
     hbarGamma = 0.0_dp
+    maxDeltaPerTimeStep = 1.0_dp
     SjThresh = 0.0_dp
     smearingExpTolerance = 0.0_dp
-    tolForStepConverge = 1.0_dp
+    tolForStepConverge = 0.1_dp
 
     addDeltaNj = .false.
     captured = .true.
@@ -473,10 +485,10 @@ contains
 
 !----------------------------------------------------------------------------
   subroutine checkInitialization(iSpin, maxIterPerTimeStep, nRealTimeSteps, order, dt, dtau, energyAvgWindow, &
-        hbarGamma, SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, diffOmega, &
-        generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, &
-        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, matrixElementDir, & 
-        MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+        hbarGamma, maxDeltaPerTimeStep, SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, &
+        captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
+        thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, &
+        matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     implicit none
 
@@ -502,6 +514,9 @@ contains
     real(kind=dp), intent(in) :: hbarGamma
       !! \(\hbar\gamma\) for Lorentzian smearing
       !! to guarantee convergence
+    real(kind=dp), intent(in) :: maxDeltaPerTimeStep
+      !! Maximum change in temperature or occupations 
+      !! between time steps
     real(kind=dp), intent(in) :: SjThresh
       !! Threshold for Sj to determine which modes to calculate
     real(kind=dp), intent(in) :: smearingExpTolerance
@@ -615,6 +630,7 @@ contains
         abortExecution = checkIntInitialization('nRealTimeSteps', nRealTimeSteps, 1, int(1e9))
         abortExecution = checkIntInitialization('maxIterPerTimeStep', maxIterPerTimeStep, 1, int(1e9))
         abortExecution = checkDoubleInitialization('tolForStepConverge', tolForStepConverge, 0.0_dp, 100.0_dp) .or. abortExecution
+        abortExecution = checkDoubleInitialization('maxDeltaPerTimeStep', maxDeltaPerTimeStep, 0.0_dp, 100.0_dp) .or. abortExecution
         abortExecution = checkFileInitialization('carrierDensityInput', carrierDensityInput) .or. abortExecution
         abortExecution = checkDoubleInitialization('energyAvgWindow', energyAvgWindow, 0.0_dp, 1.0_dp) .or. abortExecution
         abortExecution = checkFileInitialization('njBaseInput', njBaseInput) .or. abortExecution
@@ -1933,10 +1949,11 @@ contains
   end subroutine setupStateDepTimeTablesDeltaNj
 
 !----------------------------------------------------------------------------
-  subroutine realTimeIntegration(iSpin, maxIterPerTimeStep, mDim, nModes, nRealTimeSteps, nTransitions, ibi, ibf, iki, ikf, order, &
-          dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, &
-          temperature, tolForStepConverge, SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, thermalize, &
-          writeEiRate, carrierDensityInput, EiRateOutDir, energyTableDir, njNewOutDir, transRateOutDir, volumeLine)
+  subroutine realTimeIntegration(iSpin, maxIterPerTimeStep, mDim, nModes, nRealTimeSteps, nTransitions, ibi, ibf, iki, &
+          ikf, order, dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, maxDeltaPerTimeStep, matrixElement, &
+          njBase, omega, omegaPrime, Sj, SjPrime, temperature, tolForStepConverge, SjThresh, totalDeltaNj, &
+          transitionRate, addDeltaNj, captured, diffOmega, thermalize, writeEiRate, carrierDensityInput, &
+          EiRateOutDir, energyTableDir, njNewOutDir, transRateOutDir, volumeLine)
 
     implicit none
 
@@ -1964,7 +1981,7 @@ contains
     real(kind=dp), intent(in) :: deltaNjInitApproach(:,:)
       !! Optional delta nj from adjustment to 
       !! carrier approach in initial state
-    real(kind=dp), intent(in) :: dt
+    real(kind=dp), intent(inout) :: dt
       !! Optional real time step for generating 
       !! new phonon occupations
     real(kind=dp), intent(in) :: dtau
@@ -1974,6 +1991,9 @@ contains
       !! density evaluation
     real(kind=dp), intent(in) :: gamma0
       !! \(\gamma\) for Lorentzian smearing
+    real(kind=dp), intent(in) :: maxDeltaPerTimeStep
+      !! Maximum change in temperature or occupations 
+      !! between time steps
     real(kind=dp), intent(in) :: matrixElement(mDim,nTransitions,nkPerPool)
       !! Electronic matrix element
     real(kind=dp), intent(inout) :: njBase(nModes)
@@ -2041,6 +2061,10 @@ contains
     real(kind=dp), allocatable :: dEEigInit(:)
       !! Eigenvalue difference of initial states
       !! relative to band edge
+    real(kind=dp) :: deltaGuess, deltaLastGuess
+      !! Change in guess between iterations for a single time step
+    real(kind=dp) :: deltaStep
+      !! Change in values between time steps
     real(kind=dp) :: energyTransferRate
       !! Total energy transfer combining all states
     real(kind=dp), allocatable :: energyTransferRate_i(:)
@@ -2053,11 +2077,16 @@ contains
     real(kind=dp) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
+    real(kind=dp) :: realTime
+      !! Time at the current step
     real(kind=dp) :: tempNextEst, tempNew
       !! Next estimate of the local temperature
 
     logical :: exitLoop
       !! If the loop should exit
+    logical :: decreaseStepAndRedo
+      !! If step size should be decreased and 
+      !! time step should be redone
 
 
     call getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
@@ -2076,22 +2105,26 @@ contains
 
     if(thermalize .and. ionode) call ERateToTRate(nModes, energyTransferRate, njBase, omega, temperature, localHeatingRate)
 
+    realTime = 0.0_dp
+
     ! Write occupations file with rate of change for first point
-    call writeNewOccupations(1, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, thermalize, njNewOutDir)
+    call writeNewOccupations(1, nModes, dt, energyTransferRate, njBase, njRateOfChange, omega, realTime, thermalize, njNewOutDir)
     if(writeEiRate) &
-      call writeAvgETransRateByInitE(1, nUniqueInitStates, dEEigInit, energyTransferRate_i, EiRateOutDir)
+      call writeAvgETransRateByInitE(1, nUniqueInitStates, dEEigInit, dt, energyTransferRate_i, realTime, EiRateOutDir)
 
     if(ionode .and. thermalize) then
       open(53,file='localTemp.out')
 
-      write(53,'("# iRt, temperature")')
-      write(53,'(i10, f10.1)') 1, temperature
+      write(53,'("# iRt, time, temperature")')
+      write(53,'(i10, ES24.15E3, f10.1)') 1, realTime, temperature
     endif
 
 
     if(ionode) write(*, '("--------------------Beginning real-time integration ")')
 
-    do iRt = 2, nRealTimeSteps
+    decreaseStepAndRedo = .false.
+    iRt = 2
+    do while(iRt <= nRealTimeSteps)
 
       !-----------------------------------------------------------
       ! Start with initial estimate of next point after half a time step
@@ -2133,24 +2166,33 @@ contains
             tempNew = temperature + localHeatingRate*dt/2.0_dp
             call getNjFromTemp(nModes, omega, tempNew, njNew)
 
-            write(*,'("Delta next guess: ",ES24.15E3)') abs(tempNew-tempNextEst)
-            if(abs(tempNew-tempNextEst) < tolForStepConverge) then
-              write(*,'("Threshold met! Exiting loop for this time step.")')
-              exitLoop = .true.
-            endif
+            deltaGuess = abs(tempNew-tempNextEst)
 
             tempNextEst = tempNew
             njNextEst = njNew
           else
             njNew(:) = njBase(:) + njRateOfChange(:)*dt/2.0d0
 
-            write(*,'("Max delta next guess: ",ES24.15E3)') maxval(abs(njNew-njNextEst))
+            deltaGuess = maxval(abs(njNew-njNextEst))
             if(maxval(abs(njNew-njNextEst)) < tolForStepConverge) then
               write(*,'("Threshold met! Exiting loop for this time step.")')
               exitLoop = .true.
             endif
 
             njNextEst = njNew
+          endif
+
+          write(*,'("Delta next guess: ",ES24.15E3)') deltaGuess
+          if(deltaGuess < tolForStepConverge) then
+            write(*,'("Threshold met! Exiting loop for this time step.")')
+            exitLoop = .true.
+          else if(iter > 1 .and. deltaGuess > deltaLastGuess) then
+            dt = dt/2.0_dp
+            write(*,'("Subsequent guesses diverging! Cutting the time step in half to ",ES24.15E3," and restarting.")') dt
+            exitLoop = .true.
+            decreaseStepAndRedo = .true.
+          else
+            deltaLastGuess = deltaGuess
           endif
         endif
 
@@ -2162,11 +2204,45 @@ contains
       enddo
 
       !-----------------------------------------------------------
-      ! Convert half-step backward Euler to implicit midpoint to get next step
+      ! Convert half-step backward Euler to implicit midpoint to get delta to next step
       if(ionode) then
         if(thermalize) then
-          temperature = 2.0d0*tempNew - temperature
-          write(53,'(i10, f10.1)') iRt, temperature
+          deltaStep = 2.0d0*(tempNew - temperature)
+        else
+          deltaStep = maxval(2.0d0*(njNew(:) - njBase(:)))
+        endif
+
+        if(deltaStep > maxDeltaPerTimeStep) then
+          dt = dt/2.0_dp
+          write(*,'("Change from this step ",ES24.15E3" is greater than maxDeltaPerTimeStep!")') deltaStep
+          write(*,'("Cutting the time step in half to ",ES24.15E3," and restarting.")') dt
+          decreaseStepAndRedo = .true.
+        else
+          write(*,'("Change from this step ",ES24.15E3" is within maxDeltaPerTimeStep!")') deltaStep
+        endif
+
+      endif
+
+      !-----------------------------------------------------------
+      ! Handle case where guesses are diverging or change between steps is
+      ! too large
+      call MPI_BCAST(decreaseStepAndRedo, 1, MPI_LOGICAL, root, worldComm, ierr)
+      if(decreaseStepAndRedo) then
+        decreaseStepAndRedo = .false.
+        cycle
+      endif
+
+
+      !-----------------------------------------------------------
+      ! If within required thresholds, update temperature, occupations, and 
+      ! time and write out files
+      if(ionode) write(*, '("Writing occupations for time-integration step ",i5)') iRt
+      iRt = iRt + 1
+      realTime = realTime + dt
+      if(ionode) then
+        if(thermalize) then
+          temperature = temperature + deltaStep
+          write(53,'(i10, ES24.15E3, f10.1)') iRt, realTime, temperature
           call getNjFromTemp(nModes, omega, temperature, njBase)
         else
           njBase(:) = 2.0d0*njNew(:) - njBase(:)
@@ -2178,11 +2254,9 @@ contains
       call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(njBase, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
-      if(ionode) write(*, '("Writing occupations for time-integration step ",i5)') iRt
-
-      call writeNewOccupations(iRt, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, thermalize, njNewOutDir)
+      call writeNewOccupations(iRt, nModes, dt, energyTransferRate, njBase, njRateOfChange, omega, realTime, thermalize, njNewOutDir)
       if(writeEiRate) &
-        call writeAvgETransRateByInitE(iRt, nUniqueInitStates, dEEigInit, energyTransferRate_i, EiRateOutDir)
+        call writeAvgETransRateByInitE(iRt, nUniqueInitStates, dEEigInit, dt, energyTransferRate_i, realTime, EiRateOutDir)
 
     enddo
 
@@ -2260,7 +2334,7 @@ contains
         enddo
 
 
-        ! Make sure to deallocate these variables allocated withing
+        ! Make sure to deallocate these variables allocated within
         ! the loop before repeating the loop
         deallocate(ibi_thisUniqueK)
         deallocate(ibiUnique)
@@ -2654,7 +2728,7 @@ contains
   end subroutine ERateToTRate
   
 !----------------------------------------------------------------------------
-  subroutine writeNewOccupations(iRt, nModes, energyTransferRate, njBase, njRateOfChange, omega, dt, thermalize, njNewOutDir)
+  subroutine writeNewOccupations(iRt, nModes, dt, energyTransferRate, njBase, njRateOfChange, omega, realTime, thermalize, njNewOutDir)
 
     implicit none
 
@@ -2664,6 +2738,9 @@ contains
     integer, intent(in) :: nModes
       !! Number of phonon modes
 
+    real(kind=dp), intent(in) :: dt
+      !! Optional real time step for generating 
+      !! new phonon occupations
     real(kind=dp), intent(in) :: energyTransferRate
       !! Total energy transfer combining all states
     real(kind=dp), intent(in) :: njBase(nModes)
@@ -2673,9 +2750,8 @@ contains
       !! effect of all transitions
     real(kind=dp), intent(in) :: omega(nModes)
       !! Frequency for each mode
-    real(kind=dp), intent(in) :: dt
-      !! Optional real time step for generating 
-      !! new phonon occupations
+    real(kind=dp), intent(in) :: realTime
+      !! Time at the current step
 
     logical, intent(in) :: thermalize
       !! If should convert energy transfer to local temp. or
@@ -2690,7 +2766,7 @@ contains
 
     if(ionode) then
       open(unit=37, file=trim(njNewOutDir)//'/nj.'//trim(int2str(iRt))//'.out')
-      write(37,'("# dt = ",ES24.15E3)') dt
+      write(37,'("# t, dt:  ",2ES24.15E3)') realTime, dt
 
       if(thermalize) then
         write(37,'("# j, New nj")')
@@ -2714,7 +2790,7 @@ contains
   end subroutine writeNewOccupations
 
 !----------------------------------------------------------------------------
-  subroutine writeAvgETransRateByInitE(iRt, nUniqueInitStates, dEEigInit, energyTransferRate_i, EiRateOutDir)
+  subroutine writeAvgETransRateByInitE(iRt, nUniqueInitStates, dEEigInit, dt, energyTransferRate_i, realTime, EiRateOutDir)
 
     implicit none
 
@@ -2728,8 +2804,13 @@ contains
     real(kind=dp), intent(in) :: dEEigInit(nUniqueInitStates)
       !! Eigenvalue difference of initial states
       !! relative to band edge
+    real(kind=dp), intent(in) :: dt
+      !! Optional real time step for generating 
+      !! new phonon occupations
     real(kind=dp), intent(in) :: energyTransferRate_i(nUniqueInitStates)
       !! Average energy transfer rate from each initial state
+    real(kind=dp), intent(in) :: realTime
+      !! Time at the current step
 
     character(len=300), intent(in) :: EiRateOutDir
       !! Output directory for energy transfer rate by 
@@ -2742,6 +2823,7 @@ contains
 
     if(ionode) then
       open(unit=37, file=trim(EiRateOutDir)//'/EiRate.'//trim(int2str(iRt))//'.out')
+      write(37,'("# t, dt:  ",2ES24.15E3)') realTime, dt
       write(37,'("# iUInit, dEEigRef (eV), Energy Rate of change (eV/s)")')
 
       do iUInit = 1, nUniqueInitStates
