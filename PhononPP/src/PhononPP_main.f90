@@ -12,9 +12,9 @@ program PhononPPMain
   call mpiInitialization('PhononPP')
 
   call readInputs(disp2AtomInd, ispSelect, freqThresh, shift, SjThresh, temperature, allStatesBaseDir_relaxed, &
-        allStatesBaseDir_startPos, basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, &
-        finalPOSCARFName, initPOSCARFName, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
-        dqEigvecsFinal, generateShiftedPOSCARs, singleDisp)
+        basePOSCARFName, dqFName, energyTableDir, phononFName, phononPrimeFName, finalPOSCARFName, &
+        initPOSCARFName, optimalPairsDir, prefix, calcDeltaNj, calcDq, calcMaxDisp, calcSj, diffOmega, &
+        dqEigvecsFinal, generateShiftedPOSCARs, readOptimalPairs, singleDisp)
 
 
   call readPhonons(freqThresh, phononFName, nAtoms, nModes, coordFromPhon, eigenvector, mass, omega)
@@ -64,15 +64,50 @@ program PhononPPMain
   if(diffOmega) deallocate(eigenvectorPrime)
 
 
-  if(calcSj) &
-    call calculateSj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, &
-            calcDeltaNj, diffOmega, singleDisp, allStatesBaseDir_relaxed, energyTableDir, initPOSCARFName, &
-            finalPOSCARFName, Sj_if)
+  if(calcSj) then
+
+    iBandLKet = 1
+    iBandHKet = 1
+    minUniqueik = 1
+    maxUniqueik = 1
+
+    if(.not. singleDisp) then
+      call readScatterEnergyTable(ispSelect, .false., energyTableDir, ibi, ibf, iki, ikf, nTransitions, dE)
+        ! Pass false here to get all of the energies
+
+      if(readOptimalPairs) &
+        call readOptimalPairsUniqueK(nTransitions, iki, ikf, optimalPairsDir, iBandLKet, iBandHKet, ibDefect_optimal, &
+              minUniqueik, maxUniqueik)
+    endif
+
+    call MPI_BCAST(iBandLKet, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(iBandHKet, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(minUniqueik, 1, MPI_INTEGER, root, worldComm, ierr)
+    call MPI_BCAST(maxUniqueik, 1, MPI_INTEGER, root, worldComm, ierr)
+    if(singleDisp .or. (.not. readOptimalPairs) .or. (.not. ionode)) &
+      allocate(ibDefect_optimal(iBandLKet:iBandHKet,minUniqueik:maxUniqueik))
 
 
-  if(calcSj .and. (.not. singleDisp) .and. calcDeltaNj) &
-    call calcAndWriteDeltaNj(ispSelect, nAtoms, nModes, coordFromPhon, dqEigenvectors, mass, omega, Sj_if, &
-            allStatesBaseDir_relaxed, allStatesBaseDir_startPos, energyTableDir)
+    call calculateSj(iBandLKet, iBandHKet, minUniqueik, maxUniqueik, ibDefect_optimal, nAtoms, nModes, nTransitions, &
+            iki, ikf, ibi, ibf, coordFromPhon, dqEigenvectors, mass, omega, omegaPrime, SjThresh, calcDeltaNj, diffOmega, &
+            readOptimalPairs, singleDisp, allStatesBaseDir_relaxed, initPOSCARFName, finalPOSCARFName, Sj_if)
+
+
+    if((.not. singleDisp) .and. calcDeltaNj) &
+      call calcAndWriteDeltaNj(iBandLKet, iBandHKet, minUniqueik, maxUniqueik, ibDefect_optimal, nAtoms, nModes, &
+              nTransitions, iki, ikf, ibi, ibf, coordFromPhon, dE, dqEigenvectors, mass, omega, Sj_if, readOptimalPairs, &
+              allStatesBaseDir_relaxed, basePOSCARFName)
+
+
+    if(.not. singleDisp) then
+      deallocate(iki)
+      deallocate(ikf)
+      deallocate(ibi)
+      deallocate(ibf)
+      deallocate(dE)
+    endif
+    deallocate(ibDefect_optimal)
+  endif
 
 
   deallocate(Sj_if)

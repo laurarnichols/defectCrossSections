@@ -1,6 +1,6 @@
 # Transition matrix element (`TME`)
 
-The `TME` program primarily calculates the all-electron overlap between certain bands in two different systems, `<braWfc|ketWfc>`, based on the PAW method. In the `overlapOnly` mode, only the overlaps are output. Otherwise, the matrix element based on the given `order` is calculated. The matrix elements require the bands to be read from the `energyTable` created by the `EnergyTabulator` code, but the `overlapOnly = .true.` mode allows the specification of bands without using the energy table.
+The `TME` program primarily calculates the all-electron overlap between certain bands in two different systems, `<braWfc|ketWfc>`, based on the PAW method. In the `overlapOnly` mode, only the overlaps are output. Otherwise, the matrix element based on the given `order` is calculated. The matrix elements require the bands to be read from the `energyTable` created by the `EnergyTabulator` code, but the `overlapOnly = .true.` mode allows the specification of bands without using the energy table. 
 
 For each calculation, the `braExportDir` and `ketExportDir` must be specified. If the states are to be read from the energy table, `energyTableDir` must be given. For the `overlapOnly` mode, it is also possible to define all of the band pairs explicitly using, e.g.
 ```f90
@@ -8,15 +8,18 @@ nPairs = 5
 braBands = '128 129 130 128 129'
 ketBands = '128 128 128 129 129'
 ```
-The list of bands must be given in a string, then `nPairs` of bands will be read from the strings. You can also give a range of bands for the bra and ket systems using `iBandLBra`, `iBandHBra`, `iBandLKet`, and `iBandHKet`, where `L` and `H` represent the lower and upper limits on the bands, respectively.
+The list of bands must be given in a string, then `nPairs` of bands will be read from the strings. You can also give a range of bands for the bra and ket systems using `iBandLBra`, `iBandHBra`, `iBandLKet`, and `iBandHKet`, where `L` and `H` represent the lower and upper limits on the bands, respectively. **If you are giving a range for both and not just using a single final defect state, make sure to include `ibShift_braket` corresponding to the `ibShift_eig` that you used in `EnergyTabulator` in order to line up the band edges in the two systems!**
 
 There are a few optional parameters the user can set:
 * `capture` -- logical, default `.true.`. For capture, it is assumed that there is a single possible final state and that the energy table was also tabulated with `captured = .true.`. The scattering code has been generalized to allow overlaps between k-points, but the `Export` code would need to be updated because of the way the wave functions are represented in the finite supercell. The overlap between k-points has, therefore, not been validated.
 * `intraK` -- logical, default `.false.`. Right now, this only removes k-point parallelization and affects the expected format of the energy table.
 * `dqOnly` -- logical, default `.false.`. Allows the option to only divide the first-order overlap by $\delta q_j$ rather than multiplying by the energy. This might be helpful when using the same overlaps to calculate matrix elements for different problems, like equilibrium and nonequilibrium capture. However, the adjustment to the energies can also be done in the `LSF` program.
+* `lineUpBands` -- logical, default `.false.`. Calculates the overlaps between bands in a given range (must use `iBand*` bounds and must have the same number in bra and ket systems). All of the overlaps are output, but an additional set of files `optimalPairsDir`/`optimalPairs.isp.ik.out` is also output with the optimal band-pair indices to maximize the total overlap. Lining up the bands is only compatible with capture. Include more states in the range than you really need, especially degenerate states at the edge of your range, to make sure you capture all of the best matches. **Validate the matching visually before moving forward because the matches will not be exact and some overlaps will be small. Check for localized resonance states and determine if you want to exclude them**. 
+* `readOptimalPairs` -- logical, default `.false.`. This option will read in the optimal pairs from `optimalPairsDir` output from a previous run with `lineUpBands = .true.` and will shuffle the defect states to match the order in the perfect crystal. The states are still indexed to match the count of bands in the defect crystal, but the best matches will be in the same order moving away from the band edge. **This option takes precedence over the `lineUpBands` option because they are not compatible. This option is not compatible with capture.**
 
 Output files are 
 * `allElecOverlap.isp.ik`/`allElecOverlap.isp` -- for each band in range and a given spin (and k-point for capture or inter-k overlaps): initial and final band, all-electron overlaps, and matrix elements (if `.not. overlapOnly`)
+* `optimalPairs.isp.ik.out` -- optimal pairs of band indices if `lineUpBands = .true.`
 * stdout -- timing information and status updates
 
 The same TME code is used for both the zeroth-order and the first-order matrix elements. For both orders, the overlap part comes from from the `TME` code and the energy difference comes from the [`EnergyTabulator`](../EnergyTabulator) code. The code assumes that the order of the atom types in the two systems matches, with the possible addition of atom types at the end of one of the files.

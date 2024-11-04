@@ -11,8 +11,13 @@ module TMEmod
   implicit none
 
 
+  integer :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
+    !! Optional band bounds
   integer, allocatable :: ibBra(:), ikBra(:), ikKet(:), ibKet(:)
     !! State indices for different systems
+  integer :: ibShift_braket
+    !! Shift of band indexing of bra system relative
+    !! to ket system
   integer, allocatable :: mill_local(:,:)
     !! Local Miller indices
   integer :: nGVecsGlobal
@@ -41,6 +46,8 @@ module TMEmod
     !! Path to export dirs
   character(len=300) :: dqFName
     !! File name for generalized-coordinate norms
+  character(len=300) :: optimalPairsDir
+    !! Path to store or read optimalPairs.out file
   character(len=300) :: outputDir
     !! Path to where matrix elements should be output
 
@@ -52,9 +59,14 @@ module TMEmod
   logical :: intraK
     !! If overlaps should be calculated across different
     !! k-points (true) or just between single k-points (false)
+  logical :: lineUpBands
+    !! If calculating preliminary overlaps to line up bands
+    !! from different systems
   logical :: overlapOnly
     !! If only the wave function overlap should be
     !! calculated
+  logical :: readOptimalPairs
+    !! If optimal pairs should be read and states reordered
   logical :: subtractBaseline
     !! If baseline should be subtracted from first-order
     !! overlap for increased numerical accuracy in the 
@@ -182,16 +194,22 @@ module TMEmod
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(ibBra, ikBra, ibKet, ikKet, ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, &
-          ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, intraK, overlapOnly, subtractBaseline)
+  subroutine readInputParams(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibBra, ikBra, ibKet, ikKet, ibShift_braket, &
+          ispSelect, nPairs, order, phononModeJ, baselineDir, braExportDir, ketExportDir, dqFName, energyTableDir, &
+          optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, readOptimalPairs, subtractBaseline)
 
     use miscUtilities, only: ignoreNextNLinesFromFile
     
     implicit none
 
     ! Output variables:
+    integer, intent(out) :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
+      !! Optional band bounds
     integer, allocatable, intent(out) :: ibBra(:), ikBra(:), ibKet(:), ikKet(:)
       !! State indices for different systems
+    integer, intent(out) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(out) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
@@ -212,6 +230,8 @@ contains
       !! File name for generalized-coordinate norms
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy tables
+    character(len=300), intent(out) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(out) :: outputDir
       !! Path to where matrix elements should be output
 
@@ -223,46 +243,51 @@ contains
     logical, intent(out) :: intraK
       !! If overlaps should be calculated across different
       !! k-points (true) or just between single k-points (false)
+    logical, intent(out) :: lineUpBands
+      !! If calculating preliminary overlaps to line up bands
+      !! from different systems
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
+    logical, intent(out) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
     logical, intent(out) :: subtractBaseline
       !! If baseline should be subtracted from first-order
       !! overlap for increased numerical accuracy in the 
       !! derivative
 
     ! Local variables:
-    integer :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
-      !! Optional band bounds
-
     character(len=300) :: braBands, ketBands
       !! Strings to take input band pairs for overlap-only
 
 
     namelist /TME_Input/ ketExportDir, braExportDir, outputDir, energyTableDir, &
                          order, dqFName, phononModeJ, subtractBaseline, baselineDir, &
-                         ispSelect, nPairs, braBands, ketBands, overlapOnly, dqOnly, &
-                         iBandLBra, iBandHBra, iBandLKet, iBandHKet, capture, intraK
+                         ispSelect, nPairs, braBands, ketBands, lineUpBands, overlapOnly, &
+                         dqOnly, iBandLBra, iBandHBra, iBandLKet, iBandHKet, capture, &
+                         intraK, ibShift_braket, optimalPairsDir, readOptimalPairs
     
 
     if(ionode) then
     
-      call initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, baselineDir, &
-              braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, &
-              intraK, overlapOnly, subtractBaseline)
+      call initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
+              phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, &
+              optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, readOptimalPairs, &
+              subtractBaseline)
     
       read(5, TME_Input, iostat=ierr)
     
       if(ierr /= 0) call exitError('readInputParams', 'reading TME_Input namelist', abs(ierr))
     
-      call checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, &
-              baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, &
-              dqOnly, intraK, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
+      call checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, phononModeJ, &
+              baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, optimalPairsDir, outputDir, &
+              capture, dqOnly, intraK, lineUpBands, overlapOnly, readOptimalPairs, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
 
     endif
 
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
 
+    call MPI_BCAST(ibShift_braket, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(ispSelect, 1, MPI_INTEGER, root, worldComm, ierr)
 
     call MPI_BCAST(phononModeJ, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -270,7 +295,9 @@ contains
     call MPI_BCAST(capture, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(dqOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(intraK, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(lineUpBands, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(overlapOnly, 1, MPI_LOGICAL, root, worldComm, ierr)
+    call MPI_BCAST(readOptimalPairs, 1, MPI_LOGICAL, root, worldComm, ierr)
     call MPI_BCAST(subtractBaseline, 1, MPI_LOGICAL, root, worldComm, ierr)
 
     call MPI_BCAST(braExportDir, len(braExportDir), MPI_CHARACTER, root, worldComm, ierr)
@@ -278,6 +305,7 @@ contains
     call MPI_BCAST(energyTableDir, len(energyTableDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(baselineDir, len(baselineDir), MPI_CHARACTER, root, worldComm, ierr)
 
+    call MPI_BCAST(optimalPairsDir, len(optimalPairsDir), MPI_CHARACTER, root, worldComm, ierr)
     call MPI_BCAST(outputDir, len(outputDir), MPI_CHARACTER, root, worldComm, ierr)
 
     call MPI_BCAST(nPairs, 1, MPI_INTEGER, root, worldComm, ierr)
@@ -313,15 +341,19 @@ contains
   end subroutine readInputParams
   
 !----------------------------------------------------------------------------
-  subroutine initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, baselineDir, &
-          braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, dqOnly, intraK, &
-          overlapOnly, subtractBaseline)
+  subroutine initialize(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
+          phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, &
+          optimalPairsDir, outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, readOptimalPairs, &
+          subtractBaseline)
     
     implicit none
 
     ! Output variables:
     integer, intent(out) :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
       !! Optional band bounds
+    integer, intent(out) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(out) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
@@ -344,6 +376,8 @@ contains
       !! File name for generalized-coordinate norms
     character(len=300), intent(out) :: energyTableDir
       !! Path to energy tables
+    character(len=300), intent(out) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(out) :: outputDir
       !! Path to where matrix elements should be output
 
@@ -355,9 +389,14 @@ contains
     logical, intent(out) :: intraK
       !! If overlaps should be calculated across different
       !! k-points (true) or just between single k-points (false)
+    logical, intent(out) :: lineUpBands
+      !! If calculating preliminary overlaps to line up bands
+      !! from different systems
     logical, intent(out) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
+    logical, intent(out) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
     logical, intent(out) :: subtractBaseline
       !! If baseline should be subtracted from first-order
       !! overlap for increased numerical accuracy in the 
@@ -368,6 +407,7 @@ contains
     iBandHBra = -1
     iBandLKet = -1
     iBandHKet = -1
+    ibShift_braket = 0
     order = -1
     nPairs = -1
     ispSelect = -1
@@ -379,13 +419,16 @@ contains
     ketExportDir = ''
     energyTableDir = ''
     dqFName = ''
+    optimalPairsDir = './optimalPairs'
     outputDir = './TMEs'
     baselineDir = ''
     
     capture = .true.
     dqOnly = .false.
     intraK = .false.
+    lineUpBands = .false.
     overlapOnly = .false.
+    readOptimalPairs = .false.
     subtractBaseline = .false.
     
     return
@@ -393,15 +436,19 @@ contains
   end subroutine initialize
   
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ispSelect, nPairs, order, phononModeJ, &
-          baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, outputDir, capture, &
-          dqOnly, intraK, overlapOnly, subtractBaseline, ibBra, ikBra, ibKet, ikKet)
+  subroutine checkInitialization(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ibShift_braket, ispSelect, nPairs, order, &
+          phononModeJ, baselineDir, braBands, ketBands, braExportDir, ketExportDir, dqFName, energyTableDir, optimalPairsDir, &
+          outputDir, capture, dqOnly, intraK, lineUpBands, overlapOnly, readOptimalPairs, subtractBaseline, ibBra, ikBra, &
+          ibKet, ikKet)
     
     implicit none
 
     ! Input variables:
     integer, intent(in) :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
       !! Optional band bounds
+    integer, intent(in) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(in) :: ispSelect
       !! Selection of a single spin channel if input
       !! by the user
@@ -424,6 +471,8 @@ contains
       !! File name for generalized-coordinate norms
     character(len=300), intent(in) :: energyTableDir
       !! Path to energy tables
+    character(len=300), intent(in) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
     character(len=300), intent(in) :: outputDir
       !! Path to where matrix elements should be output
 
@@ -432,12 +481,17 @@ contains
     logical, intent(in) :: dqOnly
       !! If first-order matrix elements should only be
       !! divided by dq
-    logical, intent(in) :: intraK
+    logical, intent(inout) :: intraK
       !! If overlaps should be calculated across different
       !! k-points (true) or just between single k-points (false)
-    logical, intent(in) :: overlapOnly
+    logical, intent(inout) :: lineUpBands
+      !! If calculating preliminary overlaps to line up bands
+      !! from different systems
+    logical, intent(inout) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
+    logical, intent(in) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
     logical, intent(in) :: subtractBaseline
       !! If baseline should be subtracted from first-order
       !! overlap for increased numerical accuracy in the 
@@ -478,16 +532,44 @@ contains
     endif
 
 
+    write(*,'("readOptimalPairs = ",L1)') readOptimalPairs
+    if(readOptimalPairs .and. lineUpBands) then
+      write(*,'("readOptimalPairs option selected. Overriding lineUpBands and setting to false!!")')
+      lineUpBands = .false.
+    endif
+
+    write(*,'("lineUpBands = ",L)') lineUpBands
+
+
+    if(lineUpBands .and. .not. overlapOnly) then
+      write(*,'("lineUpBands option selected. Overriding overlapOnly and setting to true!!")')
+      overlapOnly = .true.
+    endif
+
     write(*,'("overlapOnly = ",L)') overlapOnly
-    write(*,'("intraK = ",L)') intraK
+
+
     if(overlapOnly .and. capture) then
       write(*,'("Both overlapOnly and capture are true. Overlap only takes precedence!")')
       capture = .false.
     endif
     write(*,'("capture = ",L)') capture
 
+
+    if(readOptimalPairs .or. lineUpBands) then
+      abortExecution = checkStringInitialization('optimalPairsDir', optimalPairsDir) .or. abortExecution
+
+      if(capture) then
+        write(*,'("Capture into level in the gap is not compatible with optimizing band matching!")')
+        abortExecution = .true.
+      endif
+    endif
+
+
+
+    write(*,'("ibShift_braket = ",i10)') ibShift_braket
+    write(*,'("intraK = ",L)') intraK
     
-    write(*,'("overlapOnly = ''",L,"''")') overlapOnly
     if(.not. overlapOnly) then
       ! Require that states be read from the energy table for capture and scattering
 
@@ -497,8 +579,8 @@ contains
         abortExecution = checkFileInitialization('dqFName', dqFName) .or. abortExecution
         abortExecution = checkIntInitialization('phononModeJ', phononModeJ, 1, int(1e9)) .or. abortExecution
 
-        write(*,'("dqOnly = ''",L1,"''")') dqOnly
-        write(*,'("subtractBaseline = ''",L1,"''")') subtractBaseline
+        write(*,'("dqOnly = ",L1)') dqOnly
+        write(*,'("subtractBaseline = ",L1)') subtractBaseline
 
         if(subtractBaseline) then
           if(ispSelect == 2) then
@@ -520,6 +602,23 @@ contains
       bandBoundsGiven = iBandLBra > 0 .and. iBandHBra > 0 .and. &
                         iBandLKet > 0 .and. iBandHKet > 0
       energyTableGiven = trim(energyTableDir) /= ''
+
+
+      if(lineUpBands) then
+        if(.not. bandBoundsGiven) then
+          write(*,'("Must give a range of bands with lineUpBands option!")')
+          abortExecution = .true.
+        else if(iBandHBra - iBandLBra /= iBandHKet - iBandLKet) then
+          write(*,'("Must have an equal number of bra and ket states to lineUpBands!")')
+          abortExecution = .true.
+        endif
+        
+        if(intraK) then
+          write(*,'("intraK options is not compatible with lineUpBands option!")')
+          write(*,'("Overriding and setting intraK = .false.!")')
+          intraK = .false.
+        endif
+      endif
 
 
       if(explicitBandStringsGiven .and. .not. intraK) then
@@ -1693,13 +1792,25 @@ contains
   end subroutine getExpiGDotR
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteInterKOnlyOverlaps(nPairs, ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, volume, braSys, ketSys, pot)
+  subroutine getAndWriteInterKOnlyOverlaps(iBandLBra, iBandHBra, iBandLKet, iBandHKet, nPairs, ibShift_braket, &
+          ibBra, ibKet, ispSelect, nGVecsLocal, nSpins, volume, lineUpBands, readOptimalPairs, optimalPairsDir, &
+          braSys, ketSys, pot)
+
+    use optimalBandMatching, only: findOptimalPairsAndOutput, readAllOptimalPairs
 
     implicit none
 
     ! Input variables:
+    integer :: iBandLBra, iBandHBra, iBandLKet, iBandHKet
+      !! Optional band bounds to be input for lineUpBands option
+      !! or read from optimalPairs file for readOptimalPairs
+      !! Removing the intent because what we do with these variables 
+      !! changes and I don't want it to yell at me
     integer, intent(in) :: nPairs
       !! Number of pairs of bands to get overlaps for
+    integer, intent(in) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(in) :: ibBra(nPairs), ibKet(nPairs)
       !! Band indices for different systems
     integer, intent(in) :: ispSelect
@@ -1714,6 +1825,15 @@ contains
     real(kind=dp), intent(in) :: volume
       !! Volume of unit cell
 
+    logical, intent(in) :: lineUpBands
+      !! If calculating preliminary overlaps to line up bands
+      !! from different systems
+    logical, intent(in) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
+
+    character(len=300), intent(in) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
+
     type(crystal) :: braSys, ketSys
        !! The crystal systems to get the
        !! matrix element for
@@ -1723,6 +1843,9 @@ contains
       !! information
 
     ! Local variables:
+    integer, allocatable :: ibBra_optimal(:,:)
+      !! Optimal indices from the bra system corresponding 
+      !! to the input indices from the ket system
     integer :: ikLocal, ikGlobal, ip, isp
       !! Loop index
 
@@ -1737,6 +1860,8 @@ contains
 
 
     Ufi(:,:) = cmplx(0.0_dp, 0.0_dp, kind = dp)
+
+    if(ionode .and. lineUpBands) call system('mkdir -p '//trim(optimalPairsDir))
 
     do ikLocal = 1, nkPerPool
     
@@ -1763,14 +1888,34 @@ contains
         call cpu_time(t2)
         if(ionode) write(*, '("  Spin independent setup complete! (",f10.2," secs)")') t2-t1
 
+        
+        if(readOptimalPairs) then
+          if(indexInPool == 0) &
+            call readAllOptimalPairs(ikGlobal, nSpins, spin1Skipped, spin2Skipped, optimalPairsDir, iBandLKet, iBandHKet, &
+                  ibBra_optimal)
+
+          call MPI_BCAST(iBandLKet, 1, MPI_INTEGER, root, intraPoolComm, ierr)
+          call MPI_BCAST(iBandHKet, 1, MPI_INTEGER, root, intraPoolComm, ierr)
+
+          if(indexInPool /= 0) allocate(ibBra_optimal(nSpins,iBandLKet:iBandHKet))
+          call MPI_BCAST(ibBra_optimal, size(ibBra_optimal), MPI_INTEGER, root, intraPoolComm, ierr)
+        else
+          allocate(ibBra_optimal(1,1))
+        endif
+
 
         do ip = 1, nPairs
 
           if(ionode) write(*,'("  Beginning overlap <", i5, "|",i5">")') ibBra(ip), ibKet(ip)
           call cpu_time(t1)
 
-          call calculateBandPairOverlap(ibBra(ip), ibKet(ip), ikGlobal, ikGlobal, nSpins, nGVecsLocal, volume, spin1Skipped, &
-                spin2Skipped, braSys, ketSys, pot, Ufi_ip)
+          if(indexInPool == 0 .and. readOptimalPairs .and. (ibBra(ip) < iBandLKet .or. ibBra(ip) > iBandHKet)) &
+            call exitError('getAndWriteInterKOnlyOverlaps',&
+              'Index '//trim(int2str(ibBra(ip)))//' not included in optimalPairs file for ik = '//trim(int2str(ikGlobal)),1)
+
+          call calculateBandPairOverlap(ibShift_braket, ibBra(ip), ibKet(ip), ikGlobal, ikGlobal, nSpins, &
+                ibBra_optimal(:,ibBra(ip)), nGVecsLocal, volume, readOptimalPairs, spin1Skipped, spin2Skipped, &
+                braSys, ketSys, pot, Ufi_ip)
 
           Ufi(ip,:) = Ufi_ip
 
@@ -1781,14 +1926,21 @@ contains
 
         if(indexInPool == 0) then 
           do isp = 1, nSpins
-            if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) &
+            if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
+              if(lineUpBands) then
+                call findOptimalPairsAndOutput(iBandLBra, iBandHBra, iBandLKet, iBandHKet, ikLocal, isp, nPairs, Ufi(:,isp), &
+                    optimalPairsDir)
+              endif
+
               call writeInterKOverlaps(nPairs, ibBra, ibKet, ikLocal, isp, volume, Ufi(:,isp))
+            endif
           enddo
         endif
 
 
         call deallocateSysArrays(braSys)
         call deallocateSysArrays(ketSys)
+        deallocate(ibBra_optimal)
 
       endif ! If both spin channels exist
     enddo ! k-point loop
@@ -1798,14 +1950,17 @@ contains
   end subroutine getAndWriteInterKOnlyOverlaps
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteCaptureMatrixElements(nTransitions, ibi, ibf, ispSelect, nGVecsLocal, nSpins, dq_j, volume, dqOnly, &
-          braSys, ketSys, pot)
+  subroutine getAndWriteCaptureMatrixElements(nTransitions, ibShift_braket, ibi, ibf, ispSelect, nGVecsLocal, nSpins, dq_j, &
+          volume, dqOnly, braSys, ketSys, pot)
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: nTransitions
       !! Total number of transitions 
+    integer, intent(in) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(in) :: ibi(nTransitions)
       !! Initial-state indices
     integer, intent(in) :: ibf
@@ -1838,6 +1993,9 @@ contains
       !! information
 
     ! Local variables 
+    integer :: iDum(nSpins)
+      !! Dummy integer array to pass to calculateBandPairOverlap
+      !! for ibBra_optimal
     integer :: ikLocal, ikGlobal, isp, iE
       !! Loop indices
 
@@ -1884,8 +2042,10 @@ contains
           if(ionode) write(*,'("  Beginning transition ", i5, " -> ",i5)') ibi(iE), ibf
           call cpu_time(t1)
 
-          call calculateBandPairOverlap(ibf, ibi(iE), ikGlobal, ikGlobal, nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, & 
-                braSys, ketSys, pot, Ufi_iE)
+          call calculateBandPairOverlap(ibShift_braket, ibf, ibi(iE), ikGlobal, ikGlobal, nSpins, iDum, nGVecsLocal, volume, &
+                .false., spin1Skipped, spin2Skipped, braSys, ketSys, pot, Ufi_iE)
+            ! Pass false for readOptimalPairs and dummy integer for ibBra_optimal
+            ! because that option isn't allowed for capture
 
           Ufi(iE,:) = Ufi_iE
 
@@ -1917,14 +2077,19 @@ contains
   end subroutine getAndWriteCaptureMatrixElements
 
 !----------------------------------------------------------------------------
-  subroutine getAndWriteScatterMatrixElementsOrOverlaps(nTransitions, ibi, iki, ibf, ikf, ispSelect, nGVecsLocal, nSpins, &
-            volume, overlapOnly, braSys, ketSys, pot)
+  subroutine getAndWriteScatterMatrixElementsOrOverlaps(nTransitions, ibShift_braket, ibi, iki, ibf, ikf, ispSelect, &
+            nGVecsLocal, nSpins, volume, overlapOnly, readOptimalPairs, optimalPairsDir, braSys, ketSys, pot)
+
+    use optimalBandMatching, only: readAllOptimalPairs
 
     implicit none
 
     ! Input variables:
     integer, intent(in) :: nTransitions
       !! Total number of transitions 
+    integer, intent(in) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(in) :: ibi(nTransitions), iki(nTransitions), ibf(nTransitions), ikf(nTransitions)
       !! State indices
     integer, intent(in) :: ispSelect
@@ -1942,6 +2107,11 @@ contains
     logical, intent(in) :: overlapOnly
       !! If only the wave function overlap should be
       !! calculated
+    logical, intent(in) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
+
+    character(len=300), intent(in) :: optimalPairsDir
+      !! Path to store or read optimalPairs.out file
 
     type(crystal) :: braSys, ketSys
        !! The crystal systems to get the
@@ -1952,6 +2122,11 @@ contains
       !! information
 
     ! Local variables 
+    integer :: iBandLKet, iBandHKet
+      !! Band bounds from optimalPairs file
+    integer, allocatable :: ibBra_optimal(:,:)
+      !! Optimal index from the bra system corresponding 
+      !! to the input index from the ket system
     integer :: isp, iE, iU_iki, iU_ikf
       !! Loop indices
     integer, allocatable :: ikiUnique(:), ikfUnique(:)
@@ -2025,6 +2200,23 @@ contains
 
           if(ionode) write(*,'("    Beginning transitions iki ", i5," -> ",i5)') ikiUnique(iU_iki), ikfUnique(iU_ikf) 
           call cpu_time(t1)
+
+        
+          if(readOptimalPairs) then
+            if(ionode) &
+              call readAllOptimalPairs(ikfUnique(iU_ikf), nSpins, spin1Skipped, spin2Skipped, optimalPairsDir, iBandLKet, iBandHKet, &
+                    ibBra_optimal)
+
+            call MPI_BCAST(iBandLKet, 1, MPI_INTEGER, root, worldComm, ierr)
+            call MPI_BCAST(iBandHKet, 1, MPI_INTEGER, root, worldComm, ierr)
+
+            if(.not. ionode) allocate(ibBra_optimal(nSpins,iBandLKet:iBandHKet))
+            call MPI_BCAST(ibBra_optimal, size(ibBra_optimal), MPI_INTEGER, root, worldComm, ierr)
+          else
+            allocate(ibBra_optimal(1,1))
+          endif
+
+
           do iE = 1, nTransitions
 
             if(ionode .and. mod(iE,updateFrequency) == 0) then
@@ -2035,9 +2227,13 @@ contains
 
             if((iki(iE) == ikiUnique(iU_iki)) .and. (ikf(iE) == ikfUnique(iU_ikf))) then
 
+              if(ionode .and. readOptimalPairs .and. (ibf(iE) < iBandLKet .or. ibf(iE) > iBandHKet)) &
+                call exitError('getAndWriteScatterMatrixElementsOrOverlaps',&
+                  'Index '//trim(int2str(ibf(iE)))//' not included in optimalPairs file for ik = '//trim(int2str(ikf(iE))),1)
 
-              call calculateBandPairOverlap(ibf(iE), ibi(iE), ikf(iE), iki(iE), nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, & 
-                    braSys, ketSys, pot, Ufi_iE)
+              call calculateBandPairOverlap(ibShift_braket, ibf(iE), ibi(iE), ikf(iE), iki(iE), nSpins, &
+                    ibBra_optimal(:,ibf(iE)), nGVecsLocal, volume, readOptimalPairs, spin1Skipped, &
+                    spin2Skipped, braSys, ketSys, pot, Ufi_iE)
 
               Ufi(iE,:) = Ufi_iE
 
@@ -2297,12 +2493,15 @@ contains
   end subroutine readProjectors
   
 !----------------------------------------------------------------------------
-  subroutine calculateBandPairOverlap(ibBra, ibKet, ikBra, ikKet, nSpins, nGVecsLocal, volume, spin1Skipped, spin2Skipped, &
-          braSys, ketSys, pot, Ufi)
+  subroutine calculateBandPairOverlap(ibShift_braket, ibBra, ibKet, ikBra, ikKet, nSpins, ibBra_optimal, nGVecsLocal, volume, &
+          readOptimalPairs, spin1Skipped, spin2Skipped, braSys, ketSys, pot, Ufi)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: ibShift_braket
+      !! Shift of band indexing of bra system relative
+      !! to ket system
     integer, intent(in) :: ibBra, ibKet
       !! Band indices for bra and ket systems
     integer, intent(in) :: ikBra, ikKet
@@ -2310,12 +2509,17 @@ contains
     integer, intent(in) :: nSpins
       !! Number of spins (tested to be consistent
       !! across all systems)
+    integer, intent(in) :: ibBra_optimal(nSpins)
+      !! Optimal index from the bra system corresponding 
+      !! to the input index from the ket system
     integer, intent(in) :: nGVecsLocal
       !! Number of local G-vectors
 
     real(kind=dp), intent(in) :: volume
       !! Volume of unit cell
 
+    logical, intent(in) :: readOptimalPairs
+      !! If optimal pairs should be read and states reordered
     logical, intent(in) :: spin1Skipped, spin2Skipped
       !! If spin channels skipped
 
@@ -2344,17 +2548,29 @@ contains
       if((isp == 1 .and. .not. spin1Skipped) .or. (isp == 2 .and. .not. spin2Skipped)) then
 
         calcSpinDepKet = isp == 1 .or. ketSys%nSpins == 2 .or. spin1Skipped
-        calcSpinDepBra = isp == 1 .or. braSys%nSpins == 2 .or. spin1Skipped
+        calcSpinDepBra = isp == 1 .or. braSys%nSpins == 2 .or. spin1Skipped .or. readOptimalPairs
           ! If either of the systems only has a single spin channel, some inputs and
           ! calculations do not need to be redone for both spin channels. However, we
           ! still need to make sure to calculate these values for the second spin
           ! channel if the first spin channel was not done (e.g., the file already 
           ! existed or only the second spin channel was selected).
+          !
+          ! I added the condition to always calculate the spin-dependent pieces if the
+          ! user selected readOptimalPairs because the way the bands line up could be 
+          ! different for the different spin channels. It is unlikely that the perfect
+          ! crystal (ket) would have multiple spins while the defect system (bra) would
+          ! be non-spin-polarized, but I am adding it just in case. 
 
 
-        if(calcSpinDepBra) call calcSpinDep(ibBra, ikBra, isp, nGVecsLocal, braSys, ketSys)
+        if(calcSpinDepBra) then
+          if(readOptimalPairs) then
+            call calcSpinDep(ibBra_optimal(isp), ikBra, isp, nGVecsLocal, braSys, ketSys)
+          else
+            call calcSpinDep(ibBra, ikBra, isp, nGVecsLocal, braSys, ketSys)
+          endif
+        endif
       
-        if(calcSpinDepKet) call calcSpinDep(ibKet, ikKet, isp, nGVecsLocal, ketSys, braSys)
+        if(calcSpinDepKet) call calcSpinDep(ibKet+ibShift_braket, ikKet, isp, nGVecsLocal, ketSys, braSys)
 
 
         Ufi(isp) = dot_product(braSys%wfc(:),ketSys%wfc(:))

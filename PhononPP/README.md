@@ -9,6 +9,7 @@ This code does post-processing of the phonons and relaxed structures. The curren
 * `generateShiftedPOSCARs` -- if POSCAR files shifted from given equilibium positions along the phonon modes should be output. These are used to get the first-order matrix element.
 * `calcMaxDisp` -- if the maximum displacement across modes between a pair of atoms given a `shift` should be calculated
 * `calcDeltaNj` -- if change of occupation numbers for carrier approach, transition, and departure should be calculated (only for scattering)
+* `readOptimalPairs` -- if optimal band pairs as output by `TME` code should be read from `optimalPairsDir` and states reshuffled.
 
 The code is structured so that each of the options above can be chosen independently. Each of the options and the inputs needed are given in more detail below. 
 
@@ -29,6 +30,8 @@ The code also always calculates the thermal occupation numbers $n_j$ based on an
 For all calculations that require projection onto the phonon eigenvectors, when `diffOmega = .true.` the user has the option to set `dqEigvecsFinal` to `.true.` or `.false.` to determine if the final (prime) mode eigenvectors will be used for the projections (`dqEigvecsFinal = .true.`) or the initial-mode eigenvectors (`.false.`). The default is `.true.`. Note that the `diffOmega` option has not been implemented for the scattering/multiple displacements case because the theory is not clear on what the different frequencies would be and we only consider a single set of frequencies for scattering. 
 
 With two sets of frequencies, care needs to be taken in determining how the input phonon files line up. In each phonon file, the modes are sorted by frequency, but that means the modes are most likely not going to be in the same order. In order to match up the modes in the different files, I have added a Hungarian optimization algorithm to maximize the total overlap between the phonon eigenvectors. The optimal choice for the pairings and the corresponding dot products are output in a file called `optimalPairs.out`. 
+
+The `optimalPairs.out` file output by `PhononPP` should not be confused with the `optimalPairsDir` output by `TME` to hold the optimal pairs between the band states. Here, the `readOptimalPairs` will read from those files and will affect the indices used to search for relaxed `CONTCAR` files for calculating $S_j$ and $\Delta n_j$. The `readOptimalPairs` option will only work for `singleDisp = .false.`. **All outputs by `PhononPP` are indexed properly if reshuffling the states so that no reshuffling is needed in `LSF`.**
 
 ### `calcSj`
 
@@ -54,7 +57,7 @@ For the scattering problem (`singleDisp = .false.`), we need to know how the occ
 ```
 where $\Delta E$ is the energy difference resulting from each process (tabulated in `EnergyTabulator`) and each process has its own $S_j$ corresponding to a different change in equilibrium positions $\Delta q_j$. For scattering, the displacement also depends on the electronic state because we relax each state separately. 
 
-To run this option, set `calcDeltaNj = .true.`, `singleDisp = .false.`, `calcSj = .true.`, and pass in the path to the total-energy calculations for each electronic state in the start/ground-state positions using `allStatesBaseDir_startPos`. It is assumed that the subfolder naming convention is `k<ik>_b<ib>` and lines up with those used for `EnergyTabulator`. The output files are named `deltaNj.k<iki>_b<ibi>.k<ikf>_b<ibf>.out` based on the initial/final bands and k-points and are stored in a subfolder called `deltaNjs`.
+To run this option, set `calcDeltaNj = .true.`, `singleDisp = .false.`, `calcSj = .true.`, and pass in the path to the relaxed states using  `allStatesBaseDir_relaxed` and the relaxed ground state using `basePOSCARFName`. It is assumed that the subfolder naming convention is `k<ik>_b<ib>` and lines up with those used for `EnergyTabulator` (with optional reshuffling using `readOptimalPairs` option). The output files are named `deltaNj.k<iki>_b<ibi>.k<ikf>_b<ibf>.out` based on the initial/final bands and k-points and are stored in a subfolder called `deltaNjs`. 
 
 ### First-order items
 

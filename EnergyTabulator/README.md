@@ -33,11 +33,11 @@ For scattering, the energies needed for the transition rate are calculated as be
 * First-order matrix element: eigenvalue difference between initial and final state
 * Total energy difference between the total energy of each state in the starting positions and individually-relaxed positions
 
-This setup assumes that the defect system has been relaxed with a carrier in each of the possible band states (half in each channel so as to not consider spin coupling to the defect levels). A calculation should also be done to get the total energy for each electronic state in the starting positions (*e.g.*, the ground-state positions). These energies are used to calculate the change in equilibrium energy that results in a change in the phonon occupations as the carrier approaches the defect. Each of the calculations should be stored in subdirectories with the pattern `k<ik>_b<ib>`, where `ik` is the k-point index and `ib` is the band index. The k-point indices should match those of the system that the eigenvalues comes from. 
+This setup assumes that the defect system has been relaxed with a carrier in each of the possible band states (half in each channel so as to not consider spin coupling to the defect levels). A calculation should also be done to get the total energy for the relaxed positions for each state with the ground state electronic configuration in order to isolate the change in equilibrium potential energy. Each of the calculations should be stored in subdirectories with the pattern `k<ik>_b<ib>`, where `ik` is the k-point index and `ib` is the band index. The k-point indices should match those of the system that the eigenvalues comes from. The ground state also needs to be relaxed to calculate the change in occupations on carrier approach/departure. 
 
-For scattering, the eigenvalues should come from the perfect crystal system. The bands for the perfect crystal and defect systems will not necessarily line up. It is assumed that the band bounds and labels correspond to the defect system, while the eigenvalues are read and indexed with an optional integer shift `ibShift_eig`. 
+For scattering, the eigenvalues should come from the perfect crystal system. The bands for the perfect crystal and defect systems will not necessarily line up. There is often a linear shift between the bands so that the index of the band maxima do not match between the defect and perfect-crystal systems. The indices are based on the defect crystal, so use `ibShift_eig` to line up the band edges. Even after lining up the band edges, the states may not be in the same order in the different systems. The `TME` code has the functionality to pair up the bands to maximize the total overlap. If you run that first and want to reshuffle to match up the bands, use the `readOptimalPairs = .true.` option and include the `optimalPairsDir`. 
 
-For capture, all band states are calculated and output because it is assumed that all of the bands are present in the calculations. However, each of the different k-point/band states requires an additional relaxation for scattering, so the code just skips the states where the required export files do not exist. Beyond that, the energies are only output for the states where there is a non-zero electronic eigenvalue difference (i.e., the matrix elements are nonzero) and a non-zero energy transfer (positive or negative). This behavior is chosen so that, instead of looping over all possible k-points and bands in the given range, subsequent programs can read in the energy table and only consider the states that are physically meaningful.
+For capture, all band states are calculated and output because it is assumed that all of the bands are present in the calculations. However, each of the different k-point/band states requires an additional relaxation for scattering, so the code just skips the states where the required export files do not exist. Beyond that, the energies are only output for the states where there is a non-zero electronic eigenvalue difference (i.e., the matrix elements are nonzero) and a non-zero energy transfer (positive or negative). The threshold for each can be set using `dENegThresh` and `dEZeroThresh`, respectively. This behavior is chosen so that, instead of looping over all possible k-points and bands in the given range, subsequent programs can read in the energy table and only consider the states that are physically meaningful.
 
 The code also ouputs `dEPlot.isp` with the eigenvalue difference from the reference band (`refBand`) at the first k-point and the total energy relative to the state with the lowest total energy. The minimum energy and state where it occurs are also output in the header. 
 
@@ -79,6 +79,11 @@ within a file (e.g., `EnergyTabulator.in`) that is passed into the code like `mp
 * `refBand`
   * Reference band to measure eigenvalues from
   * Should be the band where the WZP carrier is for capture and the CBM/VBM for scattering
+* `ibShift_eig`
+  * Default `0`
+  * Optional integer shift of bands to line up band maxima from defect system and perfect-crystal system (where the eigenvalues are read)
+  * It is assumed that the band bounds `iBandIinit`, `iBandIfinal`, `iBandFinit`, and `iBandFfinal` correspond to the defect system.
+  * The eigenvalues are then read and indexed by `ib+ibShift_eig`.
 
 ### Variables for capture only
 * `exportDirInitInit`, `exportDirFinalInit`, and `exportDirFinalFinal`
@@ -90,24 +95,29 @@ within a file (e.g., `EnergyTabulator.in`) that is passed into the code like `mp
   * There are no bounds on this variable, so make sure to set a reasonable value.
 
 ### Variables for scattering only
-* `allStatesBaseDir_relaxed`
-  * Path to the directory that holds the various subdirectories for the *relaxation* each of the different states
+* `allStatesBaseDir_relaxPosGround`
+  * Path to the directory that holds the various subdirectories for the relaxed positions of different states *in the ground electronic state*
   * It is assumed that the subdirectories have the form `k<ik>_b<ib>` and that there is a separate relaxation/total energy and export for each possible state
-* `allStatesBaseDir_startPos`
-  * Path to the directory that holds the various subdirectories for each of the different states *in the starting positions*
-  * It is assumed that the subdirectories have the form `k<ik>_b<ib>` and that there is a separate relaxation/total energy and export for each possible state
-  * **Important**: Make sure that the electronic configuration in the the relaxation and starting-position calculations for each state is exactly the same so that the only energy difference picked up is the change in equilibrium potential energy.
+* `exportDirGroundRelax`
+  * Path to the directory that holds the relaxed ground state calculation
 * `singleStateExportDir`
   * Name of the export directory within each subfolder (*e.g.*, `'export'`)
   * It is assumed that the same subfolder is used for the relaxed states and the states in the starting positions
 * `ikIinit`, `ikIfinal`, `ikFinit`, and `ikFfinal`
   * Bounds for k-points considered for states
   * Indexed to match the subdirectory names within the `allStatesBaseDir` folder and the k-points as indexed in the export of the system used for eigenvalues (should be the perfect crystal for scattering)
-* `ibShift_eig`
-  * Default `0`
-  * Optional integer shift of bands to line up bands from defect system (used to label each of the subdirectories) and those from the perfect-crystal system (where the eigenvalues are read)
-  * It is assumed that the band bounds `iBandIinit`, `iBandIfinal`, `iBandFinit`, and `iBandFfinal` correspond to the defect system.
-  * The eigenvalues are then read and indexed by `ib+ibShift_eig`.
+* `readOptimalPairs` 
+  * Default `.false.`
+  * If bands should be shuffled to have optimal match betwen bands from initial and final system
+  * If `.true.`, must also give path the optimal pairs file(s) in `optimalPairsDir`
+* `dENegThresh`
+  * Default `1e6` eV (i.e., no threshold)
+  * Threshold for absolute value of negative energy transfer
+  * Use this if you want to limit cooling processes
+* `dEZeroThresh`
+  * Default `1e-6` eV
+  * Threshold on considering electronic energy difference to be zero and the state to be skipped
+
 
 
 
