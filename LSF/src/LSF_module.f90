@@ -25,6 +25,8 @@ module LSFmod
     !! Spin channel to use
   integer, allocatable :: jReSort(:)
     !! Indices to optionally resort matrix elements
+  integer :: maxIterPerTimeStep
+    !! Maximum iterations per time step
   integer :: mDim
     !! Size of first dimension for matrix element
   integer :: nModes
@@ -69,6 +71,8 @@ module LSFmod
   real(kind=dp) :: smearingExpTolerance
     !! Tolerance for the Lorentzian-smearing
     !! exponential used to calculate max time
+  real(kind=dp) :: tolForStepConverge
+    !! Tolerance for considering a time step converged
   real(kind=dp), allocatable :: totalDeltaNj(:,:)
     !! Optional total change in occupation numbers
     !! for each mode and transition
@@ -139,21 +143,25 @@ module LSFmod
                          smearingExpTolerance, transRateOutDir, order, prefix, iSpin, diffOmega, newEnergyTable, &
                          suffixLength, reSortMEs, oldFormat, rereadDq, SjThresh, captured, addDeltaNj, &
                          optimalPairsInput, dqInput, deltaNjBaseDir, generateNewOccupations, dt, carrierDensityInput, &
-                         energyAvgWindow, njNewOutDir, nRealTimeSteps, thermalize, writeEiRate, EiRateOutDir
+                         energyAvgWindow, njNewOutDir, nRealTimeSteps, thermalize, writeEiRate, EiRateOutDir, &
+                         maxIterPerTimeStep, tolForStepConverge
 
 contains
 
 !----------------------------------------------------------------------------
-  subroutine readInputParams(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime_transRate, &
-        SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
-        rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
-        EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+  subroutine readInputParams(iSpin, maxIterPerTimeStep, nRealTimeSteps, order, dt, dtau, energyAvgWindow, gamma0, &
+        hbarGamma, maxTime_transRate, SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, &
+        diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, &
+        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, matrixElementDir, MjBaseDir, &
+        njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     implicit none
 
     ! Output variables
     integer, intent(out) :: iSpin
       !! Spin channel to use
+    integer, intent(out) :: maxIterPerTimeStep
+      !! Maximum iterations per time step
     integer, intent(out) :: nRealTimeSteps
       !! Number of real-time steps for updating occupations
       !! if applicable
@@ -180,6 +188,8 @@ contains
     real(kind=dp), intent(out) :: smearingExpTolerance
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
+    real(kind=dp), intent(out) :: tolForStepConverge
+      !! Tolerance for considering a time step converged
     
     logical, intent(out) :: addDeltaNj
       !! Add change in occupations for different scattering states
@@ -243,10 +253,11 @@ contains
       !! Path to store transition rates
 
   
-    call initialize(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
-          addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
-          thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, &
-          matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+    call initialize(iSpin, maxIterPerTimeStep, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, &
+          smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, diffOmega, generateNewOccupations, &
+          newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, &
+          dqInput, energyTableDir, EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, &
+          optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     if(ionode) then
 
@@ -257,10 +268,11 @@ contains
       if(ierr /= 0) call exitError('LSF module', 'reading inputParams namelist', abs(ierr))
         !! * Exit calculation if there's an error
 
-      call checkInitialization(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
-            addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
-            thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, &
-            matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+      call checkInitialization(iSpin, maxIterPerTimeStep, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, &
+            SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, diffOmega, generateNewOccupations, &
+            newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, &
+            dqInput, energyTableDir, EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, &
+            prefix, SjBaseDir, transRateOutDir)
 
       gamma0 = hbarGamma*1e-3/HartreeToEv
         ! Input expected in meV
@@ -273,6 +285,7 @@ contains
     call MPI_BCAST(iSpin, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nKPoints, 1, MPI_INTEGER, root, worldComm, ierr)
       ! nKPoints is not meaningful for scattering
+    call MPI_BCAST(maxIterPerTimeStep, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(nRealTimeSteps, 1, MPI_INTEGER, root, worldComm, ierr)
     call MPI_BCAST(order, 1, MPI_INTEGER, root, worldComm, ierr)
   
@@ -283,6 +296,7 @@ contains
     call MPI_BCAST(gamma0, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(SjThresh, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(smearingExpTolerance, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+    call MPI_BCAST(tolForStepConverge, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
     call MPI_BCAST(maxTime_transRate, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
     call MPI_BCAST(addDeltaNj, 1, MPI_LOGICAL, root, worldComm, ierr)
@@ -315,16 +329,19 @@ contains
   end subroutine readInputParams
 
 !----------------------------------------------------------------------------
-  subroutine initialize(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, smearingExpTolerance, &
-        addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, &
-        thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, &
-        matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+  subroutine initialize(iSpin, maxIterPerTimeStep, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, &
+        SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, diffOmega, generateNewOccupations, &
+        newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, &
+        deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, &
+        optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     implicit none
 
     ! Output variables
     integer, intent(out) :: iSpin
       !! Spin channel to use
+    integer, intent(out) :: maxIterPerTimeStep
+      !! Maximum iterations per time step
     integer, intent(out) :: nRealTimeSteps
       !! Number of real-time steps for updating occupations
       !! if applicable
@@ -347,6 +364,8 @@ contains
     real(kind=dp), intent(out) :: smearingExpTolerance
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
+    real(kind=dp), intent(out) :: tolForStepConverge
+      !! Tolerance for considering a time step converged
     
     logical, intent(out) :: addDeltaNj
       !! Add change in occupations for different scattering states
@@ -411,6 +430,7 @@ contains
 
 
     iSpin = 1
+    maxIterPerTimeStep = 10
     nRealTimeSteps = 1
     order = -1
 
@@ -420,6 +440,7 @@ contains
     hbarGamma = 0.0_dp
     SjThresh = 0.0_dp
     smearingExpTolerance = 0.0_dp
+    tolForStepConverge = 1.0_dp
 
     addDeltaNj = .false.
     captured = .true.
@@ -451,17 +472,19 @@ contains
   end subroutine initialize
 
 !----------------------------------------------------------------------------
-  subroutine checkInitialization(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, hbarGamma, SjThresh, &
-        smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, oldFormat, &
-        rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
-        EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, &
-        transRateOutDir)
+  subroutine checkInitialization(iSpin, maxIterPerTimeStep, nRealTimeSteps, order, dt, dtau, energyAvgWindow, &
+        hbarGamma, SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, diffOmega, &
+        generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, &
+        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, matrixElementDir, & 
+        MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
     implicit none
 
     ! Input variables
     integer, intent(in) :: iSpin
       !! Spin channel to use
+    integer, intent(in) :: maxIterPerTimeStep
+      !! Maximum iterations per time step
     integer, intent(in) :: nRealTimeSteps
       !! Number of real-time steps for updating occupations
       !! if applicable
@@ -484,6 +507,8 @@ contains
     real(kind=dp), intent(in) :: smearingExpTolerance
       !! Tolerance for the Lorentzian-smearing
       !! exponential used to calculate max time
+    real(kind=dp), intent(in) :: tolForStepConverge
+      !! Tolerance for considering a time step converged
     
     logical, intent(in) :: addDeltaNj
       !! Add change in occupations for different scattering states
@@ -588,6 +613,8 @@ contains
       if(generateNewOccupations) then
         abortExecution = checkDoubleInitialization('dt', dt, 0.0_dp, 10.0_dp) .or. abortExecution
         abortExecution = checkIntInitialization('nRealTimeSteps', nRealTimeSteps, 1, int(1e9))
+        abortExecution = checkIntInitialization('maxIterPerTimeStep', maxIterPerTimeStep, 1, int(1e9))
+        abortExecution = checkDoubleInitialization('tolForStepConverge', tolForStepConverge, 0.0_dp, 100.0_dp) .or. abortExecution
         abortExecution = checkFileInitialization('carrierDensityInput', carrierDensityInput) .or. abortExecution
         abortExecution = checkDoubleInitialization('energyAvgWindow', energyAvgWindow, 0.0_dp, 1.0_dp) .or. abortExecution
         abortExecution = checkFileInitialization('njBaseInput', njBaseInput) .or. abortExecution
@@ -1906,14 +1933,18 @@ contains
   end subroutine setupStateDepTimeTablesDeltaNj
 
 !----------------------------------------------------------------------------
-  subroutine realTimeIntegration(mDim, nModes, nRealTimeSteps, nTransitions, order, ibi, ibf, iki, ikf, iSpin, &
+  subroutine realTimeIntegration(iSpin, maxIterPerTimeStep, mDim, nModes, nRealTimeSteps, nTransitions, ibi, ibf, iki, ikf, order, &
           dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, &
-          temperature, SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, thermalize, writeEiRate, &
-          carrierDensityInput, EiRateOutDir, energyTableDir, njNewOutDir, transRateOutDir, volumeLine)
+          temperature, tolForStepConverge, SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, thermalize, &
+          writeEiRate, carrierDensityInput, EiRateOutDir, energyTableDir, njNewOutDir, transRateOutDir, volumeLine)
 
     implicit none
 
     ! Input variables:
+    integer, intent(in) :: iSpin
+      !! Spin channel to use
+    integer, intent(in) :: maxIterPerTimeStep
+      !! Maximum iterations per time step
     integer, intent(in) :: mDim
       !! Size of first dimension for matrix element
     integer, intent(in) :: nModes
@@ -1923,12 +1954,10 @@ contains
       !! if applicable
     integer, intent(in) :: nTransitions
       !! Total number of transitions 
-    integer, intent(in) :: order
-      !! Order to calculate (0 or 1)
     integer, intent(in) :: ibi(nTransitions), ibf(nTransitions), iki(nTransitions), ikf(nTransitions)
       !! State indices
-    integer, intent(in) :: iSpin
-      !! Spin channel to use
+    integer, intent(in) :: order
+      !! Order to calculate (0 or 1)
 
     real(kind=dp), intent(in) :: dE(5,nTransitions,nkPerPool)
       !! All energy differences from energy table
@@ -1957,6 +1986,8 @@ contains
     real(kind=dp), intent(in) :: SjThresh
       !! Threshold for Sj to determine which modes to calculate
     real(kind=dp), intent(inout) :: temperature
+    real(kind=dp), intent(in) :: tolForStepConverge
+      !! Tolerance for considering a time step converged
     real(kind=dp), intent(in) :: totalDeltaNj(nModes,nTransitions)
       !! Optional total change in occupation numbers
       !! for each mode and transition
@@ -1994,7 +2025,7 @@ contains
       !! output exactly in transition rate file
 
     ! Local variables:
-    integer :: iRt
+    integer :: iRt, iter
       !! Loop index
     integer :: nUniqueInitStates
       !! Number of unique initial states, defined by
@@ -2014,25 +2045,20 @@ contains
       !! Total energy transfer combining all states
     real(kind=dp), allocatable :: energyTransferRate_i(:)
       !! Average energy transfer rate from each initial state
-    real(kind=dp), allocatable :: k1(:), k2(:), k3(:), k4(:)
-      !! Intermediate slopes for RK4 integration
     real(kind=dp) :: localHeatingRate
       !! Energy transfer rate converted to rate of 
       !! change of local temperature
-    real(kind=dp) :: njNextEst(nModes)
-      !! Next estimate for njBase
+    real(kind=dp) :: njNextEst(nModes), njNew(nModes)
+      !! Next estimates for njBase
     real(kind=dp) :: njRateOfChange(nModes)
       !! Rate of change of occupations due to average
       !! effect of all transitions
-    real(kind=dp) :: tempNextEst
+    real(kind=dp) :: tempNextEst, tempNew
       !! Next estimate of the local temperature
 
+    logical :: exitLoop
+      !! If the loop should exit
 
-    if(thermalize) then
-      allocate(k1(1), k2(1), k3(1), k4(1))
-    else
-      allocate(k1(nModes), k2(nModes), k3(nModes), k4(nModes))
-    endif
 
     call getUniqueInitialStates(nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, uniqueInitStates_ik)
 
@@ -2066,117 +2092,91 @@ contains
     if(ionode) write(*, '("--------------------Beginning real-time integration ")')
 
     do iRt = 2, nRealTimeSteps
+
       !-----------------------------------------------------------
-      ! Based on initial derivative estimate
+      ! Start with initial estimate of next point after half a time step
       if(ionode) then
-        ! First estimated slope is at the current point. 
-        ! Update estimate of njBase after half time step
         if(thermalize) then
-          k1 = localHeatingRate
-          tempNextEst = temperature + k1(1)*dt/2.0_dp
+          tempNextEst = temperature + localHeatingRate*dt/2.0_dp
           call getNjFromTemp(nModes, omega, tempNextEst, njNextEst)
         else
-          k1(:) = njRateOfChange(:)
-          njNextEst(:) = njBase(:) + k1(:)*dt/2.0d0
+          njNextEst(:) = njBase(:) + njRateOfChange(:)*dt/2.0d0
         endif
       endif
 
-      ! Broadcast to all processes and get new transition rate and nj rate of change
       call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-
-      if(ionode) write(*, '("Beginning transition-rate calculation for part 1 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE(1:3,:,:), deltaNjInitApproach, &
-            dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-            captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
-
-      call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
-            writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
-
-      if(thermalize .and. ionode) call ERateToTRate(nModes, energyTransferRate, njNextEst, omega, tempNextEst, localHeatingRate)
-
+      
       !-----------------------------------------------------------
-      ! Based on first midpoint estimate
-      if(ionode) then
-        ! Second estimated slope is from the midpoint
-        ! Update estimate of njBase after half time step
-        if(thermalize) then
-          k2 = localHeatingRate
-          tempNextEst = temperature + k2(1)*dt/2.0_dp
-          call getNjFromTemp(nModes, omega, tempNextEst, njNextEst)
-        else
-          k2(:) = njRateOfChange(:)
-          njNextEst(:) = njBase(:) + k2(:)*dt/2.0d0
+      ! Iterate until convergence to solve implicit equation
+      exitLoop = .false.
+      do iter = 1, maxIterPerTimeStep
+
+        if(ionode) write(*, '("Beginning iteration ",i5," for time-integration step ",i5)') iter, iRt
+
+        !-----------------------------------------------------------
+        ! Get derivative using next estimate
+        call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE(1:3,:,:), deltaNjInitApproach, &
+              dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
+              captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
+
+        call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
+              uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
+              writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
+
+        if(thermalize .and. ionode) call ERateToTRate(nModes, energyTransferRate, njNextEst, omega, tempNextEst, localHeatingRate)
+
+        !-----------------------------------------------------------
+        ! Calculate the new temperature and occupations based on that rate and
+        ! test if within threshold
+        if(ionode) then
+          if(thermalize) then
+            tempNew = temperature + localHeatingRate*dt/2.0_dp
+            call getNjFromTemp(nModes, omega, tempNew, njNew)
+
+            write(*,'("Delta next guess: ",ES24.15E3)') abs(tempNew-tempNextEst)
+            if(abs(tempNew-tempNextEst) < tolForStepConverge) then
+              write(*,'("Threshold met! Exiting loop for this time step.")')
+              exitLoop = .true.
+            endif
+
+            tempNextEst = tempNew
+            njNextEst = njNew
+          else
+            njNew(:) = njBase(:) + njRateOfChange(:)*dt/2.0d0
+
+            write(*,'("Max delta next guess: ",ES24.15E3)') maxval(abs(njNew-njNextEst))
+            if(maxval(abs(njNew-njNextEst)) < tolForStepConverge) then
+              write(*,'("Threshold met! Exiting loop for this time step.")')
+              exitLoop = .true.
+            endif
+
+            njNextEst = njNew
+          endif
         endif
-      endif
 
-      ! Broadcast to all processes and get new transition rate and nj rate of change
-      call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
+        call MPI_BCAST(exitLoop, 1, MPI_LOGICAL, root, worldComm, ierr)
+        if(exitLoop) exit
 
-      if(ionode) write(*, '("Beginning transition-rate calculation for part 2 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE(1:3,:,:), deltaNjInitApproach, &
-            dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-            captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
+        call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
-      call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
-            writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
-
-      if(thermalize .and. ionode) call ERateToTRate(nModes, energyTransferRate, njNextEst, omega, tempNextEst, localHeatingRate)
+      enddo
 
       !-----------------------------------------------------------
-      ! Based on second midpoint estimate
+      ! Convert half-step backward Euler to implicit midpoint to get next step
       if(ionode) then
-        ! Third estimated slope is from the midpoint
-        ! Update estimate of njBase after full step
         if(thermalize) then
-          k3 = localHeatingRate
-          tempNextEst = temperature + k3(1)*dt
-          call getNjFromTemp(nModes, omega, tempNextEst, njNextEst)
-        else
-          k3(:) = njRateOfChange(:)
-          njNextEst(:) = njBase(:) + k3(:)*dt
-        endif
-      endif
-
-      ! Broadcast to all processes and get new transition rate and nj rate of change
-      call MPI_BCAST(njNextEst, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-
-      if(ionode) write(*, '("Beginning transition-rate calculation for part 3 of RK4 time-integration step ",i5)') iRt
-      call getAndWriteTransitionRate(nTransitions, ibi, ibf, iki, ikf, iRt, iSpin, mDim, nModes, order, dE(1:3,:,:), deltaNjInitApproach, &
-            dtau, gamma0, matrixElement, njNextEst, omega, omegaPrime, Sj, SjPrime, SjThresh, addDeltaNj, &
-            captured, diffOmega, generateNewOccupations, transRateOutDir, volumeLine, transitionRate)
-
-      call getExcitationRate(nModes, nTransitions, ibi, iki, nUniqueInitStates, uniqueInitStates_ib, &
-            uniqueInitStates_ik, carrierDensity, dE, dEEigInit, omega, totalDeltaNj, transitionRate, thermalize, &
-            writeEiRate, njRateOfChange, energyTransferRate, energyTransferRate_i)
-
-      if(thermalize .and. ionode) call ERateToTRate(nModes, energyTransferRate, njNextEst, omega, tempNextEst, localHeatingRate)
-
-      !-----------------------------------------------------------
-      ! Based on endpoint estimate
-      if(ionode) then
-        ! Fourth  estimated slope is at the next time point.
-        ! Calculate the total estimated rate of change based on a weighted
-        ! average of the four estimated slopes.
-        ! Update estimate of njBase with final estimated rate of change.
-        if(thermalize) then
-          k4 = localHeatingRate
-          localHeatingRate = (k1(1) + 2.0d0*k2(1) + 2.0d0*k3(1) + k4(1))/6.0d0 
-          temperature = temperature + localHeatingRate*dt
+          temperature = 2.0d0*tempNew - temperature
           write(53,'(i10, f10.1)') iRt, temperature
           call getNjFromTemp(nModes, omega, temperature, njBase)
         else
-          k4(:) = njRateOfChange(:)
-          njRateOfChange(:) = (k1(:) + 2.0d0*k2(:) + 2.0d0*k3(:) + k4(:))/6.0d0 
-          njBase(:) = njBase(:) + njRateOfChange(:)*dt
+          njBase(:) = 2.0d0*njNew(:) - njBase(:)
         endif
       endif
 
+      !-----------------------------------------------------------
       ! Broadcast to all processes and write
       call MPI_BCAST(temperature, 1, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
       call MPI_BCAST(njBase, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
-      call MPI_BCAST(njRateOfChange, nModes, MPI_DOUBLE_PRECISION, root, worldComm, ierr)
 
       if(ionode) write(*, '("Writing occupations for time-integration step ",i5)') iRt
 
@@ -2191,7 +2191,6 @@ contains
     deallocate(dEEigInit)
     deallocate(carrierDensity)
     deallocate(energyTransferRate_i)
-    deallocate(k1, k2, k3, k4)
 
     return
 

@@ -28,10 +28,11 @@ program LSFmain
   if(ionode) write(*, '("Getting input parameters and reading necessary input files.")')
   call cpu_time(timer1)
 
-  call readInputParams(iSpin, nRealTimeSteps, order, dt, dtau, energyAvgWindow, gamma0, hbarGamma, maxTime_transRate, &
-        SjThresh, smearingExpTolerance, addDeltaNj, captured, diffOmega, generateNewOccupations, newEnergyTable, &
-        oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, &
-        EiRateOutDir, matrixElementDir, MjBaseDir, njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
+  call readInputParams(iSpin, maxIterPerTimeStep, nRealTimeSteps, order, dt, dtau, energyAvgWindow, gamma0, &
+        hbarGamma, maxTime_transRate, SjThresh, smearingExpTolerance, tolForStepConverge, addDeltaNj, captured, &
+        diffOmega, generateNewOccupations, newEnergyTable, oldFormat, rereadDq, reSortMEs, thermalize, writeEiRate, &
+        carrierDensityInput, deltaNjBaseDir, dqInput, energyTableDir, EiRateOutDir, matrixElementDir, MjBaseDir, &
+        njBaseInput, njNewOutDir, optimalPairsInput, prefix, SjBaseDir, transRateOutDir)
 
 
   nStepsLocal_transRate = ceiling((maxTime_transRate/dtau)/nProcPerPool)
@@ -128,10 +129,10 @@ program LSFmain
   ! Only pass a slice over transitions  here because we know for scattering
   ! there is no parallelization over k-points.
   if(generateNewOccupations) &
-    call realTimeIntegration(mDim, nModes, nRealTimeSteps, nTransitions, order, ibi, ibf, iki, ikf, iSpin, &
+    call realTimeIntegration(iSpin, maxIterPerTimeStep, mDim, nModes, nRealTimeSteps, nTransitions, ibi, ibf, iki, ikf, order, &
           dE, deltaNjInitApproach, dt, dtau, energyAvgWindow, gamma0, matrixElement, njBase, omega, omegaPrime, Sj, SjPrime, &
-          temperature, SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, thermalize, writeEiRate, &
-          carrierDensityInput, EiRateOutDir, energyTableDir, njNewOutDir, transRateOutDir, volumeLine)
+          temperature, tolForStepConverge, SjThresh, totalDeltaNj, transitionRate, addDeltaNj, captured, diffOmega, thermalize, &
+          writeEiRate, carrierDensityInput, EiRateOutDir, energyTableDir, njNewOutDir, transRateOutDir, volumeLine)
 
 
   deallocate(dE)
